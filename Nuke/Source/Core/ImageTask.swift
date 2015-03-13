@@ -20,14 +20,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#import <UIKit/UIKit.h>
+import Foundation
 
-//! Project version number for Nuke.
-FOUNDATION_EXPORT double NukeVersionNumber;
-
-//! Project version string for Nuke.
-FOUNDATION_EXPORT const unsigned char NukeVersionString[];
-
-// In this header, you should import all the public headers of your framework using statements like #import <Nuke/PublicHeader.h>
-
-
+public class ImageTask {
+    // TODO: Add request
+    // TODO: Add response
+    // TODO: Add progress
+    // TODO: Add completion
+    
+    public func resume() -> Void {
+        return
+    }
+    
+    public func cancel() -> Void {
+        return
+    }
+}

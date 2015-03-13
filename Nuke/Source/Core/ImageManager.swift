@@ -20,14 +20,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#import <UIKit/UIKit.h>
+import Foundation
+import Photos
 
-//! Project version number for Nuke.
-FOUNDATION_EXPORT double NukeVersionNumber;
+public enum ImageContentMode {
+    case AspectFill
+    case AspectFit
+}
 
-//! Project version string for Nuke.
-FOUNDATION_EXPORT const unsigned char NukeVersionString[];
-
-// In this header, you should import all the public headers of your framework using statements like #import <Nuke/PublicHeader.h>
-
-
+public class ImageManager {
+    func requestImage(URL: NSURL, completionHandler: (ImageResponse)) -> ImageTask {
+        return ImageTask()
+    }
+    
+    func requestImage(URL: NSURL, targetSize: CGSize, contentMode: ImageContentMode, options: ImageRequestOptions, completionHandler: (ImageResponse)) -> ImageTask {
+        return ImageTask()
+    }
+    
+    func requestImage(request: ImageRequest, completionHandler: (ImageResponse)) -> ImageTask {
+        return ImageTask()
+    }
+    
+    func startPreheatingImages(requests: [ImageRequest]) {
+        
+    }
+    
+    func stopPreheatingImages(request: [ImageRequest]) {
+        
+    }
+    
+    func stopPreheatingImages() {
+        
+    }
+}
