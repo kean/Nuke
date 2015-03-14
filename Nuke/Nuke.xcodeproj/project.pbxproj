@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C207FC71AB46BA50044FEFF /* ImageManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C207FC61AB46BA50044FEFF /* ImageManagerTest.swift */; };
 		0C6D19011AB279680020E5A9 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C6D18F51AB279680020E5A9 /* Nuke.framework */; };
 		0C6D19081AB279680020E5A9 /* NukeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19071AB279680020E5A9 /* NukeTests.swift */; };
 		0C6D19161AB279DA0020E5A9 /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C6D19151AB279DA0020E5A9 /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -28,6 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0C207FC61AB46BA50044FEFF /* ImageManagerTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManagerTest.swift; sourceTree = "<group>"; };
 		0C6D18F51AB279680020E5A9 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C6D19001AB279680020E5A9 /* NukeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NukeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C6D19061AB279680020E5A9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -83,6 +85,7 @@
 			isa = PBXGroup;
 			children = (
 				0C6D19071AB279680020E5A9 /* NukeTests.swift */,
+				0C207FC61AB46BA50044FEFF /* ImageManagerTest.swift */,
 				0C6D19051AB279680020E5A9 /* Supporting Files */,
 			);
 			path = NukeTests;
@@ -245,6 +248,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C6D19081AB279680020E5A9 /* NukeTests.swift in Sources */,
+				0C207FC71AB46BA50044FEFF /* ImageManagerTest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

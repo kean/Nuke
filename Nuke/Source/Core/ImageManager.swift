@@ -56,30 +56,53 @@ public class ImageManager {
         
     }
     
-    func resumeTask(task: ImageTaskInternal) {
+    func resumeImageTask(task: ImageTaskInternal) {
         // TODO: Cache lookup
         dispatch_async(self.queue) {
             // TODO: Check if task can be executed at the moment (see preheating)
             if (task.state == .Suspended) {
-                // TODO: Make it possible to suspend image task!
-                let sessionTaskKey = ImageSessionTaskKey(task.request)
-                var sessionTask: ImageSessionTask! = self.sessionTasks[sessionTaskKey]
-                if sessionTask == nil {
-                    let request = NSURLRequest(URL: task.request.URL)
-                    let dataTask = NSURLSession.sharedSession().dataTaskWithRequest(request, completionHandler: { (data: NSData!, response: NSURLResponse!, error: NSError!) -> Void in
-                        // TODO: Handle completion
-                    })
-                    sessionTask = ImageSessionTask(dataTask: dataTask)
-                    self.sessionTasks[sessionTaskKey] = sessionTask
-                }
-                
+                task.state = .Running
+                self.executeImageTask(task)
             }
         }
     }
     
-    func cancelTask(task: ImageTaskInternal) {
+    func executeImageTask(imageTask: ImageTaskInternal) {
+        let sessionTaskKey = ImageSessionTaskKey(imageTask.request)
+        var sessionTask: ImageSessionTask! = self.sessionTasks[sessionTaskKey]
+        if sessionTask == nil {
+            sessionTask = ImageSessionTask(key: sessionTaskKey)
+            let request = NSURLRequest(URL: imageTask.request.URL)
+            sessionTask.dataTask = NSURLSession.sharedSession().dataTaskWithRequest(request) { [weak self] (data: NSData!, _, error: NSError!) -> Void in
+                self?.dataTaskDidComplete(sessionTask, data: data, error: error)
+                return
+            }
+            self.sessionTasks[sessionTaskKey] = sessionTask
+            sessionTask.dataTask.resume()
+        }
+        sessionTask.imageTasks.append(imageTask)
+        imageTask.sessionTask = sessionTask // we will break the retain cycle later
+    }
+    
+    func dataTaskDidComplete(sessionTask: ImageSessionTask,  data: NSData!, error: NSError!) {
         dispatch_async(self.queue) {
-            // TODO: Find internal task
+            for imageTask in sessionTask.imageTasks {
+                // TODO: Start processing instead of this
+                dispatch_async(dispatch_get_main_queue()) {
+                    imageTask.completionHandler?(ImageResponse(image: nil))
+                }
+            }
+            sessionTask.imageTasks.removeAll(keepCapacity: false)
+        }
+    }
+    
+    func cancelImageTask(imageTask: ImageTaskInternal) {
+        dispatch_async(self.queue) {
+            if let sessionTask = imageTask.sessionTask {
+                // TODO: Remove imageTask
+                // TODO: If imageTaskCount = 0, cancel sessionTask
+            }
+            // TODO: Cancel processing operation (when it's implemented)
         }
     }
     
@@ -90,8 +113,8 @@ public class ImageManager {
     }
     
     class ImageTaskInternal: ImageTask {
-        var sessionTask: ImageSessionTask?
         var state = ImageTaskState.Suspended
+        var sessionTask: ImageSessionTask?
         
         // TODO: Make weak?
         let manager: ImageManager
@@ -102,20 +125,21 @@ public class ImageManager {
         }
         
         override func resume() {
-            self.manager.resumeTask(self)
+            self.manager.resumeImageTask(self)
         }
         
         override func cancel() {
-            self.manager.cancelTask(self)
+            self.manager.cancelImageTask(self)
         }
     }
     
     class ImageSessionTask {
-        let dataTask: NSURLSessionDataTask
-        var tasks = [ImageTask]()
+        var dataTask: NSURLSessionDataTask!
+        let key: ImageSessionTaskKey
+        var imageTasks = [ImageTask]()
         
-        init(dataTask: NSURLSessionDataTask) {
-            self.dataTask = dataTask
+        init(key: ImageSessionTaskKey) {
+            self.key = key
         }
     }
 }
