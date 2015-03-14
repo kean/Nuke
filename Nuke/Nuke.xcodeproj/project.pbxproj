@@ -13,7 +13,6 @@
 		0C6D191A1AB27A800020E5A9 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19191AB27A800020E5A9 /* ImageManager.swift */; };
 		0C6D19241AB27B740020E5A9 /* ImageRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19231AB27B740020E5A9 /* ImageRequest.swift */; };
 		0C6D19281AB27D9D0020E5A9 /* ImageRequestOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19271AB27D9D0020E5A9 /* ImageRequestOptions.swift */; };
-		0C9922D71AB44D72003045B1 /* ImageTaskInternal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9922D61AB44D72003045B1 /* ImageTaskInternal.swift */; };
 		0CB923CB1AB30F5700EEEC51 /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB923CA1AB30F5700EEEC51 /* ImageTask.swift */; };
 		0CB923CD1AB3171000EEEC51 /* ImageResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB923CC1AB3171000EEEC51 /* ImageResponse.swift */; };
 /* End PBXBuildFile section */
@@ -38,7 +37,6 @@
 		0C6D19191AB27A800020E5A9 /* ImageManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManager.swift; sourceTree = "<group>"; };
 		0C6D19231AB27B740020E5A9 /* ImageRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequest.swift; sourceTree = "<group>"; };
 		0C6D19271AB27D9D0020E5A9 /* ImageRequestOptions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestOptions.swift; sourceTree = "<group>"; };
-		0C9922D61AB44D72003045B1 /* ImageTaskInternal.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageTaskInternal.swift; sourceTree = "<group>"; };
 		0CB923CA1AB30F5700EEEC51 /* ImageTask.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageTask.swift; sourceTree = "<group>"; };
 		0CB923CC1AB3171000EEEC51 /* ImageResponse.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageResponse.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -123,7 +121,6 @@
 				0C6D19231AB27B740020E5A9 /* ImageRequest.swift */,
 				0C6D19271AB27D9D0020E5A9 /* ImageRequestOptions.swift */,
 				0CB923CC1AB3171000EEEC51 /* ImageResponse.swift */,
-				0C9922D61AB44D72003045B1 /* ImageTaskInternal.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -238,7 +235,6 @@
 				0C6D19281AB27D9D0020E5A9 /* ImageRequestOptions.swift in Sources */,
 				0C6D191A1AB27A800020E5A9 /* ImageManager.swift in Sources */,
 				0CB923CD1AB3171000EEEC51 /* ImageResponse.swift in Sources */,
-				0C9922D71AB44D72003045B1 /* ImageTaskInternal.swift in Sources */,
 				0C6D19241AB27B740020E5A9 /* ImageRequest.swift in Sources */,
 				0CB923CB1AB30F5700EEEC51 /* ImageTask.swift in Sources */,
 			);

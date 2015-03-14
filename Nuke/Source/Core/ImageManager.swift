@@ -33,7 +33,7 @@ public typealias ImageCompletionHandler = (ImageResponse) -> Void
 
 public class ImageManager {
     let queue = dispatch_queue_create("ImageManager-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
-    var tasks = [ImageRequestFetchKey: ImageTaskInternal]()
+    var sessionTasks = [ImageSessionTaskKey: ImageSessionTask]()
     
     public init() {
         
@@ -41,7 +41,7 @@ public class ImageManager {
     
     public func imageTaskWithRequest(request: ImageRequest, completionHandler: ImageCompletionHandler?) -> ImageTask {
         // TODO: Create canonical request
-        return ImageTask(manager: self, request: request, completionHandler: completionHandler)
+        return ImageTaskInternal(manager: self, request: request, completionHandler: completionHandler)
     }
     
     public func startPreheatingImages(requests: [ImageRequest]) {
@@ -56,28 +56,71 @@ public class ImageManager {
         
     }
     
-    func resumeTask(task: ImageTask) {
+    func resumeTask(task: ImageTaskInternal) {
         // TODO: Cache lookup
         dispatch_async(self.queue) {
-            let requestKey = ImageRequestFetchKey(task.request)
-            var internalTask = self.tasks[requestKey]
-            if internalTask == nil {
-                internalTask = ImageTaskInternal(request: task.request, key: requestKey)
-                // TODO: Configure task for execution
-                self.tasks[requestKey] = internalTask
+            // TODO: Check if task can be executed at the moment (see preheating)
+            if (task.state == .Suspended) {
+                // TODO: Make it possible to suspend image task!
+                let sessionTaskKey = ImageSessionTaskKey(task.request)
+                var sessionTask: ImageSessionTask! = self.sessionTasks[sessionTaskKey]
+                if sessionTask == nil {
+                    let request = NSURLRequest(URL: task.request.URL)
+                    let dataTask = NSURLSession.sharedSession().dataTaskWithRequest(request, completionHandler: { (data: NSData!, response: NSURLResponse!, error: NSError!) -> Void in
+                        // TODO: Handle completion
+                    })
+                    sessionTask = ImageSessionTask(dataTask: dataTask)
+                    self.sessionTasks[sessionTaskKey] = sessionTask
+                }
+                
             }
-            // TODO: Add handler and execute
         }
     }
     
-    func cancelTask(task: ImageTask) {
+    func cancelTask(task: ImageTaskInternal) {
         dispatch_async(self.queue) {
             // TODO: Find internal task
         }
     }
+    
+    enum ImageTaskState {
+        case Suspended
+        case Running
+        case Completed
+    }
+    
+    class ImageTaskInternal: ImageTask {
+        var sessionTask: ImageSessionTask?
+        var state = ImageTaskState.Suspended
+        
+        // TODO: Make weak?
+        let manager: ImageManager
+        
+        init(manager: ImageManager, request: ImageRequest, completionHandler: ImageCompletionHandler?) {
+            self.manager = manager
+            super.init(request: request, completionHandler: completionHandler)
+        }
+        
+        override func resume() {
+            self.manager.resumeTask(self)
+        }
+        
+        override func cancel() {
+            self.manager.cancelTask(self)
+        }
+    }
+    
+    class ImageSessionTask {
+        let dataTask: NSURLSessionDataTask
+        var tasks = [ImageTask]()
+        
+        init(dataTask: NSURLSessionDataTask) {
+            self.dataTask = dataTask
+        }
+    }
 }
 
-class ImageRequestFetchKey: Hashable {
+class ImageSessionTaskKey: Hashable {
     let request: ImageRequest
     var hashValue: Int {
         return self.request.URL.hashValue
@@ -88,7 +131,7 @@ class ImageRequestFetchKey: Hashable {
     }
 }
 
-func ==(lhs: ImageRequestFetchKey, rhs: ImageRequestFetchKey) -> Bool {
+func ==(lhs: ImageSessionTaskKey, rhs: ImageSessionTaskKey) -> Bool {
     // TODO: Add more stuff, when options are extended with additional properties
     return lhs.request.URL == rhs.request.URL
 }

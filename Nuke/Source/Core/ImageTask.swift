@@ -26,24 +26,15 @@ public class ImageTask {
     public let request: ImageRequest
     public let progress = NSProgress()
     public internal(set) var respone: ImageResponse?
-    
-    // TODO: Add state
-    
-    // TODO: Make weak?
-    let manager: ImageManager
     let completionHandler: ImageCompletionHandler?
     
-    init(manager: ImageManager, request: ImageRequest, completionHandler: ImageCompletionHandler?) {
-        self.manager = manager
+    init(request: ImageRequest, completionHandler: ImageCompletionHandler?) {
         self.request = request
         self.completionHandler = completionHandler
     }
     
-    public func resume() {
-        self.manager.resumeTask(self)
-    }
-    
-    public func cancel() {
-        self.manager.cancelTask(self)
-    }
+    /* abstract */ public func resume() {}
+    /* abstract */ public func cancel() {}
+
+    // TODO: Add a way to suspend task
 }
