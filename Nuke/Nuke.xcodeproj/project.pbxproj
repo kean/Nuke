@@ -117,9 +117,9 @@
 			isa = PBXGroup;
 			children = (
 				0C6D19191AB27A800020E5A9 /* ImageManager.swift */,
+				0CB923CA1AB30F5700EEEC51 /* ImageTask.swift */,
 				0C6D19231AB27B740020E5A9 /* ImageRequest.swift */,
 				0C6D19271AB27D9D0020E5A9 /* ImageRequestOptions.swift */,
-				0CB923CA1AB30F5700EEEC51 /* ImageTask.swift */,
 				0CB923CC1AB3171000EEEC51 /* ImageResponse.swift */,
 			);
 			path = Core;

@@ -23,16 +23,27 @@
 import Foundation
 
 public class ImageTask {
-    // TODO: Add request
-    // TODO: Add response
-    // TODO: Add progress
-    // TODO: Add completion
+    public let request: ImageRequest
+    public let progress = NSProgress()
+    public internal(set) var respone: ImageResponse?
+    
+    // TODO: Add state
+    
+    // TODO: Make weak?
+    let manager: ImageManager
+    let completionHandler: ImageCompletionHandler?
+    
+    init(manager: ImageManager, request: ImageRequest, completionHandler: ImageCompletionHandler?) {
+        self.manager = manager
+        self.request = request
+        self.completionHandler = completionHandler
+    }
     
     public func resume() {
-        return
+        self.manager.resumeTask(self)
     }
     
     public func cancel() {
-        return
+        self.manager.cancelTask(self)
     }
 }

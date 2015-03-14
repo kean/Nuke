@@ -21,7 +21,6 @@
 // THE SOFTWARE.
 
 import Foundation
-import Photos
 
 public enum ImageContentMode {
     case AspectFill
@@ -30,14 +29,18 @@ public enum ImageContentMode {
 
 let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 
+public typealias ImageCompletionHandler = (ImageResponse) -> Void
 
 public class ImageManager {
+    let queue = dispatch_queue_create("ImageManager-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
+    
     public init() {
         
     }
     
-    public func requestImage(request: ImageRequest, completionHandler: ((ImageResponse) -> Void)?) -> ImageTask {
-        return ImageTask()
+    public func imageTaskWithRequest(request: ImageRequest, completionHandler: ImageCompletionHandler?) -> ImageTask {
+        // TODO: Create canonical request
+        return ImageTask(manager: self, request: request, completionHandler: completionHandler)
     }
     
     public func startPreheatingImages(requests: [ImageRequest]) {
@@ -50,5 +53,18 @@ public class ImageManager {
     
     public func stopPreheatingImages() {
         
+    }
+    
+    func resumeTask(task: ImageTask) {
+        // TODO: Cache lookup
+        dispatch_async(self.queue) {
+            // TODO: Find internal task
+        }
+    }
+    
+    func cancelTask(task: ImageTask) {
+        dispatch_async(self.queue) {
+            // TODO: Find internal task
+        }
     }
 }

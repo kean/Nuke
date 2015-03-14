@@ -23,5 +23,7 @@
 import Foundation
 
 public class ImageRequestOptions {
-    
+    public init() {
+        
+    }
 }

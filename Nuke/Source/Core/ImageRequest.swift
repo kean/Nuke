@@ -27,4 +27,11 @@ public struct ImageRequest {
     public var targetSize: CGSize
     public var contentMode: ImageContentMode
     public var options: ImageRequestOptions
+    
+    public init(URL: NSURL, targetSize: CGSize = ImageMaximumSize, contentMode: ImageContentMode = .AspectFill, options: ImageRequestOptions = ImageRequestOptions()) {
+        self.URL = URL
+        self.targetSize = targetSize
+        self.contentMode = contentMode
+        self.options = options
+    }
 }

@@ -23,7 +23,7 @@
 import Foundation
 
 public class ImageResponse {
-    let image: UIImage?
+    public let image: UIImage?
     
     init(image: UIImage?) {
         self.image = image
