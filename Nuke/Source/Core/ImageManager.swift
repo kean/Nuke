@@ -33,6 +33,7 @@ public typealias ImageCompletionHandler = (ImageResponse) -> Void
 
 public class ImageManager {
     let queue = dispatch_queue_create("ImageManager-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
+    var tasks = [ImageRequestFetchKey: ImageTaskInternal]()
     
     public init() {
         
@@ -58,7 +59,14 @@ public class ImageManager {
     func resumeTask(task: ImageTask) {
         // TODO: Cache lookup
         dispatch_async(self.queue) {
-            // TODO: Find internal task
+            let requestKey = ImageRequestFetchKey(task.request)
+            var internalTask = self.tasks[requestKey]
+            if internalTask == nil {
+                internalTask = ImageTaskInternal(request: task.request, key: requestKey)
+                // TODO: Configure task for execution
+                self.tasks[requestKey] = internalTask
+            }
+            // TODO: Add handler and execute
         }
     }
     
@@ -67,4 +75,20 @@ public class ImageManager {
             // TODO: Find internal task
         }
     }
+}
+
+class ImageRequestFetchKey: Hashable {
+    let request: ImageRequest
+    var hashValue: Int {
+        return self.request.URL.hashValue
+    }
+    
+    init(_ request: ImageRequest) {
+        self.request = request
+    }
+}
+
+func ==(lhs: ImageRequestFetchKey, rhs: ImageRequestFetchKey) -> Bool {
+    // TODO: Add more stuff, when options are extended with additional properties
+    return lhs.request.URL == rhs.request.URL
 }
