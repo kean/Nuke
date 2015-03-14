@@ -22,11 +22,15 @@
 
 import Foundation
 
-public class ImageTask {
+public class ImageTask: Hashable {
     public let request: ImageRequest
     public let progress = NSProgress()
     public internal(set) var respone: ImageResponse?
     let completionHandler: ImageCompletionHandler?
+    
+    public var hashValue: Int {
+        return self.request.URL.hashValue
+    }
     
     init(request: ImageRequest, completionHandler: ImageCompletionHandler?) {
         self.request = request
@@ -37,4 +41,8 @@ public class ImageTask {
     /* abstract */ public func cancel() {}
 
     // TODO: Add a way to suspend task
+}
+
+public func ==(lhs: ImageTask, rhs: ImageTask) -> Bool {
+    return lhs === rhs
 }

@@ -80,7 +80,7 @@ public class ImageManager {
             self.sessionTasks[sessionTaskKey] = sessionTask
             sessionTask.dataTask.resume()
         }
-        sessionTask.imageTasks.append(imageTask)
+        sessionTask.imageTasks.insert(imageTask)
         imageTask.sessionTask = sessionTask // we will break the retain cycle later
     }
     
@@ -99,8 +99,10 @@ public class ImageManager {
     func cancelImageTask(imageTask: ImageTaskInternal) {
         dispatch_async(self.queue) {
             if let sessionTask = imageTask.sessionTask {
-                // TODO: Remove imageTask
-                // TODO: If imageTaskCount = 0, cancel sessionTask
+                sessionTask.imageTasks.remove(imageTask)
+                if sessionTask.imageTasks.count == 0 {
+                    // TODO: If imageTaskCount = 0, cancel sessionTask
+                }
             }
             // TODO: Cancel processing operation (when it's implemented)
         }
@@ -136,7 +138,7 @@ public class ImageManager {
     class ImageSessionTask {
         var dataTask: NSURLSessionDataTask!
         let key: ImageSessionTaskKey
-        var imageTasks = [ImageTask]()
+        var imageTasks = Set<ImageTaskInternal>()
         
         init(key: ImageSessionTaskKey) {
             self.key = key
