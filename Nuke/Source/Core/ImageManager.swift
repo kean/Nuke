@@ -28,28 +28,27 @@ public enum ImageContentMode {
     case AspectFit
 }
 
+let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
+
+
 public class ImageManager {
-    func requestImage(URL: NSURL, completionHandler: (ImageResponse)) -> ImageTask {
-        return ImageTask()
-    }
-    
-    func requestImage(URL: NSURL, targetSize: CGSize, contentMode: ImageContentMode, options: ImageRequestOptions, completionHandler: (ImageResponse)) -> ImageTask {
-        return ImageTask()
-    }
-    
-    func requestImage(request: ImageRequest, completionHandler: (ImageResponse)) -> ImageTask {
-        return ImageTask()
-    }
-    
-    func startPreheatingImages(requests: [ImageRequest]) {
+    public init() {
         
     }
     
-    func stopPreheatingImages(request: [ImageRequest]) {
+    public func requestImage(request: ImageRequest, completionHandler: ((ImageResponse) -> Void)?) -> ImageTask {
+        return ImageTask()
+    }
+    
+    public func startPreheatingImages(requests: [ImageRequest]) {
         
     }
     
-    func stopPreheatingImages() {
+    public func stopPreheatingImages(request: [ImageRequest]) {
+        
+    }
+    
+    public func stopPreheatingImages() {
         
     }
 }

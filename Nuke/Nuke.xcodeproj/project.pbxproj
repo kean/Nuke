@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		0C6D19011AB279680020E5A9 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C6D18F51AB279680020E5A9 /* Nuke.framework */; };
 		0C6D19081AB279680020E5A9 /* NukeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19071AB279680020E5A9 /* NukeTests.swift */; };
-		0C6D19131AB279B90020E5A9 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0C6D19121AB279B90020E5A9 /* Info.plist */; };
 		0C6D19161AB279DA0020E5A9 /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C6D19151AB279DA0020E5A9 /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0C6D191A1AB27A800020E5A9 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19191AB27A800020E5A9 /* ImageManager.swift */; };
 		0C6D19241AB27B740020E5A9 /* ImageRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19231AB27B740020E5A9 /* ImageRequest.swift */; };
@@ -216,7 +215,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C6D19131AB279B90020E5A9 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

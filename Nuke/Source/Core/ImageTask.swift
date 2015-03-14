@@ -28,11 +28,11 @@ public class ImageTask {
     // TODO: Add progress
     // TODO: Add completion
     
-    public func resume() -> Void {
+    public func resume() {
         return
     }
     
-    public func cancel() -> Void {
+    public func cancel() {
         return
     }
 }

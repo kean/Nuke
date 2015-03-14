@@ -22,6 +22,9 @@
 
 import Foundation
 
-public class ImageRequest {
-
+public struct ImageRequest {
+    public var URL: NSURL
+    public var targetSize: CGSize
+    public var contentMode: ImageContentMode
+    public var options: ImageRequestOptions
 }
