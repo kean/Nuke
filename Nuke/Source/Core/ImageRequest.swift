@@ -24,14 +24,16 @@ import Foundation
 
 public struct ImageRequest {
     public var URL: NSURL
-    public var targetSize: CGSize
-    public var contentMode: ImageContentMode
-    public var options: ImageRequestOptions
+    public var targetSize: CGSize = ImageMaximumSize
+    public var contentMode: ImageContentMode = .AspectFill
     
-    public init(URL: NSURL, targetSize: CGSize = ImageMaximumSize, contentMode: ImageContentMode = .AspectFill, options: ImageRequestOptions = ImageRequestOptions()) {
+    public init(URL: NSURL, targetSize: CGSize, contentMode: ImageContentMode) {
         self.URL = URL
         self.targetSize = targetSize
         self.contentMode = contentMode
-        self.options = options
+    }
+    
+    public init(URL: NSURL) {
+        self.URL = URL
     }
 }

@@ -8,12 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		0C207FC71AB46BA50044FEFF /* ImageManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C207FC61AB46BA50044FEFF /* ImageManagerTest.swift */; };
+		0C207FC91AB4838A0044FEFF /* URLSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C207FC81AB4838A0044FEFF /* URLSessionManager.swift */; };
+		0C207FCF1AB485A10044FEFF /* MockURLSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C207FCE1AB485A10044FEFF /* MockURLSessionManager.swift */; };
+		0C207FD11AB485AD0044FEFF /* MockURLSsessionDataTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C207FD01AB485AD0044FEFF /* MockURLSsessionDataTask.swift */; };
 		0C6D19011AB279680020E5A9 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C6D18F51AB279680020E5A9 /* Nuke.framework */; };
 		0C6D19081AB279680020E5A9 /* NukeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19071AB279680020E5A9 /* NukeTests.swift */; };
 		0C6D19161AB279DA0020E5A9 /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C6D19151AB279DA0020E5A9 /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0C6D191A1AB27A800020E5A9 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19191AB27A800020E5A9 /* ImageManager.swift */; };
 		0C6D19241AB27B740020E5A9 /* ImageRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19231AB27B740020E5A9 /* ImageRequest.swift */; };
-		0C6D19281AB27D9D0020E5A9 /* ImageRequestOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19271AB27D9D0020E5A9 /* ImageRequestOptions.swift */; };
 		0CB923CB1AB30F5700EEEC51 /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB923CA1AB30F5700EEEC51 /* ImageTask.swift */; };
 		0CB923CD1AB3171000EEEC51 /* ImageResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB923CC1AB3171000EEEC51 /* ImageResponse.swift */; };
 /* End PBXBuildFile section */
@@ -30,6 +32,9 @@
 
 /* Begin PBXFileReference section */
 		0C207FC61AB46BA50044FEFF /* ImageManagerTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManagerTest.swift; sourceTree = "<group>"; };
+		0C207FC81AB4838A0044FEFF /* URLSessionManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = URLSessionManager.swift; sourceTree = "<group>"; };
+		0C207FCE1AB485A10044FEFF /* MockURLSessionManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockURLSessionManager.swift; sourceTree = "<group>"; };
+		0C207FD01AB485AD0044FEFF /* MockURLSsessionDataTask.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockURLSsessionDataTask.swift; sourceTree = "<group>"; };
 		0C6D18F51AB279680020E5A9 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C6D19001AB279680020E5A9 /* NukeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NukeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C6D19061AB279680020E5A9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -38,7 +43,6 @@
 		0C6D19151AB279DA0020E5A9 /* Nuke.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0C6D19191AB27A800020E5A9 /* ImageManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManager.swift; sourceTree = "<group>"; };
 		0C6D19231AB27B740020E5A9 /* ImageRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequest.swift; sourceTree = "<group>"; };
-		0C6D19271AB27D9D0020E5A9 /* ImageRequestOptions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestOptions.swift; sourceTree = "<group>"; };
 		0CB923CA1AB30F5700EEEC51 /* ImageTask.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageTask.swift; sourceTree = "<group>"; };
 		0CB923CC1AB3171000EEEC51 /* ImageResponse.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageResponse.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -62,6 +66,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0C207FD21AB486410044FEFF /* Mocks */ = {
+			isa = PBXGroup;
+			children = (
+				0C207FCE1AB485A10044FEFF /* MockURLSessionManager.swift */,
+				0C207FD01AB485AD0044FEFF /* MockURLSsessionDataTask.swift */,
+			);
+			name = Mocks;
+			sourceTree = "<group>";
+		};
 		0C6D18EB1AB279680020E5A9 = {
 			isa = PBXGroup;
 			children = (
@@ -86,6 +99,7 @@
 			children = (
 				0C6D19071AB279680020E5A9 /* NukeTests.swift */,
 				0C207FC61AB46BA50044FEFF /* ImageManagerTest.swift */,
+				0C207FD21AB486410044FEFF /* Mocks */,
 				0C6D19051AB279680020E5A9 /* Supporting Files */,
 			);
 			path = NukeTests;
@@ -122,8 +136,8 @@
 				0C6D19191AB27A800020E5A9 /* ImageManager.swift */,
 				0CB923CA1AB30F5700EEEC51 /* ImageTask.swift */,
 				0C6D19231AB27B740020E5A9 /* ImageRequest.swift */,
-				0C6D19271AB27D9D0020E5A9 /* ImageRequestOptions.swift */,
 				0CB923CC1AB3171000EEEC51 /* ImageResponse.swift */,
+				0C207FC81AB4838A0044FEFF /* URLSessionManager.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -235,7 +249,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C6D19281AB27D9D0020E5A9 /* ImageRequestOptions.swift in Sources */,
+				0C207FC91AB4838A0044FEFF /* URLSessionManager.swift in Sources */,
 				0C6D191A1AB27A800020E5A9 /* ImageManager.swift in Sources */,
 				0CB923CD1AB3171000EEEC51 /* ImageResponse.swift in Sources */,
 				0C6D19241AB27B740020E5A9 /* ImageRequest.swift in Sources */,
@@ -248,7 +262,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C6D19081AB279680020E5A9 /* NukeTests.swift in Sources */,
+				0C207FD11AB485AD0044FEFF /* MockURLSsessionDataTask.swift in Sources */,
 				0C207FC71AB46BA50044FEFF /* ImageManagerTest.swift in Sources */,
+				0C207FCF1AB485A10044FEFF /* MockURLSessionManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -22,8 +22,13 @@
 
 import Foundation
 
-public class ImageRequestOptions {
-    public init() {
-        
+public class URLSessionManager {
+    // TODO: Add initialization with session, etc
+    public init() {}
+    
+    public func dataTaskWithRequest(request: NSURLRequest, completionHandler: (data: NSData?, response: NSURLResponse?, error: NSError?) -> Void) -> NSURLSessionDataTask {
+        return NSURLSession.sharedSession().dataTaskWithRequest(request, completionHandler: { (data: NSData!, response: NSURLResponse!, error: NSError!) -> Void in
+            completionHandler(data: data, response: response, error: error)
+        })
     }
 }

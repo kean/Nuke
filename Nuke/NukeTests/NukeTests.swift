@@ -6,6 +6,7 @@
 //  Copyright (c) 2015 Alexander Grebenyuk. All rights reserved.
 //
 
+import Nuke
 import UIKit
 import XCTest
 
@@ -22,8 +23,13 @@ class NukeTests: XCTestCase {
     }
     
     func testExample() {
-        // This is an example of a functional test case.
-        XCTAssert(true, "Pass")
+        let manager = ImageManager(sessionManager: URLSessionManager())
+        let request = ImageRequest(URL: NSURL(string: "https://raw.githubusercontent.com/kean/DFImageManager/master/DFImageManager/Tests/Resources/Image.jpg")!)
+        let expectation = self.expectationWithDescription("Desc")
+        let task = manager.imageTaskWithRequest(request) { (response) -> Void in
+            expectation.fulfill()
+        }.resume()
+        self.waitForExpectationsWithTimeout(10.0, handler: nil)
     }
     
     func testPerformanceExample() {

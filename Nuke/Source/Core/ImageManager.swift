@@ -32,11 +32,12 @@ let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 public typealias ImageCompletionHandler = (ImageResponse) -> Void
 
 public class ImageManager {
+    public let sessionManager: URLSessionManager
     let queue = dispatch_queue_create("ImageManager-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
     var sessionTasks = [ImageSessionTaskKey: ImageSessionTask]()
     
-    public init() {
-        
+    public init(sessionManager: URLSessionManager) {
+        self.sessionManager = sessionManager
     }
     
     public func imageTaskWithRequest(request: ImageRequest, completionHandler: ImageCompletionHandler?) -> ImageTask {
@@ -59,11 +60,7 @@ public class ImageManager {
     func resumeImageTask(task: ImageTaskInternal) {
         // TODO: Cache lookup
         dispatch_async(self.queue) {
-            // TODO: Check if task can be executed at the moment (see preheating)
-            if (task.state == .Suspended) {
-                task.state = .Running
-                self.executeImageTask(task)
-            }
+            self.executeImageTask(task)
         }
     }
     
@@ -72,13 +69,13 @@ public class ImageManager {
         var sessionTask: ImageSessionTask! = self.sessionTasks[sessionTaskKey]
         if sessionTask == nil {
             sessionTask = ImageSessionTask(key: sessionTaskKey)
-            let request = NSURLRequest(URL: imageTask.request.URL)
-            sessionTask.dataTask = NSURLSession.sharedSession().dataTaskWithRequest(request) { [weak self] (data: NSData!, _, error: NSError!) -> Void in
+            let URLRequest = NSURLRequest(URL: imageTask.request.URL)
+            sessionTask.dataTask = self.sessionManager.dataTaskWithRequest(URLRequest) { [weak self] (data: NSData?, _, error: NSError?) -> Void in
                 self?.dataTaskDidComplete(sessionTask, data: data, error: error)
                 return
             }
             self.sessionTasks[sessionTaskKey] = sessionTask
-            sessionTask.dataTask.resume()
+            sessionTask.dataTask.resume() // TODO: Resume only when necessary
         }
         sessionTask.imageTasks.insert(imageTask)
         imageTask.sessionTask = sessionTask // we will break the retain cycle later
@@ -86,10 +83,10 @@ public class ImageManager {
     
     func dataTaskDidComplete(sessionTask: ImageSessionTask,  data: NSData!, error: NSError!) {
         dispatch_async(self.queue) {
+            let image = data != nil ? UIImage(data: data, scale: UIScreen.mainScreen().scale) : nil
             for imageTask in sessionTask.imageTasks {
-                // TODO: Start processing instead of this
                 dispatch_async(dispatch_get_main_queue()) {
-                    imageTask.completionHandler?(ImageResponse(image: nil))
+                    imageTask.completionHandler?(ImageResponse(image: image))
                 }
             }
             sessionTask.imageTasks.removeAll(keepCapacity: false)
@@ -98,24 +95,19 @@ public class ImageManager {
     
     func cancelImageTask(imageTask: ImageTaskInternal) {
         dispatch_async(self.queue) {
+            // TODO: Set task state
             if let sessionTask = imageTask.sessionTask {
                 sessionTask.imageTasks.remove(imageTask)
                 if sessionTask.imageTasks.count == 0 {
-                    // TODO: If imageTaskCount = 0, cancel sessionTask
+                    sessionTask.dataTask.cancel()
+                    self.sessionTasks.removeValueForKey(sessionTask.key)
                 }
             }
             // TODO: Cancel processing operation (when it's implemented)
         }
     }
     
-    enum ImageTaskState {
-        case Suspended
-        case Running
-        case Completed
-    }
-    
     class ImageTaskInternal: ImageTask {
-        var state = ImageTaskState.Suspended
         var sessionTask: ImageSessionTask?
         
         // TODO: Make weak?
@@ -126,8 +118,9 @@ public class ImageManager {
             super.init(request: request, completionHandler: completionHandler)
         }
         
-        override func resume() {
+        override func resume() -> Self {
             self.manager.resumeImageTask(self)
+            return self
         }
         
         override func cancel() {

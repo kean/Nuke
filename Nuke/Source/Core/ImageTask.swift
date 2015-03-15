@@ -37,7 +37,9 @@ public class ImageTask: Hashable {
         self.completionHandler = completionHandler
     }
     
-    /* abstract */ public func resume() {}
+    /* abstract */ public func resume() -> Self {
+        return self
+    }
     /* abstract */ public func cancel() {}
 
     // TODO: Add a way to suspend task
