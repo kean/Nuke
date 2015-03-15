@@ -41,7 +41,6 @@ public class ImageManager {
     }
     
     public func imageTaskWithRequest(request: ImageRequest, completionHandler: ImageCompletionHandler?) -> ImageTask {
-        // TODO: Create canonical request
         return ImageTaskInternal(manager: self, request: request, completionHandler: completionHandler)
     }
     
@@ -57,8 +56,11 @@ public class ImageManager {
         
     }
     
+    public func invalidateAndCancel() {
+        
+    }
+    
     func resumeImageTask(task: ImageTaskInternal) {
-        // TODO: Cache lookup
         dispatch_async(self.queue) {
             self.executeImageTask(task)
         }
@@ -71,31 +73,36 @@ public class ImageManager {
             sessionTask = ImageSessionTask(key: sessionTaskKey)
             let URLRequest = NSURLRequest(URL: imageTask.request.URL)
             sessionTask.dataTask = self.sessionManager.dataTaskWithRequest(URLRequest) { [weak self] (data: NSData?, _, error: NSError?) -> Void in
-                self?.dataTaskDidComplete(sessionTask, data: data, error: error)
+                self?.didCompleteDataTask(sessionTask, data: data, error: error)
                 return
             }
             self.sessionTasks[sessionTaskKey] = sessionTask
-            sessionTask.dataTask.resume() // TODO: Resume only when necessary
+            sessionTask.dataTask.resume()
         }
         sessionTask.imageTasks.insert(imageTask)
-        imageTask.sessionTask = sessionTask // we will break the retain cycle later
+        imageTask.sessionTask = sessionTask // retain cycle is broken later
     }
     
-    func dataTaskDidComplete(sessionTask: ImageSessionTask,  data: NSData!, error: NSError!) {
+    func didCompleteDataTask(sessionTask: ImageSessionTask,  data: NSData!, error: NSError!) {
         dispatch_async(self.queue) {
             let image = data != nil ? UIImage(data: data, scale: UIScreen.mainScreen().scale) : nil
+            let response = ImageResponse(image: image, error: error)
             for imageTask in sessionTask.imageTasks {
-                dispatch_async(dispatch_get_main_queue()) {
-                    imageTask.completionHandler?(ImageResponse(image: image))
-                }
+                self.didCompleteImageTask(imageTask, response: response)
             }
             sessionTask.imageTasks.removeAll(keepCapacity: false)
         }
     }
     
+    func didCompleteImageTask(imageTask: ImageTaskInternal, response: ImageResponse) {
+        dispatch_async(dispatch_get_main_queue()) {
+            imageTask.respone = response
+            imageTask.completionHandler?(response)
+        }
+    }
+    
     func cancelImageTask(imageTask: ImageTaskInternal) {
         dispatch_async(self.queue) {
-            // TODO: Set task state
             if let sessionTask = imageTask.sessionTask {
                 sessionTask.imageTasks.remove(imageTask)
                 if sessionTask.imageTasks.count == 0 {
@@ -103,14 +110,11 @@ public class ImageManager {
                     self.sessionTasks.removeValueForKey(sessionTask.key)
                 }
             }
-            // TODO: Cancel processing operation (when it's implemented)
         }
     }
     
     class ImageTaskInternal: ImageTask {
         var sessionTask: ImageSessionTask?
-        
-        // TODO: Make weak?
         let manager: ImageManager
         
         init(manager: ImageManager, request: ImageRequest, completionHandler: ImageCompletionHandler?) {

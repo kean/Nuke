@@ -24,8 +24,10 @@ import Foundation
 
 public class ImageResponse {
     public let image: UIImage?
+    public let error: NSError?
     
-    init(image: UIImage?) {
+    init(image: UIImage?, error: NSError?) {
         self.image = image
+        self.error = error
     }
 }

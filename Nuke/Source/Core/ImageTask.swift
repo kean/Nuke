@@ -27,7 +27,7 @@ public class ImageTask: Hashable {
     public let progress = NSProgress()
     public internal(set) var respone: ImageResponse?
     let completionHandler: ImageCompletionHandler?
-    
+        
     public var hashValue: Int {
         return self.request.URL.hashValue
     }
@@ -37,12 +37,11 @@ public class ImageTask: Hashable {
         self.completionHandler = completionHandler
     }
     
-    /* abstract */ public func resume() -> Self {
+    public func resume() -> Self {
         return self
     }
-    /* abstract */ public func cancel() {}
-
-    // TODO: Add a way to suspend task
+    
+    public func cancel() {}
 }
 
 public func ==(lhs: ImageTask, rhs: ImageTask) -> Bool {
