@@ -25,7 +25,7 @@ import Foundation
 public class ImageTask: Hashable {
     public let request: ImageRequest
     public let progress = NSProgress()
-    public internal(set) var respone: ImageResponse?
+    public internal(set) var response: ImageResponse?
     let completionHandler: ImageCompletionHandler?
         
     public var hashValue: Int {

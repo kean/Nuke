@@ -34,18 +34,54 @@ class ImageManagerTest: XCTestCase {
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
     }
     
-    func testThatDataTaskIsCancelled() {
+    func testThatResumedTaskIsCancelled() {
+        self.mockSessionManager.enabled = false
+        let expecation = self.expectationWithDescription("Expectation")
+        let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
+        let task = self.manager.imageTaskWithRequest(request) { (response) -> Void in
+            if let error = response.error {
+                XCTAssertEqual(error.domain, ImageManagerErrorDomain, "")
+                XCTAssertEqual(error.code, ImageManagerErrorCancelled, "")
+            } else {
+                XCTFail("")
+            }
+            expecation.fulfill()
+        }
+        task.resume()
+        task.cancel()
+        self.waitForExpectationsWithTimeout(3.0, handler: nil)
+    }
+    
+    func testThatNeverResumedTaskIsCancelled() {
+        let expecation = self.expectationWithDescription("Expectation")
+        let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
+        let task = self.manager.imageTaskWithRequest(request) { (response) -> Void in
+            if let error = response.error {
+                XCTAssertEqual(error.domain, ImageManagerErrorDomain, "")
+                XCTAssertEqual(error.code, ImageManagerErrorCancelled, "")
+            } else {
+                XCTFail("")
+            }
+            expecation.fulfill()
+        }
+        task.cancel()
+        self.waitForExpectationsWithTimeout(3.0, handler: nil)
+    }
+    
+    func testThatResumedSessionDataTaskIsCancelled() {
         self.mockSessionManager.enabled = false
         self.expectationForNotification(MockURLSsessionDataTaskDidResumeNotification, object: nil, handler: nil)
         let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
-        let imageTask = self.manager.imageTaskWithRequest(request, completionHandler: nil)
-        imageTask.resume()
+        let task = self.manager.imageTaskWithRequest(request, completionHandler: nil)
+        task.resume()
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
         
         self.expectationForNotification(MockURLSsessionDataTaskDidCancelNotification, object: nil, handler: nil)
-        imageTask.cancel()
+        task.cancel()
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
     }
+    
+    
     
     func testThatDataTasksAreReused() {
         let expecation = self.expectationWithDescription("Expectation")

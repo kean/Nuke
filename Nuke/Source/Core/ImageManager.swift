@@ -31,10 +31,15 @@ let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 
 public typealias ImageCompletionHandler = (ImageResponse) -> Void
 
+public let ImageManagerErrorDomain = "Nuke.ImageManagerErrorDomain"
+public let ImageManagerErrorCancelled = -1
+
+// MARK: - ImageManager -
+
 public class ImageManager {
     public let sessionManager: URLSessionManager
-    let queue = dispatch_queue_create("ImageManager-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
-    var sessionTasks = [ImageSessionTaskKey: ImageSessionTask]()
+    private let queue = dispatch_queue_create("ImageManager-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
+    private var sessionTasks = [ImageSessionTaskKey: ImageSessionTask]()
     
     public init(sessionManager: URLSessionManager) {
         self.sessionManager = sessionManager
@@ -60,51 +65,43 @@ public class ImageManager {
         
     }
     
-    func resumeImageTask(task: ImageTaskInternal) {
-        dispatch_async(self.queue) {
-            self.executeImageTask(task)
+    private func resumeImageTask(task: ImageTaskInternal) {
+        dispatch_sync(self.queue) {
+            self.setTaskState(.Running, task: task)
         }
     }
     
-    func executeImageTask(imageTask: ImageTaskInternal) {
-        let sessionTaskKey = ImageSessionTaskKey(imageTask.request)
-        var sessionTask: ImageSessionTask! = self.sessionTasks[sessionTaskKey]
-        if sessionTask == nil {
-            sessionTask = ImageSessionTask(key: sessionTaskKey)
-            let URLRequest = NSURLRequest(URL: imageTask.request.URL)
-            sessionTask.dataTask = self.sessionManager.dataTaskWithRequest(URLRequest) { [weak self] (data: NSData?, _, error: NSError?) -> Void in
-                self?.didCompleteDataTask(sessionTask, data: data, error: error)
-                return
-            }
-            self.sessionTasks[sessionTaskKey] = sessionTask
-            sessionTask.dataTask.resume()
-        }
-        sessionTask.imageTasks.insert(imageTask)
-        imageTask.sessionTask = sessionTask // retain cycle is broken later
-    }
-    
-    func didCompleteDataTask(sessionTask: ImageSessionTask,  data: NSData!, error: NSError!) {
-        dispatch_async(self.queue) {
+    private func didCompleteDataTask(sessionTask: ImageSessionTask,  data: NSData!, error: NSError!) {
+        dispatch_sync(self.queue) {
             let image = data != nil ? UIImage(data: data, scale: UIScreen.mainScreen().scale) : nil
             let response = ImageResponse(image: image, error: error)
             for imageTask in sessionTask.imageTasks {
-                self.didCompleteImageTask(imageTask, response: response)
+                imageTask.sessionTask = nil
+                imageTask.response = response
+                self.setTaskState(.Completed, task: imageTask)
             }
             sessionTask.imageTasks.removeAll(keepCapacity: false)
         }
     }
     
-    func didCompleteImageTask(imageTask: ImageTaskInternal, response: ImageResponse) {
-        dispatch_async(dispatch_get_main_queue()) {
-            imageTask.respone = response
-            imageTask.completionHandler?(response)
+    private func cancelImageTask(imageTask: ImageTaskInternal) {
+        dispatch_sync(self.queue) {
+            self.setTaskState(.Cancelled, task: imageTask)
         }
     }
     
-    func cancelImageTask(imageTask: ImageTaskInternal) {
-        dispatch_async(self.queue) {
-            if let sessionTask = imageTask.sessionTask {
-                sessionTask.imageTasks.remove(imageTask)
+    private func setTaskState(state: ImageTaskState, task: ImageTaskInternal)  {
+        if self.transitionAllowed(task.state, toState: state) {
+            self.transitionStateAction(task.state, toState: state, task: task)
+            task.state = state
+            self.enterStateAction(state, task: task)
+        }
+    }
+    
+    private func transitionStateAction(fromState: ImageTaskState, toState: ImageTaskState, task: ImageTaskInternal) {
+        if (fromState == .Running && toState == .Cancelled) {
+            if let sessionTask = task.sessionTask {
+                sessionTask.imageTasks.remove(task)
                 if sessionTask.imageTasks.count == 0 {
                     sessionTask.dataTask.cancel()
                     self.sessionTasks.removeValueForKey(sessionTask.key)
@@ -113,9 +110,67 @@ public class ImageManager {
         }
     }
     
+    private func enterStateAction(state: ImageTaskState, task: ImageTaskInternal) {
+        switch state {
+            
+        case .Running:
+            let sessionTaskKey = ImageSessionTaskKey(task.request)
+            var sessionTask: ImageSessionTask! = self.sessionTasks[sessionTaskKey]
+            if sessionTask == nil {
+                sessionTask = ImageSessionTask(key: sessionTaskKey)
+                let URLRequest = NSURLRequest(URL: task.request.URL)
+                sessionTask.dataTask = self.sessionManager.dataTaskWithRequest(URLRequest) { [weak self] (data: NSData?, _, error: NSError?) -> Void in
+                    self?.didCompleteDataTask(sessionTask, data: data, error: error)
+                    return
+                }
+                self.sessionTasks[sessionTaskKey] = sessionTask
+                sessionTask.dataTask.resume()
+            }
+            sessionTask.imageTasks.insert(task)
+            task.sessionTask = sessionTask // retain cycle is broken later
+            
+        case .Cancelled:
+            dispatch_async(dispatch_get_main_queue()) {
+                let error = NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorCancelled, userInfo: nil)
+                task.completionHandler?(ImageResponse(image: nil, error: error))
+            }
+            return
+            
+        case .Completed:
+            dispatch_async(dispatch_get_main_queue()) {
+                task.completionHandler?(task.response ?? ImageResponse())
+            }
+            
+        default:
+            return
+        }
+    }
+    
+    static let transitions: [ImageTaskState: [ImageTaskState]] = [
+        .Suspended: [.Running, .Cancelled],
+        .Running: [.Completed, .Cancelled]
+    ]
+    
+    private func transitionAllowed(fromState: ImageTaskState, toState: ImageTaskState) -> Bool {
+        if let toStates = ImageManager.transitions[fromState] {
+            return contains(toStates, toState)
+        }
+        return false
+    }
+    
+    // MARK: ImageTaskInternal
+    
+    enum ImageTaskState {
+        case Suspended
+        case Running
+        case Cancelled
+        case Completed
+    }
+    
     class ImageTaskInternal: ImageTask {
         var sessionTask: ImageSessionTask?
         let manager: ImageManager
+        var state = ImageTaskState.Suspended
         
         init(manager: ImageManager, request: ImageRequest, completionHandler: ImageCompletionHandler?) {
             self.manager = manager
@@ -132,6 +187,8 @@ public class ImageManager {
         }
     }
     
+    // MARK: ImageSessionTask
+    
     class ImageSessionTask {
         var dataTask: NSURLSessionDataTask!
         let key: ImageSessionTaskKey
@@ -142,6 +199,8 @@ public class ImageManager {
         }
     }
 }
+
+// MARK: - ImageSessionTaskKey -
 
 class ImageSessionTaskKey: Hashable {
     let request: ImageRequest

@@ -3,7 +3,6 @@
 import Nuke
 import UIKit
 import XCPlayground
-import Foundation
 
 var str = "Hello, playground"
 

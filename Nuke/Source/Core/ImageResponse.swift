@@ -30,4 +30,8 @@ public class ImageResponse {
         self.image = image
         self.error = error
     }
+    
+    convenience init() {
+        self.init(image: nil, error: nil)
+    }
 }
