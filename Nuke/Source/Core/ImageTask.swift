@@ -37,10 +37,7 @@ public class ImageTask: Hashable {
         self.completionHandler = completionHandler
     }
     
-    public func resume() -> Self {
-        return self
-    }
-    
+    public func resume() -> Self { return self }
     public func cancel() {}
 }
 

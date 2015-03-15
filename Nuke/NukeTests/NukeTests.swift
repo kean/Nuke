@@ -23,7 +23,8 @@ class NukeTests: XCTestCase {
     }
     
     func testExample() {
-        let manager = ImageManager(sessionManager: URLSessionManager())
+        let configuration = ImageManagerConfiguration(sessionManager: URLSessionManager())
+        let manager = ImageManager(configuration: configuration)
         let request = ImageRequest(URL: NSURL(string: "https://raw.githubusercontent.com/kean/DFImageManager/master/DFImageManager/Tests/Resources/Image.jpg")!)
         let expectation = self.expectationWithDescription("Desc")
         let task = manager.imageTaskWithRequest(request) { (response) -> Void in

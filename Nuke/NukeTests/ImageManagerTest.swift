@@ -17,7 +17,8 @@ class ImageManagerTest: XCTestCase {
         super.setUp()
         
         self.mockSessionManager = MockURLSessionManager()
-        self.manager = ImageManager(sessionManager: mockSessionManager)
+        let configuration = ImageManagerConfiguration(sessionManager: self.mockSessionManager, cache: nil)
+        self.manager = ImageManager(configuration: configuration)
     }
     
     override func tearDown() {

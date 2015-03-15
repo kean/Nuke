@@ -27,22 +27,37 @@ public enum ImageContentMode {
     case AspectFit
 }
 
-let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
+public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 
 public typealias ImageCompletionHandler = (ImageResponse) -> Void
 
 public let ImageManagerErrorDomain = "Nuke.ImageManagerErrorDomain"
 public let ImageManagerErrorCancelled = -1
 
+// MARK: - ImageManagerConfiguration -
+
+public struct ImageManagerConfiguration {
+    public var sessionManager: URLSessionManager
+    public var cache: ImageMemoryCache?
+    
+    public init(sessionManager: URLSessionManager, cache: ImageMemoryCache? = ImageMemoryCache()) {
+        self.sessionManager = sessionManager
+        self.cache = cache
+    }
+}
+
 // MARK: - ImageManager -
 
 public class ImageManager {
-    public let sessionManager: URLSessionManager
+    public let configuration: ImageManagerConfiguration
+    private let sessionManager: URLSessionManager
     private let queue = dispatch_queue_create("ImageManager-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
+    
     private var sessionTasks = [ImageSessionTaskKey: ImageSessionTask]()
     
-    public init(sessionManager: URLSessionManager) {
-        self.sessionManager = sessionManager
+    public init(configuration: ImageManagerConfiguration) {
+        self.configuration = configuration
+        self.sessionManager = configuration.sessionManager
     }
     
     public func imageTaskWithRequest(request: ImageRequest, completionHandler: ImageCompletionHandler?) -> ImageTask {
@@ -71,22 +86,9 @@ public class ImageManager {
         }
     }
     
-    private func didCompleteDataTask(sessionTask: ImageSessionTask,  data: NSData!, error: NSError!) {
+    private func cancelImageTask(task: ImageTaskInternal) {
         dispatch_sync(self.queue) {
-            let image = data != nil ? UIImage(data: data, scale: UIScreen.mainScreen().scale) : nil
-            let response = ImageResponse(image: image, error: error)
-            for imageTask in sessionTask.imageTasks {
-                imageTask.sessionTask = nil
-                imageTask.response = response
-                self.setTaskState(.Completed, task: imageTask)
-            }
-            sessionTask.imageTasks.removeAll(keepCapacity: false)
-        }
-    }
-    
-    private func cancelImageTask(imageTask: ImageTaskInternal) {
-        dispatch_sync(self.queue) {
-            self.setTaskState(.Cancelled, task: imageTask)
+            self.setTaskState(.Cancelled, task: task)
         }
     }
     
@@ -96,6 +98,18 @@ public class ImageManager {
             task.state = state
             self.enterStateAction(state, task: task)
         }
+    }
+    
+    private static let transitions: [ImageTaskState: [ImageTaskState]] = [
+        .Suspended: [.Running, .Cancelled],
+        .Running: [.Completed, .Cancelled]
+    ]
+    
+    private func transitionAllowed(fromState: ImageTaskState, toState: ImageTaskState) -> Bool {
+        if let toStates = ImageManager.transitions[fromState] {
+            return contains(toStates, toState)
+        }
+        return false
     }
     
     private func transitionStateAction(fromState: ImageTaskState, toState: ImageTaskState, task: ImageTaskInternal) {
@@ -134,7 +148,6 @@ public class ImageManager {
                 let error = NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorCancelled, userInfo: nil)
                 task.completionHandler?(ImageResponse(image: nil, error: error))
             }
-            return
             
         case .Completed:
             dispatch_async(dispatch_get_main_queue()) {
@@ -146,16 +159,17 @@ public class ImageManager {
         }
     }
     
-    static let transitions: [ImageTaskState: [ImageTaskState]] = [
-        .Suspended: [.Running, .Cancelled],
-        .Running: [.Completed, .Cancelled]
-    ]
-    
-    private func transitionAllowed(fromState: ImageTaskState, toState: ImageTaskState) -> Bool {
-        if let toStates = ImageManager.transitions[fromState] {
-            return contains(toStates, toState)
+    private func didCompleteDataTask(sessionTask: ImageSessionTask,  data: NSData!, error: NSError!) {
+        dispatch_sync(self.queue) {
+            let image = data != nil ? UIImage(data: data, scale: UIScreen.mainScreen().scale) : nil
+            let response = ImageResponse(image: image, error: error)
+            for imageTask in sessionTask.imageTasks {
+                imageTask.sessionTask = nil
+                imageTask.response = response
+                self.setTaskState(.Completed, task: imageTask)
+            }
+            sessionTask.imageTasks.removeAll(keepCapacity: false)
         }
-        return false
     }
     
     // MARK: ImageTaskInternal
