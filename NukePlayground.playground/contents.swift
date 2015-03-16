@@ -6,7 +6,8 @@ import XCPlayground
 
 var str = "Hello, playground"
 
-let manager = ImageManager(sessionManager: URLSessionManager())
+let configuration = ImageManagerConfiguration(sessionManager: URLSessionManager(), cache: ImageMemoryCache(), processor: ImageProcessor())
+let manager = ImageManager(configuration: configuration)
 
 let request = ImageRequest(URL: NSURL(string: "https://raw.githubusercontent.com/kean/DFImageManager/master/DFImageManager/Tests/Resources/Image.jpg")!)
 

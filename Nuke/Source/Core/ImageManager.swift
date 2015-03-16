@@ -39,10 +39,12 @@ public let ImageManagerErrorCancelled = -1
 public struct ImageManagerConfiguration {
     public var sessionManager: URLSessionManager
     public var cache: ImageMemoryCache?
+    public var processor: ImageProcessing?
     
-    public init(sessionManager: URLSessionManager, cache: ImageMemoryCache? = ImageMemoryCache()) {
+    public init(sessionManager: URLSessionManager, cache: ImageMemoryCache?, processor: ImageProcessing?) {
         self.sessionManager = sessionManager
         self.cache = cache
+        self.processor = processor
     }
 }
 
@@ -52,11 +54,14 @@ public class ImageManager {
     public let configuration: ImageManagerConfiguration
     private let sessionManager: URLSessionManager
     private let queue = dispatch_queue_create("ImageManager-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
+    private let processingQueue: NSOperationQueue
     private var dataTasks = [ImageRequestKey: ImageDataTask]()
     
     public init(configuration: ImageManagerConfiguration) {
         self.configuration = configuration
         self.sessionManager = configuration.sessionManager
+        self.processingQueue = NSOperationQueue()
+        self.processingQueue.maxConcurrentOperationCount = 2
     }
     
     public func imageTaskWithRequest(request: ImageRequest, completionHandler: ImageCompletionHandler?) -> ImageTask {
@@ -120,6 +125,7 @@ public class ImageManager {
                     self.dataTasks.removeValueForKey(dataTask.key)
                 }
             }
+            task.processingOperation?.cancel()
         }
     }
     
@@ -158,7 +164,7 @@ public class ImageManager {
                 task.completionHandler?(task.response ?? ImageResponse())
             }
             NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
-        
+            
         default:
             return
         }
@@ -167,17 +173,45 @@ public class ImageManager {
     private func didCompleteDataTask(dataTask: ImageDataTask, data: NSData!, error: NSError!) {
         dispatch_sync(self.queue) {
             let image = data != nil ? UIImage(data: data, scale: UIScreen.mainScreen().scale) : nil
-            if image != nil {
-                self.configuration.cache?.storeImage(image!, key: ImageRequestKey(dataTask.request, type: .Cache, owner: self))
-            }
-            let response = ImageResponse(image: image, error: error)
             for imageTask in dataTask.imageTasks {
                 imageTask.dataTask = nil
-                imageTask.response = response
-                self.setTaskState(.Completed, task: imageTask)
+                if image != nil {
+                    self.processImage(image!, imageTask: imageTask) {
+                        (processedImage: UIImage) -> Void in
+                        imageTask.response = ImageResponse(image: processedImage, error: nil)
+                        dispatch_sync(self.queue) {
+                            self.setTaskState(.Completed, task: imageTask)
+                        }
+                    }
+                } else {
+                    imageTask.response = ImageResponse(image: nil, error: error)
+                    self.setTaskState(.Completed, task: imageTask)
+                }
             }
             dataTask.imageTasks.removeAll(keepCapacity: false)
             self.dataTasks.removeValueForKey(dataTask.key)
+        }
+    }
+    
+    private func processImage(image: UIImage, imageTask: ImageTaskInternal, completionHandler: (processedImage: UIImage) -> Void) {
+        let cacheKey = ImageRequestKey(imageTask.request, type: .Cache, owner: self)
+        let cache = self.configuration.cache
+        if let processor = self.configuration.processor {
+            let operation = NSBlockOperation() {
+                if let processedImage = cache?.cachedImage(cacheKey) {
+                    completionHandler(processedImage: processedImage)
+                } else {
+                    let processedImage = processor.processedImage(image, request: imageTask.request)
+                    cache?.storeImage(processedImage, key: cacheKey)
+                    completionHandler(processedImage: processedImage)
+                }
+            }
+            self.processingQueue.addOperation(operation)
+        } else {
+            cache?.storeImage(image, key: cacheKey)
+            dispatch_async(dispatch_get_main_queue()) {
+                completionHandler(processedImage: image)
+            }
         }
     }
     
@@ -192,6 +226,7 @@ public class ImageManager {
     
     class ImageTaskInternal: ImageTask {
         weak var dataTask: ImageDataTask?
+        weak var processingOperation: NSOperation?
         let manager: ImageManager
         var state = ImageTaskState.Suspended
         
@@ -227,8 +262,15 @@ public class ImageManager {
 
 
 extension ImageManager: ImageRequestKeyOwner {
-    private func isImageRequestKey(key: ImageRequestKey, equalToKey: ImageRequestKey) -> Bool {
-        return key.request.URL.isEqual(equalToKey.request.URL)
+    private func isImageRequestKey(key: ImageRequestKey, equalToKey key2: ImageRequestKey) -> Bool {
+        if (key.type == .Cache) {
+            if let processor = self.configuration.processor {
+                if !(processor.isProcessingEquivalent(key.request, r2: key2.request)) {
+                    return false
+                }
+            }
+        }
+        return key.request.URL.isEqual(key2.request.URL)
     }
 }
 
@@ -253,7 +295,7 @@ private class ImageRequestKey: NSObject, Hashable {
     override var hashValue: Int {
         return self.request.URL.hashValue
     }
-
+    
     init(_ request: ImageRequest, type: ImageRequestKeyType, owner: ImageRequestKeyOwner?) {
         self.request = request
         self.type = type

@@ -16,6 +16,7 @@
 		0C6D19161AB279DA0020E5A9 /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C6D19151AB279DA0020E5A9 /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0C6D191A1AB27A800020E5A9 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19191AB27A800020E5A9 /* ImageManager.swift */; };
 		0C6D19241AB27B740020E5A9 /* ImageRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D19231AB27B740020E5A9 /* ImageRequest.swift */; };
+		0C7839E51AB69355007CF1AF /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7839E41AB69355007CF1AF /* ImageProcessor.swift */; };
 		0C8D29521AB59BA70029CA5D /* ImageMemoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D29511AB59BA70029CA5D /* ImageMemoryCache.swift */; };
 		0C9336BD1AB6742D00E052CD /* ImageMemoryCacheTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9336BC1AB6742D00E052CD /* ImageMemoryCacheTest.swift */; };
 		0C9336C21AB6781800E052CD /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C9336C11AB6781800E052CD /* Image.jpg */; };
@@ -46,6 +47,7 @@
 		0C6D19151AB279DA0020E5A9 /* Nuke.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0C6D19191AB27A800020E5A9 /* ImageManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManager.swift; sourceTree = "<group>"; };
 		0C6D19231AB27B740020E5A9 /* ImageRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequest.swift; sourceTree = "<group>"; };
+		0C7839E41AB69355007CF1AF /* ImageProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageProcessor.swift; sourceTree = "<group>"; };
 		0C8D29511AB59BA70029CA5D /* ImageMemoryCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageMemoryCache.swift; sourceTree = "<group>"; };
 		0C9336BC1AB6742D00E052CD /* ImageMemoryCacheTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageMemoryCacheTest.swift; sourceTree = "<group>"; };
 		0C9336C11AB6781800E052CD /* Image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image.jpg; sourceTree = "<group>"; };
@@ -146,6 +148,7 @@
 				0C6D19231AB27B740020E5A9 /* ImageRequest.swift */,
 				0CB923CC1AB3171000EEEC51 /* ImageResponse.swift */,
 				0C8D29511AB59BA70029CA5D /* ImageMemoryCache.swift */,
+				0C7839E41AB69355007CF1AF /* ImageProcessor.swift */,
 				0C207FC81AB4838A0044FEFF /* URLSessionManager.swift */,
 			);
 			path = Core;
@@ -271,6 +274,7 @@
 				0C6D191A1AB27A800020E5A9 /* ImageManager.swift in Sources */,
 				0CB923CD1AB3171000EEEC51 /* ImageResponse.swift in Sources */,
 				0C6D19241AB27B740020E5A9 /* ImageRequest.swift in Sources */,
+				0C7839E51AB69355007CF1AF /* ImageProcessor.swift in Sources */,
 				0CB923CB1AB30F5700EEEC51 /* ImageTask.swift in Sources */,
 				0C8D29521AB59BA70029CA5D /* ImageMemoryCache.swift in Sources */,
 			);

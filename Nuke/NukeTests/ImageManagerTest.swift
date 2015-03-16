@@ -17,7 +17,7 @@ class ImageManagerTest: XCTestCase {
         super.setUp()
         
         self.mockSessionManager = MockURLSessionManager()
-        let configuration = ImageManagerConfiguration(sessionManager: self.mockSessionManager, cache: nil)
+        let configuration = ImageManagerConfiguration(sessionManager: self.mockSessionManager, cache: nil, processor: nil)
         self.manager = ImageManager(configuration: configuration)
     }
     
