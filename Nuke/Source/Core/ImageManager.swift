@@ -52,8 +52,7 @@ public class ImageManager {
     public let configuration: ImageManagerConfiguration
     private let sessionManager: URLSessionManager
     private let queue = dispatch_queue_create("ImageManager-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
-    
-    private var sessionTasks = [ImageSessionTaskKey: ImageSessionTask]()
+    private var dataTasks = [ImageRequestKey: ImageDataTask]()
     
     public init(configuration: ImageManagerConfiguration) {
         self.configuration = configuration
@@ -114,11 +113,11 @@ public class ImageManager {
     
     private func transitionStateAction(fromState: ImageTaskState, toState: ImageTaskState, task: ImageTaskInternal) {
         if (fromState == .Running && toState == .Cancelled) {
-            if let sessionTask = task.sessionTask {
-                sessionTask.imageTasks.remove(task)
-                if sessionTask.imageTasks.count == 0 {
-                    sessionTask.dataTask.cancel()
-                    self.sessionTasks.removeValueForKey(sessionTask.key)
+            if let dataTask = task.dataTask {
+                dataTask.imageTasks.remove(task)
+                if dataTask.imageTasks.count == 0 {
+                    dataTask.sessionTask.cancel()
+                    self.dataTasks.removeValueForKey(dataTask.key)
                 }
             }
         }
@@ -128,20 +127,25 @@ public class ImageManager {
         switch state {
             
         case .Running:
-            let sessionTaskKey = ImageSessionTaskKey(task.request)
-            var sessionTask: ImageSessionTask! = self.sessionTasks[sessionTaskKey]
-            if sessionTask == nil {
-                sessionTask = ImageSessionTask(key: sessionTaskKey)
-                let URLRequest = NSURLRequest(URL: task.request.URL)
-                sessionTask.dataTask = self.sessionManager.dataTaskWithRequest(URLRequest) { [weak self] (data: NSData?, _, error: NSError?) -> Void in
-                    self?.didCompleteDataTask(sessionTask, data: data, error: error)
-                    return
+            if let image = self.configuration.cache?.cachedImage(ImageRequestKey(task.request, type: .Cache, owner: self)) {
+                task.response = ImageResponse(image: image, error: nil)
+                self.setTaskState(.Completed, task: task)
+            } else {
+                let dataTaskKey = ImageRequestKey(task.request, type: .Fetch, owner: self)
+                var dataTask: ImageDataTask! = self.dataTasks[dataTaskKey]
+                if dataTask == nil {
+                    dataTask = ImageDataTask(request: task.request, key: dataTaskKey)
+                    let URLRequest = NSURLRequest(URL: task.request.URL)
+                    dataTask.sessionTask = self.sessionManager.dataTaskWithRequest(URLRequest) { [weak self] (data: NSData?, _, error: NSError?) -> Void in
+                        self?.didCompleteDataTask(dataTask, data: data, error: error)
+                        return
+                    }
+                    self.dataTasks[dataTaskKey] = dataTask
+                    dataTask.sessionTask.resume()
                 }
-                self.sessionTasks[sessionTaskKey] = sessionTask
-                sessionTask.dataTask.resume()
+                dataTask.imageTasks.insert(task)
+                task.dataTask = dataTask
             }
-            sessionTask.imageTasks.insert(task)
-            task.sessionTask = sessionTask // retain cycle is broken later
             
         case .Cancelled:
             dispatch_async(dispatch_get_main_queue()) {
@@ -159,16 +163,20 @@ public class ImageManager {
         }
     }
     
-    private func didCompleteDataTask(sessionTask: ImageSessionTask,  data: NSData!, error: NSError!) {
+    private func didCompleteDataTask(dataTask: ImageDataTask, data: NSData!, error: NSError!) {
         dispatch_sync(self.queue) {
             let image = data != nil ? UIImage(data: data, scale: UIScreen.mainScreen().scale) : nil
+            if image != nil {
+                self.configuration.cache?.storeImage(image!, key: ImageRequestKey(dataTask.request, type: .Cache, owner: self))
+            }
             let response = ImageResponse(image: image, error: error)
-            for imageTask in sessionTask.imageTasks {
-                imageTask.sessionTask = nil
+            for imageTask in dataTask.imageTasks {
+                imageTask.dataTask = nil
                 imageTask.response = response
                 self.setTaskState(.Completed, task: imageTask)
             }
-            sessionTask.imageTasks.removeAll(keepCapacity: false)
+            dataTask.imageTasks.removeAll(keepCapacity: false)
+            self.dataTasks.removeValueForKey(dataTask.key)
         }
     }
     
@@ -182,7 +190,7 @@ public class ImageManager {
     }
     
     class ImageTaskInternal: ImageTask {
-        var sessionTask: ImageSessionTask?
+        weak var dataTask: ImageDataTask?
         let manager: ImageManager
         var state = ImageTaskState.Suspended
         
@@ -201,33 +209,74 @@ public class ImageManager {
         }
     }
     
-    // MARK: ImageSessionTask
+    // MARK: ImageDataTask
     
-    class ImageSessionTask {
-        var dataTask: NSURLSessionDataTask!
-        let key: ImageSessionTaskKey
+    class ImageDataTask {
+        var sessionTask: NSURLSessionDataTask!
+        let request: ImageRequest
+        private let key: ImageRequestKey
         var imageTasks = Set<ImageTaskInternal>()
         
-        init(key: ImageSessionTaskKey) {
+        private init(request: ImageRequest, key: ImageRequestKey) {
+            self.request = request
             self.key = key
         }
     }
 }
 
-// MARK: - ImageSessionTaskKey -
 
-class ImageSessionTaskKey: Hashable {
-    let request: ImageRequest
-    var hashValue: Int {
-        return self.request.URL.hashValue
-    }
-    
-    init(_ request: ImageRequest) {
-        self.request = request
+extension ImageManager: ImageRequestKeyOwner {
+    private func isImageRequestKey(key: ImageRequestKey, equalToKey: ImageRequestKey) -> Bool {
+        return key.request.URL.isEqual(equalToKey.request.URL)
     }
 }
 
-func ==(lhs: ImageSessionTaskKey, rhs: ImageSessionTaskKey) -> Bool {
-    // TODO: Add more stuff, when options are extended with additional properties
-    return lhs.request.URL == rhs.request.URL
+
+// MARK: - ImageRequestKey -
+
+private protocol ImageRequestKeyOwner: class {
+    func isImageRequestKey(key: ImageRequestKey, equalToKey: ImageRequestKey) -> Bool
+}
+
+private enum ImageRequestKeyType {
+    case Fetch
+    case Cache
+}
+
+/** Makes it possible to use ImageRequest as a key in dictionaries (and dictionary-like structures). This should be a nested class inside ImageManager but it's impossible because of the Equatable protocol.
+*/
+private class ImageRequestKey: NSObject, Hashable {
+    let request: ImageRequest
+    let type: ImageRequestKeyType
+    weak var owner: ImageRequestKeyOwner?
+    override var hashValue: Int {
+        return self.request.URL.hashValue
+    }
+
+    init(_ request: ImageRequest, type: ImageRequestKeyType, owner: ImageRequestKeyOwner?) {
+        self.request = request
+        self.type = type
+        self.owner = owner
+    }
+    
+    // Make it possible to use ImageRequesKey as key in NSCache
+    override var hash: Int {
+        return self.hashValue
+    }
+    private override func isEqual(object: AnyObject?) -> Bool {
+        if object === self {
+            return true
+        }
+        if let object = object as? ImageRequestKey {
+            return self == object
+        }
+        return false
+    }
+}
+
+private func ==(lhs: ImageRequestKey, rhs: ImageRequestKey) -> Bool {
+    if let owner = lhs.owner where lhs.owner === rhs.owner && lhs.type == rhs.type {
+        return owner.isImageRequestKey(lhs, equalToKey: rhs)
+    }
+    return false
 }

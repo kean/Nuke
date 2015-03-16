@@ -29,6 +29,7 @@ class ImageManagerTest: XCTestCase {
         let expecation = self.expectationWithDescription("Expectation")
         let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
         let imageTask = self.manager.imageTaskWithRequest(request) { (response) -> Void in
+            XCTAssertNotNil(response.image, "")
             expecation.fulfill()
         }
         imageTask.resume()
@@ -81,8 +82,6 @@ class ImageManagerTest: XCTestCase {
         task.cancel()
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
     }
-    
-    
     
     func testThatDataTasksAreReused() {
         let expecation = self.expectationWithDescription("Expectation")
