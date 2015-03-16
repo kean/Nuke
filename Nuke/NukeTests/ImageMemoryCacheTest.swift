@@ -37,13 +37,14 @@ class ImageMemoryCacheTest: XCTestCase {
         
         self.mockSessionManager.enabled = false
         
-        let expecation2 = self.expectationWithDescription("Expectation")
         let request2 = ImageRequest(URL: NSURL(string: "http://test.com")!)
+        var isCompletionCalled = false
         let imageTask2 = self.manager.imageTaskWithRequest(request2) { (response) -> Void in
             XCTAssertNotNil(response.image, "")
-            expecation2.fulfill()
+            // Comletion block should be called on the main thread
+            isCompletionCalled = true
         }
         imageTask2.resume()
-        self.waitForExpectationsWithTimeout(3.0, handler: nil)
+        XCTAssertTrue(isCompletionCalled, "")
     }
 }

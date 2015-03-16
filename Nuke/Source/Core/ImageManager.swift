@@ -154,10 +154,11 @@ public class ImageManager {
             }
             
         case .Completed:
-            dispatch_async(dispatch_get_main_queue()) {
+            let block: dispatch_block_t = {
                 task.completionHandler?(task.response ?? ImageResponse())
             }
-            
+            NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
+        
         default:
             return
         }
