@@ -3,8 +3,6 @@ import UIKit
 import XCPlayground
 //: ## Nuke
 
-
-
 //: Create and customize `ImageRequest`
 var request = ImageRequest(URL: NSURL(string: "http://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!)
 

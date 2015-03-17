@@ -80,7 +80,9 @@ public class ImageManager {
     }
     
     public func invalidateAndCancel() {
-        
+        for task in executingImageTasks {
+            self.setTaskState(.Cancelled, task: task)
+        }
     }
     
     private func resumeImageTask(task: ImageTaskInternal) {
