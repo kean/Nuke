@@ -22,9 +22,13 @@
 
 import Foundation
 
+public typealias URLSessionManagerCompletionHandler = (data: NSData?, response: NSURLResponse?, error: NSError?) -> Void
+public typealias URLSessionManagerProgressHandler = (progress: Double) -> Void
+
 public class URLSessionManager: NSObject, NSURLSessionDataDelegate {
     public private(set) var session: NSURLSession!
     private var taskHandlers = [NSURLSessionTask: URLSessionDataTaskHandler]()
+    private let queue = dispatch_queue_create("URLSessionManager-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
     
     public init(sessionConfiguration: NSURLSessionConfiguration) {
         super.init()
@@ -39,31 +43,41 @@ public class URLSessionManager: NSObject, NSURLSessionDataDelegate {
         self.init(sessionConfiguration: configuration)
     }
     
-    public func dataTaskWithRequest(request: NSURLRequest, completionHandler: (data: NSData?, response: NSURLResponse?, error: NSError?) -> Void) -> NSURLSessionDataTask {
+    public func dataTaskWithRequest(request: NSURLRequest, progressHandler: URLSessionManagerProgressHandler?, completionHandler: URLSessionManagerCompletionHandler) -> NSURLSessionDataTask {
         let dataTask = self.session.dataTaskWithRequest(request)
-        self.taskHandlers[dataTask] = URLSessionDataTaskHandler(completionHandler: completionHandler)
+        dispatch_sync(self.queue) {
+            self.taskHandlers[dataTask] = URLSessionDataTaskHandler(progressHandler: progressHandler, completionHandler: completionHandler)
+        }
         return dataTask
     }
     
     public func URLSession(session: NSURLSession, dataTask: NSURLSessionDataTask, didReceiveData data: NSData) {
-        self.taskHandlers[dataTask]?.data.appendData(data)
+        dispatch_sync(self.queue) {
+            if let handler = self.taskHandlers[dataTask] {
+                handler.data.appendData(data)
+                let progress = Double(dataTask.countOfBytesReceived) / Double(dataTask.countOfBytesExpectedToReceive)
+                handler.progressHandler?(progress: progress)
+            }
+        }
     }
     
     public func URLSession(session: NSURLSession, task: NSURLSessionTask, didCompleteWithError error: NSError?) {
-        if let handler = self.taskHandlers[task] {
-            handler.completionHandler(data: handler.data, response: task.response, error: error)
-            self.taskHandlers.removeValueForKey(task)
+        dispatch_sync(self.queue) {
+            if let handler = self.taskHandlers[task] {
+                handler.completionHandler(data: handler.data, response: task.response, error: error)
+                self.taskHandlers.removeValueForKey(task)
+            }
         }
     }
+}
+
+private class URLSessionDataTaskHandler {
+    let data = NSMutableData()
+    let progressHandler: URLSessionManagerProgressHandler?
+    let completionHandler: URLSessionManagerCompletionHandler
     
-    typealias URLSessionDataTaskCompletionHandler = (data: NSData?, response: NSURLResponse?, error: NSError?) -> Void
-    
-    class URLSessionDataTaskHandler {
-        let data = NSMutableData()
-        let completionHandler: URLSessionDataTaskCompletionHandler
-        
-        init(completionHandler: URLSessionDataTaskCompletionHandler) {
-            self.completionHandler = completionHandler
-        }
+    init(progressHandler: URLSessionManagerProgressHandler?, completionHandler: URLSessionManagerCompletionHandler) {
+        self.progressHandler = progressHandler
+        self.completionHandler = completionHandler
     }
 }

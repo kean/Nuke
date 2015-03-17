@@ -13,7 +13,7 @@ class MockURLSessionManager: URLSessionManager {
     var enabled = true
     var createdTaskCount = 0
     
-    override func dataTaskWithRequest(request: NSURLRequest, completionHandler: (data: NSData?, response: NSURLResponse?, error: NSError?) -> Void) -> NSURLSessionDataTask {
+    override func dataTaskWithRequest(request: NSURLRequest, progressHandler: URLSessionManagerProgressHandler?, completionHandler: URLSessionManagerCompletionHandler) -> NSURLSessionDataTask {
         if self.enabled {
             let bundle = NSBundle(forClass: MockURLSessionManager.self)
             let URL = bundle.URLForResource("Image", withExtension: "jpg")

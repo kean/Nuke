@@ -31,7 +31,6 @@ public enum ImageTaskState {
 
 public class ImageTask: Hashable {
     public let request: ImageRequest
-    public let progress = NSProgress()
     public internal(set) var response: ImageResponse?
     public internal(set) var state: ImageTaskState = .Suspended
     let completionHandler: ImageCompletionHandler?

@@ -26,6 +26,7 @@ public struct ImageRequest {
     public var URL: NSURL
     public var targetSize: CGSize = ImageMaximumSize // Target size in pixels
     public var contentMode: ImageContentMode = .AspectFill
+    public var progressHandler: ((progress: Double) -> Void)?
     
     public init(URL: NSURL, targetSize: CGSize, contentMode: ImageContentMode) {
         self.URL = URL

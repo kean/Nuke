@@ -148,20 +148,7 @@ public class ImageManager {
                 task.response = ImageResponse(image: image, error: nil)
                 self.setTaskState(.Completed, task: task)
             } else {
-                let dataTaskKey = ImageRequestKey(task.request, type: .Fetch, owner: self)
-                var dataTask: ImageDataTask! = self.dataTasks[dataTaskKey]
-                if dataTask == nil {
-                    dataTask = ImageDataTask(request: task.request, key: dataTaskKey)
-                    let URLRequest = NSURLRequest(URL: task.request.URL)
-                    dataTask.sessionTask = self.sessionManager.dataTaskWithRequest(URLRequest) { [weak self] (data: NSData?, _, error: NSError?) -> Void in
-                        self?.didCompleteDataTask(dataTask, data: data, error: error)
-                        return
-                    }
-                    self.dataTasks[dataTaskKey] = dataTask
-                    dataTask.sessionTask.resume()
-                }
-                dataTask.imageTasks.insert(task)
-                task.dataTask = dataTask
+                self.startDataTaskForImageTask(task)
             }
             
         case .Cancelled:
@@ -174,6 +161,32 @@ public class ImageManager {
         default:
             return
         }
+    }
+    
+    private func startDataTaskForImageTask(task: ImageTaskInternal) {
+        let dataTaskKey = ImageRequestKey(task.request, type: .Fetch, owner: self)
+        var dataTask: ImageDataTask! = self.dataTasks[dataTaskKey]
+        if dataTask == nil {
+            dataTask = ImageDataTask(request: task.request, key: dataTaskKey)
+            let URLRequest = NSURLRequest(URL: task.request.URL)
+            dataTask.sessionTask = self.sessionManager.dataTaskWithRequest(URLRequest,
+                progressHandler: { [weak dataTask] (progress) -> Void in
+                    if let imageTasks = dataTask?.imageTasks {
+                        for imageTask in imageTasks {
+                            dispatch_async(dispatch_get_main_queue()) {
+                                imageTask.request.progressHandler?(progress: progress)
+                            }
+                        }
+                    }
+                }, completionHandler: { [weak self] (data, response, error) -> Void in
+                    self?.didCompleteDataTask(dataTask, data: data, error: error)
+                    return
+                })
+            self.dataTasks[dataTaskKey] = dataTask
+            dataTask.sessionTask.resume()
+        }
+        dataTask.imageTasks.insert(task)
+        task.dataTask = dataTask
     }
     
     private func didCompleteDataTask(dataTask: ImageDataTask, data: NSData!, error: NSError!) {
@@ -281,41 +294,6 @@ public class ImageManager {
             }
         }
     }
-    
-    // MARK: ImageTaskInternal
-    
-    class ImageTaskInternal: ImageTask {
-        weak var dataTask: ImageDataTask?
-        weak var processingOperation: NSOperation?
-        let manager: ImageManager
-        
-        init(manager: ImageManager, request: ImageRequest, completionHandler: ImageCompletionHandler?) {
-            self.manager = manager
-            super.init(request: request, completionHandler: completionHandler)
-        }
-        
-        override func resume() {
-            self.manager.resumeImageTask(self)
-        }
-        
-        override func cancel() {
-            self.manager.cancelImageTask(self)
-        }
-    }
-    
-    // MARK: ImageDataTask
-    
-    class ImageDataTask {
-        var sessionTask: NSURLSessionDataTask!
-        let request: ImageRequest
-        private let key: ImageRequestKey
-        var imageTasks = Set<ImageTaskInternal>()
-        
-        private init(request: ImageRequest, key: ImageRequestKey) {
-            self.request = request
-            self.key = key
-        }
-    }
 }
 
 
@@ -337,6 +315,44 @@ extension ImageManager: ImageRequestKeyOwner {
         }
     }
 }
+
+
+// MARK: - ImageTaskInternal -
+
+private class ImageTaskInternal: ImageTask {
+    weak var dataTask: ImageDataTask?
+    weak var processingOperation: NSOperation?
+    let manager: ImageManager
+    
+    init(manager: ImageManager, request: ImageRequest, completionHandler: ImageCompletionHandler?) {
+        self.manager = manager
+        super.init(request: request, completionHandler: completionHandler)
+    }
+    
+    override func resume() {
+        self.manager.resumeImageTask(self)
+    }
+    
+    override func cancel() {
+        self.manager.cancelImageTask(self)
+    }
+}
+
+
+// MARK: - ImageDataTask -
+
+private class ImageDataTask {
+    var sessionTask: NSURLSessionDataTask!
+    let request: ImageRequest
+    private let key: ImageRequestKey
+    var imageTasks = Set<ImageTaskInternal>()
+    
+    private init(request: ImageRequest, key: ImageRequestKey) {
+        self.request = request
+        self.key = key
+    }
+}
+
 
 // MARK: - ImageRequestKey -
 
@@ -369,7 +385,7 @@ private class ImageRequestKey: NSObject, Hashable {
     override var hash: Int {
         return self.hashValue
     }
-    private override func isEqual(object: AnyObject?) -> Bool {
+    override func isEqual(object: AnyObject?) -> Bool {
         if object === self {
             return true
         }
