@@ -5,7 +5,7 @@ Advanced **Swift** framework for loading images. It uses latest features in iOS 
 ![](https://cloud.githubusercontent.com/assets/1567433/6686242/6ae3211c-cc44-11e4-956b-33eb8ed83cab.png)
 
 ## Features
-- Solid, FSM-based implementation
+- Solid implementation based on a state machine
 - Easy to use, yet very powerful API
 - Uses latest advancements in [Foundation URL Loading System](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html) including [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) that supports [SPDY](http://en.wikipedia.org/wiki/SPDY) protocol.
 - Instead of reinventing a caching methodology it relies on HTTP cache as defined in [HTTP specification](https://tools.ietf.org/html/rfc7234) and caching implementation provided by [Foundation URL Loading System](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html). The caching and revalidation are completely transparent to the client.
