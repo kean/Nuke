@@ -16,6 +16,7 @@ Advanced **Swift** framework for loading images. It uses latest features in iOS 
 ## Getting Started
 - Download the latest version
 - Experiment with Nuke APIs in the playground included in the project. Make sure to build framework for simulator before running the playground.
+- Check out [DFImageManager](https://github.com/kean/DFImageManager) if you want a production-ready framework with similar functionality.
 
 ## Requirements
 - Xcode 6.3, Swift 1.2
@@ -60,7 +61,7 @@ task.resume()
 ```swift
 let task: ImageTask = /* ... */
 if task.state == .Completed {
-  // Access resulsts of the request at any time
+  // Access result of the request at any time
   let image = task.image
   let error = task.error
 }

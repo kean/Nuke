@@ -23,6 +23,6 @@ class MockURLSessionManager: URLSessionManager {
             }
         }
         self.createdTaskCount++
-        return MockURLSsessionDataTask()
+        return MockURLSessionDataTask()
     }
 }

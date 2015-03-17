@@ -73,13 +73,13 @@ class ImageManagerTest: XCTestCase {
     
     func testThatResumedSessionDataTaskIsCancelled() {
         self.mockSessionManager.enabled = false
-        self.expectationForNotification(MockURLSsessionDataTaskDidResumeNotification, object: nil, handler: nil)
+        self.expectationForNotification(MockURLSessionDataTaskDidResumeNotification, object: nil, handler: nil)
         let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
         let task = self.manager.imageTaskWithRequest(request, completionHandler: nil)
         task.resume()
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
         
-        self.expectationForNotification(MockURLSsessionDataTaskDidCancelNotification, object: nil, handler: nil)
+        self.expectationForNotification(MockURLSessionDataTaskDidCancelNotification, object: nil, handler: nil)
         task.cancel()
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
     }
@@ -110,13 +110,13 @@ class ImageManagerTest: XCTestCase {
         self.mockSessionManager.enabled = false
 
         let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
-        self.expectationForNotification(MockURLSsessionDataTaskDidResumeNotification, object: nil, handler: nil)
+        self.expectationForNotification(MockURLSessionDataTaskDidResumeNotification, object: nil, handler: nil)
         
         self.manager.startPreheatingImages([request])
         // DFImageManager doesn't start preheating operations after a certain delay
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
 
-        self.expectationForNotification(MockURLSsessionDataTaskDidCancelNotification, object: nil, handler: nil)
+        self.expectationForNotification(MockURLSessionDataTaskDidCancelNotification, object: nil, handler: nil)
         self.manager.stopPreheatingImages([request])
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
     }
@@ -125,12 +125,12 @@ class ImageManagerTest: XCTestCase {
         self.mockSessionManager.enabled = false
         
         var request = ImageRequest(URL: NSURL(string: "http://test.com")!)
-        self.expectationForNotification(MockURLSsessionDataTaskDidResumeNotification, object: nil, handler: nil)
+        self.expectationForNotification(MockURLSessionDataTaskDidResumeNotification, object: nil, handler: nil)
         self.manager.startPreheatingImages([request, request])
         self.manager.startPreheatingImages([request])
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
 
-        self.expectationForNotification(MockURLSsessionDataTaskDidCancelNotification, object: nil, handler: nil)
+        self.expectationForNotification(MockURLSessionDataTaskDidCancelNotification, object: nil, handler: nil)
         self.manager.stopPreheatingImages([request])
         self.waitForExpectationsWithTimeout(3.0) { (error: NSError!) -> Void in
             XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1, "")
@@ -141,11 +141,11 @@ class ImageManagerTest: XCTestCase {
         self.mockSessionManager.enabled = false
         
         var request = ImageRequest(URL: NSURL(string: "http://test.com")!)
-        self.expectationForNotification(MockURLSsessionDataTaskDidResumeNotification, object: nil, handler: nil)
+        self.expectationForNotification(MockURLSessionDataTaskDidResumeNotification, object: nil, handler: nil)
         self.manager.startPreheatingImages([request])
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
         
-        self.expectationForNotification(MockURLSsessionDataTaskDidCancelNotification, object: nil, handler: nil)
+        self.expectationForNotification(MockURLSessionDataTaskDidCancelNotification, object: nil, handler: nil)
         self.manager.stopPreheatingImages()
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
     }

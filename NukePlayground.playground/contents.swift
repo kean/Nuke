@@ -8,7 +8,6 @@ let URL = NSURL(string: "http://farm8.staticflickr.com/7315/16455839655_7d6deb1e
 let task = ImageManager.sharedManager().imageTaskWithURL(URL) {
     (image: UIImage?, error: NSError?) -> Void in
     let image = image
-    let error = error
 }
 task.resume()
 

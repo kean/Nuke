@@ -1,5 +1,5 @@
 //
-//  MockURLSsessionDataTask.swift
+//  MockURLSessionDataTask.swift
 //  Nuke
 //
 //  Created by Alexander Grebenyuk on 3/14/15.
@@ -8,14 +8,14 @@
 
 import Foundation
 
-let MockURLSsessionDataTaskDidResumeNotification = "didResume";
-let MockURLSsessionDataTaskDidCancelNotification = "didCancel";
+let MockURLSessionDataTaskDidResumeNotification = "didResume";
+let MockURLSessionDataTaskDidCancelNotification = "didCancel";
 
-class MockURLSsessionDataTask: NSURLSessionDataTask {
+class MockURLSessionDataTask: NSURLSessionDataTask {
     override func resume() {
-        NSNotificationCenter.defaultCenter().postNotificationName(MockURLSsessionDataTaskDidResumeNotification, object: self)
+        NSNotificationCenter.defaultCenter().postNotificationName(MockURLSessionDataTaskDidResumeNotification, object: self)
     }
     override func cancel() {
-        NSNotificationCenter.defaultCenter().postNotificationName(MockURLSsessionDataTaskDidCancelNotification, object: self)
+        NSNotificationCenter.defaultCenter().postNotificationName(MockURLSessionDataTaskDidCancelNotification, object: self)
     }
 }
