@@ -1,15 +1,15 @@
 <p align="center"><img src="https://cloud.githubusercontent.com/assets/1567433/6684993/5971ef08-cc3a-11e4-984c-6769e4931497.png" width="256"/>
 
-Advanced **Swift** framework for loading images. It uses latest features in iOS SDK and doesn't reinvent existing technologies. It has an elegant and powerful API, that is easy to experiment with in the included playgorund:
+Advanced **Swift** framework for loading images. It uses latest features in iOS SDK and doesn't reinvent existing technologies. It has an elegant and powerful API, that you can easily experiment with in the included playground:
 
 ![](https://cloud.githubusercontent.com/assets/1567433/6686072/58b7f5d6-cc43-11e4-880f-4a1276b01683.png)
 
 ## Features
 - Solid, FSM-based implementation
-- Easy to use, yet very powerfull API
+- Easy to use, yet very powerful API
 - Uses latest advancements in [Foundation URL Loading System](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html) including [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) that supports [SPDY](http://en.wikipedia.org/wiki/SPDY) protocol.
 - Instead of reinventing a caching methodology it relies on HTTP cache as defined in [HTTP specification](https://tools.ietf.org/html/rfc7234) and caching implementation provided by [Foundation URL Loading System](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html). The caching and revalidation are completely transparent to the client.
-- Intellegent image preheating
+- Intelligent image preheating
 - Groups similar requests and never executes them twice. Intelligent control over which requests are considered equivalent.
 - Unit tested
 
