@@ -22,7 +22,12 @@
 
 import Foundation
 
-public class ImageMemoryCache {
+public protocol ImageMemoryCaching {
+    func cachedImage(key: AnyObject) -> UIImage?
+    func storeImage(image: UIImage, key: AnyObject)
+}
+
+public class ImageMemoryCache: ImageMemoryCaching {
     public let cache: NSCache
     
     deinit {
