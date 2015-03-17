@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C0E78571AB820CD00458592 /* ImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0E78561AB820CD00458592 /* ImageView.swift */; };
 		0C207FC71AB46BA50044FEFF /* ImageManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C207FC61AB46BA50044FEFF /* ImageManagerTest.swift */; };
 		0C207FCF1AB485A10044FEFF /* MockURLSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C207FCE1AB485A10044FEFF /* MockURLSessionManager.swift */; };
 		0C207FD11AB485AD0044FEFF /* MockURLSsessionDataTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C207FD01AB485AD0044FEFF /* MockURLSsessionDataTask.swift */; };
@@ -35,6 +36,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0C0E78561AB820CD00458592 /* ImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
 		0C207FC61AB46BA50044FEFF /* ImageManagerTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManagerTest.swift; sourceTree = "<group>"; };
 		0C207FCE1AB485A10044FEFF /* MockURLSessionManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockURLSessionManager.swift; sourceTree = "<group>"; };
 		0C207FD01AB485AD0044FEFF /* MockURLSsessionDataTask.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockURLSsessionDataTask.swift; sourceTree = "<group>"; };
@@ -74,6 +76,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0C0E78551AB820C600458592 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				0C0E78561AB820CD00458592 /* ImageView.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
 		0C207FD21AB486410044FEFF /* Mocks */ = {
 			isa = PBXGroup;
 			children = (
@@ -137,6 +147,7 @@
 				0C6D19151AB279DA0020E5A9 /* Nuke.h */,
 				0C6D19181AB27A750020E5A9 /* Core */,
 				0CE4418A1AB7DC28003ED8A8 /* URLSessionManager */,
+				0C0E78551AB820C600458592 /* UI */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -278,6 +289,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C0E78571AB820CD00458592 /* ImageView.swift in Sources */,
 				0C6D191A1AB27A800020E5A9 /* ImageManager.swift in Sources */,
 				0CB923CD1AB3171000EEEC51 /* ImageResponse.swift in Sources */,
 				0CE4418C1AB7DC39003ED8A8 /* URLSessionManager.swift in Sources */,
