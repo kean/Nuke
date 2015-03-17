@@ -29,7 +29,7 @@ public enum ImageContentMode {
 
 public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 
-public typealias ImageCompletionHandler = (ImageResponse) -> Void
+public typealias ImageCompletionHandler = (image: UIImage?, error: NSError?) -> Void
 
 public let ImageManagerErrorDomain = "Nuke.ImageManagerErrorDomain"
 public let ImageManagerErrorCancelled = -1
@@ -131,12 +131,12 @@ public class ImageManager {
     }
     
     private func enterStateAction(state: ImageTaskState, task: ImageTaskInternal) {
-        let completeTask = { (response: ImageResponse) -> Void in
+        let completeTask = { () -> Void in
             self.executingImageTasks.remove(task)
             self.setNeedsExecutePreheatingTasks()
             
             let block: dispatch_block_t = {
-                task.completionHandler?(response)
+                task.completionHandler?(image: task.image, error: task.error)
             }
             NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
         }
@@ -147,18 +147,18 @@ public class ImageManager {
             self.executingImageTasks.insert(task)
             
             if let image = self.configuration.cache?.cachedImage(ImageRequestKey(task.request, type: .Cache, owner: self)) {
-                task.response = ImageResponse(image: image, error: nil)
+                task.image = image
                 self.setTaskState(.Completed, task: task)
             } else {
                 self.startDataTaskForImageTask(task)
             }
             
         case .Cancelled:
-            let error = NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorCancelled, userInfo: nil)
-            completeTask(ImageResponse(image: nil, error: error))
+            task.error = NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorCancelled, userInfo: nil)
+            completeTask()
             
         case .Completed:
-            completeTask(task.response ?? ImageResponse())
+            completeTask()
             
         default:
             return
@@ -199,13 +199,13 @@ public class ImageManager {
                 if image != nil {
                     self.processImage(image!, imageTask: imageTask) {
                         (processedImage: UIImage) -> Void in
-                        imageTask.response = ImageResponse(image: processedImage, error: nil)
+                        imageTask.image = image
                         dispatch_sync(self.queue) {
                             self.setTaskState(.Completed, task: imageTask)
                         }
                     }
                 } else {
-                    imageTask.response = ImageResponse(image: nil, error: error)
+                    imageTask.error = error
                     self.setTaskState(.Completed, task: imageTask)
                 }
             }

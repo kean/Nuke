@@ -16,8 +16,8 @@ class NukeTests: XCTestCase {
         let manager = ImageManager(configuration: configuration)
         let request = ImageRequest(URL: NSURL(string: "https://raw.githubusercontent.com/kean/DFImageManager/master/DFImageManager/Tests/Resources/Image.jpg")!)
         let expectation = self.expectationWithDescription("Desc")
-        let task = manager.imageTaskWithRequest(request) { (response) -> Void in
-            XCTAssertNotNil(response.image, "")
+        let task = manager.imageTaskWithRequest(request) { (image, error) -> Void in
+            XCTAssertNotNil(image, "")
             expectation.fulfill()
         }
         task.resume()

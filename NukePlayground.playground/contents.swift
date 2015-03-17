@@ -3,6 +3,14 @@ import UIKit
 import XCPlayground
 //: ## Nuke
 
+//: Use shared image manager to create `ImageTask` with `NSURL` and then resume it to download the image.
+let URL = NSURL(string: "http://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!
+/*
+let task = ImageManager.sharedManager().imageTaskWithURL(URL, completionHandler: { (<#ImageResponse#>) -> Void in
+    <#code#>
+})
+*/
+
 //: Create and customize `ImageRequest`
 var request = ImageRequest(URL: NSURL(string: "http://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!)
 

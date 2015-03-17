@@ -28,23 +28,23 @@ class ImageManagerTest: XCTestCase {
     func testThatRequestIsCompelted() {
         let expecation = self.expectationWithDescription("Expectation")
         let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
-        let imageTask = self.manager.imageTaskWithRequest(request) { (response) -> Void in
-            XCTAssertNotNil(response.image, "")
+        let imageTask = self.manager.imageTaskWithRequest(request) { (image, error) -> Void in
+            XCTAssertNotNil(image, "")
             expecation.fulfill()
         }
         imageTask.resume()
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
-        XCTAssertNotNil(imageTask.response?.image, "")
+        XCTAssertNotNil(imageTask.image, "")
     }
     
     func testThatResumedTaskIsCancelled() {
         self.mockSessionManager.enabled = false
         let expecation = self.expectationWithDescription("Expectation")
         let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
-        let task = self.manager.imageTaskWithRequest(request) { (response) -> Void in
-            if let error = response.error {
-                XCTAssertEqual(error.domain, ImageManagerErrorDomain, "")
-                XCTAssertEqual(error.code, ImageManagerErrorCancelled, "")
+        let task = self.manager.imageTaskWithRequest(request) { (image, error) -> Void in
+            if error != nil {
+                XCTAssertEqual(error!.domain, ImageManagerErrorDomain, "")
+                XCTAssertEqual(error!.code, ImageManagerErrorCancelled, "")
             } else {
                 XCTFail("")
             }
@@ -58,10 +58,10 @@ class ImageManagerTest: XCTestCase {
     func testThatNeverResumedTaskIsCancelled() {
         let expecation = self.expectationWithDescription("Expectation")
         let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
-        let task = self.manager.imageTaskWithRequest(request) { (response) -> Void in
-            if let error = response.error {
-                XCTAssertEqual(error.domain, ImageManagerErrorDomain, "")
-                XCTAssertEqual(error.code, ImageManagerErrorCancelled, "")
+        let task = self.manager.imageTaskWithRequest(request) { (image, error) -> Void in
+            if error != nil {
+                XCTAssertEqual(error!.domain, ImageManagerErrorDomain, "")
+                XCTAssertEqual(error!.code, ImageManagerErrorCancelled, "")
             } else {
                 XCTFail("")
             }
@@ -87,14 +87,14 @@ class ImageManagerTest: XCTestCase {
     func testThatDataTasksAreReused() {
         let expecation = self.expectationWithDescription("Expectation")
         let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
-        let imageTask = self.manager.imageTaskWithRequest(request) { (response) -> Void in
+        let imageTask = self.manager.imageTaskWithRequest(request) { (image, error) -> Void in
             expecation.fulfill()
         }
         imageTask.resume()
         
         let expectation2 = self.expectationWithDescription("Expectation2")
         let request2 = ImageRequest(URL: NSURL(string: "http://test.com")!)
-        let imageTask2 = self.manager.imageTaskWithRequest(request) { (response) -> Void in
+        let imageTask2 = self.manager.imageTaskWithRequest(request) { (image, error) -> Void in
             expectation2.fulfill()
         }
         imageTask2.resume()
