@@ -24,7 +24,7 @@ import Foundation
 
 public struct ImageRequest {
     public var URL: NSURL
-    public var targetSize: CGSize = ImageMaximumSize
+    public var targetSize: CGSize = ImageMaximumSize // Target size in pixels
     public var contentMode: ImageContentMode = .AspectFill
     
     public init(URL: NSURL, targetSize: CGSize, contentMode: ImageContentMode) {

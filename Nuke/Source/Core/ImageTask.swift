@@ -22,12 +22,20 @@
 
 import Foundation
 
+public enum ImageTaskState {
+    case Suspended
+    case Running
+    case Cancelled
+    case Completed
+}
+
 public class ImageTask: Hashable {
     public let request: ImageRequest
     public let progress = NSProgress()
     public internal(set) var response: ImageResponse?
+    public internal(set) var state: ImageTaskState = .Suspended
     let completionHandler: ImageCompletionHandler?
-        
+
     public var hashValue: Int {
         return self.request.URL.hashValue
     }
@@ -37,7 +45,7 @@ public class ImageTask: Hashable {
         self.completionHandler = completionHandler
     }
     
-    public func resume() -> Self { return self }
+    public func resume() {}
     public func cancel() {}
 }
 

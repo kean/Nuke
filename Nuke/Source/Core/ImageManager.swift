@@ -40,6 +40,7 @@ public struct ImageManagerConfiguration {
     public var sessionManager: URLSessionManager
     public var cache: ImageMemoryCache?
     public var processor: ImageProcessing?
+    public var maxConcurrentPreheatingRequests = 2
     
     public init(sessionManager: URLSessionManager, cache: ImageMemoryCache?, processor: ImageProcessing?) {
         self.sessionManager = sessionManager
@@ -52,10 +53,16 @@ public struct ImageManagerConfiguration {
 
 public class ImageManager {
     public let configuration: ImageManagerConfiguration
+    
     private let sessionManager: URLSessionManager
     private let queue = dispatch_queue_create("ImageManager-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
     private let processingQueue: NSOperationQueue
+    
+    private var executingImageTasks = Set<ImageTaskInternal>()
     private var dataTasks = [ImageRequestKey: ImageDataTask]()
+    
+    private var preheatingTasks = [ImageRequestKey: ImageTaskInternal]()
+    private var needsToExecutePreheatingTasks = false
     
     public init(configuration: ImageManagerConfiguration) {
         self.configuration = configuration
@@ -64,20 +71,12 @@ public class ImageManager {
         self.processingQueue.maxConcurrentOperationCount = 2
     }
     
+    public func imageTaskWithURL(URL: NSURL, completionHandler: ImageCompletionHandler?) -> ImageTask {
+        return self.imageTaskWithRequest(ImageRequest(URL: URL), completionHandler: completionHandler)
+    }
+    
     public func imageTaskWithRequest(request: ImageRequest, completionHandler: ImageCompletionHandler?) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request, completionHandler: completionHandler)
-    }
-    
-    public func startPreheatingImages(requests: [ImageRequest]) {
-        
-    }
-    
-    public func stopPreheatingImages(request: [ImageRequest]) {
-        
-    }
-    
-    public func stopPreheatingImages() {
-        
     }
     
     public func invalidateAndCancel() {
@@ -130,9 +129,21 @@ public class ImageManager {
     }
     
     private func enterStateAction(state: ImageTaskState, task: ImageTaskInternal) {
+        let completeTask = { (response: ImageResponse) -> Void in
+            self.executingImageTasks.remove(task)
+            self.setNeedsExecutePreheatingTasks()
+            
+            let block: dispatch_block_t = {
+                task.completionHandler?(response)
+            }
+            NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
+        }
+        
         switch state {
             
         case .Running:
+            self.executingImageTasks.insert(task)
+            
             if let image = self.configuration.cache?.cachedImage(ImageRequestKey(task.request, type: .Cache, owner: self)) {
                 task.response = ImageResponse(image: image, error: nil)
                 self.setTaskState(.Completed, task: task)
@@ -154,16 +165,11 @@ public class ImageManager {
             }
             
         case .Cancelled:
-            dispatch_async(dispatch_get_main_queue()) {
-                let error = NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorCancelled, userInfo: nil)
-                task.completionHandler?(ImageResponse(image: nil, error: error))
-            }
+            let error = NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorCancelled, userInfo: nil)
+            completeTask(ImageResponse(image: nil, error: error))
             
         case .Completed:
-            let block: dispatch_block_t = {
-                task.completionHandler?(task.response ?? ImageResponse())
-            }
-            NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
+            completeTask(task.response ?? ImageResponse())
             
         default:
             return
@@ -215,29 +221,81 @@ public class ImageManager {
         }
     }
     
-    // MARK: ImageTaskInternal
+    // MARK: Preheating
     
-    enum ImageTaskState {
-        case Suspended
-        case Running
-        case Cancelled
-        case Completed
+    public func startPreheatingImages(requests: [ImageRequest]) {
+        dispatch_sync(self.queue) {
+            for request in requests {
+                let key = ImageRequestKey(request, type: .Cache, owner: self)
+                if self.preheatingTasks[key] == nil {
+                    let task = ImageTaskInternal(manager: self, request: request) { [weak self] (response) -> Void in
+                        self?.preheatingTasks.removeValueForKey(key)
+                        return
+                    }
+                    self.preheatingTasks[key] = task
+                }
+            }
+            self.setNeedsExecutePreheatingTasks()
+        }
     }
+    
+    public func stopPreheatingImages(requests: [ImageRequest]) {
+        dispatch_sync(self.queue) {
+            for request in requests {
+                let key = ImageRequestKey(request, type: .Cache, owner: self)
+                if let task = self.preheatingTasks[key] {
+                    self.setTaskState(.Cancelled, task: task)
+                    self.preheatingTasks.removeValueForKey(key)
+                }
+            }
+        }
+    }
+    
+    public func stopPreheatingImages() {
+        dispatch_sync(self.queue) {
+            for (key, task) in self.preheatingTasks {
+                self.setTaskState(.Cancelled, task: task)
+            }
+            self.preheatingTasks.removeAll(keepCapacity: false)
+        }
+    }
+    
+    private func setNeedsExecutePreheatingTasks() {
+        if !self.needsToExecutePreheatingTasks {
+            self.needsToExecutePreheatingTasks = true
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64((0.1 * Double(NSEC_PER_SEC)))), self.queue) {
+                [weak self] in self?.executePreheatingTasksIfNeeded(); return
+            }
+        }
+    }
+    
+    private func executePreheatingTasksIfNeeded() {
+        var executingTaskCount = self.executingImageTasks.count
+        for (key, task) in self.preheatingTasks {
+            if executingTaskCount > self.configuration.maxConcurrentPreheatingRequests {
+                break;
+            }
+            if task.state == .Suspended {
+                self.setTaskState(.Running, task: task)
+                executingTaskCount++
+            }
+        }
+    }
+    
+    // MARK: ImageTaskInternal
     
     class ImageTaskInternal: ImageTask {
         weak var dataTask: ImageDataTask?
         weak var processingOperation: NSOperation?
         let manager: ImageManager
-        var state = ImageTaskState.Suspended
         
         init(manager: ImageManager, request: ImageRequest, completionHandler: ImageCompletionHandler?) {
             self.manager = manager
             super.init(request: request, completionHandler: completionHandler)
         }
         
-        override func resume() -> Self {
+        override func resume() {
             self.manager.resumeImageTask(self)
-            return self
         }
         
         override func cancel() {
@@ -273,7 +331,6 @@ extension ImageManager: ImageRequestKeyOwner {
         return key.request.URL.isEqual(key2.request.URL)
     }
 }
-
 
 // MARK: - ImageRequestKey -
 

@@ -19,7 +19,8 @@ class NukeTests: XCTestCase {
         let task = manager.imageTaskWithRequest(request) { (response) -> Void in
             XCTAssertNotNil(response.image, "")
             expectation.fulfill()
-        }.resume()
+        }
+        task.resume()
         self.waitForExpectationsWithTimeout(10.0, handler: nil)
     }
 }
