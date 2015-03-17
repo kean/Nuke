@@ -38,11 +38,11 @@ public let ImageManagerErrorCancelled = -1
 
 public struct ImageManagerConfiguration {
     public var sessionManager: URLSessionManager
-    public var cache: ImageMemoryCache?
+    public var cache: ImageMemoryCaching?
     public var processor: ImageProcessing?
     public var maxConcurrentPreheatingRequests = 2
     
-    public init(sessionManager: URLSessionManager, cache: ImageMemoryCache?, processor: ImageProcessing?) {
+    public init(sessionManager: URLSessionManager, cache: ImageMemoryCaching?, processor: ImageProcessing?) {
         self.sessionManager = sessionManager
         self.cache = cache
         self.processor = processor
@@ -199,7 +199,7 @@ public class ImageManager {
                 if image != nil {
                     self.processImage(image!, imageTask: imageTask) {
                         (processedImage: UIImage) -> Void in
-                        imageTask.image = image
+                        imageTask.image = processedImage
                         dispatch_sync(self.queue) {
                             self.setTaskState(.Completed, task: imageTask)
                         }
