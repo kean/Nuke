@@ -2,7 +2,7 @@
 
 Advanced **Swift** framework for loading images. It uses latest features in iOS SDK and doesn't reinvent existing technologies. It has an elegant and powerful API, that you can easily experiment with in the included playground:
 
-![](https://cloud.githubusercontent.com/assets/1567433/6686193/08d9d628-cc44-11e4-88cf-055baca63aa9.png)
+![](https://cloud.githubusercontent.com/assets/1567433/6686242/6ae3211c-cc44-11e4-956b-33eb8ed83cab.png)
 
 ## Features
 - Solid, FSM-based implementation
