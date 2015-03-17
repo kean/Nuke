@@ -321,14 +321,20 @@ public class ImageManager {
 
 extension ImageManager: ImageRequestKeyOwner {
     private func isImageRequestKey(key: ImageRequestKey, equalToKey key2: ImageRequestKey) -> Bool {
-        if (key.type == .Cache) {
+        switch key.type {
+        case .Cache:
+            if !key.request.URL.isEqual(key2.request.URL) {
+                return false
+            }
             if let processor = self.configuration.processor {
                 if !(processor.isProcessingEquivalent(key.request, r2: key2.request)) {
                     return false
                 }
             }
+            return true
+        case .Fetch:
+            return key.request.URL.isEqual(key2.request.URL)
         }
-        return key.request.URL.isEqual(key2.request.URL)
     }
 }
 
