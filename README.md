@@ -1,6 +1,6 @@
 <p align="center"><img src="https://cloud.githubusercontent.com/assets/1567433/6684993/5971ef08-cc3a-11e4-984c-6769e4931497.png" width="256"/>
 
-Advanced **Swift** framework for loading images. It uses latest features in iOS SDK and doesn't reinvent existing technologies. It has an elegant and powerful API, that you can easily experiment with in the included playground:
+Experimental **Swift** framework for loading images. It uses latest features in iOS SDK and doesn't reinvent existing technologies. It has an elegant and powerful API, that you can easily experiment with in the included playground:
 
 ![](https://cloud.githubusercontent.com/assets/1567433/6686242/6ae3211c-cc44-11e4-956b-33eb8ed83cab.png)
 
