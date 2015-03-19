@@ -227,6 +227,7 @@ public class ImageManager {
                     completionHandler(processedImage: processedImage)
                 }
             }
+            imageTask.processingOperation = operation;
             self.processingQueue.addOperation(operation)
         } else {
             cache?.storeImage(image, key: cacheKey)
