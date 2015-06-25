@@ -25,9 +25,18 @@ import Foundation
 public class ImageView: UIImageView {
     public var imageTask: ImageTask?
     public var allowsAnimations = true
-    
+    public var savedImage: UIImage? {
+      get {
+        return self.savedImage
+      }
+      set {
+        self.image = newValue
+        self.savedImage = newValue
+      }
+    }
+
     public func prepareForReuse() {
-        self.image = nil
+        self.savedImage = nil
         self.imageTask?.cancel()
         self.imageTask = nil
     }
@@ -49,16 +58,16 @@ public class ImageView: UIImageView {
     }
     
     private func imageTaskDidFinishWithImage(image: UIImage?, error: NSError?, elapsedTime: NSTimeInterval) {
-        var isFastResponse = Int(elapsedTime) * 1000 < 32 // 32 ms
-        if self.allowsAnimations && !isFastResponse && self.image == nil {
-            self.image = image
+        let isFastResponse = Int(elapsedTime) * 1000 < 32 // 32 ms
+        if self.allowsAnimations && !isFastResponse && self.savedImage == nil {
+            self.savedImage = image
             let animation = CABasicAnimation(keyPath: "opacity")
             animation.fromValue = 0.0
             animation.toValue = 0.0
             animation.duration = 0.25
             self.layer.addAnimation(animation, forKey: "opacity")
         } else {
-            self.image = image
+            self.savedImage = image
         }
     }
 }
