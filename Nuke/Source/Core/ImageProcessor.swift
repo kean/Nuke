@@ -58,15 +58,7 @@ private func decompressedImage(image: UIImage, scale: Double) -> UIImage {
         imageSize = CGSize(width: Double(imageSize.width) * scale, height: Double(imageSize.height) * scale)
     }
 
-#if WATCHKIT
-    let contextRef = CGBitmapContextCreate(UnsafeMutablePointer<Void>(),
-        Int(imageSize.width),
-        Int(imageSize.height),
-        CGImageGetBitsPerComponent(imageRef),
-        0,
-        CGColorSpaceCreateDeviceRGB(),
-        CGImageGetBitmapInfo(imageRef))
-#else
+
     let contextRef = CGBitmapContextCreate(UnsafeMutablePointer<Void>(),
         Int(imageSize.width),
         Int(imageSize.height),
@@ -74,7 +66,6 @@ private func decompressedImage(image: UIImage, scale: Double) -> UIImage {
         0,
         CGColorSpaceCreateDeviceRGB(),
         CGImageGetBitmapInfo(imageRef).rawValue)
-#endif
     if contextRef == nil {
         return image
     }
