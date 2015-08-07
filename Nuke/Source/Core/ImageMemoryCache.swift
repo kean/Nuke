@@ -77,7 +77,7 @@ public class ImageMemoryCache: ImageMemoryCaching {
         return Int(Double(physicalMemory) * ratio)
     }
     
-    private func didReceiveMemoryWarning(notification: NSNotification) {
+    @objc private func didReceiveMemoryWarning(notification: NSNotification) {
         self.cache.removeAllObjects()
     }
 }
