@@ -50,9 +50,9 @@ public class URLSessionManager: NSObject, NSURLSessionDataDelegate {
     public func dataTaskWithRequest(request: NSURLRequest, progressHandler: URLSessionManagerProgressHandler?, completionHandler: URLSessionManagerCompletionHandler) -> NSURLSessionDataTask {
         let dataTask = self.session.dataTaskWithRequest(request)
         dispatch_sync(self.queue) {
-            self.taskHandlers[dataTask!] = URLSessionDataTaskHandler(progressHandler: progressHandler, completionHandler: completionHandler)
+            self.taskHandlers[dataTask] = URLSessionDataTaskHandler(progressHandler: progressHandler, completionHandler: completionHandler)
         }
-        return dataTask!
+        return dataTask
     }
     
     public func URLSession(session: NSURLSession, dataTask: NSURLSessionDataTask, didReceiveData data: NSData) {
