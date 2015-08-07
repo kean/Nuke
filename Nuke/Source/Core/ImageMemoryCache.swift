@@ -20,7 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-import Foundation
+#if WATCHKIT
+  import WatchKit
+  #else
+  import Foundation
+#endif
 
 public protocol ImageMemoryCaching {
     func cachedImage(key: AnyObject) -> UIImage?
@@ -31,12 +35,18 @@ public class ImageMemoryCache: ImageMemoryCaching {
     public let cache: NSCache
     
     deinit {
+#if WATCHKIT
+#else
         NSNotificationCenter.defaultCenter().removeObserver(self, name: UIApplicationDidReceiveMemoryWarningNotification, object: nil)
+#endif
     }
     
     public init(cache: NSCache) {
         self.cache = cache
+#if WATCHKIT
+#else
         NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("didReceiveMemoryWarning:"), name: UIApplicationDidReceiveMemoryWarningNotification, object: nil)
+#endif
     }
     
     public convenience init() {
@@ -67,7 +77,7 @@ public class ImageMemoryCache: ImageMemoryCaching {
         return Int(Double(physicalMemory) * ratio)
     }
     
-    private func didReceiveMemoryWarning(notification: NSNotification) {
+    @objc private func didReceiveMemoryWarning(notification: NSNotification) {
         self.cache.removeAllObjects()
     }
 }

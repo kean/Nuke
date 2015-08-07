@@ -20,7 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#if WATCHKIT
+import WatchKit
+#else
 import Foundation
+#endif
 
 public enum ImageContentMode {
     case AspectFill
@@ -112,7 +116,7 @@ public class ImageManager {
     
     private func transitionAllowed(fromState: ImageTaskState, toState: ImageTaskState) -> Bool {
         if let toStates = ImageManager.transitions[fromState] {
-            return contains(toStates, toState)
+            return toStates.contains(toState)
         }
         return false
     }
@@ -193,7 +197,11 @@ public class ImageManager {
     
     private func didCompleteDataTask(dataTask: ImageDataTask, data: NSData!, error: NSError!) {
         dispatch_sync(self.queue) {
+#if WATCHKIT
+            let image = data != nil ? UIImage(data: data, scale: WKInterfaceDevice.currentDevice().screenScale) : nil
+#else
             let image = data != nil ? UIImage(data: data, scale: UIScreen.mainScreen().scale) : nil
+#endif
             for imageTask in dataTask.imageTasks {
                 imageTask.dataTask = nil
                 if image != nil {
@@ -269,7 +277,7 @@ public class ImageManager {
     
     public func stopPreheatingImages() {
         dispatch_sync(self.queue) {
-            for (key, task) in self.preheatingTasks {
+            for (_, task) in self.preheatingTasks {
                 self.setTaskState(.Cancelled, task: task)
             }
             self.preheatingTasks.removeAll(keepCapacity: false)
@@ -287,7 +295,7 @@ public class ImageManager {
     
     private func executePreheatingTasksIfNeeded() {
         var executingTaskCount = self.executingImageTasks.count
-        for (key, task) in self.preheatingTasks {
+        for (_, task) in self.preheatingTasks {
             if executingTaskCount > self.configuration.maxConcurrentPreheatingRequests {
                 break;
             }
@@ -398,7 +406,7 @@ private enum ImageRequestKeyType {
 
 /** Makes it possible to use ImageRequest as a key in dictionaries (and dictionary-like structures). This should be a nested class inside ImageManager but it's impossible because of the Equatable protocol.
 */
-private class ImageRequestKey: NSObject, Hashable {
+private class ImageRequestKey: NSObject {
     let request: ImageRequest
     let type: ImageRequestKeyType
     weak var owner: ImageRequestKeyOwner?

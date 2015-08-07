@@ -20,7 +20,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-import Foundation
+#if WATCHKIT
+  import WatchKit
+  #else
+  import Foundation
+#endif
 
 public protocol ImageProcessing {
     func isProcessingEquivalent(r1: ImageRequest, r2: ImageRequest) -> Bool
@@ -35,7 +39,7 @@ public class ImageProcessor: ImageProcessing {
     }
     
     public func processedImage(image: UIImage, request: ImageRequest) -> UIImage {
-        return decompressedImage(image, request.targetSize, request.contentMode)
+        return decompressedImage(image, targetSize: request.targetSize, contentMode: request.contentMode)
     }
 }
 
@@ -44,7 +48,7 @@ private func decompressedImage(image: UIImage, targetSize: CGSize, contentMode: 
     let scaleWidth = targetSize.width / bitmapSize.width;
     let scaleHeight = targetSize.height / bitmapSize.height;
     let scale = contentMode == .AspectFill ? max(scaleWidth, scaleHeight) : min(scaleWidth, scaleHeight)
-    return decompressedImage(image, Double(scale))
+    return decompressedImage(image, scale: Double(scale))
 }
 
 private func decompressedImage(image: UIImage, scale: Double) -> UIImage {
@@ -53,21 +57,21 @@ private func decompressedImage(image: UIImage, scale: Double) -> UIImage {
     if scale < 1.0 {
         imageSize = CGSize(width: Double(imageSize.width) * scale, height: Double(imageSize.height) * scale)
     }
-    
-    let contextRef = CGBitmapContextCreate(nil,
+
+
+    let contextRef = CGBitmapContextCreate(UnsafeMutablePointer<Void>(),
         Int(imageSize.width),
         Int(imageSize.height),
         CGImageGetBitsPerComponent(imageRef),
         0,
         CGColorSpaceCreateDeviceRGB(),
-        CGImageGetBitmapInfo(imageRef))
-    
+        CGImageGetBitmapInfo(imageRef).rawValue)
     if contextRef == nil {
         return image
     }
     
     CGContextDrawImage(contextRef, CGRect(origin: CGPointZero, size: imageSize), imageRef)
     let decompressedImageRef = CGBitmapContextCreateImage(contextRef);
-    let decompressedImage = UIImage(CGImage: decompressedImageRef, scale: image.scale, orientation: image.imageOrientation)
+    let decompressedImage = UIImage(CGImage: decompressedImageRef!, scale: image.scale, orientation: image.imageOrientation)
     return decompressedImage ?? image
 }
