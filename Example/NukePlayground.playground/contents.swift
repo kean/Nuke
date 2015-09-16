@@ -6,8 +6,7 @@ import XCPlayground
 //: Use shared image manager to create `ImageTask` with `NSURL`. Resume created task to start the download. You can cancel the task at any time by calling its `cancel()` method.
 let URL = NSURL(string: "http://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!
 let task = ImageManager.shared().imageTaskWithURL(URL) {
-    response -> Void in
-    let image = response.image
+    let image = $0.image
 }
 task.resume()
 
