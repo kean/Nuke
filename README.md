@@ -1,85 +1,173 @@
 <p align="center"><img src="https://cloud.githubusercontent.com/assets/1567433/6684993/5971ef08-cc3a-11e4-984c-6769e4931497.png" height="100"/>
 
-Experimental **Swift** framework for loading images. It uses latest features in iOS SDK and doesn't reinvent existing technologies. It has an elegant and powerful API, that you can easily experiment with in the included playground:
+Advanced pure Swift framework for loading, caching, processing, displaying and preheating images. It uses latest advancements in iOS SDK and doesn't reinvent existing technologies. It has an elegant and powerful API that will extend the capabilities of your app.
 
-![](https://cloud.githubusercontent.com/assets/1567433/6686242/6ae3211c-cc44-11e4-956b-33eb8ed83cab.png)
+![](https://cloud.githubusercontent.com/assets/1567433/9919830/fa510796-5cd7-11e5-84b8-b36adebf0000.png)
 
-## Getting Started
-- Download the latest version
-- Check out [DFImageManager](https://github.com/kean/DFImageManager) if you want a production-ready framework with similar functionality.
+Nuke is a [pipeline](#h_design) that loads images using pluggable components which can be injected in runtime.
 
-## Requirements
-- Xcode 7.0+, Swift 2.0+
+> Programming in Objective-C? Try [DFImageManager](https://github.com/kean/DFImageManager).
+
+1. [Getting Started](#h_getting_started)
+2. [Usage](#h_usage)
+3. [Design](#h_design)
+4. [Installation](#install_using_cocopods)
+5. [Requirements](#h_requirements)
+6. [Contribution](#h_contribution)
+
+## <a name="h_features"></a>Features
+
+- Zero config, yet immense customization and flexibility
+- Great performance even on outdated devices, asynchronous and thread safe
+
+##### Loading
+- Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
+- Uses a single data task for multiple equivalent requests
+- [Intelligent preheating](https://github.com/kean/DFImageManager/wiki/Image-Preheating-Guide) of images close to the viewport
+- Progress tracking using `NSProgress`
+
+##### Caching
+- Instead of reinventing a caching methodology it relies on HTTP cache as defined in [HTTP specification](https://tools.ietf.org/html/rfc7234) and caching implementation provided by [Foundation](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html)
+- Caching is completely transparent to the client
+- Two cache layers, including [top level memory cache](https://github.com/kean/DFImageManager/wiki/Image-Caching-Guide) for decompressed images
+
+##### Decoding and Processing
+- Background image decompression and scaling in a single step
+- Scale large images (~6000x4000 px) and prepare them for display with ease
+- Resize and crop loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
+
+##### Advanced
+- Customize different parts of the framework using dependency injection
+
+## <a name="h_getting_started"></a>Getting Started
+- Download the latest [release](https://github.com/kean/Nuke/releases) version
+- Experiment with Nuke APIs in a Swift playground
+- Take a look at the demo project, it's easy to install with `pod try Nuke` command
+- [Install using CocoaPods](#install_using_cocopods) and enjoy!
+
+## <a name="h_usage"></a>Usage
+
+#### Zero Config Image Loading
+
+```swift
+ImageManager.shared().imageTaskWithURL(imageURL) {
+    let image = $0.image
+}.resume()
+```
+
+#### Adding Request Options
+
+```swift
+var request = ImageRequest(URL: imageURL)
+request.targetSize = CGSize(width: 300.0, height: 400.0) // Set target size in pixels
+request.contentMode = .AspectFill
+
+ImageManager.shared().imageTaskWithRequest(request) {
+    let image = $0.image
+}.resume()
+```
+
+### Using Image Task
+
+```swift
+let task = ImageManager.shared().imageTaskWithURL(imageURL) {
+    let image = $0.image
+}
+task.resume()
+
+// Use progress object to track load progress
+let progress = task.progress
+
+// Track task state
+let state = task.state
+
+// Cancel image task
+task.cancel()
+```
+
+#### Using UI Components
+
+```swift
+let imageView: ImageView = <#view#>
+imageView.setImageWithURL(imageURL)
+```
+
+#### UICollectionView
+
+```swift
+override func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
+    let cell = collectionView.dequeueReusableCellWithReuseIdentifier(cellReuseID, forIndexPath: indexPath)
+
+    let imageView: ImageView = <#view#>
+    imageView.prepareForReuse()
+    imageView.setImageWithURL(imageURL)
+
+    return cell
+}
+```
+
+Cancel image task as soon as the cell goes offscreen (optional):
+
+```swift
+override func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
+    let imageView: ImageView = <#view#>
+    imageView.prepareForReuse()
+}
+```
+
+#### Preheating Images
+
+```swift
+let requests = [ImageRequest(URL: imageURL1), ImageRequest(URL: imageURL2)]
+ImageManager.shared().startPreheatingImages(requests: requests)
+
+ImageManager.shared().stopPreheatingImages(requests: requests)
+```
+
+#### Customizing Image Manager
+
+```swift
+let dataLoader: ImageDataLoading = <#data_loader#>
+let decoder: ImageDecoding = <#decoder#>
+let processor: ImageProcessing = <#processor#>
+let cache: ImageMemoryCaching = <#cache#>
+
+let configuration = ImageManagerConfiguration(dataLoader: dataLoader, decoder: decoder, cache: cache, processor: processor)
+let manager = ImageManager(configuration: configuration)
+```
+
+## <a name="h_design"></a>Design
+
+<img src="https://cloud.githubusercontent.com/assets/1567433/9920465/f817af2a-5cdc-11e5-92a9-613e3bdf35a8.png" width="66%"/>
+
+|Protocol|Description|
+|--------|-----------|
+|`ImageManager`|A high-level API for loading images|
+|`ImageDataLoading`|Performs loading of image data (`NSData`)|
+|`ImageDecoding`|Converts `NSData` to `UIImage` objects|
+|`ImageProcessing`|Processes decoded images|
+|`ImageMemoryCaching`|Stores processed images into memory cache|
+
+## <a name="install_using_cocopods"></a>Installation using [CocoaPods](http://cocoapods.org)
+
+CocoaPods is the dependency manager for Cocoa projects. If you are not familiar with CocoaPods the best place to start would be [official CocoaPods guides](http://guides.cocoapods.org). To install Nuke add a dependency in your Podfile:
+```ruby
+# Podfile
+# platform :ios, '8.0'
+pod 'Nuke'
+```
+
+## <a name="h_requirements"></a>Requirements
 - iOS 8.0+
+- Xcode 7.0+, Swift 2.0+
 
-## Usage
+## <a name="h_contribution"></a>Contribution
 
-#### Create `ImageTask` with `NSURL`, resume task to start the download
-
-```swift
-let URL = NSURL(string: "http://...")!
-let task = ImageManager.sharedManager().imageTaskWithURL(URL) {
-  (image: UIImage?, error: NSError?) -> Void in
-  // Use loaded image
-}
-task.resume()
-
-// You can cancel task at any time
-// task.cancel()
-```
-
-#### Create `ImageTask` with `ImageRequest`
-
-```swift
-var request = ImageRequest(URL: NSURL(string: "http://...")!)
-request.targetSize = CGSize(width: 400.0, height: 400.0) // Set target size in pixels
-request.contentMode = .AspectFit
-request.progressHandler = {
-  let progress = $0 // Observe download progress
-}
-
-let task = ImageManager.sharedManager().imageTaskWithRequest(request) { 
-  (image: UIImage?, error: NSError?) -> Void in
-  // Use loaded image
-}
-task.resume()
-```
-
-#### `ImageTask` stores the state of the request
-
-```swift
-let task: ImageTask = /* ... */
-if task.state == .Completed {
-  // Access result of the request at any time
-  let image = task.image
-  let error = task.error
-}
-```
-
-#### Preheat images
-
-```swift
-let requests = [ImageRequest(URL: /* ... */), ImageRequest(URL: /* ... */)]
-let manager = ImageManager.sharedManager()
-manager.startPreheatingImages(requests: requests)
-manager.stopPreheatingImages()
-```
-
-#### Customize `ImageManager`
-
-```swift
-// Provide your own NSURLSessionConfiguration
-let sessionConfiguration = NSURLSessionConfiguration.defaultSessionConfiguration()
-let sessionManager: URLSessionManager = URLSessionManager(sessionConfiguration: sessionConfiguration)
-
-let cache: ImageMemoryCaching = ImageMemoryCache()
-let processor: ImageProcessing = ImageProcessor()
-
-let manager = ImageManager(configuration: ImageManagerConfiguration(sessionManager: sessionManager, cache: cache, processor: nil))
-
-// Change shared manager
-ImageManager.setSharedManager(manager)
-```
+- If you **need help**, use [Stack Overflow](http://stackoverflow.com/questions/tagged/iosnuke). (Tag 'iosnuke')
+- If you'd like to **ask a general question**, use [Stack Overflow](http://stackoverflow.com/questions/tagged/iosnuke).
+- If you **found a bug**, and can provide steps to reproduce it, open an issue.
+- If you **have a feature request**, open an issue.
+- If you **want to contribute**, branch of the `develop` branch and submit a pull request.
 
 ## Contacts
 
