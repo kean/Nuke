@@ -1,0 +1,14 @@
+PODS:
+  - Nuke (0.1.0)
+
+DEPENDENCIES:
+  - Nuke (from `../`)
+
+EXTERNAL SOURCES:
+  Nuke:
+    :path: ../
+
+SPEC CHECKSUMS:
+  Nuke: c6a1291ac39aaa1e9d05a3c23b2650f9b7e249b7
+
+COCOAPODS: 0.38.2
