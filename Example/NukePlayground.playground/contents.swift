@@ -15,7 +15,8 @@ var request = ImageRequest(URL: NSURL(string: "http://farm4.staticflickr.com/389
 request.targetSize = CGSize(width: 100.0, height: 400.0) // Set target size in pixels
 request.contentMode = .AspectFit
 
-let task2 = ImageManager.shared().imageTaskWithRequest(request) { response -> Void in
+let task2 = ImageManager.shared().imageTaskWithRequest(request) {
+    (response) -> Void in
     switch response {
     case let .Success(image, _):
         let image = image

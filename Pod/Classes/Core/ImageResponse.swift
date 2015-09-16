@@ -12,7 +12,7 @@ public enum ImageResponse {
         get {
             switch self {
             case let .Success(image, _): return image
-            case .Failure(_): return nil;
+            case .Failure(_): return nil
             }
         }
     }

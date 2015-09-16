@@ -55,7 +55,7 @@ public class ImageMemoryCache: ImageMemoryCaching {
     
     public class func recommendedCacheTotalLimit() -> Int {
         let physicalMemory = NSProcessInfo.processInfo().physicalMemory
-        let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2;
+        let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
         return Int(Double(physicalMemory) * ratio)
     }
     

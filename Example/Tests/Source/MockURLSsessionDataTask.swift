@@ -8,8 +8,8 @@
 
 import Foundation
 
-let MockURLSessionDataTaskDidResumeNotification = "didResume";
-let MockURLSessionDataTaskDidCancelNotification = "didCancel";
+let MockURLSessionDataTaskDidResumeNotification = "didResume"
+let MockURLSessionDataTaskDidCancelNotification = "didCancel"
 
 class MockURLSessionDataTask: NSURLSessionDataTask {
     override func resume() {

@@ -33,7 +33,7 @@ class ViewController: UICollectionViewController {
     }
     
     func updateItemSize() {
-        let layout = self.collectionViewLayout as! UICollectionViewFlowLayout;
+        let layout = self.collectionViewLayout as! UICollectionViewFlowLayout
         layout.minimumLineSpacing = 2.0
         layout.minimumInteritemSpacing = 2.0
         let itemsPerRow = 4

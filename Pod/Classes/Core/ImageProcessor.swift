@@ -28,8 +28,8 @@ public class ImageProcessor: ImageProcessing {
 
 private func decompressedImage(image: UIImage, targetSize: CGSize, contentMode: ImageContentMode) -> UIImage {
     let bitmapSize = CGSize(width: CGImageGetWidth(image.CGImage), height: CGImageGetHeight(image.CGImage))
-    let scaleWidth = targetSize.width / bitmapSize.width;
-    let scaleHeight = targetSize.height / bitmapSize.height;
+    let scaleWidth = targetSize.width / bitmapSize.width
+    let scaleHeight = targetSize.height / bitmapSize.height
     let scale = contentMode == .AspectFill ? max(scaleWidth, scaleHeight) : min(scaleWidth, scaleHeight)
     return decompressedImage(image, scale: Double(scale))
 }

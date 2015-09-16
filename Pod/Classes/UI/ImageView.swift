@@ -34,8 +34,8 @@ public class ImageView: UIImageView {
     }
     
     private func targetSize() -> CGSize {
-        let size = self.bounds.size;
-        let scale = UIScreen.mainScreen().scale;
+        let size = self.bounds.size
+        let scale = UIScreen.mainScreen().scale
         return CGSize(width: size.width * scale, height: size.height * scale)
     }
     
