@@ -8,28 +8,43 @@ public class ImageView: UIImageView {
     public var imageTask: ImageTask?
     public var allowsAnimations = true
     
+    public override init(frame: CGRect) {
+        super.init(frame: frame)
+        self.contentMode = .ScaleAspectFill
+        self.clipsToBounds = true
+    }
+    
+    public required init?(coder decoder: NSCoder) {
+        super.init(coder: decoder)
+    }
+    
     public func prepareForReuse() {
         self.image = nil
         self.cancelFetching()
     }
     
     private func cancelFetching() {
-        self.imageTask?.cancel()
         self.imageTask?.completionHandler = nil
+        self.imageTask?.cancel()
         self.imageTask = nil
     }
     
     public func setImageWithURL(URL: NSURL) {
-        self.setImageWithRequest(ImageRequest(URL: URL))
+        self.setImageWithRequest(ImageRequest(URL: URL, targetSize: self.targetSize(), contentMode: .AspectFill))
+    }
+    
+    private func targetSize() -> CGSize {
+        let size = self.bounds.size;
+        let scale = UIScreen.mainScreen().scale;
+        return CGSize(width: size.width * scale, height: size.height * scale)
     }
     
     public func setImageWithRequest(request: ImageRequest) {
         self.cancelFetching()
-        
-        let task = ImageManager.shared().imageTaskWithRequest(request) { [weak self] in
+        self.imageTask = ImageManager.shared().imageTaskWithRequest(request) { [weak self] in
             self?.imageTaskDidFinishWithResponse($0)
         }
-        task.resume()
+        self.imageTask?.resume()
     }
     
     public func imageTaskDidFinishWithResponse(response: ImageResponse) {
@@ -37,11 +52,10 @@ public class ImageView: UIImageView {
         case let .Success(image, info):
             if self.allowsAnimations && !info.fastResponse && self.image == nil {
                 self.image = image
-                let animation = CABasicAnimation(keyPath: "opacity")
-                animation.fromValue = 0.0
-                animation.toValue = 0.0
-                animation.duration = 0.25
-                self.layer.addAnimation(animation, forKey: "opacity")
+                self.alpha = 0.0
+                UIView.animateWithDuration(0.25) {
+                    self.alpha = 1.0
+                }
             } else {
                 self.image = image
             }

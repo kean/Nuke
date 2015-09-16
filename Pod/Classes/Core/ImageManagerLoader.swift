@@ -160,7 +160,7 @@ internal class ImageManagerLoader {
     internal func preheatingKeyForRequest(request: ImageRequest) -> ImageRequestKey {
         return ImageRequestKey(request, type: .Cache, owner: self)
     }
-
+    
     private func removeSessionTask(task: ImageLoaderSessionTask) {
         if self.sessionTasks[task.key] === task {
             self.sessionTasks.removeValueForKey(task.key)
