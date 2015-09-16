@@ -25,3 +25,4 @@ DerivedData
 #
 
 Pods/
+Podfile.lock
