@@ -67,7 +67,21 @@ ImageManager.shared().imageTaskWithRequest(request) {
 }.resume()
 ```
 
-### Using Image Task
+#### Using Image Response
+
+```swift
+ImageManager.shared().imageTaskWithRequest(request) {
+    (response) -> Void in
+    switch response { // Response is an enum with associated values
+    case let .Success(image, info):
+        // Use image and inspect info
+    case let .Failure(error):
+        // Handle error
+    }
+}.resume()
+```
+
+#### Using Image Task
 
 ```swift
 let task = ImageManager.shared().imageTaskWithURL(imageURL) {
