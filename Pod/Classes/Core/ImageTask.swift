@@ -15,14 +15,14 @@ public enum ImageTaskState {
 */
 public class ImageTask: Hashable {
     public let request: ImageRequest
-    var completionHandler: ImageTaskCompletion?
+    var completion: ImageTaskCompletion?
     public internal(set) var state: ImageTaskState = .Suspended
     public internal(set) var response: ImageResponse?
     public let progress: NSProgress
     
-    init(request: ImageRequest, completionHandler: ImageTaskCompletion?) {
+    init(request: ImageRequest, completion: ImageTaskCompletion?) {
         self.request = request
-        self.completionHandler = completionHandler
+        self.completion = completion
         self.progress = NSProgress(totalUnitCount: -1)
         self.progress.cancellationHandler = {
             [weak self] in self?.cancel()

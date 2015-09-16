@@ -57,12 +57,12 @@ public class ImageManager {
     
     // MARK: Image Tasks
     
-    public func imageTaskWithURL(URL: NSURL, completionHandler: ImageTaskCompletion?) -> ImageTask {
-        return self.imageTaskWithRequest(ImageRequest(URL: URL), completionHandler: completionHandler)
+    public func imageTaskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask {
+        return self.imageTaskWithRequest(ImageRequest(URL: URL), completion: completion)
     }
     
-    public func imageTaskWithRequest(request: ImageRequest, completionHandler: ImageTaskCompletion?) -> ImageTask {
-        return ImageTaskInternal(manager: self, request: request, completionHandler: completionHandler)
+    public func imageTaskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
+        return ImageTaskInternal(manager: self, request: request, completion: completion)
     }
     
     // MARK: FSM (ImageTaskState)
@@ -100,7 +100,7 @@ public class ImageManager {
             
             let block: dispatch_block_t = {
                 assert(task.response != nil)
-                task.completionHandler?(task.response!)
+                task.completion?(task.response!)
             }
             NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
             
@@ -115,7 +115,7 @@ public class ImageManager {
             for request in requests {
                 let key = self.imageLoader.preheatingKeyForRequest(request)
                 if self.preheatingTasks[key] == nil {
-                    let task = ImageTaskInternal(manager: self, request: request, completionHandler: nil)
+                    let task = ImageTaskInternal(manager: self, request: request, completion: nil)
                     task.tag = self.preheatingTaskCounter++
                     task.preheating = true
                     self.preheatingTasks[key] = task
@@ -252,9 +252,9 @@ private class ImageTaskInternal: ImageTask {
     var tag: Int = 0
     var preheating: Bool = false
     
-    init(manager: ImageTaskManaging, request: ImageRequest, completionHandler: ImageTaskCompletion?) {
+    init(manager: ImageTaskManaging, request: ImageRequest, completion: ImageTaskCompletion?) {
         self.manager = manager
-        super.init(request: request, completionHandler: completionHandler)
+        super.init(request: request, completion: completion)
     }
     
     override func resume() {

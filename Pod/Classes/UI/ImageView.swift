@@ -24,7 +24,7 @@ public class ImageView: UIImageView {
     }
     
     private func cancelFetching() {
-        self.imageTask?.completionHandler = nil
+        self.imageTask?.completion = nil
         self.imageTask?.cancel()
         self.imageTask = nil
     }

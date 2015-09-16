@@ -76,7 +76,7 @@ class ImageManagerTest: XCTestCase {
         self.mockSessionManager.enabled = false
         self.expectationForNotification(MockURLSessionDataTaskDidResumeNotification, object: nil, handler: nil)
         let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
-        let task = self.manager.imageTaskWithRequest(request, completionHandler: nil)
+        let task = self.manager.imageTaskWithRequest(request, completion: nil)
         task.resume()
         self.waitForExpectationsWithTimeout(3.0, handler: nil)
         
@@ -112,7 +112,7 @@ class ImageManagerTest: XCTestCase {
     func testThatProgressObjectCancelsTask() {
         self.mockSessionManager.enabled = false
 
-        let task = self.manager.imageTaskWithURL(NSURL(string: "http://test.com")!, completionHandler: nil)
+        let task = self.manager.imageTaskWithURL(NSURL(string: "http://test.com")!, completion: nil)
         task.resume()
         self.expectationForNotification(MockURLSessionDataTaskDidCancelNotification, object: nil, handler: nil)
         
@@ -177,8 +177,8 @@ class ImageManagerTest: XCTestCase {
         self.mockSessionManager.enabled = false
         
         // More than 1 image task!
-        self.manager.imageTaskWithURL(NSURL(string: "http://test.com")!, completionHandler: nil).resume()
-        self.manager.imageTaskWithURL(NSURL(string: "http://test2.com")!, completionHandler: nil).resume()
+        self.manager.imageTaskWithURL(NSURL(string: "http://test.com")!, completion: nil).resume()
+        self.manager.imageTaskWithURL(NSURL(string: "http://test2.com")!, completion: nil).resume()
         var callbackCount = 0
         self.expectationForNotification(MockURLSessionDataTaskDidCancelNotification, object: nil) { (_) -> Bool in
             callbackCount++
