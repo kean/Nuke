@@ -2,7 +2,13 @@
 
 Advanced pure Swift framework for loading, caching, processing, displaying and preheating images. It uses latest advancements in iOS SDK and doesn't reinvent existing technologies. It has an elegant and powerful API that will extend the capabilities of your app.
 
-![](https://cloud.githubusercontent.com/assets/1567433/9919830/fa510796-5cd7-11e5-84b8-b36adebf0000.png)
+```swift
+let URL = NSURL(string: "http://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!
+let task = ImageManager.shared().taskWithURL(URL) {
+    let image = $0.image
+}
+task.resume()
+```
 
 Nuke is a [pipeline](#h_design) that loads images using pluggable components which can be injected in runtime.
 
@@ -50,7 +56,7 @@ Nuke is a [pipeline](#h_design) that loads images using pluggable components whi
 #### Zero Config Image Loading
 
 ```swift
-ImageManager.shared().imageTaskWithURL(imageURL) {
+ImageManager.shared().taskWithURL(imageURL) {
     let image = $0.image
 }.resume()
 ```
@@ -62,7 +68,7 @@ var request = ImageRequest(URL: imageURL)
 request.targetSize = CGSize(width: 300.0, height: 400.0) // Set target size in pixels
 request.contentMode = .AspectFill
 
-ImageManager.shared().imageTaskWithRequest(request) {
+ImageManager.shared().taskWithRequest(request) {
     let image = $0.image
 }.resume()
 ```
@@ -70,7 +76,7 @@ ImageManager.shared().imageTaskWithRequest(request) {
 #### Using Image Response
 
 ```swift
-ImageManager.shared().imageTaskWithRequest(request) {
+ImageManager.shared().taskWithRequest(request) {
     (response) -> Void in
     switch response { // Response is an enum with associated values
     case let .Success(image, info):
@@ -84,7 +90,7 @@ ImageManager.shared().imageTaskWithRequest(request) {
 #### Using Image Task
 
 ```swift
-let task = ImageManager.shared().imageTaskWithURL(imageURL) {
+let task = ImageManager.shared().taskWithURL(imageURL) {
     let image = $0.image
 }
 task.resume()

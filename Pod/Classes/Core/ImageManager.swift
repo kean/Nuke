@@ -57,11 +57,11 @@ public class ImageManager {
     
     // MARK: Image Tasks
     
-    public func imageTaskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask {
-        return self.imageTaskWithRequest(ImageRequest(URL: URL), completion: completion)
+    public func taskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask {
+        return self.taskWithRequest(ImageRequest(URL: URL), completion: completion)
     }
     
-    public func imageTaskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
+    public func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request, completion: completion)
     }
     

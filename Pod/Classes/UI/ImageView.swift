@@ -41,7 +41,7 @@ public class ImageView: UIImageView {
     
     public func setImageWithRequest(request: ImageRequest) {
         self.cancelFetching()
-        self.imageTask = ImageManager.shared().imageTaskWithRequest(request) { [weak self] in
+        self.imageTask = ImageManager.shared().taskWithRequest(request) { [weak self] in
             self?.imageTaskDidFinishWithResponse($0)
         }
         self.imageTask?.resume()

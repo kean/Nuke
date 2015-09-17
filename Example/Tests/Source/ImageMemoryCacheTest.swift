@@ -28,7 +28,7 @@ class ImageMemoryCacheTest: XCTestCase {
     func testThatImageIsReturnedFromMemoryCache() {
         let expecation = self.expectationWithDescription("Expectation")
         let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
-        let imageTask = self.manager.imageTaskWithRequest(request) { (response) -> Void in
+        let imageTask = self.manager.taskWithRequest(request) { (response) -> Void in
             XCTAssertNotNil(response.image, "")
             expecation.fulfill()
         }
@@ -39,7 +39,7 @@ class ImageMemoryCacheTest: XCTestCase {
         
         let request2 = ImageRequest(URL: NSURL(string: "http://test.com")!)
         var isCompletionCalled = false
-        let imageTask2 = self.manager.imageTaskWithRequest(request2) { (response) -> Void in
+        let imageTask2 = self.manager.taskWithRequest(request2) { (response) -> Void in
             XCTAssertNotNil(response.image, "")
             // Comletion block should be called on the main thread
             isCompletionCalled = true
