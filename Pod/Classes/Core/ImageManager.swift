@@ -108,7 +108,7 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
     private func enterStateAction(state: ImageTaskState, task: ImageTaskInternal) {
         if state == .Running {
             if let response = self.imageLoader.cachedResponseForRequest(task.request) {
-                task.response = ImageResponse.Success(response.image, ImageResponseInfo(info: response.info, fastResponse: true))
+                task.response = ImageResponse.Success(response.image, ImageResponseInfo(fastResponse: true, userInfo: response.userInfo))
                 self.setState(.Completed, forTask: task)
             } else {
                 self.executingTasks.insert(task)
@@ -207,10 +207,10 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
         imageTask.progress.completedUnitCount = completedUnitCount
     }
     
-    internal  func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, info: NSDictionary?, error: NSError?) {
+    internal  func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: NSError?) {
         let imageTaskInterval = imageTask as! ImageTaskInternal
         if image != nil {
-            imageTaskInterval.response = ImageResponse.Success(image!, ImageResponseInfo(info: info, fastResponse: false))
+            imageTaskInterval.response = ImageResponse.Success(image!, ImageResponseInfo(fastResponse: false))
         } else {
             imageTaskInterval.response = ImageResponse.Failure(error ?? NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorUnknown, userInfo: nil))
         }

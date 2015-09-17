@@ -8,7 +8,7 @@ public struct ImageRequest {
     public var URL: NSURL
     public var targetSize: CGSize = ImageMaximumSize // Target size in pixels
     public var contentMode: ImageContentMode = .AspectFill
-    public var userInfo: AnyObject?
+    public var userInfo: Any?
     
     public init(URL: NSURL, targetSize: CGSize, contentMode: ImageContentMode) {
         self.URL = URL

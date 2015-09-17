@@ -6,7 +6,7 @@ import Foundation
 
 internal protocol ImageManagerLoaderDelegate: class {
     func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
-    func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, info: NSDictionary?, error: NSError?)
+    func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: NSError?)
 }
 
 internal class ImageManagerLoader {
@@ -110,7 +110,7 @@ internal class ImageManagerLoader {
     
     private func loaderTask(task: ImageLoaderTask, didCompleteWithImage image: UIImage?, error: NSError?) {
         dispatch_async(self.queue) {
-            self.delegate?.imageLoader(self, imageTask: task.imageTask, didCompleteWithImage: image, info: nil, error: error)
+            self.delegate?.imageLoader(self, imageTask: task.imageTask, didCompleteWithImage: image, error: error)
             self.executingTasks[task.imageTask] = nil
         }
     }
@@ -141,13 +141,13 @@ internal class ImageManagerLoader {
         return false
     }
     
-    internal func cachedResponseForRequest(request: ImageRequest) -> CachedImageResponse? {
+    internal func cachedResponseForRequest(request: ImageRequest) -> ImageCachedResponse? {
         return self.conf.cache?.cachedResponseForKey(ImageRequestKey(request, type: .Cache, owner: self))
     }
     
     private func storeImage(image: UIImage?, forRequest request: ImageRequest) {
         if image != nil {
-            let cachedResponse = CachedImageResponse(image: image!, info: nil)
+            let cachedResponse = ImageCachedResponse(image: image!, userInfo: nil)
             self.conf.cache?.storeResponse(cachedResponse, forKey: ImageRequestKey(request, type: .Cache, owner: self))
         }
     }

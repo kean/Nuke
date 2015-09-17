@@ -20,10 +20,10 @@ public enum ImageResponse {
 
 public class ImageResponseInfo {
     public let fastResponse: Bool
-    public let info: NSDictionary?
+    public let userInfo: Any?
     
-    public init(info: NSDictionary?, fastResponse: Bool) {
-        self.info = info
+    public init(fastResponse: Bool, userInfo: Any? = nil) {
         self.fastResponse = fastResponse
+        self.userInfo = userInfo
     }
 }

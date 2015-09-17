@@ -5,17 +5,17 @@
 import Foundation
 
 public protocol ImageMemoryCaching {
-    func cachedResponseForKey(key: AnyObject) -> CachedImageResponse?
-    func storeResponse(response: CachedImageResponse, forKey key: AnyObject)
+    func cachedResponseForKey(key: AnyObject) -> ImageCachedResponse?
+    func storeResponse(response: ImageCachedResponse, forKey key: AnyObject)
 }
 
-public class CachedImageResponse {
+public class ImageCachedResponse {
     public let image: UIImage
-    public let info: NSDictionary?
+    public let userInfo: Any?
     
-    public init(image: UIImage, info: NSDictionary?) {
+    public init(image: UIImage, userInfo: Any?) {
         self.image = image
-        self.info = info
+        self.userInfo = userInfo
     }
 }
 
@@ -37,12 +37,12 @@ public class ImageMemoryCache: ImageMemoryCaching {
         self.init(cache: cache)
     }
     
-    public func cachedResponseForKey(key: AnyObject) -> CachedImageResponse? {
+    public func cachedResponseForKey(key: AnyObject) -> ImageCachedResponse? {
         let object: AnyObject? = self.cache.objectForKey(key)
-        return object as? CachedImageResponse
+        return object as? ImageCachedResponse
     }
     
-    public func storeResponse(response: CachedImageResponse, forKey key: AnyObject) {
+    public func storeResponse(response: ImageCachedResponse, forKey key: AnyObject) {
         let cost = self.costForImage(response.image)
         self.cache.setObject(response, forKey: key, cost: cost)
     }
