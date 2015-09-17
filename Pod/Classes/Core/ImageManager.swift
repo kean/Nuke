@@ -18,6 +18,18 @@ public let ImageManagerErrorCancelled = -1
 public let ImageManagerErrorUnknown = -2
 
 
+// MARK: - ImageManaging
+
+public protocol ImageManaging {
+    func taskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask
+    func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask
+    func invalidateAndCancel()
+    func startPreheatingImages(requests: [ImageRequest])
+    func stopPreheatingImages(requests: [ImageRequest])
+    func stopPreheatingImages()
+}
+
+
 // MARK: - ImageManagerConfiguration
 
 public struct ImageManagerConfiguration {
@@ -38,7 +50,7 @@ public struct ImageManagerConfiguration {
 
 // MARK: - ImageManager
 
-public class ImageManager {
+public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskManaging {
     public let configuration: ImageManagerConfiguration
     
     private let imageLoader: ImageManagerLoader
@@ -55,7 +67,7 @@ public class ImageManager {
         self.imageLoader.delegate = self
     }
     
-    // MARK: Image Tasks
+    // MARK: ImageManaging
     
     public func taskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask {
         return self.taskWithRequest(ImageRequest(URL: URL), completion: completion)
@@ -63,6 +75,18 @@ public class ImageManager {
     
     public func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request, completion: completion)
+    }
+    
+    public func invalidateAndCancel() {
+        self.performBlock {
+            self.invalidated = true
+            self.preheatingTasks.removeAll()
+            self.imageLoader.delegate = nil
+            for task in executingTasks {
+                self.setState(.Cancelled, forTask: task)
+            }
+            self.configuration.dataLoader.invalidate()
+        }
     }
     
     // MARK: FSM (ImageTaskState)
@@ -114,7 +138,7 @@ public class ImageManager {
         }
     }
     
-    // MARK: Preheating
+    // MARK: ImageManaging (Preheating)
     
     public func startPreheatingImages(requests: [ImageRequest]) {
         self.performBlock {
@@ -176,39 +200,14 @@ public class ImageManager {
         }
     }
     
-    // MARK: Misc
+    // MARK: ImageManagerLoaderDelegate
     
-    private func performBlock(@noescape block: Void -> Void) {
-        self.lock.lock()
-        if !self.invalidated {
-            block()
-        }
-        self.lock.unlock()
-    }
-    
-    public func invalidateAndCancel() {
-        self.performBlock {
-            self.invalidated = true
-            self.preheatingTasks.removeAll()
-            self.imageLoader.delegate = nil
-            for task in executingTasks {
-                self.setState(.Cancelled, forTask: task)
-            }
-            self.configuration.dataLoader.invalidate()
-        }
-    }
-}
-
-
-// MARK: ImageManager: ImageManagerLoaderDelegate
-
-extension ImageManager: ImageManagerLoaderDelegate {
-    func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
+    internal func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
         imageTask.progress.totalUnitCount = totalUnitCount
         imageTask.progress.completedUnitCount = completedUnitCount
     }
     
-    func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, info: NSDictionary?, error: NSError?) {
+    internal  func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, info: NSDictionary?, error: NSError?) {
         let imageTaskInterval = imageTask as! ImageTaskInternal
         if image != nil {
             imageTaskInterval.response = ImageResponse.Success(image!, ImageResponseInfo(info: info, fastResponse: false))
@@ -219,12 +218,9 @@ extension ImageManager: ImageManagerLoaderDelegate {
             self.setState(.Completed, forTask: imageTaskInterval)
         }
     }
-}
-
-
-// MARK: ImageManager: ImageTaskManaging
-
-extension ImageManager: ImageTaskManaging {
+    
+    // MARK: ImageTaskManaging
+    
     private func resumeManagedTask(task: ImageTaskInternal) {
         self.performBlock {
             self.setState(.Running, forTask: task)
@@ -236,8 +232,17 @@ extension ImageManager: ImageTaskManaging {
             self.setState(.Cancelled, forTask: task)
         }
     }
+    
+    // MARK: Misc
+    
+    private func performBlock(@noescape block: Void -> Void) {
+        self.lock.lock()
+        if !self.invalidated {
+            block()
+        }
+        self.lock.unlock()
+    }
 }
-
 
 
 // MARK: - ImageTaskInternal
