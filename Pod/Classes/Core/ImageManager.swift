@@ -67,7 +67,7 @@ public class ImageManager {
     
     // MARK: FSM (ImageTaskState)
     
-    private func setTaskState(state: ImageTaskState, task: ImageTaskInternal)  {
+    private func setState(state: ImageTaskState, forTask task: ImageTaskInternal)  {
         if task.isValidNextState(state) {
             self.transitionStateAction(task.state, toState: state, task: task)
             task.state = state
@@ -85,7 +85,7 @@ public class ImageManager {
         if state == .Running {
             if let response = self.imageLoader.cachedResponseForRequest(task.request) {
                 task.response = ImageResponse.Success(response.image, ImageResponseInfo(info: response.info, fastResponse: true))
-                self.setTaskState(.Completed, task: task)
+                self.setState(.Completed, forTask: task)
             } else {
                 self.executingTasks.insert(task)
                 self.imageLoader.startLoadingForTask(task)
@@ -105,6 +105,12 @@ public class ImageManager {
             NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
             
             self.taskDidComplete(task)
+        }
+    }
+    
+    private func taskDidComplete(task: ImageTaskInternal) {
+        if self.preheatingTasks.count > 0 && (task.preheating || task.response?.image != nil) {
+            self.preheatingTasks[self.imageLoader.preheatingKeyForRequest(task.request)] = nil
         }
     }
     
@@ -130,7 +136,7 @@ public class ImageManager {
             for request in requests {
                 let key = self.imageLoader.preheatingKeyForRequest(request)
                 if let task = self.preheatingTasks[key] {
-                    self.setTaskState(.Cancelled, task: task)
+                    self.setState(.Cancelled, forTask: task)
                 }
             }
         }
@@ -139,7 +145,7 @@ public class ImageManager {
     public func stopPreheatingImages() {
         self.performBlock {
             for task in self.preheatingTasks.values {
-                self.setTaskState(.Cancelled, task: task)
+                self.setState(.Cancelled, forTask: task)
             }
         }
     }
@@ -164,15 +170,9 @@ public class ImageManager {
                 break
             }
             if task.state == .Suspended {
-                self.setTaskState(.Running, task: task)
+                self.setState(.Running, forTask: task)
                 executingTaskCount++
             }
-        }
-    }
-    
-    private func taskDidComplete(task: ImageTaskInternal) {
-        if self.preheatingTasks.count > 0 && (task.preheating || task.response?.image != nil) {
-            self.preheatingTasks.removeValueForKey(self.imageLoader.preheatingKeyForRequest(task.request))
         }
     }
     
@@ -192,7 +192,7 @@ public class ImageManager {
             self.preheatingTasks.removeAll()
             self.imageLoader.delegate = nil
             for task in executingTasks {
-                self.setTaskState(.Cancelled, task: task)
+                self.setState(.Cancelled, forTask: task)
             }
             self.configuration.dataLoader.invalidate()
         }
@@ -216,7 +216,7 @@ extension ImageManager: ImageManagerLoaderDelegate {
             imageTaskInterval.response = ImageResponse.Failure(error ?? NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorUnknown, userInfo: nil))
         }
         self.performBlock {
-            self.setTaskState(.Completed, task: imageTaskInterval)
+            self.setState(.Completed, forTask: imageTaskInterval)
         }
     }
 }
@@ -227,13 +227,13 @@ extension ImageManager: ImageManagerLoaderDelegate {
 extension ImageManager: ImageTaskManaging {
     private func resumeManagedTask(task: ImageTaskInternal) {
         self.performBlock {
-            self.setTaskState(.Running, task: task)
+            self.setState(.Running, forTask: task)
         }
     }
     
     private func cancelManagedTask(task: ImageTaskInternal) {
         self.performBlock {
-            self.setTaskState(.Cancelled, task: task)
+            self.setState(.Cancelled, forTask: task)
         }
     }
 }

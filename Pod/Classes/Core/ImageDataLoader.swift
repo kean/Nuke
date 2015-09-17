@@ -58,8 +58,8 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
         return lhs.URL.isEqual(rhs.URL)
     }
     
-    public func imageDataTaskWithURL(url: NSURL, progressHandler: ImageDataLoadingProgressHandler?, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionDataTask {
-        let dataTask = self.session.dataTaskWithURL(url)
+    public func imageDataTaskWithURL(URL: NSURL, progressHandler: ImageDataLoadingProgressHandler?, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionDataTask {
+        let dataTask = self.session.dataTaskWithURL(URL)
         dispatch_sync(self.queue) {
             self.taskHandlers[dataTask] = URLSessionDataTaskHandler(progressHandler: progressHandler, completionHandler: completionHandler)
         }
@@ -85,7 +85,7 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
         dispatch_sync(self.queue) {
             if let handler = self.taskHandlers[task] {
                 handler.completionHandler(data: handler.data, response: task.response, error: error)
-                self.taskHandlers.removeValueForKey(task)
+                self.taskHandlers[task] = nil
             }
         }
     }

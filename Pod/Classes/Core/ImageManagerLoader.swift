@@ -111,28 +111,23 @@ internal class ImageManagerLoader {
     private func loaderTask(task: ImageLoaderTask, didCompleteWithImage image: UIImage?, error: NSError?) {
         dispatch_async(self.queue) {
             self.delegate?.imageLoader(self, imageTask: task.imageTask, didCompleteWithImage: image, info: nil, error: error)
-            self.executingTasks.removeValueForKey(task.imageTask)
+            self.executingTasks[task.imageTask] = nil
         }
     }
     
     internal func stopLoadingForTask(imageTask: ImageTask) {
         dispatch_async(self.queue) {
-            if let loaderTask = self.executingTasks[imageTask] {
-                if let sessionTask = loaderTask.sessionTask {
-                    let index = sessionTask.tasks.indexOf {
-                        $0 === loaderTask
-                    }
-                    if index != nil {
-                        sessionTask.tasks.removeAtIndex(index!)
-                    }
-                    if sessionTask.tasks.count == 0 {
-                        sessionTask.dataTask?.cancel()
-                        sessionTask.dataTask = nil
-                        self.removeSessionTask(sessionTask)
-                    }
+            if let loaderTask = self.executingTasks[imageTask], sessionTask = loaderTask.sessionTask {
+                if let index = (sessionTask.tasks.indexOf { $0 === loaderTask }) {
+                    sessionTask.tasks.removeAtIndex(index)
+                }
+                if sessionTask.tasks.isEmpty {
+                    sessionTask.dataTask?.cancel()
+                    sessionTask.dataTask = nil
+                    self.removeSessionTask(sessionTask)
                 }
                 loaderTask.processingOperation?.cancel()
-                self.executingTasks.removeValueForKey(imageTask)
+                self.executingTasks[imageTask] = nil
             }
         }
     }
@@ -163,7 +158,7 @@ internal class ImageManagerLoader {
     
     private func removeSessionTask(task: ImageLoaderSessionTask) {
         if self.sessionTasks[task.key] === task {
-            self.sessionTasks.removeValueForKey(task.key)
+            self.sessionTasks[task.key] = nil
         }
     }
 }
