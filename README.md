@@ -1,18 +1,14 @@
 <p align="center"><img src="https://cloud.githubusercontent.com/assets/1567433/6684993/5971ef08-cc3a-11e4-984c-6769e4931497.png" height="100"/>
 
-Advanced pure Swift framework for loading, caching, processing, displaying and preheating images. It uses latest advancements in iOS SDK and doesn't reinvent existing technologies. It has an elegant and powerful API that will extend the capabilities of your app.
-
-```swift
-let URL = NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!
-let task = Nuke.taskWithURL(URL) {
-    let image = $0.image
-}
-task.resume()
-```
+Advanced pure Swift framework for loading, caching, processing, displaying and preheating images. It uses latest advancements in iOS SDK and doesn't reinvent existing technologies.
 
 Nuke is a [pipeline](#h_design) that loads images using pluggable components which can be injected in runtime.
 
-> Programming in Objective-C? Try [DFImageManager](https://github.com/kean/DFImageManager).
+```swift
+Nuke.taskWithURL(URL) { 
+    let image = $0.image 
+}.resume()
+```
 
 1. [Getting Started](#h_getting_started)
 2. [Usage](#h_usage)
@@ -215,7 +211,8 @@ By default it will install these subspecs (if they are available for your platfo
 - `Nuke/UI` - UI components
 
 There is one more optional subspec:
-- `Nuke/GIF` - GIF support with a [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) dependency
+- `Nuke/Alamofire` - [Alamofire](https://github.com/Alamofire/Alamofire) integration
+- `Nuke/GIF` - GIF support via [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) integration
 
 ## <a name="h_requirements"></a>Requirements
 - iOS 8.0+ / watchOS 2.0+
