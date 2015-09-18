@@ -39,9 +39,10 @@ Nuke is a [pipeline](#h_design) that loads images using pluggable components whi
 - Two cache layers, including [top level memory cache](https://github.com/kean/DFImageManager/wiki/Image-Caching-Guide) for decompressed images
 
 ##### Decoding and Processing
+- Apply image filters
 - Background image decompression and scaling in a single step
 - Scale large images (~6000x4000 px) and prepare them for display with ease
-- Resize and crop loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
+- Resize loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
 
 ##### Advanced
 - Image decoder composition
@@ -108,13 +109,6 @@ let state = task.state
 task.cancel()
 ```
 
-#### Using UI Components
-
-```swift
-let imageView: ImageView = <#view#>
-imageView.setImageWithURL(imageURL)
-```
-
 #### UICollectionView
 
 ```swift
@@ -138,13 +132,21 @@ override func collectionView(collectionView: UICollectionView, didEndDisplayingC
 }
 ```
 
-#### Preheating Images
+#### Applying Filters
 
 ```swift
-let requests = [ImageRequest(URL: imageURL1), ImageRequest(URL: imageURL2)]
-ImageManager.shared().startPreheatingImages(requests: requests)
+let filter1: ImageProcessing = <#filter#>
+let filter2: ImageProcessing = <#filter#>
+let filterComposition = ImageProcessorComposition(processors: [filter1, filter2])
 
-ImageManager.shared().stopPreheatingImages(requests: requests)
+var request = ImageRequest(URL: <#image_url#>)
+request.processor = filterComposition
+
+ImageManager.shared().taskWithRequest(request) {
+    // Filters are applied
+    // Processed images are intelligently cached
+    let image = $0.image
+}.resume()
 ```
 
 #### Composing Image Decoders
@@ -161,6 +163,15 @@ let composition = ImageDecoderComposition(decoders: [decoder1, decoder2])
 let processor1: ImageProcessing = <#processor#>
 let processor2: ImageProcessing = <#processor#>
 let composition = ImageProcessorComposition(processors: [processor1, processor2])
+```
+
+#### Preheating Images
+
+```swift
+let requests = [ImageRequest(URL: imageURL1), ImageRequest(URL: imageURL2)]
+ImageManager.shared().startPreheatingImages(requests: requests)
+
+ImageManager.shared().stopPreheatingImages(requests: requests)
 ```
 
 #### Customizing Image Manager
