@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name             = "Nuke"
-    s.version          = "0.1.0"
+    s.version          = "0.2.0"
     s.summary          = "Advanced Swift framework for loading and caching images"
 
     s.homepage         = "https://github.com/kean/Nuke"
@@ -34,6 +34,7 @@ Pod::Spec.new do |s|
     s.subspec "GIF" do |ss|
         ss.ios.deployment_target = "8.0"
         ss.dependency "Nuke/Core"
+        ss.dependency "Nuke/UI"
         ss.dependency "FLAnimatedImage", "~> 1.0"
         ss.source_files = "Pod/Classes/GIF/**/*"
     end

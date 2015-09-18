@@ -2,6 +2,7 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
+import UIKit
 import FLAnimatedImage
 
 public class AnimatedImage: UIImage {

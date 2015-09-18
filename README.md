@@ -150,20 +150,20 @@ Nuke.taskWithRequest(request) {
 }.resume()
 ```
 
-#### Composing Image Decoders
-
-```swift
-let decoder1: ImageDecoding = <#decoder#>
-let decoder2: ImageDecoding = <#decoder#>
-let composition = ImageDecoderComposition(decoders: [decoder1, decoder2])
-```
-
 #### Composing Image Filters
 
 ```swift
 let processor1: ImageProcessing = <#processor#>
 let processor2: ImageProcessing = <#processor#>
 let composition = ImageProcessorComposition(processors: [processor1, processor2])
+```
+
+#### Composing Image Decoders
+
+```swift
+let decoder1: ImageDecoding = <#decoder#>
+let decoder2: ImageDecoding = <#decoder#>
+let composition = ImageDecoderComposition(decoders: [decoder1, decoder2])
 ```
 
 #### Preheating Images
