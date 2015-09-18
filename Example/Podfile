@@ -3,10 +3,10 @@ use_frameworks!
 
 target 'Nuke_Example', :exclusive => true do
   pod "Nuke", :path => "../"
+  pod "Nuke/GIF", :path => "../"
 end
 
 target 'Nuke_Tests', :exclusive => true do
   pod "Nuke", :path => "../"
-
-  
+  pod "Nuke/GIF", :path => "../"
 end

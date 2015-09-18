@@ -8,10 +8,18 @@ public class ImageView: UIImageView {
     public var imageTask: ImageTask?
     public var allowsAnimations = true
     
+    deinit {
+        self.cancelFetching()
+    }
+    
     public override init(frame: CGRect) {
         super.init(frame: frame)
         self.contentMode = .ScaleAspectFill
         self.clipsToBounds = true
+    }
+    
+    public convenience init() {
+        self.init(frame: CGRectZero)
     }
     
     public required init?(coder decoder: NSCoder) {
@@ -19,6 +27,7 @@ public class ImageView: UIImageView {
     }
     
     public func prepareForReuse() {
+        self.layer.removeAllAnimations()
         self.image = nil
         self.cancelFetching()
     }

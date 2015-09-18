@@ -25,6 +25,7 @@ Nuke is a [pipeline](#h_design) that loads images using pluggable components whi
 
 - Zero config, yet immense customization and flexibility
 - Great performance even on outdated devices, asynchronous and thread safe
+- Optional [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) integration
 
 ##### Loading
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
@@ -176,6 +177,13 @@ CocoaPods is the dependency manager for Cocoa projects. If you are not familiar 
 # platform :ios, '8.0'
 pod 'Nuke'
 ```
+
+By default it will install these subspecs (if they are available for your platform):
+- `Nuke/Core` - Nuke core classes
+- `Nuke/UI` - UI components
+
+There is one more optional subspec:
+- `Nuke/GIF` - GIF support with a [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) dependency
 
 ## <a name="h_requirements"></a>Requirements
 - iOS 8.0+

@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  BasicDemoViewController.swift
 //  Nuke
 //
 //  Created by kean on 09/13/2015.
@@ -9,9 +9,10 @@
 import UIKit
 import Nuke
 
-class ViewController: UICollectionViewController {
+private let cellReuseID = "reuseID"
+
+class BasicDemoViewController: UICollectionViewController {
     var photos: [NSURL]!
-    let cellReuseID = "reuseID"
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -153,4 +154,3 @@ class ViewController: UICollectionViewController {
         ]
     }
 }
-
