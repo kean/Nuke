@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name             = "Nuke"
-    s.version          = "0.2.0"
+    s.version          = "0.2.1"
     s.summary          = "Advanced Swift framework for loading and caching images"
 
     s.homepage         = "https://github.com/kean/Nuke"
