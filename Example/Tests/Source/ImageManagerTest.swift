@@ -46,8 +46,8 @@ class ImageManagerTest: XCTestCase {
             switch response {
             case .Success(_, _): XCTFail()
             case let .Failure(error):
-                XCTAssertEqual(error.domain, ImageManagerErrorDomain, "")
-                XCTAssertEqual(error.code, ImageManagerErrorCancelled, "")
+                XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
+                XCTAssertEqual((error as NSError).code, ImageManagerErrorCancelled, "")
             }
             expecation.fulfill()
         }
@@ -63,8 +63,8 @@ class ImageManagerTest: XCTestCase {
             switch response {
             case .Success(_, _): XCTFail()
             case let .Failure(error):
-                XCTAssertEqual(error.domain, ImageManagerErrorDomain, "")
-                XCTAssertEqual(error.code, ImageManagerErrorCancelled, "")
+                XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
+                XCTAssertEqual((error as NSError).code, ImageManagerErrorCancelled, "")
             }
             expecation.fulfill()
         }

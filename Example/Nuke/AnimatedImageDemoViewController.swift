@@ -28,7 +28,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
         self.previousImageManager = ImageManager.shared()
         
         let decoder = ImageDecoderComposition(decoders: [AnimatedImageDecoder(), ImageDecoder()])
-        let configuration = ImageManagerConfiguration(dataLoader: ImageDataLoader(), decoder:decoder, cache: ImageMemoryCache())
+        let configuration = ImageManagerConfiguration(dataLoader: ImageDataLoader(), decoder:decoder)
         ImageManager.setShared(ImageManager(configuration: configuration))
         
         self.collectionView?.registerClass(UICollectionViewCell.self, forCellWithReuseIdentifier: textViewCellReuseID)

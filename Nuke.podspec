@@ -25,6 +25,12 @@ Pod::Spec.new do |s|
         ss.ios.source_files = "Pod/Classes/UI/**/*"
     end
 
+    s.subspec "Alamofire" do |ss|
+        ss.dependency "Nuke/Core"
+        ss.dependency "Alamofire", "~> 2.0"
+        ss.source_files = "Pod/Classes/Alamofire/**/*"
+    end
+
     s.subspec "GIF" do |ss|
         ss.ios.deployment_target = "8.0"
         ss.dependency "Nuke/Core"

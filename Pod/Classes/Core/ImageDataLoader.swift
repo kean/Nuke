@@ -6,7 +6,7 @@ import UIKit
 
 // MARK: ImageDataLoading
 
-public typealias ImageDataLoadingCompletionHandler = (data: NSData?, response: NSURLResponse?, error: NSError?) -> Void
+public typealias ImageDataLoadingCompletionHandler = (data: NSData?, response: NSURLResponse?, error: ErrorType?) -> Void
 public typealias ImageDataLoadingProgressHandler = (completedUnitCount: Int64, totalUnitCount: Int64) -> Void
 
 public protocol ImageDataLoading {
@@ -20,7 +20,7 @@ public protocol ImageDataLoading {
     
     /** Creates image data task with a given url
     */
-    func imageDataTaskWithURL(url: NSURL, progressHandler: ImageDataLoadingProgressHandler?, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionDataTask
+    func imageDataTaskWithURL(url: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionDataTask
     
     /** Invalidates the receiver
     */
@@ -58,7 +58,7 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
         return lhs.URL.isEqual(rhs.URL)
     }
     
-    public func imageDataTaskWithURL(URL: NSURL, progressHandler: ImageDataLoadingProgressHandler?, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionDataTask {
+    public func imageDataTaskWithURL(URL: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionDataTask {
         let dataTask = self.session.dataTaskWithURL(URL)
         dispatch_sync(self.queue) {
             self.taskHandlers[dataTask] = URLSessionDataTaskHandler(progressHandler: progressHandler, completionHandler: completionHandler)
@@ -76,7 +76,7 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
         dispatch_sync(self.queue) {
             if let handler = self.taskHandlers[dataTask] {
                 handler.data.appendData(data)
-                handler.progressHandler?(completedUnitCount: dataTask.countOfBytesReceived, totalUnitCount: dataTask.countOfBytesExpectedToReceive)
+                handler.progressHandler(completedUnitCount: dataTask.countOfBytesReceived, totalUnitCount: dataTask.countOfBytesExpectedToReceive)
             }
         }
     }
@@ -93,10 +93,10 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
 
 private class URLSessionDataTaskHandler {
     let data = NSMutableData()
-    let progressHandler: ImageDataLoadingProgressHandler?
+    let progressHandler: ImageDataLoadingProgressHandler
     let completionHandler: ImageDataLoadingCompletionHandler
     
-    init(progressHandler: ImageDataLoadingProgressHandler?, completionHandler: ImageDataLoadingCompletionHandler) {
+    init(progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) {
         self.progressHandler = progressHandler
         self.completionHandler = completionHandler
     }

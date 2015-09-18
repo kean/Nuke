@@ -6,7 +6,7 @@ import UIKit
 
 internal protocol ImageManagerLoaderDelegate: class {
     func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
-    func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: NSError?)
+    func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?)
 }
 
 internal class ImageManagerLoader {
@@ -44,9 +44,9 @@ internal class ImageManagerLoader {
         var sessionTask: ImageLoaderSessionTask! = self.sessionTasks[key]
         if sessionTask == nil {
             sessionTask = ImageLoaderSessionTask(key: key)
-            let dataTask = self.conf.dataLoader.imageDataTaskWithURL(task.request.URL, progressHandler: { [weak self] (completedUnits, totalUnits) -> Void in
+            let dataTask = self.conf.dataLoader.imageDataTaskWithURL(task.request.URL, progressHandler: { [weak self] completedUnits, totalUnits in
                 self?.sessionTask(sessionTask, didUpdateProgressWithCompletedUnitCount: completedUnits, totalUnitCount: totalUnits)
-                }, completionHandler: { [weak self] (data, _, error) -> Void in
+                }, completionHandler: { [weak self] data, _, error in
                     self?.sessionTask(sessionTask, didCompleteWithData: data, error: error)
                 })
             dataTask.resume()
@@ -69,7 +69,7 @@ internal class ImageManagerLoader {
         }
     }
     
-    private func sessionTask(sessionTask: ImageLoaderSessionTask, didCompleteWithData data: NSData?, error: NSError?) {
+    private func sessionTask(sessionTask: ImageLoaderSessionTask, didCompleteWithData data: NSData?, error: ErrorType?) {
         if data?.length > 0 {
             self.decodingQueue.addOperationWithBlock {
                 [weak self] in
@@ -82,7 +82,7 @@ internal class ImageManagerLoader {
         }
     }
     
-    private func sessionTask(sessionTask: ImageLoaderSessionTask, didCompleteWithImage image: UIImage?, error: NSError?) {
+    private func sessionTask(sessionTask: ImageLoaderSessionTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
         dispatch_async(self.queue) {
             for loaderTask in sessionTask.tasks {
                 self.processImage(image, error: error, forLoaderTask: loaderTask)
@@ -93,7 +93,7 @@ internal class ImageManagerLoader {
         }
     }
     
-    private func processImage(image: UIImage?, error: NSError?, forLoaderTask task: ImageLoaderTask) {
+    private func processImage(image: UIImage?, error: ErrorType?, forLoaderTask task: ImageLoaderTask) {
         if let unwrappedImage = image, processor = self.processorForRequest(task.request) {
             let operation = NSBlockOperation { [weak self] in
                 let processedImage = processor.processedImage(unwrappedImage)
@@ -119,7 +119,7 @@ internal class ImageManagerLoader {
         return processors.isEmpty ? nil : ImageProcessorComposition(processors: processors)
     }
     
-    private func loaderTask(task: ImageLoaderTask, didCompleteWithImage image: UIImage?, error: NSError?) {
+    private func loaderTask(task: ImageLoaderTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
         dispatch_async(self.queue) {
             self.delegate?.imageLoader(self, imageTask: task.imageTask, didCompleteWithImage: image, error: error)
             self.executingTasks[task.imageTask] = nil

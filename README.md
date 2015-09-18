@@ -25,6 +25,7 @@ Nuke is a [pipeline](#h_design) that loads images using pluggable components whi
 
 - Zero config, yet immense customization and flexibility
 - Great performance even on outdated devices, asynchronous and thread safe
+- Optional [Alamofire](https://github.com/Alamofire/Alamofire) integration
 - Optional [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) integration
 
 ##### Loading
@@ -81,7 +82,7 @@ ImageManager.shared().taskWithRequest(request) {
 
 ```swift
 ImageManager.shared().taskWithRequest(request) {
-    (response) -> Void in
+    response in
     switch response { // Response is an enum with associated values
     case let .Success(image, info):
         // Use image and inspect info

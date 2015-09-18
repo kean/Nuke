@@ -16,6 +16,7 @@
 		0C8260F81BA5BBAE0078C6BD /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0C8260E41BA5BB980078C6BD /* Info.plist */; settings = {ASSET_TAGS = (); }; };
 		0C826FA51BAC066E0069FCE1 /* BasicDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
 		0C826FA71BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
+		0CAA23701BAC9C6A002D7080 /* AlamofireDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
 		471177BB9C8580125CBCB6C7 /* Pods_Nuke_Tests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 519F42473EB659181C504FFC /* Pods_Nuke_Tests.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		607FACD61AFB9204008FA782 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACD51AFB9204008FA782 /* AppDelegate.swift */; };
 		607FACD81AFB9204008FA782 /* MenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACD71AFB9204008FA782 /* MenuViewController.swift */; };
@@ -45,6 +46,7 @@
 		0C8260EA1BA5BB980078C6BD /* NukeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NukeTests.swift; sourceTree = "<group>"; };
 		0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BasicDemoViewController.swift; sourceTree = "<group>"; };
 		0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnimatedImageDemoViewController.swift; sourceTree = "<group>"; };
+		0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AlamofireDemoViewController.swift; sourceTree = "<group>"; };
 		205769503659ED68961F7E27 /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../README.md; sourceTree = "<group>"; };
 		519F42473EB659181C504FFC /* Pods_Nuke_Tests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Nuke_Tests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		592C74D719B88F7124329128 /* Pods-Nuke_Tests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nuke_Tests.release.xcconfig"; path = "Pods/Target Support Files/Pods-Nuke_Tests/Pods-Nuke_Tests.release.xcconfig"; sourceTree = "<group>"; };
@@ -134,6 +136,7 @@
 				607FACD71AFB9204008FA782 /* MenuViewController.swift */,
 				0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */,
 				0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */,
+				0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */,
 				607FACD91AFB9204008FA782 /* Main.storyboard */,
 				607FACDC1AFB9204008FA782 /* Images.xcassets */,
 				607FACDE1AFB9204008FA782 /* LaunchScreen.xib */,
@@ -403,6 +406,7 @@
 			files = (
 				0C826FA51BAC066E0069FCE1 /* BasicDemoViewController.swift in Sources */,
 				607FACD81AFB9204008FA782 /* MenuViewController.swift in Sources */,
+				0CAA23701BAC9C6A002D7080 /* AlamofireDemoViewController.swift in Sources */,
 				0C826FA71BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift in Sources */,
 				607FACD61AFB9204008FA782 /* AppDelegate.swift in Sources */,
 			);

@@ -46,13 +46,21 @@ class MenuViewController: UITableViewController {
         }
         items.append(item1)
         
-        let item2 = MenuItem(title: "Animated GIF Demo", subtitle: "'Nuke/GIF' subspec") {
+        let item2 = MenuItem(title: "Alamofire Demo", subtitle: "'Nuke/Alamofire' subspec") {
+            [weak self] in
+            let controller = AlamofireDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+            controller.title = "Alamofire Demo"
+            self?.navigationController?.pushViewController(controller, animated: true)
+        }
+        items.append(item2)
+        
+        let item3 = MenuItem(title: "Animated GIF Demo", subtitle: "'Nuke/GIF' subspec") {
             [weak self] in
             let controller = AnimatedImageDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
             controller.title = "Animated GIF Demo"
             self?.navigationController?.pushViewController(controller, animated: true)
         }
-        items.append(item2)
+        items.append(item3)
         
         sections.append(MenuSection(title: "Nuke", items: items))
     }

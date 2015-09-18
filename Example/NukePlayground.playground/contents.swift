@@ -16,7 +16,7 @@ request.targetSize = CGSize(width: 100.0, height: 100.0) // Set target size in p
 request.contentMode = .AspectFill
 
 ImageManager.shared().taskWithRequest(request) {
-    (response) -> Void in
+    response in
     switch response {
     case let .Success(image, _):
         let image = image

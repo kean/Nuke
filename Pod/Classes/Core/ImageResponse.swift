@@ -6,7 +6,7 @@ import UIKit
 
 public enum ImageResponse {
     case Success(UIImage, ImageResponseInfo)
-    case Failure(NSError)
+    case Failure(ErrorType)
     
     public var image: UIImage? {
         get {

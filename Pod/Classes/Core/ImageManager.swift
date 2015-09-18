@@ -38,7 +38,7 @@ public struct ImageManagerConfiguration {
     public var cache: ImageMemoryCaching?
     public var maxConcurrentPreheatingRequests = 2
     
-    public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder(), cache: ImageMemoryCaching?) {
+    public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder(), cache: ImageMemoryCaching? = ImageMemoryCache()) {
         self.dataLoader = dataLoader
         self.decoder = decoder
         self.cache = cache
@@ -205,7 +205,7 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
         imageTask.progress.completedUnitCount = completedUnitCount
     }
     
-    internal  func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: NSError?) {
+    internal  func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
         let imageTaskInterval = imageTask as! ImageTaskInternal
         if image != nil {
             imageTaskInterval.response = ImageResponse.Success(image!, ImageResponseInfo(fastResponse: false))
