@@ -33,4 +33,8 @@ public class AlamofireImageDataLoader: ImageDataLoading {
     public func invalidate() {
         self.manager.session.invalidateAndCancel()
     }
+    
+    public func removeAllCachedImages() {
+        self.manager.session.configuration.URLCache?.removeAllCachedResponses()
+    }
 }

@@ -25,6 +25,8 @@ public protocol ImageDataLoading {
     /** Invalidates the receiver
     */
     func invalidate()
+    
+    func removeAllCachedImages()
 }
 
 
@@ -68,6 +70,10 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     
     public func invalidate() {
         self.session.invalidateAndCancel()
+    }
+    
+    public func removeAllCachedImages() {
+        self.session.configuration.URLCache?.removeAllCachedResponses()
     }
     
     // MARK: NSURLSessionDataDelegate

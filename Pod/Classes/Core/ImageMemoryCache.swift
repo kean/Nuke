@@ -7,6 +7,7 @@ import UIKit
 public protocol ImageMemoryCaching {
     func cachedResponseForKey(key: AnyObject) -> ImageCachedResponse?
     func storeResponse(response: ImageCachedResponse, forKey key: AnyObject)
+    func removeAllCachedImages()
 }
 
 public class ImageCachedResponse {
@@ -65,6 +66,10 @@ public class ImageMemoryCache: ImageMemoryCaching {
         #else
             return 1024 * 1024 * 30 // 30 Mb
         #endif
+    }
+    
+    public func removeAllCachedImages() {
+        self.cache.removeAllObjects()
     }
     
     @objc private func didReceiveMemoryWarning(notification: NSNotification) {

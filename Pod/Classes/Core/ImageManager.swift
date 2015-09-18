@@ -24,6 +24,7 @@ public protocol ImageManaging {
     func taskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask
     func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask
     func invalidateAndCancel()
+    func removeAllCachedImages()
     func startPreheatingImages(requests: [ImageRequest])
     func stopPreheatingImages(requests: [ImageRequest])
     func stopPreheatingImages()
@@ -85,6 +86,11 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
             }
             self.configuration.dataLoader.invalidate()
         }
+    }
+    
+    public func removeAllCachedImages() {
+        self.configuration.cache?.removeAllCachedImages()
+        self.configuration.dataLoader.removeAllCachedImages()
     }
     
     // MARK: FSM (ImageTaskState)
