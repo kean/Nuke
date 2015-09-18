@@ -2,7 +2,10 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import Foundation
+import UIKit
+#if os(watchOS)
+import WatchKit
+#endif
 
 public protocol ImageDecoding {
     func imageWithData(data: NSData) -> UIImage?
@@ -11,7 +14,11 @@ public protocol ImageDecoding {
 public class ImageDecoder: ImageDecoding {
     public init() {}
     public func imageWithData(data: NSData) -> UIImage? {
-        return UIImage(data: data, scale: UIScreen.mainScreen().scale)
+        #if os(iOS)
+            return UIImage(data: data, scale: UIScreen.mainScreen().scale)
+        #else
+            return UIImage(data: data, scale: WKInterfaceDevice.currentDevice().screenScale)
+        #endif
     }
 }
 

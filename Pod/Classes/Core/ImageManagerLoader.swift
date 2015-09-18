@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import Foundation
+import UIKit
 
 internal protocol ImageManagerLoaderDelegate: class {
     func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)

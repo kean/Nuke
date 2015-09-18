@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import Foundation
+import UIKit
 
 public struct ImageRequest {
     public var URL: NSURL

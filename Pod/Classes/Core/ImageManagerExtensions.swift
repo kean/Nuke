@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import Foundation
+import UIKit
 
 extension ImageManager {
     private static var sharedManagerIvar: ImageManaging!

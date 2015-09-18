@@ -3,7 +3,7 @@
 Advanced pure Swift framework for loading, caching, processing, displaying and preheating images. It uses latest advancements in iOS SDK and doesn't reinvent existing technologies. It has an elegant and powerful API that will extend the capabilities of your app.
 
 ```swift
-let URL = NSURL(string: "http://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!
+let URL = NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!
 let task = ImageManager.shared().taskWithURL(URL) {
     let image = $0.image
 }
@@ -203,6 +203,7 @@ CocoaPods is the dependency manager for Cocoa projects. If you are not familiar 
 ```ruby
 # Podfile
 # platform :ios, '8.0'
+# platform :watchos, '2.0'
 pod 'Nuke'
 ```
 
@@ -214,7 +215,7 @@ There is one more optional subspec:
 - `Nuke/GIF` - GIF support with a [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) dependency
 
 ## <a name="h_requirements"></a>Requirements
-- iOS 8.0+
+- iOS 8.0+ / watchOS 2.0+
 - Xcode 7.0+, Swift 2.0+
 
 ## <a name="h_contribution"></a>Contribution

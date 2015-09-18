@@ -6,7 +6,7 @@
 //  Copyright © 2015 CocoaPods. All rights reserved.
 //
 
-import Foundation
+import UIKit
 import UIKit
 import Nuke
 

@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import Foundation
+import UIKit
 
 public class ImageView: UIImageView {
     public var imageTask: ImageTask?
