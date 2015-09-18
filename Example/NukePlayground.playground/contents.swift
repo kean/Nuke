@@ -3,9 +3,9 @@ import UIKit
 import XCPlayground
 //: ## Nuke
 
-//: Use shared image manager to create and resume `ImageTask` with `NSURL`. You can cancel the task at any time by calling its `cancel()` method.
+//: Create and resume `ImageTask` with `NSURL`. You can cancel the task at any time by calling its `cancel()` method.
 let URL = NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!
-let task = ImageManager.shared().taskWithURL(URL) {
+let task = Nuke.taskWithURL(URL) {
     let image = $0.image
 }
 task.resume()
@@ -15,7 +15,7 @@ var request = ImageRequest(URL: NSURL(string: "http://farm4.staticflickr.com/389
 request.targetSize = CGSize(width: 100.0, height: 100.0) // Set target size in pixels
 request.contentMode = .AspectFill
 
-ImageManager.shared().taskWithRequest(request) {
+Nuke.taskWithRequest(request) {
     response in
     switch response {
     case let .Success(image, _):

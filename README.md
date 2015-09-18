@@ -4,7 +4,7 @@ Advanced pure Swift framework for loading, caching, processing, displaying and p
 
 ```swift
 let URL = NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!
-let task = ImageManager.shared().taskWithURL(URL) {
+let task = Nuke.taskWithURL(URL) {
     let image = $0.image
 }
 task.resume()
@@ -61,7 +61,7 @@ Nuke is a [pipeline](#h_design) that loads images using pluggable components whi
 #### Zero Config Image Loading
 
 ```swift
-ImageManager.shared().taskWithURL(imageURL) {
+Nuke.taskWithURL(imageURL) {
     let image = $0.image
 }.resume()
 ```
@@ -73,7 +73,7 @@ var request = ImageRequest(URL: imageURL)
 request.targetSize = CGSize(width: 300.0, height: 400.0) // Set target size in pixels
 request.contentMode = .AspectFill
 
-ImageManager.shared().taskWithRequest(request) {
+Nuke.taskWithRequest(request) {
     let image = $0.image
 }.resume()
 ```
@@ -81,7 +81,7 @@ ImageManager.shared().taskWithRequest(request) {
 #### Using Image Response
 
 ```swift
-ImageManager.shared().taskWithRequest(request) {
+Nuke.taskWithRequest(request) {
     response in
     switch response { // Response is an enum with associated values
     case let .Success(image, info):
@@ -95,7 +95,7 @@ ImageManager.shared().taskWithRequest(request) {
 #### Using Image Task
 
 ```swift
-let task = ImageManager.shared().taskWithURL(imageURL) {
+let task = Nuke.taskWithURL(imageURL) {
     let image = $0.image
 }
 task.resume()
@@ -143,7 +143,7 @@ let filterComposition = ImageProcessorComposition(processors: [filter1, filter2]
 var request = ImageRequest(URL: <#image_url#>)
 request.processor = filterComposition
 
-ImageManager.shared().taskWithRequest(request) {
+Nuke.taskWithRequest(request) {
     // Filters are applied
     // Processed images are intelligently cached
     let image = $0.image
@@ -170,9 +170,9 @@ let composition = ImageProcessorComposition(processors: [processor1, processor2]
 
 ```swift
 let requests = [ImageRequest(URL: imageURL1), ImageRequest(URL: imageURL2)]
-ImageManager.shared().startPreheatingImages(requests: requests)
+Nuke.startPreheatingImages(requests: requests)
 
-ImageManager.shared().stopPreheatingImages(requests: requests)
+Nuke.stopPreheatingImages(requests: requests)
 ```
 
 #### Customizing Image Manager
@@ -184,6 +184,8 @@ let cache: ImageMemoryCaching = <#cache#>
 
 let configuration = ImageManagerConfiguration(dataLoader: dataLoader, decoder: decoder, cache: cache)
 let manager = ImageManager(configuration: configuration)
+
+ImageManager.setShared(manager)
 ```
 
 ## <a name="h_design"></a>Design
