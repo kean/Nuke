@@ -17,7 +17,7 @@ class ImageMemoryCacheTest: XCTestCase {
         super.setUp()
 
         self.mockSessionManager = MockImageDataLoader()
-        let configuration = ImageManagerConfiguration(dataLoader: self.mockSessionManager, cache: ImageMemoryCache(), processor: nil)
+        let configuration = ImageManagerConfiguration(dataLoader: self.mockSessionManager, cache: ImageMemoryCache())
         self.manager = ImageManager(configuration: configuration)
     }
     

@@ -28,10 +28,9 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
         self.previousImageManager = ImageManager.shared()
         
         let decoder = ImageDecoderComposition(decoders: [AnimatedImageDecoder(), ImageDecoder()])
-        let processor = AnimatedImageProcessor(processor: ImageProcessor())
-        let configuration = ImageManagerConfiguration(dataLoader: ImageDataLoader(), decoder:decoder, cache: ImageMemoryCache(), processor: processor)
+        let configuration = ImageManagerConfiguration(dataLoader: ImageDataLoader(), decoder:decoder, cache: ImageMemoryCache())
         ImageManager.setShared(ImageManager(configuration: configuration))
-            
+        
         self.collectionView?.registerClass(UICollectionViewCell.self, forCellWithReuseIdentifier: textViewCellReuseID)
         self.collectionView?.registerClass(AnimatedImageCell.self, forCellWithReuseIdentifier: imageCellReuseID)
         self.collectionView?.backgroundColor = UIColor.whiteColor()
@@ -83,7 +82,9 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
             return cell
         } else {
             let cell: AnimatedImageCell = collectionView.dequeueReusableCellWithReuseIdentifier(imageCellReuseID, forIndexPath: indexPath) as! AnimatedImageCell
-            cell.setImageWithURL(self.imageURLs[indexPath.row])
+            var request = ImageRequest(URL: self.imageURLs[indexPath.row])
+            request.shouldDecompressImage = false
+            cell.setImageWithRequest(request)
             return cell
         }
     }
@@ -143,7 +144,11 @@ private class AnimatedImageCell: UICollectionViewCell {
     }
     
     func setImageWithURL(URL: NSURL) {
-        self.imageView.setImageWithURL(URL)
+        self.setImageWithRequest(ImageRequest(URL: URL))
+    }
+    
+    func setImageWithRequest(request: ImageRequest) {
+        self.imageView.setImageWithRequest(request)
         self.currentProgress = self.imageView.imageTask?.progress
         if self.imageView.imageTask?.state == .Completed {
             self.progressView.alpha = 0;

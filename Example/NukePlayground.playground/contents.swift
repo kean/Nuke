@@ -32,9 +32,8 @@ let sessionConfiguration = NSURLSessionConfiguration.defaultSessionConfiguration
 let dataLoader: ImageDataLoader = ImageDataLoader(sessionConfiguration: sessionConfiguration)
 
 let cache: ImageMemoryCaching = ImageMemoryCache()
-let processor: ImageProcessing = ImageProcessor()
 
-let manager = ImageManager(configuration: ImageManagerConfiguration(dataLoader: dataLoader, cache: cache, processor: nil))
+let manager = ImageManager(configuration: ImageManagerConfiguration(dataLoader: dataLoader, cache: cache))
 
 // Change shared manager
 ImageManager.setShared(manager)

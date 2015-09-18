@@ -11,6 +11,11 @@ public struct ImageRequest {
     */
     public var targetSize: CGSize = ImageMaximumSize
     public var contentMode: ImageContentMode = .AspectFill
+    public var shouldDecompressImage = true
+    
+    /** Filters to be applied to image. Use ImageProcessorComposition to compose multiple filters.
+    */
+    public var processor: ImageProcessing?
     public var userInfo: Any?
     
     public init(URL: NSURL, targetSize: CGSize, contentMode: ImageContentMode) {

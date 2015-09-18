@@ -13,7 +13,7 @@ extension ImageManager {
         var manager: ImageManaging
         dispatch_once(&token) {
             if self.sharedManagerIvar == nil {
-                let conf = ImageManagerConfiguration(dataLoader: ImageDataLoader(), cache: ImageMemoryCache(), processor: ImageProcessor())
+                let conf = ImageManagerConfiguration(dataLoader: ImageDataLoader(), cache: ImageMemoryCache())
                 self.sharedManagerIvar = ImageManager(configuration: conf)
             }
         }

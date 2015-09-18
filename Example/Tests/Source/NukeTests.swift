@@ -12,7 +12,7 @@ import XCTest
 
 class NukeTests: XCTestCase {
     func testExample() {
-        let configuration = ImageManagerConfiguration(dataLoader: ImageDataLoader(), cache: ImageMemoryCache(), processor: ImageProcessor())
+        let configuration = ImageManagerConfiguration(dataLoader: ImageDataLoader(), cache: ImageMemoryCache())
         let manager = ImageManager(configuration: configuration)
         let request = ImageRequest(URL: NSURL(string: "https://cloud.githubusercontent.com/assets/1567433/9781832/0719dd5e-57a1-11e5-9324-9764de25ed47.jpg")!)
         let expectation = self.expectationWithDescription("Desc")

@@ -44,31 +44,3 @@ public class AnimatedImageDecoder: ImageDecoding {
         return sig[0] == 0x47 && sig[1] == 0x49 && sig[2] == 0x46
     }
 }
-
-/** Prevents processing of animated images.
-*/
-public class AnimatedImageProcessor: ImageProcessing {
-    let processor: ImageProcessing?
-    
-    public init(processor: ImageProcessing?) {
-        self.processor = processor
-    }
-    
-    public func shouldProcessImage(image: UIImage, forRequest request: ImageRequest) -> Bool {
-        return !(image is AnimatedImage)
-    }
-    
-    public func isRequestProcessingEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
-        if let processor = self.processor {
-            return processor.isRequestProcessingEquivalent(lhs, toRequest: rhs)
-        }
-        return true
-    }
-    
-    public func processedImage(image: UIImage, forRequest request: ImageRequest) -> UIImage? {
-        if let processor = self.processor {
-            return processor.processedImage(image, forRequest: request)
-        }
-        return image
-    }
-}

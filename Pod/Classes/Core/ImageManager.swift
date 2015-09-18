@@ -36,14 +36,12 @@ public struct ImageManagerConfiguration {
     public var dataLoader: ImageDataLoading
     public var decoder: ImageDecoding
     public var cache: ImageMemoryCaching?
-    public var processor: ImageProcessing?
     public var maxConcurrentPreheatingRequests = 2
     
-    public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder(), cache: ImageMemoryCaching?, processor: ImageProcessing?) {
+    public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder(), cache: ImageMemoryCaching?) {
         self.dataLoader = dataLoader
         self.decoder = decoder
         self.cache = cache
-        self.processor = processor
     }
 }
 

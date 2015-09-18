@@ -44,6 +44,8 @@ Nuke is a [pipeline](#h_design) that loads images using pluggable components whi
 - Resize and crop loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
 
 ##### Advanced
+- Image decoder composition
+- Image filter composition
 - Customize different parts of the framework using dependency injection
 
 ## <a name="h_getting_started"></a>Getting Started
@@ -145,15 +147,30 @@ ImageManager.shared().startPreheatingImages(requests: requests)
 ImageManager.shared().stopPreheatingImages(requests: requests)
 ```
 
+#### Composing Image Decoders
+
+```swift
+let decoder1: ImageDecoding = <#decoder#>
+let decoder2: ImageDecoding = <#decoder#>
+let composition = ImageDecoderComposition(decoders: [decoder1, decoder2])
+```
+
+#### Composing Image Filters
+
+```swift
+let processor1: ImageProcessing = <#processor#>
+let processor2: ImageProcessing = <#processor#>
+let composition = ImageProcessorComposition(processors: [processor1, processor2])
+```
+
 #### Customizing Image Manager
 
 ```swift
 let dataLoader: ImageDataLoading = <#data_loader#>
 let decoder: ImageDecoding = <#decoder#>
-let processor: ImageProcessing = <#processor#>
 let cache: ImageMemoryCaching = <#cache#>
 
-let configuration = ImageManagerConfiguration(dataLoader: dataLoader, decoder: decoder, cache: cache, processor: processor)
+let configuration = ImageManagerConfiguration(dataLoader: dataLoader, decoder: decoder, cache: cache)
 let manager = ImageManager(configuration: configuration)
 ```
 

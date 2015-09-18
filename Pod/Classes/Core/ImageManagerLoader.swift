@@ -94,9 +94,9 @@ internal class ImageManagerLoader {
     }
     
     private func processImage(image: UIImage?, error: NSError?, forLoaderTask task: ImageLoaderTask) {
-        if image != nil && self.shouldProcessImage(image!, forRequest: task.request) {
+        if let unwrappedImage = image, processor = self.processorForRequest(task.request) {
             let operation = NSBlockOperation { [weak self] in
-                let processedImage = self?.conf.processor?.processedImage(image!, forRequest: task.request)
+                let processedImage = processor.processedImage(unwrappedImage, forRequest: task.request)
                 self?.storeImage(processedImage, forRequest: task.request)
                 self?.loaderTask(task, didCompleteWithImage: processedImage, error: error)
             }
@@ -106,6 +106,17 @@ internal class ImageManagerLoader {
             self.storeImage(image, forRequest: task.request)
             self.loaderTask(task, didCompleteWithImage: image, error: error)
         }
+    }
+    
+    private func processorForRequest(request: ImageRequest) -> ImageProcessing? {
+        var processors = [ImageProcessing]()
+        if request.shouldDecompressImage {
+            processors.append(ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode))
+        }
+        if let processor = request.processor {
+            processors.append(processor)
+        }
+        return processors.isEmpty ? nil : ImageProcessorComposition(processors: processors)
     }
     
     private func loaderTask(task: ImageLoaderTask, didCompleteWithImage image: UIImage?, error: NSError?) {
@@ -133,13 +144,6 @@ internal class ImageManagerLoader {
     }
     
     // MARK: Misc
-    
-    private func shouldProcessImage(image: UIImage, forRequest request: ImageRequest) -> Bool {
-        if let processor = self.conf.processor {
-            return processor.shouldProcessImage(image, forRequest: request)
-        }
-        return false
-    }
     
     internal func cachedResponseForRequest(request: ImageRequest) -> ImageCachedResponse? {
         return self.conf.cache?.cachedResponseForKey(ImageRequestKey(request, type: .Cache, owner: self))
@@ -173,10 +177,12 @@ extension ImageManagerLoader: ImageRequestKeyOwner {
             if !(self.conf.dataLoader.isRequestCacheEquivalent(lhs.request, toRequest: rhs.request)) {
                 return false
             }
-            if let processor = self.conf.processor {
-                if !(processor.isRequestProcessingEquivalent(lhs.request, toRequest: rhs.request)) {
-                    return false
-                }
+            let lhsProcessor: ImageProcessing! = self.processorForRequest(lhs.request)
+            let rhsProcessor: ImageProcessing! = self.processorForRequest(rhs.request)
+            if lhsProcessor != nil && rhsProcessor != nil {
+                return lhsProcessor.isEquivalentToProcessor(rhsProcessor)
+            } else if lhsProcessor != nil || rhsProcessor != nil {
+                return false
             }
             return true
         case .Load:

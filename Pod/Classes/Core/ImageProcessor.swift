@@ -5,24 +5,66 @@
 import Foundation
 
 public protocol ImageProcessing {
-    func isRequestProcessingEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool
-    func shouldProcessImage(image: UIImage, forRequest request: ImageRequest) -> Bool
+    func isEquivalentToProcessor(other: ImageProcessing) -> Bool
     func processedImage(image: UIImage, forRequest request: ImageRequest) -> UIImage?
 }
 
-public class ImageProcessor: ImageProcessing {
-    public init() {}
+public class ImageDecompressor: ImageProcessing {
+    public let targetSize: CGSize
+    public let contentMode: ImageContentMode
     
-    public func isRequestProcessingEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
-        return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
+    public init(targetSize: CGSize, contentMode: ImageContentMode) {
+        self.targetSize = targetSize
+        self.contentMode = contentMode
     }
     
-    public func shouldProcessImage(image: UIImage, forRequest request: ImageRequest) -> Bool {
-         return true
+    public func isEquivalentToProcessor(processor: ImageProcessing) -> Bool {
+        guard let other = processor as? ImageDecompressor else {
+            return false
+        }
+        return self.targetSize == other.targetSize && self.contentMode == other.contentMode
     }
     
     public func processedImage(image: UIImage, forRequest request: ImageRequest) -> UIImage? {
         return decompressedImage(image, targetSize: request.targetSize, contentMode: request.contentMode)
+    }
+}
+
+public class ImageProcessorComposition: ImageProcessing {
+    public let processors: [ImageProcessing]
+    
+    public init(processors: [ImageProcessing]) {
+        assert(processors.count > 0)
+        self.processors = processors
+    }
+    
+    public func isEquivalentToProcessor(processor: ImageProcessing) -> Bool {
+        guard let other = processor as? ImageProcessorComposition else {
+            return false
+        }
+        guard self.processors.count == other.processors.count else {
+            return false
+        }
+        var equal = true
+        zip(self.processors, other.processors).forEach {
+            if equal {
+                equal = $0.isEquivalentToProcessor($1)
+            }
+        }
+        return true
+    }
+    
+    public func processedImage(image: UIImage, forRequest request: ImageRequest) -> UIImage? {
+        return processedImage(image, forRequest: request, processors: self.processors)
+    }
+    
+    public func processedImage(image: UIImage?, forRequest request: ImageRequest, processors: [ImageProcessing]) -> UIImage? {
+        return processors.reduce(image) {
+            if let input = $0 {
+                return $1.processedImage(input, forRequest: request)
+            }
+            return $0
+        }
     }
 }
 
