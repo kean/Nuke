@@ -96,7 +96,7 @@ internal class ImageManagerLoader {
     private func processImage(image: UIImage?, error: NSError?, forLoaderTask task: ImageLoaderTask) {
         if let unwrappedImage = image, processor = self.processorForRequest(task.request) {
             let operation = NSBlockOperation { [weak self] in
-                let processedImage = processor.processedImage(unwrappedImage, forRequest: task.request)
+                let processedImage = processor.processedImage(unwrappedImage)
                 self?.storeImage(processedImage, forRequest: task.request)
                 self?.loaderTask(task, didCompleteWithImage: processedImage, error: error)
             }

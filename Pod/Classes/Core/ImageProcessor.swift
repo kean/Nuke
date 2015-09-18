@@ -5,8 +5,8 @@
 import Foundation
 
 public protocol ImageProcessing {
-    func isEquivalentToProcessor(other: ImageProcessing) -> Bool
-    func processedImage(image: UIImage, forRequest request: ImageRequest) -> UIImage?
+    func isEquivalentToProcessor(processor: ImageProcessing) -> Bool
+    func processedImage(image: UIImage) -> UIImage?
 }
 
 public class ImageDecompressor: ImageProcessing {
@@ -25,8 +25,8 @@ public class ImageDecompressor: ImageProcessing {
         return self.targetSize == other.targetSize && self.contentMode == other.contentMode
     }
     
-    public func processedImage(image: UIImage, forRequest request: ImageRequest) -> UIImage? {
-        return decompressedImage(image, targetSize: request.targetSize, contentMode: request.contentMode)
+    public func processedImage(image: UIImage) -> UIImage? {
+        return decompressedImage(image, targetSize: self.targetSize, contentMode: self.contentMode)
     }
 }
 
@@ -54,14 +54,14 @@ public class ImageProcessorComposition: ImageProcessing {
         return true
     }
     
-    public func processedImage(image: UIImage, forRequest request: ImageRequest) -> UIImage? {
-        return processedImage(image, forRequest: request, processors: self.processors)
+    public func processedImage(image: UIImage) -> UIImage? {
+        return processedImage(image, processors: self.processors)
     }
     
-    public func processedImage(image: UIImage?, forRequest request: ImageRequest, processors: [ImageProcessing]) -> UIImage? {
+    public func processedImage(image: UIImage?, processors: [ImageProcessing]) -> UIImage? {
         return processors.reduce(image) {
             if let input = $0 {
-                return $1.processedImage(input, forRequest: request)
+                return $1.processedImage(input)
             }
             return $0
         }

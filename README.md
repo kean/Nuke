@@ -52,7 +52,7 @@ Nuke is a [pipeline](#h_design) that loads images using pluggable components whi
 - Download the latest [release](https://github.com/kean/Nuke/releases) version
 - Experiment with Nuke APIs in a Swift playground
 - Take a look at the demo project, it's easy to install with `pod try Nuke` command
-- [Install using CocoaPods](#install_using_cocopods) and enjoy!
+- [Install using CocoaPods](#install_using_cocopods), import Nuke and enjoy!
 
 ## <a name="h_usage"></a>Usage
 
