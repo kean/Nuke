@@ -27,13 +27,13 @@ Nuke.taskWithURL(URL) {
 ##### Loading
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
 - Uses a single data task for multiple equivalent requests
-- [Intelligent preheating](https://github.com/kean/DFImageManager/wiki/Image-Preheating-Guide) of images close to the viewport
+- [Intelligent preheating](https://github.com/kean/Nuke/wiki/Image-Preheating-Guide) of images close to the viewport
 - Progress tracking using `NSProgress`
 
 ##### Caching
 - Instead of reinventing a caching methodology it relies on HTTP cache as defined in [HTTP specification](https://tools.ietf.org/html/rfc7234) and caching implementation provided by [Foundation](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html)
 - Caching is completely transparent to the client
-- Two cache layers, including [top level memory cache](https://github.com/kean/DFImageManager/wiki/Image-Caching-Guide) for decompressed images
+- Two cache layers, including [top level memory cache](https://github.com/kean/Nuke/wiki/Image-Caching-Guide) for decompressed images
 
 ##### Decoding and Processing
 - Apply image filters

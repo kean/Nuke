@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C0CCD9E1BACC1A7002D10D5 /* PreheatingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
 		0C8260F21BA5BBA90078C6BD /* ImageManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8260E61BA5BB980078C6BD /* ImageManagerTest.swift */; settings = {ASSET_TAGS = (); }; };
 		0C8260F31BA5BBA90078C6BD /* ImageMemoryCacheTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8260E71BA5BB980078C6BD /* ImageMemoryCacheTest.swift */; settings = {ASSET_TAGS = (); }; };
 		0C8260F41BA5BBA90078C6BD /* MockURLSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8260E81BA5BB980078C6BD /* MockURLSessionManager.swift */; settings = {ASSET_TAGS = (); }; };
@@ -37,6 +38,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreheatingDemoViewController.swift; sourceTree = "<group>"; };
 		0C8260E31BA5BB980078C6BD /* Image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image.jpg; sourceTree = "<group>"; };
 		0C8260E41BA5BB980078C6BD /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0C8260E61BA5BB980078C6BD /* ImageManagerTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManagerTest.swift; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 				0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */,
 				0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */,
 				0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */,
+				0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */,
 				607FACD91AFB9204008FA782 /* Main.storyboard */,
 				607FACDC1AFB9204008FA782 /* Images.xcassets */,
 				607FACDE1AFB9204008FA782 /* LaunchScreen.xib */,
@@ -404,6 +407,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C0CCD9E1BACC1A7002D10D5 /* PreheatingDemoViewController.swift in Sources */,
 				0C826FA51BAC066E0069FCE1 /* BasicDemoViewController.swift in Sources */,
 				607FACD81AFB9204008FA782 /* MenuViewController.swift in Sources */,
 				0CAA23701BAC9C6A002D7080 /* AlamofireDemoViewController.swift in Sources */,

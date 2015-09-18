@@ -62,6 +62,14 @@ class MenuViewController: UITableViewController {
         }
         items.append(item3)
         
+        let item4 = MenuItem(title: "Preheating Demo") {
+            [weak self] in
+            let controller = PreheatingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+            controller.title = "Preheating Demo"
+            self?.navigationController?.pushViewController(controller, animated: true)
+        }
+        items.append(item4)
+        
         sections.append(MenuSection(title: "Nuke", items: items))
     }
     
