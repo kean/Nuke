@@ -6,7 +6,10 @@ import Foundation
 
 public struct ImageRequest {
     public var URL: NSURL
-    public var targetSize: CGSize = ImageMaximumSize // Target size in pixels
+    
+    /** Image target size in pixels.
+    */
+    public var targetSize: CGSize = ImageMaximumSize
     public var contentMode: ImageContentMode = .AspectFill
     public var userInfo: Any?
     

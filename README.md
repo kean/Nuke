@@ -158,11 +158,11 @@ let manager = ImageManager(configuration: configuration)
 
 ## <a name="h_design"></a>Design
 
-<img src="https://cloud.githubusercontent.com/assets/1567433/9920465/f817af2a-5cdc-11e5-92a9-613e3bdf35a8.png" width="66%"/>
+<img src="https://cloud.githubusercontent.com/assets/1567433/9952711/971ae2ea-5de1-11e5-8670-6853d3fe18cd.png" width="66%"/>
 
 |Protocol|Description|
 |--------|-----------|
-|`ImageManager`|A high-level API for loading images|
+|`ImageManaging`|A high-level API for loading images|
 |`ImageDataLoading`|Performs loading of image data (`NSData`)|
 |`ImageDecoding`|Converts `NSData` to `UIImage` objects|
 |`ImageProcessing`|Processes decoded images|

@@ -186,7 +186,7 @@ extension ImageManagerLoader: ImageRequestKeyOwner {
 }
 
 
-// MARK: - ImageLoaderTask -
+// MARK: - ImageLoaderTask
 
 private class ImageLoaderTask {
     let imageTask: ImageTask
@@ -219,7 +219,7 @@ private class ImageLoaderSessionTask {
 }
 
 
-// MARK: - ImageRequestKey -
+// MARK: - ImageRequestKey
 
 internal protocol ImageRequestKeyOwner: class {
     func isImageRequestKey(key: ImageRequestKey, equalToKey: ImageRequestKey) -> Bool
