@@ -4,6 +4,85 @@
    <FileRef
       location = "group:NukePlayground.playground">
    </FileRef>
+   <Group
+      location = "group:../Pod"
+      name = "Pod">
+      <Group
+         location = "group:Assets"
+         name = "Assets">
+      </Group>
+      <Group
+         location = "group:Classes"
+         name = "Classes">
+         <Group
+            location = "group:Core"
+            name = "Core">
+            <FileRef
+               location = "group:Nuke.swift">
+            </FileRef>
+            <FileRef
+               location = "group:ImageDataLoader.swift">
+            </FileRef>
+            <FileRef
+               location = "group:ImageDecoder.swift">
+            </FileRef>
+            <FileRef
+               location = "group:ImageManager.swift">
+            </FileRef>
+            <FileRef
+               location = "group:ImageManagerExtensions.swift">
+            </FileRef>
+            <FileRef
+               location = "group:ImageManagerLoader.swift">
+            </FileRef>
+            <FileRef
+               location = "group:ImageMemoryCache.swift">
+            </FileRef>
+            <FileRef
+               location = "group:ImageProcessor.swift">
+            </FileRef>
+            <FileRef
+               location = "group:ImageRequest.swift">
+            </FileRef>
+            <FileRef
+               location = "group:ImageResponse.swift">
+            </FileRef>
+            <FileRef
+               location = "group:ImageTask.swift">
+            </FileRef>
+         </Group>
+         <Group
+            location = "group:UI"
+            name = "UI">
+            <FileRef
+               location = "group:ImageCollectionViewPreheatingController.swift">
+            </FileRef>
+            <FileRef
+               location = "group:ImageView.swift">
+            </FileRef>
+         </Group>
+         <Group
+            location = "group:GIF"
+            name = "GIF">
+            <FileRef
+               location = "group:AnimatedImage.swift">
+            </FileRef>
+            <FileRef
+               location = "group:AnimatedImageView.swift">
+            </FileRef>
+         </Group>
+         <FileRef
+            location = "group:Nuke.h">
+         </FileRef>
+         <Group
+            location = "group:Alamofire"
+            name = "Alamofire">
+            <FileRef
+               location = "group:AlamofireImageDataLoader.swift">
+            </FileRef>
+         </Group>
+      </Group>
+   </Group>
    <FileRef
       location = "group:Nuke.xcodeproj">
    </FileRef>

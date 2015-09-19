@@ -93,8 +93,7 @@ Nuke.taskWithRequest(request) {
 ```swift
 let task = Nuke.taskWithURL(imageURL) {
     let image = $0.image
-}
-task.resume()
+}.resume()
 
 // Use progress object to track load progress
 let progress = task.progress
@@ -109,7 +108,7 @@ task.cancel()
 #### UICollectionView
 
 ```swift
-override func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
+func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
     let cell = collectionView.dequeueReusableCellWithReuseIdentifier(cellReuseID, forIndexPath: indexPath)
 
     let imageView: ImageView = <#view#>
@@ -123,7 +122,7 @@ override func collectionView(collectionView: UICollectionView, cellForItemAtInde
 Cancel image task as soon as the cell goes offscreen (optional):
 
 ```swift
-override func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
+func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
     let imageView: ImageView = <#view#>
     imageView.prepareForReuse()
 }
@@ -167,7 +166,6 @@ let composition = ImageDecoderComposition(decoders: [decoder1, decoder2])
 ```swift
 let requests = [ImageRequest(URL: imageURL1), ImageRequest(URL: imageURL2)]
 Nuke.startPreheatingImages(requests: requests)
-
 Nuke.stopPreheatingImages(requests: requests)
 ```
 

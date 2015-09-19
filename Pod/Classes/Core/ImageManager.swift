@@ -37,7 +37,7 @@ public struct ImageManagerConfiguration {
     public var dataLoader: ImageDataLoading
     public var decoder: ImageDecoding
     public var cache: ImageMemoryCaching?
-    public var maxConcurrentPreheatingRequests = 2
+    public var maxConcurrentPreheatingTasks = 2
     
     public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder(), cache: ImageMemoryCaching? = ImageMemoryCache()) {
         self.dataLoader = dataLoader
@@ -194,7 +194,7 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
         var executingTaskCount = self.executingTasks.count
         let sortedPreheatingTasks = self.preheatingTasks.values.sort { $0.tag < $1.tag }
         for task in sortedPreheatingTasks {
-            if executingTaskCount > self.configuration.maxConcurrentPreheatingRequests {
+            if executingTaskCount > self.configuration.maxConcurrentPreheatingTasks {
                 break
             }
             if task.state == .Suspended {
