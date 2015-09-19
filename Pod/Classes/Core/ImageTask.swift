@@ -15,12 +15,12 @@ public enum ImageTaskState {
 */
 public class ImageTask: Hashable {
     public let request: ImageRequest
-    var completion: ImageTaskCompletion?
+    public var completion: ImageTaskCompletion?
     public internal(set) var state: ImageTaskState = .Suspended
     public internal(set) var response: ImageResponse?
     public let progress: NSProgress
     
-    init(request: ImageRequest, completion: ImageTaskCompletion?) {
+    internal init(request: ImageRequest, completion: ImageTaskCompletion?) {
         self.request = request
         self.completion = completion
         self.progress = NSProgress(totalUnitCount: -1)
@@ -33,8 +33,8 @@ public class ImageTask: Hashable {
         return self.request.URL.hashValue
     }
     
-    public func resume() {}
-    public func cancel() {}
+    public func resume() -> Self { return self }
+    public func cancel() -> Self { return self }
 }
 
 public func ==(lhs: ImageTask, rhs: ImageTask) -> Bool {

@@ -33,9 +33,11 @@ public class ImageView: UIImageView {
     }
     
     private func cancelFetching() {
-        self.imageTask?.completion = nil
-        self.imageTask?.cancel()
-        self.imageTask = nil
+        if let task = self.imageTask {
+            task.completion = nil
+            task.cancel()
+            self.imageTask = nil
+        }
     }
     
     public func setImageWithURL(URL: NSURL) {
@@ -52,8 +54,7 @@ public class ImageView: UIImageView {
         self.cancelFetching()
         self.imageTask = ImageManager.shared().taskWithRequest(request) { [weak self] in
             self?.imageTaskDidFinishWithResponse($0)
-        }
-        self.imageTask?.resume()
+        }.resume()
     }
     
     public func imageTaskDidFinishWithResponse(response: ImageResponse) {

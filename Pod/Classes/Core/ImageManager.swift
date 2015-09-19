@@ -266,12 +266,14 @@ private class ImageTaskInternal: ImageTask {
         super.init(request: request, completion: completion)
     }
     
-    override func resume() {
+    override func resume() -> Self {
         self.manager.resumeManagedTask(self)
+        return self
     }
     
-    override func cancel() {
+    override func cancel() -> Self {
         self.manager.cancelManagedTask(self)
+        return self
     }
     
     func isValidNextState(state: ImageTaskState) -> Bool {
