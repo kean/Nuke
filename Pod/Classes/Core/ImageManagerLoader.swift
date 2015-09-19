@@ -70,11 +70,10 @@ internal class ImageManagerLoader {
     }
     
     private func sessionTask(sessionTask: ImageLoaderSessionTask, didCompleteWithData data: NSData?, error: ErrorType?) {
-        if data?.length > 0 {
+        if let unwrappedData = data {
             self.decodingQueue.addOperationWithBlock {
                 [weak self] in
-                let decoder = self?.conf.decoder
-                let image = decoder?.imageWithData(data!)
+                let image = self?.conf.decoder.imageWithData(unwrappedData)
                 self?.sessionTask(sessionTask, didCompleteWithImage: image, error: error)
             }
         } else {
@@ -96,7 +95,7 @@ internal class ImageManagerLoader {
     private func processImage(image: UIImage?, error: ErrorType?, forLoaderTask task: ImageLoaderTask) {
         if let unwrappedImage = image, processor = self.processorForRequest(task.request) {
             let operation = NSBlockOperation { [weak self] in
-                let processedImage = processor.processedImage(unwrappedImage)
+                let processedImage = processor.processImage(unwrappedImage)
                 self?.storeImage(processedImage, forRequest: task.request)
                 self?.loaderTask(task, didCompleteWithImage: processedImage, error: error)
             }

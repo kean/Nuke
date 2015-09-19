@@ -78,13 +78,13 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
     
     public func invalidateAndCancel() {
         self.performBlock {
-            self.invalidated = true
             self.preheatingTasks.removeAll()
             self.imageLoader.delegate = nil
-            for task in executingTasks {
+            for task in self.executingTasks {
                 self.setState(.Cancelled, forTask: task)
             }
             self.configuration.dataLoader.invalidate()
+            self.invalidated = true
         }
     }
     
@@ -104,7 +104,7 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
     }
     
     private func transitionStateAction(fromState: ImageTaskState, toState: ImageTaskState, task: ImageTaskInternal) {
-        if (fromState == .Running && toState == .Cancelled) {
+        if fromState == .Running && toState == .Cancelled {
             self.imageLoader.stopLoadingForTask(task)
         }
     }
@@ -149,7 +149,7 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
             for request in requests {
                 let key = self.imageLoader.preheatingKeyForRequest(request)
                 if self.preheatingTasks[key] == nil {
-                    let task = ImageTaskInternal(manager: self, request: request, completion: nil)
+                    let task = ImageTaskInternal(manager: self, request: request)
                     task.tag = self.preheatingTaskCounter++
                     task.preheating = true
                     self.preheatingTasks[key] = task
@@ -261,7 +261,7 @@ private class ImageTaskInternal: ImageTask {
     var tag: Int = 0
     var preheating: Bool = false
     
-    init(manager: ImageTaskManaging, request: ImageRequest, completion: ImageTaskCompletion?) {
+    init(manager: ImageTaskManaging, request: ImageRequest, completion: ImageTaskCompletion? = nil) {
         self.manager = manager
         super.init(request: request, completion: completion)
     }
