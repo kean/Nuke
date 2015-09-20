@@ -14,13 +14,12 @@ public struct ImageManagerConfiguration {
     public var dataLoader: ImageDataLoading
     public var decoder: ImageDecoding
     public var cache: ImageMemoryCaching?
-    public var preheatingQueue = ImageTaskQueue()
+    public var maxConcurrentPreheatingTasks = 2
     
     public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder(), cache: ImageMemoryCaching? = ImageMemoryCache()) {
         self.dataLoader = dataLoader
         self.decoder = decoder
         self.cache = cache
-        self.preheatingQueue.maxConcurrentTaskCount = 2
     }
 }
 
@@ -32,11 +31,10 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
     private let imageLoader: ImageManagerLoader
     private var executingTasks = Set<ImageTaskInternal>()
     private var preheatingTasks = [ImageRequestKey: ImageTaskInternal]()
-    private var preheatingQueue: ImageTaskQueue {
-        get { return self.configuration.preheatingQueue }
-    }
     private let lock = NSRecursiveLock()
+    private var preheatingTaskCounter = 0
     private var invalidated = false
+    private var needsToExecutePreheatingTasks = false
     
     public init(configuration: ImageManagerConfiguration) {
         self.configuration = configuration
@@ -45,7 +43,7 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
     }
     
     // MARK: ImageManaging
-        
+    
     public func taskWithRequest(request: ImageRequest) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request)
     }
@@ -55,7 +53,6 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
             self.imageLoader.delegate = nil
             self.cancelTasks(Array(self.executingTasks))
             self.preheatingTasks.removeAll()
-            self.preheatingQueue.cancelAllTasks()
             self.configuration.dataLoader.invalidate()
             self.invalidated = true
         }
@@ -89,7 +86,6 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
                 self.setState(.Completed, forTask: task)
             } else {
                 self.executingTasks.insert(task)
-                self.didUpdateExecutingTaskCount()
                 self.imageLoader.startLoadingForTask(task)
             }
         }
@@ -98,7 +94,7 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
         }
         if state == .Completed || state == .Cancelled {
             self.executingTasks.remove(task)
-            self.didUpdateExecutingTaskCount()
+            self.setNeedsExecutePreheatingTasks()
             
             let completions = task.completions
             self.dispatchBlock {
@@ -108,10 +104,6 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
                 }
             }
         }
-    }
-    
-    private func didUpdateExecutingTaskCount() {
-        self.preheatingQueue.suspended = self.executingTasks.count > self.preheatingQueue.maxConcurrentTaskCount
     }
     
     private func dispatchBlock(block: (Void) -> Void) {
@@ -126,13 +118,14 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
                 let key = self.imageLoader.preheatingKeyForRequest(request)
                 if self.preheatingTasks[key] == nil {
                     let task = ImageTaskInternal(manager: self, request: request)
+                    task.tag = self.preheatingTaskCounter++
                     task.completion { [weak self] _ in
                         self?.preheatingTasks[key] = nil
                     }
                     self.preheatingTasks[key] = task
-                    self.preheatingQueue.addTask(task)
                 }
             }
+            self.setNeedsExecutePreheatingTasks()
         }
     }
     
@@ -150,8 +143,30 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
         }
     }
     
-    private func cancelTasks(tasks: [ImageTaskInternal]) {
-        tasks.forEach { self.setState(.Cancelled, forTask: $0) }
+    private func setNeedsExecutePreheatingTasks() {
+        if !self.needsToExecutePreheatingTasks && !self.invalidated {
+            self.needsToExecutePreheatingTasks = true
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64((0.15 * Double(NSEC_PER_SEC)))), dispatch_get_main_queue()) {
+                [weak self] in self?.performBlock {
+                    self?.executePreheatingTasksIfNeeded()
+                }
+            }
+        }
+    }
+    
+    private func executePreheatingTasksIfNeeded() {
+        self.needsToExecutePreheatingTasks = false
+        var executingTaskCount = self.executingTasks.count
+        let sortedPreheatingTasks = self.preheatingTasks.values.sort { $0.tag < $1.tag }
+        for task in sortedPreheatingTasks {
+            if executingTaskCount > self.configuration.maxConcurrentPreheatingTasks {
+                break
+            }
+            if task.state == .Suspended {
+                self.setState(.Running, forTask: task)
+                executingTaskCount++
+            }
+        }
     }
     
     // MARK: ImageManagerLoaderDelegate
@@ -209,6 +224,10 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
         }
         self.lock.unlock()
     }
+    
+    private func cancelTasks(tasks: [ImageTaskInternal]) {
+        tasks.forEach { self.setState(.Cancelled, forTask: $0) }
+    }
 }
 
 // MARK: - ImageManager (Shared)
@@ -244,6 +263,7 @@ private protocol ImageTaskManaging {
 
 private class ImageTaskInternal: ImageTask {
     let manager: ImageTaskManaging
+    var tag = 0
     var completions = [ImageTaskCompletion]()
     
     init(manager: ImageTaskManaging, request: ImageRequest) {
