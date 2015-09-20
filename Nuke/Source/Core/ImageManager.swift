@@ -173,8 +173,10 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
     // MARK: ImageManagerLoaderDelegate
     
     internal func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
-        imageTask.progress.totalUnitCount = totalUnitCount
-        imageTask.progress.completedUnitCount = completedUnitCount
+        dispatch_async(dispatch_get_main_queue()) {
+            imageTask.progress.totalUnitCount = totalUnitCount
+            imageTask.progress.completedUnitCount = completedUnitCount
+        }
     }
     
     internal func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {

@@ -19,14 +19,10 @@ public class ImageTask: Hashable {
     public let request: ImageRequest
     public internal(set) var state: ImageTaskState = .Suspended
     public internal(set) var response: ImageResponse?
-    public let progress: NSProgress
+    public lazy var progress = NSProgress(totalUnitCount: -1)
     
     internal init(request: ImageRequest) {
         self.request = request
-        self.progress = NSProgress(totalUnitCount: -1)
-        self.progress.cancellationHandler = {
-            [weak self] in self?.cancel()
-        }
     }
     
     /** Adds completion block to the task. Completion block gets called even if it is added to the alredy completed task.
