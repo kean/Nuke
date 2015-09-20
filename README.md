@@ -5,7 +5,7 @@
 
 Advanced pure Swift framework for loading, caching, processing, displaying and preheating images. It uses latest advancements in iOS SDK and doesn't reinvent existing technologies.
 
-Nuke is a [pipeline](#h_design) that loads images using pluggable components which can be injected in runtime.
+Nuke is a [pipeline](#h_design) that loads images using multiple dependencies which can be injected in runtime.
 
 ```swift
 Nuke.taskWithURL(URL) { 
@@ -45,7 +45,6 @@ Nuke.taskWithURL(URL) {
 - Resize loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
 
 ##### Advanced
-- Image tasks are promises
 - Image decoder composition
 - Image filter composition
 - Customize different parts of the framework using dependency injection
@@ -97,18 +96,10 @@ Nuke.taskWithRequest(request) { response in
 let task = Nuke.taskWithURL(imageURL).resume()
 let progress = task.progress // Track progress using NSProgress
 let state = task.state // Track task state
+task.completion { // Add completions, even for completed task
+    let image $0.image
+}
 task.cancel() // Cancel image task
-```
-
-#### Image Task as Promise
-
-```swift
-// Add multiple completions that get called even if task is completed
-let task = Nuke.taskWithURL(imageURL).completion {
-    let image = $0.image
-}.completion {
-    let image = $0.image
-}.resume()
 ```
 
 #### UICollectionView
