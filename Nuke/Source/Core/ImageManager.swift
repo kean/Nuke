@@ -45,11 +45,7 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
     }
     
     // MARK: ImageManaging
-    
-    public func taskWithURL(URL: NSURL) -> ImageTask {
-        return self.taskWithRequest(ImageRequest(URL: URL))
-    }
-    
+        
     public func taskWithRequest(request: ImageRequest) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request)
     }

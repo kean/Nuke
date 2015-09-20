@@ -7,7 +7,6 @@ import Foundation
 // MARK: - ImageManaging
 
 public protocol ImageManaging {
-    func taskWithURL(URL: NSURL) -> ImageTask
     func taskWithRequest(request: ImageRequest) -> ImageTask
     func invalidateAndCancel()
     func removeAllCachedImages()
@@ -24,6 +23,10 @@ public protocol ImagePreheating {
 // MARK: - ImageManaging (Convenience)
 
 public extension ImageManaging {
+    func taskWithURL(URL: NSURL) -> ImageTask {
+        return self.taskWithRequest(ImageRequest(URL: URL))
+    }
+    
     func taskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask {
         let task = self.taskWithURL(URL)
         if completion != nil { task.completion(completion!) }
