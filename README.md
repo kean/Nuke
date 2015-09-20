@@ -78,8 +78,7 @@ Nuke.taskWithRequest(request) {
 #### Using Image Response
 
 ```swift
-Nuke.taskWithRequest(request) {
-    response in
+Nuke.taskWithRequest(request) { response in
     switch response { // Response is an enum with associated values
     case let .Success(image, info): 
         // Use image and inspect info
