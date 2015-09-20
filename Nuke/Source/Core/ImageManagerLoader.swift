@@ -20,12 +20,12 @@ internal class ImageManagerLoader {
         let queue = NSOperationQueue()
         queue.maxConcurrentOperationCount = 1
         return queue
-        }()
+    }()
     private let processingQueue: NSOperationQueue = {
         let queue = NSOperationQueue()
         queue.maxConcurrentOperationCount = 2
         return queue
-        }()
+    }()
     
     internal init(configuration: ImageManagerConfiguration) {
         self.conf = configuration
