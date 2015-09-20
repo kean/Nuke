@@ -1,5 +1,8 @@
 <p align="center"><img src="https://cloud.githubusercontent.com/assets/1567433/6684993/5971ef08-cc3a-11e4-984c-6769e4931497.png" height="100"/>
 
+[![Cocoapods Compatible](https://img.shields.io/cocoapods/v/Nuke.svg)](https://img.shields.io/cocoapods/v/Nuke.svg)
+[![Carthage Compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
+
 Advanced pure Swift framework for loading, caching, processing, displaying and preheating images. It uses latest advancements in iOS SDK and doesn't reinvent existing technologies.
 
 Nuke is a [pipeline](#h_design) that loads images using pluggable components which can be injected in runtime.
