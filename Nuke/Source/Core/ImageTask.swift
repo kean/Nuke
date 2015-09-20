@@ -11,6 +11,8 @@ public enum ImageTaskState {
     case Completed
 }
 
+public typealias ImageTaskCompletion = (ImageResponse) -> Void
+
 /** Abstract class
 */
 public class ImageTask: Hashable {

@@ -15,21 +15,21 @@ private let imageCellReuseID = "imageCellReuseID"
 
 class AnimatedImageDemoViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout {
     var imageURLs = [NSURL]()
-    var previousImageManager: ImageManaging!
+    var previousImageManager: ImageManager!
     
     deinit {
-        ImageManager.setShared(self.previousImageManager)
+        ImageManager.shared = self.previousImageManager
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         // Enable GIF
-        self.previousImageManager = ImageManager.shared()
+        self.previousImageManager = ImageManager.shared
         
         let decoder = ImageDecoderComposition(decoders: [AnimatedImageDecoder(), ImageDecoder()])
         let configuration = ImageManagerConfiguration(dataLoader: ImageDataLoader(), decoder:decoder)
-        ImageManager.setShared(ImageManager(configuration: configuration))
+        ImageManager.shared = ImageManager(configuration: configuration)
         
         self.collectionView?.registerClass(UICollectionViewCell.self, forCellWithReuseIdentifier: textViewCellReuseID)
         self.collectionView?.registerClass(AnimatedImageCell.self, forCellWithReuseIdentifier: imageCellReuseID)

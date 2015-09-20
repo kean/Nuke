@@ -51,7 +51,7 @@ public class ImageView: UIImageView {
     
     public func setImageWithRequest(request: ImageRequest) {
         self.cancelFetching()
-        let task = ImageManager.shared().taskWithRequest(request)
+        let task = Nuke.taskWithRequest(request)
         task.completion { [weak self, weak task] in
             guard let unwrappedTask = task, unwrappedSelf = self where unwrappedTask == unwrappedSelf.imageTask else {
                 return

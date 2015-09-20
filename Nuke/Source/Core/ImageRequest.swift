@@ -4,6 +4,13 @@
 
 import UIKit
 
+public enum ImageContentMode {
+    case AspectFill
+    case AspectFit
+}
+
+public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
+
 public struct ImageRequest {
     public var URL: NSURL
     

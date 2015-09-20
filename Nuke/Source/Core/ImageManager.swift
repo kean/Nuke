@@ -4,48 +4,9 @@
 
 import UIKit
 
-public enum ImageContentMode {
-    case AspectFill
-    case AspectFit
-}
-
-public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
-
-public typealias ImageTaskCompletion = (ImageResponse) -> Void
-
 public let ImageManagerErrorDomain = "Nuke.ImageManagerErrorDomain"
 public let ImageManagerErrorCancelled = -1
 public let ImageManagerErrorUnknown = -2
-
-
-// MARK: - ImageManaging
-
-public protocol ImageManaging {
-    func taskWithURL(URL: NSURL) -> ImageTask
-    func taskWithRequest(request: ImageRequest) -> ImageTask
-    func invalidateAndCancel()
-    func removeAllCachedImages()
-    func startPreheatingImages(requests: [ImageRequest])
-    func stopPreheatingImages(requests: [ImageRequest])
-    func stopPreheatingImages()
-}
-
-// MARK: - ImageManaging (Convenience)
-
-public extension ImageManaging {
-    func taskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask {
-        let task = self.taskWithURL(URL)
-        if completion != nil { task.completion(completion!) }
-        return task
-    }
-    
-    func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
-        let task = self.taskWithRequest(request)
-        if completion != nil { task.completion(completion!) }
-        return task
-    }
-}
-
 
 // MARK: - ImageManagerConfiguration
 
@@ -63,10 +24,9 @@ public struct ImageManagerConfiguration {
     }
 }
 
-
 // MARK: - ImageManager
 
-public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskManaging {
+public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDelegate, ImageTaskManaging {
     public let configuration: ImageManagerConfiguration
     
     private let imageLoader: ImageManagerLoader
@@ -160,7 +120,7 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
         NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
     }
     
-    // MARK: ImageManaging (Preheating)
+    // MARK: ImagePreheating
     
     public func startPreheatingImages(requests: [ImageRequest]) {
         self.performBlock {
@@ -253,6 +213,28 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
     }
 }
 
+// MARK: - ImageManager (Shared)
+
+public extension ImageManager {
+    private static var sharedManagerIvar: ImageManager = ImageManager(configuration: ImageManagerConfiguration(dataLoader: ImageDataLoader()))
+    private static var lock = OS_SPINLOCK_INIT
+    private static var token: dispatch_once_t = 0
+    
+    public class var shared: ImageManager {
+        set {
+            OSSpinLockLock(&lock)
+            sharedManagerIvar = newValue
+            OSSpinLockUnlock(&lock)
+        }
+        get {
+            var manager: ImageManager
+            OSSpinLockLock(&lock)
+            manager = sharedManagerIvar
+            OSSpinLockUnlock(&lock)
+            return manager
+        }
+    }
+}
 
 // MARK: - ImageTaskInternal
 
