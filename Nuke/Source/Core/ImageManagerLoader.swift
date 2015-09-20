@@ -13,6 +13,7 @@ internal class ImageManagerLoader {
     internal weak var delegate: ImageManagerLoaderDelegate?
     
     private let conf: ImageManagerConfiguration
+    private var pendingTasks = [ImageTask]()
     private var executingTasks = [ImageTask : ImageLoaderTask]()
     private var sessionTasks = [ImageRequestKey : ImageLoaderSessionTask]()
     private let queue = dispatch_queue_create("ImageManagerLoader-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
@@ -33,9 +34,8 @@ internal class ImageManagerLoader {
     
     internal func startLoadingForTask(task: ImageTask) {
         dispatch_async(self.queue) {
-            let loaderTask = ImageLoaderTask(imageTask: task)
-            self.executingTasks[task] = loaderTask
-            self.startSessionTaskForTask(loaderTask)
+            self.pendingTasks.append(task)
+            self.executePendingTasks()
         }
     }
     
@@ -122,6 +122,7 @@ internal class ImageManagerLoader {
         dispatch_async(self.queue) {
             self.delegate?.imageLoader(self, imageTask: task.imageTask, didCompleteWithImage: image, error: error)
             self.executingTasks[task.imageTask] = nil
+            self.executePendingTasks()
         }
     }
     
@@ -138,8 +139,32 @@ internal class ImageManagerLoader {
                 }
                 loaderTask.processingOperation?.cancel()
                 self.executingTasks[imageTask] = nil
+                self.executePendingTasks()
+            } else if let index = (self.pendingTasks.indexOf { $0 === imageTask }) {
+                self.pendingTasks.removeAtIndex(index)
             }
         }
+    }
+    
+    // MARK: Queue
+    
+    private func executePendingTasks() {
+        while self.shouldExecuteNextPendingTask() {
+            guard let task = self.dequeueNextPendingTask() else  {
+                return
+            }
+            let loaderTask = ImageLoaderTask(imageTask: task)
+            self.executingTasks[task] = loaderTask
+            self.startSessionTaskForTask(loaderTask)
+        }
+    }
+    
+    private func shouldExecuteNextPendingTask() -> Bool {
+        return self.executingTasks.count < self.conf.maxConcurrentTaskCount
+    }
+    
+    private func dequeueNextPendingTask() -> ImageTask? {
+        return self.pendingTasks.isEmpty ? nil : self.pendingTasks.removeFirst()
     }
     
     // MARK: Misc
