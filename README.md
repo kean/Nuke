@@ -42,6 +42,7 @@ Nuke.taskWithURL(URL) {
 - Resize loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
 
 ##### Advanced
+- Image tasks are promises
 - Image decoder composition
 - Image filter composition
 - Customize different parts of the framework using dependency injection
@@ -54,7 +55,7 @@ Nuke.taskWithURL(URL) {
 
 ## <a name="h_usage"></a>Usage
 
-#### Zero Config Image Loading
+#### Zero Config
 
 ```swift
 Nuke.taskWithURL(imageURL) {
@@ -70,7 +71,7 @@ request.targetSize = CGSize(width: 300.0, height: 400.0) // Set target size in p
 request.contentMode = .AspectFill
 
 Nuke.taskWithRequest(request) {
-    let image = $0.image
+    let image = $0.image // Image is resized
 }.resume()
 ```
 
@@ -80,9 +81,9 @@ Nuke.taskWithRequest(request) {
 Nuke.taskWithRequest(request) {
     response in
     switch response { // Response is an enum with associated values
-    case let .Success(image, info):
+    case let .Success(image, info): 
         // Use image and inspect info
-    case let .Failure(error):
+    case let .Failure(error): 
         // Handle error
     }
 }.resume()
@@ -91,18 +92,21 @@ Nuke.taskWithRequest(request) {
 #### Using Image Task
 
 ```swift
-let task = Nuke.taskWithURL(imageURL) {
+let task = Nuke.taskWithURL(imageURL).resume()
+let progress = task.progress // Track progress using NSProgress
+let state = task.state // Track task state
+task.cancel() // Cancel image task
+```
+
+#### Image Task as Promise
+
+```swift
+// Add multiple completions that get called even if task is completed
+let task = Nuke.taskWithURL(imageURL).completion {
+    let image = $0.image
+}.completion {
     let image = $0.image
 }.resume()
-
-// Use progress object to track load progress
-let progress = task.progress
-
-// Track task state
-let state = task.state
-
-// Cancel image task
-task.cancel()
 ```
 
 #### UICollectionView

@@ -21,13 +21,29 @@ public let ImageManagerErrorUnknown = -2
 // MARK: - ImageManaging
 
 public protocol ImageManaging {
-    func taskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask
-    func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask
+    func taskWithURL(URL: NSURL) -> ImageTask
+    func taskWithRequest(request: ImageRequest) -> ImageTask
     func invalidateAndCancel()
     func removeAllCachedImages()
     func startPreheatingImages(requests: [ImageRequest])
     func stopPreheatingImages(requests: [ImageRequest])
     func stopPreheatingImages()
+}
+
+// MARK: - Convenience
+
+public extension ImageManaging {
+    func taskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask {
+        let task = self.taskWithURL(URL)
+        if completion != nil { task.completion(completion!) }
+        return task
+    }
+    
+    func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
+        let task = self.taskWithRequest(request)
+        if completion != nil { task.completion(completion!) }
+        return task
+    }
 }
 
 
@@ -68,12 +84,12 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
     
     // MARK: ImageManaging
     
-    public func taskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask {
-        return self.taskWithRequest(ImageRequest(URL: URL), completion: completion)
+    public func taskWithURL(URL: NSURL) -> ImageTask {
+        return self.taskWithRequest(ImageRequest(URL: URL))
     }
     
-    public func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
-        return ImageTaskInternal(manager: self, request: request, completion: completion)
+    public func taskWithRequest(request: ImageRequest) -> ImageTask {
+        return ImageTaskInternal(manager: self, request: request)
     }
     
     public func invalidateAndCancel() {
@@ -126,14 +142,19 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
             self.executingTasks.remove(task)
             self.setNeedsExecutePreheatingTasks()
             
-            let block: dispatch_block_t = {
+            let completions = task.completions
+            self.dispatchBlock {
                 assert(task.response != nil)
-                task.completion?(task.response!)
+                for completion in completions {
+                    completion(task.response!)
+                }
             }
-            NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
-            
             self.taskDidComplete(task)
         }
+    }
+    
+    private func dispatchBlock(block: (Void) -> Void) {
+        NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
     }
     
     private func taskDidComplete(task: ImageTaskInternal) {
@@ -237,6 +258,19 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
         }
     }
     
+    private func addCompletion(completion: ImageTaskCompletion, forTask task: ImageTaskInternal) {
+        self.performBlock {
+            if task.state == .Completed || task.state == .Cancelled {
+                dispatchBlock {
+                    assert(task.response != nil)
+                    completion(task.response!)
+                }
+            } else {
+                task.completions.append(completion)
+            }
+        }
+    }
+    
     // MARK: Misc
     
     private func performBlock(@noescape block: Void -> Void) {
@@ -254,16 +288,18 @@ public class ImageManager: ImageManaging, ImageManagerLoaderDelegate, ImageTaskM
 private protocol ImageTaskManaging {
     func resumeManagedTask(task: ImageTaskInternal)
     func cancelManagedTask(task: ImageTaskInternal)
+    func addCompletion(completion: ImageTaskCompletion, forTask task: ImageTaskInternal)
 }
 
 private class ImageTaskInternal: ImageTask {
     let manager: ImageTaskManaging
     var tag: Int = 0
     var preheating: Bool = false
+    var completions = [ImageTaskCompletion]()
     
-    init(manager: ImageTaskManaging, request: ImageRequest, completion: ImageTaskCompletion? = nil) {
+    init(manager: ImageTaskManaging, request: ImageRequest) {
         self.manager = manager
-        super.init(request: request, completion: completion)
+        super.init(request: request)
     }
     
     override func resume() -> Self {
@@ -273,6 +309,11 @@ private class ImageTaskInternal: ImageTask {
     
     override func cancel() -> Self {
         self.manager.cancelManagedTask(self)
+        return self
+    }
+    
+    override func completion(completion: ImageTaskCompletion) -> Self {
+        self.manager.addCompletion(completion, forTask: self)
         return self
     }
     

@@ -6,11 +6,11 @@ import Foundation
 
 // MARK: Convenience
 
-public func taskWithURL(URL: NSURL, completion: ImageTaskCompletion?) -> ImageTask {
+public func taskWithURL(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
     return ImageManager.shared().taskWithURL(URL, completion: completion)
 }
 
-public func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
+public func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
     return ImageManager.shared().taskWithRequest(request, completion: completion)
 }
 

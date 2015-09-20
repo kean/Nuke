@@ -7,8 +7,7 @@ import XCPlayground
 let URL = NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!
 let task = Nuke.taskWithURL(URL) {
     let image = $0.image
-}
-task.resume()
+}.resume()
 
 //: Create and customize `ImageRequest` and use it to create `ImageTask`. You can provide a target size and content mode that specify how to resize loaded image.
 var request = ImageRequest(URL: NSURL(string: "http://farm4.staticflickr.com/3892/14940786229_5b2b48e96c_z_d.jpg")!)

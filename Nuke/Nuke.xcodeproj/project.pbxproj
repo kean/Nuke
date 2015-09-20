@@ -21,6 +21,7 @@
 		0C096C9F1BAE9ADD007FE380 /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C096C8D1BAE9ADD007FE380 /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0C096CA01BAE9ADD007FE380 /* ImageCollectionViewPreheatingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C8F1BAE9ADD007FE380 /* ImageCollectionViewPreheatingController.swift */; settings = {ASSET_TAGS = (); }; };
 		0C096CA11BAE9ADD007FE380 /* ImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C901BAE9ADD007FE380 /* ImageView.swift */; settings = {ASSET_TAGS = (); }; };
+		0CCB1CC31BAEB8240099FA1D /* ImageTaskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCB1CC21BAEB8240099FA1D /* ImageTaskQueue.swift */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +44,7 @@
 		0C096C8F1BAE9ADD007FE380 /* ImageCollectionViewPreheatingController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageCollectionViewPreheatingController.swift; sourceTree = "<group>"; };
 		0C096C901BAE9ADD007FE380 /* ImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
 		0C9174901BAE99EE004A7905 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		0CCB1CC21BAEB8240099FA1D /* ImageTaskQueue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageTaskQueue.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +99,7 @@
 				0C096C861BAE9ADD007FE380 /* ImageRequest.swift */,
 				0C096C871BAE9ADD007FE380 /* ImageResponse.swift */,
 				0C096C881BAE9ADD007FE380 /* ImageTask.swift */,
+				0CCB1CC21BAEB8240099FA1D /* ImageTaskQueue.swift */,
 				0C096C891BAE9ADD007FE380 /* Nuke.swift */,
 			);
 			path = Core;
@@ -225,6 +228,7 @@
 				0C096C961BAE9ADD007FE380 /* ImageManagerLoader.swift in Sources */,
 				0C096CA11BAE9ADD007FE380 /* ImageView.swift in Sources */,
 				0C096C971BAE9ADD007FE380 /* ImageMemoryCache.swift in Sources */,
+				0CCB1CC31BAEB8240099FA1D /* ImageTaskQueue.swift in Sources */,
 				0C096C931BAE9ADD007FE380 /* ImageDecoder.swift in Sources */,
 				0C096C991BAE9ADD007FE380 /* ImageRequest.swift in Sources */,
 				0C096C941BAE9ADD007FE380 /* ImageManager.swift in Sources */,
