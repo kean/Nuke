@@ -32,7 +32,9 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
     private let imageLoader: ImageManagerLoader
     private var executingTasks = Set<ImageTaskInternal>()
     private var preheatingTasks = [ImageRequestKey: ImageTaskInternal]()
-    private var preheatingQueue = ImageTaskQueue()
+    private var preheatingQueue: ImageTaskQueue {
+        get { return self.configuration.preheatingQueue }
+    }
     private let lock = NSRecursiveLock()
     private var invalidated = false
     
@@ -142,7 +144,7 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
         self.performBlock {
             self.cancelTasks(requests.flatMap {
                 return self.preheatingTasks[self.imageLoader.preheatingKeyForRequest($0)]
-            })
+                })
         }
     }
     
@@ -222,9 +224,9 @@ public extension ImageManager {
     
     public class var shared: ImageManager {
         set {
-            OSSpinLockLock(&lock)
-            sharedManagerIvar = newValue
-            OSSpinLockUnlock(&lock)
+        OSSpinLockLock(&lock)
+        sharedManagerIvar = newValue
+        OSSpinLockUnlock(&lock)
         }
         get {
             var manager: ImageManager
