@@ -13,7 +13,7 @@ Nuke.taskWithURL(URL) {
 1. [Getting Started](#h_getting_started)
 2. [Usage](#h_usage)
 3. [Design](#h_design)
-4. [Installation](#install_using_cocopods)
+4. [Installation](#installation)
 5. [Requirements](#h_requirements)
 6. [Contribution](#h_contribution)
 
@@ -194,23 +194,33 @@ ImageManager.setShared(manager)
 |`ImageProcessing`|Processes decoded images|
 |`ImageMemoryCaching`|Stores processed images into memory cache|
 
-## <a name="install_using_cocopods"></a>Installation using [CocoaPods](http://cocoapods.org)
+## Installation<a name="installation"></a>
 
-CocoaPods is the dependency manager for Cocoa projects. If you are not familiar with CocoaPods the best place to start would be [official CocoaPods guides](http://guides.cocoapods.org). To install Nuke add a dependency in your Podfile:
+### CocoaPods
+
+[CocoaPods](http://cocoapods.org) is a dependency manager for Cocoa projects. If you are not familiar with CocoaPods the best place to start would be [CocoaPods guides](http://guides.cocoapods.org). To install Nuke add a dependency in your Podfile:
 ```ruby
 # Podfile
 # platform :ios, '8.0'
 # platform :watchos, '2.0'
+# use_frameworks!
 pod 'Nuke'
 ```
 
 By default it will install these subspecs (if they are available for your platform):
-- `Nuke/Core` - Nuke core classes
+- `Nuke/Core` - core classes
 - `Nuke/UI` - UI components
 
-There is one more optional subspec:
+There are two more optional subspec:
 - `Nuke/Alamofire` - [Alamofire](https://github.com/Alamofire/Alamofire) integration
-- `Nuke/GIF` - GIF support via [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) integration
+- `Nuke/GIF` - [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) integration
+
+### Carthage
+
+[Carthage](https://github.com/Carthage/Carthage) is a decentralized dependency manager for Cocoa projects. Nuke has a limitied Carthage support that doesn't feature [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) and [Alamofire](https://github.com/Alamofire/Alamofire) integration. To install Nuke add a dependency to your Cartfile:
+```
+github 'Nuke'
+```
 
 ## <a name="h_requirements"></a>Requirements
 - iOS 8.0+ / watchOS 2.0+

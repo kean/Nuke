@@ -16,19 +16,19 @@ Pod::Spec.new do |s|
     s.default_subspecs = "Core", "UI"
 
     s.subspec "Core" do |ss|
-        ss.source_files  = "Pod/Classes/Core/**/*"
+        ss.source_files  = "Nuke/Source/Core/**/*"
     end
 
     s.subspec "UI" do |ss|
         ss.ios.deployment_target = "8.0"
         ss.dependency "Nuke/Core"
-        ss.ios.source_files = "Pod/Classes/UI/**/*"
+        ss.ios.source_files = "Nuke/Source/UI/**/*"
     end
 
     s.subspec "Alamofire" do |ss|
         ss.dependency "Nuke/Core"
         ss.dependency "Alamofire", "~> 2.0"
-        ss.source_files = "Pod/Classes/Alamofire/**/*"
+        ss.source_files = "Nuke/Source/Alamofire/**/*"
     end
 
     s.subspec "GIF" do |ss|
@@ -36,6 +36,6 @@ Pod::Spec.new do |s|
         ss.dependency "Nuke/Core"
         ss.dependency "Nuke/UI"
         ss.dependency "FLAnimatedImage", "~> 1.0"
-        ss.source_files = "Pod/Classes/GIF/**/*"
+        ss.source_files = "Nuke/Source/GIF/**/*"
     end
 end
