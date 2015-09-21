@@ -1,7 +1,9 @@
 <p align="center"><img src="https://cloud.githubusercontent.com/assets/1567433/6684993/5971ef08-cc3a-11e4-984c-6769e4931497.png" height="100"/>
 
-[![Cocoapods Compatible](https://img.shields.io/cocoapods/v/Nuke.svg)](https://img.shields.io/cocoapods/v/Nuke.svg)
-[![Carthage Compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
+<p align="center">
+<a href="https://cocoapods.org"><img src="https://img.shields.io/cocoapods/v/Nuke.svg"></a>
+<a href="https://github.com/Carthage/Carthage"><img src="https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat"></a>
+</p>
 
 Advanced pure Swift framework for loading, caching, processing, displaying and preheating images. It uses latest advancements in iOS SDK and doesn't reinvent existing technologies.
 
@@ -22,8 +24,8 @@ Nuke.taskWithURL(URL) {
 
 ## <a name="h_features"></a>Features
 
-- Zero config, yet immense customization and flexibility
-- Great performance even on outdated devices, asynchronous and thread safe
+- Zero config
+- Performant, asynchronous, thread safe
 - Optional [Alamofire](https://github.com/Alamofire/Alamofire) integration
 - Optional [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) integration
 
@@ -31,12 +33,11 @@ Nuke.taskWithURL(URL) {
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
 - Uses a single data task for multiple equivalent requests
 - [Intelligent preheating](https://github.com/kean/Nuke/wiki/Image-Preheating-Guide) of images close to the viewport
-- Progress tracking using `NSProgress`
 
 ##### Caching
-- Instead of reinventing a caching methodology it relies on HTTP cache as defined in [HTTP specification](https://tools.ietf.org/html/rfc7234) and caching implementation provided by [Foundation](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html)
+- Doesn't reinvent caching, relies on [HTTP cache](https://tools.ietf.org/html/rfc7234) and its implementation in [Foundation](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html)
 - Caching is completely transparent to the client
-- Two cache layers, including [top level memory cache](https://github.com/kean/Nuke/wiki/Image-Caching-Guide) for decompressed images
+- Two cache layers including [top level memory cache](https://github.com/kean/Nuke/wiki/Image-Caching-Guide) for decompressed images
 
 ##### Decoding and Processing
 - Apply image filters
@@ -53,7 +54,7 @@ Nuke.taskWithURL(URL) {
 - Download the latest [release](https://github.com/kean/Nuke/releases) version
 - Experiment with Nuke APIs in a Swift playground
 - Take a look at the demo project, it's easy to install with `pod try Nuke` command
-- [Install using CocoaPods](#install_using_cocopods), import Nuke and enjoy!
+- [Install](#installation), `import Nuke` and enjoy!
 
 ## <a name="h_usage"></a>Usage
 
@@ -96,8 +97,8 @@ Nuke.taskWithRequest(request) { response in
 let task = Nuke.taskWithURL(imageURL).resume()
 let progress = task.progress // Track progress using NSProgress
 let state = task.state // Track task state
-task.completion { // Add completions, even for completed task
-    let image $0.image
+task.completion { // Add multiple completions, even for completed task
+    let image = $0.image
 }
 task.cancel() // Cancel image task
 ```
@@ -136,8 +137,7 @@ var request = ImageRequest(URL: <#image_url#>)
 request.processor = filterComposition
 
 Nuke.taskWithRequest(request) {
-    // Filters are applied
-    // Processed images are intelligently cached
+    // Filters are applied, filtered image is stored in memory cache
     let image = $0.image
 }.resume()
 ```
@@ -174,9 +174,7 @@ let decoder: ImageDecoding = <#decoder#>
 let cache: ImageMemoryCaching = <#cache#>
 
 let configuration = ImageManagerConfiguration(dataLoader: dataLoader, decoder: decoder, cache: cache)
-let manager = ImageManager(configuration: configuration)
-
-ImageManager.setShared(manager)
+ImageManager.shared = ImageManager(configuration: configuration)
 ```
 
 ## <a name="h_design"></a>Design
@@ -193,11 +191,10 @@ ImageManager.setShared(manager)
 
 ## Installation<a name="installation"></a>
 
-### CocoaPods
+### [CocoaPods](http://cocoapods.org)
 
-[CocoaPods](http://cocoapods.org) is a dependency manager for Cocoa projects. If you are not familiar with CocoaPods the best place to start would be [CocoaPods guides](http://guides.cocoapods.org). To install Nuke add a dependency in your Podfile:
+To install Nuke add a dependency in your Podfile:
 ```ruby
-# Podfile
 # platform :ios, '8.0'
 # platform :watchos, '2.0'
 # use_frameworks!
@@ -212,9 +209,9 @@ There are two more optional subspec:
 - `Nuke/Alamofire` - [Alamofire](https://github.com/Alamofire/Alamofire) integration
 - `Nuke/GIF` - [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) integration
 
-### Carthage
+### [Carthage](https://github.com/Carthage/Carthage)
 
-[Carthage](https://github.com/Carthage/Carthage) is a decentralized dependency manager for Cocoa projects. Nuke has a limitied Carthage support that doesn't feature [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) and [Alamofire](https://github.com/Alamofire/Alamofire) integration. To install Nuke add a dependency to your Cartfile:
+ Nuke has a limited Carthage support that doesn't feature [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) and [Alamofire](https://github.com/Alamofire/Alamofire) integration. To install Nuke add a dependency to your Cartfile:
 ```
 github 'Nuke'
 ```
@@ -226,7 +223,6 @@ github 'Nuke'
 ## <a name="h_contribution"></a>Contribution
 
 - If you **need help**, use [Stack Overflow](http://stackoverflow.com/questions/tagged/iosnuke). (Tag 'iosnuke')
-- If you'd like to **ask a general question**, use [Stack Overflow](http://stackoverflow.com/questions/tagged/iosnuke).
 - If you **found a bug**, and can provide steps to reproduce it, open an issue.
 - If you **have a feature request**, open an issue.
 - If you **want to contribute**, branch of the `develop` branch and submit a pull request.
