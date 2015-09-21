@@ -50,7 +50,7 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
     }
     
     public func invalidateAndCancel() {
-        self.performBlock {
+        self.perform {
             self.imageLoader.delegate = nil
             self.cancelTasks(self.executingTasks)
             self.preheatingTasks.removeAll()
@@ -100,9 +100,7 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
             let completions = task.completions
             self.dispatchBlock {
                 assert(task.response != nil)
-                for completion in completions {
-                    completion(task.response!)
-                }
+                completions.forEach { $0(task.response!) }
             }
         }
     }
@@ -114,7 +112,7 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
     // MARK: ImagePreheating
     
     public func startPreheatingImages(requests: [ImageRequest]) {
-        self.performBlock {
+        self.perform {
             for request in requests {
                 let key = self.imageLoader.preheatingKeyForRequest(request)
                 if self.preheatingTasks[key] == nil {
@@ -131,7 +129,7 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
     }
     
     public func stopPreheatingImages(requests: [ImageRequest]) {
-        self.performBlock {
+        self.perform {
             self.cancelTasks(requests.flatMap {
                 return self.preheatingTasks[self.imageLoader.preheatingKeyForRequest($0)]
             })
@@ -139,16 +137,14 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
     }
     
     public func stopPreheatingImages() {
-        self.performBlock {
-            self.cancelTasks(self.preheatingTasks.values)
-        }
+        self.perform { self.cancelTasks(self.preheatingTasks.values) }
     }
     
     private func setNeedsExecutePreheatingTasks() {
         if !self.needsToExecutePreheatingTasks && !self.invalidated {
             self.needsToExecutePreheatingTasks = true
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64((0.15 * Double(NSEC_PER_SEC)))), dispatch_get_main_queue()) {
-                [weak self] in self?.performBlock {
+                [weak self] in self?.perform {
                     self?.executePreheatingTasksIfNeeded()
                 }
             }
@@ -179,35 +175,29 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
     }
     
     internal func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
-        let imageTaskInterval = imageTask as! ImageTaskInternal
-        if image != nil {
-            imageTaskInterval.response = ImageResponse.Success(image!, ImageResponseInfo(fastResponse: false))
+        let imageTask = imageTask as! ImageTaskInternal
+        if let image = image {
+            imageTask.response = ImageResponse.Success(image, ImageResponseInfo(fastResponse: false))
         } else {
-            imageTaskInterval.response = ImageResponse.Failure(error ?? NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorUnknown, userInfo: nil))
+            imageTask.response = ImageResponse.Failure(error ?? NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorUnknown, userInfo: nil))
         }
-        self.performBlock {
-            self.setState(.Completed, forTask: imageTaskInterval)
-        }
+        self.perform { self.setState(.Completed, forTask: imageTask) }
     }
     
     // MARK: ImageTaskManaging
     
     private func resumeManagedTask(task: ImageTaskInternal) {
-        self.performBlock {
-            self.setState(.Running, forTask: task)
-        }
+        self.perform { self.setState(.Running, forTask: task) }
     }
     
     private func cancelManagedTask(task: ImageTaskInternal) {
-        self.performBlock {
-            self.setState(.Cancelled, forTask: task)
-        }
+        self.perform { self.setState(.Cancelled, forTask: task) }
     }
     
     private func addCompletion(completion: ImageTaskCompletion, forTask task: ImageTaskInternal) {
-        self.performBlock {
+        self.perform {
             if task.state == .Completed || task.state == .Cancelled {
-                dispatchBlock {
+                self.dispatchBlock {
                     assert(task.response != nil)
                     completion(task.response!)
                 }
@@ -219,7 +209,7 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
     
     // MARK: Misc
     
-    private func performBlock(@noescape block: Void -> Void) {
+    private func perform(@noescape block: Void -> Void) {
         self.lock.lock()
         if !self.invalidated {
             block()
@@ -241,9 +231,9 @@ public extension ImageManager {
     
     public class var shared: ImageManager {
         set {
-        OSSpinLockLock(&lock)
-        sharedManagerIvar = newValue
-        OSSpinLockUnlock(&lock)
+            OSSpinLockLock(&lock)
+            sharedManagerIvar = newValue
+            OSSpinLockUnlock(&lock)
         }
         get {
             var manager: ImageManager

@@ -46,9 +46,9 @@ internal class ImageManagerLoader {
             sessionTask = ImageLoaderSessionTask(key: key)
             let dataTask = self.conf.dataLoader.imageDataTaskWithURL(task.request.URL, progressHandler: { [weak self] completedUnits, totalUnits in
                 self?.sessionTask(sessionTask, didUpdateProgressWithCompletedUnitCount: completedUnits, totalUnitCount: totalUnits)
-                }, completionHandler: { [weak self] data, _, error in
-                    self?.sessionTask(sessionTask, didCompleteWithData: data, error: error)
-                })
+            }, completionHandler: { [weak self] data, _, error in
+                self?.sessionTask(sessionTask, didCompleteWithData: data, error: error)
+            })
             dataTask.resume()
             sessionTask.dataTask = dataTask
             self.sessionTasks[key] = sessionTask
@@ -70,10 +70,9 @@ internal class ImageManagerLoader {
     }
     
     private func sessionTask(sessionTask: ImageLoaderSessionTask, didCompleteWithData data: NSData?, error: ErrorType?) {
-        if let unwrappedData = data {
-            self.decodingQueue.addOperationWithBlock {
-                [weak self] in
-                let image = self?.conf.decoder.imageWithData(unwrappedData)
+        if let data = data {
+            self.decodingQueue.addOperationWithBlock { [weak self] in
+                let image = self?.conf.decoder.imageWithData(data)
                 self?.sessionTask(sessionTask, didCompleteWithImage: image, error: error)
             }
         } else {
@@ -93,9 +92,9 @@ internal class ImageManagerLoader {
     }
     
     private func processImage(image: UIImage?, error: ErrorType?, forLoaderTask task: ImageLoaderTask) {
-        if let unwrappedImage = image, processor = self.processorForRequest(task.request) {
+        if let image = image, processor = self.processorForRequest(task.request) {
             let operation = NSBlockOperation { [weak self] in
-                let processedImage = processor.processImage(unwrappedImage)
+                let processedImage = processor.processImage(image)
                 self?.storeImage(processedImage, forRequest: task.request)
                 self?.loaderTask(task, didCompleteWithImage: processedImage, error: error)
             }
@@ -174,8 +173,8 @@ internal class ImageManagerLoader {
     }
     
     private func storeImage(image: UIImage?, forRequest request: ImageRequest) {
-        if image != nil {
-            let cachedResponse = ImageCachedResponse(image: image!, userInfo: nil)
+        if let image = image {
+            let cachedResponse = ImageCachedResponse(image: image, userInfo: nil)
             self.conf.cache?.storeResponse(cachedResponse, forKey: ImageRequestKey(request, type: .Cache, owner: self))
         }
     }
@@ -251,26 +250,26 @@ private class ImageLoaderSessionTask {
 
 // MARK: - ImageRequestKey
 
-internal protocol ImageRequestKeyOwner: class {
+private protocol ImageRequestKeyOwner: class {
     func isImageRequestKey(key: ImageRequestKey, equalToKey: ImageRequestKey) -> Bool
 }
 
-internal enum ImageRequestKeyType {
+private enum ImageRequestKeyType {
     case Load
     case Cache
 }
 
-/** Makes it possible to use ImageRequest as a key in dictionaries (and dictionary-like structures). This should be a nested class inside ImageManager but it's impossible because of the Equatable protocol.
+/** Makes it possible to use ImageRequest as a key in dictionaries, sets, etc
 */
 internal class ImageRequestKey: NSObject {
-    let request: ImageRequest
-    let type: ImageRequestKeyType
-    weak var owner: ImageRequestKeyOwner?
+    private let request: ImageRequest
+    private let type: ImageRequestKeyType
+    private weak var owner: ImageRequestKeyOwner?
     override var hashValue: Int {
         return self.request.URL.hashValue
     }
     
-    init(_ request: ImageRequest, type: ImageRequestKeyType, owner: ImageRequestKeyOwner) {
+    private init(_ request: ImageRequest, type: ImageRequestKeyType, owner: ImageRequestKeyOwner) {
         self.request = request
         self.type = type
         self.owner = owner
@@ -292,7 +291,7 @@ internal class ImageRequestKey: NSObject {
     }
 }
 
-private func ==(lhs: ImageRequestKey, rhs: ImageRequestKey) -> Bool {
+internal func ==(lhs: ImageRequestKey, rhs: ImageRequestKey) -> Bool {
     if let owner = lhs.owner where lhs.owner === rhs.owner && lhs.type == rhs.type {
         return owner.isImageRequestKey(lhs, equalToKey: rhs)
     }
