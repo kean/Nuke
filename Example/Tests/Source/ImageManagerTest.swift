@@ -108,7 +108,8 @@ class ImageManagerTest: XCTestCase {
     }
     
     // MARK: Progress
-    
+
+    /*
     func testThatProgressObjectCancelsTask() {
         self.mockSessionManager.enabled = false
 
@@ -123,6 +124,7 @@ class ImageManagerTest: XCTestCase {
         
         self.waitForExpectationsWithTimeout(1.0, handler: nil)
     }
+*/
     
     // MARK: Preheating
     
