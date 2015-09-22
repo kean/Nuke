@@ -4,12 +4,34 @@
 
 import UIKit
 
+// MARK: - ImageProcessing
+
 public protocol ImageProcessing {
-    func isEquivalentToProcessor(processor: ImageProcessing) -> Bool
     func processImage(image: UIImage) -> UIImage?
+    
+    /** Compares two processors. ImageProcessing protocol provides default implementation of this method, including implementation for classes that also conform to Equatable protocol.
+    */
+    func isEquivalentToProcessor(other: ImageProcessing) -> Bool
 }
 
-public class ImageDecompressor: ImageProcessing {
+public extension ImageProcessing {
+    public func isEquivalentToProcessor(other: ImageProcessing) -> Bool {
+        return other is Self
+    }
+}
+
+public extension ImageProcessing where Self: Equatable {
+    public func isEquivalentToProcessor(other: ImageProcessing) -> Bool {
+        guard let other = other as? Self else {
+            return false
+        }
+        return other == self
+    }
+}
+
+// MARK: - ImageDecompressor
+
+public class ImageDecompressor: ImageProcessing, Equatable {
     public let targetSize: CGSize
     public let contentMode: ImageContentMode
     
@@ -18,39 +40,23 @@ public class ImageDecompressor: ImageProcessing {
         self.contentMode = contentMode
     }
     
-    public func isEquivalentToProcessor(processor: ImageProcessing) -> Bool {
-        guard let other = processor as? ImageDecompressor else {
-            return false
-        }
-        return self.targetSize == other.targetSize && self.contentMode == other.contentMode
-    }
-    
     public func processImage(image: UIImage) -> UIImage? {
         return decompressImage(image, targetSize: self.targetSize, contentMode: self.contentMode)
     }
 }
 
-public class ImageProcessorComposition: ImageProcessing {
+public func ==(lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
+    return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
+}
+
+// MARK: - ImageProcessorComposition
+
+public class ImageProcessorComposition: ImageProcessing, Equatable {
     public let processors: [ImageProcessing]
     
     public init(processors: [ImageProcessing]) {
         assert(processors.count > 0)
         self.processors = processors
-    }
-    
-    public func isEquivalentToProcessor(processor: ImageProcessing) -> Bool {
-        guard let other = processor as? ImageProcessorComposition else {
-            return false
-        }
-        guard self.processors.count == other.processors.count else {
-            return false
-        }
-        for (lhs, rhs) in zip(self.processors, other.processors) {
-            if !lhs.isEquivalentToProcessor(rhs) {
-                return false
-            }
-        }
-        return true
     }
     
     public func processImage(input: UIImage) -> UIImage? {
@@ -59,6 +65,20 @@ public class ImageProcessorComposition: ImageProcessing {
         }
     }
 }
+
+public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
+    guard lhs.processors.count == rhs.processors.count else {
+        return false
+    }
+    for (lhs, rhs) in zip(lhs.processors, rhs.processors) {
+        if !lhs.isEquivalentToProcessor(rhs) {
+            return false
+        }
+    }
+    return true
+}
+
+// MARK: - Misc
 
 private func decompressImage(image: UIImage, targetSize: CGSize, contentMode: ImageContentMode) -> UIImage {
     let bitmapSize = CGSize(width: CGImageGetWidth(image.CGImage), height: CGImageGetHeight(image.CGImage))

@@ -25,9 +25,6 @@ Nuke.taskWithRequest(request) { response in
 //: Create and apply image filter
 
 class DrawInCircleImageFilter: ImageProcessing {
-    func isEquivalentToProcessor(processor: ImageProcessing) -> Bool {
-        return (processor as? DrawInCircleImageFilter != nil) ? true : false
-    }
     func processImage(image: UIImage) -> UIImage? {
         return drawImageInCircle(cropImageToSquare(image))
     }
