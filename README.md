@@ -82,7 +82,7 @@ Nuke.taskWithRequest(request) {
 
 ```swift
 Nuke.taskWithRequest(request) { response in
-    switch response { // Response is an enum with associated values
+    switch response {
     case let .Success(image, info): 
         // Use image and inspect info
     case let .Failure(error): 
@@ -95,12 +95,12 @@ Nuke.taskWithRequest(request) { response in
 
 ```swift
 let task = Nuke.taskWithURL(imageURL).resume()
-let progress = task.progress // Track progress using NSProgress
+let progress = task.progress // Use NSProgress
 let state = task.state // Track task state
 task.completion { // Add multiple completions, even for completed task
     let image = $0.image
 }
-task.cancel() // Cancel image task
+task.cancel()
 ```
 
 #### UICollectionView

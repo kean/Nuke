@@ -8,9 +8,6 @@ import UIKit
 
 public protocol ImageProcessing {
     func processImage(image: UIImage) -> UIImage?
-    
-    /** Compares two processors. ImageProcessing protocol provides default implementation of this method, including implementation for classes that also conform to Equatable protocol.
-    */
     func isEquivalentToProcessor(other: ImageProcessing) -> Bool
 }
 
@@ -22,10 +19,7 @@ public extension ImageProcessing {
 
 public extension ImageProcessing where Self: Equatable {
     public func isEquivalentToProcessor(other: ImageProcessing) -> Bool {
-        guard let other = other as? Self else {
-            return false
-        }
-        return other == self
+        return (other as? Self) == self
     }
 }
 
@@ -55,7 +49,6 @@ public class ImageProcessorComposition: ImageProcessing, Equatable {
     public let processors: [ImageProcessing]
     
     public init(processors: [ImageProcessing]) {
-        assert(processors.count > 0)
         self.processors = processors
     }
     
