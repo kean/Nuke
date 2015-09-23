@@ -80,7 +80,7 @@ class PreheatingDemoViewController: UICollectionViewController, ImageCollectionV
         func imageTargetSize() -> CGSize {
             let size = (self.collectionViewLayout as! UICollectionViewFlowLayout).itemSize
             let scale = UIScreen.mainScreen().scale
-            return CGSize(width: size.width * scale, height: size.height * scale);
+            return CGSize(width: size.width * scale, height: size.height * scale)
         }
         
         return ImageRequest(URL: URL, targetSize: imageTargetSize(), contentMode: .AspectFill)

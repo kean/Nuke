@@ -5,10 +5,7 @@
 import UIKit
 
 public enum ImageTaskState {
-    case Suspended
-    case Running
-    case Cancelled
-    case Completed
+    case Suspended, Running, Cancelled, Completed
 }
 
 public typealias ImageTaskCompletion = (ImageResponse) -> Void

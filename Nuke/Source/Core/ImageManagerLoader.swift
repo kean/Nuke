@@ -220,9 +220,7 @@ extension ImageManagerLoader: ImageRequestKeyOwner {
 private class ImageLoaderTask {
     let imageTask: ImageTask
     var request: ImageRequest {
-        get {
-            return self.imageTask.request
-        }
+        return self.imageTask.request
     }
     var sessionTask: ImageLoaderSessionTask?
     var processingOperation: NSOperation?

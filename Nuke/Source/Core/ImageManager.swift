@@ -26,7 +26,7 @@ public struct ImageManagerConfiguration {
 
 // MARK: - ImageManager
 
-public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDelegate, ImageTaskManaging {
+public class ImageManager: ImageManaging, ImagePreheating {
     public let configuration: ImageManagerConfiguration
     
     private let imageLoader: ImageManagerLoader
@@ -104,11 +104,7 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
             }
         }
     }
-    
-    private func dispatchBlock(block: (Void) -> Void) {
-        NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
-    }
-    
+
     // MARK: ImagePreheating
     
     public func startPreheatingImages(requests: [ImageRequest]) {
@@ -164,16 +160,34 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
             }
         }
     }
+
+    // MARK: Misc
     
-    // MARK: ImageManagerLoaderDelegate
-    
+    private func perform(@noescape block: Void -> Void) {
+        self.lock.lock()
+        if !self.invalidated { block() }
+        self.lock.unlock()
+    }
+
+    private func dispatchBlock(block: (Void) -> Void) {
+        NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
+    }
+
+    private func cancelTasks<T: SequenceType where T.Generator.Element == ImageTaskInternal>(tasks: T) {
+        tasks.forEach { self.setState(.Cancelled, forTask: $0) }
+    }
+}
+
+// MARK: ImageManager: ImageManagerLoaderDelegate
+
+extension ImageManager: ImageManagerLoaderDelegate {
     internal func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
         dispatch_async(dispatch_get_main_queue()) {
             imageTask.progress.totalUnitCount = totalUnitCount
             imageTask.progress.completedUnitCount = completedUnitCount
         }
     }
-    
+
     internal func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
         let imageTask = imageTask as! ImageTaskInternal
         if let image = image {
@@ -183,17 +197,19 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
         }
         self.perform { self.setState(.Completed, forTask: imageTask) }
     }
-    
-    // MARK: ImageTaskManaging
-    
+}
+
+// MARK: ImageManager: ImageTaskManaging
+
+extension ImageManager: ImageTaskManaging {
     private func resumeManagedTask(task: ImageTaskInternal) {
         self.perform { self.setState(.Running, forTask: task) }
     }
-    
+
     private func cancelManagedTask(task: ImageTaskInternal) {
         self.perform { self.setState(.Cancelled, forTask: task) }
     }
-    
+
     private func addCompletion(completion: ImageTaskCompletion, forTask task: ImageTaskInternal) {
         self.perform {
             if task.state == .Completed || task.state == .Cancelled {
@@ -205,20 +221,6 @@ public class ImageManager: ImageManaging, ImagePreheating, ImageManagerLoaderDel
                 task.completions.append(completion)
             }
         }
-    }
-    
-    // MARK: Misc
-    
-    private func perform(@noescape block: Void -> Void) {
-        self.lock.lock()
-        if !self.invalidated {
-            block()
-        }
-        self.lock.unlock()
-    }
-    
-    private func cancelTasks<T: SequenceType where T.Generator.Element == ImageTaskInternal>(tasks: T) {
-        tasks.forEach { self.setState(.Cancelled, forTask: $0) }
     }
 }
 
