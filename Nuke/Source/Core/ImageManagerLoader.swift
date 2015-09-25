@@ -148,22 +148,20 @@ internal class ImageManagerLoader {
     // MARK: Queue
     
     private func executePendingTasks() {
-        while self.shouldExecuteNextPendingTask() {
-            guard let task = self.dequeueNextPendingTask() else  {
+        func shouldExecuteNextPendingTask() -> Bool {
+            return self.executingTasks.count < self.conf.maxConcurrentTaskCount
+        }
+        func dequeueNextPendingTask() -> ImageTask? {
+            return self.pendingTasks.isEmpty ? nil : self.pendingTasks.removeFirst()
+        }
+        while shouldExecuteNextPendingTask() {
+            guard let task = dequeueNextPendingTask() else  {
                 return
             }
             let loaderTask = ImageLoaderTask(imageTask: task)
             self.executingTasks[task] = loaderTask
             self.startSessionTaskForTask(loaderTask)
         }
-    }
-    
-    private func shouldExecuteNextPendingTask() -> Bool {
-        return self.executingTasks.count < self.conf.maxConcurrentTaskCount
-    }
-    
-    private func dequeueNextPendingTask() -> ImageTask? {
-        return self.pendingTasks.isEmpty ? nil : self.pendingTasks.removeFirst()
     }
     
     // MARK: Misc
@@ -263,9 +261,6 @@ internal class ImageRequestKey: NSObject {
     private let request: ImageRequest
     private let type: ImageRequestKeyType
     private weak var owner: ImageRequestKeyOwner?
-    override var hashValue: Int {
-        return self.request.URL.hashValue
-    }
     
     private init(_ request: ImageRequest, type: ImageRequestKeyType, owner: ImageRequestKeyOwner) {
         self.request = request
@@ -273,25 +268,17 @@ internal class ImageRequestKey: NSObject {
         self.owner = owner
     }
     
-    // Make it possible to use ImageRequesKey as key in NSCache
     override var hash: Int {
-        return self.hashValue
+        return self.request.URL.hashValue
     }
     
-    override func isEqual(object: AnyObject?) -> Bool {
-        if object === self {
-            return true
+    override func isEqual(other: AnyObject?) -> Bool {
+        guard let other = other as? ImageRequestKey else {
+            return false
         }
-        if let object = object as? ImageRequestKey {
-            return self == object
+        guard let owner = self.owner where self.owner === other.owner && self.type == other.type else {
+            return false
         }
-        return false
+        return owner.isImageRequestKey(self, equalToKey: other)
     }
-}
-
-internal func ==(lhs: ImageRequestKey, rhs: ImageRequestKey) -> Bool {
-    if let owner = lhs.owner where lhs.owner === rhs.owner && lhs.type == rhs.type {
-        return owner.isImageRequestKey(lhs, equalToKey: rhs)
-    }
-    return false
 }
