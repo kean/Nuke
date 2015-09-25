@@ -195,17 +195,14 @@ extension ImageManagerLoader: ImageRequestKeyOwner {
     internal func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
         switch lhs.type {
         case .Cache:
-            if !(self.conf.dataLoader.isRequestCacheEquivalent(lhs.request, toRequest: rhs.request)) {
+            guard self.conf.dataLoader.isRequestCacheEquivalent(lhs.request, toRequest: rhs.request) else {
                 return false
             }
-            let lhsProcessor: ImageProcessing! = self.processorForRequest(lhs.request)
-            let rhsProcessor: ImageProcessing! = self.processorForRequest(rhs.request)
-            if lhsProcessor != nil && rhsProcessor != nil {
-                return lhsProcessor.isEquivalentToProcessor(rhsProcessor)
-            } else if lhsProcessor != nil || rhsProcessor != nil {
-                return false
+            switch (self.processorForRequest(lhs.request), self.processorForRequest(rhs.request)) {
+            case (.Some(let lhs), .Some(let rhs)): return lhs.isEquivalentToProcessor(rhs)
+            case (.None, .None): return true
+            default: return false
             }
-            return true
         case .Load:
             return self.conf.dataLoader.isRequestLoadEquivalent(lhs.request, toRequest: rhs.request)
         }
@@ -251,8 +248,7 @@ private protocol ImageRequestKeyOwner: class {
 }
 
 private enum ImageRequestKeyType {
-    case Load
-    case Cache
+    case Load, Cache
 }
 
 /** Makes it possible to use ImageRequest as a key in dictionaries, sets, etc
