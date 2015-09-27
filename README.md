@@ -215,7 +215,7 @@ There are two more optional subspec:
 
  Nuke has a limited Carthage support that doesn't feature [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) and [Alamofire](https://github.com/Alamofire/Alamofire) integration. To install Nuke add a dependency to your Cartfile:
 ```
-github 'Nuke'
+github "kean/Nuke"
 ```
 
 ## <a name="h_requirements"></a>Requirements
