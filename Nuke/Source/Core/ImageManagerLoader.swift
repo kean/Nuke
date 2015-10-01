@@ -14,8 +14,8 @@ internal class ImageManagerLoader {
     
     private let conf: ImageManagerConfiguration
     private var pendingTasks = [ImageTask]()
-    private var executingTasks = [ImageTask : ImageLoaderTask]()
-    private var sessionTasks = [ImageRequestKey : ImageLoaderSessionTask]()
+    private var executingTasks = [ImageTask : ImageLoadState]()
+    private var sessionTasks = [ImageRequestKey : ImageSessionTask]()
     private let queue = dispatch_queue_create("ImageManagerLoader-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
     private let decodingQueue: NSOperationQueue = {
         let queue = NSOperationQueue()
@@ -39,11 +39,26 @@ internal class ImageManagerLoader {
         }
     }
     
-    private func startSessionTaskForTask(task: ImageLoaderTask) {
+    private func executePendingTasks() {
+        func shouldExecuteNextPendingTask() -> Bool {
+            return self.executingTasks.count < self.conf.maxConcurrentTaskCount
+        }
+        func dequeueNextPendingTask() -> ImageTask? {
+            return self.pendingTasks.isEmpty ? nil : self.pendingTasks.removeFirst()
+        }
+        while shouldExecuteNextPendingTask() {
+            guard let task = dequeueNextPendingTask() else  {
+                return
+            }
+            self.startSessionTaskForTask(task)
+        }
+    }
+    
+    private func startSessionTaskForTask(task: ImageTask) {
         let key = ImageRequestKey(task.request, type: .Load, owner: self)
-        var sessionTask: ImageLoaderSessionTask! = self.sessionTasks[key]
+        var sessionTask: ImageSessionTask! = self.sessionTasks[key]
         if sessionTask == nil {
-            sessionTask = ImageLoaderSessionTask(key: key)
+            sessionTask = ImageSessionTask(key: key)
             let dataTask = self.conf.dataLoader.imageDataTaskWithURL(task.request.URL, progressHandler: { [weak self] completedUnits, totalUnits in
                 self?.sessionTask(sessionTask, didUpdateProgressWithCompletedUnitCount: completedUnits, totalUnitCount: totalUnits)
             }, completionHandler: { [weak self] data, _, error in
@@ -53,23 +68,23 @@ internal class ImageManagerLoader {
             sessionTask.dataTask = dataTask
             self.sessionTasks[key] = sessionTask
         } else {
-            self.delegate?.imageLoader(self, imageTask: task.imageTask, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.completedUnitCount)
+            self.delegate?.imageLoader(self, imageTask: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.completedUnitCount)
         }
-        task.sessionTask = sessionTask
+        self.executingTasks[task] = ImageLoadState.Loading(sessionTask)
         sessionTask.tasks.append(task)
     }
     
-    private func sessionTask(sessionTask: ImageLoaderSessionTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
+    private func sessionTask(sessionTask: ImageSessionTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
         dispatch_async(self.queue) {
             sessionTask.totalUnitCount = totalUnitCount
             sessionTask.completedUnitCount = completedUnitCount
-            for loaderTask in sessionTask.tasks {
-                self.delegate?.imageLoader(self, imageTask: loaderTask.imageTask, didUpdateProgressWithCompletedUnitCount: completedUnitCount, totalUnitCount: totalUnitCount)
+            for imageTask in sessionTask.tasks {
+                self.delegate?.imageLoader(self, imageTask: imageTask, didUpdateProgressWithCompletedUnitCount: completedUnitCount, totalUnitCount: totalUnitCount)
             }
         }
     }
     
-    private func sessionTask(sessionTask: ImageLoaderSessionTask, didCompleteWithData data: NSData?, error: ErrorType?) {
+    private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithData data: NSData?, error: ErrorType?) {
         if let data = data {
             self.decodingQueue.addOperationWithBlock { [weak self] in
                 let image = self?.conf.decoder.imageWithData(data)
@@ -80,10 +95,10 @@ internal class ImageManagerLoader {
         }
     }
     
-    private func sessionTask(sessionTask: ImageLoaderSessionTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
+    private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
         dispatch_async(self.queue) {
-            for loaderTask in sessionTask.tasks {
-                self.processImage(image, error: error, forLoaderTask: loaderTask)
+            for imageTask in sessionTask.tasks {
+                self.processImage(image, error: error, forImageTask: imageTask)
             }
             sessionTask.tasks.removeAll()
             sessionTask.dataTask = nil
@@ -91,18 +106,18 @@ internal class ImageManagerLoader {
         }
     }
     
-    private func processImage(image: UIImage?, error: ErrorType?, forLoaderTask task: ImageLoaderTask) {
-        if let image = image, processor = self.processorForRequest(task.request) {
+    private func processImage(image: UIImage?, error: ErrorType?, forImageTask imageTask: ImageTask) {
+        if let image = image, processor = self.processorForRequest(imageTask.request) {
             let operation = NSBlockOperation { [weak self] in
                 let processedImage = processor.processImage(image)
-                self?.storeImage(processedImage, forRequest: task.request)
-                self?.loaderTask(task, didCompleteWithImage: processedImage, error: error)
+                self?.storeImage(processedImage, forRequest: imageTask.request)
+                self?.imageTask(imageTask, didCompleteWithImage: processedImage, error: error)
             }
             self.processingQueue.addOperation(operation)
-            task.processingOperation = operation
+            self.executingTasks[imageTask] = ImageLoadState.Processing(operation)
         } else {
-            self.storeImage(image, forRequest: task.request)
-            self.loaderTask(task, didCompleteWithImage: image, error: error)
+            self.storeImage(image, forRequest: imageTask.request)
+            self.imageTask(imageTask, didCompleteWithImage: image, error: error)
         }
     }
     
@@ -117,50 +132,35 @@ internal class ImageManagerLoader {
         return processors.isEmpty ? nil : ImageProcessorComposition(processors: processors)
     }
     
-    private func loaderTask(task: ImageLoaderTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
+    private func imageTask(imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
         dispatch_async(self.queue) {
-            self.delegate?.imageLoader(self, imageTask: task.imageTask, didCompleteWithImage: image, error: error)
-            self.executingTasks[task.imageTask] = nil
+            self.delegate?.imageLoader(self, imageTask: imageTask, didCompleteWithImage: image, error: error)
+            self.executingTasks[imageTask] = nil
             self.executePendingTasks()
         }
     }
     
     internal func stopLoadingForTask(imageTask: ImageTask) {
         dispatch_async(self.queue) {
-            if let loaderTask = self.executingTasks[imageTask], sessionTask = loaderTask.sessionTask {
-                if let index = (sessionTask.tasks.indexOf { $0 === loaderTask }) {
-                    sessionTask.tasks.removeAtIndex(index)
+            if let state = self.executingTasks[imageTask] {
+                switch state {
+                case .Loading(let sessionTask):
+                    if let index = (sessionTask.tasks.indexOf { $0 === imageTask }) {
+                        sessionTask.tasks.removeAtIndex(index)
+                    }
+                    if sessionTask.tasks.isEmpty {
+                        sessionTask.dataTask?.cancel()
+                        sessionTask.dataTask = nil
+                        self.removeSessionTask(sessionTask)
+                    }
+                case .Processing(let operation):
+                    operation.cancel()
                 }
-                if sessionTask.tasks.isEmpty {
-                    sessionTask.dataTask?.cancel()
-                    sessionTask.dataTask = nil
-                    self.removeSessionTask(sessionTask)
-                }
-                loaderTask.processingOperation?.cancel()
                 self.executingTasks[imageTask] = nil
                 self.executePendingTasks()
             } else if let index = (self.pendingTasks.indexOf { $0 === imageTask }) {
                 self.pendingTasks.removeAtIndex(index)
             }
-        }
-    }
-    
-    // MARK: Queue
-    
-    private func executePendingTasks() {
-        func shouldExecuteNextPendingTask() -> Bool {
-            return self.executingTasks.count < self.conf.maxConcurrentTaskCount
-        }
-        func dequeueNextPendingTask() -> ImageTask? {
-            return self.pendingTasks.isEmpty ? nil : self.pendingTasks.removeFirst()
-        }
-        while shouldExecuteNextPendingTask() {
-            guard let task = dequeueNextPendingTask() else  {
-                return
-            }
-            let loaderTask = ImageLoaderTask(imageTask: task)
-            self.executingTasks[task] = loaderTask
-            self.startSessionTaskForTask(loaderTask)
         }
     }
     
@@ -181,7 +181,7 @@ internal class ImageManagerLoader {
         return ImageRequestKey(request, type: .Cache, owner: self)
     }
     
-    private func removeSessionTask(task: ImageLoaderSessionTask) {
+    private func removeSessionTask(task: ImageSessionTask) {
         if self.sessionTasks[task.key] === task {
             self.sessionTasks[task.key] = nil
         }
@@ -209,29 +209,20 @@ extension ImageManagerLoader: ImageRequestKeyOwner {
     }
 }
 
+// MARK: - ImageLoadState
 
-// MARK: - ImageLoaderTask
-
-private class ImageLoaderTask {
-    let imageTask: ImageTask
-    var request: ImageRequest {
-        return self.imageTask.request
-    }
-    var sessionTask: ImageLoaderSessionTask?
-    var processingOperation: NSOperation?
-    
-    private init(imageTask: ImageTask) {
-        self.imageTask = imageTask
-    }
+private enum ImageLoadState {
+    case Loading(ImageSessionTask)
+    case Processing(NSOperation)
 }
 
 
-// MARK: - ImageLoaderSessionTask
+// MARK: - ImageSessionTask
 
-private class ImageLoaderSessionTask {
+private class ImageSessionTask {
     let key: ImageRequestKey
     var dataTask: NSURLSessionTask?
-    var tasks = [ImageLoaderTask]()
+    var tasks = [ImageTask]()
     var totalUnitCount: Int64 = 0
     var completedUnitCount: Int64 = 0
     
