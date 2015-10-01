@@ -34,8 +34,11 @@ public class ImageManager: ImageManaging, ImagePreheating {
     private var preheatingTasks = [ImageRequestKey: ImageTaskInternal]()
     private let lock = NSRecursiveLock()
     private var invalidated = false
-    private var preheatingTaskCounter = 0
     private var needsToExecutePreheatingTasks = false
+    private var taskIdentifier: Int32 = 0
+    private var nextTaskIdentifier: Int {
+        return Int(OSAtomicIncrement32(&taskIdentifier))
+    }
     
     public init(configuration: ImageManagerConfiguration) {
         self.configuration = configuration
@@ -46,7 +49,7 @@ public class ImageManager: ImageManaging, ImagePreheating {
     // MARK: ImageManaging
     
     public func taskWithRequest(request: ImageRequest) -> ImageTask {
-        return ImageTaskInternal(manager: self, request: request)
+        return ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier)
     }
     
     public func invalidateAndCancel() {
@@ -112,8 +115,7 @@ public class ImageManager: ImageManaging, ImagePreheating {
             for request in requests {
                 let key = self.imageLoader.preheatingKeyForRequest(request)
                 if self.preheatingTasks[key] == nil {
-                    let task = ImageTaskInternal(manager: self, request: request)
-                    task.tag = self.preheatingTaskCounter++
+                    let task = ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier)
                     task.completion { [weak self] _ in
                         self?.preheatingTasks[key] = nil
                     }
@@ -150,7 +152,7 @@ public class ImageManager: ImageManaging, ImagePreheating {
     private func executePreheatingTasksIfNeeded() {
         self.needsToExecutePreheatingTasks = false
         var executingTaskCount = self.executingTasks.count
-        for task in (self.preheatingTasks.values.sort { $0.tag < $1.tag }) {
+        for task in (self.preheatingTasks.values.sort { $0.identifier < $1.identifier }) {
             if executingTaskCount > self.configuration.maxConcurrentPreheatingTaskCount {
                 break
             }
@@ -177,6 +179,7 @@ public class ImageManager: ImageManaging, ImagePreheating {
         tasks.forEach { self.setState(.Cancelled, forTask: $0) }
     }
 }
+
 
 // MARK: ImageManager: ImageManagerLoaderDelegate
 
@@ -257,12 +260,11 @@ private protocol ImageTaskManaging {
 
 private class ImageTaskInternal: ImageTask {
     let manager: ImageTaskManaging
-    var tag = 0
     var completions = [ImageTaskCompletion]()
     
-    init(manager: ImageTaskManaging, request: ImageRequest) {
+    init(manager: ImageTaskManaging, request: ImageRequest, identifier: Int) {
         self.manager = manager
-        super.init(request: request)
+        super.init(request: request, identifier: identifier)
     }
     
     override func resume() -> Self {

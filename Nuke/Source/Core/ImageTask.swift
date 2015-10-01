@@ -14,12 +14,14 @@ public typealias ImageTaskCompletion = (ImageResponse) -> Void
 */
 public class ImageTask: Hashable {
     public let request: ImageRequest
+    public let identifier: Int
     public internal(set) var state: ImageTaskState = .Suspended
     public internal(set) var response: ImageResponse?
     public lazy var progress = NSProgress(totalUnitCount: -1)
     
-    internal init(request: ImageRequest) {
+    internal init(request: ImageRequest, identifier: Int) {
         self.request = request
+        self.identifier = identifier
     }
     
     /** Adds completion block to the task. Completion block gets called even if it is added to the alredy completed task.
@@ -27,7 +29,7 @@ public class ImageTask: Hashable {
     public func completion(completion: ImageTaskCompletion) -> Self { return self }
     
     public var hashValue: Int {
-        return self.request.URL.hashValue
+        return self.identifier
     }
     
     public func resume() -> Self { return self }
