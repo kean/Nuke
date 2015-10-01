@@ -24,9 +24,7 @@ public protocol ImagePreheating {
 
 public extension ImageManaging {
     func taskWithURL(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
-        let task = self.taskWithURL(URL)
-        if completion != nil { task.completion(completion!) }
-        return task
+        return self.taskWithRequest(ImageRequest(URL: URL), completion: completion)
     }
     
     func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
