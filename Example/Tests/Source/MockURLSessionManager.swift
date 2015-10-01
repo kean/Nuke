@@ -10,11 +10,16 @@ import UIKit
 import Nuke
 
 class MockImageDataLoader: ImageDataLoader {
-    var enabled = true
+    var enabled = true {
+        didSet {
+            self.queue.suspended = !enabled
+        }
+    }
     var createdTaskCount = 0
+    private let queue = NSOperationQueue()
     
     override func imageDataTaskWithURL(url: NSURL, progressHandler: ImageDataLoadingProgressHandler?, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionDataTask {
-        if self.enabled {
+        self.queue.addOperationWithBlock {
             let bundle = NSBundle(forClass: MockImageDataLoader.self)
             let URL = bundle.URLForResource("Image", withExtension: "jpg")
             let data = NSData(contentsOfURL: URL!)

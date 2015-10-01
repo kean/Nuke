@@ -26,14 +26,14 @@ class ImageMemoryCacheTest: XCTestCase {
     }
     
     func testThatImageIsReturnedFromMemoryCache() {
-        let expecation = self.expectationWithDescription("Expectation")
+        let expecation = self.expectation()
         let request = ImageRequest(URL: NSURL(string: "http://test.com")!)
         let imageTask = self.manager.taskWithRequest(request) { (response) -> Void in
             XCTAssertNotNil(response.image, "")
             expecation.fulfill()
         }
         imageTask.resume()
-        self.waitForExpectationsWithTimeout(3.0, handler: nil)
+        self.wait()
         
         self.mockSessionManager.enabled = false
         
