@@ -14,7 +14,7 @@ public protocol ImageDecoding {
 public class ImageDecoder: ImageDecoding {
     public init() {}
     public func imageWithData(data: NSData) -> UIImage? {
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
             return UIImage(data: data, scale: UIScreen.mainScreen().scale)
         #else
             return UIImage(data: data, scale: WKInterfaceDevice.currentDevice().screenScale)
