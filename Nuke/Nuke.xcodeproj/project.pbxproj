@@ -20,6 +20,7 @@
 		0C096C9F1BAE9ADD007FE380 /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C096C8D1BAE9ADD007FE380 /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0C096CA01BAE9ADD007FE380 /* ImageCollectionViewPreheatingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C8F1BAE9ADD007FE380 /* ImageCollectionViewPreheatingController.swift */; settings = {ASSET_TAGS = (); }; };
 		0C096CA11BAE9ADD007FE380 /* ImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C901BAE9ADD007FE380 /* ImageView.swift */; settings = {ASSET_TAGS = (); }; };
+		0C0E01781BC0637B0040B46B /* ImageRequestKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */; settings = {ASSET_TAGS = (); }; };
 		0C433B1A1BAEF5AD003021AF /* ImageManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C433B191BAEF5AD003021AF /* ImageManaging.swift */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
@@ -41,6 +42,7 @@
 		0C096C8D1BAE9ADD007FE380 /* Nuke.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0C096C8F1BAE9ADD007FE380 /* ImageCollectionViewPreheatingController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageCollectionViewPreheatingController.swift; sourceTree = "<group>"; };
 		0C096C901BAE9ADD007FE380 /* ImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
+		0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestKey.swift; sourceTree = "<group>"; };
 		0C433B191BAEF5AD003021AF /* ImageManaging.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManaging.swift; sourceTree = "<group>"; };
 		0C9174901BAE99EE004A7905 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -95,6 +97,7 @@
 				0C096C841BAE9ADD007FE380 /* ImageMemoryCache.swift */,
 				0C096C851BAE9ADD007FE380 /* ImageProcessor.swift */,
 				0C096C861BAE9ADD007FE380 /* ImageRequest.swift */,
+				0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */,
 				0C096C871BAE9ADD007FE380 /* ImageResponse.swift */,
 				0C096C881BAE9ADD007FE380 /* ImageTask.swift */,
 				0C096C891BAE9ADD007FE380 /* Nuke.swift */,
@@ -224,6 +227,7 @@
 				0C433B1A1BAEF5AD003021AF /* ImageManaging.swift in Sources */,
 				0C096C961BAE9ADD007FE380 /* ImageManagerLoader.swift in Sources */,
 				0C096CA11BAE9ADD007FE380 /* ImageView.swift in Sources */,
+				0C0E01781BC0637B0040B46B /* ImageRequestKey.swift in Sources */,
 				0C096C971BAE9ADD007FE380 /* ImageMemoryCache.swift in Sources */,
 				0C096C931BAE9ADD007FE380 /* ImageDecoder.swift in Sources */,
 				0C096C991BAE9ADD007FE380 /* ImageRequest.swift in Sources */,
