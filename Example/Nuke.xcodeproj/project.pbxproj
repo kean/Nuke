@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0C0CCD9E1BACC1A7002D10D5 /* PreheatingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
 		0C6F7E041BBD2F660094656C /* XCTestCaseExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6F7E021BBD2F280094656C /* XCTestCaseExtensions.swift */; settings = {ASSET_TAGS = (); }; };
+		0C7397191BC161BC00D619FC /* MockImageMemoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7397181BC161BC00D619FC /* MockImageMemoryCache.swift */; settings = {ASSET_TAGS = (); }; };
 		0C8260F21BA5BBA90078C6BD /* ImageManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8260E61BA5BB980078C6BD /* ImageManagerTest.swift */; settings = {ASSET_TAGS = (); }; };
 		0C8260F31BA5BBA90078C6BD /* ImageMemoryCacheTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8260E71BA5BB980078C6BD /* ImageMemoryCacheTest.swift */; settings = {ASSET_TAGS = (); }; };
 		0C8260F41BA5BBA90078C6BD /* MockURLSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8260E81BA5BB980078C6BD /* MockURLSessionManager.swift */; settings = {ASSET_TAGS = (); }; };
@@ -41,6 +42,7 @@
 /* Begin PBXFileReference section */
 		0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreheatingDemoViewController.swift; sourceTree = "<group>"; };
 		0C6F7E021BBD2F280094656C /* XCTestCaseExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = XCTestCaseExtensions.swift; path = Source/XCTestCaseExtensions.swift; sourceTree = "<group>"; };
+		0C7397181BC161BC00D619FC /* MockImageMemoryCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockImageMemoryCache.swift; sourceTree = "<group>"; };
 		0C8260E31BA5BB980078C6BD /* Image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image.jpg; sourceTree = "<group>"; };
 		0C8260E41BA5BB980078C6BD /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0C8260E61BA5BB980078C6BD /* ImageManagerTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ImageManagerTest.swift; path = Source/ImageManagerTest.swift; sourceTree = "<group>"; };
@@ -113,6 +115,7 @@
 			children = (
 				0C8260E81BA5BB980078C6BD /* MockURLSessionManager.swift */,
 				0C8260E91BA5BB980078C6BD /* MockURLSessionDataTask.swift */,
+				0C7397181BC161BC00D619FC /* MockImageMemoryCache.swift */,
 			);
 			name = Mocks;
 			path = Source;
@@ -432,6 +435,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C7397191BC161BC00D619FC /* MockImageMemoryCache.swift in Sources */,
 				0C6F7E041BBD2F660094656C /* XCTestCaseExtensions.swift in Sources */,
 				0C8260F21BA5BBA90078C6BD /* ImageManagerTest.swift in Sources */,
 				0C8260F51BA5BBA90078C6BD /* MockURLSessionDataTask.swift in Sources */,

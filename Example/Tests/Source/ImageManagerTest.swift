@@ -9,8 +9,6 @@
 import XCTest
 import Nuke
 
-let defaultURL = NSURL(string: "http://test.com")!
-
 class ImageManagerTest: XCTestCase {
     var manager: ImageManager!
     var mockSessionManager: MockImageDataLoader!

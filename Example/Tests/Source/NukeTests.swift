@@ -10,6 +10,8 @@ import Nuke
 import UIKit
 import XCTest
 
+let defaultURL = NSURL(string: "http://test.com")!
+
 class NukeTests: XCTestCase {
     func testExample() {
         let configuration = ImageManagerConfiguration(dataLoader: ImageDataLoader(), cache: ImageMemoryCache())
