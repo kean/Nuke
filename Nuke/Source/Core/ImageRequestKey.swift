@@ -8,26 +8,26 @@
 
 import Foundation
 
-internal protocol ImageRequestKeyOwner: class {
+public protocol ImageRequestKeyOwner: class {
     func isImageRequestKey(key: ImageRequestKey, equalToKey: ImageRequestKey) -> Bool
 }
 
-/** Makes it possible to use ImageRequest as a key in dictionaries, sets, etc
+/** Makes it possible to use ImageRequest as a key in dictionaries.
 */
-internal class ImageRequestKey: NSObject {
-    internal let request: ImageRequest
-    internal weak var owner: ImageRequestKeyOwner?
+public class ImageRequestKey: NSObject {
+    public let request: ImageRequest
+    public weak private(set) var owner: ImageRequestKeyOwner?
     
-    internal init(_ request: ImageRequest, owner: ImageRequestKeyOwner) {
+    public init(_ request: ImageRequest, owner: ImageRequestKeyOwner) {
         self.request = request
         self.owner = owner
     }
     
-    internal override var hash: Int {
+    public override var hash: Int {
         return self.request.URL.hashValue
     }
     
-    internal override func isEqual(other: AnyObject?) -> Bool {
+    public override func isEqual(other: AnyObject?) -> Bool {
         guard let other = other as? ImageRequestKey else {
             return false
         }

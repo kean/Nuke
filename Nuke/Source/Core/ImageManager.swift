@@ -248,7 +248,7 @@ extension ImageManager: ImageTaskManaging {
 // MARK: ImageLoader: ImageRequestKeyOwner
 
 extension ImageManager: ImageRequestKeyOwner {
-    internal func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
+    public func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
         return self.loader.isRequestCacheEquivalent(lhs.request, toRequest: rhs.request)
     }
 }

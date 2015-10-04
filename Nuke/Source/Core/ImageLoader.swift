@@ -209,7 +209,7 @@ public class ImageLoader: ImageLoading {
 // MARK: ImageLoader: ImageRequestKeyOwner
 
 extension ImageLoader: ImageRequestKeyOwner {
-    internal func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
+    public func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
         return self.dataLoader.isRequestLoadEquivalent(lhs.request, toRequest: rhs.request)
     }
 }

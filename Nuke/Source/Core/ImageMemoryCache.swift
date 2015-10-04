@@ -5,8 +5,8 @@
 import UIKit
 
 public protocol ImageMemoryCaching {
-    func cachedResponseForKey(key: AnyObject) -> ImageCachedResponse?
-    func storeResponse(response: ImageCachedResponse, forKey key: AnyObject)
+    func cachedResponseForKey(key: ImageRequestKey) -> ImageCachedResponse?
+    func storeResponse(response: ImageCachedResponse, forKey key: ImageRequestKey)
     func removeAllCachedImages()
 }
 
@@ -42,14 +42,12 @@ public class ImageMemoryCache: ImageMemoryCaching {
         self.init(cache: cache)
     }
 
-    public func cachedResponseForKey(key: AnyObject) -> ImageCachedResponse? {
-        let object: AnyObject? = self.cache.objectForKey(key)
-        return object as? ImageCachedResponse
+    public func cachedResponseForKey(key: ImageRequestKey) -> ImageCachedResponse? {
+        return self.cache.objectForKey(key) as? ImageCachedResponse
     }
-
-    public func storeResponse(response: ImageCachedResponse, forKey key: AnyObject) {
-        let cost = self.costForImage(response.image)
-        self.cache.setObject(response, forKey: key, cost: cost)
+    
+    public func storeResponse(response: ImageCachedResponse, forKey key: ImageRequestKey) {
+        self.cache.setObject(response, forKey: key, cost: self.costForImage(response.image))
     }
 
     public func costForImage(image: UIImage) -> Int {
