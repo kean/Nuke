@@ -12,20 +12,14 @@ internal protocol ImageRequestKeyOwner: class {
     func isImageRequestKey(key: ImageRequestKey, equalToKey: ImageRequestKey) -> Bool
 }
 
-internal enum ImageRequestKeyType {
-    case Load, Cache
-}
-
 /** Makes it possible to use ImageRequest as a key in dictionaries, sets, etc
 */
 internal class ImageRequestKey: NSObject {
     internal let request: ImageRequest
-    internal let type: ImageRequestKeyType
     internal weak var owner: ImageRequestKeyOwner?
     
-    internal init(_ request: ImageRequest, type: ImageRequestKeyType, owner: ImageRequestKeyOwner) {
+    internal init(_ request: ImageRequest, owner: ImageRequestKeyOwner) {
         self.request = request
-        self.type = type
         self.owner = owner
     }
     
@@ -37,7 +31,7 @@ internal class ImageRequestKey: NSObject {
         guard let other = other as? ImageRequestKey else {
             return false
         }
-        guard let owner = self.owner where self.owner === other.owner && self.type == other.type else {
+        guard let owner = self.owner where self.owner === other.owner else {
             return false
         }
         return owner.isImageRequestKey(self, equalToKey: other)

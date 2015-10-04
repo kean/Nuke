@@ -85,7 +85,7 @@ public class ImageManager: ImageManaging, ImagePreheating {
     
     private func enterStateAction(state: ImageTaskState, task: ImageTaskInternal) {
         if state == .Running {
-            if let response = self.imageLoader.cachedResponseForRequest(task.request) {
+            if let response = self.cachedResponseForRequest(task.request) {
                 task.response = ImageResponse.Success(response.image, ImageResponseInfo(fastResponse: true, userInfo: response.userInfo))
                 self.setState(.Completed, forTask: task)
             } else {
@@ -113,7 +113,7 @@ public class ImageManager: ImageManaging, ImagePreheating {
     public func startPreheatingImages(requests: [ImageRequest]) {
         self.perform {
             for request in requests {
-                let key = self.imageLoader.preheatingKeyForRequest(request)
+                let key = ImageRequestKey(request, owner: self)
                 if self.preheatingTasks[key] == nil {
                     let task = ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier)
                     task.completion { [weak self] _ in
@@ -129,7 +129,7 @@ public class ImageManager: ImageManaging, ImagePreheating {
     public func stopPreheatingImages(requests: [ImageRequest]) {
         self.perform {
             self.cancelTasks(requests.flatMap {
-                return self.preheatingTasks[self.imageLoader.preheatingKeyForRequest($0)]
+                return self.preheatingTasks[ImageRequestKey($0, owner: self)]
             })
         }
     }
@@ -162,7 +162,18 @@ public class ImageManager: ImageManaging, ImagePreheating {
             }
         }
     }
-
+    
+    // MARK: Memory Caching
+    
+    private func cachedResponseForRequest(request: ImageRequest) -> ImageCachedResponse? {
+        return self.configuration.cache?.cachedResponseForKey(ImageRequestKey(request, owner: self))
+    }
+    
+    private func storeImage(image: UIImage, forRequest request: ImageRequest) {
+        let cachedResponse = ImageCachedResponse(image: image, userInfo: nil)
+        self.configuration.cache?.storeResponse(cachedResponse, forKey: ImageRequestKey(request, owner: self))
+    }
+    
     // MARK: Misc
     
     private func perform(@noescape block: Void -> Void) {
@@ -194,6 +205,7 @@ extension ImageManager: ImageManagerLoaderDelegate {
     internal func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
         let imageTask = imageTask as! ImageTaskInternal
         if let image = image {
+            self.storeImage(image, forRequest: imageTask.request)
             imageTask.response = ImageResponse.Success(image, ImageResponseInfo(fastResponse: false))
         } else {
             imageTask.response = ImageResponse.Failure(error ?? NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorUnknown, userInfo: nil))
@@ -224,6 +236,14 @@ extension ImageManager: ImageTaskManaging {
                 task.completions.append(completion)
             }
         }
+    }
+}
+
+// MARK: ImageManagerLoader: ImageRequestKeyOwner
+
+extension ImageManager: ImageRequestKeyOwner {
+    internal func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
+        return self.imageLoader.isRequestCacheEquivalent(lhs.request, toRequest: rhs.request)
     }
 }
 

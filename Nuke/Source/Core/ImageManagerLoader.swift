@@ -55,7 +55,7 @@ internal class ImageManagerLoader {
     }
     
     private func startSessionTaskForTask(task: ImageTask) {
-        let key = ImageRequestKey(task.request, type: .Load, owner: self)
+        let key = ImageRequestKey(task.request, owner: self)
         var sessionTask: ImageSessionTask! = self.sessionTasks[key]
         if sessionTask == nil {
             sessionTask = ImageSessionTask(key: key)
@@ -110,13 +110,11 @@ internal class ImageManagerLoader {
         if let image = image, processor = self.processorForRequest(imageTask.request) {
             let operation = NSBlockOperation { [weak self] in
                 let processedImage = processor.processImage(image)
-                self?.storeImage(processedImage, forRequest: imageTask.request)
                 self?.imageTask(imageTask, didCompleteWithImage: processedImage, error: error)
             }
             self.processingQueue.addOperation(operation)
             self.executingTasks[imageTask] = ImageLoadState.Processing(operation)
         } else {
-            self.storeImage(image, forRequest: imageTask.request)
             self.imageTask(imageTask, didCompleteWithImage: image, error: error)
         }
     }
@@ -164,26 +162,22 @@ internal class ImageManagerLoader {
         }
     }
     
-    // MARK: Misc
-    
-    internal func cachedResponseForRequest(request: ImageRequest) -> ImageCachedResponse? {
-        return self.conf.cache?.cachedResponseForKey(ImageRequestKey(request, type: .Cache, owner: self))
-    }
-    
-    private func storeImage(image: UIImage?, forRequest request: ImageRequest) {
-        if let image = image {
-            let cachedResponse = ImageCachedResponse(image: image, userInfo: nil)
-            self.conf.cache?.storeResponse(cachedResponse, forKey: ImageRequestKey(request, type: .Cache, owner: self))
-        }
-    }
-    
-    internal func preheatingKeyForRequest(request: ImageRequest) -> ImageRequestKey {
-        return ImageRequestKey(request, type: .Cache, owner: self)
-    }
-    
     private func removeSessionTask(task: ImageSessionTask) {
         if self.sessionTasks[task.key] === task {
             self.sessionTasks[task.key] = nil
+        }
+    }
+    
+    // MARK: Misc
+    
+    internal func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
+        guard self.conf.dataLoader.isRequestCacheEquivalent(lhs, toRequest: rhs) else {
+            return false
+        }
+        switch (self.processorForRequest(lhs), self.processorForRequest(rhs)) {
+        case (.Some(let lhs), .Some(let rhs)): return lhs.isEquivalentToProcessor(rhs)
+        case (.None, .None): return true
+        default: return false
         }
     }
 }
@@ -193,19 +187,7 @@ internal class ImageManagerLoader {
 
 extension ImageManagerLoader: ImageRequestKeyOwner {
     internal func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
-        switch lhs.type {
-        case .Cache:
-            guard self.conf.dataLoader.isRequestCacheEquivalent(lhs.request, toRequest: rhs.request) else {
-                return false
-            }
-            switch (self.processorForRequest(lhs.request), self.processorForRequest(rhs.request)) {
-            case (.Some(let lhs), .Some(let rhs)): return lhs.isEquivalentToProcessor(rhs)
-            case (.None, .None): return true
-            default: return false
-            }
-        case .Load:
-            return self.conf.dataLoader.isRequestLoadEquivalent(lhs.request, toRequest: rhs.request)
-        }
+        return self.conf.dataLoader.isRequestLoadEquivalent(lhs.request, toRequest: rhs.request)
     }
 }
 
