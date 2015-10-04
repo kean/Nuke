@@ -4,22 +4,34 @@
 
 import UIKit
 
-internal protocol ImageLoading: class {
+public protocol ImageLoading: class {
     weak var delegate: ImageLoadingDelegate? { get set }
     func startLoadingForTask(task: ImageTask)
     func stopLoadingForTask(imageTask: ImageTask)
     func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool
+    func invalidate()
+    func removeAllCachedImages()
 }
 
-internal protocol ImageLoadingDelegate: class {
+public protocol ImageLoadingDelegate: class {
     func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
     func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?)
+}
+
+public struct ImageLoaderConfiguration {
+    public var dataLoader: ImageDataLoading
+    public var decoder: ImageDecoding
+    public var maxConcurrentTaskCount = 8
+    public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder()) {
+        self.dataLoader = dataLoader
+        self.decoder = decoder
+    }
 }
 
 internal class ImageLoader: ImageLoading {
     internal weak var delegate: ImageLoadingDelegate?
     
-    private let conf: ImageManagerConfiguration
+    private let conf: ImageLoaderConfiguration
     private var pendingTasks = [ImageTask]()
     private var executingTasks = [ImageTask : ImageLoadState]()
     private var sessionTasks = [ImageRequestKey : ImageSessionTask]()
@@ -35,7 +47,7 @@ internal class ImageLoader: ImageLoading {
         return queue
     }()
     
-    internal init(configuration: ImageManagerConfiguration) {
+    internal init(configuration: ImageLoaderConfiguration) {
         self.conf = configuration
     }
     
@@ -177,7 +189,7 @@ internal class ImageLoader: ImageLoading {
     
     // MARK: Misc
     
-    internal func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
+    func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
         guard self.conf.dataLoader.isRequestCacheEquivalent(lhs, toRequest: rhs) else {
             return false
         }
@@ -186,6 +198,14 @@ internal class ImageLoader: ImageLoading {
         case (.None, .None): return true
         default: return false
         }
+    }
+    
+    func invalidate() {
+        self.conf.dataLoader.invalidate()
+    }
+    
+    func removeAllCachedImages() {
+        self.conf.dataLoader.removeAllCachedImages()
     }
 }
 
