@@ -15,7 +15,7 @@ public protocol ImageLoading: class {
 
 public protocol ImageLoadingDelegate: class {
     func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
-    func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?)
+    func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?, userInfo: Any?)
 }
 
 public struct ImageLoaderConfiguration {
@@ -28,6 +28,8 @@ public struct ImageLoaderConfiguration {
     }
 }
 
+/*! Implements image loading using objects conforming to ImageDataLoading, ImageDecoding and ImageProcessing protocols. Reuses data tasks for multiple equivalent image tasks.
+*/
 public class ImageLoader: ImageLoading {
     public weak var delegate: ImageLoadingDelegate?
     public let configuration: ImageLoaderConfiguration
@@ -146,7 +148,7 @@ public class ImageLoader: ImageLoading {
     
     private func imageTask(imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
         dispatch_async(self.queue) {
-            self.delegate?.imageLoader(self, imageTask: imageTask, didCompleteWithImage: image, error: error)
+            self.delegate?.imageLoader(self, imageTask: imageTask, didCompleteWithImage: image, error: error, userInfo: nil)
             self.executingTasks[imageTask] = nil
             self.executePendingTasks()
         }

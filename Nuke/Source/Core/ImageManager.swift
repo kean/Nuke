@@ -176,9 +176,8 @@ public class ImageManager: ImageManaging, ImagePreheating {
         return self.configuration.cache?.cachedResponseForKey(ImageRequestKey(request, owner: self))
     }
     
-    private func storeImage(image: UIImage, forRequest request: ImageRequest) {
-        let cachedResponse = ImageCachedResponse(image: image, userInfo: nil)
-        self.configuration.cache?.storeResponse(cachedResponse, forKey: ImageRequestKey(request, owner: self))
+    private func storeResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
+        self.configuration.cache?.storeResponse(response, forKey: ImageRequestKey(request, owner: self))
     }
     
     // MARK: Misc
@@ -209,11 +208,11 @@ extension ImageManager: ImageLoadingDelegate {
         }
     }
 
-    public func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
+    public func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?, userInfo: Any?) {
         let imageTask = imageTask as! ImageTaskInternal
         if let image = image {
-            self.storeImage(image, forRequest: imageTask.request)
-            imageTask.response = ImageResponse.Success(image, ImageResponseInfo(fastResponse: false))
+            self.storeResponse(ImageCachedResponse(image: image, userInfo: userInfo), forRequest: imageTask.request)
+            imageTask.response = ImageResponse.Success(image, ImageResponseInfo(fastResponse: false, userInfo: userInfo))
         } else {
             imageTask.response = ImageResponse.Failure(error ?? NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorUnknown, userInfo: nil))
         }
