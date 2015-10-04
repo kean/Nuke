@@ -28,7 +28,7 @@ public struct ImageManagerConfiguration {
 
 // MARK: - ImageManager
 
-public class ImageManager: ImageManaging, ImagePreheating {
+public class ImageManager {
     public let configuration: ImageManagerConfiguration
     
     private var cache: ImageMemoryCaching? {
@@ -51,8 +51,6 @@ public class ImageManager: ImageManaging, ImagePreheating {
         self.configuration = configuration
         self.loader.delegate = self
     }
-    
-    // MARK: ImageManaging
     
     public func taskWithRequest(request: ImageRequest) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier)
@@ -115,7 +113,7 @@ public class ImageManager: ImageManaging, ImagePreheating {
         }
     }
 
-    // MARK: ImagePreheating
+    // MARK: Preheating
     
     public func startPreheatingImages(requests: [ImageRequest]) {
         self.perform {
@@ -242,11 +240,25 @@ extension ImageManager: ImageTaskManaging {
     }
 }
 
-// MARK: ImageLoader: ImageRequestKeyOwner
+// MARK: - ImageLoader: ImageRequestKeyOwner
 
 extension ImageManager: ImageRequestKeyOwner {
     public func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
         return self.loader.isRequestCacheEquivalent(lhs.request, toRequest: rhs.request)
+    }
+}
+
+// MARK: - ImageManager (Convenience)
+
+public extension ImageManager {
+    func taskWithURL(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
+        return self.taskWithRequest(ImageRequest(URL: URL), completion: completion)
+    }
+    
+    func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
+        let task = self.taskWithRequest(request)
+        if completion != nil { task.completion(completion!) }
+        return task
     }
 }
 

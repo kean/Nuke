@@ -21,7 +21,6 @@
 		0C096CA01BAE9ADD007FE380 /* ImageCollectionViewPreheatingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C8F1BAE9ADD007FE380 /* ImageCollectionViewPreheatingController.swift */; settings = {ASSET_TAGS = (); }; };
 		0C096CA11BAE9ADD007FE380 /* ImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C901BAE9ADD007FE380 /* ImageView.swift */; settings = {ASSET_TAGS = (); }; };
 		0C0E01781BC0637B0040B46B /* ImageRequestKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */; settings = {ASSET_TAGS = (); }; };
-		0C433B1A1BAEF5AD003021AF /* ImageManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C433B191BAEF5AD003021AF /* ImageManaging.swift */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,7 +42,6 @@
 		0C096C8F1BAE9ADD007FE380 /* ImageCollectionViewPreheatingController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageCollectionViewPreheatingController.swift; sourceTree = "<group>"; };
 		0C096C901BAE9ADD007FE380 /* ImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
 		0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestKey.swift; sourceTree = "<group>"; };
-		0C433B191BAEF5AD003021AF /* ImageManaging.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManaging.swift; sourceTree = "<group>"; };
 		0C9174901BAE99EE004A7905 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -91,7 +89,6 @@
 			children = (
 				0C096C7F1BAE9ADD007FE380 /* ImageDataLoader.swift */,
 				0C096C801BAE9ADD007FE380 /* ImageDecoder.swift */,
-				0C433B191BAEF5AD003021AF /* ImageManaging.swift */,
 				0C096C811BAE9ADD007FE380 /* ImageManager.swift */,
 				0C096C831BAE9ADD007FE380 /* ImageLoader.swift */,
 				0C096C841BAE9ADD007FE380 /* ImageMemoryCache.swift */,
@@ -224,7 +221,6 @@
 				0C096C9A1BAE9ADD007FE380 /* ImageResponse.swift in Sources */,
 				0C096CA01BAE9ADD007FE380 /* ImageCollectionViewPreheatingController.swift in Sources */,
 				0C096C981BAE9ADD007FE380 /* ImageProcessor.swift in Sources */,
-				0C433B1A1BAEF5AD003021AF /* ImageManaging.swift in Sources */,
 				0C096C961BAE9ADD007FE380 /* ImageLoader.swift in Sources */,
 				0C096CA11BAE9ADD007FE380 /* ImageView.swift in Sources */,
 				0C0E01781BC0637B0040B46B /* ImageRequestKey.swift in Sources */,
