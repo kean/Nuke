@@ -172,11 +172,11 @@ public class ImageManager: ImageManaging, ImagePreheating {
     
     // MARK: Memory Caching
     
-    private func cachedResponseForRequest(request: ImageRequest) -> ImageCachedResponse? {
+    public func cachedResponseForRequest(request: ImageRequest) -> ImageCachedResponse? {
         return self.configuration.cache?.cachedResponseForKey(ImageRequestKey(request, owner: self))
     }
     
-    private func storeResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
+    public func storeResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
         self.configuration.cache?.storeResponse(response, forKey: ImageRequestKey(request, owner: self))
     }
     
