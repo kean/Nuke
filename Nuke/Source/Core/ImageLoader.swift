@@ -28,10 +28,13 @@ public struct ImageLoaderConfiguration {
     }
 }
 
-internal class ImageLoader: ImageLoading {
-    internal weak var delegate: ImageLoadingDelegate?
+public class ImageLoader: ImageLoading {
+    public weak var delegate: ImageLoadingDelegate?
+    public let configuration: ImageLoaderConfiguration
     
-    private let conf: ImageLoaderConfiguration
+    private var dataLoader: ImageDataLoading {
+        return self.configuration.dataLoader
+    }
     private var pendingTasks = [ImageTask]()
     private var executingTasks = [ImageTask : ImageLoadState]()
     private var sessionTasks = [ImageRequestKey : ImageSessionTask]()
@@ -47,11 +50,11 @@ internal class ImageLoader: ImageLoading {
         return queue
     }()
     
-    internal init(configuration: ImageLoaderConfiguration) {
-        self.conf = configuration
+    public init(configuration: ImageLoaderConfiguration) {
+        self.configuration = configuration
     }
     
-    internal func startLoadingForTask(task: ImageTask) {
+    public func startLoadingForTask(task: ImageTask) {
         dispatch_async(self.queue) {
             self.pendingTasks.append(task)
             self.executePendingTasks()
@@ -60,7 +63,7 @@ internal class ImageLoader: ImageLoading {
     
     private func executePendingTasks() {
         func shouldExecuteNextPendingTask() -> Bool {
-            return self.executingTasks.count < self.conf.maxConcurrentTaskCount
+            return self.executingTasks.count < self.configuration.maxConcurrentTaskCount
         }
         func dequeueNextPendingTask() -> ImageTask? {
             return self.pendingTasks.isEmpty ? nil : self.pendingTasks.removeFirst()
@@ -78,7 +81,7 @@ internal class ImageLoader: ImageLoading {
         var sessionTask: ImageSessionTask! = self.sessionTasks[key]
         if sessionTask == nil {
             sessionTask = ImageSessionTask(key: key)
-            let dataTask = self.conf.dataLoader.imageDataTaskWithURL(task.request.URL, progressHandler: { [weak self] completedUnits, totalUnits in
+            let dataTask = self.dataLoader.imageDataTaskWithURL(task.request.URL, progressHandler: { [weak self] completedUnits, totalUnits in
                 self?.sessionTask(sessionTask, didUpdateProgressWithCompletedUnitCount: completedUnits, totalUnitCount: totalUnits)
             }, completionHandler: { [weak self] data, _, error in
                 self?.sessionTask(sessionTask, didCompleteWithData: data, error: error)
@@ -106,7 +109,7 @@ internal class ImageLoader: ImageLoading {
     private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithData data: NSData?, error: ErrorType?) {
         if let data = data {
             self.decodingQueue.addOperationWithBlock { [weak self] in
-                let image = self?.conf.decoder.imageWithData(data)
+                let image = self?.configuration.decoder.imageWithData(data)
                 self?.sessionTask(sessionTask, didCompleteWithImage: image, error: error)
             }
         } else {
@@ -157,7 +160,7 @@ internal class ImageLoader: ImageLoading {
         }
     }
     
-    internal func stopLoadingForTask(imageTask: ImageTask) {
+    public func stopLoadingForTask(imageTask: ImageTask) {
         dispatch_async(self.queue) {
             if let state = self.executingTasks[imageTask] {
                 switch state {
@@ -189,8 +192,8 @@ internal class ImageLoader: ImageLoading {
     
     // MARK: Misc
     
-    func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
-        guard self.conf.dataLoader.isRequestCacheEquivalent(lhs, toRequest: rhs) else {
+    public func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
+        guard self.dataLoader.isRequestCacheEquivalent(lhs, toRequest: rhs) else {
             return false
         }
         switch (self.processorForRequest(lhs), self.processorForRequest(rhs)) {
@@ -200,12 +203,12 @@ internal class ImageLoader: ImageLoading {
         }
     }
     
-    func invalidate() {
-        self.conf.dataLoader.invalidate()
+    public func invalidate() {
+        self.dataLoader.invalidate()
     }
     
-    func removeAllCachedImages() {
-        self.conf.dataLoader.removeAllCachedImages()
+    public func removeAllCachedImages() {
+        self.dataLoader.removeAllCachedImages()
     }
 }
 
@@ -214,7 +217,7 @@ internal class ImageLoader: ImageLoading {
 
 extension ImageLoader: ImageRequestKeyOwner {
     internal func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
-        return self.conf.dataLoader.isRequestLoadEquivalent(lhs.request, toRequest: rhs.request)
+        return self.dataLoader.isRequestLoadEquivalent(lhs.request, toRequest: rhs.request)
     }
 }
 
