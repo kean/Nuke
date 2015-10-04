@@ -4,19 +4,19 @@
 
 import UIKit
 
-internal protocol ImageManagerLoaderDelegate: class {
-    func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
-    func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?)
+internal protocol ImageLoaderDelegate: class {
+    func imageLoader(imageLoader: ImageLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
+    func imageLoader(imageLoader: ImageLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?)
 }
 
-internal class ImageManagerLoader {
-    internal weak var delegate: ImageManagerLoaderDelegate?
+internal class ImageLoader {
+    internal weak var delegate: ImageLoaderDelegate?
     
     private let conf: ImageManagerConfiguration
     private var pendingTasks = [ImageTask]()
     private var executingTasks = [ImageTask : ImageLoadState]()
     private var sessionTasks = [ImageRequestKey : ImageSessionTask]()
-    private let queue = dispatch_queue_create("ImageManagerLoader-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
+    private let queue = dispatch_queue_create("ImageLoader-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
     private let decodingQueue: NSOperationQueue = {
         let queue = NSOperationQueue()
         queue.maxConcurrentOperationCount = 1
@@ -183,9 +183,9 @@ internal class ImageManagerLoader {
 }
 
 
-// MARK: ImageManagerLoader: ImageRequestKeyOwner
+// MARK: ImageLoader: ImageRequestKeyOwner
 
-extension ImageManagerLoader: ImageRequestKeyOwner {
+extension ImageLoader: ImageRequestKeyOwner {
     internal func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
         return self.conf.dataLoader.isRequestLoadEquivalent(lhs.request, toRequest: rhs.request)
     }

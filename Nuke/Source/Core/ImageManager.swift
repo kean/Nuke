@@ -29,7 +29,7 @@ public struct ImageManagerConfiguration {
 public class ImageManager: ImageManaging, ImagePreheating {
     public let configuration: ImageManagerConfiguration
     
-    private let imageLoader: ImageManagerLoader
+    private let imageLoader: ImageLoader
     private var executingTasks = Set<ImageTaskInternal>()
     private var preheatingTasks = [ImageRequestKey: ImageTaskInternal]()
     private let lock = NSRecursiveLock()
@@ -42,7 +42,7 @@ public class ImageManager: ImageManaging, ImagePreheating {
     
     public init(configuration: ImageManagerConfiguration) {
         self.configuration = configuration
-        self.imageLoader = ImageManagerLoader(configuration: configuration)
+        self.imageLoader = ImageLoader(configuration: configuration)
         self.imageLoader.delegate = self
     }
     
@@ -192,17 +192,17 @@ public class ImageManager: ImageManaging, ImagePreheating {
 }
 
 
-// MARK: ImageManager: ImageManagerLoaderDelegate
+// MARK: ImageManager: ImageLoaderDelegate
 
-extension ImageManager: ImageManagerLoaderDelegate {
-    internal func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
+extension ImageManager: ImageLoaderDelegate {
+    internal func imageLoader(imageLoader: ImageLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
         dispatch_async(dispatch_get_main_queue()) {
             imageTask.progress.totalUnitCount = totalUnitCount
             imageTask.progress.completedUnitCount = completedUnitCount
         }
     }
 
-    internal func imageLoader(imageLoader: ImageManagerLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
+    internal func imageLoader(imageLoader: ImageLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
         let imageTask = imageTask as! ImageTaskInternal
         if let image = image {
             self.storeImage(image, forRequest: imageTask.request)
@@ -239,7 +239,7 @@ extension ImageManager: ImageTaskManaging {
     }
 }
 
-// MARK: ImageManagerLoader: ImageRequestKeyOwner
+// MARK: ImageLoader: ImageRequestKeyOwner
 
 extension ImageManager: ImageRequestKeyOwner {
     internal func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
