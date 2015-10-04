@@ -4,13 +4,20 @@
 
 import UIKit
 
-internal protocol ImageLoaderDelegate: class {
-    func imageLoader(imageLoader: ImageLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
-    func imageLoader(imageLoader: ImageLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?)
+internal protocol ImageLoading: class {
+    weak var delegate: ImageLoadingDelegate? { get set }
+    func startLoadingForTask(task: ImageTask)
+    func stopLoadingForTask(imageTask: ImageTask)
+    func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool
 }
 
-internal class ImageLoader {
-    internal weak var delegate: ImageLoaderDelegate?
+internal protocol ImageLoadingDelegate: class {
+    func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
+    func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?)
+}
+
+internal class ImageLoader: ImageLoading {
+    internal weak var delegate: ImageLoadingDelegate?
     
     private let conf: ImageManagerConfiguration
     private var pendingTasks = [ImageTask]()

@@ -29,7 +29,7 @@ public struct ImageManagerConfiguration {
 public class ImageManager: ImageManaging, ImagePreheating {
     public let configuration: ImageManagerConfiguration
     
-    private let imageLoader: ImageLoader
+    private let imageLoader: ImageLoading
     private var executingTasks = Set<ImageTaskInternal>()
     private var preheatingTasks = [ImageRequestKey: ImageTaskInternal]()
     private let lock = NSRecursiveLock()
@@ -192,17 +192,17 @@ public class ImageManager: ImageManaging, ImagePreheating {
 }
 
 
-// MARK: ImageManager: ImageLoaderDelegate
+// MARK: ImageManager: ImageLoadingDelegate
 
-extension ImageManager: ImageLoaderDelegate {
-    internal func imageLoader(imageLoader: ImageLoader, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
+extension ImageManager: ImageLoadingDelegate {
+    internal func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
         dispatch_async(dispatch_get_main_queue()) {
             imageTask.progress.totalUnitCount = totalUnitCount
             imageTask.progress.completedUnitCount = completedUnitCount
         }
     }
 
-    internal func imageLoader(imageLoader: ImageLoader, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
+    internal func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
         let imageTask = imageTask as! ImageTaskInternal
         if let image = image {
             self.storeImage(image, forRequest: imageTask.request)
