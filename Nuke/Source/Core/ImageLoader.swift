@@ -39,16 +39,8 @@ public class ImageLoader: ImageLoading {
     private var executingTasks = [ImageTask : ImageLoadState]()
     private var sessionTasks = [ImageRequestKey : ImageSessionTask]()
     private let queue = dispatch_queue_create("ImageLoader-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
-    private let decodingQueue: NSOperationQueue = {
-        let queue = NSOperationQueue()
-        queue.maxConcurrentOperationCount = 1
-        return queue
-    }()
-    private let processingQueue: NSOperationQueue = {
-        let queue = NSOperationQueue()
-        queue.maxConcurrentOperationCount = 2
-        return queue
-    }()
+    private let decodingQueue = NSOperationQueue(maxConcurrentOperationCount: 1)
+    private let processingQueue = NSOperationQueue(maxConcurrentOperationCount: 2)
     
     public init(configuration: ImageLoaderConfiguration) {
         self.configuration = configuration
@@ -212,7 +204,6 @@ public class ImageLoader: ImageLoading {
     }
 }
 
-
 // MARK: ImageLoader: ImageRequestKeyOwner
 
 extension ImageLoader: ImageRequestKeyOwner {
@@ -228,7 +219,6 @@ private enum ImageLoadState {
     case Processing(NSOperation)
 }
 
-
 // MARK: - ImageSessionTask
 
 private class ImageSessionTask {
@@ -240,5 +230,14 @@ private class ImageSessionTask {
     
     init(key: ImageRequestKey) {
         self.key = key
+    }
+}
+
+// MARK: - Misc
+
+extension NSOperationQueue {
+    private convenience init(maxConcurrentOperationCount: Int) {
+        self.init()
+        self.maxConcurrentOperationCount = maxConcurrentOperationCount
     }
 }
