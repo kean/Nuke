@@ -9,7 +9,7 @@ let task = Nuke.taskWithURL(URL) {
 }.resume()
 
 //: Create and resume `ImageTask` with `ImageRequest`
-var request = ImageRequest(URL: NSURL(string: "http://farm4.staticflickr.com/3892/14940786229_5b2b48e96c_z_d.jpg")!)
+var request = ImageRequest(URL: NSURL(string: "https://farm4.staticflickr.com/3892/14940786229_5b2b48e96c_z_d.jpg")!)
 request.targetSize = CGSize(width: 100.0, height: 100.0) // Set target size in pixels
 request.contentMode = .AspectFill
 
