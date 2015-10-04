@@ -4,6 +4,8 @@
 
 import UIKit
 
+// MARK: - ImageLoading
+
 public protocol ImageLoading: class {
     weak var delegate: ImageLoadingDelegate? { get set }
     func startLoadingForTask(task: ImageTask)
@@ -13,10 +15,14 @@ public protocol ImageLoading: class {
     func removeAllCachedImages()
 }
 
+// MARK: - ImageLoadingDelegate
+
 public protocol ImageLoadingDelegate: class {
     func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
     func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?, userInfo: Any?)
 }
+
+// MARK: - ImageLoaderConfiguration
 
 public struct ImageLoaderConfiguration {
     public var dataLoader: ImageDataLoading
@@ -27,6 +33,8 @@ public struct ImageLoaderConfiguration {
         self.decoder = decoder
     }
 }
+
+// MARK: - ImageLoader
 
 /*! Implements image loading using objects conforming to ImageDataLoading, ImageDecoding and ImageProcessing protocols. Reuses data tasks for multiple equivalent image tasks.
 */

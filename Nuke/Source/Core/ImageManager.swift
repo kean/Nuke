@@ -11,7 +11,6 @@ public let ImageManagerErrorUnknown = -2
 // MARK: - ImageManagerConfiguration
 
 public struct ImageManagerConfiguration {
-    // See ImageLoader class
     public var loader: ImageLoading
     public var cache: ImageMemoryCaching?
     public var maxConcurrentPreheatingTaskCount = 2
@@ -91,7 +90,8 @@ public class ImageManager: ImageManaging, ImagePreheating {
     }
     
     private func enterStateAction(state: ImageTaskState, task: ImageTaskInternal) {
-        if state == .Running {
+        switch state {
+        case .Running:
             if let response = self.cachedResponseForRequest(task.request) {
                 task.response = ImageResponse.Success(response.image, ImageResponseInfo(fastResponse: true, userInfo: response.userInfo))
                 self.setState(.Completed, forTask: task)
@@ -99,11 +99,10 @@ public class ImageManager: ImageManaging, ImagePreheating {
                 self.executingTasks.insert(task)
                 self.loader.startLoadingForTask(task)
             }
-        }
-        if state == .Cancelled {
+        case .Cancelled:
             task.response = ImageResponse.Failure(NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorCancelled, userInfo: nil))
-        }
-        if state == .Completed || state == .Cancelled {
+            fallthrough
+        case .Completed:
             self.executingTasks.remove(task)
             self.setNeedsExecutePreheatingTasks()
             
@@ -112,6 +111,7 @@ public class ImageManager: ImageManaging, ImagePreheating {
                 assert(task.response != nil)
                 completions.forEach { $0(task.response!) }
             }
+        default: break
         }
     }
 
@@ -122,11 +122,9 @@ public class ImageManager: ImageManaging, ImagePreheating {
             for request in requests {
                 let key = ImageRequestKey(request, owner: self)
                 if self.preheatingTasks[key] == nil {
-                    let task = ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier)
-                    task.completion { [weak self] _ in
+                    self.preheatingTasks[key] = ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier).completion { [weak self] _ in
                         self?.preheatingTasks[key] = nil
                     }
-                    self.preheatingTasks[key] = task
                 }
             }
             self.setNeedsExecutePreheatingTasks()
@@ -196,7 +194,6 @@ public class ImageManager: ImageManaging, ImagePreheating {
         tasks.forEach { self.setState(.Cancelled, forTask: $0) }
     }
 }
-
 
 // MARK: ImageManager: ImageLoadingDelegate
 
