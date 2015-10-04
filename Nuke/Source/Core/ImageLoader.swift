@@ -28,6 +28,9 @@ public struct ImageLoaderConfiguration {
     public var dataLoader: ImageDataLoading
     public var decoder: ImageDecoding
     public var maxConcurrentTaskCount = 8
+    public var decodingQueue = NSOperationQueue(maxConcurrentOperationCount: 1)
+    public var processingQueue = NSOperationQueue(maxConcurrentOperationCount: 2)
+    
     public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder()) {
         self.dataLoader = dataLoader
         self.decoder = decoder
@@ -49,8 +52,6 @@ public class ImageLoader: ImageLoading {
     private var executingTasks = [ImageTask : ImageLoadState]()
     private var sessionTasks = [ImageRequestKey : ImageSessionTask]()
     private let queue = dispatch_queue_create("ImageLoader-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
-    private let decodingQueue = NSOperationQueue(maxConcurrentOperationCount: 1)
-    private let processingQueue = NSOperationQueue(maxConcurrentOperationCount: 2)
     
     public init(configuration: ImageLoaderConfiguration) {
         self.configuration = configuration
@@ -110,7 +111,7 @@ public class ImageLoader: ImageLoading {
     
     private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithData data: NSData?, error: ErrorType?) {
         if let data = data {
-            self.decodingQueue.addOperationWithBlock { [weak self] in
+            self.configuration.decodingQueue.addOperationWithBlock { [weak self] in
                 let image = self?.configuration.decoder.imageWithData(data)
                 self?.sessionTask(sessionTask, didCompleteWithImage: image, error: error)
             }
@@ -136,7 +137,7 @@ public class ImageLoader: ImageLoading {
                 let processedImage = processor.processImage(image)
                 self?.imageTask(imageTask, didCompleteWithImage: processedImage, error: error)
             }
-            self.processingQueue.addOperation(operation)
+            self.configuration.processingQueue.addOperation(operation)
             self.executingTasks[imageTask] = ImageLoadState.Processing(operation)
         } else {
             self.imageTask(imageTask, didCompleteWithImage: image, error: error)
