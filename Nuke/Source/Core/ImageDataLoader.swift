@@ -4,33 +4,29 @@
 
 import UIKit
 
-// MARK: ImageDataLoading
+// MARK: - ImageDataLoading
 
 public typealias ImageDataLoadingCompletionHandler = (data: NSData?, response: NSURLResponse?, error: ErrorType?) -> Void
 public typealias ImageDataLoadingProgressHandler = (completedUnitCount: Int64, totalUnitCount: Int64) -> Void
 
 public protocol ImageDataLoading {
-    /** Compares two requests for equivalence with regard to loading image data. Requests should be considered equivalent if the image fetcher can handle both requests with a single data task.
+    /** Compares two requests for equivalence with regard to loading image data. Requests should be considered equivalent if data loader can handle both requests with a single session task.
     */
     func isRequestLoadEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool
     
-    /** Compares two requests for equivalence with regard to caching image data. ImageManager  uses this method for memory caching only, which means that there is no need for filtering out the dynamic part of the request (is there is any).
+    /** Compares two requests for equivalence with regard to caching image data. ImageManager uses this method for memory caching only, which means that there is no need for filtering out the dynamic part of the request (is there is any).
     */
     func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool
     
-    /** Creates image data task with a given url
-    */
     func imageDataTaskWithURL(url: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask
     
-    /** Invalidates the receiver
-    */
     func invalidate()
     
     func removeAllCachedImages()
 }
 
 
-// MARK: ImageDataLoader
+// MARK: - ImageDataLoader
 
 public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoading {
     public private(set) var session: NSURLSession!

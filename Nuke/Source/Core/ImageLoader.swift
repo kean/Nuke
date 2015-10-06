@@ -19,8 +19,8 @@ public protocol ImageLoading: class {
 // MARK: - ImageLoadingDelegate
 
 public protocol ImageLoadingDelegate: class {
-    func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
-    func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?, userInfo: Any?)
+    func imageLoader(imageLoader: ImageLoading, task: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
+    func imageLoader(imageLoader: ImageLoading, task: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?, userInfo: Any?)
 }
 
 // MARK: - ImageLoaderConfiguration
@@ -64,7 +64,7 @@ public class ImageLoader: ImageLoading {
                 sessionTask = self.createSessionTaskWithRequest(task.request, key: key)
                 self.sessionTasks[key] = sessionTask
             } else {
-                self.delegate?.imageLoader(self, imageTask: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.totalUnitCount)
+                self.delegate?.imageLoader(self, task: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.totalUnitCount)
             }
             self.executingTasks[task] = ImageLoadState.Loading(sessionTask)
             sessionTask.suspendedTasks.remove(task)
@@ -89,7 +89,7 @@ public class ImageLoader: ImageLoading {
             sessionTask.totalUnitCount = totalUnitCount
             sessionTask.completedUnitCount = completedUnitCount
             for imageTask in sessionTask.tasks {
-                self.delegate?.imageLoader(self, imageTask: imageTask, didUpdateProgressWithCompletedUnitCount: completedUnitCount, totalUnitCount: totalUnitCount)
+                self.delegate?.imageLoader(self, task: imageTask, didUpdateProgressWithCompletedUnitCount: completedUnitCount, totalUnitCount: totalUnitCount)
             }
         }
     }
@@ -120,8 +120,7 @@ public class ImageLoader: ImageLoading {
     private func processImage(image: UIImage?, error: ErrorType?, forImageTask imageTask: ImageTask) {
         if let image = image, processor = self.processorForRequest(imageTask.request) {
             let operation = NSBlockOperation { [weak self] in
-                let processedImage = processor.processImage(image)
-                self?.imageTask(imageTask, didCompleteWithImage: processedImage, error: error)
+                self?.imageTask(imageTask, didCompleteWithImage: processor.processImage(image), error: error)
             }
             self.configuration.processingQueue.addOperation(operation)
             self.executingTasks[imageTask] = ImageLoadState.Processing(operation)
@@ -143,7 +142,7 @@ public class ImageLoader: ImageLoading {
     
     private func imageTask(imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
         dispatch_async(self.queue) {
-            self.delegate?.imageLoader(self, imageTask: imageTask, didCompleteWithImage: image, error: error, userInfo: nil)
+            self.delegate?.imageLoader(self, task: imageTask, didCompleteWithImage: image, error: error, userInfo: nil)
             self.executingTasks[imageTask] = nil
         }
     }
@@ -196,11 +195,7 @@ public class ImageLoader: ImageLoading {
         guard self.dataLoader.isRequestCacheEquivalent(lhs, toRequest: rhs) else {
             return false
         }
-        switch (self.processorForRequest(lhs), self.processorForRequest(rhs)) {
-        case (.Some(let lhs), .Some(let rhs)): return lhs.isEquivalentToProcessor(rhs)
-        case (.None, .None): return true
-        default: return false
-        }
+        return isEquivalentProcessors(self.processorForRequest(lhs), rhs: self.processorForRequest(rhs))
     }
     
     public func invalidate() {
@@ -242,14 +237,5 @@ private class ImageSessionTask {
     
     init(key: ImageRequestKey) {
         self.key = key
-    }
-}
-
-// MARK: - Misc
-
-extension NSOperationQueue {
-    private convenience init(maxConcurrentOperationCount: Int) {
-        self.init()
-        self.maxConcurrentOperationCount = maxConcurrentOperationCount
     }
 }

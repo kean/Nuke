@@ -15,8 +15,6 @@ Nuke.taskWithURL(URL) {
 }.resume()
 ```
 
-> Programming in Objective-C? Try [DFImageManager](https://github.com/kean/DFImageManager).
-
 1. [Getting Started](#h_getting_started)
 2. [Usage](#h_usage)
 3. [Design](#h_design)

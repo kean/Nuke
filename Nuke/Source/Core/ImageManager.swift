@@ -31,11 +31,11 @@ public struct ImageManagerConfiguration {
 public class ImageManager {
     public let configuration: ImageManagerConfiguration
     
-    private var cache: ImageMemoryCaching? {
-        return self.configuration.cache
-    }
     private var loader: ImageLoading {
         return self.configuration.loader
+    }
+    private var cache: ImageMemoryCaching? {
+        return self.configuration.cache
     }
     private var executingTasks = Set<ImageTaskInternal>()
     private var preheatingTasks = [ImageRequestKey: ImageTaskInternal]()
@@ -67,7 +67,7 @@ public class ImageManager {
     }
     
     public func removeAllCachedImages() {
-        self.configuration.cache?.removeAllCachedImages()
+        self.cache?.removeAllCachedImages()
         self.loader.removeAllCachedImages()
     }
     
@@ -106,7 +106,7 @@ public class ImageManager {
             self.setNeedsExecutePreheatingTasks()
             
             let completions = task.completions
-            self.dispatchBlock {
+            dispathOnMainThread {
                 assert(task.response != nil)
                 completions.forEach { $0(task.response!) }
             }
@@ -170,11 +170,11 @@ public class ImageManager {
     // MARK: Memory Caching
     
     public func cachedResponseForRequest(request: ImageRequest) -> ImageCachedResponse? {
-        return self.configuration.cache?.cachedResponseForKey(ImageRequestKey(request, owner: self))
+        return self.cache?.cachedResponseForKey(ImageRequestKey(request, owner: self))
     }
     
     public func storeResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
-        self.configuration.cache?.storeResponse(response, forKey: ImageRequestKey(request, owner: self))
+        self.cache?.storeResponse(response, forKey: ImageRequestKey(request, owner: self))
     }
     
     // MARK: Misc
@@ -185,10 +185,6 @@ public class ImageManager {
         self.lock.unlock()
     }
 
-    private func dispatchBlock(block: (Void) -> Void) {
-        NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
-    }
-
     private func cancelTasks<T: SequenceType where T.Generator.Element == ImageTaskInternal>(tasks: T) {
         tasks.forEach { self.setState(.Cancelled, forTask: $0) }
     }
@@ -197,22 +193,22 @@ public class ImageManager {
 // MARK: ImageManager: ImageLoadingDelegate
 
 extension ImageManager: ImageLoadingDelegate {
-    public func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
+    public func imageLoader(imageLoader: ImageLoading, task: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
         dispatch_async(dispatch_get_main_queue()) {
-            imageTask.progress.totalUnitCount = totalUnitCount
-            imageTask.progress.completedUnitCount = completedUnitCount
+            task.progress.totalUnitCount = totalUnitCount
+            task.progress.completedUnitCount = completedUnitCount
         }
     }
 
-    public func imageLoader(imageLoader: ImageLoading, imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?, userInfo: Any?) {
-        let imageTask = imageTask as! ImageTaskInternal
+    public func imageLoader(imageLoader: ImageLoading, task: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?, userInfo: Any?) {
+        let task = task as! ImageTaskInternal
         if let image = image {
-            self.storeResponse(ImageCachedResponse(image: image, userInfo: userInfo), forRequest: imageTask.request)
-            imageTask.response = ImageResponse.Success(image, ImageResponseInfo(fastResponse: false, userInfo: userInfo))
+            self.storeResponse(ImageCachedResponse(image: image, userInfo: userInfo), forRequest: task.request)
+            task.response = ImageResponse.Success(image, ImageResponseInfo(fastResponse: false, userInfo: userInfo))
         } else {
-            imageTask.response = ImageResponse.Failure(error ?? NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorUnknown, userInfo: nil))
+            task.response = ImageResponse.Failure(error ?? NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorUnknown, userInfo: nil))
         }
-        self.perform { self.setState(.Completed, forTask: imageTask) }
+        self.perform { self.setState(.Completed, forTask: task) }
     }
 }
 
@@ -235,7 +231,7 @@ extension ImageManager: ImageTaskManaging {
         self.perform {
             switch task.state {
             case .Completed, .Cancelled:
-                self.dispatchBlock {
+                dispathOnMainThread {
                     assert(task.response != nil)
                     completion(task.response!)
                 }

@@ -4,7 +4,7 @@
 
 import Foundation
 
-// MARK: Convenience
+// MARK: - Convenience
 
 public func taskWithURL(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
     return ImageManager.shared.taskWithURL(URL, completion: completion)
@@ -32,4 +32,17 @@ public func stopPreheatingImages(requests: [ImageRequest]) {
 
 public func stopPreheatingImages() {
     ImageManager.shared.stopPreheatingImages()
+}
+
+// MARK: - Internal
+
+internal func dispathOnMainThread(block: (Void) -> Void) {
+    NSThread.isMainThread() ? block() : dispatch_async(dispatch_get_main_queue(), block)
+}
+
+internal extension NSOperationQueue {
+    convenience init(maxConcurrentOperationCount: Int) {
+        self.init()
+        self.maxConcurrentOperationCount = maxConcurrentOperationCount
+    }
 }
