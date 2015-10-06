@@ -22,13 +22,13 @@ public class AlamofireImageDataLoader: ImageDataLoading {
         return lhs.URL.isEqual(rhs.URL)
     }
     
-    public func imageDataTaskWithURL(url: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionDataTask {
+    public func imageDataTaskWithURL(url: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask {
         let task = self.manager.request(.GET, url, parameters: nil).response { (_, response, data, error) -> Void in
             completionHandler(data: data, response: response, error: error)
         }.progress { (_, totalBytesReceived, totalBytesExpected) -> Void in
             progressHandler(completedUnitCount: totalBytesReceived, totalUnitCount: totalBytesExpected)
         }
-        return task.task as! NSURLSessionDataTask
+        return task.task
     }
     
     public func invalidate() {

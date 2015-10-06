@@ -20,7 +20,7 @@ public protocol ImageDataLoading {
     
     /** Creates image data task with a given url
     */
-    func imageDataTaskWithURL(url: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionDataTask
+    func imageDataTaskWithURL(url: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask
     
     /** Invalidates the receiver
     */
@@ -60,7 +60,7 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
         return lhs.URL.isEqual(rhs.URL)
     }
     
-    public func imageDataTaskWithURL(URL: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionDataTask {
+    public func imageDataTaskWithURL(URL: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask {
         let dataTask = self.session.dataTaskWithURL(URL)
         dispatch_sync(self.queue) {
             self.taskHandlers[dataTask] = URLSessionDataTaskHandler(progressHandler: progressHandler, completionHandler: completionHandler)
