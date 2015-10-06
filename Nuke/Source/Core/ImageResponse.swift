@@ -10,7 +10,7 @@ public enum ImageResponse {
 
     public var image: UIImage? {
         switch self {
-        case let .Success(image, _): return image
+        case .Success(let image, _): return image
         case .Failure(_): return nil
         }
     }

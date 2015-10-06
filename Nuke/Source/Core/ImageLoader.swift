@@ -39,7 +39,7 @@ public struct ImageLoaderConfiguration {
 
 // MARK: - ImageLoader
 
-/*! Implements image loading using objects conforming to ImageDataLoading, ImageDecoding and ImageProcessing protocols. Reuses data tasks for multiple equivalent image tasks.
+/** Implements image loading using objects conforming to ImageDataLoading, ImageDecoding and ImageProcessing protocols. Reuses data tasks for multiple equivalent image tasks.
 */
 public class ImageLoader: ImageLoading {
     public weak var delegate: ImageLoadingDelegate?
