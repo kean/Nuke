@@ -229,6 +229,86 @@ class ImageManagerTest: XCTestCase {
         }
     }
 
+    // MARK: Suspending
+
+    func testThatDataTaskIsSuspended() {
+        self.mockSessionManager.enabled = false
+
+        let task = self.manager.taskWithURL(defaultURL).resume()
+        XCTAssertEqual(task.state, ImageTaskState.Running)
+
+        self.expectNotification(MockURLSessionDataTaskDidSuspendNotification)
+        task.suspend()
+        XCTAssertEqual(task.state, ImageTaskState.Suspended)
+
+        self.wait()
+    }
+
+    func testThatSuspendedDataTaskIsResumed() {
+        self.mockSessionManager.enabled = false
+
+        let task = self.manager.taskWithURL(defaultURL).resume()
+        self.expectNotification(MockURLSessionDataTaskDidSuspendNotification)
+        task.suspend()
+        self.wait()
+
+        self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
+        self.expect { fulfill in
+            task.completion {
+                XCTAssertEqual(task.state, ImageTaskState.Completed)
+                XCTAssertNotNil($0.image)
+                fulfill()
+            }
+        }
+        self.mockSessionManager.enabled = true
+        task.resume()
+        self.wait()
+    }
+
+    func testThatDataTaskIsNotSuspendedWhenAtLeastOneExecutingTaskIsRegistered() {
+        self.mockSessionManager.enabled = false
+
+        self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
+        let task1 = self.manager.taskWithURL(defaultURL).resume()
+        let task2 = self.manager.taskWithURL(defaultURL).resume()
+        self.wait()
+
+        self.expect { fulfill in
+            task1.completion {
+                XCTAssertEqual(task1.state, ImageTaskState.Completed)
+                XCTAssertNotNil($0.image)
+                fulfill()
+            }
+        }
+
+        self.expect { fulfill in
+            task2.completion {
+                XCTAssertEqual(task2.state, ImageTaskState.Completed)
+                XCTAssertNotNil($0.image)
+                fulfill()
+            }
+        }
+
+        task2.suspend()
+
+        self.mockSessionManager.enabled = true
+        self.wait()
+    }
+
+    func testThatDataTaskIsSuspendedWithTwoSuspendedTasksRegisteredWithIt() {
+        self.mockSessionManager.enabled = false
+
+        self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
+        let task1 = self.manager.taskWithURL(defaultURL).resume()
+        let task2 = self.manager.taskWithURL(defaultURL).resume()
+        self.wait()
+
+        self.expectNotification(MockURLSessionDataTaskDidSuspendNotification)
+        task1.suspend()
+        task2.suspend()
+        self.wait()
+    }
+
     // MARK: Progress
 
     /*

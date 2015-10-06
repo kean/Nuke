@@ -33,6 +33,10 @@ public class ImageTask: Hashable {
     }
     
     public func resume() -> Self { return self }
+
+    /** Advices image task to suspend loading. Suspended task might still complete at any time. For more info on suspending NSURLSessionTask see NSURLSession documentation.
+    */
+    public func suspend() -> Self { return self }
     public func cancel() -> Self { return self }
 }
 

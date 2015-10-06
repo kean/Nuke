@@ -82,8 +82,8 @@ public class ImageManager {
     }
     
     private func transitionStateAction(fromState: ImageTaskState, toState: ImageTaskState, task: ImageTaskInternal) {
-        if fromState == .Running && toState == .Cancelled {
-            self.loader.stopLoadingForTask(task)
+        if fromState == .Running && toState == .Suspended {
+            self.loader.suspendLoadingForTask(task)
         }
     }
     
@@ -95,9 +95,10 @@ public class ImageManager {
                 self.setState(.Completed, forTask: task)
             } else {
                 self.executingTasks.insert(task)
-                self.loader.startLoadingForTask(task)
+                self.loader.resumeLoadingForTask(task)
             }
         case .Cancelled:
+            self.loader.cancelLoadingForTask(task)
             task.response = ImageResponse.Failure(NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorCancelled, userInfo: nil))
             fallthrough
         case .Completed:
@@ -222,6 +223,10 @@ extension ImageManager: ImageTaskManaging {
         self.perform { self.setState(.Running, forTask: task) }
     }
 
+    private func suspendManagedTask(task: ImageTaskInternal) {
+        self.perform { self.setState(.Suspended, forTask: task) }
+    }
+
     private func cancelManagedTask(task: ImageTaskInternal) {
         self.perform { self.setState(.Cancelled, forTask: task) }
     }
@@ -289,6 +294,7 @@ public extension ImageManager {
 
 private protocol ImageTaskManaging {
     func resumeManagedTask(task: ImageTaskInternal)
+    func suspendManagedTask(task: ImageTaskInternal)
     func cancelManagedTask(task: ImageTaskInternal)
     func addCompletion(completion: ImageTaskCompletion, forTask task: ImageTaskInternal)
 }
@@ -306,6 +312,11 @@ private class ImageTaskInternal: ImageTask {
         self.manager.resumeManagedTask(self)
         return self
     }
+
+    override func suspend() -> Self {
+        self.manager.suspendManagedTask(self)
+        return self
+    }
     
     override func cancel() -> Self {
         self.manager.cancelManagedTask(self)
@@ -316,11 +327,14 @@ private class ImageTaskInternal: ImageTask {
         self.manager.addCompletion(completion, forTask: self)
         return self
     }
-    
+
+    // Suspended -> [Running, Cancelled, Completed]
+    // Running -> [Suspended, Cancelled, Completed]
+    // Cancelled -> []
+    // Completed -> []
     func isValidNextState(state: ImageTaskState) -> Bool {
         switch (self.state) {
-        case .Suspended: return (state == .Running || state == .Cancelled)
-        case .Running: return (state == .Completed || state == .Cancelled)
+        case .Suspended, .Running: return true
         default: return false
         }
     }

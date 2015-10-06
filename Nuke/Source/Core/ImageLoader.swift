@@ -8,8 +8,9 @@ import UIKit
 
 public protocol ImageLoading: class {
     weak var delegate: ImageLoadingDelegate? { get set }
-    func startLoadingForTask(task: ImageTask)
-    func stopLoadingForTask(imageTask: ImageTask)
+    func resumeLoadingForTask(task: ImageTask)
+    func suspendLoadingForTask(task: ImageTask)
+    func cancelLoadingForTask(task: ImageTask)
     func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool
     func invalidate()
     func removeAllCachedImages()
@@ -27,7 +28,6 @@ public protocol ImageLoadingDelegate: class {
 public struct ImageLoaderConfiguration {
     public var dataLoader: ImageDataLoading
     public var decoder: ImageDecoding
-    public var maxConcurrentTaskCount = 8
     public var decodingQueue = NSOperationQueue(maxConcurrentOperationCount: 1)
     public var processingQueue = NSOperationQueue(maxConcurrentOperationCount: 2)
     
@@ -48,7 +48,6 @@ public class ImageLoader: ImageLoading {
     private var dataLoader: ImageDataLoading {
         return self.configuration.dataLoader
     }
-    private var pendingTasks = [ImageTask]()
     private var executingTasks = [ImageTask : ImageLoadState]()
     private var sessionTasks = [ImageRequestKey : ImageSessionTask]()
     private let queue = dispatch_queue_create("ImageLoader-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
@@ -57,28 +56,12 @@ public class ImageLoader: ImageLoading {
         self.configuration = configuration
     }
     
-    public func startLoadingForTask(task: ImageTask) {
+    public func resumeLoadingForTask(task: ImageTask) {
         dispatch_async(self.queue) {
-            self.pendingTasks.append(task)
-            self.executePendingTasks()
-        }
-    }
-    
-    private func executePendingTasks() {
-        func shouldExecuteNextPendingTask() -> Bool {
-            return self.executingTasks.count < self.configuration.maxConcurrentTaskCount
-        }
-        func dequeueNextPendingTask() -> ImageTask? {
-            return self.pendingTasks.isEmpty ? nil : self.pendingTasks.removeFirst()
-        }
-        while shouldExecuteNextPendingTask() {
-            guard let task = dequeueNextPendingTask() else  {
-                return
-            }
             self.startSessionTaskForTask(task)
         }
     }
-    
+
     private func startSessionTaskForTask(task: ImageTask) {
         let key = ImageRequestKey(task.request, owner: self)
         var sessionTask: ImageSessionTask! = self.sessionTasks[key]
@@ -89,16 +72,17 @@ public class ImageLoader: ImageLoading {
             }, completionHandler: { [weak self] data, _, error in
                 self?.sessionTask(sessionTask, didCompleteWithData: data, error: error)
             })
-            dataTask.resume()
             sessionTask.dataTask = dataTask
             self.sessionTasks[key] = sessionTask
         } else {
             self.delegate?.imageLoader(self, imageTask: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.totalUnitCount)
         }
         self.executingTasks[task] = ImageLoadState.Loading(sessionTask)
-        sessionTask.tasks.append(task)
+        sessionTask.suspendedTasks.remove(task)
+        sessionTask.executingTasks.insert(task)
+        sessionTask.dataTask?.resume()
     }
-    
+
     private func sessionTask(sessionTask: ImageSessionTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
         dispatch_async(self.queue) {
             sessionTask.totalUnitCount = totalUnitCount
@@ -108,7 +92,7 @@ public class ImageLoader: ImageLoading {
             }
         }
     }
-    
+
     private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithData data: NSData?, error: ErrorType?) {
         if let data = data {
             self.configuration.decodingQueue.addOperationWithBlock { [weak self] in
@@ -125,7 +109,8 @@ public class ImageLoader: ImageLoading {
             for imageTask in sessionTask.tasks {
                 self.processImage(image, error: error, forImageTask: imageTask)
             }
-            sessionTask.tasks.removeAll()
+            sessionTask.suspendedTasks.removeAll()
+            sessionTask.executingTasks.removeAll()
             sessionTask.dataTask = nil
             self.removeSessionTask(sessionTask)
         }
@@ -159,18 +144,32 @@ public class ImageLoader: ImageLoading {
         dispatch_async(self.queue) {
             self.delegate?.imageLoader(self, imageTask: imageTask, didCompleteWithImage: image, error: error, userInfo: nil)
             self.executingTasks[imageTask] = nil
-            self.executePendingTasks()
+        }
+    }
+
+    public func suspendLoadingForTask(task: ImageTask) {
+        dispatch_async(self.queue) {
+            if let state = self.executingTasks[task] {
+                switch state {
+                case .Loading(let sessionTask):
+                    sessionTask.executingTasks.remove(task)
+                    sessionTask.suspendedTasks.insert(task)
+                    if sessionTask.executingTasks.isEmpty {
+                        sessionTask.dataTask?.suspend()
+                    }
+                default: break
+                }
+            }
         }
     }
     
-    public func stopLoadingForTask(imageTask: ImageTask) {
+    public func cancelLoadingForTask(task: ImageTask) {
         dispatch_async(self.queue) {
-            if let state = self.executingTasks[imageTask] {
+            if let state = self.executingTasks[task] {
                 switch state {
                 case .Loading(let sessionTask):
-                    if let index = (sessionTask.tasks.indexOf { $0 === imageTask }) {
-                        sessionTask.tasks.removeAtIndex(index)
-                    }
+                    sessionTask.executingTasks.remove(task)
+                    sessionTask.suspendedTasks.remove(task)
                     if sessionTask.tasks.isEmpty {
                         sessionTask.dataTask?.cancel()
                         sessionTask.dataTask = nil
@@ -179,10 +178,7 @@ public class ImageLoader: ImageLoading {
                 case .Processing(let operation):
                     operation.cancel()
                 }
-                self.executingTasks[imageTask] = nil
-                self.executePendingTasks()
-            } else if let index = (self.pendingTasks.indexOf { $0 === imageTask }) {
-                self.pendingTasks.removeAtIndex(index)
+                self.executingTasks[task] = nil
             }
         }
     }
@@ -235,7 +231,11 @@ private enum ImageLoadState {
 private class ImageSessionTask {
     let key: ImageRequestKey
     var dataTask: NSURLSessionTask?
-    var tasks = [ImageTask]()
+    var executingTasks = Set<ImageTask>()
+    var suspendedTasks = Set<ImageTask>()
+    var tasks: Set<ImageTask> {
+        return self.executingTasks.union(self.suspendedTasks)
+    }
     var totalUnitCount: Int64 = 0
     var completedUnitCount: Int64 = 0
     
