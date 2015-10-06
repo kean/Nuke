@@ -104,4 +104,14 @@ class ImageProcessingTest: XCTestCase {
         }
         XCTAssertEqual(image.processorIDs, ["processor1", "processor2"])
     }
+    
+    func testThatImageFilterWorksWithHeterogeneousFilters() {
+        let composition1 = ImageProcessorComposition(processors: [MockImageProcessor(ID: "ID1"), MockParameterlessImageProcessor()])
+        let composition2 = ImageProcessorComposition(processors: [MockImageProcessor(ID: "ID1"), MockParameterlessImageProcessor()])
+        let composition3 = ImageProcessorComposition(processors: [MockParameterlessImageProcessor(), MockImageProcessor(ID: "ID1")])
+        let composition4 = ImageProcessorComposition(processors: [MockParameterlessImageProcessor(), MockImageProcessor(ID: "ID1"), MockImageProcessor(ID: "ID2")])
+        XCTAssertEqual(composition1, composition2)
+        XCTAssertNotEqual(composition1, composition3)
+        XCTAssertNotEqual(composition1, composition4)
+    }
 }
