@@ -58,29 +58,30 @@ public class ImageLoader: ImageLoading {
     
     public func resumeLoadingForTask(task: ImageTask) {
         dispatch_async(self.queue) {
-            self.startSessionTaskForTask(task)
+            let key = ImageRequestKey(task.request, owner: self)
+            var sessionTask: ImageSessionTask! = self.sessionTasks[key]
+            if sessionTask == nil {
+                sessionTask = self.createSessionTaskWithRequest(task.request, key: key)
+                self.sessionTasks[key] = sessionTask
+            } else {
+                self.delegate?.imageLoader(self, imageTask: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.totalUnitCount)
+            }
+            self.executingTasks[task] = ImageLoadState.Loading(sessionTask)
+            sessionTask.suspendedTasks.remove(task)
+            sessionTask.executingTasks.insert(task)
+            sessionTask.dataTask?.resume()
         }
     }
 
-    private func startSessionTaskForTask(task: ImageTask) {
-        let key = ImageRequestKey(task.request, owner: self)
-        var sessionTask: ImageSessionTask! = self.sessionTasks[key]
-        if sessionTask == nil {
-            sessionTask = ImageSessionTask(key: key)
-            let dataTask = self.dataLoader.imageDataTaskWithURL(task.request.URL, progressHandler: { [weak self] completedUnits, totalUnits in
-                self?.sessionTask(sessionTask, didUpdateProgressWithCompletedUnitCount: completedUnits, totalUnitCount: totalUnits)
-            }, completionHandler: { [weak self] data, _, error in
-                self?.sessionTask(sessionTask, didCompleteWithData: data, error: error)
-            })
-            sessionTask.dataTask = dataTask
-            self.sessionTasks[key] = sessionTask
-        } else {
-            self.delegate?.imageLoader(self, imageTask: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.totalUnitCount)
-        }
-        self.executingTasks[task] = ImageLoadState.Loading(sessionTask)
-        sessionTask.suspendedTasks.remove(task)
-        sessionTask.executingTasks.insert(task)
-        sessionTask.dataTask?.resume()
+    private func createSessionTaskWithRequest(request: ImageRequest, key: ImageRequestKey) -> ImageSessionTask {
+        let sessionTask = ImageSessionTask(key: key)
+        let dataTask = self.dataLoader.imageDataTaskWithURL(request.URL, progressHandler: { [weak self] completedUnits, totalUnits in
+            self?.sessionTask(sessionTask, didUpdateProgressWithCompletedUnitCount: completedUnits, totalUnitCount: totalUnits)
+        }, completionHandler: { [weak self] data, _, error in
+            self?.sessionTask(sessionTask, didCompleteWithData: data, error: error)
+        })
+        sessionTask.dataTask = dataTask
+        return sessionTask
     }
 
     private func sessionTask(sessionTask: ImageSessionTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
