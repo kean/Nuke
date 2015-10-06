@@ -93,7 +93,7 @@ public class ImageLoader: ImageLoading {
             sessionTask.dataTask = dataTask
             self.sessionTasks[key] = sessionTask
         } else {
-            self.delegate?.imageLoader(self, imageTask: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.completedUnitCount)
+            self.delegate?.imageLoader(self, imageTask: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.totalUnitCount)
         }
         self.executingTasks[task] = ImageLoadState.Loading(sessionTask)
         sessionTask.tasks.append(task)
