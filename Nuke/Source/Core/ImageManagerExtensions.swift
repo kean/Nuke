@@ -11,7 +11,7 @@ public extension ImageManager {
         return self.taskWithRequest(ImageRequest(URL: URL), completion: completion)
     }
     
-    func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
+    func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
         let task = self.taskWithRequest(request)
         if completion != nil { task.completion(completion!) }
         return task

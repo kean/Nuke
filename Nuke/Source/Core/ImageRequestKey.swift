@@ -24,7 +24,7 @@ public class ImageRequestKey: NSObject {
     }
     
     public override var hash: Int {
-        return self.request.URL.hashValue
+        return self.request.URLRequest.URL?.hashValue ?? 0
     }
     
     public override func isEqual(other: AnyObject?) -> Bool {

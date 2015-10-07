@@ -75,7 +75,7 @@ public class ImageLoader: ImageLoading {
 
     private func createSessionTaskWithRequest(request: ImageRequest, key: ImageRequestKey) -> ImageSessionTask {
         let sessionTask = ImageSessionTask(key: key)
-        let dataTask = self.dataLoader.imageDataTaskWithURL(request.URL, progressHandler: { [weak self] completedUnits, totalUnits in
+        let dataTask = self.dataLoader.imageDataTaskWithRequest(request, progressHandler: { [weak self] completedUnits, totalUnits in
             self?.sessionTask(sessionTask, didUpdateProgressWithCompletedUnitCount: completedUnits, totalUnitCount: totalUnits)
         }, completionHandler: { [weak self] data, _, error in
             self?.sessionTask(sessionTask, didCompleteWithData: data, error: error)
@@ -195,7 +195,7 @@ public class ImageLoader: ImageLoading {
         guard self.dataLoader.isRequestCacheEquivalent(lhs, toRequest: rhs) else {
             return false
         }
-        return isEquivalentProcessors(self.processorForRequest(lhs), rhs: self.processorForRequest(rhs))
+        return equivalentProcessors(self.processorForRequest(lhs), rhs: self.processorForRequest(rhs))
     }
     
     public func invalidate() {

@@ -33,8 +33,12 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertNil(self.manager.cachedResponseForRequest(request))
         
         self.expect { fulfill in
-            self.manager.taskWithRequest(request) { (response) -> Void in
-                XCTAssertNotNil(response.image, "")
+            self.manager.taskWithRequest(request) {
+                switch $0 {
+                case .Success(_, let info):
+                    XCTAssertFalse(info.fastResponse)
+                default: XCTFail()
+                }
                 fulfill()
             }.resume()
         }
@@ -46,8 +50,12 @@ class ImageMemoryCacheTest: XCTestCase {
         self.mockSessionManager.enabled = false
         
         var isCompletionCalled = false
-        self.manager.taskWithRequest(request) { (response) -> Void in
-            XCTAssertNotNil(response.image, "")
+        self.manager.taskWithRequest(request) {
+            switch $0 {
+            case .Success(_, let info):
+                XCTAssertTrue(info.fastResponse)
+            default: XCTFail()
+            }
             // Comletion block should be called on the main thread
             isCompletionCalled = true
         }.resume()
@@ -66,5 +74,52 @@ class ImageMemoryCacheTest: XCTestCase {
         let response = self.manager.cachedResponseForRequest(request)
         XCTAssertNotNil(response)
         XCTAssertEqual(response?.userInfo as? String, "info")
+        
+        var isCompletionCalled = false
+        self.manager.taskWithRequest(request) {
+            switch $0 {
+            case .Success(_, let info):
+                XCTAssertTrue(info.fastResponse)
+            default: XCTFail()
+            }
+            // Comletion block should be called on the main thread
+            isCompletionCalled = true
+        }.resume()
+        XCTAssertTrue(isCompletionCalled, "")
+    }
+    
+    func testThatImageManagerHonorsURLRequestCachePolicy() {
+        self.manager.storeResponse(ImageCachedResponse(image: UIImage(), userInfo: "info"), forRequest: ImageRequest(URL: defaultURL))
+        
+        let request1 = ImageRequest(URLRequest: NSURLRequest(URL: defaultURL, cachePolicy: .UseProtocolCachePolicy, timeoutInterval: 100))
+        let request2 = ImageRequest(URLRequest: NSURLRequest(URL: defaultURL, cachePolicy: .ReloadIgnoringLocalCacheData, timeoutInterval: 100))
+        
+        // cachedResponseForRequest should ignore NSURLRequestCachePolicy
+        XCTAssertNotNil(self.manager.cachedResponseForRequest(request1))
+        XCTAssertNotNil(self.manager.cachedResponseForRequest(request2))
+        
+        var isCompletionCalled = false
+        self.manager.taskWithRequest(request1) {
+            switch $0 {
+            case .Success(_, let info):
+                XCTAssertTrue(info.fastResponse)
+            default: XCTFail()
+            }
+            // Comletion block should be called on the main thread
+            isCompletionCalled = true
+            }.resume()
+        XCTAssertTrue(isCompletionCalled, "")
+        
+        self.expect { fulfill in
+            self.manager.taskWithRequest(request2) {
+                switch $0 {
+                case .Success(_, let info):
+                    XCTAssertFalse(info.fastResponse)
+                default: XCTFail()
+                }
+                fulfill()
+                }.resume()
+        }
+        self.wait()
     }
 }

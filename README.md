@@ -69,7 +69,7 @@ Nuke.taskWithURL(imageURL) {
 #### Adding Request Options
 
 ```swift
-var request = ImageRequest(URL: imageURL)
+var request = ImageRequest(URLRequest: <#NSURLRequest#>)
 request.targetSize = CGSize(width: 300.0, height: 400.0) // Set target size in pixels
 request.contentMode = .AspectFill
 

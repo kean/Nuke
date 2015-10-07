@@ -15,15 +15,15 @@ public class AlamofireImageDataLoader: ImageDataLoading {
     // MARK: ImageDataLoading
     
     public func isRequestLoadEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
-        return lhs.URL.isEqual(rhs.URL)
+        return lhs.isLoadEquivalentToRequest(rhs)
     }
     
     public func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
-        return lhs.URL.isEqual(rhs.URL)
+        return lhs.isCacheEquivalentToRequest(rhs)
     }
     
-    public func imageDataTaskWithURL(url: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask {
-        let task = self.manager.request(.GET, url, parameters: nil).response { (_, response, data, error) -> Void in
+    public func imageDataTaskWithRequest(request: ImageRequest, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask {
+        let task = self.manager.request(request.URLRequest).response { (_, response, data, error) -> Void in
             completionHandler(data: data, response: response, error: error)
         }.progress { (_, totalBytesReceived, totalBytesExpected) -> Void in
             progressHandler(completedUnitCount: totalBytesReceived, totalUnitCount: totalBytesExpected)

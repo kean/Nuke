@@ -23,7 +23,7 @@ public extension ImageProcessing where Self: Equatable {
     }
 }
 
-public func isEquivalentProcessors(lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
+public func equivalentProcessors(lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
     switch (lhs, rhs) {
     case (.Some(let lhs), .Some(let rhs)): return lhs.isEquivalentToProcessor(rhs)
     case (.None, .None): return true

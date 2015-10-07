@@ -90,13 +90,15 @@ public class ImageManager {
     private func enterStateAction(state: ImageTaskState, task: ImageTaskInternal) {
         switch state {
         case .Running:
-            if let response = self.cachedResponseForRequest(task.request) {
-                task.response = ImageResponse.Success(response.image, ImageResponseInfo(fastResponse: true, userInfo: response.userInfo))
-                self.setState(.Completed, forTask: task)
-            } else {
-                self.executingTasks.insert(task)
-                self.loader.resumeLoadingForTask(task)
+            if task.request.allowsCaching {
+                if let response = self.cachedResponseForRequest(task.request) {
+                    task.response = ImageResponse.Success(response.image, ImageResponseInfo(fastResponse: true, userInfo: response.userInfo))
+                    self.setState(.Completed, forTask: task)
+                    return
+                }
             }
+            self.executingTasks.insert(task)
+            self.loader.resumeLoadingForTask(task)
         case .Cancelled:
             self.loader.cancelLoadingForTask(task)
             task.response = ImageResponse.Failure(NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorCancelled, userInfo: nil))
@@ -169,10 +171,14 @@ public class ImageManager {
     
     // MARK: Memory Caching
     
+    /** Returns image response from the memory cache. Ignores NSURLRequestCachePolicy. 
+    */
     public func cachedResponseForRequest(request: ImageRequest) -> ImageCachedResponse? {
         return self.cache?.cachedResponseForKey(ImageRequestKey(request, owner: self))
     }
     
+    /** Stores image response into memory cache. 
+    */
     public func storeResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
         self.cache?.storeResponse(response, forKey: ImageRequestKey(request, owner: self))
     }

@@ -18,7 +18,7 @@ public protocol ImageDataLoading {
     */
     func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool
     
-    func imageDataTaskWithURL(url: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask
+    func imageDataTaskWithRequest(request: ImageRequest, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask
     
     func invalidate()
     
@@ -49,15 +49,15 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     // MARK: ImageDataLoading
     
     public func isRequestLoadEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
-        return lhs.URL.isEqual(rhs.URL)
+        return lhs.isLoadEquivalentToRequest(rhs)
     }
     
     public func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
-        return lhs.URL.isEqual(rhs.URL)
+        return lhs.isCacheEquivalentToRequest(rhs)
     }
     
-    public func imageDataTaskWithURL(URL: NSURL, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask {
-        let dataTask = self.session.dataTaskWithURL(URL)
+    public func imageDataTaskWithRequest(request: ImageRequest, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask {
+        let dataTask = self.session.dataTaskWithRequest(request.URLRequest)
         dispatch_sync(self.queue) {
             self.taskHandlers[dataTask] = URLSessionDataTaskHandler(progressHandler: progressHandler, completionHandler: completionHandler)
         }

@@ -198,6 +198,29 @@ class ImageManagerTest: XCTestCase {
         }
     }
     
+    func testThatDataTasksWithDifferentCachePolicyAreNotReused() {
+        let request1 = ImageRequest(URLRequest: NSURLRequest(URL: defaultURL, cachePolicy: .UseProtocolCachePolicy, timeoutInterval: 0))
+        let request2 = ImageRequest(URLRequest: NSURLRequest(URL: defaultURL, cachePolicy: .ReturnCacheDataDontLoad, timeoutInterval: 0))
+        XCTAssertTrue(self.mockSessionManager.isRequestCacheEquivalent(request1, toRequest: request2))
+        XCTAssertFalse(self.mockSessionManager.isRequestLoadEquivalent(request1, toRequest: request2))
+        
+        self.expect { fulfill in
+            self.manager.taskWithRequest(request1) { _ in
+                fulfill()
+                }.resume()
+        }
+        
+        self.expect { fulfill in
+            self.manager.taskWithRequest(request2) { _ in
+                fulfill()
+                }.resume()
+        }
+        
+        self.wait { _ in
+            XCTAssertEqual(self.mockSessionManager.createdTaskCount, 2)
+        }
+    }
+    
     func testThatDataTaskWithRemainingTasksDoesntGetCancelled() {
         self.mockSessionManager.enabled = false
         
