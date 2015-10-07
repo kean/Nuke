@@ -4,18 +4,8 @@
 
 import Foundation
 
-/** Tells the delegate that the preheat window changed significantly.
-
-Added index paths are sorted so that the items closest to the previous preheat window are in the beginning of the array; no matter whether user is scrolling forward of backward.
-*/
-public protocol ImageCollectionViewPreheatingControllerDelegate: class {
-    func collectionViewPreheatingController(controller: ImageCollectionViewPreheatingController, didUpdateWithAddedIndexPaths addedIndexPaths: [NSIndexPath], removedIndexPaths: [NSIndexPath])
-}
-
-public class ImageCollectionViewPreheatingController: NSObject {
-    public weak var delegate: ImageCollectionViewPreheatingControllerDelegate?
+public class ImagePreheatingControllerForCollectionView: ImagePreheatingController {
     public let collectionView: UICollectionView
-    public internal(set) var preheatIndexPath = Set<NSIndexPath>()
     
     /** The proportion of the collection view bounds (either width or height depending on the scroll direction) that is used as a preheat window. Default value is 2.0.
     */
@@ -35,41 +25,32 @@ public class ImageCollectionViewPreheatingController: NSObject {
     public internal(set) var preheatRect = CGRectZero
     public internal(set) var preheatContentOffset = CGPointZero
     
-    deinit {
-        self.collectionView.removeObserver(self, forKeyPath: "contentOffset", context: nil)
-    }
-    
     public init(collectionView: UICollectionView) {
         self.collectionView = collectionView
-        super.init()
-        self.collectionView.addObserver(self, forKeyPath: "contentOffset", options: [.New], context: nil)
+        super.init(scrollView: collectionView)
     }
     
-    public func resetPreheatRect() {
-        self.delegate?.collectionViewPreheatingController(self, didUpdateWithAddedIndexPaths: [], removedIndexPaths: Array(self.preheatIndexPath))
-        self.resetPreheatRectIndexPaths()
+    public override func reset() {
+        super.reset()
+        self.resetPreheatRect()
     }
     
-    public func updatePreheatRect() {
-        self.resetPreheatRectIndexPaths()
-        self.updatePreheatRectIndexPaths()
+    public override func update() {
+        super.update()
+        self.resetPreheatRect()
+        self.updatePreheatRect()
     }
     
-    private func resetPreheatRectIndexPaths() {
-        self.preheatIndexPath.removeAll()
+    internal override func scrollViewDidScroll() {
+        self.updatePreheatRect()
+    }
+    
+    private func resetPreheatRect() {
         self.preheatRect = CGRectZero
         self.preheatContentOffset = CGPointZero
     }
     
-    public override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
-        if object === self.collectionView {
-            self.updatePreheatRectIndexPaths()
-        } else {
-            super.observeValueForKeyPath(keyPath, ofObject: object, change: change, context: nil)
-        }
-    }
-    
-    private func updatePreheatRectIndexPaths() {
+    private func updatePreheatRect() {
         let layout = self.collectionView.collectionViewLayout as! UICollectionViewFlowLayout
         let isVertical = layout.scrollDirection == .Vertical
         
@@ -82,30 +63,9 @@ public class ImageCollectionViewPreheatingController: NSObject {
             
             self.preheatContentOffset = offset
             
-            let preheatRect = self.preheatRectForScrollingForward(isScrollingForward)
-            
-            let newIndexPaths = Set(self.indexPathsForElementsInRect(preheatRect))
-            let oldIndexPaths = Set(self.preheatIndexPath)
-            
-            var addedIndexPaths = Set(newIndexPaths)
-            addedIndexPaths = addedIndexPaths.subtract(oldIndexPaths)
-            
-            var removedIndexPaths = Set(oldIndexPaths)
-            removedIndexPaths = removedIndexPaths.subtract(newIndexPaths)
-            
-            self.preheatIndexPath = newIndexPaths
-            
-            let sortedAddedIndexPath = Array(addedIndexPaths).sort {
-                if isScrollingForward {
-                    return $0.section < $1.section || $0.item < $1.item
-                } else {
-                    return $0.section > $1.section || $0.item > $1.item
-                }
-            }
-            
-            self.preheatRect = preheatRect
-            
-            self.delegate?.collectionViewPreheatingController(self, didUpdateWithAddedIndexPaths: sortedAddedIndexPath, removedIndexPaths: Array(removedIndexPaths))
+            self.preheatRect = self.preheatRectForScrollingForward(isScrollingForward)
+            let newIndexPaths = Set(self.indexPathsForElementsInRect(self.preheatRect))
+            self.updatePreheatIndexPaths(newIndexPaths, scrollingForward: isScrollingForward)
         }
     }
     

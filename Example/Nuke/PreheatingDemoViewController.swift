@@ -11,9 +11,9 @@ import Nuke
 
 private let cellReuseID = "reuseID"
 
-class PreheatingDemoViewController: UICollectionViewController, ImageCollectionViewPreheatingControllerDelegate {
+class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingControllerDelegate {
     var photos: [NSURL]!
-    var preheatController: ImageCollectionViewPreheatingController?
+    var preheatController: ImagePreheatingControllerForCollectionView?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,17 +31,17 @@ class PreheatingDemoViewController: UICollectionViewController, ImageCollectionV
     
     override func viewDidAppear(animated: Bool) {
         super.viewDidAppear(animated)
-        
-        self.preheatController = ImageCollectionViewPreheatingController(collectionView: self.collectionView!)
+
+        self.preheatController = ImagePreheatingControllerForCollectionView(collectionView: self.collectionView!)
         self.preheatController?.delegate = self
-        self.preheatController?.updatePreheatRect()
+        self.preheatController?.update()
     }
     
     override func viewDidDisappear(animated: Bool) {
         super.viewDidDisappear(animated)
         
         // Resets preheat rect and stop preheating images via delegate call.
-        self.preheatController?.resetPreheatRect()
+        self.preheatController?.reset()
         self.preheatController = nil
     }
     
@@ -101,9 +101,9 @@ class PreheatingDemoViewController: UICollectionViewController, ImageCollectionV
         return imageView!
     }
     
-    // MARK: ImageCollectionViewPreheatingControllerDelegate
+    // MARK: ImagePreheatingControllerDelegate
     
-    func collectionViewPreheatingController(controller: ImageCollectionViewPreheatingController, didUpdateWithAddedIndexPaths addedIndexPaths: [NSIndexPath], removedIndexPaths: [NSIndexPath]) {
+    func preheatingController(controller: ImagePreheatingController, didUpdateWithAddedIndexPaths addedIndexPaths: [NSIndexPath], removedIndexPaths: [NSIndexPath]) {
         func requestForIndexPaths(indexPaths: [NSIndexPath]) -> [ImageRequest] {
             return indexPaths.map { return self.imageRequestWithURL(self.photos[$0.row]) }
         }
