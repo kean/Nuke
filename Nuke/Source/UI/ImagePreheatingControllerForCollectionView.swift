@@ -38,7 +38,9 @@ public class ImagePreheatingControllerForCollectionView: ImagePreheatingControll
     }
     
     public override func scrollViewDidScroll() {
-        self.updatePreheatRect()
+        if self.enabled {
+            self.updatePreheatRect()
+        }
     }
     
     private enum ScrollDirection {

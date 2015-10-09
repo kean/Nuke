@@ -30,9 +30,7 @@ public class ImagePreheatingController: NSObject {
     
     public override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
         if object === self.scrollView {
-            if self.enabled {
-                self.scrollViewDidScroll()
-            }
+            self.scrollViewDidScroll()
         } else {
             super.observeValueForKeyPath(keyPath, ofObject: object, change: change, context: nil)
         }
