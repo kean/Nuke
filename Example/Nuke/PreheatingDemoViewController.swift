@@ -109,16 +109,17 @@ class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingC
         }
         Nuke.startPreheatingImages(requestForIndexPaths(addedIndexPaths))
         Nuke.stopPreheatingImages(requestForIndexPaths(removedIndexPaths))
-        self.logAddedIndexPaths(addedIndexPaths, removeIndexPaths: removedIndexPaths)
+        self.logAddedIndexPaths(addedIndexPaths, removedIndexPaths: removedIndexPaths)
     }
     
-    func logAddedIndexPaths(addedIndexPath: [NSIndexPath], removeIndexPaths: [NSIndexPath]) {
+    func logAddedIndexPaths(addedIndexPath: [NSIndexPath], removedIndexPaths: [NSIndexPath]) {
         func stringForIndexPaths(indexPaths: [NSIndexPath]) -> String {
             guard indexPaths.count > 0 else {
-                return "()"
+                return "[]"
             }
-            return indexPaths.map{ return "\($0.item)" }.joinWithSeparator(" ")
+            let items = indexPaths.map{ return "\($0.item)" }.joinWithSeparator(" ")
+            return "[\(items)]"
         }
-        print("did change preheat rect with added indexes \(stringForIndexPaths(addedIndexPath)), removed indexes \(stringForIndexPaths(removeIndexPaths))")
+        print("did change preheat rect with added indexes \(stringForIndexPaths(addedIndexPath)), removed indexes \(stringForIndexPaths(removedIndexPaths))")
     }
 }

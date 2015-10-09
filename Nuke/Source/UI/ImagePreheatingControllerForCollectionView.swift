@@ -6,94 +6,84 @@ import Foundation
 
 public class ImagePreheatingControllerForCollectionView: ImagePreheatingController {
     public let collectionView: UICollectionView
+    public var collectionViewLayout: UICollectionViewFlowLayout {
+        return self.collectionView.collectionViewLayout as! UICollectionViewFlowLayout
+    }
     
-    /** The proportion of the collection view bounds (either width or height depending on the scroll direction) that is used as a preheat window. Default value is 2.0.
+    /** The proportion of the collection view size (either width or height depending on the scroll axis) used as a preheat window.
     */
-    public internal(set) var preheatRectRatio = 2.0
+    public var preheatRectRatio: CGFloat = 1.0
     
-    /** Determines the offset of the preheat from the center of the collection view visible area.
-    
-    The value of this property is the ratio of the collection view height for UICollectionViewScrollDirectionVertical and width for UICollectionViewScrollDirectionHorizontal.
+    /** Determines how far the user needs to refresh preheat window..
     */
-    public internal(set) var preheatRectOffset = 0.33
+    public var preheatRectUpdateRatio: CGFloat = 0.33
     
-    /** Determines how far the user needs to scroll from the point where the current preheat rect was set to refresh it.
-    
-    The value of this property is the ratio of the collection view height for UICollectionViewScrollDirectionVertical and width for UICollectionViewScrollDirectionHorizontal.
-    */
-    public internal(set) var preheatRectUpdateRatio = 0.33
-    public internal(set) var preheatRect = CGRectZero
-    public internal(set) var preheatContentOffset = CGPointZero
+    private var previousContentOffset = CGPointZero
     
     public init(collectionView: UICollectionView) {
+        assert(collectionView.collectionViewLayout is UICollectionViewFlowLayout)
         self.collectionView = collectionView
         super.init(scrollView: collectionView)
     }
     
     public override func reset() {
-        super.reset()
-        self.resetPreheatRect()
+        self.previousContentOffset = CGPointZero
+        self.updatePreheatIndexPaths([])
     }
     
     public override func update() {
-        super.update()
-        self.resetPreheatRect()
+        self.previousContentOffset = CGPointZero
         self.updatePreheatRect()
     }
     
-    internal override func scrollViewDidScroll() {
+    public override func scrollViewDidScroll() {
         self.updatePreheatRect()
     }
     
-    private func resetPreheatRect() {
-        self.preheatRect = CGRectZero
-        self.preheatContentOffset = CGPointZero
+    private enum ScrollDirection {
+        case Forward, Backward
     }
     
     private func updatePreheatRect() {
-        let layout = self.collectionView.collectionViewLayout as! UICollectionViewFlowLayout
-        let isVertical = layout.scrollDirection == .Vertical
-        
-        let offset = self.collectionView.contentOffset
-        let delta = isVertical ? self.preheatContentOffset.y - offset.y : self.preheatContentOffset.x - offset.x
-        let margin = isVertical ? Double(CGRectGetHeight(self.collectionView.bounds)) * self.preheatRectUpdateRatio : Double(CGRectGetWidth(self.collectionView.bounds)) * self.preheatRectUpdateRatio
-        
-        if fabs(Double(delta)) > margin || CGPointEqualToPoint(self.preheatContentOffset, CGPointZero) {
-            let isScrollingForward = (isVertical ? offset.y >= self.preheatContentOffset.y : offset.x >= self.preheatContentOffset.x) || CGPointEqualToPoint(self.preheatContentOffset, CGPointZero)
-            
-            self.preheatContentOffset = offset
-            
-            self.preheatRect = self.preheatRectForScrollingForward(isScrollingForward)
-            let newIndexPaths = Set(self.indexPathsForElementsInRect(self.preheatRect))
-            self.updatePreheatIndexPaths(newIndexPaths, scrollingForward: isScrollingForward)
+        let scrollAxis = self.collectionViewLayout.scrollDirection
+        let updateMargin = (scrollAxis == .Vertical ? CGRectGetHeight : CGRectGetWidth)(self.collectionView.bounds) * self.preheatRectUpdateRatio
+        let contentOffset = self.collectionView.contentOffset
+        guard distanceBetweenPoints(contentOffset, self.previousContentOffset) > updateMargin || self.previousContentOffset == CGPointZero else {
+            return
         }
+        let scrollDirection: ScrollDirection = ((scrollAxis == .Vertical ? contentOffset.y >= self.previousContentOffset.y : contentOffset.x >= self.previousContentOffset.x) || self.previousContentOffset == CGPointZero) ? .Forward : .Backward
+        
+        self.previousContentOffset = contentOffset
+        let preheatRect = self.preheatRectInScrollDirection(scrollDirection)
+        let visibleIndexPaths = self.collectionView.indexPathsForVisibleItems()
+        let preheatIndexPaths = self.indexPathsForElementsInRect(preheatRect).subtract(visibleIndexPaths).sort {
+            switch scrollDirection {
+            case .Forward: return $0.section < $1.section || $0.item < $1.item
+            case .Backward: return $0.section > $1.section || $0.item > $1.item
+            }
+        }
+        self.updatePreheatIndexPaths(preheatIndexPaths)
     }
     
-    private func preheatRectForScrollingForward(forward: Bool) -> CGRect {
-        let layout = self.collectionView.collectionViewLayout as! UICollectionViewFlowLayout
-        let isVertical = layout.scrollDirection == .Vertical
-        
-        // UIScrollView bounds works differently from UIView bounds. It adds the contentOffset to the rect.
+    private func preheatRectInScrollDirection(direction: ScrollDirection) -> CGRect {
+        // UIScrollView bounds works differently from UIView bounds, it adds contentOffset
         let viewport = self.collectionView.bounds
-        var preheatRect: CGRect!
-        if isVertical {
-            let inset = viewport.size.height - viewport.size.height * CGFloat(self.preheatRectRatio)
-            preheatRect = CGRectInset(viewport, 0.0, inset / 2.0)
-            let offset = CGFloat(self.preheatRectOffset) * CGRectGetHeight(self.collectionView.bounds)
-            preheatRect = CGRectOffset(preheatRect, 0.0, forward ? offset : -offset)
-        } else {
-            let inset = viewport.size.width - viewport.size.width * CGFloat(self.preheatRectRatio)
-            preheatRect = CGRectInset(viewport, inset / 2.0, 0.0)
-            let offset = CGFloat(self.preheatRectOffset) * CGRectGetWidth(self.collectionView.bounds)
-            preheatRect = CGRectOffset(preheatRect, forward ? offset : -offset, 0.0)
+        switch self.collectionViewLayout.scrollDirection {
+        case .Vertical:
+            let height = CGRectGetHeight(viewport) * self.preheatRectRatio
+            let y = (direction == .Forward) ? CGRectGetMaxY(viewport) : CGRectGetMinY(viewport) - height
+            return CGRectIntegral(CGRect(x: 0, y: y, width: CGRectGetWidth(viewport), height: height))
+        case .Horizontal:
+            let width = CGRectGetWidth(viewport) * self.preheatRectRatio
+            let x = (direction == .Forward) ? CGRectGetMaxX(viewport) : CGRectGetMinX(viewport) - width
+            return CGRectIntegral(CGRect(x: x, y: 0, width: width, height: CGRectGetHeight(viewport)))
         }
-        return CGRectIntegral(preheatRect)
     }
     
-    private func indexPathsForElementsInRect(rect: CGRect) -> [NSIndexPath] {
-        guard let layoutAttributes = self.collectionView.collectionViewLayout.layoutAttributesForElementsInRect(rect) else {
+    private func indexPathsForElementsInRect(rect: CGRect) -> Set<NSIndexPath> {
+        guard let layoutAttributes = self.collectionViewLayout.layoutAttributesForElementsInRect(rect) else {
             return []
         }
-        return layoutAttributes.filter{ return $0.representedElementCategory == .Cell }.map{ return $0.indexPath }
+        return Set(layoutAttributes.filter{ return $0.representedElementCategory == .Cell }.map{ return $0.indexPath })
     }
 }

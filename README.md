@@ -32,7 +32,7 @@ Nuke.taskWithURL(URL) {
 ##### Loading
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
 - Uses a single data task for multiple equivalent requests
-- [Intelligent preheating](https://github.com/kean/Nuke/wiki/Image-Preheating-Guide) of images close to the viewport
+- [Automated preheating](https://github.com/kean/Nuke/wiki/Image-Preheating-Guide) of images close to the viewport
 
 ##### Caching
 - Doesn't reinvent caching, relies on [HTTP cache](https://tools.ietf.org/html/rfc7234) and its implementation in [Foundation](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html)
@@ -166,10 +166,17 @@ Nuke.startPreheatingImages(requests: requests)
 Nuke.stopPreheatingImages(requests: requests)
 ```
 
+#### Automate preheating
+
+```swift
+let preheater = ImagePreheatingControllerForCollectionView(collectionView: <#collectionView#>)
+preheater.delegate = self // Signals when preheat window changes
+```
+
 #### Customizing Image Manager
 
 ```swift
-let dataLoader: ImageDataLoading = <#data_loader#>
+let dataLoader: ImageDataLoading = <#dataLoader#>
 let decoder: ImageDecoding = <#decoder#>
 let cache: ImageMemoryCaching = <#cache#>
 

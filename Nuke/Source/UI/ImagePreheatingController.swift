@@ -4,18 +4,18 @@
 
 import Foundation
 
-/** Signals the delegate that the preheat window changed significantly.
-
-Added index paths are sorted so that the items closest to the previous preheat window are in the beginning of the array, true for both scrolling directions (forward and backward).
+/** Signals the delegate that the preheat window changed.
 */
 public protocol ImagePreheatingControllerDelegate: class {
     func preheatingController(controller: ImagePreheatingController, didUpdateWithAddedIndexPaths addedIndexPaths: [NSIndexPath], removedIndexPaths: [NSIndexPath])
 }
 
+/** Automates image preheating. Abstract class.
+*/
 public class ImagePreheatingController: NSObject {
     public weak var delegate: ImagePreheatingControllerDelegate?
     public let scrollView: UIScrollView
-    public private(set) var preheatIndexPath = Set<NSIndexPath>()
+    public private(set) var preheatIndexPath = [NSIndexPath]()
     
     deinit {
         self.scrollView.removeObserver(self, forKeyPath: "contentOffset", context: nil)
@@ -27,17 +27,6 @@ public class ImagePreheatingController: NSObject {
         self.scrollView.addObserver(self, forKeyPath: "contentOffset", options: [.New], context: nil)
     }
     
-    public func reset() {
-        self.delegate?.preheatingController(self, didUpdateWithAddedIndexPaths: [], removedIndexPaths: Array(self.preheatIndexPath))
-        self.preheatIndexPath.removeAll()
-    }
-    
-    public func update() {
-        return
-    }
-    
-    // MARK: Subclassing Hooks
-    
     public override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
         if object === self.scrollView {
             self.scrollViewDidScroll()
@@ -46,29 +35,29 @@ public class ImagePreheatingController: NSObject {
         }
     }
     
-    internal func scrollViewDidScroll() {
-        return
+    // MARK: Subclassing Hooks
+    
+    public func reset() {
+        assert(false)
     }
     
-    internal func updatePreheatIndexPaths(indexPaths: Set<NSIndexPath>, scrollingForward: Bool) {
-        let oldIndexPaths = Set(self.preheatIndexPath)
-        
-        var addedIndexPaths = Set(indexPaths)
-        addedIndexPaths = addedIndexPaths.subtract(oldIndexPaths)
-        
-        var removedIndexPaths = Set(oldIndexPaths)
-        removedIndexPaths = removedIndexPaths.subtract(indexPaths)
-        
-        self.preheatIndexPath = indexPaths
-        
-        let sortedAddedIndexPath = Array(addedIndexPaths).sort {
-            if scrollingForward {
-                return $0.section < $1.section || $0.item < $1.item
-            } else {
-                return $0.section > $1.section || $0.item > $1.item
-            }
-        }
-        
-        self.delegate?.preheatingController(self, didUpdateWithAddedIndexPaths: sortedAddedIndexPath, removedIndexPaths: Array(removedIndexPaths))
+    public func update() {
+        assert(false)
     }
+    
+    public func scrollViewDidScroll() {
+        assert(false)
+    }
+    
+    public func updatePreheatIndexPaths(indexPaths: [NSIndexPath]) {
+        let addedIndexPaths = indexPaths.filter { return !self.preheatIndexPath.contains($0) }
+        let removedIndexPaths = Set(self.preheatIndexPath).subtract(indexPaths)
+        self.preheatIndexPath = indexPaths
+        self.delegate?.preheatingController(self, didUpdateWithAddedIndexPaths: addedIndexPaths, removedIndexPaths: Array(removedIndexPaths))
+    }
+}
+
+internal func distanceBetweenPoints(p1: CGPoint, _ p2: CGPoint) -> CGFloat {
+    let dx = p2.x - p1.x, dy = p2.y - p1.y
+    return sqrt((dx * dx) + (dy * dy))
 }
