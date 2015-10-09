@@ -13,12 +13,14 @@ private let cellReuseID = "reuseID"
 
 class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingControllerDelegate {
     var photos: [NSURL]!
-    var preheatController: ImagePreheatingControllerForCollectionView?
+    var preheatController: ImagePreheatingController!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         self.photos = demoPhotosURLs
+        self.preheatController = ImagePreheatingControllerForCollectionView(collectionView: self.collectionView!)
+        self.preheatController.delegate = self
         
         self.collectionView?.backgroundColor = UIColor.whiteColor()
         self.collectionView?.registerClass(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
@@ -32,17 +34,13 @@ class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingC
     override func viewDidAppear(animated: Bool) {
         super.viewDidAppear(animated)
 
-        self.preheatController = ImagePreheatingControllerForCollectionView(collectionView: self.collectionView!)
-        self.preheatController?.delegate = self
-        self.preheatController?.update()
+        self.preheatController.enabled = true
     }
     
     override func viewDidDisappear(animated: Bool) {
         super.viewDidDisappear(animated)
         
-        // Resets preheat rect and stop preheating images via delegate call.
-        self.preheatController?.reset()
-        self.preheatController = nil
+        self.preheatController.enabled = false
     }
     
     override func viewDidLayoutSubviews() {

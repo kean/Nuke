@@ -16,6 +16,7 @@ public class ImagePreheatingController: NSObject {
     public weak var delegate: ImagePreheatingControllerDelegate?
     public let scrollView: UIScrollView
     public private(set) var preheatIndexPath = [NSIndexPath]()
+    public var enabled = false
     
     deinit {
         self.scrollView.removeObserver(self, forKeyPath: "contentOffset", context: nil)
@@ -29,22 +30,16 @@ public class ImagePreheatingController: NSObject {
     
     public override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
         if object === self.scrollView {
-            self.scrollViewDidScroll()
+            if self.enabled {
+                self.scrollViewDidScroll()
+            }
         } else {
             super.observeValueForKeyPath(keyPath, ofObject: object, change: change, context: nil)
         }
     }
     
     // MARK: Subclassing Hooks
-    
-    public func reset() {
-        assert(false)
-    }
-    
-    public func update() {
-        assert(false)
-    }
-    
+        
     public func scrollViewDidScroll() {
         assert(false)
     }

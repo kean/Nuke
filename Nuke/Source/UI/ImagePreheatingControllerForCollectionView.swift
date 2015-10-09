@@ -26,14 +26,15 @@ public class ImagePreheatingControllerForCollectionView: ImagePreheatingControll
         super.init(scrollView: collectionView)
     }
     
-    public override func reset() {
-        self.previousContentOffset = CGPointZero
-        self.updatePreheatIndexPaths([])
-    }
-    
-    public override func update() {
-        self.previousContentOffset = CGPointZero
-        self.updatePreheatRect()
+    public override var enabled: Bool {
+        didSet {
+            if self.enabled {
+                self.updatePreheatRect()
+            } else {
+                self.previousContentOffset = CGPointZero
+                self.updatePreheatIndexPaths([])
+            }
+        }
     }
     
     public override func scrollViewDidScroll() {
