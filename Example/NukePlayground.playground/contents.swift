@@ -10,7 +10,7 @@ let task = Nuke.taskWithURL(URL) {
 
 //: Create and resume `ImageTask` with `ImageRequest`
 var request = ImageRequest(URL: NSURL(string: "https://farm4.staticflickr.com/3892/14940786229_5b2b48e96c_z_d.jpg")!)
-request.targetSize = CGSize(width: 100.0, height: 100.0) // Set target size in pixels
+request.targetSize = CGSize(width: 200.0, height: 200.0) // Set target size in pixels
 request.contentMode = .AspectFill
 
 Nuke.taskWithRequest(request) { response in
@@ -37,14 +37,4 @@ Nuke.taskWithRequest(request2) {
     let image = $0.image
 }.resume()
 
-//: Create `ImageManager` with custom `ImageManagerConfiguration` and set it as shared manager
-
-let sessionConfiguration = NSURLSessionConfiguration.defaultSessionConfiguration()
-let dataLoader = ImageDataLoader(sessionConfiguration: sessionConfiguration)
-let cache = ImageMemoryCache()
-let decoder = ImageDecoder()
-
-ImageManager.shared = ImageManager(configuration: ImageManagerConfiguration(dataLoader: dataLoader, cache: cache, decoder: decoder))
-
 XCPSetExecutionShouldContinueIndefinitely()
-

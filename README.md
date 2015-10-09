@@ -166,7 +166,7 @@ Nuke.startPreheatingImages(requests: requests)
 Nuke.stopPreheatingImages(requests: requests)
 ```
 
-#### Automate preheating
+#### Automate Preheating
 
 ```swift
 let preheater = ImagePreheatingControllerForCollectionView(collectionView: <#collectionView#>)
