@@ -52,10 +52,14 @@ public class ImageManager {
         self.loader.delegate = self
     }
     
+    /** Creates a task with a given request. Task is created in a suspended state and must be resumed before it will execute.
+    */
     public func taskWithRequest(request: ImageRequest) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier)
     }
     
+    /** Cancels all outstanding tasks and then invalidates the manager. New image tasks may not be resumed.
+    */
     public func invalidateAndCancel() {
         self.perform {
             self.loader.delegate = nil
@@ -118,6 +122,10 @@ public class ImageManager {
 
     // MARK: Preheating
     
+    /** Prepares images for the given requests for later use. 
+    
+    When you call this method, ImageManager starts to load and cache images for the given requests. At any time afterward, you can create tasks with equivalent requests. ImageManager caches images with the exact target size, content mode, and filters.
+    */
     public func startPreheatingImages(requests: [ImageRequest]) {
         self.perform {
             for request in requests {
@@ -132,6 +140,8 @@ public class ImageManager {
         }
     }
     
+    /** Stop preheating for the given requests. The request parameters shall exactly match the parameters used in startPreheatingImages method.
+    */
     public func stopPreheatingImages(requests: [ImageRequest]) {
         self.perform {
             self.cancelTasks(requests.flatMap {

@@ -24,7 +24,9 @@ public class ImageTask: Hashable {
         self.identifier = identifier
     }
     
-    /** Adds completion block to the task. Completion block gets called even if it is added to the alredy completed task.
+    /** Adds completion block to the task. Completion block is called even if it is added to the alredy completed task.
+    
+    Completion block to be called on the main thread when task is either completed or cancelled. Completion block is called synchronously when the requested image can be retrieved from the memory cache and the request was made from the main thread.
     */
     public func completion(completion: ImageTaskCompletion) -> Self { return self }
     

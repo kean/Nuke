@@ -23,7 +23,7 @@ public class ImageDecoder: ImageDecoding {
 }
 
 public class ImageDecoderComposition: ImageDecoding {
-    let decoders: [ImageDecoding]
+    public let decoders: [ImageDecoding]
     
     public init(decoders: [ImageDecoding]) {
         self.decoders = decoders
