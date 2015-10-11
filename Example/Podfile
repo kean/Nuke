@@ -6,9 +6,3 @@ target 'Nuke_Example', :exclusive => true do
   pod "Nuke/GIF", :path => "../"
   pod "Nuke/Alamofire", :path => "../"
 end
-
-target 'Nuke_Tests', :exclusive => true do
-  pod "Nuke", :path => "../"
-  pod "Nuke/GIF", :path => "../"
-  pod "Nuke/Alamofire", :path => "../"
-end

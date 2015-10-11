@@ -383,7 +383,7 @@ class ImageManagerTest: XCTestCase {
         }
     }
 
-    func testThatAllPreheatingRequests() {
+    func testThatAllPreheatingRequestsAreStopped() {
         self.mockSessionManager.enabled = false
 
         let request = ImageRequest(URL: defaultURL)

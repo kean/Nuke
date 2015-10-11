@@ -8,20 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		0C0CCD9E1BACC1A7002D10D5 /* PreheatingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
-		0C6F7E041BBD2F660094656C /* XCTestCaseExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6F7E021BBD2F280094656C /* XCTestCaseExtensions.swift */; settings = {ASSET_TAGS = (); }; };
-		0C7397191BC161BC00D619FC /* MockImageMemoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7397181BC161BC00D619FC /* MockImageMemoryCache.swift */; settings = {ASSET_TAGS = (); }; };
-		0C8260F21BA5BBA90078C6BD /* ImageManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8260E61BA5BB980078C6BD /* ImageManagerTest.swift */; settings = {ASSET_TAGS = (); }; };
-		0C8260F31BA5BBA90078C6BD /* ImageMemoryCacheTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8260E71BA5BB980078C6BD /* ImageMemoryCacheTest.swift */; settings = {ASSET_TAGS = (); }; };
-		0C8260F41BA5BBA90078C6BD /* MockURLSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8260E81BA5BB980078C6BD /* MockURLSessionManager.swift */; settings = {ASSET_TAGS = (); }; };
-		0C8260F51BA5BBA90078C6BD /* MockURLSessionDataTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8260E91BA5BB980078C6BD /* MockURLSessionDataTask.swift */; settings = {ASSET_TAGS = (); }; };
-		0C8260F61BA5BBA90078C6BD /* NukeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8260EA1BA5BB980078C6BD /* NukeTests.swift */; settings = {ASSET_TAGS = (); }; };
-		0C8260F71BA5BBAE0078C6BD /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8260E31BA5BB980078C6BD /* Image.jpg */; settings = {ASSET_TAGS = (); }; };
-		0C8260F81BA5BBAE0078C6BD /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 0C8260E41BA5BB980078C6BD /* Info.plist */; settings = {ASSET_TAGS = (); }; };
 		0C826FA51BAC066E0069FCE1 /* BasicDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
 		0C826FA71BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
 		0CAA23701BAC9C6A002D7080 /* AlamofireDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
-		0CC363F81BC40BC20038C17C /* ImageProcessingTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC363F71BC40BC20038C17C /* ImageProcessingTest.swift */; settings = {ASSET_TAGS = (); }; };
-		0CC363FB1BC424220038C17C /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC363F91BC40C010038C17C /* MockImageProcessor.swift */; settings = {ASSET_TAGS = (); }; };
 		471177BB9C8580125CBCB6C7 /* Pods_Nuke_Tests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 519F42473EB659181C504FFC /* Pods_Nuke_Tests.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		607FACD61AFB9204008FA782 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACD51AFB9204008FA782 /* AppDelegate.swift */; };
 		607FACD81AFB9204008FA782 /* MenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACD71AFB9204008FA782 /* MenuViewController.swift */; };
@@ -43,20 +32,9 @@
 
 /* Begin PBXFileReference section */
 		0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreheatingDemoViewController.swift; sourceTree = "<group>"; };
-		0C6F7E021BBD2F280094656C /* XCTestCaseExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = XCTestCaseExtensions.swift; path = Source/XCTestCaseExtensions.swift; sourceTree = "<group>"; };
-		0C7397181BC161BC00D619FC /* MockImageMemoryCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockImageMemoryCache.swift; sourceTree = "<group>"; };
-		0C8260E31BA5BB980078C6BD /* Image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image.jpg; sourceTree = "<group>"; };
-		0C8260E41BA5BB980078C6BD /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		0C8260E61BA5BB980078C6BD /* ImageManagerTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ImageManagerTest.swift; path = Source/ImageManagerTest.swift; sourceTree = "<group>"; };
-		0C8260E71BA5BB980078C6BD /* ImageMemoryCacheTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ImageMemoryCacheTest.swift; path = Source/ImageMemoryCacheTest.swift; sourceTree = "<group>"; };
-		0C8260E81BA5BB980078C6BD /* MockURLSessionManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockURLSessionManager.swift; sourceTree = "<group>"; };
-		0C8260E91BA5BB980078C6BD /* MockURLSessionDataTask.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockURLSessionDataTask.swift; sourceTree = "<group>"; };
-		0C8260EA1BA5BB980078C6BD /* NukeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = NukeTests.swift; path = Source/NukeTests.swift; sourceTree = "<group>"; };
 		0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BasicDemoViewController.swift; sourceTree = "<group>"; };
 		0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnimatedImageDemoViewController.swift; sourceTree = "<group>"; };
 		0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AlamofireDemoViewController.swift; sourceTree = "<group>"; };
-		0CC363F71BC40BC20038C17C /* ImageProcessingTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ImageProcessingTest.swift; path = Source/ImageProcessingTest.swift; sourceTree = "<group>"; };
-		0CC363F91BC40C010038C17C /* MockImageProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockImageProcessor.swift; sourceTree = "<group>"; };
 		205769503659ED68961F7E27 /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../README.md; sourceTree = "<group>"; };
 		519F42473EB659181C504FFC /* Pods_Nuke_Tests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Nuke_Tests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		592C74D719B88F7124329128 /* Pods-Nuke_Tests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nuke_Tests.release.xcconfig"; path = "Pods/Target Support Files/Pods-Nuke_Tests/Pods-Nuke_Tests.release.xcconfig"; sourceTree = "<group>"; };
@@ -69,7 +47,6 @@
 		607FACDC1AFB9204008FA782 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		607FACDF1AFB9204008FA782 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/LaunchScreen.xib; sourceTree = "<group>"; };
 		607FACE51AFB9204008FA782 /* Nuke_Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Nuke_Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		607FACEA1AFB9204008FA782 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BA65A753A2D305ABA1AAD9FA /* LICENSE */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = LICENSE; path = ../LICENSE; sourceTree = "<group>"; };
 		C0B221085BBEBA56B1633CD4 /* Pods_Nuke_Example.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Nuke_Example.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D7044C13ED0CF7546B2E39B7 /* Pods-Nuke_Example.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nuke_Example.release.xcconfig"; path = "Pods/Target Support Files/Pods-Nuke_Example/Pods-Nuke_Example.release.xcconfig"; sourceTree = "<group>"; };
@@ -97,41 +74,11 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0C6F7E011BBD2F020094656C /* Helpers */ = {
-			isa = PBXGroup;
-			children = (
-				0C6F7E021BBD2F280094656C /* XCTestCaseExtensions.swift */,
-			);
-			name = Helpers;
-			sourceTree = "<group>";
-		};
-		0C8260E21BA5BB980078C6BD /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				0C8260E31BA5BB980078C6BD /* Image.jpg */,
-				0C8260E41BA5BB980078C6BD /* Info.plist */,
-			);
-			path = Resources;
-			sourceTree = "<group>";
-		};
-		0C8260E51BA5BB980078C6BD /* Mocks */ = {
-			isa = PBXGroup;
-			children = (
-				0C8260E81BA5BB980078C6BD /* MockURLSessionManager.swift */,
-				0C8260E91BA5BB980078C6BD /* MockURLSessionDataTask.swift */,
-				0C7397181BC161BC00D619FC /* MockImageMemoryCache.swift */,
-				0CC363F91BC40C010038C17C /* MockImageProcessor.swift */,
-			);
-			name = Mocks;
-			path = Source;
-			sourceTree = "<group>";
-		};
 		607FACC71AFB9204008FA782 = {
 			isa = PBXGroup;
 			children = (
 				607FACF51AFB993E008FA782 /* Podspec Metadata */,
 				607FACD21AFB9204008FA782 /* Example for Nuke */,
-				607FACE81AFB9204008FA782 /* Tests */,
 				607FACD11AFB9204008FA782 /* Products */,
 				9C831F0EFFA8DE4D8CEDA871 /* Pods */,
 				B268730C38EF50AF5D1A33EC /* Frameworks */,
@@ -169,29 +116,6 @@
 			isa = PBXGroup;
 			children = (
 				607FACD41AFB9204008FA782 /* Info.plist */,
-			);
-			name = "Supporting Files";
-			sourceTree = "<group>";
-		};
-		607FACE81AFB9204008FA782 /* Tests */ = {
-			isa = PBXGroup;
-			children = (
-				0C8260EA1BA5BB980078C6BD /* NukeTests.swift */,
-				0C8260E61BA5BB980078C6BD /* ImageManagerTest.swift */,
-				0C8260E71BA5BB980078C6BD /* ImageMemoryCacheTest.swift */,
-				0CC363F71BC40BC20038C17C /* ImageProcessingTest.swift */,
-				0C8260E21BA5BB980078C6BD /* Resources */,
-				0C8260E51BA5BB980078C6BD /* Mocks */,
-				0C6F7E011BBD2F020094656C /* Helpers */,
-				607FACE91AFB9204008FA782 /* Supporting Files */,
-			);
-			path = Tests;
-			sourceTree = "<group>";
-		};
-		607FACE91AFB9204008FA782 /* Supporting Files */ = {
-			isa = PBXGroup;
-			children = (
-				607FACEA1AFB9204008FA782 /* Info.plist */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -323,8 +247,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C8260F81BA5BBAE0078C6BD /* Info.plist in Resources */,
-				0C8260F71BA5BBAE0078C6BD /* Image.jpg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -441,15 +363,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C7397191BC161BC00D619FC /* MockImageMemoryCache.swift in Sources */,
-				0C6F7E041BBD2F660094656C /* XCTestCaseExtensions.swift in Sources */,
-				0CC363FB1BC424220038C17C /* MockImageProcessor.swift in Sources */,
-				0C8260F21BA5BBA90078C6BD /* ImageManagerTest.swift in Sources */,
-				0C8260F51BA5BBA90078C6BD /* MockURLSessionDataTask.swift in Sources */,
-				0CC363F81BC40BC20038C17C /* ImageProcessingTest.swift in Sources */,
-				0C8260F61BA5BBA90078C6BD /* NukeTests.swift in Sources */,
-				0C8260F31BA5BBA90078C6BD /* ImageMemoryCacheTest.swift in Sources */,
-				0C8260F41BA5BBA90078C6BD /* MockURLSessionManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

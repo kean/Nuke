@@ -28,7 +28,26 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "0C7C06761BCA882A00089D7F"
+               BuildableName = "Nuke Tests.xctest"
+               BlueprintName = "Nuke Tests"
+               ReferencedContainer = "container:Nuke.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "0C91748F1BAE99EE004A7905"
+            BuildableName = "Nuke.framework"
+            BlueprintName = "Nuke"
+            ReferencedContainer = "container:Nuke.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
       <AdditionalOptions>
       </AdditionalOptions>
    </TestAction>
