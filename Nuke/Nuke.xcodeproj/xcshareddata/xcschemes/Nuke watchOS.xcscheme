@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0C91748F1BAE99EE004A7905"
-               BuildableName = "Nuke.framework"
-               BlueprintName = "Nuke iOS"
+               BlueprintIdentifier = "0C22D9C41BCA9734006E1D3B"
+               BuildableName = "Nuke watchOS.framework"
+               BlueprintName = "Nuke watchOS"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -28,26 +28,7 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0C7C06761BCA882A00089D7F"
-               BuildableName = "Nuke iOS Tests.xctest"
-               BlueprintName = "Nuke iOS Tests"
-               ReferencedContainer = "container:Nuke.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0C91748F1BAE99EE004A7905"
-            BuildableName = "Nuke.framework"
-            BlueprintName = "Nuke iOS"
-            ReferencedContainer = "container:Nuke.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
       <AdditionalOptions>
       </AdditionalOptions>
    </TestAction>
@@ -64,9 +45,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0C91748F1BAE99EE004A7905"
-            BuildableName = "Nuke.framework"
-            BlueprintName = "Nuke iOS"
+            BlueprintIdentifier = "0C22D9C41BCA9734006E1D3B"
+            BuildableName = "Nuke watchOS.framework"
+            BlueprintName = "Nuke watchOS"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -82,9 +63,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0C91748F1BAE99EE004A7905"
-            BuildableName = "Nuke.framework"
-            BlueprintName = "Nuke iOS"
+            BlueprintIdentifier = "0C22D9C41BCA9734006E1D3B"
+            BuildableName = "Nuke watchOS.framework"
+            BlueprintName = "Nuke watchOS"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
