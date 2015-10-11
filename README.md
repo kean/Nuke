@@ -202,8 +202,6 @@ ImageManager.shared = ImageManager(configuration: configuration)
 
 To install Nuke add a dependency in your Podfile:
 ```ruby
-# platform :ios, '8.0'
-# platform :watchos, '2.0'
 # use_frameworks!
 pod 'Nuke'
 ```
@@ -224,7 +222,7 @@ github "kean/Nuke"
 ```
 
 ## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
-- iOS 8.0+ / watchOS 2.0+
+- iOS 8.0+ / watchOS 2.0+ / OS X 10.9+
 - Xcode 7.0+, Swift 2.0+
 
 ## <a name="h_contribution"></a>Contribution

@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import UIKit
+import Foundation
 import Alamofire
 
 public class AlamofireImageDataLoader: ImageDataLoading {
