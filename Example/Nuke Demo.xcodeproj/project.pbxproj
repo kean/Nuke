@@ -24,7 +24,6 @@
 		0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BasicDemoViewController.swift; sourceTree = "<group>"; };
 		0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnimatedImageDemoViewController.swift; sourceTree = "<group>"; };
 		0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AlamofireDemoViewController.swift; sourceTree = "<group>"; };
-		205769503659ED68961F7E27 /* README.md */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = net.daringfireball.markdown; name = README.md; path = ../README.md; sourceTree = "<group>"; };
 		2F801C4312DD7D983F975C16 /* Pods.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.release.xcconfig; path = "Pods/Target Support Files/Pods/Pods.release.xcconfig"; sourceTree = "<group>"; };
 		519F42473EB659181C504FFC /* Pods_Nuke_Tests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Nuke_Tests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		592C74D719B88F7124329128 /* Pods-Nuke_Tests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nuke_Tests.release.xcconfig"; path = "Pods/Target Support Files/Pods-Nuke_Tests/Pods-Nuke_Tests.release.xcconfig"; sourceTree = "<group>"; };
@@ -36,13 +35,11 @@
 		607FACDA1AFB9204008FA782 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		607FACDC1AFB9204008FA782 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		607FACDF1AFB9204008FA782 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/LaunchScreen.xib; sourceTree = "<group>"; };
-		BA65A753A2D305ABA1AAD9FA /* LICENSE */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = LICENSE; path = ../LICENSE; sourceTree = "<group>"; };
 		C0B221085BBEBA56B1633CD4 /* Pods_Nuke_Example.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Nuke_Example.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C542F874F8B574E93D655F2E /* Pods.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.debug.xcconfig; path = "Pods/Target Support Files/Pods/Pods.debug.xcconfig"; sourceTree = "<group>"; };
 		D41C16807F95F83FB63DA311 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D7044C13ED0CF7546B2E39B7 /* Pods-Nuke_Example.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nuke_Example.release.xcconfig"; path = "Pods/Target Support Files/Pods-Nuke_Example/Pods-Nuke_Example.release.xcconfig"; sourceTree = "<group>"; };
 		EB858F89C475430A14DE1381 /* Pods-Nuke_Tests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nuke_Tests.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Nuke_Tests/Pods-Nuke_Tests.debug.xcconfig"; sourceTree = "<group>"; };
-		F33266169722183EFF4D1E4D /* Nuke.podspec */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; name = Nuke.podspec; path = ../Nuke.podspec; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,7 +57,6 @@
 		607FACC71AFB9204008FA782 = {
 			isa = PBXGroup;
 			children = (
-				607FACF51AFB993E008FA782 /* Podspec Metadata */,
 				607FACD21AFB9204008FA782 /* Example for Nuke */,
 				607FACD11AFB9204008FA782 /* Products */,
 				9C831F0EFFA8DE4D8CEDA871 /* Pods */,
@@ -100,16 +96,6 @@
 				607FACD41AFB9204008FA782 /* Info.plist */,
 			);
 			name = "Supporting Files";
-			sourceTree = "<group>";
-		};
-		607FACF51AFB993E008FA782 /* Podspec Metadata */ = {
-			isa = PBXGroup;
-			children = (
-				F33266169722183EFF4D1E4D /* Nuke.podspec */,
-				205769503659ED68961F7E27 /* README.md */,
-				BA65A753A2D305ABA1AAD9FA /* LICENSE */,
-			);
-			name = "Podspec Metadata";
 			sourceTree = "<group>";
 		};
 		9C831F0EFFA8DE4D8CEDA871 /* Pods */ = {
