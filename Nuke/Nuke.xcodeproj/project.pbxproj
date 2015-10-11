@@ -49,6 +49,16 @@
 		0C22DA501BCAA85F006E1D3B /* ImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C801BAE9ADD007FE380 /* ImageDecoder.swift */; settings = {ASSET_TAGS = (); }; };
 		0C22DA511BCAA8CE006E1D3B /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C811BAE9ADD007FE380 /* ImageManager.swift */; settings = {ASSET_TAGS = (); }; };
 		0C22DA521BCAA8D5006E1D3B /* ImageManagerExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF161F1BC4526A003768E5 /* ImageManagerExtensions.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA531BCAAA06006E1D3B /* NukeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068D1BCA888800089D7F /* NukeTests.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA541BCAAA0C006E1D3B /* ImageManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06861BCA888800089D7F /* ImageManagerTest.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA551BCAAA10006E1D3B /* ImageMemoryCacheTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* ImageMemoryCacheTest.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA561BCAAA13006E1D3B /* ImageProcessingTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06881BCA888800089D7F /* ImageProcessingTest.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA571BCAAA36006E1D3B /* XCTestCaseExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068E1BCA888800089D7F /* XCTestCaseExtensions.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA581BCAAA3A006E1D3B /* MockImageMemoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockImageMemoryCache.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA591BCAAA3A006E1D3B /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA5A1BCAAA3A006E1D3B /* MockURLSessionDataTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068B1BCA888800089D7F /* MockURLSessionDataTask.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA5B1BCAAA3A006E1D3B /* MockURLSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockURLSessionManager.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA5C1BCAAAC5006E1D3B /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C7C06841BCA888800089D7F /* Image.jpg */; settings = {ASSET_TAGS = (); }; };
 		0C72ADCB1BC59CBE000C9C39 /* ImagePreheatingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C72ADCA1BC59CBE000C9C39 /* ImagePreheatingController.swift */; settings = {ASSET_TAGS = (); }; };
 		0C7C067C1BCA882A00089D7F /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ASSET_TAGS = (); }; };
 		0C7C06901BCA888800089D7F /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C7C06841BCA888800089D7F /* Image.jpg */; settings = {ASSET_TAGS = (); }; };
@@ -479,6 +489,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C22DA5C1BCAAAC5006E1D3B /* Image.jpg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -544,6 +555,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C22DA571BCAAA36006E1D3B /* XCTestCaseExtensions.swift in Sources */,
+				0C22DA581BCAAA3A006E1D3B /* MockImageMemoryCache.swift in Sources */,
+				0C22DA561BCAAA13006E1D3B /* ImageProcessingTest.swift in Sources */,
+				0C22DA531BCAAA06006E1D3B /* NukeTests.swift in Sources */,
+				0C22DA541BCAAA0C006E1D3B /* ImageManagerTest.swift in Sources */,
+				0C22DA5A1BCAAA3A006E1D3B /* MockURLSessionDataTask.swift in Sources */,
+				0C22DA551BCAAA10006E1D3B /* ImageMemoryCacheTest.swift in Sources */,
+				0C22DA591BCAAA3A006E1D3B /* MockImageProcessor.swift in Sources */,
+				0C22DA5B1BCAAA3A006E1D3B /* MockURLSessionManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -873,6 +893,7 @@
 				0C22DA321BCAA220006E1D3B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		0C22DA401BCAA22A006E1D3B /* Build configuration list for PBXNativeTarget "Nuke OSX Tests" */ = {
 			isa = XCConfigurationList;
@@ -881,6 +902,7 @@
 				0C22DA421BCAA22A006E1D3B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		0C7C067F1BCA882A00089D7F /* Build configuration list for PBXNativeTarget "Nuke iOS Tests" */ = {
 			isa = XCConfigurationList;

@@ -6,7 +6,7 @@
 //  Copyright (c) 2015 Alexander Grebenyuk. All rights reserved.
 //
 
-import UIKit
+import Foundation
 
 let MockURLSessionDataTaskDidResumeNotification = "didResume"
 let MockURLSessionDataTaskDidCancelNotification = "didCancel"

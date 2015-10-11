@@ -68,7 +68,7 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
         XCTAssertNil(self.manager.cachedResponseForRequest(request))
         
-        self.manager.storeResponse(ImageCachedResponse(image: UIImage(), userInfo: "info"), forRequest: request)
+        self.manager.storeResponse(ImageCachedResponse(image: Image(), userInfo: "info"), forRequest: request)
         
         XCTAssertEqual(self.mockMemoryCache.responses.count, 1)
         let response = self.manager.cachedResponseForRequest(request)
@@ -89,7 +89,7 @@ class ImageMemoryCacheTest: XCTestCase {
     }
     
     func testThatImageManagerHonorsURLRequestCachePolicy() {
-        self.manager.storeResponse(ImageCachedResponse(image: UIImage(), userInfo: "info"), forRequest: ImageRequest(URL: defaultURL))
+        self.manager.storeResponse(ImageCachedResponse(image: Image(), userInfo: "info"), forRequest: ImageRequest(URL: defaultURL))
         
         let request1 = ImageRequest(URLRequest: NSURLRequest(URL: defaultURL, cachePolicy: .UseProtocolCachePolicy, timeoutInterval: 100))
         let request2 = ImageRequest(URLRequest: NSURLRequest(URL: defaultURL, cachePolicy: .ReloadIgnoringLocalCacheData, timeoutInterval: 100))

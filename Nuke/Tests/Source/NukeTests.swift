@@ -7,7 +7,6 @@
 //
 
 import Nuke
-import UIKit
 import XCTest
 
 let defaultURL = NSURL(string: "http://test.com")!
