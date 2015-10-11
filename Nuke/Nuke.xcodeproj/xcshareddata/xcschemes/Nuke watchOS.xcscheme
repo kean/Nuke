@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0C22D9C41BCA9734006E1D3B"
-               BuildableName = "Nuke watchOS.framework"
+               BuildableName = "Nuke.framework"
                BlueprintName = "Nuke watchOS"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
@@ -46,7 +46,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0C22D9C41BCA9734006E1D3B"
-            BuildableName = "Nuke watchOS.framework"
+            BuildableName = "Nuke.framework"
             BlueprintName = "Nuke watchOS"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
@@ -64,7 +64,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0C22D9C41BCA9734006E1D3B"
-            BuildableName = "Nuke watchOS.framework"
+            BuildableName = "Nuke.framework"
             BlueprintName = "Nuke watchOS"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
