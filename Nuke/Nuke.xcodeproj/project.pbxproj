@@ -21,7 +21,6 @@
 		0C096CA01BAE9ADD007FE380 /* ImagePreheatingControllerForCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C8F1BAE9ADD007FE380 /* ImagePreheatingControllerForCollectionView.swift */; settings = {ASSET_TAGS = (); }; };
 		0C096CA11BAE9ADD007FE380 /* ImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C901BAE9ADD007FE380 /* ImageView.swift */; settings = {ASSET_TAGS = (); }; };
 		0C0E01781BC0637B0040B46B /* ImageRequestKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */; settings = {ASSET_TAGS = (); }; };
-		0C22D9C81BCA9734006E1D3B /* Nuke watchOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C22D9C71BCA9734006E1D3B /* Nuke watchOS.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0C22D9CD1BCA9755006E1D3B /* ImageDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C7F1BAE9ADD007FE380 /* ImageDataLoader.swift */; settings = {ASSET_TAGS = (); }; };
 		0C22D9CE1BCA9755006E1D3B /* ImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C801BAE9ADD007FE380 /* ImageDecoder.swift */; settings = {ASSET_TAGS = (); }; };
 		0C22D9CF1BCA9755006E1D3B /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C811BAE9ADD007FE380 /* ImageManager.swift */; settings = {ASSET_TAGS = (); }; };
@@ -34,6 +33,7 @@
 		0C22D9D61BCA9755006E1D3B /* ImageResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C871BAE9ADD007FE380 /* ImageResponse.swift */; settings = {ASSET_TAGS = (); }; };
 		0C22D9D71BCA9755006E1D3B /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C881BAE9ADD007FE380 /* ImageTask.swift */; settings = {ASSET_TAGS = (); }; };
 		0C22D9D81BCA9755006E1D3B /* Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C891BAE9ADD007FE380 /* Nuke.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA3D1BCAA22A006E1D3B /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C22DA2C1BCAA220006E1D3B /* Nuke.framework */; settings = {ASSET_TAGS = (); }; };
 		0C72ADCB1BC59CBE000C9C39 /* ImagePreheatingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C72ADCA1BC59CBE000C9C39 /* ImagePreheatingController.swift */; settings = {ASSET_TAGS = (); }; };
 		0C7C067C1BCA882A00089D7F /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ASSET_TAGS = (); }; };
 		0C7C06901BCA888800089D7F /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C7C06841BCA888800089D7F /* Image.jpg */; settings = {ASSET_TAGS = (); }; };
@@ -50,6 +50,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		0C22DA3E1BCAA22A006E1D3B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0C22DA2B1BCAA220006E1D3B;
+			remoteInfo = "Nuke OSX";
+		};
 		0C7C067D1BCA882A00089D7F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
@@ -79,12 +86,10 @@
 		0C096C901BAE9ADD007FE380 /* ImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
 		0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestKey.swift; sourceTree = "<group>"; };
 		0C22D9C51BCA9734006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C22D9C71BCA9734006E1D3B /* Nuke watchOS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Nuke watchOS.h"; sourceTree = "<group>"; };
-		0C22D9C91BCA9734006E1D3B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		0C22DA2C1BCAA220006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C22DA381BCAA22A006E1D3B /* Nuke OSX Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke OSX Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C72ADCA1BC59CBE000C9C39 /* ImagePreheatingController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheatingController.swift; sourceTree = "<group>"; };
 		0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke iOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C7C06791BCA882A00089D7F /* Nuke_Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Nuke_Tests.swift; sourceTree = "<group>"; };
-		0C7C067B1BCA882A00089D7F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0C7C06821BCA888800089D7F /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../Info.plist; sourceTree = "<group>"; };
 		0C7C06841BCA888800089D7F /* Image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Image.jpg; sourceTree = "<group>"; };
 		0C7C06861BCA888800089D7F /* ImageManagerTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = ImageManagerTest.swift; path = Tests/Source/ImageManagerTest.swift; sourceTree = "<group>"; };
@@ -105,6 +110,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0C22DA281BCAA220006E1D3B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0C22DA351BCAA22A006E1D3B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0C22DA3D1BCAA22A006E1D3B /* Nuke.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -192,15 +212,6 @@
 			path = UI;
 			sourceTree = "<group>";
 		};
-		0C22D9C61BCA9734006E1D3B /* Nuke watchOS */ = {
-			isa = PBXGroup;
-			children = (
-				0C22D9C71BCA9734006E1D3B /* Nuke watchOS.h */,
-				0C22D9C91BCA9734006E1D3B /* Info.plist */,
-			);
-			path = "Nuke watchOS";
-			sourceTree = "<group>";
-		};
 		0C7C06551BCA87EC00089D7F /* Tests */ = {
 			isa = PBXGroup;
 			children = (
@@ -213,15 +224,6 @@
 				0C7C06831BCA888800089D7F /* Resources */,
 			);
 			name = Tests;
-			sourceTree = "<group>";
-		};
-		0C7C06781BCA882A00089D7F /* Nuke Tests */ = {
-			isa = PBXGroup;
-			children = (
-				0C7C06791BCA882A00089D7F /* Nuke_Tests.swift */,
-				0C7C067B1BCA882A00089D7F /* Info.plist */,
-			);
-			path = "Nuke Tests";
 			sourceTree = "<group>";
 		};
 		0C7C06831BCA888800089D7F /* Resources */ = {
@@ -259,8 +261,6 @@
 				0C096C7B1BAE9ADD007FE380 /* Source */,
 				0C7C06551BCA87EC00089D7F /* Tests */,
 				0C096C781BAE9AC9007FE380 /* Supporting Files */,
-				0C7C06781BCA882A00089D7F /* Nuke Tests */,
-				0C22D9C61BCA9734006E1D3B /* Nuke watchOS */,
 				0C9174911BAE99EE004A7905 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -271,6 +271,8 @@
 				0C9174901BAE99EE004A7905 /* Nuke.framework */,
 				0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */,
 				0C22D9C51BCA9734006E1D3B /* Nuke.framework */,
+				0C22DA2C1BCAA220006E1D3B /* Nuke.framework */,
+				0C22DA381BCAA22A006E1D3B /* Nuke OSX Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -282,7 +284,13 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C22D9C81BCA9734006E1D3B /* Nuke watchOS.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0C22DA291BCAA220006E1D3B /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -314,6 +322,42 @@
 			productName = "Nuke watchOS";
 			productReference = 0C22D9C51BCA9734006E1D3B /* Nuke.framework */;
 			productType = "com.apple.product-type.framework";
+		};
+		0C22DA2B1BCAA220006E1D3B /* Nuke OSX */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0C22DA331BCAA220006E1D3B /* Build configuration list for PBXNativeTarget "Nuke OSX" */;
+			buildPhases = (
+				0C22DA271BCAA220006E1D3B /* Sources */,
+				0C22DA281BCAA220006E1D3B /* Frameworks */,
+				0C22DA291BCAA220006E1D3B /* Headers */,
+				0C22DA2A1BCAA220006E1D3B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Nuke OSX";
+			productName = "Nuke OSX";
+			productReference = 0C22DA2C1BCAA220006E1D3B /* Nuke.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		0C22DA371BCAA22A006E1D3B /* Nuke OSX Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0C22DA401BCAA22A006E1D3B /* Build configuration list for PBXNativeTarget "Nuke OSX Tests" */;
+			buildPhases = (
+				0C22DA341BCAA22A006E1D3B /* Sources */,
+				0C22DA351BCAA22A006E1D3B /* Frameworks */,
+				0C22DA361BCAA22A006E1D3B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0C22DA3F1BCAA22A006E1D3B /* PBXTargetDependency */,
+			);
+			name = "Nuke OSX Tests";
+			productName = "Nuke OSX Tests";
+			productReference = 0C22DA381BCAA22A006E1D3B /* Nuke OSX Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		0C7C06761BCA882A00089D7F /* Nuke iOS Tests */ = {
 			isa = PBXNativeTarget;
@@ -363,6 +407,12 @@
 					0C22D9C41BCA9734006E1D3B = {
 						CreatedOnToolsVersion = 7.0.1;
 					};
+					0C22DA2B1BCAA220006E1D3B = {
+						CreatedOnToolsVersion = 7.0.1;
+					};
+					0C22DA371BCAA22A006E1D3B = {
+						CreatedOnToolsVersion = 7.0.1;
+					};
 					0C7C06761BCA882A00089D7F = {
 						CreatedOnToolsVersion = 7.0.1;
 					};
@@ -385,6 +435,8 @@
 			targets = (
 				0C91748F1BAE99EE004A7905 /* Nuke iOS */,
 				0C7C06761BCA882A00089D7F /* Nuke iOS Tests */,
+				0C22DA2B1BCAA220006E1D3B /* Nuke OSX */,
+				0C22DA371BCAA22A006E1D3B /* Nuke OSX Tests */,
 				0C22D9C41BCA9734006E1D3B /* Nuke watchOS */,
 			);
 		};
@@ -392,6 +444,20 @@
 
 /* Begin PBXResourcesBuildPhase section */
 		0C22D9C31BCA9734006E1D3B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0C22DA2A1BCAA220006E1D3B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0C22DA361BCAA22A006E1D3B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -432,6 +498,20 @@
 				0C22D9D31BCA9755006E1D3B /* ImageProcessor.swift in Sources */,
 				0C22D9CD1BCA9755006E1D3B /* ImageDataLoader.swift in Sources */,
 				0C22D9D21BCA9755006E1D3B /* ImageMemoryCache.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0C22DA271BCAA220006E1D3B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0C22DA341BCAA22A006E1D3B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -476,6 +556,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		0C22DA3F1BCAA22A006E1D3B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0C22DA2B1BCAA220006E1D3B /* Nuke OSX */;
+			targetProxy = 0C22DA3E1BCAA22A006E1D3B /* PBXContainerItemProxy */;
+		};
 		0C7C067E1BCA882A00089D7F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 0C91748F1BAE99EE004A7905 /* Nuke iOS */;
@@ -491,7 +576,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				INFOPLIST_FILE = "Nuke watchOS/Info.plist";
+				INFOPLIST_FILE = "Supporting Files/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-watchOS";
@@ -510,7 +595,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				INFOPLIST_FILE = "Nuke watchOS/Info.plist";
+				INFOPLIST_FILE = "Supporting Files/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-watchOS";
@@ -519,6 +604,72 @@
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Release;
+		};
+		0C22DA311BCAA220006E1D3B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				FRAMEWORK_VERSION = A;
+				INFOPLIST_FILE = "Supporting Files/Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-OSX";
+				PRODUCT_NAME = Nuke;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		0C22DA321BCAA220006E1D3B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				FRAMEWORK_VERSION = A;
+				INFOPLIST_FILE = "Supporting Files/Info.plist";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-OSX";
+				PRODUCT_NAME = Nuke;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		0C22DA411BCAA22A006E1D3B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = Tests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-OSX-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		0C22DA421BCAA22A006E1D3B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = Tests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-OSX-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
 			};
 			name = Release;
 		};
@@ -675,6 +826,23 @@
 			buildConfigurations = (
 				0C22D9CB1BCA9734006E1D3B /* Debug */,
 				0C22D9CC1BCA9734006E1D3B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0C22DA331BCAA220006E1D3B /* Build configuration list for PBXNativeTarget "Nuke OSX" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0C22DA311BCAA220006E1D3B /* Debug */,
+				0C22DA321BCAA220006E1D3B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+		0C22DA401BCAA22A006E1D3B /* Build configuration list for PBXNativeTarget "Nuke OSX Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0C22DA411BCAA22A006E1D3B /* Debug */,
+				0C22DA421BCAA22A006E1D3B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 		};
