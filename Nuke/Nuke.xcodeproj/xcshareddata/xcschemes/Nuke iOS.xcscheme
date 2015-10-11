@@ -15,8 +15,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0C91748F1BAE99EE004A7905"
-               BuildableName = "Nuke.framework"
-               BlueprintName = "Nuke"
+               BuildableName = "Nuke iOS.framework"
+               BlueprintName = "Nuke iOS"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -33,8 +33,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0C7C06761BCA882A00089D7F"
-               BuildableName = "Nuke Tests.xctest"
-               BlueprintName = "Nuke Tests"
+               BuildableName = "Nuke iOS Tests.xctest"
+               BlueprintName = "Nuke iOS Tests"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -43,8 +43,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0C91748F1BAE99EE004A7905"
-            BuildableName = "Nuke.framework"
-            BlueprintName = "Nuke"
+            BuildableName = "Nuke iOS.framework"
+            BlueprintName = "Nuke iOS"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -65,8 +65,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0C91748F1BAE99EE004A7905"
-            BuildableName = "Nuke.framework"
-            BlueprintName = "Nuke"
+            BuildableName = "Nuke iOS.framework"
+            BlueprintName = "Nuke iOS"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -83,8 +83,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0C91748F1BAE99EE004A7905"
-            BuildableName = "Nuke.framework"
-            BlueprintName = "Nuke"
+            BuildableName = "Nuke iOS.framework"
+            BlueprintName = "Nuke iOS"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

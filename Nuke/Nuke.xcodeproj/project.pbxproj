@@ -66,7 +66,7 @@
 		0C096C901BAE9ADD007FE380 /* ImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
 		0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestKey.swift; sourceTree = "<group>"; };
 		0C72ADCA1BC59CBE000C9C39 /* ImagePreheatingController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheatingController.swift; sourceTree = "<group>"; };
-		0C7C06771BCA882A00089D7F /* Nuke Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke iOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C7C06791BCA882A00089D7F /* Nuke_Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Nuke_Tests.swift; sourceTree = "<group>"; };
 		0C7C067B1BCA882A00089D7F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0C7C06821BCA888800089D7F /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../Info.plist; sourceTree = "<group>"; };
@@ -236,7 +236,7 @@
 			isa = PBXGroup;
 			children = (
 				0C9174901BAE99EE004A7905 /* Nuke.framework */,
-				0C7C06771BCA882A00089D7F /* Nuke Tests.xctest */,
+				0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -255,9 +255,9 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		0C7C06761BCA882A00089D7F /* Nuke Tests */ = {
+		0C7C06761BCA882A00089D7F /* Nuke iOS Tests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0C7C067F1BCA882A00089D7F /* Build configuration list for PBXNativeTarget "Nuke Tests" */;
+			buildConfigurationList = 0C7C067F1BCA882A00089D7F /* Build configuration list for PBXNativeTarget "Nuke iOS Tests" */;
 			buildPhases = (
 				0C7C06731BCA882A00089D7F /* Sources */,
 				0C7C06741BCA882A00089D7F /* Frameworks */,
@@ -268,14 +268,14 @@
 			dependencies = (
 				0C7C067E1BCA882A00089D7F /* PBXTargetDependency */,
 			);
-			name = "Nuke Tests";
+			name = "Nuke iOS Tests";
 			productName = "Nuke Tests";
-			productReference = 0C7C06771BCA882A00089D7F /* Nuke Tests.xctest */;
+			productReference = 0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		0C91748F1BAE99EE004A7905 /* Nuke */ = {
+		0C91748F1BAE99EE004A7905 /* Nuke iOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0C9174981BAE99EE004A7905 /* Build configuration list for PBXNativeTarget "Nuke" */;
+			buildConfigurationList = 0C9174981BAE99EE004A7905 /* Build configuration list for PBXNativeTarget "Nuke iOS" */;
 			buildPhases = (
 				0C91748B1BAE99EE004A7905 /* Sources */,
 				0C91748C1BAE99EE004A7905 /* Frameworks */,
@@ -286,7 +286,7 @@
 			);
 			dependencies = (
 			);
-			name = Nuke;
+			name = "Nuke iOS";
 			productName = Nuke;
 			productReference = 0C9174901BAE99EE004A7905 /* Nuke.framework */;
 			productType = "com.apple.product-type.framework";
@@ -320,8 +320,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0C91748F1BAE99EE004A7905 /* Nuke */,
-				0C7C06761BCA882A00089D7F /* Nuke Tests */,
+				0C91748F1BAE99EE004A7905 /* Nuke iOS */,
+				0C7C06761BCA882A00089D7F /* Nuke iOS Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -388,7 +388,7 @@
 /* Begin PBXTargetDependency section */
 		0C7C067E1BCA882A00089D7F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 0C91748F1BAE99EE004A7905 /* Nuke */;
+			target = 0C91748F1BAE99EE004A7905 /* Nuke iOS */;
 			targetProxy = 0C7C067D1BCA882A00089D7F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -517,7 +517,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Nuke;
 				SKIP_INSTALL = YES;
 			};
 			name = Debug;
@@ -534,7 +534,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Nuke;
 				SKIP_INSTALL = YES;
 			};
 			name = Release;
@@ -542,7 +542,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0C7C067F1BCA882A00089D7F /* Build configuration list for PBXNativeTarget "Nuke Tests" */ = {
+		0C7C067F1BCA882A00089D7F /* Build configuration list for PBXNativeTarget "Nuke iOS Tests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0C7C06801BCA882A00089D7F /* Debug */,
@@ -560,7 +560,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0C9174981BAE99EE004A7905 /* Build configuration list for PBXNativeTarget "Nuke" */ = {
+		0C9174981BAE99EE004A7905 /* Build configuration list for PBXNativeTarget "Nuke iOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0C9174991BAE99EE004A7905 /* Debug */,
