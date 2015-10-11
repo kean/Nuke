@@ -3,6 +3,11 @@
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+#if os(OSX)
+    import Cocoa
+#else
+    import UIKit
+#endif
 
 public protocol ImageMemoryCaching {
     func cachedResponseForKey(key: ImageRequestKey) -> ImageCachedResponse?
