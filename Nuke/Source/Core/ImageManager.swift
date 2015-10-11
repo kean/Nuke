@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import UIKit
+import Foundation
 
 public let ImageManagerErrorDomain = "Nuke.ImageManagerErrorDomain"
 public let ImageManagerErrorCancelled = -1
@@ -216,7 +216,7 @@ extension ImageManager: ImageLoadingDelegate {
         }
     }
 
-    public func imageLoader(imageLoader: ImageLoading, task: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?, userInfo: Any?) {
+    public func imageLoader(imageLoader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?) {
         let task = task as! ImageTaskInternal
         if let image = image {
             self.storeResponse(ImageCachedResponse(image: image, userInfo: userInfo), forRequest: task.request)

@@ -2,13 +2,13 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import UIKit
+import Foundation
 
 public enum ImageResponse {
-    case Success(UIImage, ImageResponseInfo)
+    case Success(Image, ImageResponseInfo)
     case Failure(ErrorType)
 
-    public var image: UIImage? {
+    public var image: Image? {
         switch self {
         case .Success(let image, _): return image
         case .Failure(_): return nil

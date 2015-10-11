@@ -34,6 +34,21 @@
 		0C22D9D71BCA9755006E1D3B /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C881BAE9ADD007FE380 /* ImageTask.swift */; settings = {ASSET_TAGS = (); }; };
 		0C22D9D81BCA9755006E1D3B /* Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C891BAE9ADD007FE380 /* Nuke.swift */; settings = {ASSET_TAGS = (); }; };
 		0C22DA3D1BCAA22A006E1D3B /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C22DA2C1BCAA220006E1D3B /* Nuke.framework */; settings = {ASSET_TAGS = (); }; };
+		0C22DA441BCAA3CB006E1D3B /* Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C22DA431BCAA3CB006E1D3B /* Image.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA451BCAA3CB006E1D3B /* Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C22DA431BCAA3CB006E1D3B /* Image.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA461BCAA3CB006E1D3B /* Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C22DA431BCAA3CB006E1D3B /* Image.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA471BCAA45B006E1D3B /* Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C891BAE9ADD007FE380 /* Nuke.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA481BCAA468006E1D3B /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C881BAE9ADD007FE380 /* ImageTask.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA491BCAA46F006E1D3B /* ImageResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C871BAE9ADD007FE380 /* ImageResponse.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA4A1BCAA486006E1D3B /* ImageRequestKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA4B1BCAA4B0006E1D3B /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C851BAE9ADD007FE380 /* ImageProcessor.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA4C1BCAA4FD006E1D3B /* ImageRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C861BAE9ADD007FE380 /* ImageRequest.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA4D1BCAA5C4006E1D3B /* ImageMemoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C841BAE9ADD007FE380 /* ImageMemoryCache.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA4E1BCAA7F5006E1D3B /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C831BAE9ADD007FE380 /* ImageLoader.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA4F1BCAA84F006E1D3B /* ImageDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C7F1BAE9ADD007FE380 /* ImageDataLoader.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA501BCAA85F006E1D3B /* ImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C801BAE9ADD007FE380 /* ImageDecoder.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA511BCAA8CE006E1D3B /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C811BAE9ADD007FE380 /* ImageManager.swift */; settings = {ASSET_TAGS = (); }; };
+		0C22DA521BCAA8D5006E1D3B /* ImageManagerExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF161F1BC4526A003768E5 /* ImageManagerExtensions.swift */; settings = {ASSET_TAGS = (); }; };
 		0C72ADCB1BC59CBE000C9C39 /* ImagePreheatingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C72ADCA1BC59CBE000C9C39 /* ImagePreheatingController.swift */; settings = {ASSET_TAGS = (); }; };
 		0C7C067C1BCA882A00089D7F /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ASSET_TAGS = (); }; };
 		0C7C06901BCA888800089D7F /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C7C06841BCA888800089D7F /* Image.jpg */; settings = {ASSET_TAGS = (); }; };
@@ -88,6 +103,7 @@
 		0C22D9C51BCA9734006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C22DA2C1BCAA220006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C22DA381BCAA22A006E1D3B /* Nuke OSX Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke OSX Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C22DA431BCAA3CB006E1D3B /* Image.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Image.swift; sourceTree = "<group>"; };
 		0C72ADCA1BC59CBE000C9C39 /* ImagePreheatingController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheatingController.swift; sourceTree = "<group>"; };
 		0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke iOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C7C06821BCA888800089D7F /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../Info.plist; sourceTree = "<group>"; };
@@ -188,6 +204,7 @@
 				0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */,
 				0C096C871BAE9ADD007FE380 /* ImageResponse.swift */,
 				0C096C881BAE9ADD007FE380 /* ImageTask.swift */,
+				0C22DA431BCAA3CB006E1D3B /* Image.swift */,
 				0C096C891BAE9ADD007FE380 /* Nuke.swift */,
 			);
 			path = Core;
@@ -401,6 +418,7 @@
 		0C9174871BAE99EE004A7905 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				LastSwiftUpdateCheck = 0700;
 				LastUpgradeCheck = 0700;
 				ORGANIZATIONNAME = "Alexander Grebenyuk";
 				TargetAttributes = {
@@ -434,10 +452,10 @@
 			projectRoot = "";
 			targets = (
 				0C91748F1BAE99EE004A7905 /* Nuke iOS */,
-				0C7C06761BCA882A00089D7F /* Nuke iOS Tests */,
 				0C22DA2B1BCAA220006E1D3B /* Nuke OSX */,
-				0C22DA371BCAA22A006E1D3B /* Nuke OSX Tests */,
 				0C22D9C41BCA9734006E1D3B /* Nuke watchOS */,
+				0C7C06761BCA882A00089D7F /* Nuke iOS Tests */,
+				0C22DA371BCAA22A006E1D3B /* Nuke OSX Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -492,6 +510,7 @@
 				0C22D9D71BCA9755006E1D3B /* ImageTask.swift in Sources */,
 				0C22D9D61BCA9755006E1D3B /* ImageResponse.swift in Sources */,
 				0C22D9D51BCA9755006E1D3B /* ImageRequestKey.swift in Sources */,
+				0C22DA461BCAA3CB006E1D3B /* Image.swift in Sources */,
 				0C22D9D01BCA9755006E1D3B /* ImageManagerExtensions.swift in Sources */,
 				0C22D9D11BCA9755006E1D3B /* ImageLoader.swift in Sources */,
 				0C22D9CE1BCA9755006E1D3B /* ImageDecoder.swift in Sources */,
@@ -505,6 +524,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C22DA491BCAA46F006E1D3B /* ImageResponse.swift in Sources */,
+				0C22DA4D1BCAA5C4006E1D3B /* ImageMemoryCache.swift in Sources */,
+				0C22DA471BCAA45B006E1D3B /* Nuke.swift in Sources */,
+				0C22DA511BCAA8CE006E1D3B /* ImageManager.swift in Sources */,
+				0C22DA481BCAA468006E1D3B /* ImageTask.swift in Sources */,
+				0C22DA451BCAA3CB006E1D3B /* Image.swift in Sources */,
+				0C22DA521BCAA8D5006E1D3B /* ImageManagerExtensions.swift in Sources */,
+				0C22DA4E1BCAA7F5006E1D3B /* ImageLoader.swift in Sources */,
+				0C22DA4F1BCAA84F006E1D3B /* ImageDataLoader.swift in Sources */,
+				0C22DA4B1BCAA4B0006E1D3B /* ImageProcessor.swift in Sources */,
+				0C22DA501BCAA85F006E1D3B /* ImageDecoder.swift in Sources */,
+				0C22DA4C1BCAA4FD006E1D3B /* ImageRequest.swift in Sources */,
+				0C22DA4A1BCAA486006E1D3B /* ImageRequestKey.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -544,6 +576,7 @@
 				0C096C981BAE9ADD007FE380 /* ImageProcessor.swift in Sources */,
 				0C096C961BAE9ADD007FE380 /* ImageLoader.swift in Sources */,
 				0C096CA11BAE9ADD007FE380 /* ImageView.swift in Sources */,
+				0C22DA441BCAA3CB006E1D3B /* Image.swift in Sources */,
 				0C0E01781BC0637B0040B46B /* ImageRequestKey.swift in Sources */,
 				0C096C971BAE9ADD007FE380 /* ImageMemoryCache.swift in Sources */,
 				0C72ADCB1BC59CBE000C9C39 /* ImagePreheatingController.swift in Sources */,
@@ -610,6 +643,7 @@
 		0C22DA311BCAA220006E1D3B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -619,17 +653,19 @@
 				INFOPLIST_FILE = "Supporting Files/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-OSX";
 				PRODUCT_NAME = Nuke;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
 		};
 		0C22DA321BCAA220006E1D3B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -639,7 +675,7 @@
 				INFOPLIST_FILE = "Supporting Files/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-OSX";
 				PRODUCT_NAME = Nuke;
 				SDKROOT = macosx;

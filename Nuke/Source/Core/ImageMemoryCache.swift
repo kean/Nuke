@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import UIKit
+import Foundation
 
 public protocol ImageMemoryCaching {
     func cachedResponseForKey(key: ImageRequestKey) -> ImageCachedResponse?
@@ -11,10 +11,10 @@ public protocol ImageMemoryCaching {
 }
 
 public class ImageCachedResponse {
-    public let image: UIImage
+    public let image: Image
     public let userInfo: Any?
 
-    public init(image: UIImage, userInfo: Any?) {
+    public init(image: Image, userInfo: Any?) {
         self.image = image
         self.userInfo = userInfo
     }
@@ -39,6 +39,9 @@ public class ImageMemoryCache: ImageMemoryCaching {
     public convenience init() {
         let cache = NSCache()
         cache.totalCostLimit = ImageMemoryCache.recommendedCacheTotalLimit()
+        #if os(OSX)
+        cache.countLimit = 100
+        #endif
         self.init(cache: cache)
     }
 
@@ -50,10 +53,14 @@ public class ImageMemoryCache: ImageMemoryCaching {
         self.cache.setObject(response, forKey: key, cost: self.costForImage(response.image))
     }
 
-    public func costForImage(image: UIImage) -> Int {
-        let imageRef = image.CGImage
-        let bits = CGImageGetWidth(imageRef) * CGImageGetHeight(imageRef) * CGImageGetBitsPerPixel(imageRef)
-        return bits / 8
+    public func costForImage(image: Image) -> Int {
+        #if os(OSX)
+            return 1
+        #else
+            let imageRef = image.CGImage
+            let bits = CGImageGetWidth(imageRef) * CGImageGetHeight(imageRef) * CGImageGetBitsPerPixel(imageRef)
+            return bits / 8
+        #endif
     }
 
     public class func recommendedCacheTotalLimit() -> Int {

@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import UIKit
+import Foundation
 
 // MARK: - ImageLoading
 
@@ -20,7 +20,7 @@ public protocol ImageLoading: class {
 
 public protocol ImageLoadingDelegate: class {
     func imageLoader(imageLoader: ImageLoading, task: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
-    func imageLoader(imageLoader: ImageLoading, task: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?, userInfo: Any?)
+    func imageLoader(imageLoader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?)
 }
 
 // MARK: - ImageLoaderConfiguration
@@ -105,7 +105,7 @@ public class ImageLoader: ImageLoading {
         }
     }
     
-    private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
+    private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithImage image: Image?, error: ErrorType?) {
         dispatch_async(self.queue) {
             for imageTask in sessionTask.tasks {
                 self.processImage(image, error: error, forImageTask: imageTask)
@@ -117,7 +117,7 @@ public class ImageLoader: ImageLoading {
         }
     }
     
-    private func processImage(image: UIImage?, error: ErrorType?, forImageTask imageTask: ImageTask) {
+    private func processImage(image: Image?, error: ErrorType?, forImageTask imageTask: ImageTask) {
         if let image = image, processor = self.processorForRequest(imageTask.request) {
             let operation = NSBlockOperation { [weak self] in
                 self?.imageTask(imageTask, didCompleteWithImage: processor.processImage(image), error: error)
@@ -131,16 +131,18 @@ public class ImageLoader: ImageLoading {
     
     private func processorForRequest(request: ImageRequest) -> ImageProcessing? {
         var processors = [ImageProcessing]()
+        #if !os(OSX)
         if request.shouldDecompressImage {
             processors.append(ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode))
         }
+        #endif
         if let processor = request.processor {
             processors.append(processor)
         }
         return processors.isEmpty ? nil : ImageProcessorComposition(processors: processors)
     }
     
-    private func imageTask(imageTask: ImageTask, didCompleteWithImage image: UIImage?, error: ErrorType?) {
+    private func imageTask(imageTask: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?) {
         dispatch_async(self.queue) {
             self.delegate?.imageLoader(self, task: imageTask, didCompleteWithImage: image, error: error, userInfo: nil)
             self.executingTasks[imageTask] = nil

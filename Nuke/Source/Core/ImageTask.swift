@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import UIKit
+import Foundation
 
 public enum ImageTaskState {
     case Suspended, Running, Cancelled, Completed

@@ -2,19 +2,26 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import UIKit
+#if os(OSX)
+    import Cocoa
+#else
+    import UIKit
+#endif
+
 #if os(watchOS)
-import WatchKit
+    import WatchKit
 #endif
 
 public protocol ImageDecoding {
-    func imageWithData(data: NSData) -> UIImage?
+    func imageWithData(data: NSData) -> Image?
 }
 
 public class ImageDecoder: ImageDecoding {
     public init() {}
-    public func imageWithData(data: NSData) -> UIImage? {
-        #if os(iOS)
+    public func imageWithData(data: NSData) -> Image? {
+        #if os(OSX)
+            return NSImage(data: data)
+        #elseif os(iOS)
             return UIImage(data: data, scale: UIScreen.mainScreen().scale)
         #else
             return UIImage(data: data, scale: WKInterfaceDevice.currentDevice().screenScale)
@@ -29,7 +36,7 @@ public class ImageDecoderComposition: ImageDecoding {
         self.decoders = decoders
     }
     
-    public func imageWithData(data: NSData) -> UIImage? {
+    public func imageWithData(data: NSData) -> Image? {
         for decoder in self.decoders {
             if let image = decoder.imageWithData(data) {
                 return image
