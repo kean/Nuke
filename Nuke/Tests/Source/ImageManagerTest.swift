@@ -389,11 +389,11 @@ class ImageManagerTest: XCTestCase {
         let request = ImageRequest(URL: defaultURL)
         self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
         self.manager.startPreheatingImages([request])
-        self.wait()
+        self.wait(2)
 
         self.expectNotification(MockURLSessionDataTaskDidCancelNotification)
         self.manager.stopPreheatingImages()
-        self.wait()
+        self.wait(2)
     }
 
     // MARK: Invalidation
