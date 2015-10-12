@@ -3,4 +3,4 @@ use_frameworks!
 
 pod "Nuke", :path => "../"
 pod "Nuke/GIF", :path => "../"
-pod "Nuke/Alamofire", :path => "../"
+pod "Nuke-Alamofire-Plugin", :git => "https://github.com/kean/Nuke-Alamofire-Plugin"

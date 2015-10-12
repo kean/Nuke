@@ -8,6 +8,7 @@
 
 import Foundation
 import Nuke
+import NukeAlamofirePlugin
 
 class AlamofireDemoViewController: BasicDemoViewController {
     var previousManager: ImageManager!

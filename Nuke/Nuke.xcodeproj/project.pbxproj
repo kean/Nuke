@@ -93,7 +93,6 @@
 
 /* Begin PBXFileReference section */
 		0C096C791BAE9AC9007FE380 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		0C096C7D1BAE9ADD007FE380 /* AlamofireImageDataLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AlamofireImageDataLoader.swift; sourceTree = "<group>"; };
 		0C096C7F1BAE9ADD007FE380 /* ImageDataLoader.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageDataLoader.swift; sourceTree = "<group>"; };
 		0C096C801BAE9ADD007FE380 /* ImageDecoder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageDecoder.swift; sourceTree = "<group>"; };
 		0C096C811BAE9ADD007FE380 /* ImageManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManager.swift; sourceTree = "<group>"; };
@@ -186,18 +185,9 @@
 				0C096C8D1BAE9ADD007FE380 /* Nuke.h */,
 				0C096C7E1BAE9ADD007FE380 /* Core */,
 				0C096C8E1BAE9ADD007FE380 /* UI */,
-				0C096C7C1BAE9ADD007FE380 /* Alamofire */,
 				0C096C8A1BAE9ADD007FE380 /* GIF */,
 			);
 			path = Source;
-			sourceTree = "<group>";
-		};
-		0C096C7C1BAE9ADD007FE380 /* Alamofire */ = {
-			isa = PBXGroup;
-			children = (
-				0C096C7D1BAE9ADD007FE380 /* AlamofireImageDataLoader.swift */,
-			);
-			path = Alamofire;
 			sourceTree = "<group>";
 		};
 		0C096C7E1BAE9ADD007FE380 /* Core */ = {
