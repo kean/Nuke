@@ -15,15 +15,6 @@ Pod::Spec.new do |s|
 
     s.requires_arc = true
 
-    s.default_subspecs = "Core", "UI"
-
-    s.subspec "Core" do |ss|
-        ss.source_files  = "Nuke/Source/Core/**/*"
-    end
-
-    s.subspec "UI" do |ss|
-        ss.ios.deployment_target = "8.0"
-        ss.dependency "Nuke/Core"
-        ss.ios.source_files = "Nuke/Source/UI/**/*"
-    end
+    s.source_files  = "Nuke/Source/Core/**/*"
+    s.ios.source_files = "Nuke/Source/UI/**/*"
 end
