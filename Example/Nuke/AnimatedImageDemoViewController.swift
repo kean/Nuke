@@ -7,8 +7,8 @@
 //
 
 import UIKit
-import UIKit
 import Nuke
+import NukeAnimatedImagePlugin
 
 private let textViewCellReuseID = "textViewReuseID"
 private let imageCellReuseID = "imageCellReuseID"

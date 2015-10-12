@@ -26,12 +26,4 @@ Pod::Spec.new do |s|
         ss.dependency "Nuke/Core"
         ss.ios.source_files = "Nuke/Source/UI/**/*"
     end
-
-    s.subspec "GIF" do |ss|
-        ss.ios.deployment_target = "8.0"
-        ss.dependency "Nuke/Core"
-        ss.dependency "Nuke/UI"
-        ss.dependency "FLAnimatedImage", "~> 1.0"
-        ss.source_files = "Nuke/Source/GIF/**/*"
-    end
 end

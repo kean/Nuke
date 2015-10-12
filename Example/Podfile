@@ -2,5 +2,5 @@ source 'https://github.com/CocoaPods/Specs.git'
 use_frameworks!
 
 pod "Nuke", :path => "../"
-pod "Nuke/GIF", :path => "../"
+pod "Nuke-AnimatedImage-Plugin", :git => "https://github.com/kean/Nuke-AnimatedImage-Plugin"
 pod "Nuke-Alamofire-Plugin", :git => "https://github.com/kean/Nuke-Alamofire-Plugin"

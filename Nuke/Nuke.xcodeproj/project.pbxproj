@@ -103,8 +103,6 @@
 		0C096C871BAE9ADD007FE380 /* ImageResponse.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageResponse.swift; sourceTree = "<group>"; };
 		0C096C881BAE9ADD007FE380 /* ImageTask.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageTask.swift; sourceTree = "<group>"; };
 		0C096C891BAE9ADD007FE380 /* Nuke.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Nuke.swift; sourceTree = "<group>"; };
-		0C096C8B1BAE9ADD007FE380 /* AnimatedImage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnimatedImage.swift; sourceTree = "<group>"; };
-		0C096C8C1BAE9ADD007FE380 /* AnimatedImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnimatedImageView.swift; sourceTree = "<group>"; };
 		0C096C8D1BAE9ADD007FE380 /* Nuke.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0C096C8F1BAE9ADD007FE380 /* ImagePreheatingControllerForCollectionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheatingControllerForCollectionView.swift; sourceTree = "<group>"; };
 		0C096C901BAE9ADD007FE380 /* ImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
@@ -185,7 +183,6 @@
 				0C096C8D1BAE9ADD007FE380 /* Nuke.h */,
 				0C096C7E1BAE9ADD007FE380 /* Core */,
 				0C096C8E1BAE9ADD007FE380 /* UI */,
-				0C096C8A1BAE9ADD007FE380 /* GIF */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -208,15 +205,6 @@
 				0C096C891BAE9ADD007FE380 /* Nuke.swift */,
 			);
 			path = Core;
-			sourceTree = "<group>";
-		};
-		0C096C8A1BAE9ADD007FE380 /* GIF */ = {
-			isa = PBXGroup;
-			children = (
-				0C096C8B1BAE9ADD007FE380 /* AnimatedImage.swift */,
-				0C096C8C1BAE9ADD007FE380 /* AnimatedImageView.swift */,
-			);
-			path = GIF;
 			sourceTree = "<group>";
 		};
 		0C096C8E1BAE9ADD007FE380 /* UI */ = {
