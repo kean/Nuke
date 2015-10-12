@@ -28,8 +28,8 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
         self.previousImageManager = ImageManager.shared
         
         let decoder = ImageDecoderComposition(decoders: [AnimatedImageDecoder(), ImageDecoder()])
-        let configuration = ImageManagerConfiguration(dataLoader: ImageDataLoader(), decoder:decoder)
-        ImageManager.shared = ImageManager(configuration: configuration)
+        let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: ImageDataLoader(), decoder: decoder), delegate: AnimatedImageLoaderDelegate())
+        ImageManager.shared = ImageManager(configuration: ImageManagerConfiguration(loader: loader))
         
         self.collectionView?.registerClass(UICollectionViewCell.self, forCellWithReuseIdentifier: textViewCellReuseID)
         self.collectionView?.registerClass(AnimatedImageCell.self, forCellWithReuseIdentifier: imageCellReuseID)
@@ -82,9 +82,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
             return cell
         } else {
             let cell: AnimatedImageCell = collectionView.dequeueReusableCellWithReuseIdentifier(imageCellReuseID, forIndexPath: indexPath) as! AnimatedImageCell
-            var request = ImageRequest(URL: self.imageURLs[indexPath.row])
-            request.shouldDecompressImage = false
-            cell.setImageWithRequest(request)
+            cell.setImageWithURL(self.imageURLs[indexPath.row])
             return cell
         }
     }
