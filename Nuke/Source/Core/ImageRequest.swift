@@ -43,15 +43,15 @@ public struct ImageRequest {
     }
 }
 
-internal extension ImageRequest {
-    var allowsCaching: Bool {
+public extension ImageRequest {
+    public var allowsCaching: Bool {
         switch self.URLRequest.cachePolicy {
         case .UseProtocolCachePolicy, .ReturnCacheDataElseLoad, .ReturnCacheDataDontLoad: return true
         default: return false
         }
     }
     
-    func isLoadEquivalentToRequest(other: ImageRequest) -> Bool {
+    public func isLoadEquivalentToRequest(other: ImageRequest) -> Bool {
         let lhs = self.URLRequest, rhs = other.URLRequest
         return lhs.URL == rhs.URL &&
             lhs.cachePolicy == rhs.cachePolicy &&
@@ -60,7 +60,7 @@ internal extension ImageRequest {
             lhs.allowsCellularAccess == rhs.allowsCellularAccess
     }
     
-    func isCacheEquivalentToRequest(other: ImageRequest) -> Bool {
+    public func isCacheEquivalentToRequest(other: ImageRequest) -> Bool {
         return self.URLRequest.URL == other.URLRequest.URL
     }
 }
