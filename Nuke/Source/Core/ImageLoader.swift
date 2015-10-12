@@ -37,6 +37,34 @@ public struct ImageLoaderConfiguration {
     }
 }
 
+// MARK: - ImageLoaderDelegate
+
+public protocol ImageLoaderDelegate {
+    func imageLoader(loader: ImageLoader, shouldProcessImage image: Image) -> Bool
+    func imageLoader(loader: ImageLoader, decompressorForRequest request: ImageRequest) -> ImageProcessing?
+}
+
+extension ImageLoaderDelegate {
+    /** Returns true when image loader should process image. Processing includes both decompressing.
+    */
+    public func imageLoader(loader: ImageLoader, shouldProcessImage image: Image) -> Bool {
+        return true
+    }
+    
+    public func imageLoader(loader: ImageLoader, decompressorForRequest request: ImageRequest) -> ImageProcessing? {
+        #if !os(OSX)
+            if request.shouldDecompressImage {
+                return ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode)
+            }
+        #endif
+        return nil
+    }
+}
+
+public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
+    public init() {}
+}
+
 // MARK: - ImageLoader
 
 /** Implements image loading using objects conforming to ImageDataLoading, ImageDecoding and ImageProcessing protocols. Reuses data tasks for multiple equivalent image tasks.
@@ -44,6 +72,7 @@ public struct ImageLoaderConfiguration {
 public class ImageLoader: ImageLoading {
     public weak var manager: ImageLoadingManager?
     public let configuration: ImageLoaderConfiguration
+    public let delegate: ImageLoaderDelegate
     
     private var dataLoader: ImageDataLoading {
         return self.configuration.dataLoader
@@ -52,8 +81,9 @@ public class ImageLoader: ImageLoading {
     private var sessionTasks = [ImageRequestKey : ImageSessionTask]()
     private let queue = dispatch_queue_create("ImageLoader-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
     
-    public init(configuration: ImageLoaderConfiguration) {
+    public init(configuration: ImageLoaderConfiguration, delegate: ImageLoaderDelegate = ImageLoaderDefaultDelegate()) {
         self.configuration = configuration
+        self.delegate = delegate
     }
     
     public func resumeLoadingForTask(task: ImageTask) {
@@ -118,7 +148,7 @@ public class ImageLoader: ImageLoading {
     }
     
     private func processImage(image: Image?, error: ErrorType?, forImageTask imageTask: ImageTask) {
-        if let image = image, processor = self.processorForRequest(imageTask.request) {
+        if let image = image, processor = self.processorForRequest(imageTask.request) where self.delegate.imageLoader(self, shouldProcessImage: image) {
             let operation = NSBlockOperation { [weak self] in
                 self?.imageTask(imageTask, didCompleteWithImage: processor.processImage(image), error: error)
             }
@@ -132,8 +162,8 @@ public class ImageLoader: ImageLoading {
     private func processorForRequest(request: ImageRequest) -> ImageProcessing? {
         var processors = [ImageProcessing]()
         #if !os(OSX)
-        if request.shouldDecompressImage {
-            processors.append(ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode))
+        if request.shouldDecompressImage, let decompressor = self.delegate.imageLoader(self, decompressorForRequest: request) {
+            processors.append(decompressor)
         }
         #endif
         if let processor = request.processor {
