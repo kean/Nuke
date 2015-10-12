@@ -1,4 +1,4 @@
-<p align="center"><img src="https://cloud.githubusercontent.com/assets/1567433/6684993/5971ef08-cc3a-11e4-984c-6769e4931497.png" height="100"/>
+<p align="center"><img src="https://cloud.githubusercontent.com/assets/1567433/10440878/a7c6e468-714b-11e5-9b12-baef482c37c1.png" height="100"/>
 
 <p align="center">
 <a href="https://cocoapods.org"><img src="https://img.shields.io/cocoapods/v/Nuke.svg"></a>
@@ -26,8 +26,8 @@ Nuke.taskWithURL(URL) {
 
 - Zero config
 - Performant, asynchronous, thread safe
-- Optional [Alamofire](https://github.com/Alamofire/Alamofire) integration
-- Optional [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) integration
+- Optional [Alamofire integration](https://github.com/kean/Nuke-Alamofire-Plugin)
+- Optional [FLAnimatedImage integration](https://github.com/kean/Nuke-AnimatedImage-Plugin)
 
 ##### Loading
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
@@ -203,22 +203,17 @@ ImageManager.shared = ImageManager(configuration: configuration)
 To install Nuke add a dependency in your Podfile:
 ```ruby
 # use_frameworks!
-pod 'Nuke'
+pod "Nuke"
+pod "Nuke-Alamofire-Plugin" # optional
+pud "Nuke-AnimatedImage-Plugin" # optional
 ```
-
-By default it will install these subspecs (if they are available for your platform):
-- `Nuke/Core` - core classes
-- `Nuke/UI` - UI components
-
-There are two more optional subspec:
-- `Nuke/Alamofire` - [Alamofire](https://github.com/Alamofire/Alamofire) integration
-- `Nuke/GIF` - [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) integration
 
 ### [Carthage](https://github.com/Carthage/Carthage)
 
- Nuke has a limited Carthage support that doesn't feature [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) and [Alamofire](https://github.com/Alamofire/Alamofire) integration. To install Nuke add a dependency to your Cartfile:
+To install Nuke add a dependency to your Cartfile:
 ```
 github "kean/Nuke"
+github "kean/Nuke-Alamofire-Plugin" # optional
 ```
 
 ## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
