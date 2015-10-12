@@ -7,7 +7,7 @@ import Foundation
 // MARK: - ImageLoading
 
 public protocol ImageLoading: class {
-    weak var delegate: ImageLoadingDelegate? { get set }
+    weak var manager: ImageLoadingManager? { get set }
     func resumeLoadingForTask(task: ImageTask)
     func suspendLoadingForTask(task: ImageTask)
     func cancelLoadingForTask(task: ImageTask)
@@ -18,7 +18,7 @@ public protocol ImageLoading: class {
 
 // MARK: - ImageLoadingDelegate
 
-public protocol ImageLoadingDelegate: class {
+public protocol ImageLoadingManager: class {
     func imageLoader(imageLoader: ImageLoading, task: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
     func imageLoader(imageLoader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?)
 }
@@ -42,7 +42,7 @@ public struct ImageLoaderConfiguration {
 /** Implements image loading using objects conforming to ImageDataLoading, ImageDecoding and ImageProcessing protocols. Reuses data tasks for multiple equivalent image tasks.
 */
 public class ImageLoader: ImageLoading {
-    public weak var delegate: ImageLoadingDelegate?
+    public weak var manager: ImageLoadingManager?
     public let configuration: ImageLoaderConfiguration
     
     private var dataLoader: ImageDataLoading {
@@ -64,7 +64,7 @@ public class ImageLoader: ImageLoading {
                 sessionTask = self.createSessionTaskWithRequest(task.request, key: key)
                 self.sessionTasks[key] = sessionTask
             } else {
-                self.delegate?.imageLoader(self, task: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.totalUnitCount)
+                self.manager?.imageLoader(self, task: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.totalUnitCount)
             }
             self.executingTasks[task] = ImageLoadState.Loading(sessionTask)
             sessionTask.suspendedTasks.remove(task)
@@ -89,7 +89,7 @@ public class ImageLoader: ImageLoading {
             sessionTask.totalUnitCount = totalUnitCount
             sessionTask.completedUnitCount = completedUnitCount
             for imageTask in sessionTask.tasks {
-                self.delegate?.imageLoader(self, task: imageTask, didUpdateProgressWithCompletedUnitCount: completedUnitCount, totalUnitCount: totalUnitCount)
+                self.manager?.imageLoader(self, task: imageTask, didUpdateProgressWithCompletedUnitCount: completedUnitCount, totalUnitCount: totalUnitCount)
             }
         }
     }
@@ -144,7 +144,7 @@ public class ImageLoader: ImageLoading {
     
     private func imageTask(imageTask: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?) {
         dispatch_async(self.queue) {
-            self.delegate?.imageLoader(self, task: imageTask, didCompleteWithImage: image, error: error, userInfo: nil)
+            self.manager?.imageLoader(self, task: imageTask, didCompleteWithImage: image, error: error, userInfo: nil)
             self.executingTasks[imageTask] = nil
         }
     }

@@ -49,7 +49,7 @@ public class ImageManager {
     
     public init(configuration: ImageManagerConfiguration) {
         self.configuration = configuration
-        self.loader.delegate = self
+        self.loader.manager = self
     }
     
     /** Creates a task with a given request. Task is created in a suspended state and must be resumed before it will execute.
@@ -62,7 +62,7 @@ public class ImageManager {
     */
     public func invalidateAndCancel() {
         self.perform {
-            self.loader.delegate = nil
+            self.loader.manager = nil
             self.cancelTasks(self.executingTasks)
             self.preheatingTasks.removeAll()
             self.loader.invalidate()
@@ -206,9 +206,9 @@ public class ImageManager {
     }
 }
 
-// MARK: ImageManager: ImageLoadingDelegate
+// MARK: ImageManager: ImageLoadingManager
 
-extension ImageManager: ImageLoadingDelegate {
+extension ImageManager: ImageLoadingManager {
     public func imageLoader(imageLoader: ImageLoading, task: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
         dispatch_async(dispatch_get_main_queue()) {
             task.progress.totalUnitCount = totalUnitCount
