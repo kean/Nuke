@@ -20,6 +20,8 @@ class MockImageDataLoader: ImageDataLoader {
     
     override func imageDataTaskWithRequest(request: ImageRequest, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask {
         self.queue.addOperationWithBlock {
+            progressHandler(completedUnitCount: 50, totalUnitCount: 100)
+            progressHandler(completedUnitCount: 100, totalUnitCount: 100)
             let bundle = NSBundle(forClass: MockImageDataLoader.self)
             let URL = bundle.URLForResource("Image", withExtension: "jpg")
             let data = NSData(contentsOfURL: URL!)

@@ -53,10 +53,10 @@ public class ImageView: UIImageView {
         self.cancelFetching()
         let task = Nuke.taskWithRequest(request)
         task.completion { [weak self, weak task] in
-            guard let unwrappedTask = task, unwrappedSelf = self where unwrappedTask == unwrappedSelf.imageTask else {
+            guard let task = task where task == self?.imageTask else {
                 return
             }
-            unwrappedSelf.imageTaskDidFinishWithResponse($0)
+            self?.imageTaskDidFinishWithResponse($0)
         }
         self.imageTask = task
         task.resume()

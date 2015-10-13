@@ -95,7 +95,9 @@ Nuke.taskWithRequest(request) { response in
 
 ```swift
 let task = Nuke.taskWithURL(imageURL).resume()
-let progress = task.progress // Use NSProgress
+task.progress = { completed, total in
+   // Update progress
+}
 let state = task.state // Track task state
 task.completion { // Add multiple completions, even for completed task
     let image = $0.image

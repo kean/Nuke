@@ -105,18 +105,6 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
 private class AnimatedImageCell: UICollectionViewCell {
     private let imageView = AnimatedImageView(frame: CGRectZero)
     private let progressView = UIProgressView()
-    private var currentProgress: NSProgress? {
-        willSet (newProgress) {
-            if let progress = self.currentProgress {
-                progress.removeObserver(self, forKeyPath: "fractionCompleted", context: nil)
-            }
-            if let progress = newProgress {
-                self.progressView.progress = Float(progress.fractionCompleted)
-                progress.addObserver(self, forKeyPath: "fractionCompleted", options: [.New], context: nil)
-            }
-            
-        }
-    }
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -147,7 +135,19 @@ private class AnimatedImageCell: UICollectionViewCell {
     
     func setImageWithRequest(request: ImageRequest) {
         self.imageView.setImageWithRequest(request)
-        self.currentProgress = self.imageView.imageTask?.progress
+        if let task = self.imageView.imageTask {
+            task.progress = { [weak self, weak task] _, _ in
+                guard let task = task where task == self?.imageView.imageTask else {
+                    return
+                }
+                self?.progressView.setProgress(Float(task.fractionCompleted), animated: true)
+                if task.fractionCompleted == 1 {
+                    UIView.animateWithDuration(0.2) {
+                        self?.progressView.alpha = 0
+                    }
+                }
+            }
+        }
         if self.imageView.imageTask?.state == .Completed {
             self.progressView.alpha = 0;
         }
@@ -157,22 +157,6 @@ private class AnimatedImageCell: UICollectionViewCell {
         super.prepareForReuse()
         self.progressView.progress = 0
         self.progressView.alpha = 1
-        self.currentProgress = nil
         self.imageView.prepareForReuse()
-    }
-    
-    private override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
-        if let progress = self.currentProgress where object === progress {
-            dispatch_async(dispatch_get_main_queue()) {
-                self.progressView.setProgress(Float(progress.fractionCompleted), animated: true)
-                if progress.fractionCompleted == 1 {
-                    UIView.animateWithDuration(0.2) {
-                        self.progressView.alpha = 0
-                    }
-                }
-            }
-        } else {
-            super.observeValueForKeyPath(keyPath, ofObject: object, change: change, context: context)
-        }
     }
 }

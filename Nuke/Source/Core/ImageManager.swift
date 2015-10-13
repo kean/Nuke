@@ -211,8 +211,9 @@ public class ImageManager {
 extension ImageManager: ImageLoadingManager {
     public func imageLoader(imageLoader: ImageLoading, task: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
         dispatch_async(dispatch_get_main_queue()) {
-            task.progress.totalUnitCount = totalUnitCount
-            task.progress.completedUnitCount = completedUnitCount
+            task.totalUnitCount = totalUnitCount
+            task.completedUnitCount = completedUnitCount
+            task.progress?(completedUnitCount: completedUnitCount, totalUnitCount: totalUnitCount)
         }
     }
 

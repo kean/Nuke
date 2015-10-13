@@ -334,22 +334,31 @@ class ImageManagerTest: XCTestCase {
 
     // MARK: Progress
 
-    /*
-    func testThatProgressObjectCancelsTask() {
-    self.mockSessionManager.enabled = false
-
-    let task = self.manager.taskWithURL(defaultURL, completion: nil)
-    task.resume()
-    self.expectNotification(MockURLSessionDataTaskDidCancelNotification)
-
-    let progress = task.progress
-    XCTAssertNotNil(progress)
-    XCTAssertTrue(progress.cancellable)
-    progress.cancel()
-
-    self.wait()
+    func testThatProgressClosureIsCalled() {
+        let task = self.manager.taskWithURL(defaultURL, completion: nil)
+        XCTAssertEqual(task.totalUnitCount, 0)
+        XCTAssertEqual(task.completedUnitCount, 0)
+        XCTAssertEqual(task.fractionCompleted, 0.0)
+        
+        self.expect { fulfill in
+            var fractionCompleted = 0.0
+            var completedUnitCount: Int64 = 0
+            task.progress = { completed, total in
+                fractionCompleted += 0.5
+                completedUnitCount += 50
+                XCTAssertEqual(completedUnitCount, completed)
+                XCTAssertEqual(100, total)
+                XCTAssertEqual(completedUnitCount, task.completedUnitCount)
+                XCTAssertEqual(100, task.totalUnitCount)
+                XCTAssertEqual(fractionCompleted, task.fractionCompleted)
+                if task.fractionCompleted == 1.0 {
+                    fulfill()
+                }
+            }
+        }
+        task.resume()
+        self.wait()
     }
-    */
 
     // MARK: Preheating
 
