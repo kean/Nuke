@@ -45,19 +45,14 @@ public protocol ImageLoaderDelegate {
 }
 
 extension ImageLoaderDelegate {
-    /** Returns true when image loader should process image. Processing includes both decompressing.
+    /** Returns true when image loader should process the image. Processing includes decompressing.
     */
     public func imageLoader(loader: ImageLoader, shouldProcessImage image: Image) -> Bool {
         return true
     }
     
     public func imageLoader(loader: ImageLoader, decompressorForRequest request: ImageRequest) -> ImageProcessing? {
-        #if !os(OSX)
-            if request.shouldDecompressImage {
-                return ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode)
-            }
-        #endif
-        return nil
+        return ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode)
     }
 }
 
@@ -161,11 +156,9 @@ public class ImageLoader: ImageLoading {
     
     private func processorForRequest(request: ImageRequest) -> ImageProcessing? {
         var processors = [ImageProcessing]()
-        #if !os(OSX)
         if request.shouldDecompressImage, let decompressor = self.delegate.imageLoader(self, decompressorForRequest: request) {
             processors.append(decompressor)
         }
-        #endif
         if let processor = request.processor {
             processors.append(processor)
         }
