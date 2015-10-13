@@ -3,6 +3,7 @@
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import UIKit
 
 /** Signals the delegate that the preheat window changed.
 */

@@ -17,7 +17,6 @@
 		0C096C9A1BAE9ADD007FE380 /* ImageResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C871BAE9ADD007FE380 /* ImageResponse.swift */; settings = {ASSET_TAGS = (); }; };
 		0C096C9B1BAE9ADD007FE380 /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C881BAE9ADD007FE380 /* ImageTask.swift */; settings = {ASSET_TAGS = (); }; };
 		0C096C9C1BAE9ADD007FE380 /* Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C891BAE9ADD007FE380 /* Nuke.swift */; settings = {ASSET_TAGS = (); }; };
-		0C096C9F1BAE9ADD007FE380 /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C096C8D1BAE9ADD007FE380 /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0C096CA01BAE9ADD007FE380 /* ImagePreheatingControllerForCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C8F1BAE9ADD007FE380 /* ImagePreheatingControllerForCollectionView.swift */; settings = {ASSET_TAGS = (); }; };
 		0C096CA11BAE9ADD007FE380 /* ImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C901BAE9ADD007FE380 /* ImageView.swift */; settings = {ASSET_TAGS = (); }; };
 		0C0E01781BC0637B0040B46B /* ImageRequestKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */; settings = {ASSET_TAGS = (); }; };
@@ -103,7 +102,6 @@
 		0C096C871BAE9ADD007FE380 /* ImageResponse.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageResponse.swift; sourceTree = "<group>"; };
 		0C096C881BAE9ADD007FE380 /* ImageTask.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageTask.swift; sourceTree = "<group>"; };
 		0C096C891BAE9ADD007FE380 /* Nuke.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Nuke.swift; sourceTree = "<group>"; };
-		0C096C8D1BAE9ADD007FE380 /* Nuke.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0C096C8F1BAE9ADD007FE380 /* ImagePreheatingControllerForCollectionView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheatingControllerForCollectionView.swift; sourceTree = "<group>"; };
 		0C096C901BAE9ADD007FE380 /* ImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
 		0C0E01771BC0637B0040B46B /* ImageRequestKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestKey.swift; sourceTree = "<group>"; };
@@ -180,7 +178,6 @@
 		0C096C7B1BAE9ADD007FE380 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				0C096C8D1BAE9ADD007FE380 /* Nuke.h */,
 				0C096C7E1BAE9ADD007FE380 /* Core */,
 				0C096C8E1BAE9ADD007FE380 /* UI */,
 			);
@@ -303,7 +300,6 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C096C9F1BAE9ADD007FE380 /* Nuke.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
