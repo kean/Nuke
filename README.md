@@ -205,6 +205,7 @@ ImageManager.shared = ImageManager(configuration: configuration)
 To install Nuke add a dependency in your Podfile:
 ```ruby
 # use_frameworks!
+# platform :ios / :watchos / :osx
 pod "Nuke"
 pod "Nuke-Alamofire-Plugin" # optional
 pud "Nuke-AnimatedImage-Plugin" # optional
@@ -216,6 +217,15 @@ To install Nuke add a dependency to your Cartfile:
 ```
 github "kean/Nuke"
 github "kean/Nuke-Alamofire-Plugin" # optional
+```
+
+### Import
+
+Import installed modules in your source files
+```swift
+import Nuke
+import NukeAlamofirePlugin
+import NukeAnimatedImagePlugin
 ```
 
 ## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
