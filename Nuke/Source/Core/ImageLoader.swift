@@ -52,7 +52,11 @@ extension ImageLoaderDelegate {
     }
     
     public func imageLoader(loader: ImageLoader, decompressorForRequest request: ImageRequest) -> ImageProcessing? {
-        return ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode)
+        #if os(OSX)
+            return nil
+        #else
+            return ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode)
+        #endif
     }
 }
 
