@@ -25,9 +25,10 @@ Nuke.taskWithURL(URL) {
 ## <a name="h_features"></a>Features
 
 - Zero config
+- Beautiful [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png) included
 - Performant, asynchronous, thread safe
-- Optional [Alamofire integration](https://github.com/kean/Nuke-Alamofire-Plugin)
-- Optional [FLAnimatedImage integration](https://github.com/kean/Nuke-AnimatedImage-Plugin)
+- Optional [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
+- Optional [AnimatedImage plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin)
 
 ##### Loading
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
@@ -37,22 +38,21 @@ Nuke.taskWithURL(URL) {
 ##### Caching
 - Doesn't reinvent caching, relies on [HTTP cache](https://tools.ietf.org/html/rfc7234) and its implementation in [Foundation](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html)
 - Caching is completely transparent to the client
-- Two cache layers including [top level memory cache](https://github.com/kean/Nuke/wiki/Image-Caching-Guide) for decompressed images
+- Two cache layers including [auto purging memory cache](https://github.com/kean/Nuke/wiki/Image-Caching-Guide)
 
 ##### Decoding and Processing
-- Apply image filters
+- Create and apply image filters
 - Background image decompression and scaling in a single step
-- Scale large images (~6000x4000 px) and prepare them for display with ease
 - Resize loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
 
 ##### Advanced
-- Image decoder composition
-- Image filter composition
+- Compose image filters
+- Compose image decoders
 - Customize different parts of the framework using dependency injection
 
 ## <a name="h_getting_started"></a>Getting Started
 - Download the latest [release](https://github.com/kean/Nuke/releases) version
-- Experiment with Nuke APIs in a Swift playground
+- Experiment with Nuke APIs in a Swift [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png)
 - Take a look at the demo project, it's easy to install with `pod try Nuke` command
 - [Install](#installation), `import Nuke` and enjoy!
 

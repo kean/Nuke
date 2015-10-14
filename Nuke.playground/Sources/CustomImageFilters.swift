@@ -29,3 +29,15 @@ public func drawImageInCircle(image: UIImage?) -> UIImage? {
     UIGraphicsEndImageContext()
     return processedImage
 }
+
+public func blurredImage(image: UIImage) -> UIImage? {
+    // !WARNING!
+    // This is just a raw example! Don't use this code!
+    let filter = CIFilter(name:"CIGaussianBlur")!
+    filter.setValue(6.0, forKey:"inputRadius")
+    let inputImage = CIImage(image: image)!
+    filter.setValue(inputImage, forKey:"inputImage")
+    let context = CIContext(options: nil)
+    let outputImage = context.createCGImage(filter.outputImage!, fromRect: inputImage.extent)
+    return UIImage(CGImage: outputImage, scale: image.scale, orientation: image.imageOrientation)
+}

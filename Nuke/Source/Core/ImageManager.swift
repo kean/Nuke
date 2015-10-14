@@ -53,6 +53,8 @@ public class ImageManager {
     }
     
     /** Creates a task with a given request. Task is created in a suspended state and must be resumed before it will execute.
+    
+    The ImageManager holds a strong reference to the task until it is either completed or cancelled.
     */
     public func taskWithRequest(request: ImageRequest) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier)
