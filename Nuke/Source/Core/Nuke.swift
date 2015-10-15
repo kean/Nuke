@@ -34,6 +34,16 @@ public func stopPreheatingImages() {
     ImageManager.shared.stopPreheatingImages()
 }
 
+// MARK: -
+
+#if os(OSX)
+    import Cocoa
+    public typealias Image = NSImage
+#else
+    import UIKit
+    public typealias Image = UIImage
+#endif
+
 // MARK: - Internal
 
 internal func dispathOnMainThread(block: (Void) -> Void) {
