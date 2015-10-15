@@ -31,7 +31,7 @@ class ImageMemoryCacheTest: XCTestCase {
         
         XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
         XCTAssertNil(self.manager.cachedResponseForRequest(request))
-        
+
         self.expect { fulfill in
             self.manager.taskWithRequest(request) {
                 switch $0 {
@@ -56,7 +56,7 @@ class ImageMemoryCacheTest: XCTestCase {
                 XCTAssertTrue(info.fastResponse)
             default: XCTFail()
             }
-            // Comletion block should be called on the main thread
+            // Comletion block should be called synchronously on the main thread
             isCompletionCalled = true
         }.resume()
         XCTAssertTrue(isCompletionCalled, "")
@@ -82,7 +82,7 @@ class ImageMemoryCacheTest: XCTestCase {
                 XCTAssertTrue(info.fastResponse)
             default: XCTFail()
             }
-            // Comletion block should be called on the main thread
+            // Comletion block should be called synchronously on the main thread
             isCompletionCalled = true
         }.resume()
         XCTAssertTrue(isCompletionCalled, "")
@@ -105,7 +105,7 @@ class ImageMemoryCacheTest: XCTestCase {
                 XCTAssertTrue(info.fastResponse)
             default: XCTFail()
             }
-            // Comletion block should be called on the main thread
+            // Comletion block should be called synchronously on the main thread
             isCompletionCalled = true
             }.resume()
         XCTAssertTrue(isCompletionCalled, "")

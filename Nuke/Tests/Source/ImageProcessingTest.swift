@@ -26,7 +26,7 @@ class ImageProcessingTest: XCTestCase {
         super.tearDown()
     }
 
-    // MARK: Simple Filter
+    // MARK: Applying Filters
 
     func testThatImageIsProcessed() {
         var request = ImageRequest(URL: defaultURL)
@@ -40,7 +40,7 @@ class ImageProcessingTest: XCTestCase {
                 }
                 XCTAssertEqual(image.processorIDs, ["processor1"])
                 fulfill()
-                }.resume()
+            }.resume()
         }
         self.wait()
     }
@@ -66,7 +66,43 @@ class ImageProcessingTest: XCTestCase {
         XCTAssertEqual(image.processorIDs, ["processor1"])
     }
 
-    // MARK: Filter Composition
+    func testThatCorrectFiltersAreAppiedWhenDataTaskIsReusedForMultipleRequests() {
+        var request1 = ImageRequest(URL: defaultURL)
+        request1.processor = MockImageProcessor(ID: "processor1")
+
+        var request2 = ImageRequest(URL: defaultURL)
+        request2.processor = MockImageProcessor(ID: "processor2")
+
+        XCTAssertTrue(self.mockSessionManager.isRequestLoadEquivalent(request1, toRequest: request2))
+
+        self.expect { fulfill in
+            self.manager.taskWithRequest(request1) {
+                guard let image = $0.image as? MockProcessedImage else {
+                    XCTFail()
+                    return
+                }
+                XCTAssertEqual(image.processorIDs, ["processor1"])
+                fulfill()
+            }.resume()
+        }
+
+        self.expect { fulfill in
+            self.manager.taskWithRequest(request2) {
+                guard let image = $0.image as? MockProcessedImage else {
+                    XCTFail()
+                    return
+                }
+                XCTAssertEqual(image.processorIDs, ["processor2"])
+                fulfill()
+            }.resume()
+        }
+
+        self.wait { _ in
+            XCTAssertEqual(self.mockSessionManager.createdTaskCount, 1)
+        }
+    }
+
+    // MARK: Composing Filters
 
     func testThatImageIsProcessedWithFilterComposition() {
         var request = ImageRequest(URL: defaultURL)
