@@ -20,7 +20,7 @@ Nuke.taskWithURL(URL) {
 3. [Design](#h_design)
 4. [Installation](#installation)
 5. [Requirements](#h_requirements)
-6. [Contribution](#h_contribution)
+6. [Satellite Projects](#h_satellite_projects)
 
 ## <a name="h_features"></a>Features
 
@@ -202,13 +202,15 @@ ImageManager.shared = ImageManager(configuration: configuration)
 
 ### [CocoaPods](http://cocoapods.org)
 
-To install Nuke add a dependency in your Podfile:
+To install Nuke add a dependency to your Podfile:
 ```ruby
+# source 'https://github.com/CocoaPods/Specs.git'
 # use_frameworks!
-# platform :ios / :watchos / :osx
+# platform :ios, "8.0" / :watchos, "2.0" / :osx, "10.9"
+
 pod "Nuke"
 pod "Nuke-Alamofire-Plugin" # optional
-pud "Nuke-AnimatedImage-Plugin" # optional
+pod "Nuke-AnimatedImage-Plugin" # optional
 ```
 
 ### [Carthage](https://github.com/Carthage/Carthage)
@@ -232,12 +234,11 @@ import NukeAnimatedImagePlugin
 - iOS 8.0+ / watchOS 2.0+ / OS X 10.9+
 - Xcode 7.0+, Swift 2.0+
 
-## <a name="h_contribution"></a>Contribution
+## <a name="h_satellite_projects"></a>Satellite Projects
 
-- If you **need help**, use [Stack Overflow](http://stackoverflow.com/questions/tagged/iosnuke). (Tag 'iosnuke')
-- If you **found a bug**, and can provide steps to reproduce it, open an issue.
-- If you **have a feature request**, open an issue.
-- If you **want to contribute**, branch of the `develop` branch and submit a pull request.
+- [Nuke Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin) - Alamofire plugin for Nuke that allows you to use Alamofire for networking
+- [Nuke AnimatedImage Plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin) - FLAnimatedImage plugin for Nuke that allows you to load and display animated GIFs
+- [Nuke Integration Tests](https://github.com/kean/Nuke-Integration-Tests) - Contains CocoaPods and Carthage integration tests for Nuke
 
 ## Contacts
 
