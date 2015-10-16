@@ -23,7 +23,7 @@ extension XCTestCase {
         return self.expectationForNotification(name, object: object, handler: handler)
     }
 
-    public func wait(timeout: NSTimeInterval = 0.25, handler: XCWaitCompletionHandler? = nil) {
+    public func wait(timeout: NSTimeInterval = 2.0, handler: XCWaitCompletionHandler? = nil) {
         self.waitForExpectationsWithTimeout(timeout, handler: handler)
     }
 }
