@@ -9,6 +9,7 @@
 import UIKit
 import Nuke
 import NukeAnimatedImagePlugin
+import FLAnimatedImage
 
 private let textViewCellReuseID = "textViewReuseID"
 private let imageCellReuseID = "imageCellReuseID"
@@ -103,7 +104,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
 }
 
 private class AnimatedImageCell: UICollectionViewCell {
-    private let imageView = AnimatedImageView(frame: CGRectZero)
+    private let imageView = FLAnimatedImageView(frame: CGRectZero)
     private let progressView = UIProgressView()
     
     override init(frame: CGRect) {
@@ -134,21 +135,19 @@ private class AnimatedImageCell: UICollectionViewCell {
     }
     
     func setImageWithRequest(request: ImageRequest) {
-        self.imageView.setImageWithRequest(request)
-        if let task = self.imageView.imageTask {
-            task.progress = { [weak self, weak task] _, _ in
-                guard let task = task where task == self?.imageView.imageTask else {
-                    return
-                }
-                self?.progressView.setProgress(Float(task.fractionCompleted), animated: true)
-                if task.fractionCompleted == 1 {
-                    UIView.animateWithDuration(0.2) {
-                        self?.progressView.alpha = 0
-                    }
+        let task = self.imageView.nk_setImageWithRequest(request)
+        task.progress = { [weak self, weak task] _, _ in
+            guard let task = task where task == self?.imageView.nk_imageTask else {
+                return
+            }
+            self?.progressView.setProgress(Float(task.fractionCompleted), animated: true)
+            if task.fractionCompleted == 1 {
+                UIView.animateWithDuration(0.2) {
+                    self?.progressView.alpha = 0
                 }
             }
         }
-        if self.imageView.imageTask?.state == .Completed {
+        if task.state == .Completed {
             self.progressView.alpha = 0;
         }
     }
@@ -157,6 +156,6 @@ private class AnimatedImageCell: UICollectionViewCell {
         super.prepareForReuse()
         self.progressView.progress = 0
         self.progressView.alpha = 1
-        self.imageView.prepareForReuse()
+        self.imageView.nk_prepareForReuse()
     }
 }
