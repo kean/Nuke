@@ -7,8 +7,6 @@
 
 Advanced pure Swift framework for loading, caching, processing, displaying and preheating images. It uses latest advancements in iOS SDK and doesn't reinvent existing technologies.
 
-Nuke is a [pipeline](#h_design) that loads images using multiple dependencies which can be injected in runtime.
-
 ```swift
 Nuke.taskWithURL(URL) { 
     let image = $0.image 
@@ -24,11 +22,11 @@ Nuke.taskWithURL(URL) {
 
 ## <a name="h_features"></a>Features
 
-- Zero config
-- Beautiful [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png) included
+- Zero config and user-friendly
 - Performant, asynchronous, thread safe
 - Optional [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
 - Optional [AnimatedImage plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin)
+- Beautiful [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png) included
 
 ##### Loading
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
@@ -49,7 +47,7 @@ Nuke.taskWithURL(URL) {
 ##### Advanced
 - Compose image filters
 - Compose image decoders
-- Customize different parts of the framework using dependency injection
+- Nuke is a [pipeline](#h_design) that loads images using injectable dependencies
 
 ## <a name="h_getting_started"></a>Getting Started
 - Download the latest [release](https://github.com/kean/Nuke/releases) version
