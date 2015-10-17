@@ -15,6 +15,8 @@ public class ImageViewLoadingController {
     */
     public var handler: (ImageTask, ImageResponse, ImageViewLoadingOptions?) -> Void
     
+    public var manager: ImageManager = ImageManager.shared
+    
     deinit {
         self.cancelLoading()
     }
@@ -35,7 +37,7 @@ public class ImageViewLoadingController {
     
     public func setImageWithRequest(request: ImageRequest, options: ImageViewLoadingOptions?)  -> ImageTask {
         self.cancelLoading()
-        let task = Nuke.taskWithRequest(request)
+        let task = self.manager.taskWithRequest(request)
         task.completion { [weak self, weak task] in
             guard let task = task where task == self?.imageTask else {
                 return
