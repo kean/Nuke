@@ -69,7 +69,7 @@ class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingC
         
         let imageView = self.imageViewForCell(cell)
         let imageURL = self.photos[indexPath.row]
-        imageView.setImageWithRequest(self.imageRequestWithURL(imageURL))
+        imageView.nk_setImageWithRequest(self.imageRequestWithURL(imageURL))
         
         return cell
     }
@@ -85,13 +85,13 @@ class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingC
     }
     
     override func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
-        self.imageViewForCell(cell).prepareForReuse()
+        self.imageViewForCell(cell).nk_prepareForReuse()
     }
     
-    func imageViewForCell(cell: UICollectionViewCell) -> Nuke.ImageView {
-        var imageView = cell.viewWithTag(15) as? Nuke.ImageView
+    func imageViewForCell(cell: UICollectionViewCell) -> UIImageView {
+        var imageView = cell.viewWithTag(15) as? UIImageView
         if imageView == nil {
-            imageView = Nuke.ImageView(frame: cell.bounds)
+            imageView = UIImageView(frame: cell.bounds)
             imageView!.autoresizingMask =  [.FlexibleWidth, .FlexibleHeight]
             imageView!.tag = 15
             cell.addSubview(imageView!)

@@ -53,23 +53,25 @@ class BasicDemoViewController: UICollectionViewController {
         cell.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
         
         let imageView = self.imageViewForCell(cell)
-        imageView.prepareForReuse()
+        imageView.nk_prepareForReuse()
         let imageURL = self.photos[indexPath.row]
-        imageView.setImageWithURL(imageURL)
+        imageView.nk_setImageWithURL(imageURL)
         
         return cell
     }
     
     override func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
-        self.imageViewForCell(cell).prepareForReuse()
+        self.imageViewForCell(cell).nk_prepareForReuse()
     }
     
-    func imageViewForCell(cell: UICollectionViewCell) -> Nuke.ImageView {
-        var imageView = cell.viewWithTag(15) as? Nuke.ImageView
+    func imageViewForCell(cell: UICollectionViewCell) -> UIImageView {
+        var imageView: UIImageView! = cell.viewWithTag(15) as? UIImageView
         if imageView == nil {
-            imageView = Nuke.ImageView(frame: cell.bounds)
-            imageView!.autoresizingMask =  [.FlexibleWidth, .FlexibleHeight]
-            imageView!.tag = 15
+            imageView = UIImageView(frame: cell.bounds)
+            imageView.autoresizingMask =  [.FlexibleWidth, .FlexibleHeight]
+            imageView.tag = 15
+            imageView.contentMode = .ScaleAspectFill
+            imageView.clipsToBounds = true
             cell.addSubview(imageView!)
         }
         return imageView!
