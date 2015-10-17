@@ -34,6 +34,7 @@ Nuke.taskWithURL(URL) {
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
 - Uses a single data task for multiple equivalent requests
 - [Automated preheating](https://github.com/kean/Nuke/wiki/Image-Preheating-Guide) of images close to the viewport
+- Full featured extensions for UI components
 
 ##### Caching
 - Doesn't reinvent caching, relies on [HTTP cache](https://tools.ietf.org/html/rfc7234) and its implementation in [Foundation](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html)
@@ -105,16 +106,36 @@ task.completion { // Add multiple completions, even for completed task
 task.cancel()
 ```
 
+#### Using UI Extensions
+
+```swift
+let imageView = UIImageView()
+// let task = imageView.nk_setImageWithURL(<#NSURL#>)
+let task = imageView.nk_setImageWithRequest(<#ImageRequest#>, options: <#ImageViewLoadingOptions?#>)
+```
+
+#### Adding UI Extensions
+
+Nuke makes it extremely easy to add full-featured image loading extensions to UI components:
+```swift
+extension MKAnnotationView: ImageDisplayingView, ImageLoadingView {
+    // That's it, you get default implementation of all the methods in ImageLoadingView protocol
+    public var nk_displayedImage: UIImage? {
+        get { return self.image }
+        set { self.image = newValue }
+    }
+}
+```
+
+
 #### UICollectionView
 
 ```swift
 func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
     let cell = collectionView.dequeueReusableCellWithReuseIdentifier(cellReuseID, forIndexPath: indexPath)
-
     let imageView: ImageView = <#view#>
-    imageView.prepareForReuse()
-    imageView.setImageWithURL(imageURL)
-
+    imageView.nk_prepareForReuse()
+    imageView.nk_setImageWithURL(imageURL)
     return cell
 }
 ```
@@ -124,7 +145,7 @@ Cancel image task as soon as the cell goes offscreen (optional):
 ```swift
 func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
     let imageView: ImageView = <#view#>
-    imageView.prepareForReuse()
+    imageView.nk_prepareForReuse()
 }
 ```
 
@@ -144,20 +165,12 @@ Nuke.taskWithRequest(request) {
 }.resume()
 ```
 
-#### Composing Image Filters
+#### Composing Filters
 
 ```swift
 let processor1: ImageProcessing = <#processor#>
 let processor2: ImageProcessing = <#processor#>
 let composition = ImageProcessorComposition(processors: [processor1, processor2])
-```
-
-#### Composing Image Decoders
-
-```swift
-let decoder1: ImageDecoding = <#decoder#>
-let decoder2: ImageDecoding = <#decoder#>
-let composition = ImageDecoderComposition(decoders: [decoder1, decoder2])
 ```
 
 #### Preheating Images
