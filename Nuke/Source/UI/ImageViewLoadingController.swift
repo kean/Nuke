@@ -4,9 +4,9 @@
 
 import Foundation
 
-/** Manages execution of image tasks for image view.
+/** Manages execution of image tasks for image loading view.
 */
-public class ImageViewLoadController {
+public class ImageViewLoadingController {
     /** Current image task
     */
     public var imageTask: ImageTask?

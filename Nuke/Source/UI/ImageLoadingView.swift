@@ -89,14 +89,14 @@ public extension ImageLoadingView where Self: ImageDisplayingView {
     // MARK: ImageLoadingView
     
     public func nk_cancelLoading() {
-        self.nk_imageLoadController.cancelLoading()
+        self.nk_imageLoadingController.cancelLoading()
     }
     
     public func nk_setImageWithRequest(request: ImageRequest, options: ImageViewLoadingOptions?) -> ImageTask {
         if let placeholder = options?.placeholder {
             self.nk_displayedImage = placeholder
         }
-        return self.nk_imageLoadController.setImageWithRequest(request, options: options)
+        return self.nk_imageLoadingController.setImageWithRequest(request, options: options)
     }
     
     // MARK: Extensions
@@ -109,26 +109,26 @@ public extension ImageLoadingView where Self: ImageDisplayingView {
     // MARK: Helpers
     
     public var nk_imageTask: ImageTask? {
-        return self.nk_imageLoadController.imageTask
+        return self.nk_imageLoadingController.imageTask
     }
     
-    public var nk_imageLoadController: ImageViewLoadController {
+    public var nk_imageLoadingController: ImageViewLoadingController {
         get {
-            if let loader = objc_getAssociatedObject(self, &AssociatedKeys.LoadController) as? ImageViewLoadController {
+            if let loader = objc_getAssociatedObject(self, &AssociatedKeys.LoadingController) as? ImageViewLoadingController {
                 return loader
             }
-            let loader = ImageViewLoadController { [weak self] in
+            let loader = ImageViewLoadingController { [weak self] in
                 self?.nk_imageTask($0, didFinishWithResponse: $1, options: $2)
             }
-            self.nk_imageLoadController = loader
+            self.nk_imageLoadingController = loader
             return loader
         }
         set {
-            objc_setAssociatedObject(self, &AssociatedKeys.LoadController, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(self, &AssociatedKeys.LoadingController, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 }
 
 private struct AssociatedKeys {
-    static var LoadController = "nk_imageViewLoadController"
+    static var LoadingController = "nk_ImageViewLoadingController"
 }
