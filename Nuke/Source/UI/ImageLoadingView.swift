@@ -19,7 +19,13 @@ public struct ImageViewLoadingOptions {
 */
 public protocol ImageLoadingView: class {
     func nk_cancelLoading()
+    
+    /** Loads and displays an image for the given URL. Cancels previously stared requests.
+    */
     func nk_setImageWithURL(URL: NSURL) -> ImageTask
+    
+    /** Loads and displays an image for the given request. Cancels previously stared requests.
+    */
     func nk_setImageWithRequest(request: ImageRequest, options: ImageViewLoadingOptions?) -> ImageTask
 }
 
@@ -53,7 +59,7 @@ public protocol ImageDisplayingView: class {
 public var ImageViewDefaultAnimationDuration = 0.25
 
 public extension ImageDisplayingView where Self: UIView {
-    /** Note that classes cannot override declarations from extensions. If you have a subclass of a class that already implements ImageDisplayingView protocol in an extension (like UIImageView) you won't be able to override methods of this protocol in a subclass itself. But you can override them in an extenstion of the subclass.
+    /** Note that classes cannot override declarations from extensions. If you have a subclass of a class that already implements ImageDisplayingView protocol in an extension (like UIImageView) you won't be able to override methods of this protocol in a subclass itself. But you can override them in an extension of the subclass.
     */
     public func nk_imageTask(task: ImageTask, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions?) {
         switch response {
@@ -101,6 +107,8 @@ public extension ImageLoadingView where Self: ImageDisplayingView {
     
     // MARK: Extensions
     
+    /** Removes currently displayed image and cancels image loading.
+    */
     public func nk_prepareForReuse() {
         self.nk_image = nil
         self.nk_cancelLoading()
@@ -108,6 +116,8 @@ public extension ImageLoadingView where Self: ImageDisplayingView {
     
     // MARK: Helpers
     
+    /** Returns current image task.
+    */
     public var nk_imageTask: ImageTask? {
         return self.nk_imageLoadingController.imageTask
     }

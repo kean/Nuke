@@ -25,6 +25,8 @@ public class ImageCachedResponse {
     }
 }
 
+/** Auto purging memory caches.
+*/
 public class ImageMemoryCache: ImageMemoryCaching {
     public let cache: NSCache
 

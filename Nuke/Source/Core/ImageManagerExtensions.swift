@@ -4,7 +4,7 @@
 
 import Foundation
 
-// MARK: ImageManager (Convenience)
+// MARK: - ImageManager (Convenience)
 
 public extension ImageManager {
     func taskWithURL(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
@@ -18,7 +18,7 @@ public extension ImageManager {
     }
 }
 
-// MARK: ImageManager (Shared)
+// MARK: - ImageManager (Shared)
 
 public extension ImageManager {
     private static var sharedManagerIvar: ImageManager = ImageManager(configuration: ImageManagerConfiguration(dataLoader: ImageDataLoader()))

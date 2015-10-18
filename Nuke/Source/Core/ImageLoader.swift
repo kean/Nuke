@@ -6,6 +6,10 @@ import Foundation
 
 // MARK: - ImageLoading
 
+/** Performs the actual loading of images for the image tasks.
+
+In most cases you would not need to use this protocol to customize image loading. See ImageDataLoading, ImageProcessing and ImageDecoding protocols instead.
+*/
 public protocol ImageLoading: class {
     weak var manager: ImageLoadingManager? { get set }
     func resumeLoadingForTask(task: ImageTask)
@@ -66,7 +70,11 @@ public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
 
 // MARK: - ImageLoader
 
-/** Implements image loading using objects conforming to ImageDataLoading, ImageDecoding and ImageProcessing protocols. Reuses data tasks for multiple equivalent image tasks.
+/** Performs the actual loading of images for the image tasks using objects conforming to ImageDataLoading, ImageDecoding and ImageProcessing protocols. Works in conjunction with the ImageManager.
+
+- Provides a transparent loading, decoding and processing with a single completion signal
+- Reuses data tasks for multiple equivalent image tasks
+- Offloads work to the background queue
 */
 public class ImageLoader: ImageLoading {
     public weak var manager: ImageLoadingManager?

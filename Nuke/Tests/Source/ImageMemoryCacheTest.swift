@@ -56,7 +56,7 @@ class ImageMemoryCacheTest: XCTestCase {
                 XCTAssertTrue(info.fastResponse)
             default: XCTFail()
             }
-            // Comletion block should be called synchronously on the main thread
+            // Completion closure should be called synchronously on the main thread
             isCompletionCalled = true
         }.resume()
         XCTAssertTrue(isCompletionCalled, "")
@@ -82,7 +82,7 @@ class ImageMemoryCacheTest: XCTestCase {
                 XCTAssertTrue(info.fastResponse)
             default: XCTFail()
             }
-            // Comletion block should be called synchronously on the main thread
+            // Completion closure should be called synchronously on the main thread
             isCompletionCalled = true
         }.resume()
         XCTAssertTrue(isCompletionCalled, "")
@@ -105,7 +105,7 @@ class ImageMemoryCacheTest: XCTestCase {
                 XCTAssertTrue(info.fastResponse)
             default: XCTFail()
             }
-            // Comletion block should be called synchronously on the main thread
+            // Completion closure should be called synchronously on the main thread
             isCompletionCalled = true
             }.resume()
         XCTAssertTrue(isCompletionCalled, "")
@@ -118,7 +118,7 @@ class ImageMemoryCacheTest: XCTestCase {
                 default: XCTFail()
                 }
                 fulfill()
-                }.resume()
+            }.resume()
         }
         self.wait()
     }

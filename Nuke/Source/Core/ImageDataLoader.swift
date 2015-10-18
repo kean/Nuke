@@ -9,6 +9,8 @@ import Foundation
 public typealias ImageDataLoadingCompletionHandler = (data: NSData?, response: NSURLResponse?, error: ErrorType?) -> Void
 public typealias ImageDataLoadingProgressHandler = (completedUnitCount: Int64, totalUnitCount: Int64) -> Void
 
+/** Performs loading of image data.
+*/
 public protocol ImageDataLoading {
     /** Compares two requests for equivalence with regard to loading image data. Requests should be considered equivalent if data loader can handle both requests with a single session task.
     */
@@ -28,6 +30,8 @@ public protocol ImageDataLoading {
 
 // MARK: - ImageDataLoader
 
+/** Provides basic networking using NSURLSession.
+*/
 public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoading {
     public private(set) var session: NSURLSession!
     private var taskHandlers = [NSURLSessionTask: URLSessionDataTaskHandler]()

@@ -15,7 +15,7 @@ public class ImagePreheatingControllerForCollectionView: ImagePreheatingControll
     */
     public var preheatRectRatio: CGFloat = 1.0
     
-    /** Determines how far the user needs to refresh preheat window..
+    /** Determines how far the user needs to refresh preheat window.
     */
     public var preheatRectUpdateRatio: CGFloat = 0.33
     

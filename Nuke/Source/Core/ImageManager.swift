@@ -31,12 +31,6 @@ public struct ImageManagerConfiguration {
 public class ImageManager {
     public let configuration: ImageManagerConfiguration
     
-    private var loader: ImageLoading {
-        return self.configuration.loader
-    }
-    private var cache: ImageMemoryCaching? {
-        return self.configuration.cache
-    }
     private var executingTasks = Set<ImageTaskInternal>()
     private var preheatingTasks = [ImageRequestKey: ImageTaskInternal]()
     private let lock = NSRecursiveLock()
@@ -46,15 +40,21 @@ public class ImageManager {
     private var nextTaskIdentifier: Int {
         return Int(OSAtomicIncrement32(&taskIdentifier))
     }
+    private var loader: ImageLoading {
+        return self.configuration.loader
+    }
+    private var cache: ImageMemoryCaching? {
+        return self.configuration.cache
+    }
     
     public init(configuration: ImageManagerConfiguration) {
         self.configuration = configuration
         self.loader.manager = self
     }
     
-    /** Creates a task with a given request. Task is created in a suspended state and must be resumed before it will execute.
+    /** Creates a task with a given request. After you create a task, you start it by calling its resume method.
     
-    The ImageManager holds a strong reference to the task until it is either completed or cancelled.
+    The ImageManager holds a strong reference to the task until it is either completes or get cancelled.
     */
     public func taskWithRequest(request: ImageRequest) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier)
@@ -75,6 +75,18 @@ public class ImageManager {
     public func removeAllCachedImages() {
         self.cache?.removeAllCachedImages()
         self.loader.removeAllCachedImages()
+    }
+    
+    /** Asynchronously calls a completion closure on the main thread with all executing tasks and all preheating tasks. Set with executing tasks might contain currently executing preheating tasks.
+    */
+    public func getTasksWithCompletion(completion: (executingTasks: Set<ImageTask>, preheatingTasks: Set<ImageTask>) -> Void) {
+        self.perform {
+            let executingTasks = self.executingTasks
+            let preheatingTasks = Set(self.preheatingTasks.values)
+            dispatch_async(dispatch_get_main_queue()) {
+                completion(executingTasks: executingTasks, preheatingTasks: preheatingTasks)
+            }
+        }
     }
     
     // MARK: FSM (ImageTaskState)
@@ -124,9 +136,9 @@ public class ImageManager {
 
     // MARK: Preheating
     
-    /** Prepares images for the given requests for later use. 
+    /** Prepares images for the given requests for later use.
     
-    When you call this method, ImageManager starts to load and cache images for the given requests. At any time afterward, you can create tasks with equivalent requests. ImageManager caches images with the exact target size, content mode, and filters.
+    When you call this method, ImageManager starts to load and cache images for the given requests. ImageManager caches images with the exact target size, content mode, and filters. At any time afterward, you can create tasks with equivalent requests.
     */
     public func startPreheatingImages(requests: [ImageRequest]) {
         self.perform {
@@ -142,7 +154,7 @@ public class ImageManager {
         }
     }
     
-    /** Stop preheating for the given requests. The request parameters shall exactly match the parameters used in startPreheatingImages method.
+    /** Stop preheating for the given requests. The request parameters should match the parameters used in startPreheatingImages method.
     */
     public func stopPreheatingImages(requests: [ImageRequest]) {
         self.perform {
@@ -152,6 +164,8 @@ public class ImageManager {
         }
     }
     
+    /** Stops all preheating tasks.
+    */
     public func stopPreheatingImages() {
         self.perform { self.cancelTasks(self.preheatingTasks.values) }
     }
@@ -189,7 +203,7 @@ public class ImageManager {
         return self.cache?.cachedResponseForKey(ImageRequestKey(request, owner: self))
     }
     
-    /** Stores image response into memory cache. 
+    /** Stores image response into the memory cache.
     */
     public func storeResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
         self.cache?.storeResponse(response, forKey: ImageRequestKey(request, owner: self))
@@ -197,23 +211,9 @@ public class ImageManager {
     
     // MARK: Misc
     
-    /** Asynchronously calls on the main thread a completion block with all executing tasks and all preheating tasks. 
-    
-        Set with executing tasks might contain preheating tasks.
-    */
-    public func getTasksWithCompletion(completion: (executingTasks: Set<ImageTask>, preheatingTasks: Set<ImageTask>) -> Void) {
-        self.perform {
-            let executingTasks = self.executingTasks
-            let preheatingTasks = Set(self.preheatingTasks.values)
-            dispatch_async(dispatch_get_main_queue()) {
-                completion(executingTasks: executingTasks, preheatingTasks: preheatingTasks)
-            }
-        }
-    }
-    
-    private func perform(@noescape block: Void -> Void) {
+    private func perform(@noescape closure: Void -> Void) {
         self.lock.lock()
-        if !self.invalidated { block() }
+        if !self.invalidated { closure() }
         self.lock.unlock()
     }
 

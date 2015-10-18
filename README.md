@@ -26,7 +26,7 @@ Nuke.taskWithURL(URL) {
 - Performant, asynchronous, thread safe
 - Optional [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
 - Optional [AnimatedImage plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin)
-- Beautiful [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png) included
+- Beautiful [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png) and [complete documentation](http://cocoadocs.org/docsets/Nuke) included
 
 ##### Loading
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
@@ -114,7 +114,7 @@ let task = imageView.nk_setImageWithRequest(<#ImageRequest#>, options: <#ImageVi
 
 #### Adding UI Extensions
 
-Nuke makes it extremely easy to add full-featured image loading extensions to UI components:
+Nuke makes it extremely easy to add full-featured image loading extensions to UI components
 ```swift
 extension MKAnnotationView: ImageDisplayingView, ImageLoadingView {
     // That's it, you get default implementation of all the methods in ImageLoadingView protocol
@@ -203,7 +203,7 @@ ImageManager.shared = ImageManager(configuration: configuration)
 
 |Protocol|Description|
 |--------|-----------|
-|`ImageManaging`|A high-level API for loading images|
+|`ImageManager`|A top-level API for managing images|
 |`ImageDataLoading`|Performs loading of image data (`NSData`)|
 |`ImageDecoding`|Converts `NSData` to `UIImage` objects|
 |`ImageProcessing`|Processes decoded images|

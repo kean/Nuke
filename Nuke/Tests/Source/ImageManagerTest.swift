@@ -207,13 +207,13 @@ class ImageManagerTest: XCTestCase {
         self.expect { fulfill in
             self.manager.taskWithRequest(request1) { _ in
                 fulfill()
-                }.resume()
+            }.resume()
         }
         
         self.expect { fulfill in
             self.manager.taskWithRequest(request2) { _ in
                 fulfill()
-                }.resume()
+            }.resume()
         }
         
         self.wait { _ in

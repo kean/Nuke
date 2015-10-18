@@ -14,18 +14,20 @@ public enum ImageContentMode {
     case AspectFit
 }
 
+/* Size to pass when requesting the original image available for a request (image won't be resized).
+*/
 public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 
 public struct ImageRequest {
     public var URLRequest: NSURLRequest
     
-    /** Image target size in pixels.
+    /** Target size in pixels.
     */
     public var targetSize: CGSize = ImageMaximumSize
     public var contentMode: ImageContentMode = .AspectFill
     public var shouldDecompressImage = true
     
-    /** Filters to be applied to image. Use ImageProcessorComposition to compose multiple filters.
+    /** Filter to be applied to the image. Use ImageProcessorComposition to compose multiple filters.
     */
     public var processor: ImageProcessing?
     public var userInfo: Any?

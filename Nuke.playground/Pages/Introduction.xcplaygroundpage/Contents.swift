@@ -7,7 +7,7 @@ import XCPlayground
 
 Nuke is an advanced pure Swift framework for loading, caching, processing, displaying and preheating images. It takes care of all those things so you don't have to. 
 
-Nuke's goal is to provide the simplest possible interface and implementation that solves those complex tasks. Without compromising extensibility.
+Nuke's goal is to solve those complex tasks in a most efficient and user-friendly manner. Without compromising on extensibility.
 */
 
 /*:
@@ -35,7 +35,7 @@ Nuke.taskWithRequest(request) {
 
 /*:
 ### Using Image Response
-`ImageResponse` is an enum with associated values. If the request is successful `ImageResponse` contains image and some metadata about the response. If request fails `ImageResponse` returns an error.
+`ImageResponse` is an enum with associated values. If the request is successful `ImageResponse` contains image and response metadata. If request fails `ImageResponse` contains an error.
 */
 Nuke.taskWithURL(NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!) { response in
     switch response {
