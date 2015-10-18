@@ -5,11 +5,15 @@
 <a href="https://github.com/Carthage/Carthage"><img src="https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat"></a>
 </p>
 
-Advanced pure Swift framework for loading, caching, processing, displaying and preheating images. It uses latest advancements in iOS SDK and doesn't reinvent existing technologies.
+Advanced pure Swift framework for loading, caching, processing, displaying and preheating images.
 
 ```swift
-Nuke.taskWithURL(URL) { 
-    let image = $0.image 
+var request = ImageRequest(URLRequest: <#NSURLRequest#>)
+request.targetSize = CGSize(width: 200, height: 200) // Resize image
+request.processor = <#ImageProcessing#> // Apply image filters
+
+Nuke.taskWithRequest(request) { response in
+    let image = response.image 
 }.resume()
 ```
 
@@ -22,7 +26,7 @@ Nuke.taskWithURL(URL) {
 
 ## <a name="h_features"></a>Features
 
-- Zero config and user-friendly
+- Zero config & user-friendly
 - Performant, asynchronous, thread safe
 - Optional [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
 - Optional [AnimatedImage plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin)
