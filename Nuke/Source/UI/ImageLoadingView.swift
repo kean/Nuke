@@ -88,12 +88,12 @@ public extension ImageDisplayingView where Self: View {
                     animation.duration = ImageViewDefaultAnimationDuration
                     animation.fromValue = 0
                     animation.toValue = 1
-                    layer?.addAnimation(animation, forKey: "opacity")
+                    layer?.addAnimation(animation, forKey: "imageTransition")
                 } else {
                     let animation = CATransition()
                     animation.duration = ImageViewDefaultAnimationDuration
                     animation.type = kCATransitionFade
-                    layer?.addAnimation(animation, forKey: "opacity")
+                    layer?.addAnimation(animation, forKey: "imageTransition")
                 }
             }
         default: return
@@ -103,7 +103,7 @@ public extension ImageDisplayingView where Self: View {
 
 // MARK: - Default ImageLoadingView Implementation
 
-/** Default ImageLoadingView implementation for each UIView that implements ImageDisplayingView protocol.
+/** Default ImageLoadingView implementation for each view that implements ImageDisplayingView protocol.
 */
 public extension ImageLoadingView where Self: ImageDisplayingView {
     

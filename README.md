@@ -121,7 +121,7 @@ let task = imageView.nk_setImageWithRequest(<#ImageRequest#>, options: <#ImageVi
 Nuke makes it extremely easy to add full-featured image loading extensions to UI components
 ```swift
 extension MKAnnotationView: ImageDisplayingView, ImageLoadingView {
-    // That's it, you get default implementation of all the methods in ImageLoadingView protocol
+    // That's it, you get default implementation of all methods in ImageLoadingView protocol
     public var nk_image: UIImage? {
         get { return self.image }
         set { self.image = newValue }
