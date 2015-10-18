@@ -2,7 +2,13 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-import UIKit
+#if os(OSX)
+    import Cocoa
+    public typealias View = NSView
+#else
+    import UIKit
+    public typealias View = UIView
+#endif
 
 // MARK: - ImageLoadingView
 
@@ -29,7 +35,7 @@ public protocol ImageLoadingView: class {
     func nk_setImageWithRequest(request: ImageRequest, options: ImageViewLoadingOptions?) -> ImageTask
 }
 
-public extension ImageLoadingView where Self: UIView {
+public extension ImageLoadingView where Self: View {
     public func nk_setImageWithURL(URL: NSURL) -> ImageTask {
         return self.nk_setImageWithRequest(ImageRequest(URL: URL, targetSize: self.nk_targetSize(), contentMode: .AspectFill))
     }
@@ -39,10 +45,14 @@ public extension ImageLoadingView where Self: UIView {
     }
 }
 
-public extension UIView {
+public extension View {
     public func nk_targetSize() -> CGSize {
         let size = self.bounds.size
-        let scale = UIScreen.mainScreen().scale
+        #if os(iOS)
+            let scale = UIScreen.mainScreen().scale
+        #elseif os(OSX)
+            let scale = NSScreen.mainScreen()?.backingScaleFactor ?? 1.0
+        #endif
         return CGSize(width: size.width * scale, height: size.height * scale)
     }
 }
@@ -58,7 +68,7 @@ public protocol ImageDisplayingView: class {
 
 public var ImageViewDefaultAnimationDuration = 0.25
 
-public extension ImageDisplayingView where Self: UIView {
+public extension ImageDisplayingView where Self: View {
     /** Note that classes cannot override declarations from extensions. If you have a subclass of a class that already implements ImageDisplayingView protocol in an extension (like UIImageView) you won't be able to override methods of this protocol in a subclass itself. But you can override them in an extension of the subclass.
     */
     public func nk_imageTask(task: ImageTask, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions?) {
@@ -72,13 +82,18 @@ public extension ImageDisplayingView where Self: UIView {
             if let animations = options?.animations {
                 animations(self)
             } else {
+                let layer: CALayer? = self.layer // Make compiler happy
                 if previousImage == nil {
-                    self.alpha = 0.0
-                    UIView.animateWithDuration(ImageViewDefaultAnimationDuration) {
-                        self.alpha = 1.0
-                    }
+                    let animation = CABasicAnimation(keyPath: "opacity")
+                    animation.duration = ImageViewDefaultAnimationDuration
+                    animation.fromValue = 0
+                    animation.toValue = 1
+                    layer?.addAnimation(animation, forKey: "opacity")
                 } else {
-                    UIView.transitionWithView(self, duration: ImageViewDefaultAnimationDuration, options: UIViewAnimationOptions.TransitionCrossDissolve, animations: nil, completion: nil)
+                    let animation = CATransition()
+                    animation.duration = ImageViewDefaultAnimationDuration
+                    animation.type = kCATransitionFade
+                    layer?.addAnimation(animation, forKey: "opacity")
                 }
             }
         default: return

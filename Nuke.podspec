@@ -17,4 +17,5 @@ Pod::Spec.new do |s|
 
     s.source_files  = "Nuke/Source/Core/**/*"
     s.ios.source_files = "Nuke/Source/UI/**/*"
+    s.osx.source_files = "Nuke/Source/UI/{ImageLoadingView,ImageLoadingViewExtensions,ImageViewLoadingController}.swift"
 end

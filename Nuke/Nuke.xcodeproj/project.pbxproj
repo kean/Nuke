@@ -70,6 +70,9 @@
 		0CC2D9F61BD2ACE4006189B3 /* ImageViewLoadingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC2D9F51BD2ACE4006189B3 /* ImageViewLoadingController.swift */; settings = {ASSET_TAGS = (); }; };
 		0CC2DA011BD2BFA6006189B3 /* ImageLoadingViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC2DA001BD2BFA6006189B3 /* ImageLoadingViewExtensions.swift */; settings = {ASSET_TAGS = (); }; };
 		0CCF16201BC4526A003768E5 /* ImageManagerExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF161F1BC4526A003768E5 /* ImageManagerExtensions.swift */; settings = {ASSET_TAGS = (); }; };
+		0CF91FB51BD3D44B00C7CF23 /* ImageLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC2D9E71BD24613006189B3 /* ImageLoadingView.swift */; settings = {ASSET_TAGS = (); }; };
+		0CF91FB81BD3D85A00C7CF23 /* ImageViewLoadingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC2D9F51BD2ACE4006189B3 /* ImageViewLoadingController.swift */; settings = {ASSET_TAGS = (); }; };
+		0CF91FD21BD3D8E500C7CF23 /* ImageLoadingViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC2DA001BD2BFA6006189B3 /* ImageLoadingViewExtensions.swift */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -509,13 +512,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0CF91FB51BD3D44B00C7CF23 /* ImageLoadingView.swift in Sources */,
 				0C22DA491BCAA46F006E1D3B /* ImageResponse.swift in Sources */,
 				0C22DA4D1BCAA5C4006E1D3B /* ImageMemoryCache.swift in Sources */,
+				0CF91FD21BD3D8E500C7CF23 /* ImageLoadingViewExtensions.swift in Sources */,
 				0C22DA471BCAA45B006E1D3B /* Nuke.swift in Sources */,
 				0C22DA511BCAA8CE006E1D3B /* ImageManager.swift in Sources */,
 				0C22DA481BCAA468006E1D3B /* ImageTask.swift in Sources */,
 				0C22DA521BCAA8D5006E1D3B /* ImageManagerExtensions.swift in Sources */,
 				0C22DA4E1BCAA7F5006E1D3B /* ImageLoader.swift in Sources */,
+				0CF91FB81BD3D85A00C7CF23 /* ImageViewLoadingController.swift in Sources */,
 				0C22DA4F1BCAA84F006E1D3B /* ImageDataLoader.swift in Sources */,
 				0C22DA4B1BCAA4B0006E1D3B /* ImageProcessor.swift in Sources */,
 				0C22DA501BCAA85F006E1D3B /* ImageDecoder.swift in Sources */,
