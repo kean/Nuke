@@ -421,4 +421,35 @@ class ImageManagerTest: XCTestCase {
         self.manager.invalidateAndCancel()
         self.wait()
     }
+    
+    // MARK: Misc
+    
+    func testThatGetImageTasksMethodReturnsCorrectTasks() {
+        self.mockSessionManager.enabled = false
+        
+        let task1 = self.manager.taskWithURL(NSURL(string: "http://test1.com")!, completion: nil)
+        let task2 = self.manager.taskWithURL(NSURL(string: "http://test2.com")!, completion: nil)
+        let task3 = self.manager.taskWithURL(NSURL(string: "http://test3.com")!, completion: nil)
+        
+        task1.resume()
+        
+        task2.resume()
+        task2.suspend()
+        
+        // task3 is not getting resumed
+        
+        self.expect { fulfill in
+            self.manager.getTasksWithCompletion { executingTasks, _ in
+                XCTAssertEqual(executingTasks.count, 2)
+                XCTAssertTrue(executingTasks.contains(task1))
+                XCTAssertEqual(task1.state, ImageTaskState.Running)
+                XCTAssertTrue(executingTasks.contains(task2))
+                XCTAssertEqual(task2.state, ImageTaskState.Suspended)
+                XCTAssertFalse(executingTasks.contains(task3))
+                XCTAssertEqual(task3.state, ImageTaskState.Suspended)
+                fulfill()
+            }
+        }
+        self.wait()
+    }
 }

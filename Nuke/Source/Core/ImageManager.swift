@@ -197,6 +197,20 @@ public class ImageManager {
     
     // MARK: Misc
     
+    /** Asynchronously calls on the main thread a completion block with all executing tasks and all preheating tasks. 
+    
+        Set with executing tasks might contain preheating tasks.
+    */
+    public func getTasksWithCompletion(completion: (executingTasks: Set<ImageTask>, preheatingTasks: Set<ImageTask>) -> Void) {
+        self.perform {
+            let executingTasks = self.executingTasks
+            let preheatingTasks = Set(self.preheatingTasks.values)
+            dispatch_async(dispatch_get_main_queue()) {
+                completion(executingTasks: executingTasks, preheatingTasks: preheatingTasks)
+            }
+        }
+    }
+    
     private func perform(@noescape block: Void -> Void) {
         self.lock.lock()
         if !self.invalidated { block() }
