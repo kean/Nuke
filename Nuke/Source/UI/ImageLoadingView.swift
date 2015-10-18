@@ -46,20 +46,20 @@ public extension UIView {
 /** View that supports displaying loaded images.
 */
 public protocol ImageDisplayingView: class {
-    var nk_displayedImage: Image? { get set }
+    var nk_image: Image? { get set }
     func nk_imageTask(task: ImageTask, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions?)
 }
 
 public var ImageViewDefaultAnimationDuration = 0.25
 
 public extension ImageDisplayingView where Self: UIView {
-    /** Note that classes cannot be overridden declarations from extensions. It means that if you have a class (like UIImageView) that implements ImageDisplayingView protocol in an extension you won't be able to override this method in a subclass of UIImageView. But you can override it in an extenstion of the subclass.
+    /** Note that classes cannot override declarations from extensions. If you have a subclass of a class that already implements ImageDisplayingView protocol in an extension (like UIImageView) you won't be able to override methods of this protocol in a subclass itself. But you can override them in an extenstion of the subclass.
     */
     public func nk_imageTask(task: ImageTask, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions?) {
         switch response {
         case let .Success(image, info):
-            let previousImage = self.nk_displayedImage
-            self.nk_displayedImage = image
+            let previousImage = self.nk_image
+            self.nk_image = image
             guard !info.fastResponse else {
                 return
             }
@@ -94,7 +94,7 @@ public extension ImageLoadingView where Self: ImageDisplayingView {
     
     public func nk_setImageWithRequest(request: ImageRequest, options: ImageViewLoadingOptions?) -> ImageTask {
         if let placeholder = options?.placeholder {
-            self.nk_displayedImage = placeholder
+            self.nk_image = placeholder
         }
         return self.nk_imageLoadingController.setImageWithRequest(request, options: options)
     }
@@ -102,7 +102,7 @@ public extension ImageLoadingView where Self: ImageDisplayingView {
     // MARK: Extensions
     
     public func nk_prepareForReuse() {
-        self.nk_displayedImage = nil
+        self.nk_image = nil
         self.nk_cancelLoading()
     }
     

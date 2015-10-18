@@ -5,7 +5,7 @@
 import UIKit
 
 extension UIImageView: ImageDisplayingView, ImageLoadingView {
-    public var nk_displayedImage: UIImage? {
+    public var nk_image: UIImage? {
         get { return self.image }
         set { self.image = newValue }
     }

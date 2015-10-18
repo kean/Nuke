@@ -118,7 +118,7 @@ Nuke makes it extremely easy to add full-featured image loading extensions to UI
 ```swift
 extension MKAnnotationView: ImageDisplayingView, ImageLoadingView {
     // That's it, you get default implementation of all the methods in ImageLoadingView protocol
-    public var nk_displayedImage: UIImage? {
+    public var nk_image: UIImage? {
         get { return self.image }
         set { self.image = newValue }
     }
