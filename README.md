@@ -5,7 +5,7 @@
 <a href="https://github.com/Carthage/Carthage"><img src="https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat"></a>
 </p>
 
-Advanced pure Swift framework for loading, caching, processing, displaying and preheating images.
+Advanced pure Swift framework for loading, processing, caching, displaying and preheating images.
 
 ```swift
 var request = ImageRequest(URLRequest: <#NSURLRequest#>)
@@ -43,7 +43,7 @@ Nuke.taskWithRequest(request) { response in
 - Caching is completely transparent to the client
 - Two cache layers including [auto purging memory cache](https://github.com/kean/Nuke/wiki/Image-Caching-Guide)
 
-##### Decoding and Processing
+##### Processing
 - Create and apply image filters
 - Background image decompression and scaling in a single step
 - Resize loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
