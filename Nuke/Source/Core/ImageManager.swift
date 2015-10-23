@@ -28,6 +28,8 @@ public struct ImageManagerConfiguration {
 
 // MARK: - ImageManager
 
+/** The ImageManager class and related classes provide an API for loading, processing, caching and preheating images.
+*/
 public class ImageManager {
     public let configuration: ImageManagerConfiguration
     

@@ -9,6 +9,8 @@ public enum ImageResponse {
     case Failure(ErrorType)
 }
 
+/** Represents image response.
+*/
 public extension ImageResponse {
     public var image: Image? {
         switch self {

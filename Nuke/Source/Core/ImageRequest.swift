@@ -18,6 +18,8 @@ public enum ImageContentMode {
 */
 public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 
+/** Encapsulates image request parameters.
+*/
 public struct ImageRequest {
     public var URLRequest: NSURLRequest
     

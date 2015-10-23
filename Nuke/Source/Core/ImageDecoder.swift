@@ -16,6 +16,8 @@ public protocol ImageDecoding {
     func imageWithData(data: NSData) -> Image?
 }
 
+/** Creates an image from a given data in an image format supported by the platform.
+*/
 public class ImageDecoder: ImageDecoding {
     public init() {}
     public func imageWithData(data: NSData) -> Image? {
