@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
     s.name             = "Nuke"
-    s.version          = "1.0.0"
-    s.summary          = "Advanced Swift framework for loading images"
+    s.version          = "1.1.0"
+    s.summary          = "Advanced Swift framework for loading, processing and caching images"
     s.description  = <<-EOS
     Advanced pure Swift framework for loading, caching, processing, displaying and preheating images.
 
