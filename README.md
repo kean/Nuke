@@ -55,7 +55,7 @@ Nuke.taskWithRequest(request) { response in
 
 ## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
 - iOS 8.0+ / watchOS 2.0+ / OS X 10.9+ / tvOS 9.0+
-- Xcode 7.0+, Swift 2.0+
+- Xcode 7.1+, Swift 2.0+
 
 ## <a name="h_getting_started"></a>Getting Started
 - Download the latest [release](https://github.com/kean/Nuke/releases) version
