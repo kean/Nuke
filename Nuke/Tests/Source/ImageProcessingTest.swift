@@ -34,11 +34,7 @@ class ImageProcessingTest: XCTestCase {
 
         self.expect { fulfill in
             self.manager.taskWithRequest(request) {
-                guard let image = $0.image as? MockProcessedImage else {
-                    XCTFail()
-                    return
-                }
-                XCTAssertEqual(image.processorIDs, ["processor1"])
+                XCTAssertEqual($0.image!.nk_test_processorIDs, ["processor1"])
                 fulfill()
             }.resume()
         }
@@ -59,11 +55,11 @@ class ImageProcessingTest: XCTestCase {
 
         var request = ImageRequest(URL: defaultURL)
         request.processor = MockImageProcessor(ID: "processor1")
-        guard let image = self.manager.cachedResponseForRequest(request)?.image as? MockProcessedImage else {
+        guard let image = self.manager.cachedResponseForRequest(request)?.image else {
             XCTFail()
             return
         }
-        XCTAssertEqual(image.processorIDs, ["processor1"])
+        XCTAssertEqual(image.nk_test_processorIDs, ["processor1"])
     }
 
     func testThatCorrectFiltersAreAppiedWhenDataTaskIsReusedForMultipleRequests() {
@@ -77,22 +73,14 @@ class ImageProcessingTest: XCTestCase {
 
         self.expect { fulfill in
             self.manager.taskWithRequest(request1) {
-                guard let image = $0.image as? MockProcessedImage else {
-                    XCTFail()
-                    return
-                }
-                XCTAssertEqual(image.processorIDs, ["processor1"])
+                XCTAssertEqual($0.image!.nk_test_processorIDs, ["processor1"])
                 fulfill()
             }.resume()
         }
 
         self.expect { fulfill in
             self.manager.taskWithRequest(request2) {
-                guard let image = $0.image as? MockProcessedImage else {
-                    XCTFail()
-                    return
-                }
-                XCTAssertEqual(image.processorIDs, ["processor2"])
+                XCTAssertEqual($0.image!.nk_test_processorIDs, ["processor2"])
                 fulfill()
             }.resume()
         }
@@ -110,11 +98,7 @@ class ImageProcessingTest: XCTestCase {
 
         self.expect { fulfill in
             self.manager.taskWithRequest(request) {
-                guard let image = $0.image as? MockProcessedImage else {
-                    XCTFail()
-                    return
-                }
-                XCTAssertEqual(image.processorIDs, ["processor1", "processor2"])
+                XCTAssertEqual($0.image!.nk_test_processorIDs, ["processor1", "processor2"])
                 fulfill()
                 }.resume()
         }
@@ -134,11 +118,11 @@ class ImageProcessingTest: XCTestCase {
 
         var request = ImageRequest(URL: defaultURL)
         request.processor = ImageProcessorComposition(processors: [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")])
-        guard let image = self.manager.cachedResponseForRequest(request)?.image as? MockProcessedImage else {
+        guard let image = self.manager.cachedResponseForRequest(request)?.image else {
             XCTFail()
             return
         }
-        XCTAssertEqual(image.processorIDs, ["processor1", "processor2"])
+        XCTAssertEqual(image.nk_test_processorIDs, ["processor1", "processor2"])
     }
     
     func testThatImageFilterWorksWithHeterogeneousFilters() {

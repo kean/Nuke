@@ -48,7 +48,7 @@ public extension ImageLoadingView where Self: View {
 public extension View {
     public func nk_targetSize() -> CGSize {
         let size = self.bounds.size
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
             let scale = UIScreen.mainScreen().scale
         #elseif os(OSX)
             let scale = NSScreen.mainScreen()?.backingScaleFactor ?? 1.0
@@ -155,5 +155,5 @@ public extension ImageLoadingView where Self: ImageDisplayingView {
 }
 
 private struct AssociatedKeys {
-    static var LoadingController = "nk_ImageViewLoadingController"
+    static var LoadingController = "nk_imageViewLoadingController"
 }

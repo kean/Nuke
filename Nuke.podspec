@@ -17,8 +17,10 @@ Pod::Spec.new do |s|
     s.ios.deployment_target = "8.0"
     s.watchos.deployment_target = "2.0"
     s.osx.deployment_target = "10.9"
+    s.tvos.deployment_target = "9.0"
 
     s.source_files  = "Nuke/Source/Core/**/*"
     s.ios.source_files = "Nuke/Source/UI/**/*"
+    s.tvos.source_files = "Nuke/Source/UI/**/*"
     s.osx.source_files = "Nuke/Source/UI/{ImageLoadingView,ImageLoadingViewExtensions,ImageViewLoadingController}.swift"
 end

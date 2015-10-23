@@ -64,7 +64,7 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
     return true
 }
 
-#if os(iOS) || os(watchOS)
+#if !os(OSX)
 
     // MARK: - ImageDecompressor
     

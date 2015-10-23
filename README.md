@@ -17,11 +17,11 @@ Nuke.taskWithRequest(request) { response in
 }.resume()
 ```
 
-1. [Getting Started](#h_getting_started)
-2. [Usage](#h_usage)
-3. [Design](#h_design)
-4. [Installation](#installation)
-5. [Requirements](#h_requirements)
+1. [Requirements](#h_requirements)
+2. [Getting Started](#h_getting_started)
+3. [Usage](#h_usage)
+4. [Design](#h_design)
+5. [Installation](#installation)
 6. [Satellite Projects](#h_satellite_projects)
 
 ## <a name="h_features"></a>Features
@@ -52,6 +52,10 @@ Nuke.taskWithRequest(request) { response in
 - Compose image filters
 - Compose image decoders
 - Nuke is a [pipeline](#h_design) that loads images using injectable dependencies
+
+## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
+- iOS 8.0+ / watchOS 2.0+ / OS X 10.9+ / tvOS 9.0+
+- Xcode 7.0+, Swift 2.0+
 
 ## <a name="h_getting_started"></a>Getting Started
 - Download the latest [release](https://github.com/kean/Nuke/releases) version
@@ -221,7 +225,7 @@ To install Nuke add a dependency to your Podfile:
 ```ruby
 # source 'https://github.com/CocoaPods/Specs.git'
 # use_frameworks!
-# platform :ios, "8.0" / :watchos, "2.0" / :osx, "10.9"
+# platform :ios, "8.0" / :watchos, "2.0" / :osx, "10.9" / :tvos, "9.0"
 
 pod "Nuke"
 pod "Nuke-Alamofire-Plugin" # optional
@@ -244,10 +248,6 @@ import Nuke
 import NukeAlamofirePlugin
 import NukeAnimatedImagePlugin
 ```
-
-## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
-- iOS 8.0+ / watchOS 2.0+ / OS X 10.9+
-- Xcode 7.0+, Swift 2.0+
 
 ## <a name="h_satellite_projects"></a>Satellite Projects
 

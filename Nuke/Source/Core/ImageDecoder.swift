@@ -21,7 +21,7 @@ public class ImageDecoder: ImageDecoding {
     public func imageWithData(data: NSData) -> Image? {
         #if os(OSX)
             return NSImage(data: data)
-        #elseif os(iOS)
+        #elseif os(iOS) || os(tvOS)
             return UIImage(data: data, scale: UIScreen.mainScreen().scale)
         #else
             return UIImage(data: data, scale: WKInterfaceDevice.currentDevice().screenScale)
