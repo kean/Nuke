@@ -31,14 +31,14 @@ public class ImageMemoryCache: ImageMemoryCaching {
     public let cache: NSCache
 
     deinit {
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
             NSNotificationCenter.defaultCenter().removeObserver(self, name: UIApplicationDidReceiveMemoryWarningNotification, object: nil)
         #endif
     }
 
     public init(cache: NSCache) {
         self.cache = cache
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
             NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("didReceiveMemoryWarning:"), name: UIApplicationDidReceiveMemoryWarningNotification, object: nil)
         #endif
     }
