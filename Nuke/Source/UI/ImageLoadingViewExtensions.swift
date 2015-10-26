@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015 Alexander Grebenyuk (github.com/kean).
 
-#if os(iOS)
+#if os(iOS) || os(tvOS)
     import UIKit
     
     extension UIImageView: ImageDisplayingView, ImageLoadingView {
