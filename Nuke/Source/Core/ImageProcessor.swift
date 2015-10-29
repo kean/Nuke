@@ -102,15 +102,30 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
         if scale < 1.0 {
             imageSize = CGSize(width: Double(imageSize.width) * scale, height: Double(imageSize.height) * scale)
         }
+        
+        let bitmapInfo = CGImageGetBitmapInfo(imageRef).rawValue;
+        
+        let infoMask = bitmapInfo & CGBitmapInfo.AlphaInfoMask.rawValue;
+        let anyAlpha = (infoMask == CGImageAlphaInfo.First.rawValue) ||
+                       (infoMask == CGImageAlphaInfo.Last.rawValue) ||
+                       (infoMask == CGImageAlphaInfo.PremultipliedFirst.rawValue) ||
+                       (infoMask == CGImageAlphaInfo.PremultipliedLast.rawValue);
+        
+        if (anyAlpha)
+        {
+            return image;
+        }
+    
         guard let contextRef = CGBitmapContextCreate(nil,
             Int(imageSize.width),
             Int(imageSize.height),
             CGImageGetBitsPerComponent(imageRef),
             0,
             CGColorSpaceCreateDeviceRGB(),
-            CGImageGetBitmapInfo(imageRef).rawValue) else {
+            bitmapInfo) else {
                 return image
         }
+        
         CGContextDrawImage(contextRef, CGRect(origin: CGPointZero, size: imageSize), imageRef)
         guard let decompressedImageRef = CGBitmapContextCreateImage(contextRef) else {
             return image
