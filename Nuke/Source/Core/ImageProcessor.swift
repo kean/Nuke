@@ -102,14 +102,9 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
         if scale < 1.0 {
             imageSize = CGSize(width: Double(imageSize.width) * scale, height: Double(imageSize.height) * scale)
         }
-        guard let contextRef = CGBitmapContextCreate(nil,
-            Int(imageSize.width),
-            Int(imageSize.height),
-            CGImageGetBitsPerComponent(imageRef),
-            0,
-            CGColorSpaceCreateDeviceRGB(),
-            CGImageGetBitmapInfo(imageRef).rawValue) else {
-                return image
+        // See Quartz 2D Programming Guide and https://github.com/kean/Nuke/issues/35 for more info
+        guard let contextRef = CGBitmapContextCreate(nil, Int(imageSize.width), Int(imageSize.height), 8, 0, CGColorSpaceCreateDeviceRGB(), CGImageAlphaInfo.PremultipliedLast.rawValue) else {
+            return image
         }
         CGContextDrawImage(contextRef, CGRect(origin: CGPointZero, size: imageSize), imageRef)
         guard let decompressedImageRef = CGBitmapContextCreateImage(contextRef) else {
