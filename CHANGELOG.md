@@ -1,5 +1,12 @@
  [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+
+## Nuke 1.1.1
+
+- #35 ImageDecompressor now uses `32 bpp, 8 bpc, CGImageAlphaInfo.PremultipliedLast` pixel format which adds support for images in an obscure formats, including 16 bpc images.
+- Improve docs
+
+
 ## Nuke 1.1.0
 
 - #25 Add tvOS support
