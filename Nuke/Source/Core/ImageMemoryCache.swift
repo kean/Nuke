@@ -42,12 +42,12 @@ public class ImageMemoryCache: ImageMemoryCaching {
             NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("didReceiveMemoryWarning:"), name: UIApplicationDidReceiveMemoryWarningNotification, object: nil)
         #endif
     }
-
+    
     public convenience init() {
         let cache = NSCache()
         cache.totalCostLimit = ImageMemoryCache.recommendedCacheTotalLimit()
         #if os(OSX)
-        cache.countLimit = 100
+            cache.countLimit = 100
         #endif
         self.init(cache: cache)
     }

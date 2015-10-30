@@ -42,6 +42,8 @@ public class ImageTask: Hashable {
     */
     public func completion(completion: ImageTaskCompletion) -> Self { fatalError("Abstract method") }
     
+    /** Resumes the task if suspended. Resume and suspend methods are nestable.
+    */
     public func resume() -> Self { fatalError("Abstract method") }
     
     /** Advices the task to suspend loading. If the task is suspended if might still complete at any time.
@@ -57,10 +59,7 @@ public class ImageTask: Hashable {
 
 public extension ImageTask {
     public var fractionCompleted: Double {
-        guard self.totalUnitCount != 0 else {
-            return 0.0
-        }
-        return Double(self.completedUnitCount) / Double(self.totalUnitCount)
+        return self.totalUnitCount == 0 ? 0.0 : Double(self.completedUnitCount) / Double(self.totalUnitCount)
     }
 }
 
