@@ -61,11 +61,17 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     }
     
     public func imageDataTaskWithRequest(request: ImageRequest, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask {
-        let dataTask = self.session.dataTaskWithRequest(request.URLRequest)
+        let task = self.createTaskWithRequest(request)
         dispatch_sync(self.queue) {
-            self.taskHandlers[dataTask] = URLSessionDataTaskHandler(progressHandler: progressHandler, completionHandler: completionHandler)
+            self.taskHandlers[task] = URLSessionDataTaskHandler(progressHandler: progressHandler, completionHandler: completionHandler)
         }
-        return dataTask
+        return task
+    }
+    
+    /** Factory method for creating session tasks for given image requests.
+     */
+    public func createTaskWithRequest(request: ImageRequest) -> NSURLSessionTask {
+        return self.session.dataTaskWithRequest(request.URLRequest)
     }
     
     public func invalidate() {
