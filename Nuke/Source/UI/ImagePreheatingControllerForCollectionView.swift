@@ -6,7 +6,9 @@ import Foundation
 import UIKit
 
 public class ImagePreheatingControllerForCollectionView: ImagePreheatingController {
-    public let collectionView: UICollectionView
+    public var collectionView: UICollectionView {
+        return self.scrollView as! UICollectionView
+    }
     public var collectionViewLayout: UICollectionViewFlowLayout {
         return self.collectionView.collectionViewLayout as! UICollectionViewFlowLayout
     }
@@ -23,7 +25,6 @@ public class ImagePreheatingControllerForCollectionView: ImagePreheatingControll
     
     public init(collectionView: UICollectionView) {
         assert(collectionView.collectionViewLayout is UICollectionViewFlowLayout)
-        self.collectionView = collectionView
         super.init(scrollView: collectionView)
     }
     
@@ -43,11 +44,7 @@ public class ImagePreheatingControllerForCollectionView: ImagePreheatingControll
             self.updatePreheatRect()
         }
     }
-    
-    private enum ScrollDirection {
-        case Forward, Backward
-    }
-    
+
     private func updatePreheatRect() {
         let scrollAxis = self.collectionViewLayout.scrollDirection
         let updateMargin = (scrollAxis == .Vertical ? CGRectGetHeight : CGRectGetWidth)(self.collectionView.bounds) * self.preheatRectUpdateRatio
@@ -59,14 +56,8 @@ public class ImagePreheatingControllerForCollectionView: ImagePreheatingControll
         
         self.previousContentOffset = contentOffset
         let preheatRect = self.preheatRectInScrollDirection(scrollDirection)
-        let visibleIndexPaths = self.collectionView.indexPathsForVisibleItems()
-        let preheatIndexPaths = self.indexPathsForElementsInRect(preheatRect).subtract(visibleIndexPaths).sort {
-            switch scrollDirection {
-            case .Forward: return $0.section < $1.section || $0.item < $1.item
-            case .Backward: return $0.section > $1.section || $0.item > $1.item
-            }
-        }
-        self.updatePreheatIndexPaths(preheatIndexPaths)
+        let preheatIndexPaths = self.indexPathsForElementsInRect(preheatRect).subtract(self.collectionView.indexPathsForVisibleItems())
+        self.updatePreheatIndexPaths(sortIndexPaths(preheatIndexPaths, inScrollDirection: scrollDirection))
     }
     
     private func preheatRectInScrollDirection(direction: ScrollDirection) -> CGRect {

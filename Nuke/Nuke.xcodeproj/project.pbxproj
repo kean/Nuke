@@ -98,6 +98,8 @@
 		0CC345C71BD96E1D005C2DD8 /* ImageMemoryCacheTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* ImageMemoryCacheTest.swift */; };
 		0CC345C81BD96E1D005C2DD8 /* ImageProcessingTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06881BCA888800089D7F /* ImageProcessingTest.swift */; };
 		0CCF16201BC4526A003768E5 /* ImageManagerExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF161F1BC4526A003768E5 /* ImageManagerExtensions.swift */; };
+		0CF516111BF64DD500584D1E /* ImagePreheatingControllerForTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF516101BF64DD500584D1E /* ImagePreheatingControllerForTableView.swift */; };
+		0CF516121BF64DD500584D1E /* ImagePreheatingControllerForTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF516101BF64DD500584D1E /* ImagePreheatingControllerForTableView.swift */; };
 		0CF91FB51BD3D44B00C7CF23 /* ImageLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC2D9E71BD24613006189B3 /* ImageLoadingView.swift */; };
 		0CF91FB81BD3D85A00C7CF23 /* ImageViewLoadingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC2D9F51BD2ACE4006189B3 /* ImageViewLoadingController.swift */; };
 		0CF91FD21BD3D8E500C7CF23 /* ImageLoadingViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC2DA001BD2BFA6006189B3 /* ImageLoadingViewExtensions.swift */; };
@@ -164,6 +166,7 @@
 		0CC345971BD96CFE005C2DD8 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CC345A31BD96D2A005C2DD8 /* Nuke tvOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke tvOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CCF161F1BC4526A003768E5 /* ImageManagerExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManagerExtensions.swift; sourceTree = "<group>"; };
+		0CF516101BF64DD500584D1E /* ImagePreheatingControllerForTableView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheatingControllerForTableView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -266,6 +269,7 @@
 				0CC2D9E71BD24613006189B3 /* ImageLoadingView.swift */,
 				0CC2DA001BD2BFA6006189B3 /* ImageLoadingViewExtensions.swift */,
 				0CC2D9F51BD2ACE4006189B3 /* ImageViewLoadingController.swift */,
+				0CF516101BF64DD500584D1E /* ImagePreheatingControllerForTableView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -692,6 +696,7 @@
 				0C096C9A1BAE9ADD007FE380 /* ImageResponse.swift in Sources */,
 				0C096CA01BAE9ADD007FE380 /* ImagePreheatingControllerForCollectionView.swift in Sources */,
 				0CC2D9F61BD2ACE4006189B3 /* ImageViewLoadingController.swift in Sources */,
+				0CF516111BF64DD500584D1E /* ImagePreheatingControllerForTableView.swift in Sources */,
 				0CC2DA011BD2BFA6006189B3 /* ImageLoadingViewExtensions.swift in Sources */,
 				0CCF16201BC4526A003768E5 /* ImageManagerExtensions.swift in Sources */,
 				0C096C981BAE9ADD007FE380 /* ImageProcessor.swift in Sources */,
@@ -716,6 +721,7 @@
 				0CC345BB1BD96DD2005C2DD8 /* ImagePreheatingControllerForCollectionView.swift in Sources */,
 				0CC345B31BD96D8E005C2DD8 /* ImageManagerExtensions.swift in Sources */,
 				0CC345B21BD96D8E005C2DD8 /* ImageManager.swift in Sources */,
+				0CF516121BF64DD500584D1E /* ImagePreheatingControllerForTableView.swift in Sources */,
 				0CC345B91BD96D8E005C2DD8 /* ImageRequestKey.swift in Sources */,
 				0CC345B51BD96D8E005C2DD8 /* ImageDataLoader.swift in Sources */,
 				0CC345B61BD96D8E005C2DD8 /* ImageDecoder.swift in Sources */,
