@@ -27,6 +27,8 @@ public protocol ImageLoadingView: class {
     func nk_cancelLoading()
     
     /** Loads and displays an image for the given URL. Cancels previously stared requests.
+     
+     Default implementation uses ImageContentMode.AspectFill, and current view size multiplied by screen scaling factor as an image target size.
     */
     func nk_setImageWithURL(URL: NSURL) -> ImageTask
     
@@ -46,6 +48,8 @@ public extension ImageLoadingView where Self: View {
 }
 
 public extension View {
+    /** Returns image target size in pixels for the view. Target size is calculated by multiplying view's size by screen scaling factor.
+    */
     public func nk_targetSize() -> CGSize {
         let size = self.bounds.size
         #if os(iOS) || os(tvOS)
@@ -60,6 +64,8 @@ public extension View {
 // MARK: - ImageDisplayingView
 
 /** View that supports displaying loaded images.
+
+See https://github.com/kean/Nuke/issues/38 for more info about overriding those methods.
 */
 public protocol ImageDisplayingView: class {
     var nk_image: Image? { get set }
@@ -69,8 +75,6 @@ public protocol ImageDisplayingView: class {
 public var ImageViewDefaultAnimationDuration = 0.25
 
 public extension ImageDisplayingView where Self: View {
-    /** Note that classes cannot override declarations from extensions. If you have a subclass of a class that already implements ImageDisplayingView protocol in an extension (like UIImageView) you won't be able to override methods of this protocol in a subclass itself. But you can override them in an extension of the subclass.
-    */
     public func nk_imageTask(task: ImageTask, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions?) {
         switch response {
         case let .Success(image, info):
