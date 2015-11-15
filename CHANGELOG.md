@@ -1,6 +1,15 @@
  [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
 
+## Nuke 1.2.0
+
+- #20 Add preheating for UITableView (see ImagePreheatingControllerForTableView class)
+- #41 Enhanced tvOS support thanks to @joergbirkhold
+- #39 UIImageView: ImageLoadingView extension no available on tvOS
+- Add factory method for creating session tasks in ImageDataLoader
+- Improved documentation
+
+
 ## Nuke 1.1.1
 
 - #35 ImageDecompressor now uses `32 bpp, 8 bpc, CGImageAlphaInfo.PremultipliedLast` pixel format which adds support for images in an obscure formats, including 16 bpc images.
