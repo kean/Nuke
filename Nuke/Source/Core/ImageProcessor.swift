@@ -90,18 +90,17 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
     
     private func decompressImage(image: UIImage, targetSize: CGSize, contentMode: ImageContentMode) -> UIImage {
         let bitmapSize = CGSize(width: CGImageGetWidth(image.CGImage), height: CGImageGetHeight(image.CGImage))
-        let scaleWidth = targetSize.width / bitmapSize.width
-        let scaleHeight = targetSize.height / bitmapSize.height
+        let scaleWidth = image.scale * targetSize.width / bitmapSize.width
+        let scaleHeight = image.scale * targetSize.height / bitmapSize.height
         let scale = contentMode == .AspectFill ? max(scaleWidth, scaleHeight) : min(scaleWidth, scaleHeight)
         return decompressImage(image, scale: Double(scale))
     }
     
     private func decompressImage(image: UIImage, scale: Double) -> UIImage {
         let imageRef = image.CGImage
-        var imageSize = CGSize(width: CGImageGetWidth(imageRef), height: CGImageGetHeight(imageRef))
-        if scale < 1.0 {
-            imageSize = CGSize(width: Double(imageSize.width) * scale, height: Double(imageSize.height) * scale)
-        }
+        let minification = CGFloat(min(scale, 1))
+        let imageSize = CGSize(width: round(CGFloat(CGImageGetWidth(imageRef)) * minification),
+                               height: round(CGFloat(CGImageGetHeight(imageRef)) * minification))
         // See Quartz 2D Programming Guide and https://github.com/kean/Nuke/issues/35 for more info
         guard let contextRef = CGBitmapContextCreate(nil, Int(imageSize.width), Int(imageSize.height), 8, 0, CGColorSpaceCreateDeviceRGB(), CGImageAlphaInfo.PremultipliedLast.rawValue) else {
             return image
