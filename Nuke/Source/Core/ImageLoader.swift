@@ -114,8 +114,8 @@ public class ImageLoader: ImageLoading {
         let sessionTask = ImageSessionTask(key: key)
         let dataTask = self.dataLoader.imageDataTaskWithRequest(request, progressHandler: { [weak self] completedUnits, totalUnits in
             self?.sessionTask(sessionTask, didUpdateProgressWithCompletedUnitCount: completedUnits, totalUnitCount: totalUnits)
-        }, completionHandler: { [weak self] data, _, error in
-            self?.sessionTask(sessionTask, didCompleteWithData: data, error: error)
+        }, completionHandler: { [weak self] data, response, error in
+            self?.sessionTask(sessionTask, didCompleteWithData: data, response: response, error: error)
         })
         sessionTask.dataTask = dataTask
         return sessionTask
@@ -131,10 +131,10 @@ public class ImageLoader: ImageLoading {
         }
     }
 
-    private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithData data: NSData?, error: ErrorType?) {
+    private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithData data: NSData?, response: NSURLResponse?, error: ErrorType?) {
         if let data = data {
             self.configuration.decodingQueue.addOperationWithBlock { [weak self] in
-                let image = self?.configuration.decoder.imageWithData(data)
+                let image = self?.configuration.decoder.imageWithData(data, response: response)
                 self?.sessionTask(sessionTask, didCompleteWithImage: image, error: error)
             }
         } else {

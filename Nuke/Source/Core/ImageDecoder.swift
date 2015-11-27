@@ -14,6 +14,13 @@
 
 public protocol ImageDecoding {
     func imageWithData(data: NSData) -> Image?
+    func imageWithData(data: NSData, response: NSURLResponse?) -> Image?
+}
+
+public extension ImageDecoding {
+    func imageWithData(data: NSData, response: NSURLResponse?) -> Image? {
+        return self.imageWithData(data)
+    }
 }
 
 /** Creates an image from a given data in an image format supported by the platform.
