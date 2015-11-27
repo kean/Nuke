@@ -26,19 +26,27 @@ public extension ImageDecoding {
     }
 }
 
-/** Creates an image from a given data in an image format supported by the platform.
+/** Creates an image from a given data. Image scale is set to the scale of the main screen.
 */
 public class ImageDecoder: ImageDecoding {
     public init() {}
     public func imageWithData(data: NSData) -> Image? {
         #if os(OSX)
             return NSImage(data: data)
-        #elseif os(iOS) || os(tvOS)
-            return UIImage(data: data, scale: UIScreen.mainScreen().scale)
         #else
-            return UIImage(data: data, scale: WKInterfaceDevice.currentDevice().screenScale)
+            return UIImage(data: data, scale: self.imageScale)
         #endif
     }
+
+    #if !os(OSX)
+    public var imageScale: CGFloat {
+        #if os(iOS) || os(tvOS)
+            return UIScreen.mainScreen().scale
+        #else
+            return WKInterfaceDevice.currentDevice().screenScale
+        #endif
+    }
+    #endif
 }
 
 public class ImageDecoderComposition: ImageDecoding {
