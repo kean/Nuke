@@ -38,17 +38,30 @@ public func equivalentProcessors(lhs: ImageProcessing?, rhs: ImageProcessing?) -
 
 // MARK: - ImageProcessorComposition
 
+/** Composes multiple image processors.
+
+Processors are applied in an order in which they are present in the processors array. If one of the processors fails to produce an image the processing stops and nil is returned.
+*/
 public class ImageProcessorComposition: ImageProcessing, Equatable {
     public let processors: [ImageProcessing]
-    
+
+    /** Composes multiple image processors.
+     */
     public init(processors: [ImageProcessing]) {
         self.processors = processors
     }
     
     public func processImage(input: Image) -> Image? {
-        return processors.reduce(input) { image, processor in
-            return image != nil ? processor.processImage(image!) : nil
+        var image: Image? = input
+        for processor in self.processors {
+            if image == nil {
+                return nil
+            }
+            autoreleasepool {
+                image = processor.processImage(image!)
+            }
         }
+        return image
     }
 }
 
