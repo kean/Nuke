@@ -14,6 +14,9 @@
 
 public protocol ImageDecoding {
     func imageWithData(data: NSData) -> Image?
+
+    /** Decodes image with a given data and response. Defaul implementation of this method calls `imageWithData(_:)` method.
+     */
     func imageWithData(data: NSData, response: NSURLResponse?) -> Image?
 }
 
