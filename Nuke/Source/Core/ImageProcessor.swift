@@ -67,16 +67,31 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
 #if !os(OSX)
 
     // MARK: - ImageDecompressor
+
+    /** Decompresses and scales input images.
     
+    If the image size is bigger then the given target size (in pixels) it is resized to either fit or fill target size (see ImageContentMode enum for more info). Image is scaled maintaining aspect ratio.
+    
+    Decompression and scaling are performed in a single pass which improves performance and reduces memory usage.
+    */
     public class ImageDecompressor: ImageProcessing, Equatable {
+        /** Target size in pixels. Default value is ImageMaximumSize.
+         */
         public let targetSize: CGSize
+
+        /** An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
+         */
         public let contentMode: ImageContentMode
-        
+
+        /** Initializes the receiver with target size and content mode.
+         - parameter targetSize: Target size in pixels. Default value is ImageMaximumSize.
+         - parameter contentMode: An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
+         */
         public init(targetSize: CGSize = ImageMaximumSize, contentMode: ImageContentMode = .AspectFill) {
             self.targetSize = targetSize
             self.contentMode = contentMode
         }
-        
+
         public func processImage(image: Image) -> Image? {
             return decompressImage(image, targetSize: self.targetSize, contentMode: self.contentMode)
         }

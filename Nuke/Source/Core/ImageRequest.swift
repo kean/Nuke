@@ -10,7 +10,12 @@ import Foundation
 #endif
 
 public enum ImageContentMode {
+    /** Scales the image so that it completely fills the target size. Maintains image aspect ratio. Images are not clipped.
+     */
     case AspectFill
+
+    /** Scales the image so that its larger dimension fits the target size. Maintains image aspect ratio.
+     */
     case AspectFit
 }
 
@@ -23,11 +28,13 @@ public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 public struct ImageRequest {
     public var URLRequest: NSURLRequest
     
-    /** Target size in pixels. Default value is ImageMaximumSize.
+    /** Target size in pixels. The loaded image is resized to the given target size respecting the given content mode and maintaining aspect ratio. Default value is ImageMaximumSize.
+     
+     Default ImageLoader implementation decompresses the loaded image using instance of ImageDecompressor class which is created with a targetSize and contentMode from the ImageRequest. See ImageDecompressor class for more info.
     */
     public var targetSize: CGSize = ImageMaximumSize
     
-    /** Content mode. Default value is .AspectFill.
+    /** An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
     */
     public var contentMode: ImageContentMode = .AspectFill
     
@@ -41,8 +48,8 @@ public struct ImageRequest {
     public var userInfo: Any?
     
     /** Initializes request with a URL.
-     - parameter targetSize: Default value is ImageMaximumSize
-     - parameter contentMode: Default value is .AspectFill
+     - parameter targetSize: Target size in pixels. Default value is ImageMaximumSize. See targetSize property for more info.
+     - parameter contentMode: An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
     */
     public init(URL: NSURL, targetSize: CGSize = ImageMaximumSize, contentMode: ImageContentMode = .AspectFill) {
         self.URLRequest = NSURLRequest(URL: URL)
@@ -51,8 +58,8 @@ public struct ImageRequest {
     }
     
     /** Initializes request with a URL request.
-     - parameter targetSize: Default value is ImageMaximumSize
-     - parameter contentMode: Default value is .AspectFill
+     - parameter targetSize: Target size in pixels. Default value is ImageMaximumSize. See targetSize property for more info.
+     - parameter contentMode: An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
     */
     public init(URLRequest: NSURLRequest, targetSize: CGSize = ImageMaximumSize, contentMode: ImageContentMode = .AspectFill) {
         self.URLRequest = URLRequest

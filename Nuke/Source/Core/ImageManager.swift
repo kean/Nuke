@@ -167,7 +167,7 @@ public class ImageManager {
     }
     
     /** Stops all preheating tasks.
-    */
+     */
     public func stopPreheatingImages() {
         self.perform { self.cancelTasks(self.preheatingTasks.values) }
     }
