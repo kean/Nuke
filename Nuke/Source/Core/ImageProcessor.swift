@@ -70,15 +70,17 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
     
     public class ImageDecompressor: ImageProcessing, Equatable {
         public let targetSize: CGSize
+        public let targetScale: CGFloat
         public let contentMode: ImageContentMode
         
-        public init(targetSize: CGSize = ImageMaximumSize, contentMode: ImageContentMode = .AspectFill) {
+        public init(targetSize: CGSize = ImageMaximumSize, targetScale: CGFloat = 1, contentMode: ImageContentMode = .AspectFill) {
             self.targetSize = targetSize
+            self.targetScale = targetScale
             self.contentMode = contentMode
         }
         
         public func processImage(image: Image) -> Image? {
-            return decompressImage(image, targetSize: self.targetSize, contentMode: self.contentMode)
+            return decompressImage(image, targetSize: self.targetSize, targetScale: self.targetScale, contentMode: self.contentMode)
         }
     }
     
@@ -88,20 +90,14 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
     
     // MARK: - Misc
     
-    private func decompressImage(image: UIImage, targetSize: CGSize, contentMode: ImageContentMode) -> UIImage {
-        let bitmapSize = CGSize(width: CGImageGetWidth(image.CGImage), height: CGImageGetHeight(image.CGImage))
-        let scaleWidth = targetSize.width / bitmapSize.width
-        let scaleHeight = targetSize.height / bitmapSize.height
-        let scale = contentMode == .AspectFill ? max(scaleWidth, scaleHeight) : min(scaleWidth, scaleHeight)
-        return decompressImage(image, scale: Double(scale))
-    }
-    
-    private func decompressImage(image: UIImage, scale: Double) -> UIImage {
+    private func decompressImage(image: UIImage, targetSize: CGSize, targetScale: CGFloat, contentMode: ImageContentMode) -> UIImage {
         let imageRef = image.CGImage
-        var imageSize = CGSize(width: CGImageGetWidth(imageRef), height: CGImageGetHeight(imageRef))
-        if scale < 1.0 {
-            imageSize = CGSize(width: Double(imageSize.width) * scale, height: Double(imageSize.height) * scale)
-        }
+        let bitmapSize = CGSize(width: CGImageGetWidth(imageRef), height: CGImageGetHeight(imageRef))
+        let scaleWidth = targetScale * targetSize.width / bitmapSize.width
+        let scaleHeight = targetScale * targetSize.height / bitmapSize.height
+        let minification = min(1, contentMode == .AspectFill ? max(scaleWidth, scaleHeight) : min(scaleWidth, scaleHeight))
+        let imageSize = CGSize(width: round(CGFloat(CGImageGetWidth(imageRef)) * minification),
+                               height: round(CGFloat(CGImageGetHeight(imageRef)) * minification))
         // See Quartz 2D Programming Guide and https://github.com/kean/Nuke/issues/35 for more info
         guard let contextRef = CGBitmapContextCreate(nil, Int(imageSize.width), Int(imageSize.height), 8, 0, CGColorSpaceCreateDeviceRGB(), CGImageAlphaInfo.PremultipliedLast.rawValue) else {
             return image
@@ -110,7 +106,7 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
         guard let decompressedImageRef = CGBitmapContextCreateImage(contextRef) else {
             return image
         }
-        return UIImage(CGImage: decompressedImageRef, scale: image.scale, orientation: image.imageOrientation)
+        return UIImage(CGImage: decompressedImageRef, scale: targetScale, orientation: image.imageOrientation)
     }
 
 #endif

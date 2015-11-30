@@ -59,7 +59,7 @@ extension ImageLoaderDelegate {
         #if os(OSX)
             return nil
         #else
-            return ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode)
+            return ImageDecompressor(targetSize: request.targetSize, targetScale: request.targetScale, contentMode: request.contentMode)
         #endif
     }
 }

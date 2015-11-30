@@ -27,6 +27,10 @@ public struct ImageRequest {
     */
     public var targetSize: CGSize = ImageMaximumSize
     
+    /** Target scale in pixels per screen point. Default value is 1.
+    */
+    public var targetScale: CGFloat = 1
+    
     /** Content mode. Default value is .AspectFill.
     */
     public var contentMode: ImageContentMode = .AspectFill
