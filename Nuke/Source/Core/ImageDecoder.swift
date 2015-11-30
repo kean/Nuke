@@ -16,16 +16,6 @@
 */
 public protocol ImageDecoding {
     func imageWithData(data: NSData) -> Image?
-
-    /** Decodes image with a given data and response. Defaul implementation of this method calls `imageWithData(_:)` method.
-     */
-    func imageWithData(data: NSData, response: NSURLResponse?) -> Image?
-}
-
-public extension ImageDecoding {
-    func imageWithData(data: NSData, response: NSURLResponse?) -> Image? {
-        return self.imageWithData(data)
-    }
 }
 
 /** Creates an image from a given data. Image scale is set to the scale of the main screen.

@@ -134,7 +134,7 @@ public class ImageLoader: ImageLoading {
     private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithData data: NSData?, response: NSURLResponse?, error: ErrorType?) {
         if let data = data {
             self.configuration.decodingQueue.addOperationWithBlock { [weak self] in
-                let image = self?.configuration.decoder.imageWithData(data, response: response)
+                let image = self?.configuration.decoder.imageWithData(data)
                 self?.sessionTask(sessionTask, didCompleteWithImage: image, error: error)
             }
         } else {
