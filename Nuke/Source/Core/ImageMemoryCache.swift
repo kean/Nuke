@@ -17,6 +17,9 @@ public protocol ImageMemoryCaching {
 
 public class ImageCachedResponse {
     public let image: Image
+
+    /** User info returned by the image loader (see ImageLoading protocol).
+     */
     public let userInfo: Any?
 
     public init(image: Image, userInfo: Any?) {
@@ -42,7 +45,9 @@ public class ImageMemoryCache: ImageMemoryCaching {
             NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("didReceiveMemoryWarning:"), name: UIApplicationDidReceiveMemoryWarningNotification, object: nil)
         #endif
     }
-    
+
+    /** Initializes cache with the recommended cache total limit.
+     */
     public convenience init() {
         let cache = NSCache()
         cache.totalCostLimit = ImageMemoryCache.recommendedCacheTotalLimit()

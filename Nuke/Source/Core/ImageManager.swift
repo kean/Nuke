@@ -28,7 +28,9 @@ public struct ImageManagerConfiguration {
 
 // MARK: - ImageManager
 
-/** The ImageManager class and related classes provide an API for loading, processing, caching and preheating images.
+/** The ImageManager class and related classes provide methods for loading, processing, caching and preheating images.
+
+ImageManager is also a pipeline that loads images using injectable dependencies, which makes it highly customizable. See https://github.com/kean/Nuke#design for more info.
 */
 public class ImageManager {
     public let configuration: ImageManagerConfiguration
@@ -57,13 +59,13 @@ public class ImageManager {
     /** Creates a task with a given request. After you create a task, you start it by calling its resume method.
     
     The ImageManager holds a strong reference to the task until it is either completes or get cancelled.
-    */
+     */
     public func taskWithRequest(request: ImageRequest) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier)
     }
     
     /** Cancels all outstanding tasks and then invalidates the manager. New image tasks may not be resumed.
-    */
+     */
     public func invalidateAndCancel() {
         self.perform {
             self.loader.manager = nil
@@ -73,14 +75,16 @@ public class ImageManager {
             self.invalidated = true
         }
     }
-    
+
+    /** Removes all cached images by calling corresponding methods on memory cache and image loader.
+     */
     public func removeAllCachedImages() {
         self.cache?.removeAllCachedImages()
         self.loader.removeAllCachedImages()
     }
     
     /** Asynchronously calls a completion closure on the main thread with all executing tasks and all preheating tasks. Set with executing tasks might contain currently executing preheating tasks.
-    */
+     */
     public func getTasksWithCompletion(completion: (executingTasks: Set<ImageTask>, preheatingTasks: Set<ImageTask>) -> Void) {
         self.perform {
             let executingTasks = self.executingTasks
@@ -139,7 +143,7 @@ public class ImageManager {
     // MARK: Preheating
     
     /** Prepares images for the given requests for later use.
-    
+
     When you call this method, ImageManager starts to load and cache images for the given requests. ImageManager caches images with the exact target size, content mode, and filters. At any time afterward, you can create tasks with equivalent requests.
     */
     public func startPreheatingImages(requests: [ImageRequest]) {
@@ -157,7 +161,7 @@ public class ImageManager {
     }
     
     /** Stop preheating for the given requests. The request parameters should match the parameters used in startPreheatingImages method.
-    */
+     */
     public func stopPreheatingImages(requests: [ImageRequest]) {
         self.perform {
             self.cancelTasks(requests.flatMap {

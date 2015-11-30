@@ -10,7 +10,7 @@ public enum ImageResponse {
 }
 
 /** Represents image response.
-*/
+ */
 public extension ImageResponse {
     public var image: Image? {
         switch self {
@@ -43,8 +43,8 @@ public extension ImageResponse {
 
 public class ImageResponseInfo {
     
-    /*! Returns true if the image was retrieved from memory cache.
-    */
+    /** Returns true if the image was retrieved from memory cache.
+     */
     public let fastResponse: Bool
     public let userInfo: Any?
 

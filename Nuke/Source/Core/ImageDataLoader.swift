@@ -10,7 +10,7 @@ public typealias ImageDataLoadingCompletionHandler = (data: NSData?, response: N
 public typealias ImageDataLoadingProgressHandler = (completedUnitCount: Int64, totalUnitCount: Int64) -> Void
 
 /** Performs loading of image data.
-*/
+ */
 public protocol ImageDataLoading {
     /** Compares two requests for equivalence with regard to loading image data. Requests should be considered equivalent if data loader can handle both requests with a single session task.
      */
@@ -19,7 +19,7 @@ public protocol ImageDataLoading {
     /** Compares two requests for equivalence with regard to caching image data. ImageManager uses this method for memory caching only, which means that there is no need for filtering out the dynamic part of the request (is there is any).
      */
     func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool
-    
+
     func imageDataTaskWithRequest(request: ImageRequest, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask
     
     func invalidate()
@@ -41,7 +41,11 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
         super.init()
         self.session = NSURLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
     }
-    
+
+    /** Initializes the receiver with a default NSURLSession configuration. 
+     
+     The memory capacity of the NSURLCache is set to 0, disk capacity is set to 200 Mb.
+     */
     public convenience override init() {
         let configuration = NSURLSessionConfiguration.defaultSessionConfiguration()
         configuration.URLCache = NSURLCache(memoryCapacity: 0, diskCapacity: 200 * 1024 * 1024, diskPath: "com.github.kean.nuke-image-cache")
@@ -73,11 +77,15 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     public func createTaskWithRequest(request: ImageRequest) -> NSURLSessionTask {
         return self.session.dataTaskWithRequest(request.URLRequest)
     }
-    
+
+    /** Invalidates the instance of NSURLSession class that the receiver was initialized with.
+     */
     public func invalidate() {
         self.session.invalidateAndCancel()
     }
-    
+
+    /** Removes all cached images from the instance of NSURLCache class from the NSURLSession configuration.
+     */
     public func removeAllCachedImages() {
         self.session.configuration.URLCache?.removeAllCachedResponses()
     }

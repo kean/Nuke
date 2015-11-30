@@ -12,22 +12,33 @@ import Foundation
 // MARK: - ImageProcessing
 
 public protocol ImageProcessing {
+    /** Returns processed image.
+     */
     func processImage(image: Image) -> Image?
+
+    /** Compares two processors for equivalence. For more info see extensions that provide default implementation of this method.
+     */
     func isEquivalentToProcessor(other: ImageProcessing) -> Bool
 }
 
 public extension ImageProcessing {
+    /** Returns true if both processors are instances of the same class.
+     */
     public func isEquivalentToProcessor(other: ImageProcessing) -> Bool {
         return other is Self
     }
 }
 
 public extension ImageProcessing where Self: Equatable {
+    /** Compares processors using == function.
+     */
     public func isEquivalentToProcessor(other: ImageProcessing) -> Bool {
         return (other as? Self) == self
     }
 }
 
+/** Compares processors if both are not nil, returns true if both are nil, returns false otherwise.
+ */
 public func equivalentProcessors(lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
     switch (lhs, rhs) {
     case (.Some(let lhs), .Some(let rhs)): return lhs.isEquivalentToProcessor(rhs)
