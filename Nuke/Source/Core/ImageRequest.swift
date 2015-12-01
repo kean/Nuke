@@ -19,7 +19,7 @@ public enum ImageContentMode {
     case AspectFit
 }
 
-/* Size to pass when requesting the original image available for a request (image won't be resized).
+/** Size to pass when requesting the original image available for a request (image won't be resized).
 */
 public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 
@@ -28,7 +28,8 @@ public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 public struct ImageRequest {
     public var URLRequest: NSURLRequest
     
-    /** Target size in pixels. The loaded image is resized to the given target size respecting the given content mode and maintaining aspect ratio. Default value is ImageMaximumSize.
+    /**
+     Target size in pixels. The loaded image is resized to the given target size respecting the given content mode and maintaining aspect ratio. Default value is ImageMaximumSize.
      
      Default ImageLoader implementation decompresses the loaded image using instance of ImageDecompressor class which is created with a targetSize and contentMode from the ImageRequest. See ImageDecompressor class for more info.
     */
@@ -47,7 +48,9 @@ public struct ImageRequest {
     public var processor: ImageProcessing?
     public var userInfo: Any?
     
-    /** Initializes request with a URL.
+    /**
+     Initializes request with a URL.
+
      - parameter targetSize: Target size in pixels. Default value is ImageMaximumSize. See targetSize property for more info.
      - parameter contentMode: An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
     */
@@ -56,8 +59,10 @@ public struct ImageRequest {
         self.targetSize = targetSize
         self.contentMode = contentMode
     }
-    
-    /** Initializes request with a URL request.
+
+    /**
+     Initializes request with a URL request.
+
      - parameter targetSize: Target size in pixels. Default value is ImageMaximumSize. See targetSize property for more info.
      - parameter contentMode: An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
     */

@@ -11,6 +11,10 @@ import Foundation
 
 // MARK: - ImageProcessing
 
+/** Performs image processing.
+
+Types that implement `ImageProcessing` protocol should either use one of the default implementations of `isEquivalentToProcessor(_:)` method or provide their own implementation, which is required to cache processed images.
+*/
 public protocol ImageProcessing {
     /** Returns processed image.
      */
@@ -22,7 +26,7 @@ public protocol ImageProcessing {
 }
 
 public extension ImageProcessing {
-    /** Returns true if both processors are instances of the same class.
+    /** Returns true if both processors are instances of the same class. Use this implementation when your filter doesn't have any parameters.
      */
     public func isEquivalentToProcessor(other: ImageProcessing) -> Bool {
         return other is Self
@@ -107,7 +111,9 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
          */
         public let contentMode: ImageContentMode
 
-        /** Initializes the receiver with target size and content mode.
+        /**
+         Initializes the receiver with target size and content mode.
+
          - parameter targetSize: Target size in pixels. Default value is ImageMaximumSize.
          - parameter contentMode: An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
          */
@@ -124,9 +130,7 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
     public func ==(lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
         return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
     }
-    
-    // MARK: - Misc
-    
+
     private func decompressImage(image: UIImage, targetSize: CGSize, contentMode: ImageContentMode) -> UIImage {
         let bitmapSize = CGSize(width: CGImageGetWidth(image.CGImage), height: CGImageGetHeight(image.CGImage))
         let scaleWidth = targetSize.width / bitmapSize.width
@@ -151,5 +155,79 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
         }
         return UIImage(CGImage: decompressedImageRef, scale: image.scale, orientation: image.imageOrientation)
     }
+#endif
 
+// MARK: - CoreImage
+
+#if os(iOS) || os(tvOS)
+    import CoreImage
+
+    /** Blurs image using CIGaussianBlur filter.
+     */
+    public class ImageFilterGaussianBlur: ImageProcessing {
+        public let radius: Int
+
+        /**
+         Initializes the receiver with a blur radius.
+         
+         - parameter radius: Blur radius, default value is 8.
+         */
+        public init(radius: Int = 8) {
+            self.radius = radius
+        }
+
+        public func processImage(image: UIImage) -> UIImage? {
+            return image.nk_filter(filter: CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
+        }
+    }
+    
+    public func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bool {
+        return lhs.radius == rhs.radius
+    }
+
+    private let sharedCIContext = CIContext(options: [kCIContextPriorityRequestLow: true])
+
+    public extension UIImage {
+        /**
+         Applies closure with a filter to the image.
+
+         Performance considerations Chaining multiple CIFilter objects is much more efficient then using ImageProcessorComposition to combine multiple instances of CoreImageFilter class. Avoid unnecessary texture transfers between the CPU and GPU.
+
+         - parameter context: Core Image context, uses shared context by default.
+         - parameter filter: Closure for applying image filter.
+         */
+        public func nk_filter(context context: CIContext = sharedCIContext, closure: CoreImage.CIImage -> CoreImage.CIImage?) -> UIImage? {
+            func inputImageForImage(image: Image) -> CoreImage.CIImage? {
+                if let image = image.CGImage {
+                    return CoreImage.CIImage(CGImage: image)
+                }
+                if let image = image.CIImage {
+                    return image
+                }
+                return nil
+            }
+            guard let inputImage = inputImageForImage(self), outputImage = closure(inputImage) else {
+                return nil
+            }
+            let imageRef = context.createCGImage(outputImage, fromRect: inputImage.extent)
+            return UIImage(CGImage: imageRef, scale: self.scale, orientation: self.imageOrientation)
+        }
+
+        /**
+         Applies filter to the image.
+
+         - parameter context: Core Image context, uses shared context by default.
+         - parameter filter: Image filter. Function automatically sets input image on the filter.
+         */
+        public func nk_filter(context context: CIContext = sharedCIContext, filter: CIFilter?) -> UIImage? {
+            guard let filter = filter else {
+                return nil
+            }
+            return nk_filter(context: context) {
+                filter.setValue($0, forKey: kCIInputImageKey)
+                return filter.outputImage
+            }
+        }
+
+    }
 #endif

@@ -45,6 +45,7 @@ Nuke.taskWithRequest(request) { response in
 
 ##### Processing
 - Create and apply image filters
+- Core Image integration
 - Background image decompression and scaling in a single step
 - Resize loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
 
@@ -132,7 +133,6 @@ extension MKAnnotationView: ImageDisplayingView, ImageLoadingView {
     }
 }
 ```
-
 
 #### UICollectionView
 
