@@ -28,6 +28,29 @@ It's easy to combine multiple filters using `ImageFilterComposition` class. Lets
 */
 import CoreImage
 
+/** Blurs image using CIGaussianBlur filter.
+ */
+public class ImageFilterGaussianBlur: ImageProcessing {
+    public let radius: Int
+
+    /**
+     Initializes the receiver with a blur radius.
+
+     - parameter radius: Blur radius, default value is 8.
+     */
+    public init(radius: Int = 8) {
+        self.radius = radius
+    }
+
+    public func processImage(image: UIImage) -> UIImage? {
+        return image.nk_filter(filter: CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
+    }
+}
+
+public func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bool {
+    return lhs.radius == rhs.radius
+}
+
 example("Composing Filters") {
     var request = ImageRequest(URL: NSURL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
     

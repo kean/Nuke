@@ -29,3 +29,55 @@ public func drawImageInCircle(image: UIImage?) -> UIImage? {
     UIGraphicsEndImageContext()
     return processedImage
 }
+
+// MARK: - Core Image
+
+// For more info see Core Image Integration Guide https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide
+
+private let sharedCIContext = CIContext(options: [kCIContextPriorityRequestLow: true])
+
+import CoreImage
+
+public extension UIImage {
+    /**
+     Applies closure with a filter to the image.
+
+     Performance considerations Chaining multiple CIFilter objects is much more efficient then using ImageProcessorComposition to combine multiple instances of CoreImageFilter class. Avoid unnecessary texture transfers between the CPU and GPU.
+
+     - parameter context: Core Image context, uses shared context by default.
+     - parameter filter: Closure for applying image filter.
+     */
+    public func nk_filter(context context: CIContext = sharedCIContext, closure: CoreImage.CIImage -> CoreImage.CIImage?) -> UIImage? {
+        func inputImageForImage(image: UIImage) -> CoreImage.CIImage? {
+            if let image = image.CGImage {
+                return CoreImage.CIImage(CGImage: image)
+            }
+            if let image = image.CIImage {
+                return image
+            }
+            return nil
+        }
+        guard let inputImage = inputImageForImage(self), outputImage = closure(inputImage) else {
+            return nil
+        }
+        let imageRef = context.createCGImage(outputImage, fromRect: inputImage.extent)
+        return UIImage(CGImage: imageRef, scale: self.scale, orientation: self.imageOrientation)
+    }
+
+    /**
+     Applies filter to the image.
+
+     - parameter context: Core Image context, uses shared context by default.
+     - parameter filter: Image filter. Function automatically sets input image on the filter.
+     */
+    public func nk_filter(context context: CIContext = sharedCIContext, filter: CIFilter?) -> UIImage? {
+        guard let filter = filter else {
+            return nil
+        }
+        return nk_filter(context: context) {
+            filter.setValue($0, forKey: kCIInputImageKey)
+            return filter.outputImage
+        }
+    }
+
+}
