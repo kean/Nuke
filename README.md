@@ -6,7 +6,9 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
+<p align="center">
 Advanced Swift framework for loading, processing, caching, displaying and preheating images.
+</p>
 
 ```swift
 var request = ImageRequest(URLRequest: <#NSURLRequest#>)
