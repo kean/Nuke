@@ -3,9 +3,10 @@
 <p align="center">
 <a href="https://cocoapods.org"><img src="https://img.shields.io/cocoapods/v/Nuke.svg"></a>
 <a href="https://github.com/Carthage/Carthage"><img src="https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat"></a>
+<a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-Advanced pure Swift framework for loading, processing, caching, displaying and preheating images.
+Advanced Swift framework for loading, processing, caching, displaying and preheating images.
 
 ```swift
 var request = ImageRequest(URLRequest: <#NSURLRequest#>)
@@ -28,9 +29,9 @@ Nuke.taskWithRequest(request) { response in
 
 - Zero config & user-friendly
 - Performant, asynchronous, thread safe
-- Optional [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
-- Optional [AnimatedImage plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin)
-- Beautiful [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png) and [complete documentation](http://cocoadocs.org/docsets/Nuke) included
+- Optional [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [AnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
+- Nuke is a [pipeline](#h_design) that loads images using injectable dependencies
+- Beautiful [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png),  [complete documentation](http://cocoadocs.org/docsets/Nuke) and [wiki](https://github.com/kean/Nuke/wiki) included
 
 ##### Loading
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
@@ -40,28 +41,21 @@ Nuke.taskWithRequest(request) { response in
 
 ##### Caching
 - Doesn't reinvent caching, relies on [HTTP cache](https://tools.ietf.org/html/rfc7234) and its implementation in [Foundation](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html)
-- Caching is completely transparent to the client
+- Caching is transparent to the client
 - Two cache layers including [auto purging memory cache](https://github.com/kean/Nuke/wiki/Image-Caching-Guide)
 
 ##### Processing
-- Create and apply image filters
-- Core Image integration
+- Create, compose and apply image filters
 - Background image decompression and scaling in a single step
 - Resize loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
-
-##### Advanced
-- Compose image filters
-- Compose image decoders
-- Nuke is a [pipeline](#h_design) that loads images using injectable dependencies
 
 ## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
 - iOS 8.0+ / watchOS 2.0+ / OS X 10.9+ / tvOS 9.0+
 - Xcode 7.1+, Swift 2.0+
 
 ## <a name="h_getting_started"></a>Getting Started
-- Download the latest [release](https://github.com/kean/Nuke/releases) version
-- Experiment with Nuke APIs in a Swift [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png)
-- Take a look at the demo project, it's easy to install with `pod try Nuke` command
+- Get a demo project using `pod try Nuke` command
+- Experiment with Nuke in a [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png)
 - [Install](#installation), `import Nuke` and enjoy!
 
 ## <a name="h_usage"></a>Usage
