@@ -43,7 +43,7 @@ public class ImageFilterGaussianBlur: ImageProcessing {
     }
 
     public func processImage(image: UIImage) -> UIImage? {
-        return image.nk_filter(filter: CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
+        return image.nk_filter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
     }
 }
 

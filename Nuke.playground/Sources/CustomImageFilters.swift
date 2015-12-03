@@ -70,7 +70,7 @@ public extension UIImage {
      - parameter context: Core Image context, uses shared context by default.
      - parameter filter: Image filter. Function automatically sets input image on the filter.
      */
-    public func nk_filter(context context: CIContext = sharedCIContext, filter: CIFilter?) -> UIImage? {
+    public func nk_filter(filter: CIFilter?, context: CIContext = sharedCIContext) -> UIImage? {
         guard let filter = filter else {
             return nil
         }
