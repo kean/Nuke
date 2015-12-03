@@ -141,10 +141,9 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
     
     private func decompressImage(image: UIImage, scale: Double) -> UIImage {
         let imageRef = image.CGImage
-        var imageSize = CGSize(width: CGImageGetWidth(imageRef), height: CGImageGetHeight(imageRef))
-        if scale < 1.0 {
-            imageSize = CGSize(width: Double(imageSize.width) * scale, height: Double(imageSize.height) * scale)
-        }
+        let minification = CGFloat(min(scale, 1))
+        let imageSize = CGSize(width: round(minification * CGFloat(CGImageGetWidth(imageRef))),
+                               height: round(minification * CGFloat(CGImageGetHeight(imageRef))))
         // See Quartz 2D Programming Guide and https://github.com/kean/Nuke/issues/35 for more info
         guard let contextRef = CGBitmapContextCreate(nil, Int(imageSize.width), Int(imageSize.height), 8, 0, CGColorSpaceCreateDeviceRGB(), CGImageAlphaInfo.PremultipliedLast.rawValue) else {
             return image
