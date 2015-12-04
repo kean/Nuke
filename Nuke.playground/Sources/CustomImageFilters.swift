@@ -47,7 +47,7 @@ public extension UIImage {
      - parameter context: Core Image context, uses shared context by default.
      - parameter filter: Closure for applying image filter.
      */
-    public func nk_filter(context context: CIContext = sharedCIContext, closure: CoreImage.CIImage -> CoreImage.CIImage?) -> UIImage? {
+    public func applyFilter(context context: CIContext = sharedCIContext, closure: CoreImage.CIImage -> CoreImage.CIImage?) -> UIImage? {
         func inputImageForImage(image: UIImage) -> CoreImage.CIImage? {
             if let image = image.CGImage {
                 return CoreImage.CIImage(CGImage: image)
@@ -70,11 +70,11 @@ public extension UIImage {
      - parameter context: Core Image context, uses shared context by default.
      - parameter filter: Image filter. Function automatically sets input image on the filter.
      */
-    public func nk_filter(filter: CIFilter?, context: CIContext = sharedCIContext) -> UIImage? {
+    public func applyFilter(filter: CIFilter?, context: CIContext = sharedCIContext) -> UIImage? {
         guard let filter = filter else {
             return nil
         }
-        return nk_filter(context: context) {
+        return applyFilter(context: context) {
             filter.setValue($0, forKey: kCIInputImageKey)
             return filter.outputImage
         }
