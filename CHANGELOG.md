@@ -1,5 +1,13 @@
  [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+## Nuke 1.3.0
+
+- Add [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide)
+- Fill most of the blanks in the documentation
+- #47 Fix target size rounding errors in image downscaling (Pyry Jahkola @pyrtsa)
+- Add `imageScale` property to `ImageDecoder` class that returns scale to be used when creating `UIImage` (iOS, tvOS, watchOS only)
+- Wrap each iteration in `ImageProcessorComposition` in an `autoreleasepool`
+
 
 ## Nuke 1.2.0
 
