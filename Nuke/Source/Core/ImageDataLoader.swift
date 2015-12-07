@@ -56,10 +56,14 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     
     // MARK: ImageDataLoading
     
+    /** Compares two requests using `isLoadEquivalentToRequest(:)` method from `ImageRequest` extension.
+     */
     public func isRequestLoadEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
         return lhs.isLoadEquivalentToRequest(rhs)
     }
     
+    /** Compares two requests using `isCacheEquivalentToRequest(:)` method from `ImageRequest` extension.
+     */
     public func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
         return lhs.isCacheEquivalentToRequest(rhs)
     }

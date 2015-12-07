@@ -51,8 +51,8 @@ public class ImageDecoderComposition: ImageDecoding {
     public init(decoders: [ImageDecoding]) {
         self.decoders = decoders
     }
-
-        public func imageWithData(data: NSData) -> Image? {
+    
+    public func imageWithData(data: NSData) -> Image? {
         for decoder in self.decoders {
             if let image = decoder.imageWithData(data) {
                 return image

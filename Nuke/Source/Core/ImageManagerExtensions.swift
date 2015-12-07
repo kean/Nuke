@@ -25,6 +25,8 @@ public extension ImageManager {
     private static var lock = OS_SPINLOCK_INIT
     private static var token: dispatch_once_t = 0
     
+    /** The shared image manager. This property as well as all `ImageManager` methods are thread safe.
+     */
     public class var shared: ImageManager {
         set {
             OSSpinLockLock(&lock)

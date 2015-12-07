@@ -22,6 +22,8 @@ public protocol ImageLoading: class {
 
 // MARK: - ImageLoadingDelegate
 
+/** Manages image loading.
+*/
 public protocol ImageLoadingManager: class {
     func imageLoader(imageLoader: ImageLoading, task: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
     func imageLoader(imageLoader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?)
@@ -32,9 +34,21 @@ public protocol ImageLoadingManager: class {
 public struct ImageLoaderConfiguration {
     public var dataLoader: ImageDataLoading
     public var decoder: ImageDecoding
+    
+    /** Image decoding queue. See `ImageDecoding` protocol for more info.
+     */
     public var decodingQueue = NSOperationQueue(maxConcurrentOperationCount: 1)
+    
+    /** Image processing queue. See `ImageProcessing` protocol for more info.
+     */
     public var processingQueue = NSOperationQueue(maxConcurrentOperationCount: 2)
     
+    /**
+     Initializes configuration with data loader and image decoder.
+     
+     - parameter dataLoader: Image data loader.
+     - parameter decoder: Image decoder. Default `ImageDecoder` instance is created if the parameter is omitted.
+     */
     public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder()) {
         self.dataLoader = dataLoader
         self.decoder = decoder
@@ -43,18 +57,27 @@ public struct ImageLoaderConfiguration {
 
 // MARK: - ImageLoaderDelegate
 
+/** Image loader customization endpoint.
+*/
 public protocol ImageLoaderDelegate {
+    /** Returns true when image loader should process the image. Processing includes decompression.
+     */
     func imageLoader(loader: ImageLoader, shouldProcessImage image: Image) -> Bool
+    
+    /** Returns decompressor for the given request. 
+     */
     func imageLoader(loader: ImageLoader, decompressorForRequest request: ImageRequest) -> ImageProcessing?
 }
 
-extension ImageLoaderDelegate {
-    /** Returns true when image loader should process the image. Processing includes decompressing.
-    */
+public extension ImageLoaderDelegate {
+    /** Always returns true.
+     */
     public func imageLoader(loader: ImageLoader, shouldProcessImage image: Image) -> Bool {
         return true
     }
     
+    /** Returns instance of `ImageDecompressor` class (expect for OS X where this class is not available).
+     */
     public func imageLoader(loader: ImageLoader, decompressorForRequest request: ImageRequest) -> ImageProcessing? {
         #if os(OSX)
             return nil
@@ -70,7 +93,8 @@ public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
 
 // MARK: - ImageLoader
 
-/** Performs the actual loading of images for the image tasks using objects conforming to ImageDataLoading, ImageDecoding and ImageProcessing protocols. Works in conjunction with the ImageManager.
+/**
+Performs the actual loading of images for the image tasks using objects conforming to `ImageDataLoading`, `ImageDecoding` and `ImageProcessing` protocols. Works in conjunction with the `ImageManager`.
 
 - Provides a transparent loading, decoding and processing with a single completion signal
 - Reuses data tasks for multiple equivalent image tasks
@@ -88,6 +112,11 @@ public class ImageLoader: ImageLoading {
     private var sessionTasks = [ImageRequestKey : ImageSessionTask]()
     private let queue = dispatch_queue_create("ImageLoader-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
     
+    /**
+     Initializes image loader with a configuration and a delegate.
+     
+     - parameter delegate: Instance of `ImageLoaderDefaultDelegate` created if the parameter is omitted.
+     */
     public init(configuration: ImageLoaderConfiguration, delegate: ImageLoaderDelegate = ImageLoaderDefaultDelegate()) {
         self.configuration = configuration
         self.delegate = delegate

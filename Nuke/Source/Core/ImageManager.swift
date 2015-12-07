@@ -13,13 +13,29 @@ public let ImageManagerErrorUnknown = -2
 public struct ImageManagerConfiguration {
     public var loader: ImageLoading
     public var cache: ImageMemoryCaching?
+    
+    /** Default value is 2.
+     */
     public var maxConcurrentPreheatingTaskCount = 2
     
+    /**
+     Initializes configuration with an image loader and memory cache.
+     
+     - parameter loader: Image loader.
+     - parameter cache: Memory cache. Default `ImageMemoryCache` instance is created if the parameter is omitted.
+     */
     public init(loader: ImageLoading, cache: ImageMemoryCaching? = ImageMemoryCache()) {
         self.loader = loader
         self.cache = cache
     }
     
+    /**
+     Convenience initializer that creates instance of `ImageLoader` class with a given `dataLoader` and `decoder`, then calls the default initializer.
+     
+     - parameter dataLoader: Image data loader.
+     - parameter decoder: Image decoder. Default `ImageDecoder` instance is created if the parameter is omitted.
+     - parameter cache: Memory cache. Default `ImageMemoryCache` instance is created if the parameter is omitted.
+     */
     public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder(), cache: ImageMemoryCaching? = ImageMemoryCache()) {
         let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: dataLoader, decoder: decoder))
         self.init(loader: loader, cache: cache)
@@ -28,9 +44,10 @@ public struct ImageManagerConfiguration {
 
 // MARK: - ImageManager
 
-/** The ImageManager class and related classes provide methods for loading, processing, caching and preheating images.
+/**
+The `ImageManager` class and related classes provide methods for loading, processing, caching and preheating images.
 
-ImageManager is also a pipeline that loads images using injectable dependencies, which makes it highly customizable. See https://github.com/kean/Nuke#design for more info.
+`ImageManager` is also a pipeline that loads images using injectable dependencies, which makes it highly customizable. See https://github.com/kean/Nuke#design for more info.
 */
 public class ImageManager {
     public let configuration: ImageManagerConfiguration
@@ -56,9 +73,10 @@ public class ImageManager {
         self.loader.manager = self
     }
     
-    /** Creates a task with a given request. After you create a task, you start it by calling its resume method.
-    
-    The ImageManager holds a strong reference to the task until it is either completes or get cancelled.
+    /**
+     Creates a task with a given request. After you create a task, you start it by calling its resume method.
+     
+     The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
     public func taskWithRequest(request: ImageRequest) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier)
@@ -75,7 +93,7 @@ public class ImageManager {
             self.invalidated = true
         }
     }
-
+    
     /** Removes all cached images by calling corresponding methods on memory cache and image loader.
      */
     public func removeAllCachedImages() {
@@ -139,11 +157,12 @@ public class ImageManager {
         default: break
         }
     }
-
+    
     // MARK: Preheating
     
-    /** Prepares images for the given requests for later use.
-
+    /**
+    Prepares images for the given requests for later use.
+    
     When you call this method, ImageManager starts to load and cache images for the given requests. ImageManager caches images with the exact target size, content mode, and filters. At any time afterward, you can create tasks with equivalent requests.
     */
     public func startPreheatingImages(requests: [ImageRequest]) {
@@ -166,7 +185,7 @@ public class ImageManager {
         self.perform {
             self.cancelTasks(requests.flatMap {
                 return self.preheatingTasks[ImageRequestKey($0, owner: self)]
-            })
+                })
         }
     }
     
@@ -203,14 +222,14 @@ public class ImageManager {
     
     // MARK: Memory Caching
     
-    /** Returns image response from the memory cache. Ignores NSURLRequestCachePolicy. 
+    /** Returns image response from the memory cache. Ignores NSURLRequestCachePolicy.
     */
     public func cachedResponseForRequest(request: ImageRequest) -> ImageCachedResponse? {
         return self.cache?.cachedResponseForKey(ImageRequestKey(request, owner: self))
     }
     
     /** Stores image response into the memory cache.
-    */
+     */
     public func storeResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
         self.cache?.storeResponse(response, forKey: ImageRequestKey(request, owner: self))
     }
@@ -222,7 +241,7 @@ public class ImageManager {
         if !self.invalidated { closure() }
         self.lock.unlock()
     }
-
+    
     private func cancelTasks<T: SequenceType where T.Generator.Element == ImageTaskInternal>(tasks: T) {
         tasks.forEach { self.setState(.Cancelled, forTask: $0) }
     }
@@ -238,7 +257,7 @@ extension ImageManager: ImageLoadingManager {
             task.progress?(completedUnitCount: completedUnitCount, totalUnitCount: totalUnitCount)
         }
     }
-
+    
     public func imageLoader(imageLoader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?) {
         let task = task as! ImageTaskInternal
         if let image = image {
@@ -257,15 +276,15 @@ extension ImageManager: ImageTaskManaging {
     private func resumeManagedTask(task: ImageTaskInternal) {
         self.perform { self.setState(.Running, forTask: task) }
     }
-
+    
     private func suspendManagedTask(task: ImageTaskInternal) {
         self.perform { self.setState(.Suspended, forTask: task) }
     }
-
+    
     private func cancelManagedTask(task: ImageTaskInternal) {
         self.perform { self.setState(.Cancelled, forTask: task) }
     }
-
+    
     private func addCompletion(completion: ImageTaskCompletion, forTask task: ImageTaskInternal) {
         self.perform {
             switch task.state {
@@ -311,7 +330,7 @@ private class ImageTaskInternal: ImageTask {
         self.manager.resumeManagedTask(self)
         return self
     }
-
+    
     override func suspend() -> Self {
         self.manager.suspendManagedTask(self)
         return self
@@ -326,7 +345,7 @@ private class ImageTaskInternal: ImageTask {
         self.manager.addCompletion(completion, forTask: self)
         return self
     }
-
+    
     // Suspended -> [Running, Cancelled, Completed]
     // Running -> [Suspended, Cancelled, Completed]
     // Cancelled -> []
