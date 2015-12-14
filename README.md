@@ -234,7 +234,7 @@ To install Nuke add a dependency to your Cartfile:
 ```
 github "kean/Nuke"
 github "kean/Nuke-Alamofire-Plugin" # optional
-github "Nuke-AnimatedImage-Plugin" # optional
+github "kean/Nuke-AnimatedImage-Plugin" # optional
 ```
 
 ### Import
