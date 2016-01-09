@@ -261,7 +261,9 @@ extension ImageManager: ImageLoadingManager {
     public func imageLoader(imageLoader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?) {
         let task = task as! ImageTaskInternal
         if let image = image {
-            self.storeResponse(ImageCachedResponse(image: image, userInfo: userInfo), forRequest: task.request)
+            if task.request.memoryCacheStorageAllowed {
+                self.storeResponse(ImageCachedResponse(image: image, userInfo: userInfo), forRequest: task.request)
+            }
             task.response = ImageResponse.Success(image, ImageResponseInfo(fastResponse: false, userInfo: userInfo))
         } else {
             task.response = ImageResponse.Failure(error ?? NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorUnknown, userInfo: nil))

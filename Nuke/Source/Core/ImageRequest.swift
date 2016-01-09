@@ -43,6 +43,10 @@ public struct ImageRequest {
      */
     public var contentMode: ImageContentMode = .AspectFill
     
+    /** Specifies whether loaded image should be stored into memory cache. Default value is true.
+     */
+    public var memoryCacheStorageAllowed = true
+    
     /** Default value is true.
      */
     public var shouldDecompressImage = true
