@@ -1,5 +1,9 @@
  [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+## Nuke 1.4.0
+
+- #46 Add option to disable memory cache storage, thanks to @RuiAAPeres
+
 ## Nuke 1.3.0
 
 - Add [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide)
