@@ -19,9 +19,6 @@ Nuke.taskWithRequest(request) { response in
     let image = response.image 
 }.resume()
 ```
-> This project has taken hundreds hours of work. If you find it useful, you can chip in for coffee to keep me going.
-
-> <a href="http://kean.github.io/donate/"><img height="36" src="https://cloud.githubusercontent.com/assets/1567433/12532142/598bc7e6-c21d-11e5-976d-45200104c174.png"></a>
 
 1. [Requirements](#h_requirements)
 2. [Getting Started](#h_getting_started)
@@ -29,6 +26,7 @@ Nuke.taskWithRequest(request) { response in
 4. [Design](#h_design)
 5. [Installation](#installation)
 6. [Satellite Projects](#h_satellite_projects)
+7. [Donations](#h_donations)
 
 ## <a name="h_features"></a>Features
 
@@ -254,6 +252,12 @@ import NukeAnimatedImagePlugin
 - [Nuke Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin) - Alamofire plugin for Nuke that allows you to use Alamofire for networking
 - [Nuke AnimatedImage Plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin) - FLAnimatedImage plugin for Nuke that allows you to load and display animated GIFs
 - [Nuke Integration Tests](https://github.com/kean/Nuke-Integration-Tests) - Contains CocoaPods and Carthage integration tests for Nuke
+
+## <a name="h_donations"></a>Donations
+
+This project has taken hundreds hours of work. If you find it useful, you can chip in for coffee to keep me going.
+
+<a href="http://kean.github.io/donate/"><img height="36" src="https://cloud.githubusercontent.com/assets/1567433/12532142/598bc7e6-c21d-11e5-976d-45200104c174.png"></a>
 
 ## Contacts
 
