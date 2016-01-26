@@ -161,16 +161,16 @@ public class ImageLoader: ImageLoading {
     }
 
     private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithData data: NSData?, response: NSURLResponse?, error: ErrorType?) {
-        if let data = data {
-            self.configuration.decodingQueue.addOperationWithBlock { [weak self] in
-                let image = self?.configuration.decoder.imageWithData(data)
-                self?.sessionTask(sessionTask, didCompleteWithImage: image, error: error)
-            }
-        } else {
+        guard let data = data where error == nil else {
             self.sessionTask(sessionTask, didCompleteWithImage: nil, error: error)
+            return;
+        }
+        self.configuration.decodingQueue.addOperationWithBlock { [weak self] in
+            let image = self?.configuration.decoder.imageWithData(data)
+            self?.sessionTask(sessionTask, didCompleteWithImage: image, error: error)
         }
     }
-    
+
     private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithImage image: Image?, error: ErrorType?) {
         dispatch_async(self.queue) {
             for imageTask in sessionTask.tasks {
