@@ -76,10 +76,10 @@ public class ImageMemoryCache: ImageMemoryCaching {
     }
 
     public class func recommendedCacheTotalLimit() -> Int {
-        let physicalMemory = Double(NSProcessInfo.processInfo().physicalMemory)
+        let physicalMemory = NSProcessInfo.processInfo().physicalMemory
         let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
-        let limit = physicalMemory * ratio
-        return limit > Double(Int.max) ? Int.max : Int(limit)
+        let limit = physicalMemory / UInt64(1 / ratio)
+        return limit > UInt64(Int.max) ? Int.max : Int(limit)
     }
 
     public func removeAllCachedImages() {
