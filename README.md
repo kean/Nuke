@@ -16,17 +16,18 @@ request.targetSize = CGSize(width: 200, height: 200) // Resize image
 request.processor = <#ImageProcessing#> // Apply image filters
 
 Nuke.taskWithRequest(request) { response in
-    let image = response.image 
+    let image = response.image
 }.resume()
 ```
 
 1. [Requirements](#h_requirements)
 2. [Getting Started](#h_getting_started)
-3. [Usage](#h_usage)
-4. [Design](#h_design)
-5. [Installation](#installation)
-6. [Satellite Projects](#h_satellite_projects)
-7. [Donations](#h_donations)
+3. [Documentation](#h_documentation)
+4. [Usage](#h_usage)
+5. [Design](#h_design)
+6. [Installation](#installation)
+7. [Satellite Projects](#h_satellite_projects)
+8. [Donations](#h_donations)
 
 ## <a name="h_features"></a>Features
 
@@ -34,7 +35,7 @@ Nuke.taskWithRequest(request) { response in
 - Performant, asynchronous, thread safe
 - Optional [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [AnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
 - Nuke is a [pipeline](#h_design) that loads images using injectable dependencies
-- Beautiful [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png),  [complete documentation](http://cocoadocs.org/docsets/Nuke) and [wiki](https://github.com/kean/Nuke/wiki) included
+- Beautiful [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png), and [complete documentation](#h_documentation) included
 
 ##### Loading
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
@@ -43,9 +44,8 @@ Nuke.taskWithRequest(request) { response in
 - Full featured extensions for UI components
 
 ##### Caching
-- Doesn't reinvent caching, relies on [HTTP cache](https://tools.ietf.org/html/rfc7234) and its implementation in [Foundation](https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html)
-- Caching is transparent to the client
-- Two cache layers including [auto purging memory cache](https://github.com/kean/Nuke/wiki/Image-Caching-Guide)
+- [Doesn't reinvent caching](http://kean.github.io/blog/programming/2016/01/26/image-caching.html), relies on HTTP cache in URL Loading System
+- Two cache layers including auto purging memory cache
 
 ##### Processing
 - Create, compose and apply image filters
@@ -60,6 +60,11 @@ Nuke.taskWithRequest(request) { response in
 - Get a demo project using `pod try Nuke` command
 - Experiment with Nuke in a [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png)
 - [Install](#installation), `import Nuke` and enjoy!
+
+## <a name="h_documentation"></a>Documentation
+
+- [API reference](http://kean.github.io/Nuke/docs/ios/)
+- [Guides](https://github.com/kean/Nuke/wiki)
 
 ## <a name="h_usage"></a>Usage
 
@@ -88,9 +93,9 @@ Nuke.taskWithRequest(request) {
 ```swift
 Nuke.taskWithRequest(request) { response in
     switch response {
-    case let .Success(image, info): 
+    case let .Success(image, info):
         // Use image and inspect info
-    case let .Failure(error): 
+    case let .Failure(error):
         // Handle error
     }
 }.resume()
@@ -121,6 +126,7 @@ let task = imageView.nk_setImageWithRequest(<#ImageRequest#>, options: <#ImageVi
 #### Adding UI Extensions
 
 Nuke makes it extremely easy to add full-featured image loading extensions to UI components
+
 ```swift
 extension MKAnnotationView: ImageDisplayingView, ImageLoadingView {
     // That's it, you get default implementation of all methods in ImageLoadingView protocol
@@ -219,6 +225,7 @@ ImageManager.shared = ImageManager(configuration: configuration)
 ### [CocoaPods](http://cocoapods.org)
 
 To install Nuke add a dependency to your Podfile:
+
 ```ruby
 # source 'https://github.com/CocoaPods/Specs.git'
 # use_frameworks!
@@ -232,6 +239,7 @@ pod "Nuke-AnimatedImage-Plugin" # optional
 ### [Carthage](https://github.com/Carthage/Carthage)
 
 To install Nuke add a dependency to your Cartfile:
+
 ```
 github "kean/Nuke"
 github "kean/Nuke-Alamofire-Plugin" # optional
@@ -241,6 +249,7 @@ github "kean/Nuke-AnimatedImage-Plugin" # optional
 ### Import
 
 Import installed modules in your source files
+
 ```swift
 import Nuke
 import NukeAlamofirePlugin
