@@ -266,7 +266,9 @@ import NukeAnimatedImagePlugin
 
 This project has taken hundreds hours of work. If you find it useful, you can chip in for coffee to keep me going.
 
-<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=B257REANNAAL6"><img src="https://cloud.githubusercontent.com/assets/1567433/12656493/a1b6075c-c60f-11e5-85a7-0f0c4dea27ed.gif"></a>
+<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=B257REANNAAL6"><img height="30" src="https://cloud.githubusercontent.com/assets/1567433/12656493/a1b6075c-c60f-11e5-85a7-0f0c4dea27ed.gif"></a>
+
+> *Alternatively, <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=8VLXL699RFRY2">donate in ₽*</a>
 
 ## Contacts
 
