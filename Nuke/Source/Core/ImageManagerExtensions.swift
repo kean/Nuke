@@ -7,12 +7,12 @@ import Foundation
 // MARK: - ImageManager (Convenience)
 
 public extension ImageManager {
-    func taskWithURL(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
-        return self.taskWithRequest(ImageRequest(URL: URL), completion: completion)
+    func taskWith(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
+        return self.taskWith(ImageRequest(URL: URL), completion: completion)
     }
     
-    func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
-        let task = self.taskWithRequest(request)
+    func taskWith(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
+        let task = self.taskWith(request)
         if completion != nil { task.completion(completion!) }
         return task
     }

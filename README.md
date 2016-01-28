@@ -15,7 +15,7 @@ var request = ImageRequest(URLRequest: <#NSURLRequest#>)
 request.targetSize = CGSize(width: 200, height: 200) // Resize image
 request.processor = <#ImageProcessing#> // Apply image filters
 
-Nuke.taskWithRequest(request) { response in
+Nuke.taskWith(request) { response in
     let image = response.image
 }.resume()
 ```
@@ -71,7 +71,7 @@ Nuke.taskWithRequest(request) { response in
 #### Zero Config
 
 ```swift
-Nuke.taskWithURL(imageURL) {
+Nuke.taskWith(imageURL) {
     let image = $0.image
 }.resume()
 ```
@@ -83,7 +83,7 @@ var request = ImageRequest(URLRequest: <#NSURLRequest#>)
 request.targetSize = CGSize(width: 300.0, height: 400.0) // Set target size in pixels
 request.contentMode = .AspectFill
 
-Nuke.taskWithRequest(request) {
+Nuke.taskWith(request) {
     let image = $0.image // Image is resized
 }.resume()
 ```
@@ -91,7 +91,7 @@ Nuke.taskWithRequest(request) {
 #### Using Image Response
 
 ```swift
-Nuke.taskWithRequest(request) { response in
+Nuke.taskWith(request) { response in
     switch response {
     case let .Success(image, info):
         // Use image and inspect info
@@ -104,7 +104,7 @@ Nuke.taskWithRequest(request) { response in
 #### Using Image Task
 
 ```swift
-let task = Nuke.taskWithURL(imageURL).resume()
+let task = Nuke.taskWith(imageURL).resume()
 task.progress = { completed, total in
    // Update progress
 }
@@ -168,7 +168,7 @@ let filterComposition = ImageProcessorComposition(processors: [filter1, filter2]
 var request = ImageRequest(URL: <#image_url#>)
 request.processor = filterComposition
 
-Nuke.taskWithRequest(request) {
+Nuke.taskWith(request) {
     // Filters are applied, filtered image is stored in memory cache
     let image = $0.image
 }.resume()

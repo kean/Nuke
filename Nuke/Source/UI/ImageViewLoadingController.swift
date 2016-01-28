@@ -37,7 +37,7 @@ public class ImageViewLoadingController {
     
     public func setImageWithRequest(request: ImageRequest, options: ImageViewLoadingOptions?)  -> ImageTask {
         self.cancelLoading()
-        let task = self.manager.taskWithRequest(request)
+        let task = self.manager.taskWith(request)
         task.completion { [weak self, weak task] in
             guard let task = task where task == self?.imageTask else {
                 return

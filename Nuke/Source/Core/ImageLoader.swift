@@ -133,9 +133,7 @@ public class ImageLoader: ImageLoading {
                 self.manager?.imageLoader(self, task: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.totalUnitCount)
             }
             self.executingTasks[task] = ImageLoadState.Loading(sessionTask)
-            sessionTask.suspendedTasks.remove(task)
-            sessionTask.executingTasks.insert(task)
-            sessionTask.dataTask?.resume()
+            sessionTask.resumeWith(task)
         }
     }
 
@@ -176,9 +174,7 @@ public class ImageLoader: ImageLoading {
             for imageTask in sessionTask.tasks {
                 self.processImage(image, error: error, forImageTask: imageTask)
             }
-            sessionTask.suspendedTasks.removeAll()
-            sessionTask.executingTasks.removeAll()
-            sessionTask.dataTask = nil
+            sessionTask.complete()
             self.removeSessionTask(sessionTask)
         }
     }
@@ -218,11 +214,7 @@ public class ImageLoader: ImageLoading {
             if let state = self.executingTasks[task] {
                 switch state {
                 case .Loading(let sessionTask):
-                    sessionTask.executingTasks.remove(task)
-                    sessionTask.suspendedTasks.insert(task)
-                    if sessionTask.executingTasks.isEmpty {
-                        sessionTask.dataTask?.suspend()
-                    }
+                    sessionTask.suspendWith(task)
                 default: break
                 }
             }
@@ -234,11 +226,7 @@ public class ImageLoader: ImageLoading {
             if let state = self.executingTasks[task] {
                 switch state {
                 case .Loading(let sessionTask):
-                    sessionTask.executingTasks.remove(task)
-                    sessionTask.suspendedTasks.remove(task)
-                    if sessionTask.tasks.isEmpty {
-                        sessionTask.dataTask?.cancel()
-                        sessionTask.dataTask = nil
+                    if sessionTask.cancelWith(task) {
                         self.removeSessionTask(sessionTask)
                     }
                 case .Processing(let operation):
@@ -276,7 +264,7 @@ public class ImageLoader: ImageLoading {
 // MARK: ImageLoader: ImageRequestKeyOwner
 
 extension ImageLoader: ImageRequestKeyOwner {
-    public func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
+    public func isEqual(lhs: ImageRequestKey, to rhs: ImageRequestKey) -> Bool {
         return self.dataLoader.isRequestLoadEquivalent(lhs.request, toRequest: rhs.request)
     }
 }
@@ -303,5 +291,36 @@ private class ImageSessionTask {
     
     init(key: ImageRequestKey) {
         self.key = key
+    }
+    
+    func resumeWith(task: ImageTask) {
+        self.suspendedTasks.remove(task)
+        self.executingTasks.insert(task)
+        self.dataTask?.resume()
+    }
+    
+    func cancelWith(task: ImageTask) -> Bool {
+        self.executingTasks.remove(task)
+        self.suspendedTasks.remove(task)
+        if self.tasks.isEmpty {
+            self.dataTask?.cancel()
+            self.dataTask = nil
+            return true
+        }
+        return false
+    }
+    
+    func suspendWith(task: ImageTask) {
+        self.executingTasks.remove(task)
+        self.suspendedTasks.insert(task)
+        if self.executingTasks.isEmpty {
+            self.dataTask?.suspend()
+        }
+    }
+    
+    func complete() {
+        self.executingTasks.removeAll()
+        self.suspendedTasks.removeAll()
+        self.dataTask = nil
     }
 }

@@ -9,7 +9,7 @@
 import Foundation
 
 public protocol ImageRequestKeyOwner: class {
-    func isImageRequestKey(key: ImageRequestKey, equalToKey: ImageRequestKey) -> Bool
+    func isEqual(lhs: ImageRequestKey, to rhs: ImageRequestKey) -> Bool
 }
 
 /** Makes it possible to use ImageRequest as a key in dictionaries.
@@ -34,6 +34,6 @@ public class ImageRequestKey: NSObject {
         guard let owner = self.owner where self.owner === other.owner else {
             return false
         }
-        return owner.isImageRequestKey(self, equalToKey: other)
+        return owner.isEqual(self, to: other)
     }
 }

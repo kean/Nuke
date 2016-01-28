@@ -8,14 +8,14 @@ import Foundation
 
 /** Creates a task with a given URL. After you create a task, you start it by calling its resume method.
 */
-public func taskWithURL(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
-    return ImageManager.shared.taskWithURL(URL, completion: completion)
+public func taskWith(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
+    return ImageManager.shared.taskWith(URL, completion: completion)
 }
 
 /** Creates a task with a given request. After you create a task, you start it by calling its resume method.
 */
-public func taskWithRequest(request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
-    return ImageManager.shared.taskWithRequest(request, completion: completion)
+public func taskWith(request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
+    return ImageManager.shared.taskWith(request, completion: completion)
 }
 
 /** Prepares images for the given requests for later use.

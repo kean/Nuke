@@ -78,7 +78,7 @@ public class ImageManager {
      
      The manager holds a strong reference to the task until it is either completes or get cancelled.
      */
-    public func taskWithRequest(request: ImageRequest) -> ImageTask {
+    public func taskWith(request: ImageRequest) -> ImageTask {
         return ImageTaskInternal(manager: self, request: request, identifier: self.nextTaskIdentifier)
     }
     
@@ -305,7 +305,7 @@ extension ImageManager: ImageTaskManaging {
 // MARK: ImageManager: ImageRequestKeyOwner
 
 extension ImageManager: ImageRequestKeyOwner {
-    public func isImageRequestKey(lhs: ImageRequestKey, equalToKey rhs: ImageRequestKey) -> Bool {
+    public func isEqual(lhs: ImageRequestKey, to rhs: ImageRequestKey) -> Bool {
         return self.loader.isRequestCacheEquivalent(lhs.request, toRequest: rhs.request)
     }
 }

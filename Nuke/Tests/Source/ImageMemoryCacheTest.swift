@@ -33,7 +33,7 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertNil(self.manager.cachedResponseForRequest(request))
 
         self.expect { fulfill in
-            self.manager.taskWithRequest(request) {
+            self.manager.taskWith(request) {
                 switch $0 {
                 case .Success(_, let info):
                     XCTAssertFalse(info.fastResponse)
@@ -50,7 +50,7 @@ class ImageMemoryCacheTest: XCTestCase {
         self.mockSessionManager.enabled = false
         
         var isCompletionCalled = false
-        self.manager.taskWithRequest(request) {
+        self.manager.taskWith(request) {
             switch $0 {
             case .Success(_, let info):
                 XCTAssertTrue(info.fastResponse)
@@ -76,7 +76,7 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertEqual(response?.userInfo as? String, "info")
         
         var isCompletionCalled = false
-        self.manager.taskWithRequest(request) {
+        self.manager.taskWith(request) {
             switch $0 {
             case .Success(_, let info):
                 XCTAssertTrue(info.fastResponse)
@@ -99,7 +99,7 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertNotNil(self.manager.cachedResponseForRequest(request2))
         
         var isCompletionCalled = false
-        self.manager.taskWithRequest(request1) {
+        self.manager.taskWith(request1) {
             switch $0 {
             case .Success(_, let info):
                 XCTAssertTrue(info.fastResponse)
@@ -111,7 +111,7 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertTrue(isCompletionCalled, "")
         
         self.expect { fulfill in
-            self.manager.taskWithRequest(request2) {
+            self.manager.taskWith(request2) {
                 switch $0 {
                 case .Success(_, let info):
                     XCTAssertFalse(info.fastResponse)
@@ -132,7 +132,7 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertNil(self.manager.cachedResponseForRequest(request))
         
         self.expect { fulfill in
-            self.manager.taskWithRequest(request) {
+            self.manager.taskWith(request) {
                 switch $0 {
                 case .Success(_, let info):
                     XCTAssertFalse(info.fastResponse)
