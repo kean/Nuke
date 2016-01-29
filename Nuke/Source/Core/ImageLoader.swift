@@ -171,9 +171,9 @@ public class ImageLoader: ImageLoading {
 
     private func createSessionTaskWithRequest(request: ImageRequest, key: ImageRequestKey) -> ImageSessionTask {
         let sessionTask = ImageSessionTask(key: key)
-        let dataTask = self.dataLoader.imageDataTaskWithRequest(request, progressHandler: { [weak self] completedUnits, totalUnits in
-            self?.sessionTask(sessionTask, didUpdateProgressWithCompletedUnitCount: completedUnits, totalUnitCount: totalUnits)
-        }, completionHandler: { [weak self] data, response, error in
+        let dataTask = self.dataLoader.taskWith(request, progress: { [weak self] completed, total in
+            self?.sessionTask(sessionTask, didUpdateProgressWithCompletedUnitCount: completed, totalUnitCount: total)
+        }, completion: { [weak self] data, response, error in
             self?.sessionTask(sessionTask, didCompleteWithData: data, response: response, error: error)
         })
         sessionTask.dataTask = dataTask
@@ -283,7 +283,7 @@ public class ImageLoader: ImageLoading {
 
 extension ImageLoader: ImageRequestKeyOwner {
     public func isEqual(lhs: ImageRequestKey, to rhs: ImageRequestKey) -> Bool {
-        return self.delegate.imageLoader(self, isLoadEquivalent: lhs.request, to:  rhs.request)
+        return self.delegate.imageLoader(self, isLoadEquivalent: lhs.request, to: rhs.request)
     }
 }
 

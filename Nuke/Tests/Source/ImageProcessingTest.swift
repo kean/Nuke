@@ -69,8 +69,6 @@ class ImageProcessingTest: XCTestCase {
         var request2 = ImageRequest(URL: defaultURL)
         request2.processor = MockImageProcessor(ID: "processor2")
 
-        XCTAssertTrue(self.mockSessionManager.isRequestLoadEquivalent(request1, toRequest: request2))
-
         self.expect { fulfill in
             self.manager.taskWith(request1) {
                 XCTAssertEqual($0.image!.nk_test_processorIDs, ["processor1"])

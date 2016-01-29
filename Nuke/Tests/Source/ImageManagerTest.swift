@@ -179,7 +179,6 @@ class ImageManagerTest: XCTestCase {
     func testThatDataTasksAreReused() {
         let request1 = ImageRequest(URL: defaultURL)
         let request2 = ImageRequest(URL: defaultURL)
-        XCTAssertTrue(self.mockSessionManager.isRequestLoadEquivalent(request1, toRequest: request2))
 
         self.expect { fulfill in
             self.manager.taskWith(request1) { _ in
@@ -201,8 +200,6 @@ class ImageManagerTest: XCTestCase {
     func testThatDataTasksWithDifferentCachePolicyAreNotReused() {
         let request1 = ImageRequest(URLRequest: NSURLRequest(URL: defaultURL, cachePolicy: .UseProtocolCachePolicy, timeoutInterval: 0))
         let request2 = ImageRequest(URLRequest: NSURLRequest(URL: defaultURL, cachePolicy: .ReturnCacheDataDontLoad, timeoutInterval: 0))
-        XCTAssertTrue(self.mockSessionManager.isRequestCacheEquivalent(request1, toRequest: request2))
-        XCTAssertFalse(self.mockSessionManager.isRequestLoadEquivalent(request1, toRequest: request2))
         
         self.expect { fulfill in
             self.manager.taskWith(request1) { _ in

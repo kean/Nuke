@@ -6,16 +6,18 @@ import Foundation
 
 // MARK: - ImageDataLoading
 
-public typealias ImageDataLoadingCompletionHandler = (data: NSData?, response: NSURLResponse?, error: ErrorType?) -> Void
-public typealias ImageDataLoadingProgressHandler = (completedUnitCount: Int64, totalUnitCount: Int64) -> Void
+public typealias ImageDataLoadingCompletion = (data: NSData?, response: NSURLResponse?, error: ErrorType?) -> Void
+public typealias ImageDataLoadingProgress = (completed: Int64, total: Int64) -> Void
 
 /** Performs loading of image data.
  */
 public protocol ImageDataLoading {
-    func imageDataTaskWithRequest(request: ImageRequest, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask
+    /** Creates task with a given request. Task is resumed by the object calling the method.
+     */
+    func taskWith(request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask
     
     func invalidate()
-    
+
     func removeAllCachedImages()
 }
 
@@ -26,39 +28,41 @@ public protocol ImageDataLoading {
 */
 public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoading {
     public private(set) var session: NSURLSession!
-    private var taskHandlers = [NSURLSessionTask: URLSessionDataTaskHandler]()
-    private let queue = dispatch_queue_create("ImageDataLoader-InternalSerialQueue", DISPATCH_QUEUE_SERIAL)
-    
+    private var handlers = [NSURLSessionTask: DataTaskHandler]()
+    private let queue = dispatch_queue_create("ImageDataLoader.SerialQueue", DISPATCH_QUEUE_SERIAL)
+
+    /** Initialzies data loader by creating a session with a given session configuration. Data loader is set as a delegate of the session.
+     */
     public init(sessionConfiguration: NSURLSessionConfiguration) {
         super.init()
         self.session = NSURLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
     }
 
-    /** Initializes the receiver with a default NSURLSession configuration. 
-     
+    /** Initializes the receiver with a default NSURLSession configuration.
+
      The memory capacity of the NSURLCache is set to 0, disk capacity is set to 200 Mb.
      */
     public convenience override init() {
-        let configuration = NSURLSessionConfiguration.defaultSessionConfiguration()
-        configuration.URLCache = NSURLCache(memoryCapacity: 0, diskCapacity: 200 * 1024 * 1024, diskPath: "com.github.kean.nuke-image-cache")
-        configuration.timeoutIntervalForRequest = 60.0
-        configuration.timeoutIntervalForResource = 360.0
-        self.init(sessionConfiguration: configuration)
+        let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
+        conf.URLCache = NSURLCache(memoryCapacity: 0, diskCapacity: (200 * 1024 * 1024), diskPath: "com.github.kean.nuke-cache")
+        conf.timeoutIntervalForRequest = 60.0
+        conf.timeoutIntervalForResource = 360.0
+        self.init(sessionConfiguration: conf)
     }
     
     // MARK: ImageDataLoading
-    
-    public func imageDataTaskWithRequest(request: ImageRequest, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask {
-        let task = self.createTaskWithRequest(request)
+
+    public func taskWith(request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask {
+        let task = self.taskWith(request)
         dispatch_sync(self.queue) {
-            self.taskHandlers[task] = URLSessionDataTaskHandler(progressHandler: progressHandler, completionHandler: completionHandler)
+            self.handlers[task] = DataTaskHandler(progress: progress, completion: completion)
         }
         return task
     }
     
     /** Factory method for creating session tasks for given image requests.
      */
-    public func createTaskWithRequest(request: ImageRequest) -> NSURLSessionTask {
+    public func taskWith(request: ImageRequest) -> NSURLSessionTask {
         return self.session.dataTaskWithRequest(request.URLRequest)
     }
 
@@ -78,30 +82,30 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     
     public func URLSession(session: NSURLSession, dataTask: NSURLSessionDataTask, didReceiveData data: NSData) {
         dispatch_sync(self.queue) {
-            if let handler = self.taskHandlers[dataTask] {
+            if let handler = self.handlers[dataTask] {
                 handler.data.appendData(data)
-                handler.progressHandler(completedUnitCount: dataTask.countOfBytesReceived, totalUnitCount: dataTask.countOfBytesExpectedToReceive)
+                handler.progress(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
             }
         }
     }
     
     public func URLSession(session: NSURLSession, task: NSURLSessionTask, didCompleteWithError error: NSError?) {
         dispatch_sync(self.queue) {
-            if let handler = self.taskHandlers[task] {
-                handler.completionHandler(data: handler.data, response: task.response, error: error)
-                self.taskHandlers[task] = nil
+            if let handler = self.handlers[task] {
+                handler.completion(data: handler.data, response: task.response, error: error)
+                self.handlers[task] = nil
             }
         }
     }
 }
 
-private class URLSessionDataTaskHandler {
+private class DataTaskHandler {
     let data = NSMutableData()
-    let progressHandler: ImageDataLoadingProgressHandler
-    let completionHandler: ImageDataLoadingCompletionHandler
+    let progress: ImageDataLoadingProgress
+    let completion: ImageDataLoadingCompletion
     
-    init(progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) {
-        self.progressHandler = progressHandler
-        self.completionHandler = completionHandler
+    init(progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) {
+        self.progress = progress
+        self.completion = completion
     }
 }
