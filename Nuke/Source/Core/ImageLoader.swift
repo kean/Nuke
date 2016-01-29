@@ -174,7 +174,7 @@ public class ImageLoader: ImageLoading {
         return self.configuration.dataLoader
     }
     private var executingTasks = [ImageTask : ImageLoadState]()
-    private var sessionTasks = [ImageRequestKey : ImageSessionTask]()
+    private var dataTasks = [ImageRequestKey : ImageDataTask]()
     private let queue = dispatch_queue_create("ImageLoader.SerialQueue", DISPATCH_QUEUE_SERIAL)
     
     /**
@@ -190,55 +190,55 @@ public class ImageLoader: ImageLoading {
     public func resumeLoadingFor(task: ImageTask) {
         dispatch_async(self.queue) {
             let key = ImageRequestKey(task.request, owner: self)
-            var sessionTask: ImageSessionTask! = self.sessionTasks[key]
-            if sessionTask == nil {
-                sessionTask = self.sessionTaskWith(task.request, key: key)
-                self.sessionTasks[key] = sessionTask
+            var dataTask: ImageDataTask! = self.dataTasks[key]
+            if dataTask == nil {
+                dataTask = self.dataTaskWith(task.request, key: key)
+                self.dataTasks[key] = dataTask
             } else {
-                self.manager?.loader(self, task: task, didUpdateProgress: sessionTask.progress)
+                self.manager?.loader(self, task: task, didUpdateProgress: dataTask.progress)
             }
-            self.executingTasks[task] = ImageLoadState.Loading(sessionTask)
-            sessionTask.resume(task)
+            self.executingTasks[task] = ImageLoadState.Loading(dataTask)
+            dataTask.resume(task)
         }
     }
     
-    private func sessionTaskWith(request: ImageRequest, key: ImageRequestKey) -> ImageSessionTask {
-        let sessionTask = ImageSessionTask(key: key)
-        sessionTask.dataTask = self.dataLoader.taskWith(request, progress: { [weak self] completed, total in
-            self?.sessionTask(sessionTask, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
+    private func dataTaskWith(request: ImageRequest, key: ImageRequestKey) -> ImageDataTask {
+        let dataTask = ImageDataTask(key: key)
+        dataTask.URLSessionTask = self.dataLoader.taskWith(request, progress: { [weak self] completed, total in
+            self?.dataTask(dataTask, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
         }, completion: { [weak self] data, response, error in
-            self?.sessionTask(sessionTask, didCompleteWithData: data, response: response, error: error)
+            self?.dataTask(dataTask, didCompleteWithData: data, response: response, error: error)
         })
-        return sessionTask
+        return dataTask
     }
     
-    private func sessionTask(sessionTask: ImageSessionTask, didUpdateProgress progress: ImageTaskProgress) {
+    private func dataTask(dataTask: ImageDataTask, didUpdateProgress progress: ImageTaskProgress) {
         dispatch_async(self.queue) {
-            sessionTask.progress = progress
-            for imageTask in sessionTask.tasks {
-                self.manager?.loader(self, task: imageTask, didUpdateProgress: sessionTask.progress)
+            dataTask.progress = progress
+            for task in dataTask.tasks {
+                self.manager?.loader(self, task: task, didUpdateProgress: dataTask.progress)
             }
         }
     }
     
-    private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithData data: NSData?, response: NSURLResponse?, error: ErrorType?) {
+    private func dataTask(dataTask: ImageDataTask, didCompleteWithData data: NSData?, response: NSURLResponse?, error: ErrorType?) {
         guard let data = data where error == nil else {
-            self.sessionTask(sessionTask, didCompleteWithImage: nil, error: error)
+            self.dataTask(dataTask, didCompleteWithImage: nil, error: error)
             return;
         }
         self.configuration.decodingQueue.addOperationWithBlock { [weak self] in
             let image = self?.configuration.decoder.decode(data)
-            self?.sessionTask(sessionTask, didCompleteWithImage: image, error: error)
+            self?.dataTask(dataTask, didCompleteWithImage: image, error: error)
         }
     }
     
-    private func sessionTask(sessionTask: ImageSessionTask, didCompleteWithImage image: Image?, error: ErrorType?) {
+    private func dataTask(dataTask: ImageDataTask, didCompleteWithImage image: Image?, error: ErrorType?) {
         dispatch_async(self.queue) {
-            for task in sessionTask.tasks {
+            for task in dataTask.tasks {
                 self.process(image, error: error, forTask: task)
             }
-            sessionTask.complete()
-            self.remove(sessionTask)
+            dataTask.complete()
+            self.remove(dataTask)
         }
     }
     
@@ -289,9 +289,9 @@ public class ImageLoader: ImageLoading {
         }
     }
     
-    private func remove(task: ImageSessionTask) {
-        if self.sessionTasks[task.key] === task {
-            self.sessionTasks[task.key] = nil
+    private func remove(task: ImageDataTask) {
+        if self.dataTasks[task.key] === task {
+            self.dataTasks[task.key] = nil
         }
     }
     
@@ -321,15 +321,15 @@ extension ImageLoader: ImageRequestKeyOwner {
 // MARK: - ImageLoadState
 
 private enum ImageLoadState {
-    case Loading(ImageSessionTask)
+    case Loading(ImageDataTask)
     case Processing(NSOperation)
 }
 
-// MARK: - ImageSessionTask
+// MARK: - ImageDataTask
 
-private class ImageSessionTask {
+private class ImageDataTask {
     let key: ImageRequestKey
-    var dataTask: NSURLSessionTask?
+    var URLSessionTask: NSURLSessionTask?
     var executingTasks = Set<ImageTask>()
     var suspendedTasks = Set<ImageTask>()
     var tasks: Set<ImageTask> {
@@ -344,15 +344,15 @@ private class ImageSessionTask {
     func resume(task: ImageTask) {
         self.suspendedTasks.remove(task)
         self.executingTasks.insert(task)
-        self.dataTask?.resume()
+        self.URLSessionTask?.resume()
     }
     
     func cancel(task: ImageTask) -> Bool {
         self.executingTasks.remove(task)
         self.suspendedTasks.remove(task)
         if self.tasks.isEmpty {
-            self.dataTask?.cancel()
-            self.dataTask = nil
+            self.URLSessionTask?.cancel()
+            self.URLSessionTask = nil
             return true
         }
         return false
@@ -362,13 +362,13 @@ private class ImageSessionTask {
         self.executingTasks.remove(task)
         self.suspendedTasks.insert(task)
         if self.executingTasks.isEmpty {
-            self.dataTask?.suspend()
+            self.URLSessionTask?.suspend()
         }
     }
     
     func complete() {
         self.executingTasks.removeAll()
         self.suspendedTasks.removeAll()
-        self.dataTask = nil
+        self.URLSessionTask = nil
     }
 }
