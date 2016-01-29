@@ -274,15 +274,15 @@ extension ImageManager: ImageLoadingManager {
 // MARK: ImageManager: ImageTaskManaging
 
 extension ImageManager: ImageTaskManaging {
-    private func resumeManagedTask(task: ImageTaskInternal) {
+    private func resume(task: ImageTaskInternal) {
         self.perform { self.setState(.Running, forTask: task) }
     }
     
-    private func suspendManagedTask(task: ImageTaskInternal) {
+    private func suspend(task: ImageTaskInternal) {
         self.perform { self.setState(.Suspended, forTask: task) }
     }
     
-    private func cancelManagedTask(task: ImageTaskInternal) {
+    private func cancel(task: ImageTaskInternal) {
         self.perform { self.setState(.Cancelled, forTask: task) }
     }
     
@@ -312,9 +312,9 @@ extension ImageManager: ImageRequestKeyOwner {
 // MARK: - ImageTaskInternal
 
 private protocol ImageTaskManaging {
-    func resumeManagedTask(task: ImageTaskInternal)
-    func suspendManagedTask(task: ImageTaskInternal)
-    func cancelManagedTask(task: ImageTaskInternal)
+    func resume(task: ImageTaskInternal)
+    func suspend(task: ImageTaskInternal)
+    func cancel(task: ImageTaskInternal)
     func addCompletion(completion: ImageTaskCompletion, forTask task: ImageTaskInternal)
 }
 
@@ -328,17 +328,17 @@ private class ImageTaskInternal: ImageTask {
     }
     
     override func resume() -> Self {
-        self.manager.resumeManagedTask(self)
+        self.manager.resume(self)
         return self
     }
     
     override func suspend() -> Self {
-        self.manager.suspendManagedTask(self)
+        self.manager.suspend(self)
         return self
     }
     
     override func cancel() -> Self {
-        self.manager.cancelManagedTask(self)
+        self.manager.cancel(self)
         return self
     }
     
