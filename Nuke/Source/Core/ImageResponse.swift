@@ -35,7 +35,7 @@ public extension ImageResponse {
         }
     }
     
-    public var success: Bool {
+    public var isSuccess: Bool {
         switch self {
         case .Success: return true
         case .Failure: return false
@@ -49,14 +49,14 @@ public class ImageResponseInfo {
     
     /** Returns true if the image was retrieved from memory cache.
      */
-    public let fastResponse: Bool
+    public let isFastResponse: Bool
     
     /** User info returned by the image loader (see ImageLoading protocol).
      */
     public let userInfo: Any?
     
     public init(fastResponse: Bool, userInfo: Any? = nil) {
-        self.fastResponse = fastResponse
+        self.isFastResponse = fastResponse
         self.userInfo = userInfo
     }
 }

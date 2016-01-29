@@ -36,7 +36,7 @@ class ImageMemoryCacheTest: XCTestCase {
             self.manager.taskWith(request) {
                 switch $0 {
                 case .Success(_, let info):
-                    XCTAssertFalse(info.fastResponse)
+                    XCTAssertFalse(info.isFastResponse)
                 default: XCTFail()
                 }
                 fulfill()
@@ -53,7 +53,7 @@ class ImageMemoryCacheTest: XCTestCase {
         self.manager.taskWith(request) {
             switch $0 {
             case .Success(_, let info):
-                XCTAssertTrue(info.fastResponse)
+                XCTAssertTrue(info.isFastResponse)
             default: XCTFail()
             }
             // Completion closure should be called synchronously on the main thread
@@ -79,7 +79,7 @@ class ImageMemoryCacheTest: XCTestCase {
         self.manager.taskWith(request) {
             switch $0 {
             case .Success(_, let info):
-                XCTAssertTrue(info.fastResponse)
+                XCTAssertTrue(info.isFastResponse)
             default: XCTFail()
             }
             // Completion closure should be called synchronously on the main thread
@@ -102,7 +102,7 @@ class ImageMemoryCacheTest: XCTestCase {
         self.manager.taskWith(request1) {
             switch $0 {
             case .Success(_, let info):
-                XCTAssertTrue(info.fastResponse)
+                XCTAssertTrue(info.isFastResponse)
             default: XCTFail()
             }
             // Completion closure should be called synchronously on the main thread
@@ -114,7 +114,7 @@ class ImageMemoryCacheTest: XCTestCase {
             self.manager.taskWith(request2) {
                 switch $0 {
                 case .Success(_, let info):
-                    XCTAssertFalse(info.fastResponse)
+                    XCTAssertFalse(info.isFastResponse)
                 default: XCTFail()
                 }
                 fulfill()
@@ -135,7 +135,7 @@ class ImageMemoryCacheTest: XCTestCase {
             self.manager.taskWith(request) {
                 switch $0 {
                 case .Success(_, let info):
-                    XCTAssertFalse(info.fastResponse)
+                    XCTAssertFalse(info.isFastResponse)
                 default: XCTFail()
                 }
                 fulfill()

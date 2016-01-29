@@ -80,7 +80,7 @@ public extension ImageDisplayingView where Self: View {
         case let .Success(image, info):
             let previousImage = self.nk_image
             self.nk_image = image
-            guard !info.fastResponse else {
+            guard !info.isFastResponse else {
                 return
             }
             if let animations = options?.animations {
