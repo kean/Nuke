@@ -96,25 +96,4 @@ public extension ImageRequest {
         default: return false
         }
     }
-    
-    /** Determines whether two image request can be handled by a single `NSURLSessionTask`. Default implementation compares request `URL`, `cachePolicy`, `timeoutInterval`, `networkServiceType` and `allowsCellularAccess`.
-     
-     This is a convenience method used by image data loaders.
-     */
-    public func isLoadEquivalentToRequest(other: ImageRequest) -> Bool {
-        let lhs = self.URLRequest, rhs = other.URLRequest
-        return lhs.URL == rhs.URL &&
-            lhs.cachePolicy == rhs.cachePolicy &&
-            lhs.timeoutInterval == rhs.timeoutInterval &&
-            lhs.networkServiceType == rhs.networkServiceType &&
-            lhs.allowsCellularAccess == rhs.allowsCellularAccess
-    }
-    
-    /** Determines whether two image requests return the same image data. Default implementation compares request `URLs`. This method doesn't compare requests in terms of image processing.
-     
-     This is a convenience method used by image data loaders.
-     */
-    public func isCacheEquivalentToRequest(other: ImageRequest) -> Bool {
-        return self.URLRequest.URL == other.URLRequest.URL
-    }
 }

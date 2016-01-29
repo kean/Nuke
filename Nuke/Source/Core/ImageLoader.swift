@@ -60,6 +60,14 @@ public struct ImageLoaderConfiguration {
 /** Image loader customization endpoint.
 */
 public protocol ImageLoaderDelegate {
+    /** Compares two requests for equivalence with regard to loading image data. Requests should be considered equivalent if data loader can handle both requests with a single session task.
+     */
+    func isEquivalentForLoading(lhs: ImageRequest, to rhs: ImageRequest) -> Bool
+    
+    /** Compares two requests for equivalence with regard to caching output image. This method is used for memory caching only, which means that there is no need for filtering out the dynamic part of the request (is there is any).
+     */
+    func isEquivalentForCaching(lhs: ImageRequest, to rhs: ImageRequest) -> Bool
+    
     /** Returns true when image loader should process the image. Processing includes decompression.
      */
     func imageLoader(loader: ImageLoader, shouldProcessImage image: Image) -> Bool
@@ -70,6 +78,23 @@ public protocol ImageLoaderDelegate {
 }
 
 public extension ImageLoaderDelegate {
+    /** Determines whether two image request can be handled by a single `NSURLSessionTask`. Default implementation compares request `URL`, `cachePolicy`, `timeoutInterval`, `networkServiceType` and `allowsCellularAccess`.
+    */
+    public func isEquivalentForLoading(lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
+        let a = lhs.URLRequest, b = rhs.URLRequest
+        return a.URL == b.URL &&
+            a.cachePolicy == b.cachePolicy &&
+            a.timeoutInterval == b.timeoutInterval &&
+            a.networkServiceType == b.networkServiceType &&
+            a.allowsCellularAccess == b.allowsCellularAccess
+    }
+    
+    /** Determines whether two image requests return the same image data. Default implementation compares request `URLs`. This method doesn't compare requests in terms of image processing.
+     */
+    public func isEquivalentForCaching(lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
+        return lhs.URLRequest.URL == rhs.URLRequest.URL
+    }
+    
     /** Always returns true.
      */
     public func imageLoader(loader: ImageLoader, shouldProcessImage image: Image) -> Bool {
@@ -246,7 +271,7 @@ public class ImageLoader: ImageLoading {
     // MARK: Misc
     
     public func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
-        guard self.dataLoader.isRequestCacheEquivalent(lhs, toRequest: rhs) else {
+        guard self.delegate.isEquivalentForCaching(lhs, to: rhs) else {
             return false
         }
         return equivalentProcessors(self.processorForRequest(lhs), rhs: self.processorForRequest(rhs))
@@ -265,7 +290,7 @@ public class ImageLoader: ImageLoading {
 
 extension ImageLoader: ImageRequestKeyOwner {
     public func isEqual(lhs: ImageRequestKey, to rhs: ImageRequestKey) -> Bool {
-        return self.dataLoader.isRequestLoadEquivalent(lhs.request, toRequest: rhs.request)
+        return self.delegate.isEquivalentForLoading(lhs.request, to: rhs.request)
     }
 }
 

@@ -12,14 +12,6 @@ public typealias ImageDataLoadingProgressHandler = (completedUnitCount: Int64, t
 /** Performs loading of image data.
  */
 public protocol ImageDataLoading {
-    /** Compares two requests for equivalence with regard to loading image data. Requests should be considered equivalent if data loader can handle both requests with a single session task.
-     */
-    func isRequestLoadEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool
-    
-    /** Compares two requests for equivalence with regard to caching image data. ImageManager uses this method for memory caching only, which means that there is no need for filtering out the dynamic part of the request (is there is any).
-     */
-    func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool
-
     func imageDataTaskWithRequest(request: ImageRequest, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask
     
     func invalidate()
@@ -55,18 +47,6 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     }
     
     // MARK: ImageDataLoading
-    
-    /** Compares two requests using `isLoadEquivalentToRequest(:)` method from `ImageRequest` extension.
-     */
-    public func isRequestLoadEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
-        return lhs.isLoadEquivalentToRequest(rhs)
-    }
-    
-    /** Compares two requests using `isCacheEquivalentToRequest(:)` method from `ImageRequest` extension.
-     */
-    public func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
-        return lhs.isCacheEquivalentToRequest(rhs)
-    }
     
     public func imageDataTaskWithRequest(request: ImageRequest, progressHandler: ImageDataLoadingProgressHandler, completionHandler: ImageDataLoadingCompletionHandler) -> NSURLSessionTask {
         let task = self.createTaskWithRequest(request)
