@@ -97,7 +97,7 @@ public class ImageManager {
     /** Removes all cached images by calling corresponding methods on memory cache and image loader.
      */
     public func removeAllCachedImages() {
-        self.cache?.removeAllCachedImages()
+        self.cache?.clear()
         self.loader.removeAllCachedImages()
     }
     
@@ -225,15 +225,15 @@ public class ImageManager {
     /** Returns image response from the memory cache. Ignores NSURLRequestCachePolicy.
     */
     public func cachedResponseForRequest(request: ImageRequest) -> ImageCachedResponse? {
-        return self.cache?.cachedResponseForKey(ImageRequestKey(request, owner: self))
+        return self.cache?.responseForKey(ImageRequestKey(request, owner: self))
     }
     
     /** Stores image response into the memory cache.
      */
     public func storeResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
-        self.cache?.storeResponse(response, forKey: ImageRequestKey(request, owner: self))
+        self.cache?.set(response, forKey: ImageRequestKey(request, owner: self))
     }
-    
+
     // MARK: Misc
     
     private func perform(@noescape closure: Void -> Void) {

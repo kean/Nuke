@@ -13,18 +13,18 @@ class MockImageMemoryCache: ImageMemoryCaching {
     var enabled = true
     var responses = [ImageRequestKey: ImageCachedResponse]()
     init() {}
-    
-    func cachedResponseForKey(key: ImageRequestKey) -> ImageCachedResponse? {
+
+    func responseForKey(key: ImageRequestKey) -> ImageCachedResponse? {
         return self.enabled ? self.responses[key] : nil
     }
     
-    func storeResponse(response: ImageCachedResponse, forKey key: ImageRequestKey) {
+    func set(response: ImageCachedResponse, forKey key: ImageRequestKey) {
         if self.enabled {
             self.responses[key] = response
         }
     }
     
-    func removeAllCachedImages() {
+    func clear() {
         self.responses.removeAll()
     }
 }
