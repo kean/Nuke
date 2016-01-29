@@ -38,7 +38,7 @@ public class ImageDecoder: ImageDecoding {
     }
 
     #if !os(OSX)
-    /** Returns the scale of the main screen.
+    /** The scale used when creating an image object. Return the scaleM of the main screen.
      */
     public var imageScale: CGFloat {
         #if os(iOS) || os(tvOS)

@@ -333,22 +333,22 @@ class ImageManagerTest: XCTestCase {
 
     func testThatProgressClosureIsCalled() {
         let task = self.manager.taskWith(defaultURL, completion: nil)
-        XCTAssertEqual(task.totalUnitCount, 0)
-        XCTAssertEqual(task.completedUnitCount, 0)
-        XCTAssertEqual(task.fractionCompleted, 0.0)
+        XCTAssertEqual(task.progress.total, 0)
+        XCTAssertEqual(task.progress.completed, 0)
+        XCTAssertEqual(task.progress.fractionCompleted, 0.0)
         
         self.expect { fulfill in
             var fractionCompleted = 0.0
             var completedUnitCount: Int64 = 0
-            task.progress = { completed, total in
+            task.progressHandler = { progress in
                 fractionCompleted += 0.5
                 completedUnitCount += 50
-                XCTAssertEqual(completedUnitCount, completed)
-                XCTAssertEqual(100, total)
-                XCTAssertEqual(completedUnitCount, task.completedUnitCount)
-                XCTAssertEqual(100, task.totalUnitCount)
-                XCTAssertEqual(fractionCompleted, task.fractionCompleted)
-                if task.fractionCompleted == 1.0 {
+                XCTAssertEqual(completedUnitCount, progress.completed)
+                XCTAssertEqual(100, progress.total)
+                XCTAssertEqual(completedUnitCount, task.progress.completed)
+                XCTAssertEqual(100, task.progress.total)
+                XCTAssertEqual(fractionCompleted, task.progress.fractionCompleted)
+                if task.progress.fractionCompleted == 1.0 {
                     fulfill()
                 }
             }

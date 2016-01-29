@@ -9,7 +9,14 @@ public enum ImageTaskState {
 }
 
 public typealias ImageTaskCompletion = (ImageResponse) -> Void
-public typealias ImageTaskProgress = (completedUnitCount: Int64, totalUnitCount: Int64) -> Void
+
+public struct ImageTaskProgress {
+    public var completed: Int64 = 0
+    public var total: Int64 = 0
+    public var fractionCompleted: Double {
+        return self.total == 0 ? 0.0 : Double(self.completed) / Double(self.total)
+    }
+}
 
 /** Abstract class for image tasks. Tasks are always part of the image manager, you create a task by calling one of the methods on ImageManager.
  */
@@ -22,8 +29,7 @@ public class ImageTask: Hashable {
      */
     public internal(set) var state: ImageTaskState = .Suspended
     public internal(set) var response: ImageResponse?
-    public internal(set) var completedUnitCount: Int64 = 0
-    public internal(set) var totalUnitCount: Int64 = 0
+    public internal(set) var progress = ImageTaskProgress()
     public var hashValue: Int { return self.identifier }
     
     /** Uniquely identifies the task within an image manager.
@@ -32,7 +38,7 @@ public class ImageTask: Hashable {
     
     /** A progress closure that gets periodically during the lifecycle of the task.
      */
-    public var progress: ImageTaskProgress?
+    public var progressHandler: ((progress: ImageTaskProgress) -> Void)?
     
     public init(request: ImageRequest, identifier: Int) {
         self.request = request
@@ -60,12 +66,6 @@ public class ImageTask: Hashable {
     /** Cancels the task if it hasn't completed yet. Calls a completion closure with an error value of { ImageManagerErrorDomain, ImageManagerErrorCancelled }.
      */
     public func cancel() -> Self { fatalError("Abstract method") }
-}
-
-public extension ImageTask {
-    public var fractionCompleted: Double {
-        return self.totalUnitCount == 0 ? 0.0 : Double(self.completedUnitCount) / Double(self.totalUnitCount)
-    }
 }
 
 public func ==(lhs: ImageTask, rhs: ImageTask) -> Bool {

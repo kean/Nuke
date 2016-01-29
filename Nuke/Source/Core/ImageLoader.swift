@@ -43,7 +43,12 @@ public protocol ImageLoading: class {
 /** Manages image loading.
 */
 public protocol ImageLoadingManager: class {
-    func loader(loader: ImageLoading, task: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64)
+    /** Sent periodically to notify delegate of task progress.
+     */
+    func loader(loader: ImageLoading, task: ImageTask, didUpdateProgress progress: ImageTaskProgress)
+    
+    /** Send when loading for task is completed.
+     */
     func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?)
 }
 
@@ -188,7 +193,7 @@ public class ImageLoader: ImageLoading {
                 sessionTask = self.sessionTaskWith(task.request, key: key)
                 self.sessionTasks[key] = sessionTask
             } else {
-                self.manager?.loader(self, task: task, didUpdateProgressWithCompletedUnitCount: sessionTask.completedUnitCount, totalUnitCount: sessionTask.totalUnitCount)
+                self.manager?.loader(self, task: task, didUpdateProgress: sessionTask.progress)
             }
             self.executingTasks[task] = ImageLoadState.Loading(sessionTask)
             sessionTask.resume(task)
@@ -208,10 +213,9 @@ public class ImageLoader: ImageLoading {
 
     private func sessionTask(sessionTask: ImageSessionTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
         dispatch_async(self.queue) {
-            sessionTask.totalUnitCount = totalUnitCount
-            sessionTask.completedUnitCount = completedUnitCount
+            sessionTask.progress = ImageTaskProgress(completed: completedUnitCount, total: totalUnitCount)
             for imageTask in sessionTask.tasks {
-                self.manager?.loader(self, task: imageTask, didUpdateProgressWithCompletedUnitCount: completedUnitCount, totalUnitCount: totalUnitCount)
+                self.manager?.loader(self, task: imageTask, didUpdateProgress: sessionTask.progress)
             }
         }
     }
@@ -330,8 +334,7 @@ private class ImageSessionTask {
     var tasks: Set<ImageTask> {
         return self.executingTasks.union(self.suspendedTasks)
     }
-    var totalUnitCount: Int64 = 0
-    var completedUnitCount: Int64 = 0
+    var progress: ImageTaskProgress = ImageTaskProgress()
 
     init(key: ImageRequestKey) {
         self.key = key
