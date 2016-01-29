@@ -15,9 +15,13 @@ public protocol ImageDataLoading {
     /** Creates task with a given request. Task is resumed by the object calling the method.
      */
     func taskWith(request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask
-    
+
+    /** Invalidates the receiver.
+     */
     func invalidate()
 
+    /** Clears the receiver's cache storage (in any).
+     */
     func removeAllCachedImages()
 }
 

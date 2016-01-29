@@ -125,7 +125,7 @@ public class ImageManager {
     
     private func transitionStateAction(fromState: ImageTaskState, toState: ImageTaskState, task: ImageTaskInternal) {
         if fromState == .Running && toState == .Suspended {
-            self.loader.suspendLoadingForTask(task)
+            self.loader.suspendLoadingFor(task)
         }
     }
     
@@ -140,9 +140,9 @@ public class ImageManager {
                 }
             }
             self.executingTasks.insert(task)
-            self.loader.resumeLoadingForTask(task)
+            self.loader.resumeLoadingFor(task)
         case .Cancelled:
-            self.loader.cancelLoadingForTask(task)
+            self.loader.cancelLoadingFor(task)
             task.response = ImageResponse.Failure(NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorCancelled, userInfo: nil))
             fallthrough
         case .Completed:
@@ -250,7 +250,7 @@ public class ImageManager {
 // MARK: ImageManager: ImageLoadingManager
 
 extension ImageManager: ImageLoadingManager {
-    public func imageLoader(imageLoader: ImageLoading, task: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
+    public func loader(loader: ImageLoading, task: ImageTask, didUpdateProgressWithCompletedUnitCount completedUnitCount: Int64, totalUnitCount: Int64) {
         dispatch_async(dispatch_get_main_queue()) {
             task.totalUnitCount = totalUnitCount
             task.completedUnitCount = completedUnitCount
@@ -258,7 +258,7 @@ extension ImageManager: ImageLoadingManager {
         }
     }
     
-    public func imageLoader(imageLoader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?) {
+    public func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?) {
         let task = task as! ImageTaskInternal
         if let image = image {
             if task.request.memoryCacheStorageAllowed {
