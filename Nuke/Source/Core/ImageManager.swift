@@ -306,7 +306,7 @@ extension ImageManager: ImageTaskManaging {
 
 extension ImageManager: ImageRequestKeyOwner {
     public func isEqual(lhs: ImageRequestKey, to rhs: ImageRequestKey) -> Bool {
-        return self.loader.isRequestCacheEquivalent(lhs.request, toRequest: rhs.request)
+        return self.loader.isCacheEquivalent(lhs.request, to: rhs.request)
     }
 }
 

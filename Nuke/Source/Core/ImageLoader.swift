@@ -15,7 +15,7 @@ public protocol ImageLoading: class {
     func resumeLoadingForTask(task: ImageTask)
     func suspendLoadingForTask(task: ImageTask)
     func cancelLoadingForTask(task: ImageTask)
-    func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool
+    func isCacheEquivalent(lhs: ImageRequest, to rhs: ImageRequest) -> Bool
     func invalidate()
     func removeAllCachedImages()
 }
@@ -57,30 +57,26 @@ public struct ImageLoaderConfiguration {
 
 // MARK: - ImageLoaderDelegate
 
-/** Image loader customization endpoint.
+/** Image loader customization endpoints.
 */
 public protocol ImageLoaderDelegate {
-    /** Compares two requests for equivalence with regard to loading image data. Requests should be considered equivalent if data loader can handle both requests with a single session task.
+    /** Compares requests for equivalence with regard to loading image data. Requests should be considered equivalent if data loader can handle both requests with a single session task.
      */
-    func isEquivalentForLoading(lhs: ImageRequest, to rhs: ImageRequest) -> Bool
-    
-    /** Compares two requests for equivalence with regard to caching output image. This method is used for memory caching only, which means that there is no need for filtering out the dynamic part of the request (is there is any).
+    func imageLoader(loader: ImageLoader, isLoadEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool
+
+    /** Compares requests for equivalence with regard to caching output image. This method is used for memory caching, in most cases there is no need for filtering out the dynamic part of the request (is there is any).
      */
-    func isEquivalentForCaching(lhs: ImageRequest, to rhs: ImageRequest) -> Bool
-    
-    /** Returns true when image loader should process the image. Processing includes decompression.
-     */
-    func imageLoader(loader: ImageLoader, shouldProcessImage image: Image) -> Bool
-    
-    /** Returns decompressor for the given request. 
-     */
-    func imageLoader(loader: ImageLoader, decompressorForRequest request: ImageRequest) -> ImageProcessing?
+    func imageLoader(loader: ImageLoader, isCacheEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool
+
+    /** Returns processor for the given request and image.
+*     */
+    func imageLoader(loader: ImageLoader, processorForRequest: ImageRequest, image: Image) -> ImageProcessing?
 }
 
 public extension ImageLoaderDelegate {
-    /** Determines whether two image request can be handled by a single `NSURLSessionTask`. Default implementation compares request `URL`, `cachePolicy`, `timeoutInterval`, `networkServiceType` and `allowsCellularAccess`.
+    /** Compares request `URL`, `cachePolicy`, `timeoutInterval`, `networkServiceType` and `allowsCellularAccess`.
     */
-    public func isEquivalentForLoading(lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
+    public func imageLoader(loader: ImageLoader, isLoadEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
         let a = lhs.URLRequest, b = rhs.URLRequest
         return a.URL == b.URL &&
             a.cachePolicy == b.cachePolicy &&
@@ -89,21 +85,32 @@ public extension ImageLoaderDelegate {
             a.allowsCellularAccess == b.allowsCellularAccess
     }
     
-    /** Determines whether two image requests return the same image data. Default implementation compares request `URLs`. This method doesn't compare requests in terms of image processing.
+    /** Compares request `URLs` and processors.
      */
-    public func isEquivalentForCaching(lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
-        return lhs.URLRequest.URL == rhs.URLRequest.URL
+    func imageLoader(loader: ImageLoader, isCacheEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
+        guard lhs.URLRequest.URL == rhs.URLRequest.URL else {
+            return false
+        }
+        return lhs.shouldDecompressImage == rhs.shouldDecompressImage &&
+            lhs.targetSize == rhs.targetSize &&
+            lhs.contentMode == rhs.contentMode &&
+            equivalentProcessors(lhs.processor, rhs: rhs.processor)
     }
-    
-    /** Always returns true.
+
+    /** Returns processor with combined image decompressor constructed based on request's target size and content mode, and image processor provided in image request.
      */
-    public func imageLoader(loader: ImageLoader, shouldProcessImage image: Image) -> Bool {
-        return true
+    public func imageLoader(loader: ImageLoader, processorForRequest request: ImageRequest, image: Image) -> ImageProcessing? {
+        var processors = [ImageProcessing]()
+        if request.shouldDecompressImage, let decompressor = self.decompressorForRequest(request) {
+            processors.append(decompressor)
+        }
+        if let processor = request.processor {
+            processors.append(processor)
+        }
+        return processors.isEmpty ? nil : ImageProcessorComposition(processors: processors)
     }
-    
-    /** Returns instance of `ImageDecompressor` class (expect for OS X where this class is not available).
-     */
-    public func imageLoader(loader: ImageLoader, decompressorForRequest request: ImageRequest) -> ImageProcessing? {
+
+    private func decompressorForRequest(request: ImageRequest) -> ImageProcessing? {
         #if os(OSX)
             return nil
         #else
@@ -205,7 +212,7 @@ public class ImageLoader: ImageLoading {
     }
     
     private func processImage(image: Image?, error: ErrorType?, forImageTask imageTask: ImageTask) {
-        if let image = image, processor = self.processorForRequest(imageTask.request) where self.delegate.imageLoader(self, shouldProcessImage: image) {
+        if let image = image, processor = self.delegate.imageLoader(self, processorForRequest:imageTask.request, image: image) {
             let operation = NSBlockOperation { [weak self] in
                 self?.imageTask(imageTask, didCompleteWithImage: processor.processImage(image), error: error)
             }
@@ -215,18 +222,7 @@ public class ImageLoader: ImageLoading {
             self.imageTask(imageTask, didCompleteWithImage: image, error: error)
         }
     }
-    
-    private func processorForRequest(request: ImageRequest) -> ImageProcessing? {
-        var processors = [ImageProcessing]()
-        if request.shouldDecompressImage, let decompressor = self.delegate.imageLoader(self, decompressorForRequest: request) {
-            processors.append(decompressor)
-        }
-        if let processor = request.processor {
-            processors.append(processor)
-        }
-        return processors.isEmpty ? nil : ImageProcessorComposition(processors: processors)
-    }
-    
+
     private func imageTask(imageTask: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?) {
         dispatch_async(self.queue) {
             self.manager?.imageLoader(self, task: imageTask, didCompleteWithImage: image, error: error, userInfo: nil)
@@ -269,14 +265,11 @@ public class ImageLoader: ImageLoading {
     }
     
     // MARK: Misc
-    
-    public func isRequestCacheEquivalent(lhs: ImageRequest, toRequest rhs: ImageRequest) -> Bool {
-        guard self.delegate.isEquivalentForCaching(lhs, to: rhs) else {
-            return false
-        }
-        return equivalentProcessors(self.processorForRequest(lhs), rhs: self.processorForRequest(rhs))
+
+    public func isCacheEquivalent(lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
+        return self.delegate.imageLoader(self, isCacheEquivalent: lhs, to: rhs)
     }
-    
+
     public func invalidate() {
         self.dataLoader.invalidate()
     }
@@ -290,7 +283,7 @@ public class ImageLoader: ImageLoading {
 
 extension ImageLoader: ImageRequestKeyOwner {
     public func isEqual(lhs: ImageRequestKey, to rhs: ImageRequestKey) -> Bool {
-        return self.delegate.isEquivalentForLoading(lhs.request, to: rhs.request)
+        return self.delegate.imageLoader(self, isLoadEquivalent: lhs.request, to:  rhs.request)
     }
 }
 
