@@ -10,8 +10,8 @@ example("Using Image Task") {
     let task = Nuke.taskWith(NSURL(string: "https://farm6.staticflickr.com/5311/14244377986_a86338d053_z_d.jpg")!)
     print(task.state) // Task is created in Suspened state
     
-    task.progress = { completed, total in
-        print("progress \(completed) / \(total)")
+    task.progressHandler = { progress in
+        print("progress \(progress.completed) / \(progress.total)")
     }
     
     task.completion {
@@ -42,6 +42,6 @@ example("Cancelling and Suspending Image Task") {
     print(task.state)
 }
 
-XCPSetExecutionShouldContinueIndefinitely()
+XCPlaygroundPage.currentPage.needsIndefiniteExecution = true
 
 //: [Next](@next)

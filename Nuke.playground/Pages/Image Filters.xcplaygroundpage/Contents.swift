@@ -22,11 +22,12 @@ example("Applying Filters") {
     }.resume()
 }
 
-import /*:
+/*:
 ### Composing Filters
 It's easy to combine multiple filters using `ImageFilterComposition` class. Lets use a DrawInCircleImageFilter from the previous example and combine it with a new.
 */
-CoreImage
+
+import CoreImage
 
 /** Blurs image using CIGaussianBlur filter.
  */
@@ -63,6 +64,6 @@ example("Composing Filters") {
     }.resume()
 }
 
-XCPSetExecutionShouldContinueIndefinitely()
+XCPlaygroundPage.currentPage.needsIndefiniteExecution = true
 
 //: [Next](@next)

@@ -18,11 +18,12 @@ Nuke.taskWith(NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6
     let image = $0.image
 }.resume()
 
-let/*:
+/*:
 ### Adding Request Options
 Create `ImageRequest` with `NSURLRequest`. Configure `ImageRequest` to resize image. Create and resume `ImageTask`.
 */
- URLRequest = NSURLRequest(URL: NSURL(string: "https://farm4.staticflickr.com/3892/14940786229_5b2b48e96c_z_d.jpg")!, cachePolicy: .UseProtocolCachePolicy, timeoutInterval: 60)
+
+let URLRequest = NSURLRequest(URL: NSURL(string: "https://farm4.staticflickr.com/3892/14940786229_5b2b48e96c_z_d.jpg")!, cachePolicy: .UseProtocolCachePolicy, timeoutInterval: 60)
 var request = ImageRequest(URLRequest: URLRequest)
 
 // Set target size in pixels
@@ -33,14 +34,15 @@ Nuke.taskWith(request) {
     let image = $0.image
 }.resume()
 
-Nuke.taskW/*:
+/*:
 ### Using Image Response
 `ImageResponse` is an enum with associated values. If the request is successful `ImageResponse` contains image and response metadata. If request fails `ImageResponse` contains an error.
 */
-ith(NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!) { response in
+
+Nuke.taskWith(NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_d.jpg")!) { response in
     switch response {
     case let .Success(image, info):
-        if info.fastResponse {
+        if info.isFastResponse {
             // Image was retrieved synchronously from memory cache
         }
         let image = image
@@ -50,6 +52,6 @@ ith(NSURL(string: "https://farm8.staticflickr.com/7315/16455839655_7d6deb1ebf_z_
     }
 }.resume()
 
-XCPSetExecutionShouldContinueIndefinitely()
+XCPlaygroundPage.currentPage.needsIndefiniteExecution = true
 
 //: [Next](@next)
