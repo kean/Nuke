@@ -8,7 +8,7 @@ Applying image filters is as easy as setting `processor` property on `ImageReque
 */
 // Create a simple image filter that would draw an image in a circle
 class ImageFilterDrawInCircle: ImageProcessing {
-    func processImage(image: UIImage) -> UIImage? {
+    func process(image: UIImage) -> UIImage? {
         return drawImageInCircle(cropImageToSquare(image))
     }
 }
@@ -42,7 +42,7 @@ public class ImageFilterGaussianBlur: ImageProcessing {
         self.radius = radius
     }
 
-    public func processImage(image: UIImage) -> UIImage? {
+    public func process(image: UIImage) -> UIImage? {
         return image.applyFilter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
     }
 }

@@ -29,7 +29,7 @@ class MockImageProcessor: ImageProcessing {
     init(ID: String) {
         self.ID = ID
     }
-    func processImage(image: Image) -> Image? {
+    func process(image: Image) -> Image? {
         var processorIDs: [String] = image.nk_test_processorIDs
         processorIDs.append(self.ID)
         let processedImage = Image()
@@ -43,7 +43,7 @@ func ==(lhs: MockImageProcessor, rhs: MockImageProcessor) -> Bool {
 }
 
 class MockParameterlessImageProcessor: ImageProcessing {
-    func processImage(image: Image) -> Image? {
+    func process(image: Image) -> Image? {
         return image
     }
 }

@@ -25,13 +25,7 @@ example("Using Image Task") {
     
     print(task.state) // Task state changes synchronously on the callers thread
 }
-exa/*:
-### Cancelling and Suspending Image Task
-`ImageTask` can be suspended and cancelled. 
-
-Make sure that you read `NSURLSession` documentation before suspending image tasks. A download task can continue transferring data at a later time. All other tasks must start over when resumed (in practice there is a certain timeout).
-*/
-mple("Cancelling and Suspending Image Task") {
+example("Cancelling and Suspending Image Task") {
     let task = Nuke.taskWith(NSURL(string: "https://farm6.staticflickr.com/5311/14244377986_a86338d053_z_d.jpg")!)
     print(task.state) // Task is created in Suspened state
 

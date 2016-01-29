@@ -94,7 +94,7 @@ public extension ImageLoaderDelegate {
         return lhs.shouldDecompressImage == rhs.shouldDecompressImage &&
             lhs.targetSize == rhs.targetSize &&
             lhs.contentMode == rhs.contentMode &&
-            equivalentProcessors(lhs.processor, rhs: rhs.processor)
+            isEquivalent(lhs.processor, rhs: rhs.processor)
     }
 
     /** Returns processor with combined image decompressor constructed based on request's target size and content mode, and image processor provided in image request.
@@ -116,6 +116,14 @@ public extension ImageLoaderDelegate {
         #else
             return ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode)
         #endif
+    }
+
+    private func isEquivalent(lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
+        switch (lhs, rhs) {
+        case let (l?, r?): return l.isEquivalent(r)
+        case (nil, nil): return true
+        default: return false
+        }
     }
 }
 
@@ -214,7 +222,7 @@ public class ImageLoader: ImageLoading {
     private func processImage(image: Image?, error: ErrorType?, forImageTask imageTask: ImageTask) {
         if let image = image, processor = self.delegate.imageLoader(self, processorForRequest:imageTask.request, image: image) {
             let operation = NSBlockOperation { [weak self] in
-                self?.imageTask(imageTask, didCompleteWithImage: processor.processImage(image), error: error)
+                self?.imageTask(imageTask, didCompleteWithImage: processor.process(image), error: error)
             }
             self.configuration.processingQueue.addOperation(operation)
             self.executingTasks[imageTask] = ImageLoadState.Processing(operation)
