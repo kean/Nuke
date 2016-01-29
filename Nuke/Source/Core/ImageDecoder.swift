@@ -12,17 +12,24 @@
     import WatchKit
 #endif
 
-/** Creates images from image data.
-*/
+/** Decodes data into an image object.
+ */
 public protocol ImageDecoding {
-    func imageWithData(data: NSData) -> Image?
+    /* Decodes data into an image object.
+     */
+    func decode(data: NSData) -> Image?
 }
 
-/** Creates an image from a given data. Image scale is set to the scale of the main screen.
+/** Decodes data into an image object. Image scale is set to the scale of the main screen.
  */
 public class ImageDecoder: ImageDecoding {
+    /** Initializes the receiver.
+     */
     public init() {}
-    public func imageWithData(data: NSData) -> Image? {
+
+    /** Decodes data into an image object using native methods.
+    */
+    public func decode(data: NSData) -> Image? {
         #if os(OSX)
             return NSImage(data: data)
         #else
@@ -31,6 +38,8 @@ public class ImageDecoder: ImageDecoding {
     }
 
     #if !os(OSX)
+    /** Returns the scale of the main screen.
+     */
     public var imageScale: CGFloat {
         #if os(iOS) || os(tvOS)
             return UIScreen.mainScreen().scale
@@ -42,19 +51,23 @@ public class ImageDecoder: ImageDecoding {
 }
 
 /** Composes multiple image decoders.
-
- Decoders are applied in an order in which they are present in the decoders array. The decoding stops when one of the decoders produces an image.
  */
 public class ImageDecoderComposition: ImageDecoding {
+    /** Image decoders that the receiver was initialized with.
+     */
     public let decoders: [ImageDecoding]
 
+    /** Composes multiple image decoders.
+     */
     public init(decoders: [ImageDecoding]) {
         self.decoders = decoders
     }
-    
-    public func imageWithData(data: NSData) -> Image? {
+
+    /** Decoders are applied in an order in which they are present in the decoders array. The decoding stops when one of the decoders produces an image.
+     */
+    public func decode(data: NSData) -> Image? {
         for decoder in self.decoders {
-            if let image = decoder.imageWithData(data) {
+            if let image = decoder.decode(data) {
                 return image
             }
         }

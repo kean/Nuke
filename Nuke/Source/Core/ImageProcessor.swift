@@ -45,9 +45,7 @@ public extension ImageProcessing where Self: Equatable {
 // MARK: - ImageProcessorComposition
 
 /** Composes multiple image processors.
-
-Processors are applied in an order in which they are present in the processors array. If one of the processors fails to produce an image the processing stops and nil is returned.
-*/
+ */
 public class ImageProcessorComposition: ImageProcessing, Equatable {
     /** Image processors that the receiver was initialized with.
      */

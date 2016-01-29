@@ -204,7 +204,7 @@ public class ImageLoader: ImageLoading {
             return;
         }
         self.configuration.decodingQueue.addOperationWithBlock { [weak self] in
-            let image = self?.configuration.decoder.imageWithData(data)
+            let image = self?.configuration.decoder.decode(data)
             self?.sessionTask(sessionTask, didCompleteWithImage: image, error: error)
         }
     }
