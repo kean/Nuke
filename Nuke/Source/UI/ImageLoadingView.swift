@@ -30,6 +30,8 @@ public struct ImageViewLoadingOptions {
     /** Defaul value is nil.
      */
     public var userInfo: Any? = nil
+    
+    public init() {}
 }
 
 /** View that supports image loading.
