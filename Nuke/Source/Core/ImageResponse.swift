@@ -45,15 +45,15 @@ public extension ImageResponse {
 
 /** Metadata associated with the image response.
  */
-public class ImageResponseInfo {
+public struct ImageResponseInfo {
     
     /** Returns true if the image was retrieved from memory cache.
      */
-    public let isFastResponse: Bool
+    public var isFastResponse: Bool
     
     /** User info returned by the image loader (see ImageLoading protocol).
      */
-    public let userInfo: Any?
+    public var userInfo: Any?
     
     public init(fastResponse: Bool, userInfo: Any? = nil) {
         self.isFastResponse = fastResponse
