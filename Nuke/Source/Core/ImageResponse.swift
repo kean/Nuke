@@ -41,6 +41,15 @@ public extension ImageResponse {
         case .Failure: return false
         }
     }
+    
+    internal func makeFastResponse() -> ImageResponse {
+        switch self {
+        case .Success(let image, var info):
+            info.isFastResponse = true
+            return ImageResponse.Success(image, info)
+        case .Failure: return self
+        }
+    }
 }
 
 /** Metadata associated with the image response.

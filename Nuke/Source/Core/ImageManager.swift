@@ -292,7 +292,7 @@ extension ImageManager: ImageTaskManaging {
             case .Completed, .Cancelled:
                 dispathOnMainThread {
                     assert(task.response != nil)
-                    completion(task.response!)
+                    completion(task.response!.makeFastResponse())
                 }
             default:
                 task.completions.append(completion)
