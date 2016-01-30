@@ -33,7 +33,7 @@ public protocol ImageDataLoading {
 public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoading {
     public private(set) var session: NSURLSession!
     private var handlers = [NSURLSessionTask: DataTaskHandler]()
-    private let queue = dispatch_queue_create("ImageDataLoader.SerialQueue", DISPATCH_QUEUE_SERIAL)
+    private let queue = dispatch_queue_create("ImageDataLoader.Queue", DISPATCH_QUEUE_SERIAL)
 
     /** Initialzies data loader by creating a session with a given session configuration. Data loader is set as a delegate of the session.
      */

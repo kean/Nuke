@@ -4,15 +4,31 @@
 
 import Foundation
 
+/** The state of the task. Allowed transitions include:
+ - Suspended -> [Running, Cancelled, Completed]
+ - Running -> [Suspended, Cancelled, Completed]
+ - Cancelled -> []
+ - Completed -> []
+*/
 public enum ImageTaskState {
     case Suspended, Running, Cancelled, Completed
 }
 
 public typealias ImageTaskCompletion = (ImageResponse) -> Void
 
+/** Represents image task progress.
+ */
 public struct ImageTaskProgress {
+    /** Completed unit count.
+     */
     public var completed: Int64 = 0
+    
+    /** Total unit count.
+     */
     public var total: Int64 = 0
+    
+    /** The fraction of overall work completed. If the total unit count is 0 fraction completed is also 0.
+     */
     public var fractionCompleted: Double {
         return self.total == 0 ? 0.0 : Double(self.completed) / Double(self.total)
     }
