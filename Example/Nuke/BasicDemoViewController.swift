@@ -53,7 +53,7 @@ class BasicDemoViewController: UICollectionViewController {
         cell.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
         
         let imageView = self.imageViewForCell(cell)
-        imageView.nk_prepareForReuse()
+        imageView.image = nil
         let imageURL = self.photos[indexPath.row]
         imageView.nk_setImageWithURL(imageURL)
         
@@ -61,7 +61,7 @@ class BasicDemoViewController: UICollectionViewController {
     }
     
     override func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
-        self.imageViewForCell(cell).nk_prepareForReuse()
+        self.imageViewForCell(cell).nk_cancelLoading()
     }
     
     func imageViewForCell(cell: UICollectionViewCell) -> UIImageView {

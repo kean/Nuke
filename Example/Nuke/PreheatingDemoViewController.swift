@@ -69,6 +69,7 @@ class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingC
         
         let imageView = self.imageViewForCell(cell)
         let imageURL = self.photos[indexPath.row]
+        imageView.image = nil
         imageView.nk_setImageWithRequest(self.imageRequestWithURL(imageURL))
         
         return cell
@@ -85,7 +86,7 @@ class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingC
     }
     
     override func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
-        self.imageViewForCell(cell).nk_prepareForReuse()
+        self.imageViewForCell(cell).nk_cancelLoading()
     }
     
     func imageViewForCell(cell: UICollectionViewCell) -> UIImageView {

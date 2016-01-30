@@ -13,7 +13,7 @@ public class ImageViewLoadingController {
     
     /** Handler that gets called each time current imageTask completes or cancels.
     */
-    public var handler: (ImageTask, ImageResponse, ImageViewLoadingOptions?) -> Void
+    public var handler: (ImageTask, ImageResponse, ImageViewLoadingOptions) -> Void
     
     public var manager: ImageManager = ImageManager.shared
     
@@ -21,7 +21,7 @@ public class ImageViewLoadingController {
         self.cancelLoading()
     }
     
-    public init(handler: (ImageTask, ImageResponse, ImageViewLoadingOptions?) -> Void) {
+    public init(handler: (ImageTask, ImageResponse, ImageViewLoadingOptions) -> Void) {
         self.handler = handler
     }
     
@@ -35,7 +35,7 @@ public class ImageViewLoadingController {
         }
     }
     
-    public func setImageWithRequest(request: ImageRequest, options: ImageViewLoadingOptions?)  -> ImageTask {
+    public func setImageWithRequest(request: ImageRequest, options: ImageViewLoadingOptions)  -> ImageTask {
         self.cancelLoading()
         let task = self.manager.taskWith(request)
         task.completion { [weak self, weak task] in

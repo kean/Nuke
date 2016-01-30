@@ -105,7 +105,7 @@ Nuke.taskWith(request) { response in
 
 ```swift
 let task = Nuke.taskWith(imageURL).resume()
-task.progress = { completed, total in
+task.progressHandler = { completed, total in
    // Update progress
 }
 let state = task.state // Track task state
@@ -143,7 +143,7 @@ extension MKAnnotationView: ImageDisplayingView, ImageLoadingView {
 func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
     let cell = collectionView.dequeueReusableCellWithReuseIdentifier(cellReuseID, forIndexPath: indexPath)
     let imageView: ImageView = <#view#>
-    imageView.nk_prepareForReuse()
+    imageView.image = nil
     imageView.nk_setImageWithURL(imageURL)
     return cell
 }
@@ -154,7 +154,7 @@ Cancel image task as soon as the cell goes offscreen (optional):
 ```swift
 func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
     let imageView: ImageView = <#view#>
-    imageView.nk_prepareForReuse()
+    imageView.nk_cancelLoading()
 }
 ```
 

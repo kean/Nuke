@@ -96,7 +96,38 @@ public protocol ImageLoaderDelegate {
     func loader(loader: ImageLoader, processorFor: ImageRequest, image: Image) -> ImageProcessing?
 }
 
+/** Default implementation of ImageLoaderDelegate.
+ */
 public extension ImageLoaderDelegate {
+    /** Returns processor for the given request by constructing decompressor based on request parameters and composing it with a processor from the request.
+     */
+    public func processorFor(request: ImageRequest, image: Image) -> ImageProcessing? {
+        var processors = [ImageProcessing]()
+        if request.shouldDecompressImage, let decompressor = self.decompressorFor(request) {
+            processors.append(decompressor)
+        }
+        if let processor = request.processor {
+            processors.append(processor)
+        }
+        return processors.isEmpty ? nil : ImageProcessorComposition(processors: processors)
+    }
+    
+    public func decompressorFor(request: ImageRequest) -> ImageProcessing? {
+        #if os(OSX)
+            return nil
+        #else
+            return ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode)
+        #endif
+    }
+}
+
+/** Default implementation of ImageLoaderDelegate.
+ 
+ The default implementation is provided in a class which allows methods to be overriden properly.
+ */
+public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
+    public init() {}
+    
     /** Compares request `URL`, `cachePolicy`, `timeoutInterval`, `networkServiceType` and `allowsCellularAccess`.
      */
     public func loader(loader: ImageLoader, isLoadEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
@@ -120,27 +151,6 @@ public extension ImageLoaderDelegate {
             isEquivalent(lhs.processor, rhs: rhs.processor)
     }
     
-    /** Returns processor with combined image decompressor constructed based on request's target size and content mode, and image processor provided in image request.
-     */
-    public func loader(loader: ImageLoader, processorFor request: ImageRequest, image: Image) -> ImageProcessing? {
-        var processors = [ImageProcessing]()
-        if request.shouldDecompressImage, let decompressor = self.decompressorFor(request) {
-            processors.append(decompressor)
-        }
-        if let processor = request.processor {
-            processors.append(processor)
-        }
-        return processors.isEmpty ? nil : ImageProcessorComposition(processors: processors)
-    }
-    
-    private func decompressorFor(request: ImageRequest) -> ImageProcessing? {
-        #if os(OSX)
-            return nil
-        #else
-            return ImageDecompressor(targetSize: request.targetSize, contentMode: request.contentMode)
-        #endif
-    }
-    
     private func isEquivalent(lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
         switch (lhs, rhs) {
         case let (l?, r?): return l.isEquivalent(r)
@@ -148,10 +158,12 @@ public extension ImageLoaderDelegate {
         default: return false
         }
     }
-}
-
-public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
-    public init() {}
+    
+    /** Returns processor with combined image decompressor constructed based on request's target size and content mode, and image processor provided in image request.
+     */
+    public func loader(loader: ImageLoader, processorFor request: ImageRequest, image: Image) -> ImageProcessing? {
+        return self.processorFor(request, image: image)
+    }
 }
 
 // MARK: - ImageLoader

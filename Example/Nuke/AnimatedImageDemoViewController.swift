@@ -37,8 +37,8 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
         self.collectionView?.backgroundColor = UIColor.whiteColor()
         
         let layout = self.collectionViewLayout as! UICollectionViewFlowLayout
-        layout.sectionInset = UIEdgeInsetsMake(8, 8, 8, 8);
-        layout.minimumInteritemSpacing = 8;
+        layout.sectionInset = UIEdgeInsetsMake(8, 8, 8, 8)
+        layout.minimumInteritemSpacing = 8
         
         imageURLs = [
             NSURL(string: "https://cloud.githubusercontent.com/assets/1567433/6505557/77ff05ac-c2e7-11e4-9a09-ce5b7995cad0.gif")!,
@@ -59,7 +59,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
     }
     
     override func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return section == 0 ? 1 : self.imageURLs.count;
+        return section == 0 ? 1 : self.imageURLs.count
     }
     
     override func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
@@ -70,12 +70,12 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
                 textView = UITextView()
                 textView.textColor = UIColor.blackColor()
                 textView.font = UIFont.systemFontOfSize(16)
-                textView.editable = false;
+                textView.editable = false
                 textView.textAlignment = .Center
                 textView.dataDetectorTypes = .Link
                 
                 cell.contentView.addSubview(textView)
-                textView.frame = cell.contentView.bounds;
+                textView.frame = cell.contentView.bounds
                 textView.autoresizingMask = [.FlexibleHeight, .FlexibleWidth]
                 
                 textView.text = "Images by Florian de Looij\n http://flrn.nl/gifs/"
@@ -115,8 +115,8 @@ private class AnimatedImageCell: UICollectionViewCell {
         self.addSubview(self.imageView)
         self.addSubview(self.progressView)
         
-        self.imageView.translatesAutoresizingMaskIntoConstraints = false;
-        self.progressView.translatesAutoresizingMaskIntoConstraints = false;
+        self.imageView.translatesAutoresizingMaskIntoConstraints = false
+        self.progressView.translatesAutoresizingMaskIntoConstraints = false
         
         let views = ["imageView": self.imageView, "progressView": self.progressView]
         
@@ -136,19 +136,19 @@ private class AnimatedImageCell: UICollectionViewCell {
     
     func setImageWithRequest(request: ImageRequest) {
         let task = self.imageView.nk_setImageWithRequest(request)
-        task.progress = { [weak self, weak task] _, _ in
+        task.progressHandler = { [weak self, weak task] _ in
             guard let task = task where task == self?.imageView.nk_imageTask else {
                 return
             }
-            self?.progressView.setProgress(Float(task.fractionCompleted), animated: true)
-            if task.fractionCompleted == 1 {
+            self?.progressView.setProgress(Float(task.progress.fractionCompleted), animated: true)
+            if task.progress.fractionCompleted == 1 {
                 UIView.animateWithDuration(0.2) {
                     self?.progressView.alpha = 0
                 }
             }
         }
         if task.state == .Completed {
-            self.progressView.alpha = 0;
+            self.progressView.alpha = 0
         }
     }
     
@@ -156,6 +156,7 @@ private class AnimatedImageCell: UICollectionViewCell {
         super.prepareForReuse()
         self.progressView.progress = 0
         self.progressView.alpha = 1
-        self.imageView.nk_prepareForReuse()
+        self.imageView.image = nil
+        self.imageView.nk_cancelLoading()
     }
 }
