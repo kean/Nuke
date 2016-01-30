@@ -55,7 +55,7 @@ class BasicDemoViewController: UICollectionViewController {
         let imageView = self.imageViewForCell(cell)
         imageView.image = nil
         let imageURL = self.photos[indexPath.row]
-        imageView.nk_setImageWithURL(imageURL)
+        imageView.nk_setImageWith(imageURL)
         
         return cell
     }

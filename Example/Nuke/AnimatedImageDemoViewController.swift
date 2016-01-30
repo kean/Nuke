@@ -135,7 +135,7 @@ private class AnimatedImageCell: UICollectionViewCell {
     }
     
     func setImageWithRequest(request: ImageRequest) {
-        let task = self.imageView.nk_setImageWithRequest(request)
+        let task = self.imageView.nk_setImageWith(request)
         task.progressHandler = { [weak self, weak task] _ in
             guard let task = task where task == self?.imageView.nk_imageTask else {
                 return

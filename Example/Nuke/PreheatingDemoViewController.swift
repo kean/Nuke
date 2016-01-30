@@ -70,7 +70,7 @@ class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingC
         let imageView = self.imageViewForCell(cell)
         let imageURL = self.photos[indexPath.row]
         imageView.image = nil
-        imageView.nk_setImageWithRequest(self.imageRequestWithURL(imageURL))
+        imageView.nk_setImageWith(self.imageRequestWithURL(imageURL))
         
         return cell
     }

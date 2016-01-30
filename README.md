@@ -119,8 +119,8 @@ task.cancel()
 
 ```swift
 let imageView = UIImageView()
-// let task = imageView.nk_setImageWithURL(<#NSURL#>)
-let task = imageView.nk_setImageWithRequest(<#ImageRequest#>, options: <#ImageViewLoadingOptions?#>)
+// let task = imageView.nk_setImageWith(<#NSURL#>)
+let task = imageView.nk_setImageWith(<#ImageRequest#>, options: <#ImageViewLoadingOptions?#>)
 ```
 
 #### Adding UI Extensions
@@ -144,7 +144,7 @@ func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath ind
     let cell = collectionView.dequeueReusableCellWithReuseIdentifier(cellReuseID, forIndexPath: indexPath)
     let imageView: ImageView = <#view#>
     imageView.image = nil
-    imageView.nk_setImageWithURL(imageURL)
+    imageView.nk_setImageWith(imageURL)
     return cell
 }
 ```

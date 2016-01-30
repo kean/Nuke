@@ -43,7 +43,7 @@ public protocol ImageLoadingView: class {
     
     /** Loads and displays an image for the given request. Cancels previously stared requests.
      */
-    func nk_setImageWithRequest(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask
+    func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask
     
     /** Gets called when the task currently associated with the view is completed.
      
@@ -55,12 +55,12 @@ public protocol ImageLoadingView: class {
 public extension ImageLoadingView where Self: View {
     /** Loads and displays an image for the given URL. Cancels previously stared requests. Uses ImageContentMode.AspectFill, and current view size multiplied by screen scaling factor as an image target size.
      */
-    public func nk_setImageWithURL(URL: NSURL) -> ImageTask {
-        return self.nk_setImageWithRequest(ImageRequest(URL: URL, targetSize: self.nk_targetSize(), contentMode: .AspectFill))
+    public func nk_setImageWith(URL: NSURL) -> ImageTask {
+        return self.nk_setImageWith(ImageRequest(URL: URL, targetSize: self.nk_targetSize(), contentMode: .AspectFill))
     }
     
-    public func nk_setImageWithRequest(request: ImageRequest) -> ImageTask {
-        return self.nk_setImageWithRequest(request, options: ImageViewLoadingOptions())
+    public func nk_setImageWith(request: ImageRequest) -> ImageTask {
+        return self.nk_setImageWith(request, options: ImageViewLoadingOptions())
     }
 }
 
@@ -93,11 +93,11 @@ public var ImageViewDefaultAnimationDuration = 0.25
 /** Provides default implementation for image task completion handler.
  */
 public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
-    public func nk_setImageWithRequest(request: ImageRequest, options: ImageViewLoadingOptions = ImageViewLoadingOptions(), placeholder: Image?) -> ImageTask {
+    public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions = ImageViewLoadingOptions(), placeholder: Image?) -> ImageTask {
         if let placeholder = placeholder {
             self.nk_image = placeholder
         }
-        return self.nk_setImageWithRequest(request, options: options)
+        return self.nk_setImageWith(request, options: options)
     }
     
     /** Default implementation that displays the image and runs animations if necessary.
@@ -151,8 +151,8 @@ public extension ImageLoadingView {
         self.nk_imageLoadingController.cancelLoading()
     }
     
-    public func nk_setImageWithRequest(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask {
-        return self.nk_imageLoadingController.setImageWithRequest(request, options: options)
+    public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask {
+        return self.nk_imageLoadingController.setImageWith(request, options: options)
     }
     
     // MARK: Helpers
