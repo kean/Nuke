@@ -17,7 +17,7 @@
 public protocol ImageDecoding {
     /* Decodes data into an image object.
      */
-    func decode(data: NSData) -> Image?
+    func decode(data: NSData, response: NSURLResponse?) -> Image?
 }
 
 /** Decodes data into an image object. Image scale is set to the scale of the main screen.
@@ -29,7 +29,7 @@ public class ImageDecoder: ImageDecoding {
 
     /** Decodes data into an image object using native methods.
     */
-    public func decode(data: NSData) -> Image? {
+    public func decode(data: NSData, response: NSURLResponse?) -> Image? {
         #if os(OSX)
             return NSImage(data: data)
         #else
@@ -65,9 +65,9 @@ public class ImageDecoderComposition: ImageDecoding {
 
     /** Decoders are applied in an order in which they are present in the decoders array. The decoding stops when one of the decoders produces an image.
      */
-    public func decode(data: NSData) -> Image? {
+    public func decode(data: NSData, response: NSURLResponse?) -> Image? {
         for decoder in self.decoders {
-            if let image = decoder.decode(data) {
+            if let image = decoder.decode(data, response: response) {
                 return image
             }
         }
