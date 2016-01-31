@@ -2,8 +2,7 @@
 //  BasicDemoViewController.swift
 //  Nuke
 //
-//  Created by kean on 09/13/2015.
-//  Copyright (c) 2015 kean. All rights reserved.
+//  Copyright (c) 2016 Alexander Grebenyuk (github.com/kean). All rights reserved.
 //
 
 import UIKit

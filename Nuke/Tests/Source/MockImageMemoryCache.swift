@@ -3,7 +3,7 @@
 //  Nuke
 //
 //  Created by Alexander Grebenyuk on 04/10/15.
-//  Copyright © 2015 CocoaPods. All rights reserved.
+//  Copyright (c) 2016 Alexander Grebenyuk. All rights reserved.
 //
 
 import Foundation

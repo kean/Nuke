@@ -3,7 +3,7 @@
 //  Nuke
 //
 //  Created by Alexander Grebenyuk on 3/14/15.
-//  Copyright (c) 2015 Alexander Grebenyuk. All rights reserved.
+//  Copyright (c) 2016 Alexander Grebenyuk (github.com/kean). All rights reserved.
 //
 
 import XCTest

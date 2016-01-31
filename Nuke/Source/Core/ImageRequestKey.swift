@@ -1,10 +1,6 @@
+// The MIT License (MIT)
 //
-//  ImageRequestKey.swift
-//  Nuke
-//
-//  Created by Alexander Grebenyuk on 03/10/15.
-//  Copyright © 2015 Alexander Grebenyuk. All rights reserved.
-//
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
