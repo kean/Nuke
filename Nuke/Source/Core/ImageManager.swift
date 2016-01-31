@@ -4,9 +4,31 @@
 
 import Foundation
 
+/** The domain used for creating all ImageManager errors.
+
+The image manager would produce either errors in ImageManagerErrorDomain or errors in NSURLErrorDomain (which are not wrapped).
+ */
 public let ImageManagerErrorDomain = "Nuke.ImageManagerErrorDomain"
-public let ImageManagerErrorCancelled = -1
-public let ImageManagerErrorUnknown = -2
+
+/** The image manager error codes.
+ */
+public enum ImageManagerErrorCode: Int {
+    /** Returned when the image manager encountered an error that it cannot interpret.
+     */
+    case Unknown = -15001
+
+    /** Returned when the image task gets cancelled.
+     */
+    case Cancelled = -15002
+    
+    /** Returned when the image manager fails decode image data.
+     */
+    case DecodingFailed = -15003
+    
+    /** Returned when the image manager fails to process image data.
+     */
+    case ProcessingFailed = -15004
+}
 
 // MARK: - ImageManagerConfiguration
 
@@ -145,7 +167,7 @@ public class ImageManager {
             self.loader.resumeLoadingFor(task)
         case .Cancelled:
             self.loader.cancelLoadingFor(task)
-            task.response = ImageResponse.Failure(NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorCancelled, userInfo: nil))
+            task.response = ImageResponse.Failure(errorWithCode(.Cancelled))
             fallthrough
         case .Completed:
             self.executingTasks.remove(task)
@@ -267,7 +289,7 @@ extension ImageManager: ImageLoadingManager {
             }
             task.response = ImageResponse.Success(image, ImageResponseInfo(fastResponse: false, userInfo: userInfo))
         } else {
-            task.response = ImageResponse.Failure(error ?? NSError(domain: ImageManagerErrorDomain, code: ImageManagerErrorUnknown, userInfo: nil))
+            task.response = ImageResponse.Failure(error ?? errorWithCode(.Unknown))
         }
         self.perform { self.setState(.Completed, forTask: task) }
     }

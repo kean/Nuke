@@ -126,7 +126,7 @@ class ImageManagerTest: XCTestCase {
                 case .Success(_, _): XCTFail()
                 case let .Failure(error):
                     XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
-                    XCTAssertEqual((error as NSError).code, ImageManagerErrorCancelled, "")
+                    XCTAssertEqual((error as NSError).code, ImageManagerErrorCode.Cancelled.rawValue, "")
                 }
                 XCTAssertEqual(task.state, ImageTaskState.Cancelled)
                 fulfill()
@@ -150,7 +150,7 @@ class ImageManagerTest: XCTestCase {
                 case .Success(_, _): XCTFail()
                 case let .Failure(error):
                     XCTAssertEqual((error as NSError).domain, ImageManagerErrorDomain, "")
-                    XCTAssertEqual((error as NSError).code, ImageManagerErrorCancelled, "")
+                    XCTAssertEqual((error as NSError).code, ImageManagerErrorCode.Cancelled.rawValue, "")
                 }
                 XCTAssertEqual(task.state, ImageTaskState.Cancelled)
                 fulfill()

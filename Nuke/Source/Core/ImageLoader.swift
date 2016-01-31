@@ -237,7 +237,7 @@ public class ImageLoader: ImageLoading {
         }
         self.configuration.decodingQueue.addOperationWithBlock { [weak self] in
             let image = self?.configuration.decoder.decode(data, response: response)
-            self?.dataTask(dataTask, didCompleteWithImage: image, error: error)
+            self?.dataTask(dataTask, didCompleteWithImage: image, error: (image == nil ? errorWithCode(.DecodingFailed) : nil))
         }
     }
     
@@ -246,7 +246,8 @@ public class ImageLoader: ImageLoading {
             for task in dataTask.tasks {
                 if let image = image, processor = self.delegate.loader(self, processorFor:task.request, image: image) {
                     let operation = NSBlockOperation { [weak self] in
-                        self?.complete(task, image: processor.process(image), error: error)
+                        let image = processor.process(image)
+                        self?.complete(task, image: image, error: (image == nil ? errorWithCode(.ProcessingFailed) : nil))
                     }
                     self.configuration.processingQueue.addOperation(operation)
                     self.loadStates[task] = ImageLoadState.Processing(operation)

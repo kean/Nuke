@@ -53,6 +53,18 @@ internal func dispathOnMainThread(closure: (Void) -> Void) {
     NSThread.isMainThread() ? closure() : dispatch_async(dispatch_get_main_queue(), closure)
 }
 
+internal func errorWithCode(code: ImageManagerErrorCode) -> NSError {
+    func reason() -> String {
+        switch code {
+        case .Unknown: return "The image manager encountered an error that it cannot interpret."
+        case .Cancelled: return "The image task was cancelled."
+        case .DecodingFailed: return "The image manager failed to decode image data."
+        case .ProcessingFailed: return "The image manager failed to process image data."
+        }
+    }
+    return NSError(domain: ImageManagerErrorDomain, code: code.rawValue, userInfo: [NSLocalizedFailureReasonErrorKey: reason()])
+}
+
 internal extension NSOperationQueue {
     convenience init(maxConcurrentOperationCount: Int) {
         self.init()
