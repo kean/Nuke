@@ -71,6 +71,10 @@ public struct ImageRequest {
      */
     public var processor: ImageProcessing?
     
+    /** The relative priority at which you’d like a host to handle the task. The priority is used when creating an underlying NSURLSessionTask.
+     */
+    public var priority: Float = NSURLSessionTaskPriorityDefault
+    
     /** Allows users to pass some custom info alongside the request.
      */
     public var userInfo: Any?

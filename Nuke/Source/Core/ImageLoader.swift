@@ -218,6 +218,7 @@ public class ImageLoader: ImageLoading {
         }, completion: { [weak self] data, response, error in
             self?.dataTask(dataTask, didCompleteWithData: data, response: response, error: error)
         })
+        dataTask.URLSessionTask?.priority = request.priority
         return dataTask
     }
     
