@@ -436,16 +436,15 @@ class ImageManagerTest: XCTestCase {
         // task3 is not getting resumed
         
         self.expect { fulfill in
-            self.manager.getTasksWithCompletion { executingTasks, _ in
-                XCTAssertEqual(executingTasks.count, 2)
-                XCTAssertTrue(executingTasks.contains(task1))
-                XCTAssertEqual(task1.state, ImageTaskState.Running)
-                XCTAssertTrue(executingTasks.contains(task2))
-                XCTAssertEqual(task2.state, ImageTaskState.Suspended)
-                XCTAssertFalse(executingTasks.contains(task3))
-                XCTAssertEqual(task3.state, ImageTaskState.Suspended)
-                fulfill()
-            }
+            let (executingTasks, _) = self.manager.tasks
+            XCTAssertEqual(executingTasks.count, 2)
+            XCTAssertTrue(executingTasks.contains(task1))
+            XCTAssertEqual(task1.state, ImageTaskState.Running)
+            XCTAssertTrue(executingTasks.contains(task2))
+            XCTAssertEqual(task2.state, ImageTaskState.Suspended)
+            XCTAssertFalse(executingTasks.contains(task3))
+            XCTAssertEqual(task3.state, ImageTaskState.Suspended)
+            fulfill()
         }
         self.wait()
     }

@@ -101,16 +101,16 @@ public class ImageManager {
         self.loader.removeAllCachedImages()
     }
     
-    /** Asynchronously calls a completion closure on the main thread with all executing tasks and all preheating tasks. Set with executing tasks might contain currently executing preheating tasks.
+    /** Returns all executing tasks and all preheating tasks. Set with executing tasks might contain currently executing preheating tasks.
      */
-    public func getTasksWithCompletion(completion: (executingTasks: Set<ImageTask>, preheatingTasks: Set<ImageTask>) -> Void) {
+    public var tasks: (executingTasks: Set<ImageTask>, preheatingTasks: Set<ImageTask>) {
+        var executingTasks: Set<ImageTask>!
+        var preheatingTasks: Set<ImageTask>!
         self.perform {
-            let executingTasks = self.executingTasks
-            let preheatingTasks = Set(self.preheatingTasks.values)
-            dispatch_async(dispatch_get_main_queue()) {
-                completion(executingTasks: executingTasks, preheatingTasks: preheatingTasks)
-            }
+            executingTasks = self.executingTasks
+            preheatingTasks = Set(self.preheatingTasks.values)
         }
+        return (executingTasks, preheatingTasks)
     }
     
     // MARK: FSM (ImageTaskState)
