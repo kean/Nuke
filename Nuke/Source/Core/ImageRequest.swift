@@ -21,6 +21,18 @@ public enum ImageContentMode {
     case AspectFit
 }
 
+/** Defines constants that can be used to modify the way ImageManager interacts with the memory cache.
+ */
+public enum ImageRequestMemoryCachePolicy {
+    /** Return memory cached image corresponding the request. If there is no existing image in the memory cache, the image manager continues with the request.
+     */
+    case ReturnCachedImageElseLoad
+    
+    /** Reload using ignoring memory cached images. Doesn't affect on-disk caching.
+     */
+    case ReloadIgnoringCachedImage
+}
+
 /** Size to pass when requesting the original image available for a request (image won't be resized).
 */
 public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
@@ -46,6 +58,10 @@ public struct ImageRequest {
     /** Specifies whether loaded image should be stored into memory cache. Default value is true.
      */
     public var memoryCacheStorageAllowed = true
+    
+    /** The request memory cachce policy. Default value is .ReturnCachedImageElseLoad.
+     */
+    public var memoryCachePolicy = ImageRequestMemoryCachePolicy.ReturnCachedImageElseLoad
     
     /** Default value is true.
      */
@@ -81,19 +97,5 @@ public struct ImageRequest {
         self.URLRequest = URLRequest
         self.targetSize = targetSize
         self.contentMode = contentMode
-    }
-}
-
-public extension ImageRequest {
-    /**
-     Determins whether image manager should return cached response from memory cache.
-     
-     - warning: This property is going to be removed in version 2.0.
-     */
-    public var allowsCaching: Bool {
-        switch self.URLRequest.cachePolicy {
-        case .UseProtocolCachePolicy, .ReturnCacheDataElseLoad, .ReturnCacheDataDontLoad: return true
-        default: return false
-        }
     }
 }

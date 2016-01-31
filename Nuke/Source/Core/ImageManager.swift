@@ -132,12 +132,14 @@ public class ImageManager {
     private func enterStateAction(state: ImageTaskState, task: ImageTaskInternal) {
         switch state {
         case .Running:
-            if task.request.allowsCaching {
+            switch task.request.memoryCachePolicy {
+            case .ReturnCachedImageElseLoad:
                 if let response = self.cachedResponseForRequest(task.request) {
                     task.response = ImageResponse.Success(response.image, ImageResponseInfo(fastResponse: true, userInfo: response.userInfo))
                     self.setState(.Completed, forTask: task)
                     return
                 }
+            default: break
             }
             self.executingTasks.insert(task)
             self.loader.resumeLoadingFor(task)
