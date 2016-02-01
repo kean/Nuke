@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-Advanced Swift framework for loading, processing, caching, displaying and preheating images.
+Advanced Swift framework for loading, processing, caching, displaying and <a href="http://kean.github.io/blog/programming/2015/12/12/image-preheating.html">preheating</a> images.
 </p>
 
 ```swift
