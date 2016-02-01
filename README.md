@@ -49,6 +49,7 @@ Nuke.taskWith(request) { response in
 
 ##### Processing
 - Create, compose and apply image filters
+- [Core Image](https://developer.apple.com/library/mac/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html) integration
 - Background image decompression and scaling in a single step
 - Resize loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
 
