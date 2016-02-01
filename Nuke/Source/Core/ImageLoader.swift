@@ -66,6 +66,10 @@ public struct ImageLoaderConfiguration {
      */
     public var processingQueue = NSOperationQueue(maxConcurrentOperationCount: 2)
     
+    /** Determines whether image loader should prevent excessive creation and resuming of session tasks, limiting the pressure on the system. Default value is true.
+     */
+    public var congestionControlEnabled = true
+    
     /**
      Initializes configuration with data loader and image decoder.
      
@@ -174,7 +178,7 @@ Performs loading of images for the image tasks using objects conforming to `Imag
 - Provides a transparent loading, decoding and processing with a single completion signal
 - Reuses data tasks for equivalent image tasks
 */
-public class ImageLoader: ImageLoading {
+public class ImageLoader: ImageLoading, CongestionControllerDelegate {
     public weak var manager: ImageLoadingManager?
     public let configuration: ImageLoaderConfiguration
     
@@ -185,6 +189,7 @@ public class ImageLoader: ImageLoading {
     private var loadStates = [ImageTask : ImageLoadState]()
     private var dataTasks = [ImageRequestKey : ImageDataTask]()
     private let queue = dispatch_queue_create("ImageLoader.Queue", DISPATCH_QUEUE_SERIAL)
+    private var controller: CongestionController!
     
     /**
      Initializes image loader with a configuration and a delegate.
@@ -194,21 +199,27 @@ public class ImageLoader: ImageLoading {
     public init(configuration: ImageLoaderConfiguration, delegate: ImageLoaderDelegate = ImageLoaderDefaultDelegate()) {
         self.configuration = configuration
         self.delegate = delegate
+        self.controller = CongestionController(queue: self.queue)
+        self.controller.delegate = self
     }
     
     public func resumeLoadingFor(task: ImageTask) {
         dispatch_async(self.queue) {
-            let key = ImageRequestKey(task.request, owner: self)
-            var dataTask: ImageDataTask! = self.dataTasks[key]
-            if dataTask == nil {
-                dataTask = self.dataTaskWith(task.request, key: key)
-                self.dataTasks[key] = dataTask
-            } else {
-                self.manager?.loader(self, task: task, didUpdateProgress: dataTask.progress)
-            }
-            self.loadStates[task] = ImageLoadState.Loading(dataTask)
-            dataTask.resume(task)
+            self.configuration.congestionControlEnabled ? self.controller.resume(task) : self._resumeLoadingFor(task)
         }
+    }
+    
+    private func _resumeLoadingFor(task: ImageTask) {
+        let key = ImageRequestKey(task.request, owner: self)
+        var dataTask: ImageDataTask! = self.dataTasks[key]
+        if dataTask == nil {
+            dataTask = self.dataTaskWith(task.request, key: key)
+            self.dataTasks[key] = dataTask
+        } else {
+            self.manager?.loader(self, task: task, didUpdateProgress: dataTask.progress)
+        }
+        self.loadStates[task] = ImageLoadState.Loading(dataTask)
+        dataTask.resume(task)
     }
     
     private func dataTaskWith(request: ImageRequest, key: ImageRequestKey) -> ImageDataTask {
@@ -272,29 +283,37 @@ public class ImageLoader: ImageLoading {
     
     public func suspendLoadingFor(task: ImageTask) {
         dispatch_async(self.queue) {
-            if let state = self.loadStates[task] {
-                switch state {
-                case .Loading(let sessionTask):
-                    sessionTask.suspend(task)
-                default: break
-                }
+            self.configuration.congestionControlEnabled ? self.controller.suspend(task) : self._suspendLoadingFor(task)
+        }
+    }
+    
+    private func _suspendLoadingFor(task: ImageTask) {
+        if let state = self.loadStates[task] {
+            switch state {
+            case .Loading(let sessionTask):
+                sessionTask.suspend(task)
+            default: break
             }
         }
     }
     
     public func cancelLoadingFor(task: ImageTask) {
         dispatch_async(self.queue) {
-            if let state = self.loadStates[task] {
-                switch state {
-                case .Loading(let sessionTask):
-                    if sessionTask.cancel(task) {
-                        self.remove(sessionTask)
-                    }
-                case .Processing(let operation):
-                    operation.cancel()
+            self.configuration.congestionControlEnabled ? self.controller.cancel(task) : self._cancelLoadingFor(task)
+        }
+    }
+    
+    private func _cancelLoadingFor(task: ImageTask) {
+        if let state = self.loadStates[task] {
+            switch state {
+            case .Loading(let sessionTask):
+                if sessionTask.cancel(task) {
+                    self.remove(sessionTask)
                 }
-                self.loadStates[task] = nil
+            case .Processing(let operation):
+                operation.cancel()
             }
+            self.loadStates[task] = nil
         }
     }
     
@@ -380,5 +399,75 @@ private class ImageDataTask {
         self.executingTasks.removeAll()
         self.suspendedTasks.removeAll()
         self.URLSessionTask = nil
+    }
+}
+
+// MARK: - CongestionController
+
+private protocol CongestionControllerDelegate: class {
+    func _resumeLoadingFor(task: ImageTask)
+    func _suspendLoadingFor(task: ImageTask)
+    func _cancelLoadingFor(task: ImageTask)
+}
+
+/** The CongestionController serves multiple purposes:
+ - Prevents NSURLSession trashing
+ - Prevents excessive resuming and subsequent cancellation of tasks during the fast scrolling
+ 
+ All it actually does is delay the `resume(task)` calls on ImageLoader. This is an alternative of having a limited number of concurrent NSURLSessionTasks, which we want to avoid in order to get the best on-disk caching and loading performance. The problem with limiting the number of concurrent tasks instead of using `HTTPMaximumConnectionsPerHost` is that when the queue is filled with networking requests, there is no way to retrieve cached responses from disk cache, and we want disk cache to always be accessible.
+ 
+ This approach was borrowed from DFImageManager, and it was battle tested and proven really useful.
+ */
+private class CongestionController {
+    weak var delegate: CongestionControllerDelegate?
+    let queue: dispatch_queue_t
+    // We can't use NSMutableOrderedSet, because ImageTask is not an NSObject
+    var pendingTasks = [ImageTask]()
+    var executing = false
+    let taskExecutionInterval: Int64 = Int64(8 * NSEC_PER_MSEC); // 8 ms
+
+    init(queue: dispatch_queue_t) {
+        self.queue = queue
+    }
+    
+    func resume(task: ImageTask) {
+        if !self.pendingTasks.contains(task) {
+            self.pendingTasks.append(task)
+            self.setNeedsExecutePendingTasks()
+        }
+    }
+    
+    func suspend(task: ImageTask) {
+        self.removeTask(task)
+        self.delegate?._suspendLoadingFor(task)
+    }
+    
+    func cancel(task: ImageTask) {
+        self.removeTask(task)
+        self.delegate?._cancelLoadingFor(task)
+    }
+    
+    func removeTask(task: ImageTask) {
+        if let index = self.pendingTasks.indexOf(task) {
+            self.pendingTasks.removeAtIndex(index)
+        }
+    }
+    
+    func setNeedsExecutePendingTasks() {
+        if !self.executing {
+            self.executing = true
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, self.taskExecutionInterval), self.queue) { [weak self] in
+                self?.resumePendingTask()
+            }
+        }
+    }
+    
+    func resumePendingTask() {
+        self.executing = false
+        if self.pendingTasks.count > 0 {
+            let task = self.pendingTasks.removeFirst()
+            self.delegate?._resumeLoadingFor(task)
+            self.setNeedsExecutePendingTasks()
+        }
     }
 }

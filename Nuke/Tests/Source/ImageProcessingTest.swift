@@ -19,7 +19,11 @@ class ImageProcessingTest: XCTestCase {
 
         self.mockSessionManager = MockImageDataLoader()
         self.mockMemoryCache = MockImageMemoryCache()
-        self.manager = ImageManager(configuration: ImageManagerConfiguration(dataLoader: self.mockSessionManager, cache: self.mockMemoryCache))
+        
+        self.mockSessionManager = MockImageDataLoader()
+        var loaderConfiguration = ImageLoaderConfiguration(dataLoader: self.mockSessionManager)
+        loaderConfiguration.congestionControlEnabled = false
+        self.manager = ImageManager(configuration: ImageManagerConfiguration(loader: ImageLoader(configuration: loaderConfiguration), cache: self.mockMemoryCache))
     }
 
     override func tearDown() {

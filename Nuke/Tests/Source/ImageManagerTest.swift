@@ -17,8 +17,9 @@ class ImageManagerTest: XCTestCase {
         super.setUp()
 
         self.mockSessionManager = MockImageDataLoader()
-        let configuration = ImageManagerConfiguration(dataLoader: self.mockSessionManager, cache: nil)
-        self.manager = ImageManager(configuration: configuration)
+        var loaderConfiguration = ImageLoaderConfiguration(dataLoader: self.mockSessionManager)
+        loaderConfiguration.congestionControlEnabled = false
+        self.manager = ImageManager(configuration: ImageManagerConfiguration(loader: ImageLoader(configuration: loaderConfiguration), cache: nil))
     }
 
     override func tearDown() {
