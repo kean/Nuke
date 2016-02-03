@@ -5,8 +5,8 @@ public func cropImageToSquare(image: UIImage?) -> UIImage? {
         return nil
     }
     func cropRectForSize(size: CGSize) -> CGRect {
-        let side = min(size.width, size.height)
-        let origin = CGPoint(x: (size.width - side) / 2.0, y: (size.height - side) / 2.0)
+        let side = min(floor(size.width), floor(size.height))
+        let origin = CGPoint(x: floor((size.width - side) / 2.0), y: floor((size.height - side) / 2.0))
         return CGRect(origin: origin, size: CGSize(width: side, height: side))
     }
     let bitmapSize = CGSize(width: CGImageGetWidth(image.CGImage), height: CGImageGetHeight(image.CGImage))

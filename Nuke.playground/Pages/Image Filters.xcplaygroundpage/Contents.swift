@@ -2,11 +2,11 @@ import Nuke
 import UIKit
 import XCPlayground
 
-/*: 
+/*:
 ### Applying Filters
-Applying image filters is as easy as setting `processor` property on `ImageRequest`. Nuke does all the heavy lifting including storing processed images into memory cache. Creating image filters is also dead simple thanks to `ImageProcessing` protocol and its extensions.
+Applying image filters is as easy as setting `processor` property on the `ImageRequest`. Nuke does all the heavy lifting, including storing processed images into memory cache. Creating image filters is also dead simple thanks to `ImageProcessing` protocol and its extensions.
 */
-// Create a simple image filter that would draw an image in a circle
+
 class ImageFilterDrawInCircle: ImageProcessing {
     func process(image: UIImage) -> UIImage? {
         return drawImageInCircle(cropImageToSquare(image))
@@ -24,7 +24,7 @@ example("Applying Filters") {
 
 /*:
 ### Composing Filters
-It's easy to combine multiple filters using `ImageFilterComposition` class. Lets use a `ImageFilterDrawInCircle` from the previous example and combine it with a new.
+It's easy to combine multiple filters using `ImageFilterComposition` class. Lets use a `ImageFilterDrawInCircle` from the previous example and combine it with a gaussian blur filter.
 */
 
 import CoreImage
