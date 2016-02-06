@@ -1,5 +1,43 @@
  [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+## Nuke 2.0
+
+Nuke now has an [official website](http://kean.github.io/Nuke/)!
+
+#### Main Changes
+
+- #48 Update according to [Swift API Design Guidelines](https://swift.org/documentation/api-design-guidelines/). All APIs now just feel right.
+- Add `UIImage` extension with helper functions for `Core Image`: `nk_filter(_:)`, etc.
+- Add `ImageFilterGaussianBlur` as an example of a filter on top of `Core Image` framework
+- Add `ImageRequestMemoryCachePolicy` enum that specifies the way `ImageManager` interacts with a memory cache; `NSURLRequestCachePolicy` no longer affects memory cache
+- #17 Add `priority` to `ImageRequest`
+- Add `removeResponseForKey()` method to `ImageMemoryCaching` protocol and the corresponding method to `ImageManager`
+- Implement congestion control for `ImageLoader` that prevents `NSURLSession` trashing
+- Simplify `ImageLoaderDelegate` by combining methods that were customizing processing in a single high-level method: `imageLoader(_:processorFor:image:)`. Users now have more control over processing
+- Add `NSURLResponse?` parameter to `decode` method from `ImageDecoding` protocol
+- `ImageDataLoading` protocol no longer has `isLoadEquivalentRequest(_:toRequest)` and `isCacheEquivalentRequest(_:toRequest)`. Those methods are now part of `ImageLoaderDelegate` and they have default implementation
+- `ImageResponseInfo` is now a struct
+- Improved error reporting (codes are now stored in enum, more codes were added, error is now created with a failure reason)
+
+#### UI Extensions Changes
+- Move `nk_imageTask(_:didFinishWithResponse:options)` method to `ImageLoadingView` protocol, that's really where it belongs to
+- Add `handler` property to `ImageViewLoadingOptions` that allows you to completely override display/animate logic in `ImageLoadingView`
+- Remove `nk_prepareForReuse` method from `ImageLoadingView` extensions (useless)
+- Remove `placeholder` from `ImageViewLoadingOptions`, move it to a separate argument which is only available on `ImageDisplayingView`s
+- Add `animated`, `userInfo` to `ImageViewLoadingOptions`
+- `ImageViewLoadingOptions` is now nonull everywhere
+- Add `setImageWith(task:options:)` method to `ImageViewLoadingController`
+
+#### Other Changes
+
+- If you add a completion handler for completed task, the response is now marked as `isFastResponse = true`
+- Fix an issue that allowed incomplete image downloads to finish successfully when using built-in networking
+- `equivalentProcessors(rhs:lhs:)` function is now private (and it also is renamed)
+- Remove public `isLoadEquivalentToRequest(_:)` and `isCacheEquivalentToRequest(_:)` methods from `ImageRequest` extension
+- Add `ImageTaskProgress` struct that represents load progress, move `fractionCompleted` property from `ImageTask` to `ImageTaskProgress`
+- Remove public helper function `allowsCaching` from `ImageRequest` extension
+- Remove deprecated `XCPSetExecutionShouldContinueIndefinitely` from playground
+
 ## Nuke 1.4.0
 
 - #46 Add option to disable memory cache storage, thanks to @RuiAAPeres
