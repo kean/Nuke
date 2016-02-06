@@ -66,6 +66,7 @@ Nuke.taskWith(request) { response in
 - API reference: [iOS](http://kean.github.io/Nuke/docs/ios/) / [OSX](http://kean.github.io/Nuke/docs/osx/) / [tvOS](http://kean.github.io/Nuke/docs/tvos/) / [watchOS](http://kean.github.io/Nuke/docs/watchos/)
 - [Usage](http://kean.github.io/Nuke/usage/)
 - [Plugins](http://kean.github.io/Nuke/plugins/)
+- [Docs](http://kean.github.io/Nuke/docs/)
 
 ## <a name="h_usage"></a>Usage
 
