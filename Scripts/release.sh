@@ -48,13 +48,13 @@ echo "Validating podspec"
 pod spec lint
 
 
-echo "Build docs"
-git checkout gh-pages
-git merge master --commit
-/Scripts/builds_docs.sh
-git add --all
-git commit -m "Generate docs for version $new_version"
-git push
+# echo "Build docs"
+# git checkout gh-pages
+# git merge master --commit
+# /Scripts/builds_docs.sh
+# git add --all
+# git commit -m "Generate docs for version $new_version"
+# git push
 
 # TODO: Run intergration tests (kean/Nuke-Integration-Tests)
 # TODO: pod trunk push
