@@ -20,15 +20,6 @@ Nuke.taskWith(request) { response in
 }.resume()
 ```
 
-1. [Requirements](#h_requirements)
-2. [Getting Started](#h_getting_started)
-3. [Documentation](#h_documentation)
-4. [Usage](#h_usage)
-5. [Design](#h_design)
-6. [Installation](#installation)
-7. [Satellite Projects](#h_satellite_projects)
-8. [Donations](#h_donations)
-
 ## <a name="h_features"></a>Features
 
 - User-friendly API, zero configuration required
