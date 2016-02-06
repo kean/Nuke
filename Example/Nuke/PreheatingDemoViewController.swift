@@ -94,6 +94,8 @@ class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingC
             imageView = UIImageView(frame: cell.bounds)
             imageView!.autoresizingMask =  [.FlexibleWidth, .FlexibleHeight]
             imageView!.tag = 15
+            imageView!.contentMode = .ScaleAspectFill
+            imageView!.clipsToBounds = true
             cell.addSubview(imageView!)
         }
         return imageView!
