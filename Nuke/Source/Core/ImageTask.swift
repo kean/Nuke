@@ -37,24 +37,22 @@ public struct ImageTaskProgress {
 /** Abstract class for image tasks. Tasks are always part of the image manager, you create a task by calling one of the methods on ImageManager.
  */
 public class ImageTask: Hashable {
+    
+    // MARK: Obtainig General Task Information
+    
     /** The request that task was created with.
      */
     public let request: ImageRequest
     
-    /** The current state of the task.
-     */
-    public internal(set) var state: ImageTaskState = .Suspended
     public internal(set) var response: ImageResponse?
-    public internal(set) var progress = ImageTaskProgress()
     public var hashValue: Int { return self.identifier }
     
     /** Uniquely identifies the task within an image manager.
      */
     public let identifier: Int
     
-    /** A progress closure that gets periodically during the lifecycle of the task.
-     */
-    public var progressHandler: ((progress: ImageTaskProgress) -> Void)?
+    
+    // MARK: Configuring Task
     
     public init(request: ImageRequest, identifier: Int) {
         self.request = request
@@ -68,6 +66,24 @@ public class ImageTask: Hashable {
      The closure is called even if it is added to the already completed or cancelled task.
      */
     public func completion(completion: ImageTaskCompletion) -> Self { fatalError("Abstract method") }
+    
+    
+    // MARK: Obraining Task Progress
+    
+    /** Return current task progress. Initial value is (0, 0).
+     */
+    public internal(set) var progress = ImageTaskProgress()
+    
+    /** A progress closure that gets periodically during the lifecycle of the task.
+     */
+    public var progressHandler: ((progress: ImageTaskProgress) -> Void)?
+    
+    
+    // MARK: Controlling Task State
+    
+    /** The current state of the task.
+    */
+    public internal(set) var state: ImageTaskState = .Suspended
     
     /** Resumes the task if suspended. Resume and suspend methods are nestable.
      */

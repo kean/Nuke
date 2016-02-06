@@ -45,7 +45,7 @@ public class ImagePreheatingController: NSObject {
         }
     }
     
-    // MARK: Subclassing
+    // MARK: Subclassing Hooks
 
     /** Abstract method. Subclassing hook.
     */

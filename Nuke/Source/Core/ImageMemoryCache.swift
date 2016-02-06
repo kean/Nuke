@@ -47,15 +47,18 @@ public class ImageCachedResponse {
 /** Auto purging memory cache that uses NSCache as its internal storage.
 */
 public class ImageMemoryCache: ImageMemoryCaching {
-    /** The internal memory cache.
-     */
-    public let cache: NSCache
-
+    
     deinit {
         #if os(iOS) || os(tvOS)
             NSNotificationCenter.defaultCenter().removeObserver(self, name: UIApplicationDidReceiveMemoryWarningNotification, object: nil)
         #endif
     }
+    
+    // MARK: Configuring Cache
+    
+    /** The internal memory cache.
+     */
+    public let cache: NSCache
 
     /** Initializes the receiver with a given memory cache.
      */
@@ -76,6 +79,17 @@ public class ImageMemoryCache: ImageMemoryCaching {
         #endif
         self.init(cache: cache)
     }
+    
+    /** Returns recommended cost limit in bytes.
+     */
+    public class func recommendedCostLimit() -> Int {
+        let physicalMemory = NSProcessInfo.processInfo().physicalMemory
+        let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
+        let limit = physicalMemory / UInt64(1 / ratio)
+        return limit > UInt64(Int.max) ? Int.max : Int(limit)
+    }
+    
+    // MARK: Managing Cached Responses
 
     public func responseForKey(key: ImageRequestKey) -> ImageCachedResponse? {
         return self.cache.objectForKey(key) as? ImageCachedResponse
@@ -84,7 +98,15 @@ public class ImageMemoryCache: ImageMemoryCaching {
     public func set(response: ImageCachedResponse, forKey key: ImageRequestKey) {
         self.cache.setObject(response, forKey: key, cost: self.costFor(response.image))
     }
+    
+    /** Removes all cached images.
+     */
+    public func clear() {
+        self.cache.removeAllObjects()
+    }
 
+    // MARK: Subclassing Hooks
+    
     /** Returns cost for the given image by approximating its bitmap size in bytes in memory.
      */
     public func costFor(image: Image) -> Int {
@@ -96,22 +118,7 @@ public class ImageMemoryCache: ImageMemoryCaching {
             return bits / 8
         #endif
     }
-
-    /** Returns recommended cost limit in bytes.
-     */
-    public class func recommendedCostLimit() -> Int {
-        let physicalMemory = NSProcessInfo.processInfo().physicalMemory
-        let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
-        let limit = physicalMemory / UInt64(1 / ratio)
-        return limit > UInt64(Int.max) ? Int.max : Int(limit)
-    }
-
-    /** Removes all cached images.
-     */
-    public func clear() {
-        self.cache.removeAllObjects()
-    }
-
+    
     @objc private func didReceiveMemoryWarning(notification: NSNotification) {
         self.cache.removeAllObjects()
     }

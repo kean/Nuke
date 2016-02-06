@@ -323,9 +323,7 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
             self.dataTasks[task.key] = nil
         }
     }
-    
-    // MARK: Misc
-    
+        
     public func isCacheEquivalent(lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
         return self.delegate.loader(self, isCacheEquivalent: lhs, to: rhs)
     }
