@@ -6,7 +6,7 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-Advanced Swift framework for loading, processing, caching and [preheating](http://outscope.net/blog/image-caching) images.
+Advanced Swift framework for loading, processing, caching and [preheating](http://outscope.net/blog/image-preheating) images.
 
 To get started check out http://kean.github.io/Nuke/ !
 
