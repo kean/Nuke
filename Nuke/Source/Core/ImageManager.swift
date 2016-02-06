@@ -129,7 +129,7 @@ public class ImageManager {
         case .Running:
             switch task.request.memoryCachePolicy {
             case .ReturnCachedImageElseLoad:
-                if let response = self.cachedResponseForRequest(task.request) {
+                if let response = self.responseForRequest(task.request) {
                     task.response = ImageResponse.Success(response.image, ImageResponseInfo(fastResponse: true, userInfo: response.userInfo))
                     self.setState(.Completed, forTask: task)
                     return
@@ -219,16 +219,22 @@ public class ImageManager {
     
     // MARK: Memory Caching
     
-    /** Returns image response from the memory cache. Ignores NSURLRequestCachePolicy.
+    /** Returns response from the memory cache. Ignores NSURLRequestCachePolicy.
     */
-    public func cachedResponseForRequest(request: ImageRequest) -> ImageCachedResponse? {
+    public func responseForRequest(request: ImageRequest) -> ImageCachedResponse? {
         return self.cache?.responseForKey(ImageRequestKey(request, owner: self))
     }
     
-    /** Stores image response into the memory cache.
+    /** Stores response into the memory cache.
      */
-    public func storeResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
-        self.cache?.set(response, forKey: ImageRequestKey(request, owner: self))
+    public func setResponse(response: ImageCachedResponse, forRequest request: ImageRequest) {
+        self.cache?.setResponse(response, forKey: ImageRequestKey(request, owner: self))
+    }
+    
+    /** Stores response from the memory cache.
+     */
+    public func removeResponseForRequest(request: ImageRequest) {
+        self.cache?.removeResponseForKey(ImageRequestKey(request, owner: self))
     }
     
     // MARK: Managing the Manager
@@ -294,7 +300,7 @@ extension ImageManager: ImageLoadingManager {
         let task = task as! ImageTaskInternal
         if let image = image {
             if task.request.memoryCacheStorageAllowed {
-                self.storeResponse(ImageCachedResponse(image: image, userInfo: userInfo), forRequest: task.request)
+                self.setResponse(ImageCachedResponse(image: image, userInfo: userInfo), forRequest: task.request)
             }
             task.response = ImageResponse.Success(image, ImageResponseInfo(fastResponse: false, userInfo: userInfo))
         } else {

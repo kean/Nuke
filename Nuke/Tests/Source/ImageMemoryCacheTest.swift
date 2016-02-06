@@ -30,7 +30,7 @@ class ImageMemoryCacheTest: XCTestCase {
         let request = ImageRequest(URL: defaultURL)
         
         XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
-        XCTAssertNil(self.manager.cachedResponseForRequest(request))
+        XCTAssertNil(self.manager.responseForRequest(request))
 
         self.expect { fulfill in
             self.manager.taskWith(request) {
@@ -45,7 +45,7 @@ class ImageMemoryCacheTest: XCTestCase {
         self.wait()
         
         XCTAssertEqual(self.mockMemoryCache.responses.count, 1)
-        XCTAssertNotNil(self.manager.cachedResponseForRequest(request))
+        XCTAssertNotNil(self.manager.responseForRequest(request))
         
         self.mockSessionManager.enabled = false
         
@@ -66,12 +66,12 @@ class ImageMemoryCacheTest: XCTestCase {
         let request = ImageRequest(URL: defaultURL)
         
         XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
-        XCTAssertNil(self.manager.cachedResponseForRequest(request))
+        XCTAssertNil(self.manager.responseForRequest(request))
         
-        self.manager.storeResponse(ImageCachedResponse(image: Image(), userInfo: "info"), forRequest: request)
+        self.manager.setResponse(ImageCachedResponse(image: Image(), userInfo: "info"), forRequest: request)
         
         XCTAssertEqual(self.mockMemoryCache.responses.count, 1)
-        let response = self.manager.cachedResponseForRequest(request)
+        let response = self.manager.responseForRequest(request)
         XCTAssertNotNil(response)
         XCTAssertEqual(response?.userInfo as? String, "info")
         
@@ -88,16 +88,34 @@ class ImageMemoryCacheTest: XCTestCase {
         XCTAssertTrue(isCompletionCalled, "")
     }
     
+    func testThatRemoveResponseMethodWorks() {
+        let request = ImageRequest(URL: defaultURL)
+        
+        XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
+        XCTAssertNil(self.manager.responseForRequest(request))
+        
+        self.manager.setResponse(ImageCachedResponse(image: Image(), userInfo: "info"), forRequest: request)
+        
+        XCTAssertEqual(self.mockMemoryCache.responses.count, 1)
+        let response = self.manager.responseForRequest(request)
+        XCTAssertNotNil(response)
+        XCTAssertEqual(response?.userInfo as? String, "info")
+        
+        self.manager.removeResponseForRequest(request)
+        XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
+        XCTAssertNil(self.manager.responseForRequest(request))
+    }
+    
     func testThatRequestMemoryCachePolicyIsHonored() {
-        self.manager.storeResponse(ImageCachedResponse(image: Image(), userInfo: "info"), forRequest: ImageRequest(URL: defaultURL))
+        self.manager.setResponse(ImageCachedResponse(image: Image(), userInfo: "info"), forRequest: ImageRequest(URL: defaultURL))
         
         let request1 = ImageRequest(URL: defaultURL)
         var request2 = ImageRequest(URL: defaultURL)
         request2.memoryCachePolicy = .ReloadIgnoringCachedImage
         
-        // cachedResponseForRequest should ignore ImageRequestMemoryCachePolicy
-        XCTAssertNotNil(self.manager.cachedResponseForRequest(request1))
-        XCTAssertNotNil(self.manager.cachedResponseForRequest(request2))
+        // responseForRequest should ignore ImageRequestMemoryCachePolicy
+        XCTAssertNotNil(self.manager.responseForRequest(request1))
+        XCTAssertNotNil(self.manager.responseForRequest(request2))
         
         var isCompletionCalled = false
         self.manager.taskWith(request1) {
@@ -130,7 +148,7 @@ class ImageMemoryCacheTest: XCTestCase {
         request.memoryCacheStorageAllowed = false // Test default value
         
         XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
-        XCTAssertNil(self.manager.cachedResponseForRequest(request))
+        XCTAssertNil(self.manager.responseForRequest(request))
         
         self.expect { fulfill in
             self.manager.taskWith(request) {
@@ -145,6 +163,6 @@ class ImageMemoryCacheTest: XCTestCase {
         self.wait()
         
         XCTAssertEqual(self.mockMemoryCache.responses.count, 0)
-        XCTAssertNil(self.manager.cachedResponseForRequest(request))
+        XCTAssertNil(self.manager.responseForRequest(request))
     }
 }

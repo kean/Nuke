@@ -18,8 +18,12 @@ public protocol ImageMemoryCaching {
 
     /** Stores the cached response for the specified key.
      */
-    func set(response: ImageCachedResponse, forKey key: ImageRequestKey)
+    func setResponse(response: ImageCachedResponse, forKey key: ImageRequestKey)
 
+    /** Removes the cached response for the specified key.
+     */
+    func removeResponseForKey(key: ImageRequestKey)
+    
     /** Clears the receiver's storage.
      */
     func clear()
@@ -95,8 +99,12 @@ public class ImageMemoryCache: ImageMemoryCaching {
         return self.cache.objectForKey(key) as? ImageCachedResponse
     }
     
-    public func set(response: ImageCachedResponse, forKey key: ImageRequestKey) {
+    public func setResponse(response: ImageCachedResponse, forKey key: ImageRequestKey) {
         self.cache.setObject(response, forKey: key, cost: self.costFor(response.image))
+    }
+    
+    public func removeResponseForKey(key: ImageRequestKey) {
+        self.cache.removeObjectForKey(key)
     }
     
     /** Removes all cached images.
