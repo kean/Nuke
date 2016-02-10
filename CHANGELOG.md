@@ -1,5 +1,9 @@
  [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+## Nuke 2.0.1
+
+- #53 ImageRequest no longer uses NSURLSessionTaskPriorityDefault, which requires CFNetwork that doesn't get added as a dependency automatically
+
 ## Nuke 2.0
 
 Nuke now has an [official website](http://kean.github.io/Nuke/)!
