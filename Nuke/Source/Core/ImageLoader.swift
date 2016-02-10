@@ -230,7 +230,9 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
             self?.dataTask(dataTask, didCompleteWithData: data, response: response, error: error)
         })
         #if !os(OSX)
-        dataTask.URLSessionTask?.priority = request.priority
+            if let priority = request.priority {
+                dataTask.URLSessionTask?.priority = priority
+            }
         #endif
         return dataTask
     }
