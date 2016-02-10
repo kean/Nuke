@@ -55,8 +55,7 @@ public class ImagePreheatingControllerForTableView: ImagePreheatingController {
     }
 
     private func preheatRectInScrollDirection(direction: ScrollDirection) -> CGRect {
-        // UIScrollView bounds works differently from UIView bounds, it adds contentOffset
-        let viewport = self.tableView.bounds
+        let viewport = CGRect(origin: self.tableView.contentOffset, size: self.tableView.bounds.size)
         let height = CGRectGetHeight(viewport) * self.preheatRectRatio
         let y = (direction == .Forward) ? CGRectGetMaxY(viewport) : CGRectGetMinY(viewport) - height
         return CGRectIntegral(CGRect(x: 0, y: y, width: CGRectGetWidth(viewport), height: height))

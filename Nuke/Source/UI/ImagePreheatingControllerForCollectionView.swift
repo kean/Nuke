@@ -52,6 +52,7 @@ public class ImagePreheatingControllerForCollectionView: ImagePreheatingControll
         guard distanceBetweenPoints(contentOffset, self.previousContentOffset) > updateMargin || self.previousContentOffset == CGPointZero else {
             return
         }
+        // Update preheat window
         let scrollDirection: ScrollDirection = ((scrollAxis == .Vertical ? contentOffset.y >= self.previousContentOffset.y : contentOffset.x >= self.previousContentOffset.x) || self.previousContentOffset == CGPointZero) ? .Forward : .Backward
         
         self.previousContentOffset = contentOffset
@@ -61,8 +62,7 @@ public class ImagePreheatingControllerForCollectionView: ImagePreheatingControll
     }
     
     private func preheatRectInScrollDirection(direction: ScrollDirection) -> CGRect {
-        // UIScrollView bounds works differently from UIView bounds, it adds contentOffset
-        let viewport = self.collectionView.bounds
+        let viewport = CGRect(origin: self.collectionView.contentOffset, size: self.collectionView.bounds.size)
         switch self.collectionViewLayout.scrollDirection {
         case .Vertical:
             let height = CGRectGetHeight(viewport) * self.preheatRectRatio
