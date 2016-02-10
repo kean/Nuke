@@ -302,7 +302,7 @@ For on-disk caching it relies on `NSURLCache`. The `NSURLCache` is used to cache
 
 For on-memory caching Nuke provides `ImageMemoryCaching` protocol and its implementation in `ImageMemoryCache` class built on top of `NSCache`. The `ImageMemoryCache` is used for fast access to processed images that are ready for display.
 
-The combination of two cache layers results in a high performance caching system. For more info see [Image Caching Guide](http://kean.github.io/blog/programming/2016/01/26/image-caching.html) which provides a comprehensive look at HTTP cache, URL Loading System and NSCache.
+The combination of two cache layers results in a high performance caching system. For more info see [Image Caching Guide](http://outscope.net/blog/image-caching) which provides a comprehensive look at HTTP cache, URL Loading System and NSCache.
 
 #### Accessing Memory Cache
 
