@@ -30,7 +30,9 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
         
         let decoder = ImageDecoderComposition(decoders: [AnimatedImageDecoder(), ImageDecoder()])
         let loader = ImageLoader(configuration: ImageLoaderConfiguration(dataLoader: ImageDataLoader(), decoder: decoder), delegate: AnimatedImageLoaderDelegate())
-        ImageManager.shared = ImageManager(configuration: ImageManagerConfiguration(loader: loader))
+        let cache = AnimatedImageMemoryCache()
+        cache.allowsAnimatedImagesStorage = false
+        ImageManager.shared = ImageManager(configuration: ImageManagerConfiguration(loader: loader, cache: cache))
         
         self.collectionView?.registerClass(UICollectionViewCell.self, forCellWithReuseIdentifier: textViewCellReuseID)
         self.collectionView?.registerClass(AnimatedImageCell.self, forCellWithReuseIdentifier: imageCellReuseID)
@@ -83,7 +85,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
             return cell
         } else {
             let cell: AnimatedImageCell = collectionView.dequeueReusableCellWithReuseIdentifier(imageCellReuseID, forIndexPath: indexPath) as! AnimatedImageCell
-            cell.setImageWithURL(self.imageURLs[indexPath.row])
+            cell.setImageWith(self.imageURLs[indexPath.row])
             return cell
         }
     }
@@ -130,11 +132,11 @@ private class AnimatedImageCell: UICollectionViewCell {
         super.init(coder: aDecoder)
     }
     
-    func setImageWithURL(URL: NSURL) {
-        self.setImageWithRequest(ImageRequest(URL: URL))
+    func setImageWith(URL: NSURL) {
+        self.setImageWith(ImageRequest(URL: URL))
     }
     
-    func setImageWithRequest(request: ImageRequest) {
+    func setImageWith(request: ImageRequest) {
         let task = self.imageView.nk_setImageWith(request)
         task.progressHandler = { [weak self, weak task] _ in
             guard let task = task where task == self?.imageView.nk_imageTask else {
