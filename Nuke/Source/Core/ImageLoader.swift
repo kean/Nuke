@@ -6,10 +6,10 @@ import Foundation
 
 // MARK: - ImageLoading
 
-/** Performs loading of images for the given image tasks.
+/** Performs loading of images for the given tasks.
 */
 public protocol ImageLoading: class {
-    /** Managers that controls image loading.
+    /** Manager that controls image loading.
      */
     weak var manager: ImageLoadingManager? { get set }
     
@@ -25,11 +25,11 @@ public protocol ImageLoading: class {
      */
     func cancelLoadingFor(task: ImageTask)
     
-    /** Compares requests for equivalence with regard to caching output image. This method is used for memory caching, in most cases there is no need for filtering out the dynamic part of the request (is there is any).
+    /** Compares requests for equivalence with regard to caching output images. This method is used for memory caching, in most cases there is no need for filtering out the dynamic part of the request (is there is any).
      */
     func isCacheEquivalent(lhs: ImageRequest, to rhs: ImageRequest) -> Bool
     
-    /** Invalidates the receiver.
+    /** Invalidates the receiver. This method gets called by the manager when it is invalidated.
      */
     func invalidate()
     
@@ -43,11 +43,11 @@ public protocol ImageLoading: class {
 /** Manages image loading.
 */
 public protocol ImageLoadingManager: class {
-    /** Sent periodically to notify delegate of task progress.
+    /** Sent periodically to notify the manager of the task progress.
      */
     func loader(loader: ImageLoading, task: ImageTask, didUpdateProgress progress: ImageTaskProgress)
     
-    /** Send when loading for task is completed.
+    /** Sent when loading for the task is completed.
      */
     func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?)
 }
@@ -66,7 +66,10 @@ public struct ImageLoaderConfiguration {
      */
     public var processingQueue = NSOperationQueue(maxConcurrentOperationCount: 2)
     
-    /** Determines whether image loader should prevent excessive creation and resuming of session tasks, limiting the pressure on the system. Default value is true.
+    /**
+     Determines whether the image loader should prevent excessive creation and resuming of session tasks, limiting the pressure on the system. Default value is true.
+     
+     See CongestionController for a more detailed discussion.
      */
     public var congestionControlEnabled = true
     
@@ -87,23 +90,23 @@ public struct ImageLoaderConfiguration {
 /** Image loader customization endpoints.
 */
 public protocol ImageLoaderDelegate {
-    /** Compares requests for equivalence with regard to loading image data. Requests should be considered equivalent if data loader can handle both requests with a single session task.
+    /** Compares requests for equivalence with regard to loading image data. Requests should be considered equivalent if the loader can handle both requests with a single session task.
      */
     func loader(loader: ImageLoader, isLoadEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool
     
-    /** Compares requests for equivalence with regard to caching output image. This method is used for memory caching, in most cases there is no need for filtering out the dynamic part of the request (is there is any).
+    /** Compares requests for equivalence with regard to caching output images. This method is used for memory caching, in most cases there is no need for filtering out the dynamic part of the request (is there is any).
      */
     func loader(loader: ImageLoader, isCacheEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool
     
     /** Returns processor for the given request and image.
-     *     */
+     */
     func loader(loader: ImageLoader, processorFor: ImageRequest, image: Image) -> ImageProcessing?
 }
 
 /** Default implementation of ImageLoaderDelegate.
  */
 public extension ImageLoaderDelegate {
-    /** Returns processor for the given request by constructing decompressor based on request parameters and composing it with a processor from the request.
+    /** Constructs image decompressor based on the request's target size and content mode (if decompression is allowed). Combined the decompressor with the processor provided in the request.
      */
     public func processorFor(request: ImageRequest, image: Image) -> ImageProcessing? {
         var processors = [ImageProcessing]()
@@ -125,9 +128,10 @@ public extension ImageLoaderDelegate {
     }
 }
 
-/** Default implementation of ImageLoaderDelegate.
+/**
+ Default implementation of ImageLoaderDelegate.
  
- The default implementation is provided in a class which allows methods to be overriden properly.
+ The default implementation is provided in a class which allows methods to be overridden.
  */
 public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
     public init() {}
@@ -143,7 +147,7 @@ public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
             a.allowsCellularAccess == b.allowsCellularAccess
     }
     
-    /** Compares request `URLs`, decompression parameters (`shouldDecompressImage`, `targetSize` and `contentMode`) and processors.
+    /** Compares request `URL`s, decompression parameters (`shouldDecompressImage`, `targetSize` and `contentMode`), and processors.
      */
     public func loader(loader: ImageLoader, isCacheEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
         guard lhs.URLRequest.URL == rhs.URLRequest.URL else {
@@ -163,7 +167,7 @@ public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
         }
     }
     
-    /** Returns processor with combined image decompressor constructed based on request's target size and content mode, and image processor provided in image request.
+    /** Constructs image decompressor based on the request's target size and content mode (if decompression is allowed). Combined the decompressor with the processor provided in the request.
      */
     public func loader(loader: ImageLoader, processorFor request: ImageRequest, image: Image) -> ImageProcessing? {
         return self.processorFor(request, image: image)
@@ -173,7 +177,9 @@ public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
 // MARK: - ImageLoader
 
 /**
-Performs loading of images for the image tasks using objects conforming to `ImageDataLoading`, `ImageDecoding` and `ImageProcessing` protocols. Works in conjunction with the `ImageManager`.
+Performs loading of images for the image tasks.
+
+This class uses multiple dependencies provided in its configuration. Image data is loaded using an object conforming to `ImageDataLoading` protocol. Image data is decoded via `ImageDecoding` protocol. Decoded images are processed by objects conforming to `ImageProcessing` protocols.
 
 - Provides a transparent loading, decoding and processing with a single completion signal
 - Reuses data tasks for equivalent image tasks
@@ -204,18 +210,22 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
     }
     
     public func resumeLoadingFor(task: ImageTask) {
+        // Image loader performs all tasks asynchronously on its serial queue.
         dispatch_async(self.queue) {
             self.configuration.congestionControlEnabled ? self.controller.resume(task) : self._resumeLoadingFor(task)
         }
     }
     
     private func _resumeLoadingFor(task: ImageTask) {
+        // ImageDataTasks wraps NSURLSessionTask
+        // ImageLoader reuses ImageDataTasks for equivalent requests
         let key = ImageRequestKey(task.request, owner: self)
         var dataTask: ImageDataTask! = self.dataTasks[key]
         if dataTask == nil {
             dataTask = self.dataTaskWith(task.request, key: key)
             self.dataTasks[key] = dataTask
         } else {
+            // Subscribing to the existing task, let the manager know about its progress
             self.manager?.loader(self, task: task, didUpdateProgress: dataTask.progress)
         }
         self.loadStates[task] = ImageLoadState.Loading(dataTask)
@@ -288,7 +298,9 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
             self.configuration.congestionControlEnabled ? self.controller.suspend(task) : self._suspendLoadingFor(task)
         }
     }
-    
+
+    /** Underlying data task is suspended when there are no executing tasks registered with it.
+     */
     private func _suspendLoadingFor(task: ImageTask) {
         if let state = self.loadStates[task] {
             switch state {
@@ -298,7 +310,7 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
             }
         }
     }
-    
+
     public func cancelLoadingFor(task: ImageTask) {
         dispatch_async(self.queue) {
             self.configuration.congestionControlEnabled ? self.controller.cancel(task) : self._cancelLoadingFor(task)
@@ -309,6 +321,7 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
         if let state = self.loadStates[task] {
             switch state {
             case .Loading(let sessionTask):
+                // Underlying data task is cancelled when there are no outstanding tasks (executing or suspended) registered with it.
                 if sessionTask.cancel(task) {
                     self.remove(sessionTask)
                 }
@@ -410,13 +423,12 @@ private protocol CongestionControllerDelegate: class {
     func _cancelLoadingFor(task: ImageTask)
 }
 
-/** The CongestionController serves multiple purposes:
+/**
+ The CongestionController serves multiple purposes:
  - Prevents NSURLSession trashing
  - Prevents excessive resuming and subsequent cancellation of tasks during the fast scrolling
  
  All it actually does is delay the `resume(task)` calls on ImageLoader. This is an alternative of having a limited number of concurrent NSURLSessionTasks, which we want to avoid in order to get the best on-disk caching and loading performance. The problem with limiting the number of concurrent tasks instead of using `HTTPMaximumConnectionsPerHost` is that when the queue is filled with networking requests, there is no way to retrieve cached responses from disk cache, and we want disk cache to always be accessible.
- 
- This approach was borrowed from DFImageManager, and it was battle tested and proven really useful.
  */
 private class CongestionController {
     weak var delegate: CongestionControllerDelegate?
@@ -456,6 +468,7 @@ private class CongestionController {
     func setNeedsExecutePendingTasks() {
         if !self.executing {
             self.executing = true
+            // Start executing one image task each `self.taskExecutionInterval` nsecs.
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, self.taskExecutionInterval), self.queue) { [weak self] in
                 self?.resumePendingTask()
             }

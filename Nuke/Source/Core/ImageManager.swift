@@ -182,7 +182,7 @@ public class ImageManager {
         self.perform {
             self.cancelTasks(requests.flatMap {
                 return self.preheatingTasks[ImageRequestKey($0, owner: self)]
-                })
+            })
         }
     }
     
