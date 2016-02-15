@@ -122,8 +122,7 @@ public class ImageMemoryCache: ImageMemoryCaching {
             return 1
         #else
             let imageRef = image.CGImage
-            let bits = CGImageGetWidth(imageRef) * CGImageGetHeight(imageRef) * CGImageGetBitsPerPixel(imageRef)
-            return bits / 8
+            return CGImageGetBytesPerRow(imageRef) * CGImageGetHeight(imageRef)
         #endif
     }
     
