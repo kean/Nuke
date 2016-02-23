@@ -40,7 +40,7 @@ Nuke.taskWith(request) { response in
 
 - [Doesn't reinvent caching](http://outscope.net/blog/image-caching), relies on HTTP cache in URL Loading System
 - Two cache layers including auto purging memory cache
-- Intellegent control over memory cache
+- Intelligent control over memory cache
 
 ##### Processing
 
