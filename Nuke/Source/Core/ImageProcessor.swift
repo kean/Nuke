@@ -87,6 +87,37 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
     return true
 }
 
+
+/** The `ImageProcessorWithClosure` is used for creating anonymous image filters.
+ */
+public class ImageProcessorWithClosure: ImageProcessing, Equatable {
+    /** The identifier of the filter. Filters with equivalent closures should have the same identifiers.
+     */
+    public let identifier: String
+
+    /** A closure that performs image processing.
+     */
+    public let closure: Image -> Image?
+
+    /**
+     Initializes the `ImageProcessorWithClosure` with the given identifier and closure.
+
+     - parameter identifier: The identifier of the filter. Filters with equivalent closures should have the same identifiers.
+     */
+    public init(identifier: String, closure: Image -> Image?) {
+        self.identifier = identifier
+        self.closure = closure
+    }
+
+    public func process(image: Image) -> Image? {
+        return self.closure(image)
+    }
+}
+
+public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -> Bool {
+    return lhs.identifier == rhs.identifier
+}
+
 #if !os(OSX)
 
     // MARK: - ImageDecompressor
@@ -139,11 +170,20 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
     }
 
     private func decompress(image: UIImage, scale: Double) -> UIImage {
-        let imageRef = image.CGImage
+        guard let imageRef = image.CGImage else {
+            return image
+        }
         let minification = CGFloat(min(scale, 1))
         let size = CGSize(width: round(minification * CGFloat(CGImageGetWidth(imageRef))), height: round(minification * CGFloat(CGImageGetHeight(imageRef))))
-        // See Quartz 2D Programming Guide and https://github.com/kean/Nuke/issues/35 for more info
-        guard let contextRef = CGBitmapContextCreate(nil, Int(size.width), Int(size.height), 8, 0, CGColorSpaceCreateDeviceRGB(), CGImageAlphaInfo.PremultipliedLast.rawValue) else {
+
+        // For more info see:
+        // - Quartz 2D Programming Guide
+        // - https://github.com/kean/Nuke/issues/35
+        // - https://github.com/kean/Nuke/issues/57
+        let alphaInfo = isOpaque(imageRef) ? CGImageAlphaInfo.NoneSkipLast : CGImageAlphaInfo.PremultipliedLast
+        let bitmapInfo = CGBitmapInfo(rawValue: alphaInfo.rawValue)
+
+        guard let contextRef = CGBitmapContextCreate(nil, Int(size.width), Int(size.height), 8, 0, CGColorSpaceCreateDeviceRGB(), bitmapInfo.rawValue) else {
             return image
         }
         CGContextDrawImage(contextRef, CGRect(origin: CGPointZero, size: size), imageRef)
@@ -152,6 +192,13 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
         }
         return UIImage(CGImage: decompressedImageRef, scale: image.scale, orientation: image.imageOrientation)
     }
+
+    private func isOpaque(image: CGImageRef) -> Bool {
+        let alpha = CGImageGetAlphaInfo(image)
+        return alpha == .None ||
+            alpha == .NoneSkipFirst ||
+            alpha == .NoneSkipLast
+    }
 #endif
 
 
@@ -159,7 +206,7 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
 
 // MARK: - CoreImage
     
-    let sharedCIContext = CIContext(options: [kCIContextPriorityRequestLow: true])
+    private let sharedContext = CIContext(options: [kCIContextPriorityRequestLow: true])
     
     /** Core Image helper methods.
      */
@@ -172,7 +219,7 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
          - parameter context: Core Image context, uses shared context by default.
          - parameter filter: Closure for applying image filter.
          */
-        public func nk_filter(context context: CIContext = sharedCIContext, closure: CoreImage.CIImage -> CoreImage.CIImage?) -> UIImage? {
+        public func nk_filter(context context: CIContext = sharedContext, closure: CoreImage.CIImage -> CoreImage.CIImage?) -> UIImage? {
             func inputImageForImage(image: Image) -> CoreImage.CIImage? {
                 if let image = image.CGImage {
                     return CoreImage.CIImage(CGImage: image)
@@ -195,7 +242,7 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
          - parameter context: Core Image context, uses shared context by default.
          - parameter filter: Image filter. Function automatically sets input image on the filter.
          */
-        public func nk_filter(filter: CIFilter?, context: CIContext = sharedCIContext) -> UIImage? {
+        public func nk_filter(filter: CIFilter?, context: CIContext = sharedContext) -> UIImage? {
             guard let filter = filter else {
                 return nil
             }

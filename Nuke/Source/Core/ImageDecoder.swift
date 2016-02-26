@@ -12,6 +12,7 @@
     import WatchKit
 #endif
 
+
 /** Decodes data into an image object.
  */
 public protocol ImageDecoding {
@@ -19,6 +20,9 @@ public protocol ImageDecoding {
      */
     func decode(data: NSData, response: NSURLResponse?) -> Image?
 }
+
+
+private let lock = NSLock()
 
 /** Decodes data into an image object. Image scale is set to the scale of the main screen.
  */
@@ -28,13 +32,23 @@ public class ImageDecoder: ImageDecoding {
     public init() {}
 
     /** Decodes data into an image object using native methods.
-    */
+     */
     public func decode(data: NSData, response: NSURLResponse?) -> Image? {
+        var image: Image?
+        /* Image initializers are not considered thread safe:
+        - https://github.com/AFNetworking/AFNetworking/issues/2572
+        - https://github.com/Alamofire/AlamofireImage/issues/75
+
+        ImageLoader ensures thread safety of decoders by running them on NSOperationQueue with maxConcurrentOperationCount=1. However, users might either change this value, or user multiple ImageLoaders concurrently, which would break thread safety.
+         */
+        lock.lock()
         #if os(OSX)
-            return NSImage(data: data)
+            image = NSImage(data: data)
         #else
-            return UIImage(data: data, scale: self.imageScale)
+            image = UIImage(data: data, scale: self.imageScale)
         #endif
+        lock.unlock()
+        return image
     }
 
     #if !os(OSX)

@@ -130,6 +130,7 @@ public class ImageManager {
             switch task.request.memoryCachePolicy {
             case .ReturnCachedImageElseLoad:
                 if let response = self.responseForRequest(task.request) {
+                    // FIXME: Should ImageResponse contain a `fastResponse` property?
                     task.response = ImageResponse.Success(response.image, ImageResponseInfo(fastResponse: true, userInfo: response.userInfo))
                     self.setState(.Completed, forTask: task)
                     return
@@ -182,7 +183,7 @@ public class ImageManager {
         self.perform {
             self.cancelTasks(requests.flatMap {
                 return self.preheatingTasks[ImageRequestKey($0, owner: self)]
-                })
+            })
         }
     }
     
@@ -206,6 +207,7 @@ public class ImageManager {
     private func executePreheatingTasksIfNeeded() {
         self.needsToExecutePreheatingTasks = false
         var executingTaskCount = self.executingTasks.count
+        // FIXME: Use sorted dictionary
         for task in (self.preheatingTasks.values.sort { $0.identifier < $1.identifier }) {
             if executingTaskCount > self.configuration.maxConcurrentPreheatingTaskCount {
                 break

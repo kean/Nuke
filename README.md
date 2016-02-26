@@ -1,4 +1,4 @@
-<p align="left"><img src="https://cloud.githubusercontent.com/assets/1567433/10440878/a7c6e468-714b-11e5-9b12-baef482c37c1.png" height="100"/>
+<p align="left"><img src="https://cloud.githubusercontent.com/assets/1567433/13362579/7001aa94-dcd6-11e5-8c0d-5a4920008d04.png" height="150"/>
 
 <p align="left">
 <a href="https://cocoapods.org"><img src="https://img.shields.io/cocoapods/v/Nuke.svg"></a>
@@ -6,7 +6,7 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-Loading, processing, caching and [preheating](http://outscope.net/blog/image-preheating) images.
+Loading, processing, caching and [**preheating**](http://outscope.net/blog/image-preheating) images.
 
 To get started check out http://kean.github.io/Nuke/ !
 
@@ -33,7 +33,7 @@ Nuke.taskWith(request) { response in
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
 - A single data task is used for multiple equivalent requests
 - [Automated preheating](http://outscope.net/blog/image-preheating) of images close to the viewport
-- Congestion control that prevents trashing the system with requests during fast scrolling
+- Prevents trashing the system with requests during fast scrolling
 - Full featured extensions for UI components
 
 ##### Caching
