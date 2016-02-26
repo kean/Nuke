@@ -139,11 +139,20 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
     }
 
     private func decompress(image: UIImage, scale: Double) -> UIImage {
-        let imageRef = image.CGImage
+        guard let imageRef = image.CGImage else {
+            return image
+        }
         let minification = CGFloat(min(scale, 1))
         let size = CGSize(width: round(minification * CGFloat(CGImageGetWidth(imageRef))), height: round(minification * CGFloat(CGImageGetHeight(imageRef))))
-        // See Quartz 2D Programming Guide and https://github.com/kean/Nuke/issues/35 for more info
-        guard let contextRef = CGBitmapContextCreate(nil, Int(size.width), Int(size.height), 8, 0, CGColorSpaceCreateDeviceRGB(), CGImageAlphaInfo.PremultipliedLast.rawValue) else {
+
+        // For more info see:
+        // - Quartz 2D Programming Guide
+        // - https://github.com/kean/Nuke/issues/35
+        // - https://github.com/kean/Nuke/issues/57
+        let alphaInfo = isOpaque(imageRef) ? CGImageAlphaInfo.NoneSkipLast : CGImageAlphaInfo.PremultipliedLast
+        let bitmapInfo = CGBitmapInfo(rawValue: alphaInfo.rawValue)
+
+        guard let contextRef = CGBitmapContextCreate(nil, Int(size.width), Int(size.height), 8, 0, CGColorSpaceCreateDeviceRGB(), bitmapInfo.rawValue) else {
             return image
         }
         CGContextDrawImage(contextRef, CGRect(origin: CGPointZero, size: size), imageRef)
@@ -151,6 +160,13 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
             return image
         }
         return UIImage(CGImage: decompressedImageRef, scale: image.scale, orientation: image.imageOrientation)
+    }
+
+    private func isOpaque(image: CGImageRef) -> Bool {
+        let alpha = CGImageGetAlphaInfo(image)
+        return alpha == .None ||
+            alpha == .NoneSkipFirst ||
+            alpha == .NoneSkipLast
     }
 #endif
 
