@@ -1,4 +1,10 @@
- [Changelog](https://github.com/kean/Nuke/releases) for all versions
+[Changelog](https://github.com/kean/Nuke/releases) for all versions
+
+## Nuke 2.1.0
+ 
+- #57 `ImageDecompressor` now uses `CGImageAlphaInfo.NoneSkipLast` for opaque images 
+- Add `ImageProcessorWithClosure` that can be used for creating anonymous image filters
+- `ImageLoader` ensures thread safety of image initializers by running decoders on a `NSOperationQueue` with `maxConcurrentOperationCount=1`. However, `ImageDecoder` class is now also made thread safe.
 
 ## Nuke 2.0.1
 

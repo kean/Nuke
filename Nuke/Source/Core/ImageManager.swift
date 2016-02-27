@@ -221,7 +221,7 @@ public class ImageManager {
     
     // MARK: Memory Caching
     
-    /** Returns response from the memory cache. Ignores NSURLRequestCachePolicy.
+    /** Returns response from the memory cache.
     */
     public func responseForRequest(request: ImageRequest) -> ImageCachedResponse? {
         return self.cache?.responseForKey(ImageRequestKey(request, owner: self))

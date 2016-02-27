@@ -181,7 +181,7 @@ Performs loading of images for the image tasks.
 
 This class uses multiple dependencies provided in its configuration. Image data is loaded using an object conforming to `ImageDataLoading` protocol. Image data is decoded via `ImageDecoding` protocol. Decoded images are processed by objects conforming to `ImageProcessing` protocols.
 
-- Provides a transparent loading, decoding and processing with a single completion signal
+- Provides transparent loading, decoding and processing with a single completion signal
 - Reuses data tasks for equivalent image tasks
 */
 public class ImageLoader: ImageLoading, CongestionControllerDelegate {
