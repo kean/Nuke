@@ -13,21 +13,22 @@
 // MARK: - ImageLoadingView
 
 public struct ImageViewLoadingOptions {
-    /** Custom animations to run after the image is displayed. Defaul value is nil.
+    /**
+     Custom animations to run when the image is displayed. Default value is nil.
      
-     Animations are not run for fast response (response from memory cache). If you'd like to change that behaviour, set `handler` property instead.
+     This closure is not called if the response is from memory cache (`isFastResponse`) or if the `animated` property of the reciever is set to `false`. Use `handler` property if you need more control.
      */
     public var animations: ((ImageLoadingView) -> Void)? = nil
     
-    /** Default value is true. Allows to disable animations.
+    /** If true the loaded image is displayed with an animation. Default value is true.
      */
     public var animated = true
     
-    /* Custom handler that completely overrides task completion handling (display image, animate view, etc) in `ImageLoadingView`. Defaul value is nil.
+    /* Custom handler to run when the image task completes. Overrides the default completion handling. Default value is nil.
     */
     public var handler: ((ImageLoadingView, ImageTask, ImageResponse, ImageViewLoadingOptions) -> Void)? = nil
     
-    /** Defaul value is nil.
+    /** Default value is nil.
      */
     public var userInfo: Any? = nil
     
@@ -35,19 +36,17 @@ public struct ImageViewLoadingOptions {
 }
 
 /** View that supports image loading.
- 
- See https://github.com/kean/Nuke/issues/38 for more info about overriding those methods.
  */
 public protocol ImageLoadingView: class {
-    /** Cancels current task.
+    /** Cancels the task currently associated with the view.
      */
     func nk_cancelLoading()
     
-    /** Loads and displays an image for the given request. Cancels previously stared requests.
+    /** Loads and displays an image for the given request. Cancels previously started requests.
      */
     func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask
     
-    /** Gets called when the task currently associated with the view is completed.
+    /** Gets called when the task that is currently associated with the view completes.
      
      See https://github.com/kean/Nuke/issues/38 for more info about overriding this method.
      */
@@ -55,19 +54,23 @@ public protocol ImageLoadingView: class {
 }
 
 public extension ImageLoadingView where Self: View {
-    /** Loads and displays an image for the given URL. Cancels previously stared requests. Uses ImageContentMode.AspectFill, and current view size multiplied by screen scaling factor as an image target size.
+    /** Loads and displays an image for the given URL. Cancels previously started requests.
+     
+     Uses ImageContentMode.AspectFill, and current view size multiplied by screen scaling factor as an image target size.
      */
     public func nk_setImageWith(URL: NSURL) -> ImageTask {
         return self.nk_setImageWith(ImageRequest(URL: URL, targetSize: self.nk_targetSize(), contentMode: .AspectFill))
     }
     
+    /** Loads and displays an image for the given request. Cancels previously started requests.
+     */
     public func nk_setImageWith(request: ImageRequest) -> ImageTask {
         return self.nk_setImageWith(request, options: ImageViewLoadingOptions())
     }
 }
 
 public extension View {
-    /** Returns image target size in pixels for the view. Target size is calculated by multiplying view's size by screen scaling factor.
+    /** Returns image target size (in pixels) for the view. Target size is calculated by multiplying view's size by screen scale factor.
      */
     public func nk_targetSize() -> CGSize {
         let size = self.bounds.size
@@ -91,6 +94,7 @@ public protocol ImageDisplayingView: class {
 /** Default value is 0.25.
 */
 public var ImageViewDefaultAnimationDuration = 0.25
+// FIXME: Remove `Default` from the name or remove this var all together.
 
 /** Provides default implementation for image task completion handler.
  */
@@ -111,16 +115,14 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
         }
         switch response {
         case let .Success(image, info):
+            // FIXME: Make nk_image write only, keep only basic opacity transition
             let previousImage = self.nk_image
             self.nk_image = image
-            guard !info.isFastResponse else {
-                return
-            }
-            guard options.animated else {
+            guard options.animated && !info.isFastResponse else {
                 return
             }
             if let animations = options.animations {
-                animations(self)
+                animations(self) // User provided custom animations
             } else {
                 let layer: CALayer? = self.layer // Make compiler happy
                 if previousImage == nil {
@@ -159,12 +161,14 @@ public extension ImageLoadingView {
     
     // MARK: Helpers
     
-    /** Returns current image task.
+    /** Returns current task.
     */
     public var nk_imageTask: ImageTask? {
         return self.nk_imageLoadingController.imageTask
     }
     
+    /** Returns image loading controller associated with the view.
+     */
     public var nk_imageLoadingController: ImageViewLoadingController {
         get {
             if let loader = objc_getAssociatedObject(self, &AssociatedKeys.LoadingController) as? ImageViewLoadingController {

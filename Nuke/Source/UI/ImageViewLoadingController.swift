@@ -7,14 +7,16 @@ import Foundation
 /** Manages execution of image tasks for image loading view.
 */
 public class ImageViewLoadingController {
-    /** Current image task
+    /** Current image task.
     */
     public var imageTask: ImageTask?
     
-    /** Handler that gets called each time current imageTask completes or cancels.
+    /** Handler that gets called each time current task completes.
     */
     public var handler: (ImageTask, ImageResponse, ImageViewLoadingOptions) -> Void
     
+    /** The image manager that is used for creating image tasks. The shared manager is used by default.
+     */
     public var manager: ImageManager = ImageManager.shared
     
     deinit {
@@ -25,10 +27,12 @@ public class ImageViewLoadingController {
         self.handler = handler
     }
     
+    /** Cancels current image task.
+     */
     public func cancelLoading() {
         if let task = self.imageTask {
             self.imageTask = nil
-            // Cancel task after delay to allow new tasks to subsribe to exiting NSURLSessionTasks before they get cancelled.
+            // Cancel task after delay to allow new tasks to subscribe to the existing NSURLSessionTask.
             dispatch_async(dispatch_get_main_queue()) {
                 task.cancel()
             }
@@ -43,10 +47,9 @@ public class ImageViewLoadingController {
         self.cancelLoading()
         self.imageTask = task
         task.completion { [weak self, weak task] in
-            guard let task = task where task == self?.imageTask else {
-                return
+            if let task = task where task == self?.imageTask {
+                self?.handler(task, $0, options)
             }
-            self?.handler(task, $0, options)
         }
         task.resume()
         return task
