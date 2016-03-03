@@ -58,6 +58,10 @@ public struct ImageLoaderConfiguration {
     public var dataLoader: ImageDataLoading
     public var decoder: ImageDecoding
     
+    /** Maximum number of concurrent executing NSURLSessionTasks. Default value is 10.
+     */
+    public var maxConcurrentDataTaskCount = 10
+    
     /** Image decoding queue. Default queue has a maximum concurrent operation count 1.
      */
     public var decodingQueue = NSOperationQueue(maxConcurrentOperationCount: 1)
@@ -194,6 +198,7 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
     
     private var loadStates = [ImageTask : ImageLoadState]()
     private var dataTasks = [ImageRequestKey : ImageDataTask]()
+    private let taskQueue = TaskQueue()
     private let queue = dispatch_queue_create("ImageLoader.Queue", DISPATCH_QUEUE_SERIAL)
     private var controller: CongestionController!
     
@@ -205,6 +210,7 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
     public init(configuration: ImageLoaderConfiguration, delegate: ImageLoaderDelegate = ImageLoaderDefaultDelegate()) {
         self.configuration = configuration
         self.delegate = delegate
+        self.taskQueue.maxExecutingTaskCount = configuration.maxConcurrentDataTaskCount
         self.controller = CongestionController(queue: self.queue)
         self.controller.delegate = self
     }
@@ -233,12 +239,12 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
     }
     
     private func dataTaskWith(request: ImageRequest, key: ImageRequestKey) -> ImageDataTask {
-        let dataTask = ImageDataTask(key: key)
+        let dataTask = ImageDataTask(key: key, queue: self.taskQueue)
         dataTask.URLSessionTask = self.configuration.dataLoader.taskWith(request, progress: { [weak self] completed, total in
             self?.dataTask(dataTask, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
-        }, completion: { [weak self] data, response, error in
-            self?.dataTask(dataTask, didCompleteWithData: data, response: response, error: error)
-        })
+            }, completion: { [weak self] data, response, error in
+                self?.dataTask(dataTask, didCompleteWithData: data, response: response, error: error)
+            })
         #if !os(OSX)
             if let priority = request.priority {
                 dataTask.URLSessionTask?.priority = priority
@@ -257,6 +263,10 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
     }
     
     private func dataTask(dataTask: ImageDataTask, didCompleteWithData data: NSData?, response: NSURLResponse?, error: ErrorType?) {
+        dispatch_async(self.queue) {
+            // Mark task as finished when NSURLSessionTask is actually completed/cancelled by NSURLSession
+            self.taskQueue.finish(dataTask.URLSessionTask)
+        }
         guard error == nil, let data = data else {
             self.dataTask(dataTask, didCompleteWithImage: nil, error: error)
             return;
@@ -298,7 +308,7 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
             self.configuration.congestionControlEnabled ? self.controller.suspend(task) : self._suspendLoadingFor(task)
         }
     }
-
+    
     /** Underlying data task is suspended when there are no executing tasks registered with it.
      */
     private func _suspendLoadingFor(task: ImageTask) {
@@ -310,7 +320,7 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
             }
         }
     }
-
+    
     public func cancelLoadingFor(task: ImageTask) {
         dispatch_async(self.queue) {
             self.configuration.congestionControlEnabled ? self.controller.cancel(task) : self._cancelLoadingFor(task)
@@ -338,7 +348,7 @@ public class ImageLoader: ImageLoading, CongestionControllerDelegate {
             self.dataTasks[task.key] = nil
         }
     }
-        
+    
     public func isCacheEquivalent(lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
         return self.delegate.loader(self, isCacheEquivalent: lhs, to: rhs)
     }
@@ -371,30 +381,31 @@ private enum ImageLoadState {
 
 private class ImageDataTask {
     let key: ImageRequestKey
-    var URLSessionTask: NSURLSessionTask?
+    var URLSessionTask: NSURLSessionTask!
     var executingTasks = Set<ImageTask>()
     var suspendedTasks = Set<ImageTask>()
     var tasks: Set<ImageTask> {
         return self.executingTasks.union(self.suspendedTasks)
     }
     var progress: ImageTaskProgress = ImageTaskProgress()
+    let queue: TaskQueue
     
-    init(key: ImageRequestKey) {
+    init(key: ImageRequestKey, queue: TaskQueue) {
         self.key = key
+        self.queue = queue
     }
     
     func resume(task: ImageTask) {
         self.suspendedTasks.remove(task)
         self.executingTasks.insert(task)
-        self.URLSessionTask?.resume()
+        self.queue.resume(self.URLSessionTask)
     }
     
     func cancel(task: ImageTask) -> Bool {
         self.executingTasks.remove(task)
         self.suspendedTasks.remove(task)
         if self.tasks.isEmpty {
-            self.URLSessionTask?.cancel()
-            self.URLSessionTask = nil
+            self.queue.cancel(self.URLSessionTask)
             return true
         }
         return false
@@ -404,14 +415,13 @@ private class ImageDataTask {
         self.executingTasks.remove(task)
         self.suspendedTasks.insert(task)
         if self.executingTasks.isEmpty {
-            self.URLSessionTask?.suspend()
+            self.queue.suspend(self.URLSessionTask)
         }
     }
     
     func complete() {
         self.executingTasks.removeAll()
         self.suspendedTasks.removeAll()
-        self.URLSessionTask = nil
     }
 }
 
@@ -437,7 +447,7 @@ private class CongestionController {
     var pendingTasks = [ImageTask]()
     var executing = false
     let taskExecutionInterval: Int64 = Int64(8 * NSEC_PER_MSEC); // 8 ms
-
+    
     init(queue: dispatch_queue_t) {
         self.queue = queue
     }
@@ -481,6 +491,63 @@ private class CongestionController {
             let task = self.pendingTasks.removeFirst()
             self.delegate?._resumeLoadingFor(task)
             self.setNeedsExecutePendingTasks()
+        }
+    }
+}
+
+
+// MARK: TaskQueue
+
+private class TaskQueue {
+    var pendingTasks = NSMutableOrderedSet()
+    var executingTasks = Set<NSURLSessionTask>()
+    var maxExecutingTaskCount = 1
+    
+    func resume(task: NSURLSessionTask) {
+        if !self.pendingTasks.containsObject(task) && !self.executingTasks.contains(task) {
+            self.pendingTasks.addObject(task)
+            self.setNeedsExecute()
+        }
+    }
+    
+    func suspend(task: NSURLSessionTask) {
+        if self.pendingTasks.containsObject(task) {
+            self.pendingTasks.removeObject(task)
+        } else if self.executingTasks.contains(task) {
+            self.executingTasks.remove(task)
+            task.suspend()
+            self.setNeedsExecute()
+        }
+    }
+    
+    func cancel(task: NSURLSessionTask) {
+        if self.pendingTasks.containsObject(task) {
+            self.pendingTasks.removeObject(task)
+        } else if self.executingTasks.contains(task) {
+            task.cancel()
+        }
+    }
+    
+    func finish(task: NSURLSessionTask) {
+        if self.pendingTasks.containsObject(task) {
+            self.pendingTasks.removeObject(task)
+        } else if self.executingTasks.contains(task) {
+            self.executingTasks.remove(task)
+            self.setNeedsExecute()
+        }
+    }
+    
+    func setNeedsExecute() {
+        self.execute()
+    }
+    
+    func execute() {
+        while self.pendingTasks.count > 0 && self.executingTasks.count < self.maxExecutingTaskCount {
+            let task = self.pendingTasks.lastObject! as! NSURLSessionTask
+            self.pendingTasks.removeObjectAtIndex(self.pendingTasks.count - 1)
+            self.executingTasks.insert(task)
+            task.resume()
+            print("execute \(task), pending: \(self.pendingTasks.count), executing: \(self.executingTasks.count)")
         }
     }
 }
