@@ -21,8 +21,7 @@ class ImageProcessingTest: XCTestCase {
         self.mockMemoryCache = MockImageMemoryCache()
         
         self.mockSessionManager = MockImageDataLoader()
-        var loaderConfiguration = ImageLoaderConfiguration(dataLoader: self.mockSessionManager)
-        loaderConfiguration.congestionControlEnabled = false
+        let loaderConfiguration = ImageLoaderConfiguration(dataLoader: self.mockSessionManager)
         self.manager = ImageManager(configuration: ImageManagerConfiguration(loader: ImageLoader(configuration: loaderConfiguration), cache: self.mockMemoryCache))
     }
 
