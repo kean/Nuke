@@ -69,7 +69,11 @@ public struct ImageLoaderConfiguration {
     /** Image processing queue. Default queue has a maximum concurrent operation count 2.
      */
     public var processingQueue = NSOperationQueue(maxConcurrentOperationCount: 2)
-    
+
+    /** Determines whether the image loader should reuse NSURLSessionTasks for equivalent image requests. Default value is true.
+     */
+    public var taskReusingEnabled = true
+
     @available(*, deprecated=2.2)
     public var congestionControlEnabled = true
     
@@ -196,6 +200,9 @@ public class ImageLoader: ImageLoading {
     private var dataTasks = [ImageRequestKey : ImageDataTask]()
     private let taskQueue = TaskQueue()
     private let queue = dispatch_queue_create("ImageLoader.Queue", DISPATCH_QUEUE_SERIAL)
+    private var reuseTasks: Bool {
+        return self.configuration.taskReusingEnabled
+    }
     
     /**
      Initializes image loader with a configuration and a delegate.
@@ -219,10 +226,12 @@ public class ImageLoader: ImageLoading {
         // ImageDataTasks wraps NSURLSessionTask
         // ImageLoader reuses ImageDataTasks for equivalent requests
         let key = ImageRequestKey(task.request, owner: self)
-        var dataTask: ImageDataTask! = self.dataTasks[key]
+        var dataTask: ImageDataTask! = self.reuseTasks ? self.dataTasks[key] : nil
         if dataTask == nil {
             dataTask = self.dataTaskWith(task.request, key: key)
-            self.dataTasks[key] = dataTask
+            if self.reuseTasks {
+                self.dataTasks[key] = dataTask
+            }
         } else {
             // Subscribing to the existing task, let the manager know about its progress
             self.manager?.loader(self, task: task, didUpdateProgress: dataTask.progress)
