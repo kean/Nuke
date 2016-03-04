@@ -478,7 +478,6 @@ private class TaskQueue {
             self.pendingTasks.removeObjectAtIndex(self.pendingTasks.count - 1)
             self.executingTasks.insert(task)
             task.resume()
-            print("execute \(task), pending: \(self.pendingTasks.count), executing: \(self.executingTasks.count)")
         }
     }
 }
