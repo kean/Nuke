@@ -232,14 +232,17 @@ public class ImageLoader: ImageLoading {
                 self.manager?.loader(self, task: task, didUpdateProgress: dataTask.progress)
             }
             self.loadStates[task] = ImageLoadState.Loading(dataTask)
-            dataTask.resume(task)
+
+            dataTask.suspendedTasks.remove(task) // Task might be registered
+            dataTask.executingTasks.insert(task)
+            self.taskQueue.resume(dataTask.URLSessionTask)
         }
     }
 
     private func dataTaskWith(request: ImageRequest, key: ImageRequestKey) -> ImageDataTask {
-        let dataTask = ImageDataTask(key: key, queue: self.taskQueue)
+        let dataTask = ImageDataTask(key: key)
         dataTask.URLSessionTask = self.configuration.dataLoader.taskWith(request, progress: { [weak self] completed, total in
-            self?.dataTask(dataTask, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
+                self?.dataTask(dataTask, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
             }, completion: { [weak self] data, response, error in
                 self?.dataTask(dataTask, didCompleteWithData: data, response: response, error: error)
             })
@@ -289,7 +292,8 @@ public class ImageLoader: ImageLoading {
                     self.complete(task, image: image, error: error)
                 }
             }
-            dataTask.complete()
+            dataTask.executingTasks.removeAll()
+            dataTask.suspendedTasks.removeAll()
             self.remove(dataTask)
         }
     }
@@ -305,10 +309,13 @@ public class ImageLoader: ImageLoading {
         dispatch_async(self.queue) {
             if let state = self.loadStates[task] {
                 switch state {
-                case .Loading(let sessionTask):
-                    /** Underlying data task is suspended when there are no executing tasks registered with it.
-                    */
-                    sessionTask.suspend(task)
+                case .Loading(let dataTask):
+                    // Underlying data task is suspended when there are no executing tasks registered with it.
+                    dataTask.executingTasks.remove(task)
+                    dataTask.suspendedTasks.insert(task)
+                    if dataTask.executingTasks.isEmpty {
+                        self.taskQueue.suspend(dataTask.URLSessionTask)
+                    }
                 default: break
                 }
             }
@@ -319,10 +326,12 @@ public class ImageLoader: ImageLoading {
         dispatch_async(self.queue) {
             if let state = self.loadStates[task] {
                 switch state {
-                case .Loading(let sessionTask):
+                case .Loading(let dataTask):
                     // Underlying data task is cancelled when there are no outstanding tasks (executing or suspended) registered with it.
-                    if sessionTask.cancel(task) {
-                        self.remove(sessionTask)
+                    dataTask.executingTasks.remove(task)
+                    dataTask.suspendedTasks.remove(task)
+                    if dataTask.tasks.isEmpty {
+                        self.taskQueue.cancel(dataTask.URLSessionTask)
                     }
                 case .Processing(let operation):
                     operation.cancel()
@@ -378,40 +387,9 @@ private class ImageDataTask {
         return self.executingTasks.union(self.suspendedTasks)
     }
     var progress: ImageTaskProgress = ImageTaskProgress()
-    let queue: TaskQueue
     
-    init(key: ImageRequestKey, queue: TaskQueue) {
+    init(key: ImageRequestKey) {
         self.key = key
-        self.queue = queue
-    }
-    
-    func resume(task: ImageTask) {
-        self.suspendedTasks.remove(task)
-        self.executingTasks.insert(task)
-        self.queue.resume(self.URLSessionTask)
-    }
-    
-    func cancel(task: ImageTask) -> Bool {
-        self.executingTasks.remove(task)
-        self.suspendedTasks.remove(task)
-        if self.tasks.isEmpty {
-            self.queue.cancel(self.URLSessionTask)
-            return true
-        }
-        return false
-    }
-    
-    func suspend(task: ImageTask) {
-        self.executingTasks.remove(task)
-        self.suspendedTasks.insert(task)
-        if self.executingTasks.isEmpty {
-            self.queue.suspend(self.URLSessionTask)
-        }
-    }
-    
-    func complete() {
-        self.executingTasks.removeAll()
-        self.suspendedTasks.removeAll()
     }
 }
 
