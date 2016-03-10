@@ -29,14 +29,14 @@ public class ImageRequestKey: NSObject {
     }
 
     public override var hash: Int {
-        return self.request.URLRequest.URL?.hashValue ?? 0
+        return request.URLRequest.URL?.hashValue ?? 0
     }
 
     public override func isEqual(other: AnyObject?) -> Bool {
         guard let other = other as? ImageRequestKey else {
             return false
         }
-        guard let owner = self.owner where self.owner === other.owner else {
+        guard let owner = owner where owner === other.owner else {
             return false
         }
         return owner.isEqual(self, to: other)

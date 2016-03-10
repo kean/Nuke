@@ -30,7 +30,7 @@ public struct ImageTaskProgress {
     /** The fraction of overall work completed. If the total unit count is 0 fraction completed is also 0.
      */
     public var fractionCompleted: Double {
-        return self.total == 0 ? 0.0 : Double(self.completed) / Double(self.total)
+        return total == 0 ? 0.0 : Double(completed) / Double(total)
     }
 }
 

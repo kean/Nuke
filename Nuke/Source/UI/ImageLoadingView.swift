@@ -59,13 +59,13 @@ public extension ImageLoadingView where Self: View {
      Uses ImageContentMode.AspectFill, and current view size multiplied by screen scaling factor as an image target size.
      */
     public func nk_setImageWith(URL: NSURL) -> ImageTask {
-        return self.nk_setImageWith(ImageRequest(URL: URL, targetSize: self.nk_targetSize(), contentMode: .AspectFill))
+        return nk_setImageWith(ImageRequest(URL: URL, targetSize: nk_targetSize(), contentMode: .AspectFill))
     }
     
     /** Loads and displays an image for the given request. Cancels previously started requests.
      */
     public func nk_setImageWith(request: ImageRequest) -> ImageTask {
-        return self.nk_setImageWith(request, options: ImageViewLoadingOptions())
+        return nk_setImageWith(request, options: ImageViewLoadingOptions())
     }
 }
 
@@ -73,7 +73,7 @@ public extension View {
     /** Returns image target size (in pixels) for the view. Target size is calculated by multiplying view's size by screen scale factor.
      */
     public func nk_targetSize() -> CGSize {
-        let size = self.bounds.size
+        let size = bounds.size
         #if os(iOS) || os(tvOS)
             let scale = UIScreen.mainScreen().scale
         #elseif os(OSX)
@@ -101,9 +101,9 @@ public var ImageViewDefaultAnimationDuration = 0.25
 public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
     public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions = ImageViewLoadingOptions(), placeholder: Image?) -> ImageTask {
         if let placeholder = placeholder {
-            self.nk_image = placeholder
+            nk_image = placeholder
         }
-        return self.nk_setImageWith(request, options: options)
+        return nk_setImageWith(request, options: options)
     }
     
     /** Default implementation that displays the image and runs animations if necessary.
@@ -116,8 +116,8 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
         switch response {
         case let .Success(image, info):
             // FIXME: Make nk_image write only, keep only basic opacity transition
-            let previousImage = self.nk_image
-            self.nk_image = image
+            let previousImage = nk_image
+            nk_image = image
             guard options.animated && !info.isFastResponse else {
                 return
             }
@@ -152,11 +152,11 @@ public extension ImageLoadingView {
     // MARK: ImageLoadingView
     
     public func nk_cancelLoading() {
-        self.nk_imageLoadingController.cancelLoading()
+        nk_imageLoadingController.cancelLoading()
     }
     
     public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask {
-        return self.nk_imageLoadingController.setImageWith(request, options: options)
+        return nk_imageLoadingController.setImageWith(request, options: options)
     }
     
     // MARK: Helpers
@@ -164,7 +164,7 @@ public extension ImageLoadingView {
     /** Returns current task.
     */
     public var nk_imageTask: ImageTask? {
-        return self.nk_imageLoadingController.imageTask
+        return nk_imageLoadingController.imageTask
     }
     
     /** Returns image loading controller associated with the view.

@@ -63,9 +63,4 @@ public struct ImageResponseInfo {
     /** User info returned by the image loader (see ImageLoading protocol).
      */
     public var userInfo: Any?
-    
-    public init(fastResponse: Bool, userInfo: Any? = nil) {
-        self.isFastResponse = fastResponse
-        self.userInfo = userInfo
-    }
 }
