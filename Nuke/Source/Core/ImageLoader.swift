@@ -218,28 +218,24 @@ public class ImageLoader: ImageLoading {
     public func resumeLoadingFor(task: ImageTask) {
         // Image loader performs all tasks asynchronously on its serial queue.
         dispatch_async(self.queue) {
-            self._resumeLoadingFor(task)
-        }
-    }
-    
-    private func _resumeLoadingFor(task: ImageTask) {
-        // ImageDataTasks wraps NSURLSessionTask
-        // ImageLoader reuses ImageDataTasks for equivalent requests
-        let key = ImageRequestKey(task.request, owner: self)
-        var dataTask: ImageDataTask! = self.reuseTasks ? self.dataTasks[key] : nil
-        if dataTask == nil {
-            dataTask = self.dataTaskWith(task.request, key: key)
-            if self.reuseTasks {
-                self.dataTasks[key] = dataTask
+            // ImageDataTasks wraps NSURLSessionTask
+            // ImageLoader reuses ImageDataTasks for equivalent requests
+            let key = ImageRequestKey(task.request, owner: self)
+            var dataTask: ImageDataTask! = self.reuseTasks ? self.dataTasks[key] : nil
+            if dataTask == nil {
+                dataTask = self.dataTaskWith(task.request, key: key)
+                if self.reuseTasks {
+                    self.dataTasks[key] = dataTask
+                }
+            } else {
+                // Subscribing to the existing task, let the manager know about its progress
+                self.manager?.loader(self, task: task, didUpdateProgress: dataTask.progress)
             }
-        } else {
-            // Subscribing to the existing task, let the manager know about its progress
-            self.manager?.loader(self, task: task, didUpdateProgress: dataTask.progress)
+            self.loadStates[task] = ImageLoadState.Loading(dataTask)
+            dataTask.resume(task)
         }
-        self.loadStates[task] = ImageLoadState.Loading(dataTask)
-        dataTask.resume(task)
     }
-    
+
     private func dataTaskWith(request: ImageRequest, key: ImageRequestKey) -> ImageDataTask {
         let dataTask = ImageDataTask(key: key, queue: self.taskQueue)
         dataTask.URLSessionTask = self.configuration.dataLoader.taskWith(request, progress: { [weak self] completed, total in
@@ -307,43 +303,35 @@ public class ImageLoader: ImageLoading {
     
     public func suspendLoadingFor(task: ImageTask) {
         dispatch_async(self.queue) {
-            self._suspendLoadingFor(task)
-        }
-    }
-    
-    /** Underlying data task is suspended when there are no executing tasks registered with it.
-     */
-    private func _suspendLoadingFor(task: ImageTask) {
-        if let state = self.loadStates[task] {
-            switch state {
-            case .Loading(let sessionTask):
-                sessionTask.suspend(task)
-            default: break
+            if let state = self.loadStates[task] {
+                switch state {
+                case .Loading(let sessionTask):
+                    /** Underlying data task is suspended when there are no executing tasks registered with it.
+                    */
+                    sessionTask.suspend(task)
+                default: break
+                }
             }
         }
     }
-    
+
     public func cancelLoadingFor(task: ImageTask) {
         dispatch_async(self.queue) {
-            self._cancelLoadingFor(task)
-        }
-    }
-    
-    private func _cancelLoadingFor(task: ImageTask) {
-        if let state = self.loadStates[task] {
-            switch state {
-            case .Loading(let sessionTask):
-                // Underlying data task is cancelled when there are no outstanding tasks (executing or suspended) registered with it.
-                if sessionTask.cancel(task) {
-                    self.remove(sessionTask)
+            if let state = self.loadStates[task] {
+                switch state {
+                case .Loading(let sessionTask):
+                    // Underlying data task is cancelled when there are no outstanding tasks (executing or suspended) registered with it.
+                    if sessionTask.cancel(task) {
+                        self.remove(sessionTask)
+                    }
+                case .Processing(let operation):
+                    operation.cancel()
                 }
-            case .Processing(let operation):
-                operation.cancel()
+                self.loadStates[task] = nil
             }
-            self.loadStates[task] = nil
         }
     }
-    
+        
     private func remove(task: ImageDataTask) {
         // We might receive signal from the task which place was taken by another task
         if self.dataTasks[task.key] === task {
