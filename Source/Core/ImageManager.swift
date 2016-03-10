@@ -208,7 +208,7 @@ public class ImageManager {
             }
             if task.state == .Suspended {
                 setState(.Running, forTask: task)
-                executingTaskCount++
+                executingTaskCount += 1
             }
         }
     }

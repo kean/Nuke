@@ -29,7 +29,7 @@ class MockImageDataLoader: ImageDataLoader {
                 completion(data: data, response: nil, error: nil)
             }
         }
-        self.createdTaskCount++
+        self.createdTaskCount += 1
         return MockURLSessionDataTask()
     }
 }

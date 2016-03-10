@@ -412,7 +412,7 @@ class ImageManagerTest: XCTestCase {
         self.manager.taskWith(NSURL(string: "http://test2.com")!, completion: nil).resume()
         var callbackCount = 0
         self.expectNotification(MockURLSessionDataTaskDidCancelNotification) { _ in
-            callbackCount++
+            callbackCount += 1
             return callbackCount == 2
         }
         self.manager.invalidateAndCancel()
