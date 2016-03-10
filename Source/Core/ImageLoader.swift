@@ -241,8 +241,8 @@ public class ImageLoader: ImageLoading {
     private func dataTask(dataTask: DataTask, didUpdateProgress progress: ImageTaskProgress) {
         dispatch_async(queue) {
             dataTask.progress = progress
-            for task in dataTask.allTasks {
-                self.manager?.loader(self, task: task, didUpdateProgress: dataTask.progress)
+            dataTask.allTasks.forEach {
+                self.manager?.loader(self, task: $0, didUpdateProgress: dataTask.progress)
             }
         }
     }
@@ -405,7 +405,9 @@ private class TaskQueue {
         if pendingTasks.containsObject(task) {
             pendingTasks.removeObject(task)
         } else if executingTasks.contains(task) {
+            executingTasks.remove(task)
             task.cancel()
+            execute()
         }
     }
     
