@@ -170,19 +170,14 @@ public extension ImageLoadingView {
     /** Returns image loading controller associated with the view.
      */
     public var nk_imageLoadingController: ImageViewLoadingController {
-        get {
-            if let loader = objc_getAssociatedObject(self, &AssociatedKeys.LoadingController) as? ImageViewLoadingController {
-                return loader
-            }
-            let loader = ImageViewLoadingController { [weak self] in
-                self?.nk_imageTask($0, didFinishWithResponse: $1, options: $2)
-            }
-            self.nk_imageLoadingController = loader
+        if let loader = objc_getAssociatedObject(self, &AssociatedKeys.LoadingController) as? ImageViewLoadingController {
             return loader
         }
-        set {
-            objc_setAssociatedObject(self, &AssociatedKeys.LoadingController, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        let loader = ImageViewLoadingController { [weak self] in
+            self?.nk_imageTask($0, didFinishWithResponse: $1, options: $2)
         }
+        objc_setAssociatedObject(self, &AssociatedKeys.LoadingController, loader, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        return loader
     }
 }
 
