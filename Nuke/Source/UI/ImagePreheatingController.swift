@@ -28,7 +28,7 @@ public class ImagePreheatingController: NSObject {
     public var enabled = false
     
     deinit {
-        self.scrollView.removeObserver(self, forKeyPath: "contentOffset", context: nil)
+        scrollView.removeObserver(self, forKeyPath: "contentOffset", context: nil)
     }
     
     public init(scrollView: UIScrollView) {
@@ -38,8 +38,8 @@ public class ImagePreheatingController: NSObject {
     }
     
     public override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
-        if object === self.scrollView {
-            self.scrollViewDidScroll()
+        if object === scrollView {
+            scrollViewDidScroll()
         } else {
             super.observeValueForKeyPath(keyPath, ofObject: object, change: change, context: nil)
         }
@@ -56,10 +56,10 @@ public class ImagePreheatingController: NSObject {
     /** Updates preheat index paths and signals delegate. Don't call this method directly, it should be used by subclasses.
     */
     public func updatePreheatIndexPaths(indexPaths: [NSIndexPath]) {
-        let addedIndexPaths = indexPaths.filter { return !self.preheatIndexPath.contains($0) }
-        let removedIndexPaths = Set(self.preheatIndexPath).subtract(indexPaths)
-        self.preheatIndexPath = indexPaths
-        self.delegate?.preheatingController(self, didUpdateWithAddedIndexPaths: addedIndexPaths, removedIndexPaths: Array(removedIndexPaths))
+        let addedIndexPaths = indexPaths.filter { return !preheatIndexPath.contains($0) }
+        let removedIndexPaths = Set(preheatIndexPath).subtract(indexPaths)
+        preheatIndexPath = indexPaths
+        delegate?.preheatingController(self, didUpdateWithAddedIndexPaths: addedIndexPaths, removedIndexPaths: Array(removedIndexPaths))
     }
 }
 
