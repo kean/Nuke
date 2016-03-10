@@ -130,7 +130,7 @@ Nuke.taskWith(request) { response in
 
 #### Using Image Task
 
-`ImageTask` is your primary interface for controlling the image load. Task is always in one of four states: `Suspended`, `Running`, `Cancelled` or `Completed`. The task is always created in a `Suspended` state. You can use the corresponding `resume()`, `suspend()` and `cancel()` methods to control the task's state. It's always safe to call these methods, no matter in which state the task is currently in.
+`ImageTask` is your primary interface for controlling the image load. Task is always in one of four states: `Suspended`, `Running`, `Cancelled` or `Completed`. The task is always created in a `Suspended` state. You can use the corresponding `resume()` and `cancel()` methods to control the task's state. It's always safe to call these methods, no matter in which state the task is currently in.
 
 ```swift
 let task = Nuke.taskWith(imageURL).resume()

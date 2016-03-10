@@ -6,8 +6,8 @@ import Foundation
 
 /**
  The state of the task. Allowed transitions include:
- - Suspended -> [Running, Cancelled, Completed]
- - Running -> [Suspended, Cancelled, Completed]
+ - Suspended -> [Running, Cancelled]
+ - Running -> [Cancelled, Completed]
  - Cancelled -> []
  - Completed -> []
 */
@@ -82,15 +82,12 @@ public class ImageTask: Hashable {
     /// The current state of the task.
     public internal(set) var state: ImageTaskState = .Suspended
     
-    /// Resumes the task if suspended. Resume and suspend methods are nestable.
+    /// Resumes the task if suspended. Resume methods are nestable.
     public func resume() -> Self { fatalError("Abstract method") }
     
-    /**
-     Advices the task to suspend loading. If the task is suspended if might still complete at any time.
-     
-     A download task can continue transferring data at a later time. All other tasks must start over when resumed. For more info on suspending NSURLSessionTask see NSURLSession documentation.
-     */
-    public func suspend() -> Self { fatalError("Abstract method") }
+    /// Deprecated. Current implementation does nothing.
+    @available(*, deprecated=2.2)
+    public func suspend() -> Self { return self }
     
     /// Cancels the task if it hasn't completed yet. Calls a completion closure with an error value of { ImageManagerErrorDomain, ImageManagerErrorCancelled }.
     public func cancel() -> Self { fatalError("Abstract method") }

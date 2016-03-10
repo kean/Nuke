@@ -13,10 +13,7 @@ public protocol ImageLoading: class {
     
     /// Resumes loading for the given task.
     func resumeLoadingFor(task: ImageTask)
-    
-    /// Suspends loading for the given task.
-    func suspendLoadingFor(task: ImageTask)
-    
+
     /// Cancels loading for the given task.
     func cancelLoadingFor(task: ImageTask)
     
@@ -216,9 +213,7 @@ public class ImageLoader: ImageLoading {
             }
             self.loadStates[task] = ImageLoadState.Loading(dataTask)
 
-            // ImageTask might already be registered with DataTask, but suspended
-            dataTask.suspendedTasks.remove(task)
-            dataTask.executingTasks.insert(task)
+            dataTask.imageTasks.insert(task)
             self.taskQueue.resume(dataTask.URLSessionTask)
         }
     }
@@ -241,7 +236,7 @@ public class ImageLoader: ImageLoading {
     private func dataTask(dataTask: DataTask, didUpdateProgress progress: ImageTaskProgress) {
         dispatch_async(queue) {
             dataTask.progress = progress
-            dataTask.allTasks.forEach {
+            dataTask.imageTasks.forEach {
                 self.manager?.loader(self, task: $0, didUpdateProgress: dataTask.progress)
             }
         }
@@ -264,7 +259,7 @@ public class ImageLoader: ImageLoading {
     
     private func dataTask(dataTask: DataTask, didCompleteWithImage image: Image?, error: ErrorType?) {
         dispatch_async(queue) {
-            for task in dataTask.allTasks {
+            for task in dataTask.imageTasks {
                 if let image = image, processor = self.delegate.loader(self, processorFor:task.request, image: image) {
                     let operation = NSBlockOperation { [weak self] in
                         let image = processor.process(image)
@@ -276,8 +271,7 @@ public class ImageLoader: ImageLoading {
                     self.complete(task, image: image, error: error)
                 }
             }
-            dataTask.executingTasks.removeAll()
-            dataTask.suspendedTasks.removeAll()
+            dataTask.imageTasks.removeAll()
             self.remove(dataTask)
         }
     }
@@ -289,32 +283,14 @@ public class ImageLoader: ImageLoading {
         }
     }
 
-    /// Suspends loading for the task if there are no other outstanding executing tasks registered with the underlying data task.
-    public func suspendLoadingFor(task: ImageTask) {
-        dispatch_async(queue) {
-            if let state = self.loadStates[task] {
-                switch state {
-                case .Loading(let dataTask):
-                    dataTask.executingTasks.remove(task)
-                    dataTask.suspendedTasks.insert(task)
-                    if dataTask.executingTasks.isEmpty {
-                        self.taskQueue.suspend(dataTask.URLSessionTask)
-                    }
-                default: break
-                }
-            }
-        }
-    }
-
-    /// Cancels loading for the task if there are no other outstanding (executing or suspended) tasks registered with the underlying data task.
+    /// Cancels loading for the task if there are no other outstanding executing tasks registered with the underlying data task.
     public func cancelLoadingFor(task: ImageTask) {
         dispatch_async(queue) {
             if let state = self.loadStates[task] {
                 switch state {
                 case .Loading(let dataTask):
-                    dataTask.executingTasks.remove(task)
-                    dataTask.suspendedTasks.remove(task)
-                    if dataTask.allTasks.isEmpty {
+                    dataTask.imageTasks.remove(task)
+                    if dataTask.imageTasks.isEmpty {
                         self.taskQueue.cancel(dataTask.URLSessionTask)
                     }
                 case .Processing(let operation):
@@ -365,11 +341,7 @@ private enum ImageLoadState {
 private class DataTask {
     let key: ImageRequestKey
     var URLSessionTask: NSURLSessionTask! // nonnull
-    var executingTasks = Set<ImageTask>()
-    var suspendedTasks = Set<ImageTask>()
-    var allTasks: Set<ImageTask> {
-        return executingTasks.union(suspendedTasks)
-    }
+    var imageTasks = Set<ImageTask>()
     var progress: ImageTaskProgress = ImageTaskProgress()
     
     init(key: ImageRequestKey) {
@@ -390,17 +362,7 @@ private class TaskQueue {
             execute()
         }
     }
-    
-    func suspend(task: NSURLSessionTask) {
-        if pendingTasks.containsObject(task) {
-            pendingTasks.removeObject(task)
-        } else if executingTasks.contains(task) {
-            executingTasks.remove(task)
-            task.suspend()
-            execute()
-        }
-    }
-    
+
     func cancel(task: NSURLSessionTask) {
         if pendingTasks.containsObject(task) {
             pendingTasks.removeObject(task)

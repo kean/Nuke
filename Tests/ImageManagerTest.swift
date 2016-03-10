@@ -249,86 +249,6 @@ class ImageManagerTest: XCTestCase {
         }
     }
 
-    // MARK: Suspending
-
-    func testThatDataTaskIsSuspended() {
-        self.mockSessionManager.enabled = false
-
-        let task = self.manager.taskWith(defaultURL).resume()
-        XCTAssertEqual(task.state, ImageTaskState.Running)
-
-        self.expectNotification(MockURLSessionDataTaskDidSuspendNotification)
-        task.suspend()
-        XCTAssertEqual(task.state, ImageTaskState.Suspended)
-
-        self.wait()
-    }
-
-    func testThatSuspendedDataTaskIsResumed() {
-        self.mockSessionManager.enabled = false
-
-        let task = self.manager.taskWith(defaultURL).resume()
-        self.expectNotification(MockURLSessionDataTaskDidSuspendNotification)
-        task.suspend()
-        self.wait()
-
-        self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        self.expect { fulfill in
-            task.completion {
-                XCTAssertEqual(task.state, ImageTaskState.Completed)
-                XCTAssertNotNil($0.image)
-                fulfill()
-            }
-        }
-        self.mockSessionManager.enabled = true
-        task.resume()
-        self.wait()
-    }
-
-    func testThatDataTaskIsNotSuspendedWhenAtLeastOneExecutingTaskIsRegistered() {
-        self.mockSessionManager.enabled = false
-
-        self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        let task1 = self.manager.taskWith(defaultURL).resume()
-        let task2 = self.manager.taskWith(defaultURL).resume()
-        self.wait()
-
-        self.expect { fulfill in
-            task1.completion {
-                XCTAssertEqual(task1.state, ImageTaskState.Completed)
-                XCTAssertNotNil($0.image)
-                fulfill()
-            }
-        }
-
-        self.expect { fulfill in
-            task2.completion {
-                XCTAssertEqual(task2.state, ImageTaskState.Completed)
-                XCTAssertNotNil($0.image)
-                fulfill()
-            }
-        }
-
-        task2.suspend()
-
-        self.mockSessionManager.enabled = true
-        self.wait()
-    }
-
-    func testThatDataTaskIsSuspendedWithTwoSuspendedTasksRegisteredWithIt() {
-        self.mockSessionManager.enabled = false
-
-        self.expectNotification(MockURLSessionDataTaskDidResumeNotification)
-        let task1 = self.manager.taskWith(defaultURL).resume()
-        let task2 = self.manager.taskWith(defaultURL).resume()
-        self.wait()
-
-        self.expectNotification(MockURLSessionDataTaskDidSuspendNotification)
-        task1.suspend()
-        task2.suspend()
-        self.wait()
-    }
-
     // MARK: Progress
 
     func testThatProgressClosureIsCalled() {
@@ -426,24 +346,18 @@ class ImageManagerTest: XCTestCase {
         
         let task1 = self.manager.taskWith(NSURL(string: "http://test1.com")!, completion: nil)
         let task2 = self.manager.taskWith(NSURL(string: "http://test2.com")!, completion: nil)
-        let task3 = self.manager.taskWith(NSURL(string: "http://test3.com")!, completion: nil)
         
         task1.resume()
-        
-        task2.resume()
-        task2.suspend()
         
         // task3 is not getting resumed
         
         self.expect { fulfill in
             let (executingTasks, _) = self.manager.tasks
-            XCTAssertEqual(executingTasks.count, 2)
+            XCTAssertEqual(executingTasks.count, 1)
             XCTAssertTrue(executingTasks.contains(task1))
             XCTAssertEqual(task1.state, ImageTaskState.Running)
-            XCTAssertTrue(executingTasks.contains(task2))
+            XCTAssertFalse(executingTasks.contains(task2))
             XCTAssertEqual(task2.state, ImageTaskState.Suspended)
-            XCTAssertFalse(executingTasks.contains(task3))
-            XCTAssertEqual(task3.state, ImageTaskState.Suspended)
             fulfill()
         }
         self.wait()

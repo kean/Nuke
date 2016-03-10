@@ -71,7 +71,7 @@ The `ImageManager` class and related classes provide methods for loading, proces
 `ImageManager` is also a pipeline that loads images using injectable dependencies, which makes it highly customizable. See https://github.com/kean/Nuke#design for more info.
 */
 public class ImageManager {
-    private var registeredTasks = Set<ImageTaskInternal>()
+    private var executingTasks = Set<ImageTaskInternal>()
     private var preheatingTasks = [ImageRequestKey: ImageTaskInternal]()
     private let lock = NSRecursiveLock()
     private var invalidated = false
@@ -116,8 +116,8 @@ public class ImageManager {
     }
     
     private func transitionStateAction(fromState: ImageTaskState, toState: ImageTaskState, task: ImageTaskInternal) {
-        if fromState == .Running && toState == .Suspended {
-            loader.suspendLoadingFor(task)
+        if fromState == .Running && toState == .Cancelled {
+            loader.cancelLoadingFor(task)
         }
     }
     
@@ -132,14 +132,13 @@ public class ImageManager {
                     return
                 }
             }
-            registeredTasks.insert(task) // Register task until it's completed or cancelled.
+            executingTasks.insert(task) // Register task until it's completed or cancelled.
             loader.resumeLoadingFor(task)
         case .Cancelled:
-            loader.cancelLoadingFor(task)
             task.response = ImageResponse.Failure(errorWithCode(.Cancelled))
             fallthrough
         case .Completed:
-            registeredTasks.remove(task)
+            executingTasks.remove(task)
             setNeedsExecutePreheatingTasks()
             
             let completions = task.completions
@@ -199,8 +198,7 @@ public class ImageManager {
     
     private func executePreheatingTasksIfNeeded() {
         needsToExecutePreheatingTasks = false
-        // FIXME: Don't count tasks that are currently suspended
-        var executingTaskCount = registeredTasks.count
+        var executingTaskCount = executingTasks.count
         // FIXME: Use sorted dictionary
         for task in (preheatingTasks.values.sort { $0.identifier < $1.identifier }) {
             if executingTaskCount > configuration.maxConcurrentPreheatingTaskCount {
@@ -236,7 +234,7 @@ public class ImageManager {
     public func invalidateAndCancel() {
         perform {
             loader.manager = nil
-            cancelTasks(registeredTasks)
+            cancelTasks(executingTasks)
             preheatingTasks.removeAll()
             loader.invalidate()
             invalidated = true
@@ -254,7 +252,7 @@ public class ImageManager {
         var executingTasks: Set<ImageTask>!
         var preheatingTasks: Set<ImageTask>!
         perform {
-            executingTasks = self.registeredTasks
+            executingTasks = self.executingTasks
             preheatingTasks = Set(self.preheatingTasks.values)
         }
         return (executingTasks, preheatingTasks)
@@ -309,10 +307,6 @@ extension ImageManager: ImageTaskManaging {
         perform { setState(.Running, forTask: task) }
     }
     
-    private func suspend(task: ImageTaskInternal) {
-        perform { setState(.Suspended, forTask: task) }
-    }
-    
     private func cancel(task: ImageTaskInternal) {
         perform { setState(.Cancelled, forTask: task) }
     }
@@ -346,7 +340,6 @@ extension ImageManager: ImageRequestKeyOwner {
 
 private protocol ImageTaskManaging {
     func resume(task: ImageTaskInternal)
-    func suspend(task: ImageTaskInternal)
     func cancel(task: ImageTaskInternal)
     func addCompletion(completion: ImageTaskCompletion, forTask task: ImageTaskInternal)
 }
@@ -365,11 +358,6 @@ private class ImageTaskInternal: ImageTask {
         return self
     }
     
-    override func suspend() -> Self {
-        manager.suspend(self)
-        return self
-    }
-    
     override func cancel() -> Self {
         manager.cancel(self)
         return self
@@ -382,7 +370,8 @@ private class ImageTaskInternal: ImageTask {
 
     func isValidNextState(nextState: ImageTaskState) -> Bool {
         switch (self.state) {
-        case .Suspended, .Running: return true
+        case .Suspended: return (nextState == .Running || nextState == .Cancelled)
+        case .Running: return (nextState == .Completed || nextState == .Cancelled)
         default: return false
         }
     }
