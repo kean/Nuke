@@ -11,31 +11,28 @@ import Foundation
 
 // MARK: - ImageProcessing
 
-/** Performs image processing.
+/**
+Performs image processing.
 
 Types that implement `ImageProcessing` protocol should either use one of the default implementations of `isEquivalent(_:)` method or provide their own implementation, which is required to cache processed images.
 */
 public protocol ImageProcessing {
-    /** Returns processed image.
-     */
+    /// Returns processed image.
     func process(image: Image) -> Image?
 
-    /** Compares two processors for equivalence. Two processors are equivalent if they produce the same image for the same input. For more info see the extensions that provide default implementations of this method.
-     */
+    /// Compares two processors for equivalence. Two processors are equivalent if they produce the same image for the same input. For more info see the extensions that provide default implementations of this method.
     func isEquivalent(other: ImageProcessing) -> Bool
 }
 
 public extension ImageProcessing {
-    /** Returns true if both processors are instances of the same class. Use this implementation when your filter doesn't have any parameters.
-     */
+    /// Returns true if both processors are instances of the same class. Use this implementation when your filter doesn't have any parameters.
     public func isEquivalent(other: ImageProcessing) -> Bool {
         return other is Self
     }
 }
 
 public extension ImageProcessing where Self: Equatable {
-    /** Compares processors using == function.
-     */
+    /// Compares processors using == function.
     public func isEquivalent(other: ImageProcessing) -> Bool {
         return (other as? Self) == self
     }
@@ -44,24 +41,20 @@ public extension ImageProcessing where Self: Equatable {
 
 // MARK: - ImageProcessorComposition
 
-/** Composes multiple image processors.
- */
+/// Composes multiple image processors.
 public class ImageProcessorComposition: ImageProcessing, Equatable {
-    /** Image processors that the receiver was initialized with.
-     */
+    /// Image processors that the receiver was initialized with.
     public let processors: [ImageProcessing]
 
-    /** Composes multiple image processors.
-     */
+    /// Composes multiple image processors.
     public init(processors: [ImageProcessing]) {
         self.processors = processors
     }
 
-    /** Processes the given image by applying each processor in an order in which they are present in the processors array. If one of the processors fails to produce an image the processing stops and nil is returned.
-     */
+    /// Processes the given image by applying each processor in an order in which they are present in the processors array. If one of the processors fails to produce an image the processing stops and nil is returned.
     public func process(input: Image) -> Image? {
         var image: Image! = input
-        for processor in self.processors {
+        for processor in processors {
             if image == nil {
                 return nil
             }
@@ -73,8 +66,7 @@ public class ImageProcessorComposition: ImageProcessing, Equatable {
     }
 }
 
-/** Returns true if both compositions have the same number of processors, and the processors are pairwise-equivalent.
- */
+/// Returns true if both compositions have the same number of processors, and the processors are pairwise-equivalent.
 public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
     guard lhs.processors.count == rhs.processors.count else {
         return false
@@ -88,15 +80,12 @@ public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -
 }
 
 
-/** The `ImageProcessorWithClosure` is used for creating anonymous image filters.
- */
+/// The `ImageProcessorWithClosure` is used for creating anonymous image filters.
 public class ImageProcessorWithClosure: ImageProcessing, Equatable {
-    /** The identifier of the filter. Filters with equivalent closures should have the same identifiers.
-     */
+    /// The identifier of the filter. Filters with equivalent closures should have the same identifiers.
     public let identifier: String
 
-    /** A closure that performs image processing.
-     */
+    /// A closure that performs image processing.
     public let closure: Image -> Image?
 
     /**
@@ -109,11 +98,13 @@ public class ImageProcessorWithClosure: ImageProcessing, Equatable {
         self.closure = closure
     }
 
+    /// Processors images using a closure that the receiver was initialized with.
     public func process(image: Image) -> Image? {
-        return self.closure(image)
+        return closure(image)
     }
 }
 
+/// Comapres two processors using their identifiers.
 public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -> Bool {
     return lhs.identifier == rhs.identifier
 }
@@ -122,19 +113,18 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
 
     // MARK: - ImageDecompressor
 
-    /** Decompresses and scales input images.
+    /**
+    Decompresses and scales input images.
 
     If the image size is bigger then the given target size (in pixels) it is resized to either fit or fill target size (see ImageContentMode enum for more info). Image is scaled maintaining aspect ratio.
 
     Decompression and scaling are performed in a single pass which improves performance and reduces memory usage.
     */
     public class ImageDecompressor: ImageProcessing, Equatable {
-        /** Target size in pixels. Default value is ImageMaximumSize.
-         */
+        /// Target size in pixels. Default value is ImageMaximumSize.
         public let targetSize: CGSize
 
-        /** An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
-         */
+        /// An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
         public let contentMode: ImageContentMode
 
         /**
@@ -148,15 +138,13 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
             self.contentMode = contentMode
         }
 
-        /** Decompressed the input image.
-         */
+        /// Decompressed the input image.
         public func process(image: Image) -> Image? {
-            return decompress(image, targetSize: self.targetSize, contentMode: self.contentMode)
+            return decompress(image, targetSize: targetSize, contentMode: contentMode)
         }
     }
 
-    /** Returns true if both decompressors have the same `targetSize` and `contentMode`.
-     */
+    /// Returns true if both decompressors have the same `targetSize` and `contentMode`.
     public func ==(lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
         return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
     }
@@ -208,8 +196,7 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
     
     private let sharedContext = CIContext(options: [kCIContextPriorityRequestLow: true])
     
-    /** Core Image helper methods.
-     */
+    /// Core Image helper methods.
     public extension UIImage {
         /**
          Applies closure with a filter to the image.
@@ -233,7 +220,7 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
                 return nil
             }
             let imageRef = context.createCGImage(outputImage, fromRect: inputImage.extent)
-            return UIImage(CGImage: imageRef, scale: self.scale, orientation: self.imageOrientation)
+            return UIImage(CGImage: imageRef, scale: scale, orientation: imageOrientation)
         }
         
         /**
@@ -253,8 +240,7 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
         }
     }
     
-    /** Blurs image using CIGaussianBlur filter.
-     */
+    /// Blurs image using CIGaussianBlur filter.
     public struct ImageFilterGaussianBlur: ImageProcessing {
         public let radius: Int
         
@@ -266,9 +252,9 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
         public init(radius: Int = 8) {
             self.radius = radius
         }
-        
+
         public func process(image: UIImage) -> UIImage? {
-            return image.nk_filter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
+            return image.nk_filter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : radius]))
         }
     }
     

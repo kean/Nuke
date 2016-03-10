@@ -9,39 +9,30 @@ import Foundation
     import UIKit
 #endif
 
-/** An option for how to resize the image to the target size.
- */
+/// An option for how to resize the image to the target size.
 public enum ImageContentMode {
-    /** Scales the image so that it completely fills the target size. Maintains image aspect ratio. Images are not clipped.
-     */
+    /// Scales the image so that it completely fills the target size. Maintains image aspect ratio. Images are not clipped.
     case AspectFill
     
-    /** Scales the image so that its larger dimension fits the target size. Maintains image aspect ratio.
-     */
+    /// Scales the image so that its larger dimension fits the target size. Maintains image aspect ratio.
     case AspectFit
 }
 
-/** Defines constants that can be used to modify the way ImageManager interacts with the memory cache.
- */
+/// Defines constants that can be used to modify the way ImageManager interacts with the memory cache.
 public enum ImageRequestMemoryCachePolicy {
-    /** Return memory cached image corresponding the request. If there is no existing image in the memory cache, the image manager continues with the request.
-     */
+    /// Return memory cached image corresponding the request. If there is no existing image in the memory cache, the image manager continues with the request.
     case ReturnCachedImageElseLoad
     
-    /** Reload using ignoring memory cached images. Doesn't affect on-disk caching.
-     */
+    /// Reload using ignoring memory cached images. Doesn't affect on-disk caching.
     case ReloadIgnoringCachedImage
 }
 
-/** Size to pass when requesting the original image available for a request (image won't be resized).
-*/
+/// Size to pass when requesting the original image available for a request (image won't be resized).
 public let ImageMaximumSize = CGSizeMake(CGFloat.max, CGFloat.max)
 
-/** Encapsulates image request parameters.
- */
+/// Encapsulates image request parameters.
 public struct ImageRequest {
-    /** The URL request that the image request was created with.
-     */
+    /// The URL request that the image request was created with.
     public var URLRequest: NSURLRequest
     
     /**
@@ -51,34 +42,27 @@ public struct ImageRequest {
      */
     public var targetSize: CGSize = ImageMaximumSize
     
-    /** An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
-     */
+    /// An option for how to resize the image to the target size. Default value is .AspectFill. See ImageContentMode enum for more info.
     public var contentMode: ImageContentMode = .AspectFill
     
-    /** Specifies whether loaded image should be stored into memory cache. Default value is true.
-     */
+    /// Specifies whether loaded image should be stored into memory cache. Default value is true.
     public var memoryCacheStorageAllowed = true
     
-    /** The request memory cachce policy. Default value is .ReturnCachedImageElseLoad.
-     */
+    /// The request memory cachce policy. Default value is .ReturnCachedImageElseLoad.
     public var memoryCachePolicy = ImageRequestMemoryCachePolicy.ReturnCachedImageElseLoad
     
-    /** Default value is true.
-     */
+    /// Default value is true.
     public var shouldDecompressImage = true
     
-    /** Filter to be applied to the image. Use ImageProcessorComposition to compose multiple filters.
-     */
+    /// Filter to be applied to the image. Use ImageProcessorComposition to compose multiple filters.
     public var processor: ImageProcessing?
     
     #if !os(OSX)
-    /** The relative priority at which you’d like a host to handle the task. The priority is used when creating an underlying NSURLSessionTask.
-     */
+    /// The relative priority at which you’d like a host to handle the task. The priority is used when creating an underlying NSURLSessionTask.
     public var priority: Float?
     #endif
     
-    /** Allows users to pass some custom info alongside the request.
-     */
+    /// Allows users to pass some custom info alongside the request.
     public var userInfo: Any?
     
     /**

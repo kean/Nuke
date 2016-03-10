@@ -12,27 +12,21 @@
     import WatchKit
 #endif
 
-
-/** Decodes data into an image object.
- */
+/// Decodes data into images.
 public protocol ImageDecoding {
-    /* Decodes data into an image object.
-     */
+    /// Decodes data into an image object.
     func decode(data: NSData, response: NSURLResponse?) -> Image?
 }
 
 
 private let lock = NSLock()
 
-/** Decodes data into an image object. Image scale is set to the scale of the main screen.
- */
+/// Decodes data into an image object. Image scale is set to the scale of the main screen.
 public class ImageDecoder: ImageDecoding {
-    /** Initializes the receiver.
-     */
+    /// Initializes the receiver.
     public init() {}
 
-    /** Decodes data into an image object using native methods.
-     */
+    /// Decodes data into an image object using native methods.
     public func decode(data: NSData, response: NSURLResponse?) -> Image? {
         var image: Image?
         /* Image initializers are not considered thread safe:
@@ -52,8 +46,7 @@ public class ImageDecoder: ImageDecoding {
     }
 
     #if !os(OSX)
-    /** The scale used when creating an image object. Return the scaleM of the main screen.
-     */
+    /// The scale used when creating an image object. Return the scaleM of the main screen.
     public var imageScale: CGFloat {
         #if os(iOS) || os(tvOS)
             return UIScreen.mainScreen().scale
@@ -64,23 +57,19 @@ public class ImageDecoder: ImageDecoding {
     #endif
 }
 
-/** Composes multiple image decoders.
- */
+/// Composes multiple image decoders.
 public class ImageDecoderComposition: ImageDecoding {
-    /** Image decoders that the receiver was initialized with.
-     */
+    /// Image decoders that the receiver was initialized with.
     public let decoders: [ImageDecoding]
 
-    /** Composes multiple image decoders.
-     */
+    /// Composes multiple image decoders.
     public init(decoders: [ImageDecoding]) {
         self.decoders = decoders
     }
 
-    /** Decoders are applied in an order in which they are present in the decoders array. The decoding stops when one of the decoders produces an image.
-     */
+    /// Decoders are applied in an order in which they are present in the decoders array. The decoding stops when one of the decoders produces an image.
     public func decode(data: NSData, response: NSURLResponse?) -> Image? {
-        for decoder in self.decoders {
+        for decoder in decoders {
             if let image = decoder.decode(data, response: response) {
                 return image
             }

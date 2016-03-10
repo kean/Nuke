@@ -6,30 +6,28 @@ import Foundation
 
 // MARK: - ImageDataLoading
 
+/// Data loading completion closure.
 public typealias ImageDataLoadingCompletion = (data: NSData?, response: NSURLResponse?, error: ErrorType?) -> Void
+
+/// Data loading progress closure.
 public typealias ImageDataLoadingProgress = (completed: Int64, total: Int64) -> Void
 
-/** Performs loading of image data.
- */
+/// Performs loading of image data.
 public protocol ImageDataLoading {
-    /** Creates task with a given request. Task is resumed by the object calling the method.
-     */
+    /// Creates task with a given request. Task is resumed by the object calling the method.
     func taskWith(request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask
 
-    /** Invalidates the receiver.
-     */
+    /// Invalidates the receiver.
     func invalidate()
 
-    /** Clears the receiver's cache storage (in any).
-     */
+    /// Clears the receiver's cache storage (in any).
     func removeAllCachedImages()
 }
 
 
 // MARK: - ImageDataLoader
 
-/** Provides basic networking using NSURLSession.
-*/
+/// Provides basic networking using NSURLSession.
 public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoading {
     public private(set) var session: NSURLSession!
     private var handlers = [NSURLSessionTask: DataTaskHandler]()
@@ -42,7 +40,8 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
         self.session = NSURLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
     }
 
-    /** Initializes the receiver with a default NSURLSession configuration.
+    /**
+     Initializes the receiver with a default NSURLSession configuration.
 
      The memory capacity of the NSURLCache is set to 0, disk capacity is set to 200 Mb.
      */
@@ -56,36 +55,34 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     
     // MARK: ImageDataLoading
 
+    /// Creates task for the given request.
     public func taskWith(request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask {
         let task = self.taskWith(request)
-        dispatch_sync(self.queue) {
+        dispatch_sync(queue) {
             self.handlers[task] = DataTaskHandler(progress: progress, completion: completion)
         }
         return task
     }
     
-    /** Factory method for creating session tasks for given image requests.
-     */
+    /// Factory method for creating session tasks for given image requests.
     public func taskWith(request: ImageRequest) -> NSURLSessionTask {
-        return self.session.dataTaskWithRequest(request.URLRequest)
+        return session.dataTaskWithRequest(request.URLRequest)
     }
 
-    /** Invalidates the instance of NSURLSession class that the receiver was initialized with.
-     */
+    /// Invalidates the instance of NSURLSession class that the receiver was initialized with.
     public func invalidate() {
-        self.session.invalidateAndCancel()
+        session.invalidateAndCancel()
     }
 
-    /** Removes all cached images from the instance of NSURLCache class from the NSURLSession configuration.
-     */
+    /// Removes all cached images from the instance of NSURLCache class from the NSURLSession configuration.
     public func removeAllCachedImages() {
-        self.session.configuration.URLCache?.removeAllCachedResponses()
+        session.configuration.URLCache?.removeAllCachedResponses()
     }
     
     // MARK: NSURLSessionDataDelegate
     
     public func URLSession(session: NSURLSession, dataTask: NSURLSessionDataTask, didReceiveData data: NSData) {
-        dispatch_sync(self.queue) {
+        dispatch_sync(queue) {
             if let handler = self.handlers[dataTask] {
                 handler.data.appendData(data)
                 handler.progress(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
@@ -94,7 +91,7 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     }
     
     public func URLSession(session: NSURLSession, task: NSURLSessionTask, didCompleteWithError error: NSError?) {
-        dispatch_sync(self.queue) {
+        dispatch_sync(queue) {
             if let handler = self.handlers[task] {
                 handler.completion(data: handler.data, response: task.response, error: error)
                 self.handlers[task] = nil

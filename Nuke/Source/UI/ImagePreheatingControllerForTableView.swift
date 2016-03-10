@@ -4,17 +4,17 @@
 
 import UIKit
 
+/// Preheating controller for `UITableView`.
 public class ImagePreheatingControllerForTableView: ImagePreheatingController {
+    /// The table view that the receiver was initialized with.
     public var tableView: UITableView {
         return scrollView as! UITableView
     }
 
-    /** The proportion of the collection view size (either width or height depending on the scroll axis) used as a preheat window.
-     */
+    /// The proportion of the collection view size (either width or height depending on the scroll axis) used as a preheat window.
     public var preheatRectRatio: CGFloat = 1.0
 
-    /** Determines how far the user needs to refresh preheat window.
-     */
+    /// Determines how far the user needs to refresh preheat window.
     public var preheatRectUpdateRatio: CGFloat = 0.33
 
     private var previousContentOffset = CGPointZero
