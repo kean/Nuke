@@ -242,6 +242,7 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
     
     /// Blurs image using CIGaussianBlur filter.
     public struct ImageFilterGaussianBlur: ImageProcessing {
+        /// Blur radius.
         public let radius: Int
         
         /**
@@ -253,11 +254,13 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
             self.radius = radius
         }
 
+        /// Applies CIGaussianBlur filter to the image.
         public func process(image: UIImage) -> UIImage? {
             return image.nk_filter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : radius]))
         }
     }
-    
+
+    /// Compares two filters based on their radius.
     public func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bool {
         return lhs.radius == rhs.radius
     }

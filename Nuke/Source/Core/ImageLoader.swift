@@ -48,7 +48,7 @@ public struct ImageLoaderConfiguration {
     /// Performs loading of image data.
     public var dataLoader: ImageDataLoading
 
-    // Decodes data into image objects.
+    /// Decodes data into image objects.
     public var decoder: ImageDecoding
     
     /// Maximum number of concurrent executing NSURLSessionTasks. Default value is 10.

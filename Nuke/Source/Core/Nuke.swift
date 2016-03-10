@@ -39,11 +39,11 @@ public func stopPreheatingImages() {
 
 #if os(OSX)
     import Cocoa
-    // Alias for NSImage
+    /// Alias for NSImage
     public typealias Image = NSImage
 #else
     import UIKit
-    // Alias for UIImage
+    /// Alias for UIImage
     public typealias Image = UIImage
 #endif
 

@@ -6,6 +6,7 @@
     import UIKit
     
     extension UIImageView: ImageDisplayingView, ImageLoadingView {
+        // Underlying image.
         public var nk_image: UIImage? {
             get { return self.image }
             set { self.image = newValue }
@@ -17,6 +18,7 @@
     import Cocoa
     
     extension NSImageView: ImageDisplayingView, ImageLoadingView {
+        // Underlying image.
         public var nk_image: NSImage? {
             get { return self.image }
             set { self.image = newValue }

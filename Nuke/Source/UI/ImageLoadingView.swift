@@ -141,11 +141,13 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
 public extension ImageLoadingView {
     
     // MARK: ImageLoadingView
-    
+
+    /// Cancels current image task.
     public func nk_cancelLoading() {
         nk_imageLoadingController.cancelLoading()
     }
-    
+
+    /// Loads and displays an image for the given request. Cancels previously started requests.
     public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask {
         return nk_imageLoadingController.setImageWith(request, options: options)
     }

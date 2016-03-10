@@ -29,7 +29,8 @@ public class ImagePreheatingControllerForCollectionView: ImagePreheatingControll
         assert(collectionView.collectionViewLayout is UICollectionViewFlowLayout)
         super.init(scrollView: collectionView)
     }
-    
+
+    /// Default value is false. See superclass for more info.
     public override var enabled: Bool {
         didSet {
             if enabled {

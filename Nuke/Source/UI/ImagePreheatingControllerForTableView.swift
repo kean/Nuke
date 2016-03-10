@@ -19,10 +19,12 @@ public class ImagePreheatingControllerForTableView: ImagePreheatingController {
 
     private var previousContentOffset = CGPointZero
 
+    /// Initializes the receiver with a given table view.
     public init(tableView: UITableView) {
         super.init(scrollView: tableView)
     }
 
+    /// Default value is false. See superclass for more info.
     public override var enabled: Bool {
         didSet {
             if enabled {
