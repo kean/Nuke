@@ -5,7 +5,7 @@
       location = "group:Nuke.playground">
    </FileRef>
    <FileRef
-      location = "group:Nuke/Nuke.xcodeproj">
+      location = "group:Nuke.xcodeproj">
    </FileRef>
    <Group
       location = "container:"
