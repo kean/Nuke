@@ -304,14 +304,14 @@ public class ImageLoader: ImageLoading {
         
     private func remove(task: DataTask) {
         // We might receive signal from the task which place was taken by another task
-        if self.dataTasks[task.key] === task {
-            self.dataTasks[task.key] = nil
+        if dataTasks[task.key] === task {
+            dataTasks[task.key] = nil
         }
     }
 
     /// Comapres two requests using ImageLoaderDelegate.
     public func isCacheEquivalent(lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
-        return self.delegate.loader(self, isCacheEquivalent: lhs, to: rhs)
+        return delegate.loader(self, isCacheEquivalent: lhs, to: rhs)
     }
 
     /// Signals the data loader to invalidate.
@@ -396,7 +396,8 @@ private class TaskQueue {
         if !executing {
             executing = true
             if congestionControlEnabled {
-                let delay = min(30.0, 10.0 + Double(executingTasks.count) * 2.0)
+                // Executing tasks too frequently might trash NSURLSession to the point it would crash or stop executing tasks
+                let delay = min(30.0, 8.0 + Double(executingTasks.count))
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(delay * Double(NSEC_PER_MSEC))), queue) {
                     self.execute()
                 }
@@ -408,12 +409,11 @@ private class TaskQueue {
 
     func execute() {
         executing = false
-        if pendingTasks.count > 0 && executingTasks.count < maxExecutingTaskCount {
-            let task = pendingTasks.firstObject! as! NSURLSessionTask
+        if let task = pendingTasks.firstObject as? NSURLSessionTask where executingTasks.count < maxExecutingTaskCount {
             pendingTasks.removeObjectAtIndex(0)
             executingTasks.insert(task)
-            setNeedsExecute()
             task.resume()
+            setNeedsExecute()
         }
     }
 }
