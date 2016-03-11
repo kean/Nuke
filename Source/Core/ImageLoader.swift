@@ -60,8 +60,7 @@ public struct ImageLoaderConfiguration {
     /// Determines whether the image loader should reuse NSURLSessionTasks for equivalent image requests. Default value is true.
     public var taskReusingEnabled = true
 
-    /// Deprecated, use `maxConcurrentSessionTaskCount` instead.
-    @available(*, deprecated=2.2)
+    /// Prevents trashing of NSURLSession by delaying requests. Default value is true.
     public var congestionControlEnabled = true
     
     /**
@@ -180,7 +179,7 @@ public class ImageLoader: ImageLoading {
     
     private var loadStates = [ImageTask : ImageLoadState]()
     private var dataTasks = [ImageRequestKey : DataTask]()
-    private let taskQueue = TaskQueue()
+    private let taskQueue: TaskQueue
     private let queue = dispatch_queue_create("ImageLoader.Queue", DISPATCH_QUEUE_SERIAL)
     
     /**
@@ -191,7 +190,9 @@ public class ImageLoader: ImageLoading {
     public init(configuration: ImageLoaderConfiguration, delegate: ImageLoaderDelegate = ImageLoaderDefaultDelegate()) {
         self.configuration = configuration
         self.delegate = delegate
+        self.taskQueue = TaskQueue(queue: queue)
         self.taskQueue.maxExecutingTaskCount = configuration.maxConcurrentSessionTaskCount
+        self.taskQueue.congestionControlEnabled = configuration.congestionControlEnabled
     }
 
     /// Resumes loading for the image task.
@@ -351,15 +352,24 @@ private class DataTask {
 
 // MARK: TaskQueue
 
+/// Limits number of concurrent tasks, prevents trashing of NSURLSession
 private class TaskQueue {
-    var pendingTasks = NSMutableOrderedSet()
-    var executingTasks = Set<NSURLSessionTask>()
     var maxExecutingTaskCount = 8
-    
+    var congestionControlEnabled = true
+
+    private let queue: dispatch_queue_t
+    private var pendingTasks = NSMutableOrderedSet()
+    private var executingTasks = Set<NSURLSessionTask>()
+    private var executing = false
+
+    init(queue: dispatch_queue_t) {
+        self.queue = queue
+    }
+
     func resume(task: NSURLSessionTask) {
         if !pendingTasks.containsObject(task) && !executingTasks.contains(task) {
             pendingTasks.addObject(task)
-            execute()
+            setNeedsExecute()
         }
     }
 
@@ -369,24 +379,40 @@ private class TaskQueue {
         } else if executingTasks.contains(task) {
             executingTasks.remove(task)
             task.cancel()
-            execute()
+            setNeedsExecute()
         }
     }
-    
+
     func finish(task: NSURLSessionTask) {
         if pendingTasks.containsObject(task) {
             pendingTasks.removeObject(task)
         } else if executingTasks.contains(task) {
             executingTasks.remove(task)
-            execute()
+            setNeedsExecute()
         }
     }
-    
+
+    func setNeedsExecute() {
+        if !executing {
+            executing = true
+            if congestionControlEnabled {
+                let delay = min(30.0, 10.0 + Double(executingTasks.count) * 2.0)
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, Int64(delay * Double(NSEC_PER_MSEC))), queue) {
+                    self.execute()
+                }
+            } else {
+                execute()
+            }
+        }
+    }
+
     func execute() {
-        while pendingTasks.count > 0 && executingTasks.count < maxExecutingTaskCount {
+        executing = false
+        if pendingTasks.count > 0 && executingTasks.count < maxExecutingTaskCount {
             let task = pendingTasks.firstObject! as! NSURLSessionTask
             pendingTasks.removeObjectAtIndex(0)
             executingTasks.insert(task)
+            setNeedsExecute()
             task.resume()
         }
     }
