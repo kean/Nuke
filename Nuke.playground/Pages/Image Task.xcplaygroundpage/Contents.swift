@@ -25,6 +25,7 @@ example("Using Image Task") {
     
     print(task.state) // Task state changes synchronously on the callers thread
 }
+
 example("Cancelling Image Task") {
     let task = Nuke.taskWith(NSURL(string: "https://farm6.staticflickr.com/5311/14244377986_a86338d053_z_d.jpg")!)
     print(task.state) // Task is created in Suspened state

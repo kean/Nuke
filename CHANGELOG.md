@@ -1,5 +1,14 @@
 [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+## Nuke 2.2.0
+
+- `ImageTask` `suspend` method is deprecated, implementation does nothing
+- `ImageLoader` now limits a number of concurrent `NSURLSessionTasks`
+- Add `maxConcurrentSessionTaskCount` property to `ImageLoaderConfiguration`
+- Add `taskReusingEnabled` property to `ImageLoaderConfiguration`
+- Add [Swift Package Manager](https://swift.org/package-manager/) support
+- Update documentation
+
 ## Nuke 2.1.0
  
 - #57 `ImageDecompressor` now uses `CGImageAlphaInfo.NoneSkipLast` for opaque images 
