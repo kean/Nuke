@@ -17,7 +17,8 @@ class ImageManagerTest: XCTestCase {
         super.setUp()
 
         self.mockSessionManager = MockImageDataLoader()
-        let loaderConfiguration = ImageLoaderConfiguration(dataLoader: self.mockSessionManager)
+        var loaderConfiguration = ImageLoaderConfiguration(dataLoader: self.mockSessionManager)
+        loaderConfiguration.congestionControlEnabled = false
         self.manager = ImageManager(configuration: ImageManagerConfiguration(loader: ImageLoader(configuration: loaderConfiguration), cache: nil))
     }
 
