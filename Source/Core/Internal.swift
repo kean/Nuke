@@ -12,9 +12,6 @@
     public typealias Image = UIImage
 #endif
 
-func dispathOnMainThread(closure: (Void) -> Void) {
-    NSThread.isMainThread() ? closure() : dispatch_async(dispatch_get_main_queue(), closure)
-}
 
 func errorWithCode(code: ImageManagerErrorCode) -> NSError {
     func reason() -> String {
@@ -28,12 +25,35 @@ func errorWithCode(code: ImageManagerErrorCode) -> NSError {
     return NSError(domain: ImageManagerErrorDomain, code: code.rawValue, userInfo: [NSLocalizedFailureReasonErrorKey: reason()])
 }
 
+
+// MARK: GCD
+
+func dispathOnMainThread(closure: (Void) -> Void) {
+    NSThread.isMainThread() ? closure() : dispatch_async(dispatch_get_main_queue(), closure)
+}
+
+extension dispatch_queue_t {
+    func async(block: (Void -> Void)) {
+        dispatch_async(self, block)
+    }
+}
+
+
+// MARK: NSOperationQueue Extensions
+
 extension NSOperationQueue {
     convenience init(maxConcurrentOperationCount: Int) {
         self.init()
         self.maxConcurrentOperationCount = maxConcurrentOperationCount
     }
+    
+    func addBlock(block: (Void -> Void)) -> NSOperation {
+        let operation = NSBlockOperation(block: block)
+        self.addOperation(operation)
+        return operation
+    }
 }
+
 
 // MARK: TaskQueue
 
