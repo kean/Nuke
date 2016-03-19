@@ -39,6 +39,7 @@ Nuke.taskWith(request) { response in
 ##### Caching
 
 - [Doesn't reinvent caching](http://outscope.net/blog/image-caching), relies on HTTP cache in URL Loading System
+- As an alternative to `NSURLCache` provides a protocol for integrating any third-party caching library
 - Two cache layers including auto purging memory cache
 - Intelligent control over memory cache
 
@@ -300,6 +301,8 @@ Nuke provides both on-disk and in-memory caching.
 
 For on-disk caching it relies on `NSURLCache`. The `NSURLCache` is used to cache original image data downloaded from the server. This class a part of the URL Loading System's cache management, which relies on HTTP cache.
 
+As an alternative to `NSURLCache` `Nuke` provides an `ImageDiskCaching` protocol that allows you to easily integrate any third-party caching library.
+
 For on-memory caching Nuke provides `ImageMemoryCaching` protocol and its implementation in `ImageMemoryCache` class built on top of `NSCache`. The `ImageMemoryCache` is used for fast access to processed images that are ready for display.
 
 The combination of two cache layers results in a high performance caching system. For more info see [Image Caching Guide](http://outscope.net/blog/image-caching) which provides a comprehensive look at HTTP cache, URL Loading System and NSCache.
@@ -329,6 +332,7 @@ let cachedResponse = manager.cachedResponseForRequest(request)
 |`ImageDataLoading`|Performs loading of image data (`NSData`)|
 |`ImageDecoding`|Decodes `NSData` to `UIImage` objects|
 |`ImageMemoryCaching`|Stores processed images into memory cache|
+|`ImageDiskCaching`|Stores data into disk cache|
 
 <br>
 You can either provide your own implementation of these protocols or customize existing classes that implement them. After you have all the dependencies in place you can create an `ImageManager`:
@@ -365,6 +369,7 @@ ImageManager.shared = ImageManager(configuration: configuration)
 |`ImageDecoding`|Converts `NSData` to `UIImage` objects|
 |`ImageProcessing`|Processes decoded images|
 |`ImageMemoryCaching`|Stores processed images into memory cache|
+|`ImageDiskCaching`|Stores data into disk cache|
 
 ## Installation<a name="installation"></a>
 
