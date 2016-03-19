@@ -75,9 +75,10 @@ public struct ImageLoaderConfiguration {
      - parameter dataLoader: Image data loader.
      - parameter decoder: Image decoder. Default `ImageDecoder` instance is created if the parameter is omitted.
      */
-    public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder()) {
+    public init(dataLoader: ImageDataLoading, decoder: ImageDecoding = ImageDecoder(), cache: ImageDiskCaching? = nil) {
         self.dataLoader = dataLoader
         self.decoder = decoder
+        self.cache = cache
     }
 }
 
