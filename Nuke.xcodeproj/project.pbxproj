@@ -26,7 +26,6 @@
 		0C22D9CD1BCA9755006E1D3B /* ImageDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C7F1BAE9ADD007FE380 /* ImageDataLoader.swift */; };
 		0C22D9CE1BCA9755006E1D3B /* ImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C801BAE9ADD007FE380 /* ImageDecoder.swift */; };
 		0C22D9CF1BCA9755006E1D3B /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C811BAE9ADD007FE380 /* ImageManager.swift */; };
-		0C22D9D01BCA9755006E1D3B /* ImageManagerExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF161F1BC4526A003768E5 /* ImageManagerExtensions.swift */; };
 		0C22D9D11BCA9755006E1D3B /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C831BAE9ADD007FE380 /* ImageLoader.swift */; };
 		0C22D9D21BCA9755006E1D3B /* ImageMemoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C841BAE9ADD007FE380 /* ImageMemoryCache.swift */; };
 		0C22D9D31BCA9755006E1D3B /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C851BAE9ADD007FE380 /* ImageProcessor.swift */; };
@@ -47,7 +46,6 @@
 		0C22DA4F1BCAA84F006E1D3B /* ImageDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C7F1BAE9ADD007FE380 /* ImageDataLoader.swift */; };
 		0C22DA501BCAA85F006E1D3B /* ImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C801BAE9ADD007FE380 /* ImageDecoder.swift */; };
 		0C22DA511BCAA8CE006E1D3B /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C811BAE9ADD007FE380 /* ImageManager.swift */; };
-		0C22DA521BCAA8D5006E1D3B /* ImageManagerExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF161F1BC4526A003768E5 /* ImageManagerExtensions.swift */; };
 		0C22DA531BCAAA06006E1D3B /* NukeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068D1BCA888800089D7F /* NukeTests.swift */; };
 		0C22DA541BCAAA0C006E1D3B /* ImageManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06861BCA888800089D7F /* ImageManagerTest.swift */; };
 		0C22DA551BCAAA10006E1D3B /* ImageMemoryCacheTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* ImageMemoryCacheTest.swift */; };
@@ -79,7 +77,6 @@
 		0CC345B01BD96D8E005C2DD8 /* ImageRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C861BAE9ADD007FE380 /* ImageRequest.swift */; };
 		0CC345B11BD96D8E005C2DD8 /* ImageResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C871BAE9ADD007FE380 /* ImageResponse.swift */; };
 		0CC345B21BD96D8E005C2DD8 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C811BAE9ADD007FE380 /* ImageManager.swift */; };
-		0CC345B31BD96D8E005C2DD8 /* ImageManagerExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF161F1BC4526A003768E5 /* ImageManagerExtensions.swift */; };
 		0CC345B41BD96D8E005C2DD8 /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C831BAE9ADD007FE380 /* ImageLoader.swift */; };
 		0CC345B51BD96D8E005C2DD8 /* ImageDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C7F1BAE9ADD007FE380 /* ImageDataLoader.swift */; };
 		0CC345B61BD96D8E005C2DD8 /* ImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C096C801BAE9ADD007FE380 /* ImageDecoder.swift */; };
@@ -101,7 +98,6 @@
 		0CC345C61BD96E1D005C2DD8 /* ImageManagerTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06861BCA888800089D7F /* ImageManagerTest.swift */; };
 		0CC345C71BD96E1D005C2DD8 /* ImageMemoryCacheTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* ImageMemoryCacheTest.swift */; };
 		0CC345C81BD96E1D005C2DD8 /* ImageProcessingTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06881BCA888800089D7F /* ImageProcessingTest.swift */; };
-		0CCF16201BC4526A003768E5 /* ImageManagerExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF161F1BC4526A003768E5 /* ImageManagerExtensions.swift */; };
 		0CCF22671C9D493700034196 /* ImageDiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF22661C9D493700034196 /* ImageDiskCache.swift */; };
 		0CCF22681C9D493C00034196 /* ImageDiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF22661C9D493700034196 /* ImageDiskCache.swift */; };
 		0CCF22691C9D493C00034196 /* ImageDiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCF22661C9D493700034196 /* ImageDiskCache.swift */; };
@@ -174,7 +170,6 @@
 		0CC2DA001BD2BFA6006189B3 /* ImageLoadingViewExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageLoadingViewExtensions.swift; sourceTree = "<group>"; };
 		0CC345971BD96CFE005C2DD8 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CC345A31BD96D2A005C2DD8 /* Nuke tvOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke tvOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		0CCF161F1BC4526A003768E5 /* ImageManagerExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManagerExtensions.swift; sourceTree = "<group>"; };
 		0CCF22661C9D493700034196 /* ImageDiskCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageDiskCache.swift; sourceTree = "<group>"; };
 		0CF516101BF64DD500584D1E /* ImagePreheatingControllerForTableView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheatingControllerForTableView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -260,7 +255,6 @@
 				0C096C861BAE9ADD007FE380 /* ImageRequest.swift */,
 				0C096C871BAE9ADD007FE380 /* ImageResponse.swift */,
 				0C096C811BAE9ADD007FE380 /* ImageManager.swift */,
-				0CCF161F1BC4526A003768E5 /* ImageManagerExtensions.swift */,
 				0C096C831BAE9ADD007FE380 /* ImageLoader.swift */,
 				0C096C7F1BAE9ADD007FE380 /* ImageDataLoader.swift */,
 				0C096C801BAE9ADD007FE380 /* ImageDecoder.swift */,
@@ -634,7 +628,6 @@
 				0C22D9D71BCA9755006E1D3B /* ImageTask.swift in Sources */,
 				0C22D9D61BCA9755006E1D3B /* ImageResponse.swift in Sources */,
 				0C22D9D51BCA9755006E1D3B /* ImageRequestKey.swift in Sources */,
-				0C22D9D01BCA9755006E1D3B /* ImageManagerExtensions.swift in Sources */,
 				0C22D9D11BCA9755006E1D3B /* ImageLoader.swift in Sources */,
 				0C22D9CE1BCA9755006E1D3B /* ImageDecoder.swift in Sources */,
 				0CCF22681C9D493C00034196 /* ImageDiskCache.swift in Sources */,
@@ -658,7 +651,6 @@
 				0C14538C1C9B367300885939 /* Internal.swift in Sources */,
 				0C22DA481BCAA468006E1D3B /* ImageTask.swift in Sources */,
 				0CCF22691C9D493C00034196 /* ImageDiskCache.swift in Sources */,
-				0C22DA521BCAA8D5006E1D3B /* ImageManagerExtensions.swift in Sources */,
 				0C22DA4E1BCAA7F5006E1D3B /* ImageLoader.swift in Sources */,
 				0CF91FB81BD3D85A00C7CF23 /* ImageViewLoadingController.swift in Sources */,
 				0C22DA4F1BCAA84F006E1D3B /* ImageDataLoader.swift in Sources */,
@@ -715,7 +707,6 @@
 				0CC2D9F61BD2ACE4006189B3 /* ImageViewLoadingController.swift in Sources */,
 				0CF516111BF64DD500584D1E /* ImagePreheatingControllerForTableView.swift in Sources */,
 				0CC2DA011BD2BFA6006189B3 /* ImageLoadingViewExtensions.swift in Sources */,
-				0CCF16201BC4526A003768E5 /* ImageManagerExtensions.swift in Sources */,
 				0C096C981BAE9ADD007FE380 /* ImageProcessor.swift in Sources */,
 				0C096C961BAE9ADD007FE380 /* ImageLoader.swift in Sources */,
 				0C0E01781BC0637B0040B46B /* ImageRequestKey.swift in Sources */,
@@ -738,7 +729,6 @@
 				0C14538E1C9B367300885939 /* Internal.swift in Sources */,
 				0CC345BB1BD96DD2005C2DD8 /* ImagePreheatingControllerForCollectionView.swift in Sources */,
 				0CCF226A1C9D493C00034196 /* ImageDiskCache.swift in Sources */,
-				0CC345B31BD96D8E005C2DD8 /* ImageManagerExtensions.swift in Sources */,
 				0CC345B21BD96D8E005C2DD8 /* ImageManager.swift in Sources */,
 				0CF516121BF64DD500584D1E /* ImagePreheatingControllerForTableView.swift in Sources */,
 				0CC345B91BD96D8E005C2DD8 /* ImageRequestKey.swift in Sources */,

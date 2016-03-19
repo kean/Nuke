@@ -13,6 +13,8 @@
 #endif
 
 
+// MARK: Error Handling
+
 func errorWithCode(code: ImageManagerErrorCode) -> NSError {
     func reason() -> String {
         switch code {
