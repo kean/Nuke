@@ -37,37 +37,41 @@ class MenuViewController: UITableViewController {
         super.viewDidLoad()
         
         var items = [MenuItem]()
-        let item1 = MenuItem(title: "Basic Demo") {
+
+        items.append(MenuItem(title: "Basic Demo") {
             [weak self] in
             let controller = BasicDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
             controller.title = "Basic Demo"
             self?.navigationController?.pushViewController(controller, animated: true)
-        }
-        items.append(item1)
-        
-        let item2 = MenuItem(title: "Alamofire Demo", subtitle: "'Nuke/Alamofire' subspec") {
+        })
+
+        items.append(MenuItem(title: "Alamofire Demo", subtitle: "'Nuke/Alamofire' subspec") {
             [weak self] in
             let controller = AlamofireDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
             controller.title = "Alamofire Demo"
             self?.navigationController?.pushViewController(controller, animated: true)
-        }
-        items.append(item2)
-        
-        let item3 = MenuItem(title: "Animated GIF Demo", subtitle: "'Nuke/GIF' subspec") {
+        })
+
+        items.append(MenuItem(title: "Custom Cache Demo", subtitle: "Uses DFCache for on-disk caching") {
+            [weak self] in
+            let controller = CustomCacheDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+            controller.title = "Custom Cache Demo"
+            self?.navigationController?.pushViewController(controller, animated: true)
+        })
+
+        items.append(MenuItem(title: "Animated GIF Demo", subtitle: "'Nuke/GIF' subspec") {
             [weak self] in
             let controller = AnimatedImageDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
             controller.title = "Animated GIF Demo"
             self?.navigationController?.pushViewController(controller, animated: true)
-        }
-        items.append(item3)
-        
-        let item4 = MenuItem(title: "Preheating Demo") {
+        })
+
+        items.append(MenuItem(title: "Preheating Demo") {
             [weak self] in
             let controller = PreheatingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
             controller.title = "Preheating Demo"
             self?.navigationController?.pushViewController(controller, animated: true)
-        }
-        items.append(item4)
+        })
         
         sections.append(MenuSection(title: "Nuke", items: items))
     }

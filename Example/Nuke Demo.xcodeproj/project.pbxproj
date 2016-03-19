@@ -7,10 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0C0CCD9E1BACC1A7002D10D5 /* PreheatingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
-		0C826FA51BAC066E0069FCE1 /* BasicDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
-		0C826FA71BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
-		0CAA23701BAC9C6A002D7080 /* AlamofireDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */; settings = {ASSET_TAGS = (); }; };
+		0C0CCD9E1BACC1A7002D10D5 /* PreheatingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */; };
+		0C826FA51BAC066E0069FCE1 /* BasicDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */; };
+		0C826FA71BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */; };
+		0CAA23701BAC9C6A002D7080 /* AlamofireDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */; };
+		0CE7E9FF1C9C419A0082216D /* CustomCacheDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE7E9FE1C9C419A0082216D /* CustomCacheDemoViewController.swift */; };
+		0CE7EA011C9C42700082216D /* DFCacheExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE7EA001C9C42700082216D /* DFCacheExtensions.swift */; };
 		607FACD61AFB9204008FA782 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACD51AFB9204008FA782 /* AppDelegate.swift */; };
 		607FACD81AFB9204008FA782 /* MenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607FACD71AFB9204008FA782 /* MenuViewController.swift */; };
 		607FACDB1AFB9204008FA782 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 607FACD91AFB9204008FA782 /* Main.storyboard */; };
@@ -24,6 +26,8 @@
 		0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BasicDemoViewController.swift; sourceTree = "<group>"; };
 		0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnimatedImageDemoViewController.swift; sourceTree = "<group>"; };
 		0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AlamofireDemoViewController.swift; sourceTree = "<group>"; };
+		0CE7E9FE1C9C419A0082216D /* CustomCacheDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomCacheDemoViewController.swift; sourceTree = "<group>"; };
+		0CE7EA001C9C42700082216D /* DFCacheExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DFCacheExtensions.swift; sourceTree = "<group>"; };
 		2F801C4312DD7D983F975C16 /* Pods.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.release.xcconfig; path = "Pods/Target Support Files/Pods/Pods.release.xcconfig"; sourceTree = "<group>"; };
 		519F42473EB659181C504FFC /* Pods_Nuke_Tests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Nuke_Tests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		592C74D719B88F7124329128 /* Pods-Nuke_Tests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nuke_Tests.release.xcconfig"; path = "Pods/Target Support Files/Pods-Nuke_Tests/Pods-Nuke_Tests.release.xcconfig"; sourceTree = "<group>"; };
@@ -81,6 +85,8 @@
 				0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */,
 				0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */,
 				0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */,
+				0CE7E9FE1C9C419A0082216D /* CustomCacheDemoViewController.swift */,
+				0CE7EA001C9C42700082216D /* DFCacheExtensions.swift */,
 				607FACD91AFB9204008FA782 /* Main.storyboard */,
 				607FACDC1AFB9204008FA782 /* Images.xcassets */,
 				607FACDE1AFB9204008FA782 /* LaunchScreen.xib */,
@@ -243,10 +249,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0CE7EA011C9C42700082216D /* DFCacheExtensions.swift in Sources */,
 				0C0CCD9E1BACC1A7002D10D5 /* PreheatingDemoViewController.swift in Sources */,
 				0C826FA51BAC066E0069FCE1 /* BasicDemoViewController.swift in Sources */,
 				607FACD81AFB9204008FA782 /* MenuViewController.swift in Sources */,
 				0CAA23701BAC9C6A002D7080 /* AlamofireDemoViewController.swift in Sources */,
+				0CE7E9FF1C9C419A0082216D /* CustomCacheDemoViewController.swift in Sources */,
 				0C826FA71BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift in Sources */,
 				607FACD61AFB9204008FA782 /* AppDelegate.swift in Sources */,
 			);
