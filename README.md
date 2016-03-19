@@ -38,9 +38,9 @@ Nuke.taskWith(request) { response in
 
 ##### Caching
 
-- [Doesn't reinvent caching](http://outscope.net/blog/image-caching), relies on HTTP cache in URL Loading System
-- As an alternative to `NSURLCache` provides a protocol for integrating any third-party caching library
 - Two cache layers including auto purging memory cache
+- [Doesn't reinvent caching](http://outscope.net/blog/image-caching), relies on HTTP cache in URL Loading System
+- Provides a protocol for integrating any third-party caching library
 - Intelligent control over memory cache
 
 ##### Processing

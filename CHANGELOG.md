@@ -1,5 +1,10 @@
 [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+## Nuke 2.3.0
+
+- #60 Add custom on-disk caching support (see `ImageDiskCaching` protocol)
+- Reduce dynamic dispatch
+
 ## Nuke 2.2.0
 
 - `ImageTask` `suspend` method is deprecated, implementation does nothing
