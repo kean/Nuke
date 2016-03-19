@@ -11,7 +11,7 @@ public protocol ImageRequestKeyOwner: class {
 }
 
 /// Makes it possible to use ImageRequest as a key in dictionaries.
-public class ImageRequestKey: NSObject {
+public final class ImageRequestKey: NSObject {
     /// Request that the receiver was initailized with.
     public let request: ImageRequest
 

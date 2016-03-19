@@ -58,7 +58,7 @@ extension NSOperationQueue {
 // MARK: TaskQueue
 
 /// Limits number of concurrent tasks, prevents trashing of NSURLSession
-class TaskQueue {
+final class TaskQueue {
     var maxExecutingTaskCount = 8
     var congestionControlEnabled = true
     

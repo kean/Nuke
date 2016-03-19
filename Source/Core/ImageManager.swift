@@ -80,8 +80,8 @@ public class ImageManager {
     private var nextTaskIdentifier: Int {
         return Int(OSAtomicIncrement32(&taskIdentifier))
     }
-    private var loader: ImageLoading { return configuration.loader }
-    private var cache: ImageMemoryCaching? { return configuration.cache }
+    private var loader: ImageLoading
+    private var cache: ImageMemoryCaching?
     
     // MARK: Configuring Manager
 
@@ -91,6 +91,8 @@ public class ImageManager {
     /// Initializes image manager with a given configuration. ImageManager becomes a delegate of the ImageLoader.
     public init(configuration: ImageManagerConfiguration) {
         self.configuration = configuration
+        self.cache = configuration.cache
+        self.loader = configuration.loader
         self.loader.manager = self
     }
     
