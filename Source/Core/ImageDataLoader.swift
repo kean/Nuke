@@ -57,7 +57,7 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
 
     /// Creates task for the given request.
     public func taskWith(request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask {
-        let task = self.taskWith(request)
+        let task = taskWith(request)
         dispatch_sync(queue) {
             self.handlers[task] = DataTaskHandler(progress: progress, completion: completion)
         }
