@@ -1,14 +1,12 @@
-<p align="left"><img src="https://cloud.githubusercontent.com/assets/1567433/13362579/7001aa94-dcd6-11e5-8c0d-5a4920008d04.png" height="150"/>
+<p align="center"><img src="https://cloud.githubusercontent.com/assets/1567433/13362579/7001aa94-dcd6-11e5-8c0d-5a4920008d04.png" height="150"/>
 
-<p align="left">
+<p align="center">
 <a href="https://cocoapods.org"><img src="https://img.shields.io/cocoapods/v/Nuke.svg"></a>
 <a href="https://github.com/Carthage/Carthage"><img src="https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat"></a>
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-Loading, processing, caching and [**preheating**](http://outscope.net/blog/image-preheating) images.
-
-To get started check out http://kean.github.io/Nuke/ !
+Loading, processing, caching and [**preheating**](http://outscope.net/blog/image-preheating) images. To get started check out http://kean.github.io/Nuke/ !
 
 ```swift
 var request = ImageRequest(URL: NSURL(string: "http://..."))
