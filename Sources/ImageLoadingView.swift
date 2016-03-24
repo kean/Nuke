@@ -175,3 +175,26 @@ public extension ImageLoadingView {
 private struct AssociatedKeys {
     static var LoadingController = "nk_imageViewLoadingController"
 }
+
+
+// MARK: - ImageLoadingView Conformance
+
+#if os(iOS) || os(tvOS)
+    extension UIImageView: ImageDisplayingView, ImageLoadingView {
+        // Underlying image.
+        public var nk_image: UIImage? {
+            get { return self.image }
+            set { self.image = newValue }
+        }
+    }
+#endif
+
+#if os(OSX)
+    extension NSImageView: ImageDisplayingView, ImageLoadingView {
+        // Underlying image.
+        public var nk_image: NSImage? {
+            get { return self.image }
+            set { self.image = newValue }
+        }
+    }
+#endif
