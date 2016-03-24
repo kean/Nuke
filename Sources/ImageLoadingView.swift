@@ -83,14 +83,16 @@ public extension View {
 
 /// View that supports displaying images.
 public protocol ImageDisplayingView: class {
-    var nk_image: Image? { get set }
+    /// Displays a given image.
+    func nk_displayImage(image: Image?)
+
 }
 
 /// Provides default implementation for image task completion handler.
 public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
     public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions = ImageViewLoadingOptions(), placeholder: Image?) -> ImageTask {
         if let placeholder = placeholder {
-            nk_image = placeholder
+            nk_displayImage(placeholder)
         }
         return nk_setImageWith(request, options: options)
     }
@@ -103,7 +105,7 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
         }
         switch response {
         case let .Success(image, info):
-            nk_image = image
+            nk_displayImage(image)
             guard options.animated && !info.isFastResponse else {
                 return
             }
@@ -163,25 +165,22 @@ private struct AssociatedKeys {
     static var LoadingController = "nk_imageViewLoadingController"
 }
 
-
 // MARK: - ImageLoadingView Conformance
 
 #if os(iOS) || os(tvOS)
     extension UIImageView: ImageDisplayingView, ImageLoadingView {
-        // Underlying image.
-        public var nk_image: UIImage? {
-            get { return self.image }
-            set { self.image = newValue }
+        /// Displays a given image.
+        public func nk_displayImage(image: Image?) {
+            self.image = image
         }
     }
 #endif
 
 #if os(OSX)
     extension NSImageView: ImageDisplayingView, ImageLoadingView {
-        // Underlying image.
-        public var nk_image: NSImage? {
-            get { return self.image }
-            set { self.image = newValue }
+        /// Displays a given image.
+        public func nk_displayImage(image: Image?) {
+            self.image = image
         }
     }
 #endif

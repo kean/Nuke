@@ -194,9 +194,8 @@ You can do so by either implementing `ImageDisplayingView` protocol:
 ```swift
 extension MKAnnotationView: ImageDisplayingView, ImageLoadingView {
     // That's it, you get default implementation of all methods in ImageLoadingView protocol
-    public var nk_image: UIImage? {
-        get { return self.image }
-        set { self.image = newValue }
+    public func nk_displayImage(image: Image?) {
+        self.image = image
     }
 }
 ```
