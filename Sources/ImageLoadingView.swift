@@ -86,10 +86,6 @@ public protocol ImageDisplayingView: class {
     var nk_image: Image? { get set }
 }
 
-/// Default value is 0.25.
-public var ImageViewDefaultAnimationDuration = 0.25
-// FIXME: Remove `Default` from the name or remove this var all together.
-
 /// Provides default implementation for image task completion handler.
 public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
     public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions = ImageViewLoadingOptions(), placeholder: Image?) -> ImageTask {
@@ -115,7 +111,7 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
                 animations(self) // User provided custom animations
             } else {
                 let animation = CABasicAnimation(keyPath: "opacity")
-                animation.duration = ImageViewDefaultAnimationDuration
+                animation.duration = 0.25
                 animation.fromValue = 0
                 animation.toValue = 1
                 let layer: CALayer? = self.layer // Make compiler happy
