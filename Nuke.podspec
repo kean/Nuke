@@ -20,7 +20,5 @@ Pod::Spec.new do |s|
     s.tvos.deployment_target = "9.0"
 
     s.source_files  = "Source/Core/**/*"
-    s.ios.source_files = "Source/UI/**/*"
-    s.tvos.source_files = "Source/UI/**/*"
-    s.osx.source_files = "Source/UI/{ImageLoadingView,ImageLoadingViewExtensions,ImageViewLoadingController}.swift"
+    s.watchos.exclude_files = "Source/UI/**/*"
 end
