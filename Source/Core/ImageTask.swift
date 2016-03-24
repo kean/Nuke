@@ -85,10 +85,6 @@ public class ImageTask: Hashable {
     /// Resumes the task if suspended. Resume methods are nestable.
     public func resume() -> Self { fatalError("Abstract method") }
     
-    /// Deprecated. Current implementation does nothing.
-    @available(*, deprecated=2.2)
-    public func suspend() -> Self { return self }
-    
     /// Cancels the task if it hasn't completed yet. Calls a completion closure with an error value of { ImageManagerErrorDomain, ImageManagerErrorCancelled }.
     public func cancel() -> Self { fatalError("Abstract method") }
 }
