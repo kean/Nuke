@@ -107,8 +107,6 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
         }
         switch response {
         case let .Success(image, info):
-            // FIXME: Make nk_image write only, keep only basic opacity transition
-            let previousImage = nk_image
             nk_image = image
             guard options.animated && !info.isFastResponse else {
                 return
@@ -116,19 +114,12 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
             if let animations = options.animations {
                 animations(self) // User provided custom animations
             } else {
+                let animation = CABasicAnimation(keyPath: "opacity")
+                animation.duration = ImageViewDefaultAnimationDuration
+                animation.fromValue = 0
+                animation.toValue = 1
                 let layer: CALayer? = self.layer // Make compiler happy
-                if previousImage == nil {
-                    let animation = CABasicAnimation(keyPath: "opacity")
-                    animation.duration = ImageViewDefaultAnimationDuration
-                    animation.fromValue = 0
-                    animation.toValue = 1
-                    layer?.addAnimation(animation, forKey: "imageTransition")
-                } else {
-                    let animation = CATransition()
-                    animation.duration = ImageViewDefaultAnimationDuration
-                    animation.type = kCATransitionFade
-                    layer?.addAnimation(animation, forKey: "imageTransition")
-                }
+                layer?.addAnimation(animation, forKey: "imageTransition")
             }
         default: return
         }
