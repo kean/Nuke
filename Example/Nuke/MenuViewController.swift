@@ -66,10 +66,10 @@ class MenuViewController: UITableViewController {
             self?.navigationController?.pushViewController(controller, animated: true)
         })
 
-        items.append(MenuItem(title: "Preheating Demo") {
+        items.append(MenuItem(title: "Preheat Demo", subtitle: "Uses Preheat package") {
             [weak self] in
             let controller = PreheatingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-            controller.title = "Preheating Demo"
+            controller.title = "Preheat Demo"
             self?.navigationController?.pushViewController(controller, animated: true)
         })
         

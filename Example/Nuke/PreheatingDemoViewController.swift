@@ -7,18 +7,19 @@
 
 import UIKit
 import Nuke
+import Preheat
 
 private let cellReuseID = "reuseID"
 
-class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingControllerDelegate {
+class PreheatingDemoViewController: UICollectionViewController, PreheatControllerDelegate {
     var photos: [NSURL]!
-    var preheatController: ImagePreheatingController!
+    var preheatController: PreheatController!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         self.photos = demoPhotosURLs
-        self.preheatController = ImagePreheatingControllerForCollectionView(collectionView: self.collectionView!)
+        self.preheatController = PreheatControllerForCollectionView(collectionView: self.collectionView!)
         self.preheatController.delegate = self
         
         self.collectionView?.backgroundColor = UIColor.whiteColor()
@@ -101,9 +102,9 @@ class PreheatingDemoViewController: UICollectionViewController, ImagePreheatingC
         return imageView!
     }
     
-    // MARK: ImagePreheatingControllerDelegate
-    
-    func preheatingController(controller: ImagePreheatingController, didUpdateWithAddedIndexPaths addedIndexPaths: [NSIndexPath], removedIndexPaths: [NSIndexPath]) {
+    // MARK: PreheatControllerDelegate
+
+    func preheatControllerDidUpdate(controller: PreheatController, addedIndexPaths: [NSIndexPath], removedIndexPaths: [NSIndexPath]) {
         func requestForIndexPaths(indexPaths: [NSIndexPath]) -> [ImageRequest] {
             return indexPaths.map { return self.imageRequestWithURL(self.photos[$0.row]) }
         }

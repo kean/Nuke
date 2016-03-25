@@ -157,7 +157,7 @@ private class AnimatedImageCell: UICollectionViewCell {
         super.prepareForReuse()
         self.progressView.progress = 0
         self.progressView.alpha = 1
-        self.imageView.nk_image = nil
+        self.imageView.nk_displayImage(nil)
         self.imageView.nk_cancelLoading()
     }
 }
