@@ -51,31 +51,14 @@ public protocol ImageLoadingView: class {
 }
 
 public extension ImageLoadingView where Self: View {
-    /**
-     Loads and displays an image for the given URL. Cancels previously started requests.
-     
-     Uses ImageContentMode.AspectFill, and current view size multiplied by screen scaling factor as an image target size.
-     */
+    /// Loads and displays an image for the given URL. Cancels previously started requests.
     public func nk_setImageWith(URL: NSURL) -> ImageTask {
-        return nk_setImageWith(ImageRequest(URL: URL, targetSize: nk_targetSize(), contentMode: .AspectFill))
+        return nk_setImageWith(ImageRequest(URL: URL))
     }
     
     /// Loads and displays an image for the given request. Cancels previously started requests.
     public func nk_setImageWith(request: ImageRequest) -> ImageTask {
         return nk_setImageWith(request, options: ImageViewLoadingOptions())
-    }
-}
-
-public extension View {
-    /// Returns image target size (in pixels) for the view. Target size is calculated by multiplying view's size by screen scale factor.
-    public func nk_targetSize() -> CGSize {
-        let size = bounds.size
-        #if os(iOS) || os(tvOS)
-            let scale = UIScreen.mainScreen().scale
-        #elseif os(OSX)
-            let scale = NSScreen.mainScreen()?.backingScaleFactor ?? 1.0
-        #endif
-        return CGSize(width: size.width * scale, height: size.height * scale)
     }
 }
 
