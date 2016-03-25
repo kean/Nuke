@@ -6,17 +6,17 @@ import Foundation
 
 /// Manages execution of image tasks for image loading view.
 public class ImageViewLoadingController {
-    /// Current image task.
+    /// Current task.
     public var imageTask: ImageTask?
     
     /// Handler that gets called each time current task completes.
     public var handler: (ImageTask, ImageResponse, ImageViewLoadingOptions) -> Void
     
-    /// The image manager that is used for creating image tasks. The shared manager is used by default.
+    /// The image manager used for creating tasks. The shared manager is used by default.
     public var manager: ImageManager = ImageManager.shared
     
     deinit {
-        self.cancelLoading()
+        cancelLoading()
     }
 
     /// Initializes the receiver with a given handler.
@@ -24,7 +24,7 @@ public class ImageViewLoadingController {
         self.handler = handler
     }
     
-    /// Cancels current image task.
+    /// Cancels current task.
     public func cancelLoading() {
         if let task = imageTask {
             imageTask = nil
@@ -34,11 +34,13 @@ public class ImageViewLoadingController {
             }
         }
     }
-    
+
+    /// Creates a task, subscribes to it and resumes it.
     public func setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask {
         return setImageWith(manager.taskWith(request), options: options)
     }
-    
+
+    /// Subscribes for a given task and resumes it.
     public func setImageWith(task: ImageTask, options: ImageViewLoadingOptions) -> ImageTask {
         cancelLoading()
         imageTask = task

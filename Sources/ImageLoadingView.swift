@@ -10,7 +10,7 @@
     public typealias View = UIView
 #endif
 
-// MARK: - ImageLoadingView
+// MARK: - ImageViewLoadingOptions
 
 /// Options for image loading.
 public struct ImageViewLoadingOptions {
@@ -33,6 +33,9 @@ public struct ImageViewLoadingOptions {
     /// Initializes the receiver.
     public init() {}
 }
+
+
+// MARK: - ImageLoadingView
 
 /// View that supports image loading.
 public protocol ImageLoadingView: class {
@@ -62,6 +65,7 @@ public extension ImageLoadingView where Self: View {
     }
 }
 
+
 // MARK: - ImageDisplayingView
 
 /// View that supports displaying images.
@@ -73,12 +77,6 @@ public protocol ImageDisplayingView: class {
 
 /// Provides default implementation for image task completion handler.
 public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
-    public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions = ImageViewLoadingOptions(), placeholder: Image?) -> ImageTask {
-        if let placeholder = placeholder {
-            nk_displayImage(placeholder)
-        }
-        return nk_setImageWith(request, options: options)
-    }
     
     /// Default implementation that displays the image and runs animations if necessary.
     public func nk_imageTask(task: ImageTask, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions) {
@@ -107,12 +105,11 @@ public extension ImageLoadingView where Self: ImageDisplayingView, Self: View {
     }
 }
 
+
 // MARK: - Default ImageLoadingView Implementation
 
 /// Default ImageLoadingView implementation.
 public extension ImageLoadingView {
-    
-    // MARK: ImageLoadingView
 
     /// Cancels current image task.
     public func nk_cancelLoading() {
@@ -123,9 +120,7 @@ public extension ImageLoadingView {
     public func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask {
         return nk_imageLoadingController.setImageWith(request, options: options)
     }
-    
-    // MARK: Helpers
-    
+
     /// Returns current task.
     public var nk_imageTask: ImageTask? {
         return nk_imageLoadingController.imageTask
@@ -147,6 +142,7 @@ public extension ImageLoadingView {
 private struct AssociatedKeys {
     static var LoadingController = "nk_imageViewLoadingController"
 }
+
 
 // MARK: - ImageLoadingView Conformance
 
