@@ -24,7 +24,7 @@ public struct ImageViewLoadingOptions {
     /// If true the loaded image is displayed with an animation. Default value is true.
     public var animated = true
     
-    /// Custom handler to run when the image task completes. Overrides the default completion handling. Default value is nil.
+    /// Custom handler to run when the task completes. Overrides the default completion handler. Default value is nil.
     public var handler: ((ImageLoadingView, ImageTask, ImageResponse, ImageViewLoadingOptions) -> Void)? = nil
     
     /// Default value is nil.
@@ -45,11 +45,7 @@ public protocol ImageLoadingView: class {
     /// Loads and displays an image for the given request. Cancels previously started requests.
     func nk_setImageWith(request: ImageRequest, options: ImageViewLoadingOptions) -> ImageTask
     
-    /**
-     Gets called when the task that is currently associated with the view completes.
-     
-     See https://github.com/kean/Nuke/issues/38 for more info about overriding this method.
-     */
+    /// Gets called when the task that is currently associated with the view completes.
     func nk_imageTask(task: ImageTask, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions)
 }
 
