@@ -30,7 +30,6 @@ Nuke.taskWith(request) { response in
 
 - Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
 - A single data task is used for multiple equivalent requests
-- [Automated preheating](http://outscope.net/blog/image-preheating) of images close to the viewport
 - Prevents trashing the system with requests during fast scrolling
 - Full featured extensions for UI components
 
@@ -285,10 +284,10 @@ Nuke.stopPreheatingImages(requests: requests)
 
 #### Automating Preheating
 
-Nuke automates a process of determining which images in a `UICollectionView` (or `UITableView`) to preheat and when to start and stop preheating them. There are two corresponding classes (one for `UICollectionView`, one for `UITableView`). For more info about them see [Image Preheating Guide](http://kean.github.io/blog/programming/2015/12/12/image-preheating.html).
+Nuke can be used in conjuction with [Preheat](https://github.com/kean/Preheat) package that automates precaching of content in a `UICollectionView` (or `UITableView`). For more info see [Image Preheating Guide](http://outscope.net/blog/image-preheating), Nuke's demo project, and [Preheat](https://github.com/kean/Preheat) documentation.
 
 ```swift
-let preheater = ImagePreheatingControllerForCollectionView(collectionView: <#collectionView#>)
+let preheater = PreheatControllerForCollectionView(collectionView: <#collectionView#>)
 preheater.delegate = self // Signals when preheat index paths change
 ```
 
