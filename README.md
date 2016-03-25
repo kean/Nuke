@@ -44,7 +44,7 @@ Nuke.taskWith(request) { response in
 ##### Processing
 
 - Create, compose and apply image filters
-- [Core Image](https://developer.apple.com/library/mac/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html) integration
+- Simple [Core Image](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide) integration
 - Background image decompression and scaling in a single step
 - Resize loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
 
@@ -252,7 +252,7 @@ Nuke.taskWith(request) {
 
 #### Creating Filters
 
-`ImageProcessing` protocol consists of two methods: one to process the image and one to compare two (heterogeneous) filters. Here's an example of custom image filter implemented on top of [Core Image](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide). It uses some of the helper functions provided by Nuke that simplify work with `Core Image`.
+`ImageProcessing` protocol consists of two methods: one to process the image and one to compare two (heterogeneous) filters. Here's an example of custom image filter that uses [Core Image](https://developer.apple.com/library/mac/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html). For more info see [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide).
 
 ```swift
 public class ImageFilterGaussianBlur: ImageProcessing {
@@ -262,12 +262,12 @@ public class ImageFilterGaussianBlur: ImageProcessing {
     }
 
     public func process(image: UIImage) -> UIImage? {
-        return image.nk_filter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
+        // The `applyFilter` function is not shipped with Nuke.
+        return image.applyFilter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
     }
 }
 
-// We need to be able to compare filters for equivalence to cache processed images
-// Default implementation returns `true` if both filters are of the same class
+// We need to compare filters to identify cached images
 public func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bool {
     return lhs.radius == rhs.radius
 }

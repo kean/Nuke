@@ -23,6 +23,36 @@ example("Applying Filters") {
 }
 
 /*:
+### Creating CoreImage Based Filters
+ Here we use a simple function `applyFilter` to wrap a `CIGaussianBlur` into an `ImageProcessing` protocol.
+ */
+
+/// Blurs image using CIGaussianBlur filter.
+public struct ImageFilterGaussianBlur: ImageProcessing {
+    /// Blur radius.
+    public let radius: Int
+    
+    /**
+     Initializes the receiver with a blur radius.
+     
+     - parameter radius: Blur radius, default value is 8.
+     */
+    public init(radius: Int = 8) {
+        self.radius = radius
+    }
+    
+    /// Applies CIGaussianBlur filter to the image.
+    public func process(image: UIImage) -> UIImage? {
+        return image.applyFilter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : radius]))
+    }
+}
+
+/// Compares two filters based on their radius.
+public func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bool {
+    return lhs.radius == rhs.radius
+}
+
+/*:
 ### Composing Filters
 It's easy to combine multiple filters using `ImageFilterComposition` class. Lets use a `ImageFilterDrawInCircle` from the previous example and combine it with a gaussian blur filter.
 */

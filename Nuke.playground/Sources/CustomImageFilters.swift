@@ -29,3 +29,52 @@ public func drawImageInCircle(image: UIImage?) -> UIImage? {
     UIGraphicsEndImageContext()
     return processedImage
 }
+
+
+// MARK - CoreImage
+
+private let sharedContext = CIContext(options: [kCIContextPriorityRequestLow: true])
+
+/// Core Image helper methods.
+public extension UIImage {
+    /**
+     Applies closure with a filter to the image.
+     
+     Performance considerations. Chaining multiple CIFilter objects is much more efficient then using ImageProcessorComposition to combine multiple instances of CoreImageFilter class. Avoid unnecessary texture transfers between the CPU and GPU.
+     
+     - parameter context: Core Image context, uses shared context by default.
+     - parameter filter: Closure for applying image filter.
+     */
+    public func applyFilter(context context: CIContext = sharedContext, closure: CoreImage.CIImage -> CoreImage.CIImage?) -> UIImage? {
+        func inputImageForImage(image: UIImage) -> CoreImage.CIImage? {
+            if let image = image.CGImage {
+                return CoreImage.CIImage(CGImage: image)
+            }
+            if let image = image.CIImage {
+                return image
+            }
+            return nil
+        }
+        guard let inputImage = inputImageForImage(self), outputImage = closure(inputImage) else {
+            return nil
+        }
+        let imageRef = context.createCGImage(outputImage, fromRect: inputImage.extent)
+        return UIImage(CGImage: imageRef, scale: scale, orientation: imageOrientation)
+    }
+    
+    /**
+     Applies filter to the image.
+     
+     - parameter context: Core Image context, uses shared context by default.
+     - parameter filter: Image filter. Function automatically sets input image on the filter.
+     */
+    public func applyFilter(filter: CIFilter?, context: CIContext = sharedContext) -> UIImage? {
+        guard let filter = filter else {
+            return nil
+        }
+        return applyFilter(context: context) {
+            filter.setValue($0, forKey: kCIInputImageKey)
+            return filter.outputImage
+        }
+    }
+}
