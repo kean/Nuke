@@ -1,5 +1,20 @@
 [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+## Nuke 3.0.0
+
+- Update for Swift 2.2
+- Move `ImagePreheatingController` to a standalone package [Preheat](https://github.com/kean/Preheat)
+- Remove deprecated `suspend` method from `ImageTask`
+- Remove `ImageFilterGaussianBlur` and Core Image helper functions which are now part of [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide)
+- Cleanup project structure (as expected by SPM)
+- `ImageManager` constructor now has a default value for configuration
+- `nk_setImageWith(URL:)` method no longer resizes images by default, because resizing is not effective in most cases
+- Remove `nk_setImageWith(request:options:placeholder:)` method, it's trivial
+- `ImageLoadingView` default implementation no longer implements "Cross Dissolve" animations, use `ImageViewLoadingOptions` instead (see `animations` or `handler` property)
+- Remove `ImageViewDefaultAnimationDuration`, use `ImageViewLoadingOptions` instead (see `animations` property)
+- `ImageDisplayingView` protocol now has a single `nk_displayImage(_)` method instead of a `nk_image` property
+- Remove `nk_targetSize` property from `UI(NS)View` extension
+
 ## Nuke 2.3.0
 
 - #60 Add custom on-disk caching support (see `ImageDiskCaching` protocol)
