@@ -31,7 +31,7 @@ public protocol ImageDataLoading {
 public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoading {
     public private(set) var session: NSURLSession!
     private var handlers = [NSURLSessionTask: DataTaskHandler]()
-    private let queue = dispatch_queue_create("ImageDataLoader.Queue", DISPATCH_QUEUE_SERIAL)
+    private var lock = NSRecursiveLock()
 
     /** Initialzies data loader by creating a session with a given session configuration. Data loader is set as a delegate of the session.
      */
@@ -58,9 +58,9 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     /// Creates task for the given request.
     public func taskWith(request: ImageRequest, progress: ImageDataLoadingProgress, completion: ImageDataLoadingCompletion) -> NSURLSessionTask {
         let task = taskWith(request)
-        dispatch_sync(queue) {
-            self.handlers[task] = DataTaskHandler(progress: progress, completion: completion)
-        }
+        lock.lock()
+        handlers[task] = DataTaskHandler(progress: progress, completion: completion)
+        lock.unlock()
         return task
     }
     
@@ -82,21 +82,21 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     // MARK: NSURLSessionDataDelegate
     
     public func URLSession(session: NSURLSession, dataTask: NSURLSessionDataTask, didReceiveData data: NSData) {
-        dispatch_sync(queue) {
-            if let handler = self.handlers[dataTask] {
-                handler.data.appendData(data)
-                handler.progress(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
-            }
+        lock.lock()
+        if let handler = handlers[dataTask] {
+            handler.data.appendData(data)
+            handler.progress(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
         }
+        lock.unlock()
     }
     
     public func URLSession(session: NSURLSession, task: NSURLSessionTask, didCompleteWithError error: NSError?) {
-        dispatch_sync(queue) {
-            if let handler = self.handlers[task] {
-                handler.completion(data: handler.data, response: task.response, error: error)
-                self.handlers[task] = nil
-            }
+        lock.lock()
+        if let handler = handlers[task] {
+            handler.completion(data: handler.data, response: task.response, error: error)
+            handlers[task] = nil
         }
+        lock.unlock()
     }
 }
 
