@@ -6,7 +6,7 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-Loading, processing, caching and [**preheating**](http://outscope.net/blog/image-preheating) images. To get started check out http://kean.github.io/Nuke/ !
+Loading, processing, caching and [**preheating**](http://outscope.net/blog/image-preheating) images. To get started check out http://kean.github.io/Nuke
 
 ```swift
 var request = ImageRequest(URL: NSURL(string: "http://..."))
@@ -21,31 +21,17 @@ Nuke.taskWith(request) { response in
 ## <a name="h_features"></a>Features
 
 - User-friendly API, zero configuration required
-- Performant, asynchronous and thread safe
+- Performant, asynchronous, thread safe
 - Nuke is a [pipeline](#h_design) with injectable dependencies
-- Optional [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [AnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
-- Beautiful [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png), and [complete documentation](#h_documentation) included
-
-##### Loading
-
-- Uses [NSURLSession](https://developer.apple.com/library/ios/documentation/Foundation/Reference/NSURLSession_class/) with [HTTP/2](https://en.wikipedia.org/wiki/HTTP/2) support
-- A single data task is used for multiple equivalent requests
-- Prevents trashing the system with requests during fast scrolling
-- Full featured extensions for UI components
-
-##### Caching
-
-- Two cache layers including auto purging memory cache
-- [Doesn't reinvent caching](http://outscope.net/blog/image-caching), relies on HTTP cache in URL Loading System
-- Provides a protocol for integrating any third-party caching library
-- Intelligent control over memory cache
-
-##### Processing
-
+- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
+- [Playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png), and [complete documentation](#h_documentation) included
+- Extensions for UI components
+- Two [cache layers](http://outscope.net/blog/image-caching) including auto purging memory cache
+- Protocol for integrating any third-party caching library
+- Automates image [preheating (precaching)](http://outscope.net/blog/image-preheating)
 - Create, compose and apply image filters
+- Background image decompression
 - Simple [Core Image](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide) integration
-- Background image decompression and scaling in a single step
-- Resize loaded images to [fit displayed size](https://developer.apple.com/library/ios/qa/qa1708/_index.html)
 
 ## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
 
@@ -54,10 +40,10 @@ Nuke.taskWith(request) { response in
 
 ## <a name="h_getting_started"></a>Getting Started
 
-- Best place to get started is http://kean.github.io/Nuke/
+- Best place to get started is http://kean.github.io/Nuke
 - Get a demo project using `pod try Nuke` command
 - Experiment with Nuke in a [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png)
-- [Install](#installation), `import Nuke` and enjoy!
+- [Install](#installation) and `import Nuke`
 
 ## <a name="h_documentation"></a>Documentation
 
@@ -80,7 +66,7 @@ Nuke.taskWith(NSURL(URL: "http://...")!) {
 
 #### Adding Request Options
 
-Each `ImageTask` object is created with an `ImageRequest` struct which contains request parameters. An `ImageRequest` itself can be initialized either with `NSURL` or `NSURLRequest`.
+Each `ImageTask` object is created with an `ImageRequest` struct which contains request parameters. An `ImageRequest` can be initialized either with `NSURL` or `NSURLRequest`.
 
 ```swift
 var request = ImageRequest(URLRequest: NSURLRequest(NSURL(URL: "http://...")!))
@@ -405,17 +391,10 @@ import NukeAnimatedImagePlugin
 
 ## <a name="h_satellite_projects"></a>Satellite Projects
 
+- [Preheat](https://github.com/kean/Preheat) - Automates preheating (precaching) of content in UITableView and UICollectionView
 - [Nuke Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin) - Alamofire plugin for Nuke that allows you to use Alamofire for networking
 - [Nuke AnimatedImage Plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin) - FLAnimatedImage plugin for Nuke that allows you to load and display animated GIFs
 - [Nuke Integration Tests](https://github.com/kean/Nuke-Integration-Tests) - Contains CocoaPods and Carthage integration tests for Nuke
-
-## <a name="h_donations"></a>Donations
-
-This project has taken hundreds hours of work. If you find it useful, you can chip in for coffee to keep me going.
-
-<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=B257REANNAAL6"><img height="30" src="https://cloud.githubusercontent.com/assets/1567433/12656493/a1b6075c-c60f-11e5-85a7-0f0c4dea27ed.gif"></a>
-
-> *Alternatively, <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=8VLXL699RFRY2">donate in ₽*</a>
 
 ## Contacts
 
