@@ -54,9 +54,6 @@
 		0C0FD6111CA47FE1002A78FB /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DC1CA47FE1002A78FB /* ImageTask.swift */; };
 		0C0FD6121CA47FE1002A78FB /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DC1CA47FE1002A78FB /* ImageTask.swift */; };
 		0C0FD6131CA47FE1002A78FB /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DC1CA47FE1002A78FB /* ImageTask.swift */; };
-		0C0FD6141CA47FE1002A78FB /* ImageViewLoadingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DD1CA47FE1002A78FB /* ImageViewLoadingController.swift */; };
-		0C0FD6151CA47FE1002A78FB /* ImageViewLoadingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DD1CA47FE1002A78FB /* ImageViewLoadingController.swift */; };
-		0C0FD6171CA47FE1002A78FB /* ImageViewLoadingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DD1CA47FE1002A78FB /* ImageViewLoadingController.swift */; };
 		0C0FD6181CA47FE1002A78FB /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DE1CA47FE1002A78FB /* Internal.swift */; };
 		0C0FD6191CA47FE1002A78FB /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DE1CA47FE1002A78FB /* Internal.swift */; };
 		0C0FD61A1CA47FE1002A78FB /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DE1CA47FE1002A78FB /* Internal.swift */; };
@@ -138,7 +135,6 @@
 		0C0FD5DA1CA47FE1002A78FB /* ImageRequestKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestKey.swift; sourceTree = "<group>"; };
 		0C0FD5DB1CA47FE1002A78FB /* ImageResponse.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageResponse.swift; sourceTree = "<group>"; };
 		0C0FD5DC1CA47FE1002A78FB /* ImageTask.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageTask.swift; sourceTree = "<group>"; };
-		0C0FD5DD1CA47FE1002A78FB /* ImageViewLoadingController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewLoadingController.swift; sourceTree = "<group>"; };
 		0C0FD5DE1CA47FE1002A78FB /* Internal.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Internal.swift; sourceTree = "<group>"; };
 		0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Nuke.swift; sourceTree = "<group>"; };
 		0C22D9C51BCA9734006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -241,7 +237,6 @@
 				0C0FD5DA1CA47FE1002A78FB /* ImageRequestKey.swift */,
 				0C0FD5DB1CA47FE1002A78FB /* ImageResponse.swift */,
 				0C0FD5DC1CA47FE1002A78FB /* ImageTask.swift */,
-				0C0FD5DD1CA47FE1002A78FB /* ImageViewLoadingController.swift */,
 				0C0FD5DE1CA47FE1002A78FB /* Internal.swift */,
 			);
 			path = Sources;
@@ -617,7 +612,6 @@
 				0C0FD5ED1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
 				0C0FD5E11CA47FE1002A78FB /* ImageDataLoader.swift in Sources */,
 				0C0FD61D1CA47FE1002A78FB /* Nuke.swift in Sources */,
-				0C0FD6151CA47FE1002A78FB /* ImageViewLoadingController.swift in Sources */,
 				0C0FD60D1CA47FE1002A78FB /* ImageResponse.swift in Sources */,
 				0C0FD6111CA47FE1002A78FB /* ImageTask.swift in Sources */,
 				0C0FD5F11CA47FE1002A78FB /* ImageLoadingView.swift in Sources */,
@@ -671,7 +665,6 @@
 				0C0FD5EC1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
 				0C0FD5E01CA47FE1002A78FB /* ImageDataLoader.swift in Sources */,
 				0C0FD61C1CA47FE1002A78FB /* Nuke.swift in Sources */,
-				0C0FD6141CA47FE1002A78FB /* ImageViewLoadingController.swift in Sources */,
 				0C0FD60C1CA47FE1002A78FB /* ImageResponse.swift in Sources */,
 				0C0FD6101CA47FE1002A78FB /* ImageTask.swift in Sources */,
 				0C0FD5F01CA47FE1002A78FB /* ImageLoadingView.swift in Sources */,
@@ -693,7 +686,6 @@
 				0C0FD5EF1CA47FE1002A78FB /* ImageLoader.swift in Sources */,
 				0C0FD5E31CA47FE1002A78FB /* ImageDataLoader.swift in Sources */,
 				0C0FD61F1CA47FE1002A78FB /* Nuke.swift in Sources */,
-				0C0FD6171CA47FE1002A78FB /* ImageViewLoadingController.swift in Sources */,
 				0C0FD60F1CA47FE1002A78FB /* ImageResponse.swift in Sources */,
 				0C0FD6131CA47FE1002A78FB /* ImageTask.swift in Sources */,
 				0C0FD5F31CA47FE1002A78FB /* ImageLoadingView.swift in Sources */,
