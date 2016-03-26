@@ -33,23 +33,16 @@ public class ImageDataLoader: NSObject, NSURLSessionDataDelegate, ImageDataLoadi
     private var handlers = [NSURLSessionTask: DataTaskHandler]()
     private var lock = NSRecursiveLock()
 
-    /** Initialzies data loader by creating a session with a given session configuration. Data loader is set as a delegate of the session.
-     */
+    /// Initialzies data loader by creating a session with a given session configuration.
     public init(sessionConfiguration: NSURLSessionConfiguration) {
         super.init()
         self.session = NSURLSession(configuration: sessionConfiguration, delegate: self, delegateQueue: nil)
     }
 
-    /**
-     Initializes the receiver with a default NSURLSession configuration.
-
-     The memory capacity of the NSURLCache is set to 0, disk capacity is set to 200 Mb.
-     */
+    /// Initializes the receiver with a default NSURLSession configuration and NSURLCache with memory capacity set to 0, disk capacity set to 200 Mb.
     public convenience override init() {
         let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
         conf.URLCache = NSURLCache(memoryCapacity: 0, diskCapacity: (200 * 1024 * 1024), diskPath: "com.github.kean.nuke-cache")
-        conf.timeoutIntervalForRequest = 60.0
-        conf.timeoutIntervalForResource = 360.0
         self.init(sessionConfiguration: conf)
     }
     

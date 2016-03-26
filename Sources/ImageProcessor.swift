@@ -53,30 +53,16 @@ public class ImageProcessorComposition: ImageProcessing, Equatable {
 
     /// Processes the given image by applying each processor in an order in which they are present in the processors array. If one of the processors fails to produce an image the processing stops and nil is returned.
     public func process(input: Image) -> Image? {
-        var image: Image! = input
-        for processor in processors {
-            if image == nil {
-                return nil
-            }
-            autoreleasepool {
-                image = processor.process(image)
-            }
+        return processors.reduce(input as Image!) { image, processor in
+            return image != nil ? processor.process(image) : nil
         }
-        return image
     }
 }
 
 /// Returns true if both compositions have the same number of processors, and the processors are pairwise-equivalent.
 public func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
-    guard lhs.processors.count == rhs.processors.count else {
-        return false
-    }
-    for (lhs, rhs) in zip(lhs.processors, rhs.processors) {
-        if !lhs.isEquivalent(rhs) {
-            return false
-        }
-    }
-    return true
+    return lhs.processors.count == rhs.processors.count &&
+        !(zip(lhs.processors, rhs.processors).contains{ !$0.isEquivalent($1) })
 }
 
 
@@ -104,7 +90,7 @@ public class ImageProcessorWithClosure: ImageProcessing, Equatable {
     }
 }
 
-/// Comapres two processors using their identifiers.
+/// Compares two processors using their identifiers.
 public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -> Bool {
     return lhs.identifier == rhs.identifier
 }
@@ -154,15 +140,13 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
         let scaleHor = targetSize.width / bitmapSize.width
         let scaleVert = targetSize.height / bitmapSize.height
         let scale = contentMode == .AspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
-        return decompress(image, scale: Double(scale))
+        return decompress(image, scale: CGFloat(min(scale, 1)))
     }
 
-    private func decompress(image: UIImage, scale: Double) -> UIImage {
-        guard let imageRef = image.CGImage else {
-            return image
-        }
-        let minification = CGFloat(min(scale, 1))
-        let size = CGSize(width: round(minification * CGFloat(CGImageGetWidth(imageRef))), height: round(minification * CGFloat(CGImageGetHeight(imageRef))))
+    private func decompress(image: UIImage, scale: CGFloat) -> UIImage {
+        guard let imageRef = image.CGImage else { return image }
+        
+        let size = CGSize(width: round(scale * CGFloat(CGImageGetWidth(imageRef))), height: round(scale * CGFloat(CGImageGetHeight(imageRef))))
 
         // For more info see:
         // - Quartz 2D Programming Guide
@@ -183,8 +167,6 @@ public func ==(lhs: ImageProcessorWithClosure, rhs: ImageProcessorWithClosure) -
 
     private func isOpaque(image: CGImageRef) -> Bool {
         let alpha = CGImageGetAlphaInfo(image)
-        return alpha == .None ||
-            alpha == .NoneSkipFirst ||
-            alpha == .NoneSkipLast
+        return alpha == .None || alpha == .NoneSkipFirst || alpha == .NoneSkipLast
     }
 #endif

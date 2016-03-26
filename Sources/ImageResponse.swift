@@ -23,14 +23,6 @@ public extension ImageResponse {
         }
     }
 
-    /// Returns response metadata if the response was successful.
-    public var info: ImageResponseInfo? {
-        switch self {
-        case .Success(_, let info): return info
-        case .Failure(_): return nil
-        }
-    }
-
     /// Returns error if the response failed.
     public var error: ErrorType? {
         switch self {

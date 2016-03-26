@@ -107,8 +107,7 @@ public class ImageMemoryCache: ImageMemoryCaching {
         #if os(OSX)
             return 1
         #else
-            let imageRef = image.CGImage
-            return CGImageGetBytesPerRow(imageRef) * CGImageGetHeight(imageRef)
+            return CGImageGetBytesPerRow(image.CGImage) * CGImageGetHeight(image.CGImage)
         #endif
     }
     

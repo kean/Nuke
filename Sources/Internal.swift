@@ -35,9 +35,7 @@ func dispathOnMainThread(closure: (Void) -> Void) {
 }
 
 extension dispatch_queue_t {
-    func async(block: (Void -> Void)) {
-        dispatch_async(self, block)
-    }
+    func async(block: (Void -> Void)) { dispatch_async(self, block) }
 }
 
 

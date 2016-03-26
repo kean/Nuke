@@ -89,7 +89,7 @@ public class ImageManager {
     public let configuration: ImageManagerConfiguration
 
     /// Initializes image manager with a given configuration. ImageManager becomes a delegate of the ImageLoader.
-    public init(configuration: ImageManagerConfiguration) {
+    public init(configuration: ImageManagerConfiguration = ImageManagerConfiguration(dataLoader: ImageDataLoader())) {
         self.configuration = configuration
         self.cache = configuration.cache
         self.loader = configuration.loader
@@ -145,7 +145,6 @@ public class ImageManager {
             
             let completions = task.completions
             dispathOnMainThread {
-                assert(task.response != nil)
                 completions.forEach { $0(task.response!) }
             }
         default: break
@@ -230,7 +229,7 @@ public class ImageManager {
         cache?.removeResponseForKey(ImageRequestKey(request, owner: self))
     }
     
-    // MARK: Managing the Manager
+    // MARK: Misc
     
     /// Cancels all outstanding tasks and then invalidates the manager. New image tasks may not be resumed.
     public func invalidateAndCancel() {
@@ -318,11 +317,9 @@ extension ImageManager: ImageTaskManaging {
             switch task.state {
             case .Completed, .Cancelled:
                 dispathOnMainThread {
-                    assert(task.response != nil)
                     completion(task.response!.makeFastResponse())
                 }
-            default:
-                task.completions.append(completion)
+            default: task.completions.append(completion)
             }
         }
     }

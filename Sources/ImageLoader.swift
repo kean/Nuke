@@ -138,10 +138,8 @@ public class ImageLoaderDefaultDelegate: ImageLoaderDelegate {
     
     /// Compares request `URL`s, decompression parameters (`shouldDecompressImage`, `targetSize` and `contentMode`), and processors.
     public func loader(loader: ImageLoader, isCacheEquivalent lhs: ImageRequest, to rhs: ImageRequest) -> Bool {
-        guard lhs.URLRequest.URL == rhs.URLRequest.URL else {
-            return false
-        }
-        return lhs.shouldDecompressImage == rhs.shouldDecompressImage &&
+        return lhs.URLRequest.URL == rhs.URLRequest.URL &&
+            lhs.shouldDecompressImage == rhs.shouldDecompressImage &&
             lhs.targetSize == rhs.targetSize &&
             lhs.contentMode == rhs.contentMode &&
             isEquivalent(lhs.processor, rhs: rhs.processor)
@@ -241,17 +239,15 @@ public class ImageLoader: ImageLoading {
     
     private func createDataTask(request request: ImageRequest, key: ImageRequestKey) -> DataTask {
         let dataTask = DataTask(key: key)
-        dataTask.URLSessionTask = conf.dataLoader.taskWith(request,
-            progress: { [weak self] completed, total in
-                self?.queue.async {
-                    self?.dataTask(dataTask, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
-                }
-            },
-            completion: { [weak self] data, response, error in
-                self?.queue.async {
-                    self?.dataTask(dataTask, didCompleteWithData: data, response: response, error: error)
-                }
-            })
+        dataTask.URLSessionTask = conf.dataLoader.taskWith(request, progress: { [weak self] completed, total in
+            self?.queue.async {
+                self?.dataTask(dataTask, didUpdateProgress: ImageTaskProgress(completed: completed, total: total))
+            }
+        }, completion: { [weak self] data, response, error in
+            self?.queue.async {
+                self?.dataTask(dataTask, didCompleteWithData: data, response: response, error: error)
+            }
+        })
         #if !os(OSX)
             if let priority = request.priority {
                 dataTask.URLSessionTask.priority = priority
