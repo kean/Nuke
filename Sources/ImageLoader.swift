@@ -269,7 +269,7 @@ public class ImageLoader: ImageLoading {
         
         removeDataTask(dataTask) // No more ImageTasks can register
 
-        if let data = data, response = response, cache = conf.cache {
+        if let data = data, response = response, cache = conf.cache where error == nil {
             conf.cachingQueue.addBlock {
                 // FIXME: The fact that we use first image task is confusing, because there is no direct relation between DataTask reusing and on-disk caching (it's up to the user).
                 if let task = dataTask.registeredTasks.first {
