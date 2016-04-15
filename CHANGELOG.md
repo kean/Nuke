@@ -1,5 +1,11 @@
 [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+## Nuke 3.1.0
+
+- #64 Fix a performance regression: images are now decoded once per DataTask like they used to
+- #65 Fix an issue custom on-disk cache (`ImageDiskCaching`) was called `setData(_:response:forTask:)` method when the error wasn't nil
+- Add notifications for NSURLSessionTask state changes to enable activity indicators (based on https://github.com/kean/Nuke-Alamofire-Plugin/issues/4)
+
 ## Nuke 3.0.0
 
 - Update for Swift 2.2
