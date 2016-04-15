@@ -57,6 +57,10 @@ extension NSOperationQueue {
 
 // MARK: TaskQueue
 
+public let SessionTaskDidResumeNotification = "com.github.kean.nuke.sessionTaskDidResume"
+public let SessionTaskDidCancelNotification = "com.github.kean.nuke.sessionTaskDidCancel"
+public let SessionTaskDidCompleteNotification = "com.github.kean.nuke.sessionTaskDidComplete"
+
 /// Limits number of concurrent tasks, prevents trashing of NSURLSession
 final class TaskQueue {
     var maxExecutingTaskCount = 8
@@ -84,6 +88,7 @@ final class TaskQueue {
         } else if executingTasks.contains(task) {
             executingTasks.remove(task)
             task.cancel()
+            NSNotificationCenter.defaultCenter().postNotificationName(SessionTaskDidCancelNotification, object: task)
             setNeedsExecute()
         }
     }
@@ -93,6 +98,7 @@ final class TaskQueue {
             pendingTasks.removeObject(task)
         } else if executingTasks.contains(task) {
             executingTasks.remove(task)
+            NSNotificationCenter.defaultCenter().postNotificationName(SessionTaskDidCompleteNotification, object: task)
             setNeedsExecute()
         }
     }
@@ -118,6 +124,7 @@ final class TaskQueue {
             pendingTasks.removeObjectAtIndex(0)
             executingTasks.insert(task)
             task.resume()
+            NSNotificationCenter.defaultCenter().postNotificationName(SessionTaskDidResumeNotification, object: task)
             setNeedsExecute()
         }
     }
