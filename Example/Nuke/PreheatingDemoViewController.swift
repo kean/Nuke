@@ -11,82 +11,83 @@ import Preheat
 
 private let cellReuseID = "reuseID"
 
-class PreheatingDemoViewController: UICollectionViewController, PreheatControllerDelegate {
+class PreheatingDemoViewController: UICollectionViewController {
     var photos: [NSURL]!
-    var preheatController: PreheatController!
+    var preheatController: PreheatController<UICollectionView>!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.photos = demoPhotosURLs
-        self.preheatController = PreheatControllerForCollectionView(collectionView: self.collectionView!)
-        self.preheatController.delegate = self
+        photos = demoPhotosURLs
+        preheatController = PreheatController(view: collectionView!)
+        preheatController.handler = { [weak self] in
+            self?.preheatWindowChanged(addedIndexPaths: $0, removedIndexPaths: $1)
+        }
         
-        self.collectionView?.backgroundColor = UIColor.whiteColor()
-        self.collectionView?.registerClass(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
+        collectionView?.backgroundColor = UIColor.whiteColor()
+        collectionView?.registerClass(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
     }
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(animated)
-        self.updateItemSize()
+        updateItemSize()
     }
     
     override func viewDidAppear(animated: Bool) {
         super.viewDidAppear(animated)
 
-        self.preheatController.enabled = true
+        preheatController.enabled = true
     }
     
     override func viewDidDisappear(animated: Bool) {
         super.viewDidDisappear(animated)
         
-        self.preheatController.enabled = false
+        preheatController.enabled = false
     }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        self.updateItemSize()
+        updateItemSize()
     }
     
     func updateItemSize() {
-        let layout = self.collectionViewLayout as! UICollectionViewFlowLayout
+        let layout = collectionViewLayout as! UICollectionViewFlowLayout
         layout.minimumLineSpacing = 2.0
         layout.minimumInteritemSpacing = 2.0
         let itemsPerRow = 4
-        let side = (Double(self.view.bounds.size.width) - Double(itemsPerRow - 1) * 2.0) / Double(itemsPerRow)
+        let side = (Double(view.bounds.size.width) - Double(itemsPerRow - 1) * 2.0) / Double(itemsPerRow)
         layout.itemSize = CGSize(width: side, height: side)
     }
     
     // MARK: UICollectionView
     
     override func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return self.photos.count
+        return photos.count
     }
     
     override func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCellWithReuseIdentifier(cellReuseID, forIndexPath: indexPath)
         cell.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
         
-        let imageView = self.imageViewForCell(cell)
-        let imageURL = self.photos[indexPath.row]
+        let imageView = imageViewForCell(cell)
+        let imageURL = photos[indexPath.row]
         imageView.image = nil
-        imageView.nk_setImageWith(self.imageRequestWithURL(imageURL))
+        imageView.nk_setImageWith(imageRequestWithURL(imageURL))
         
         return cell
     }
     
     func imageRequestWithURL(URL: NSURL) -> ImageRequest {
         func imageTargetSize() -> CGSize {
-            let size = (self.collectionViewLayout as! UICollectionViewFlowLayout).itemSize
+            let size = (collectionViewLayout as! UICollectionViewFlowLayout).itemSize
             let scale = UIScreen.mainScreen().scale
             return CGSize(width: size.width * scale, height: size.height * scale)
         }
-        
         return ImageRequest(URL: URL, targetSize: imageTargetSize(), contentMode: .AspectFill)
     }
     
     override func collectionView(collectionView: UICollectionView, didEndDisplayingCell cell: UICollectionViewCell, forItemAtIndexPath indexPath: NSIndexPath) {
-        self.imageViewForCell(cell).nk_cancelLoading()
+        imageViewForCell(cell).nk_cancelLoading()
     }
     
     func imageViewForCell(cell: UICollectionViewCell) -> UIImageView {
@@ -102,15 +103,15 @@ class PreheatingDemoViewController: UICollectionViewController, PreheatControlle
         return imageView!
     }
     
-    // MARK: PreheatControllerDelegate
-
-    func preheatControllerDidUpdate(controller: PreheatController, addedIndexPaths: [NSIndexPath], removedIndexPaths: [NSIndexPath]) {
+    // MARK: Preheating
+ 
+    func preheatWindowChanged(addedIndexPaths addedIndexPaths: [NSIndexPath], removedIndexPaths: [NSIndexPath]) {
         func requestForIndexPaths(indexPaths: [NSIndexPath]) -> [ImageRequest] {
-            return indexPaths.map { return self.imageRequestWithURL(self.photos[$0.row]) }
+            return indexPaths.map { imageRequestWithURL(photos[$0.row]) }
         }
         Nuke.startPreheatingImages(requestForIndexPaths(addedIndexPaths))
         Nuke.stopPreheatingImages(requestForIndexPaths(removedIndexPaths))
-        self.logAddedIndexPaths(addedIndexPaths, removedIndexPaths: removedIndexPaths)
+        logAddedIndexPaths(addedIndexPaths, removedIndexPaths: removedIndexPaths)
     }
     
     func logAddedIndexPaths(addedIndexPath: [NSIndexPath], removedIndexPaths: [NSIndexPath]) {
