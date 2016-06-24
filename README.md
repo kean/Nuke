@@ -6,7 +6,7 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-Loading, processing, caching and [**preheating**](http://outscope.net/blog/image-preheating) images. To get started check out http://kean.github.io/Nuke
+Loading, processing, caching and [**preheating**](https://kean.github.io/blog/image-preheating) images. To get started check out http://kean.github.io/Nuke
 
 ```swift
 var request = ImageRequest(URL: NSURL(string: "http://..."))
@@ -25,9 +25,9 @@ Nuke.taskWith(request) { response in
 - Nuke is a [pipeline](#h_design) with injectable dependencies
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
 - Extensions for UI components
-- Two [cache layers](http://outscope.net/blog/image-caching) including auto purging memory cache
+- Two [cache layers](https://kean.github.io/blog/image-caching) including auto purging memory cache
 - Protocol for integrating any third-party caching library
-- Automates image [preheating (precaching)](http://outscope.net/blog/image-preheating)
+- Automates image [preheating (precaching)](https://kean.github.io/blog/image-preheating)
 - Create, compose and apply image filters
 - Background image decompression
 - Simple [Core Image](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide) integration
@@ -248,7 +248,7 @@ public func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bo
 
 #### Preheating Images
 
-[Preheating](http://outscope.net/blog/image-preheating) is an effective way to improve user experience in applications that display collections of images. Preheating means loading and caching images that might soon appear on the display. Nuke provides a set of self-explanatory methods for image preheating which are inspired by [PHImageManager](https://developer.apple.com/library/prerelease/ios/documentation/Photos/Reference/PHImageManager_Class/index.html):
+[Preheating](https://kean.github.io/blog/image-preheating) is an effective way to improve user experience in applications that display collections of images. Preheating means loading and caching images that might soon appear on the display. Nuke provides a set of self-explanatory methods for image preheating which are inspired by [PHImageManager](https://developer.apple.com/library/prerelease/ios/documentation/Photos/Reference/PHImageManager_Class/index.html):
 
 ```swift
 let requests = [ImageRequest(URL: imageURL1), ImageRequest(URL: imageURL2)]
@@ -258,7 +258,7 @@ Nuke.stopPreheatingImages(requests: requests)
 
 #### Automating Preheating
 
-Nuke can be used in conjuction with [Preheat](https://github.com/kean/Preheat) package which automates precaching of content in `UICollectionView` and `UITableView`. For more info see [Image Preheating Guide](http://outscope.net/blog/image-preheating), Nuke's demo project, and [Preheat](https://github.com/kean/Preheat) documentation.
+Nuke can be used in conjuction with [Preheat](https://github.com/kean/Preheat) package which automates precaching of content in `UICollectionView` and `UITableView`. For more info see [Image Preheating Guide](https://kean.github.io/blog/image-preheating), Nuke's demo project, and [Preheat](https://github.com/kean/Preheat) documentation.
 
 ```swift
 let preheater = PreheatControllerForCollectionView(collectionView: <#collectionView#>)
@@ -275,7 +275,7 @@ As an alternative to `NSURLCache` `Nuke` provides an `ImageDiskCaching` protocol
 
 For on-memory caching Nuke provides `ImageMemoryCaching` protocol and its implementation in `ImageMemoryCache` class built on top of `NSCache`. The `ImageMemoryCache` is used for fast access to processed images that are ready for display.
 
-The combination of two cache layers results in a high performance caching system. For more info see [Image Caching Guide](http://outscope.net/blog/image-caching) which provides a comprehensive look at HTTP cache, URL Loading System and NSCache.
+The combination of two cache layers results in a high performance caching system. For more info see [Image Caching Guide](https://kean.github.io/blog/image-caching) which provides a comprehensive look at HTTP cache, URL Loading System and NSCache.
 
 #### Accessing Memory Cache
 
