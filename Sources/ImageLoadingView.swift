@@ -180,10 +180,8 @@ public class ImageViewLoadingController {
     
     /// Cancels current task.
     public func cancelLoading() {
-        if let task = imageTask {
-            task.cancel()
-            imageTask = nil
-        }
+        imageTask?.cancel()
+        imageTask = nil
     }
     
     /// Creates a task, subscribes to it and resumes it.
