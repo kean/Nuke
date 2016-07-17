@@ -1,5 +1,14 @@
 [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+## Nuke 3.1.2
+
+- #71 ImageViewLoadingController now cancels tasks synchronously, thanks to @adomanico
+
+## Nuke 3.1.1
+
+- Demo project update to support CocoaPods 1.0
+- #69 Bitcode support for Carthage builds, thanks to @vincentsaluzzo
+
 ## Nuke 3.1.0
 
 - #64 Fix a performance regression: images are now decoded once per DataTask like they used to
