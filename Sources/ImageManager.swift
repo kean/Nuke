@@ -143,9 +143,12 @@ public class ImageManager {
             executingTasks.remove(task)
             setNeedsExecutePreheatingTasks()
             
+            assert(task.response != nil)
+            
             let completions = task.completions
+            let response = task.response!
             dispathOnMainThread {
-                completions.forEach { $0(task.response!) }
+                completions.forEach { $0(response) }
             }
         default: break
         }
@@ -321,8 +324,10 @@ extension ImageManager: ImageTaskManaging {
         perform {
             switch task.state {
             case .Completed, .Cancelled:
+                assert(task.response != nil)
+                let response = task.response!.makeFastResponse()
                 dispathOnMainThread {
-                    completion(task.response!.makeFastResponse())
+                    completion(response)
                 }
             default: task.completions.append(completion)
             }
