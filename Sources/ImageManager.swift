@@ -287,16 +287,21 @@ extension ImageManager: ImageLoadingManager {
 
     /// Completes ImageTask, stores the response in memory cache.
     public func loader(loader: ImageLoading, task: ImageTask, didCompleteWithImage image: Image?, error: ErrorType?, userInfo: Any?) {
-        let task = task as! ImageTaskInternal
-        if let image = image {
-            if task.request.memoryCacheStorageAllowed {
+        perform {
+            if let image = image where task.request.memoryCacheStorageAllowed {
                 setResponse(ImageCachedResponse(image: image, userInfo: userInfo), forRequest: task.request)
             }
-            task.response = ImageResponse.Success(image, ImageResponseInfo(isFastResponse: false, userInfo: userInfo))
-        } else {
-            task.response = ImageResponse.Failure(error ?? errorWithCode(.Unknown))
+            
+            let task = task as! ImageTaskInternal
+            if task.state == .Running {
+                if let image = image {
+                    task.response = ImageResponse.Success(image, ImageResponseInfo(isFastResponse: false, userInfo: userInfo))
+                } else {
+                    task.response = ImageResponse.Failure(error ?? errorWithCode(.Unknown))
+                }
+                setState(.Completed, forTask: task)
+            }
         }
-        perform { setState(.Completed, forTask: task) }
     }
 }
 
