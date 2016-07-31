@@ -1,0 +1,146 @@
+[
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 44,
+  "text": "_ ",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 160,
+  "text": "_ ",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 472,
+  "remove": 15,
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 494,
+  "remove": 2,
+  "text": "cg",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 501,
+  "remove": 1,
+  "text": "?.width)!",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 512,
+  "remove": 16,
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 535,
+  "remove": 2,
+  "text": "cg",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 542,
+  "remove": 1,
+  "text": "?.height)!",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 577,
+  "remove": 18,
+  "text": "i",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 599,
+  "remove": 15,
+  "text": ".cg",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 619,
+  "remove": 1,
+  "text": "?.cropping(to:",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 701,
+  "remove": 2,
+  "text": "cg",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 817,
+  "text": "_ ",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 1074,
+  "remove": 1,
+  "text": ".z",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 1180,
+  "remove": 7,
+  "text": "(in: ",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 1984,
+  "remove": 8,
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 2030,
+  "text": "(",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 2047,
+  "text": ")",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 2117,
+  "text": "_ ",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 2190,
+  "remove": 2,
+  "text": "cg",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 2241,
+  "remove": 2,
+  "text": "cg",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 2304,
+  "remove": 3,
+  "text": "ciI",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 2583,
+  "remove": 4,
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 2631,
+  "remove": 2,
+  "text": "cg",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 2648,
+  "text": "!",
+ },
+ {
+  "file": "/Users/kean/Develop/Source/Nuke/Nuke.playground/Sources/CustomImageFilters.swift",
+  "offset": 2962,
+  "text": "_ ",
+ }
+]

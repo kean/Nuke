@@ -4,76 +4,48 @@
 
 import Foundation
 
-// MARK: - Convenience
+#if os(OSX)
+    import AppKit.NSImage
+    /// Alias for NSImage
+    public typealias Image = NSImage
+#else
+    import UIKit.UIImage
+    /// Alias for UIImage
+    public typealias Image = UIImage
+#endif
 
-/// Creates a task with a given URL. After you create a task, start it using resume method.
-public func taskWith(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
-    return ImageManager.shared.taskWith(URL, completion: completion)
+internal let domain = "com.github.kean.Nuke"
+
+/// Loads an image for the given `URL` using shared `Loader`.
+public func loadImage(with url: URL, token: CancellationToken? = nil) -> Promise<Image> {
+    return Loader.shared.loadImage(with: url, token: token)
 }
 
-/// Creates a task with a given request. After you create a task, start it using resume method.
-public func taskWith(request: ImageRequest, completion: ImageTaskCompletion? = nil) -> ImageTask {
-    return ImageManager.shared.taskWith(request, completion: completion)
+/// Creates a task with the given `Request` using shared `Loader`.
+/// - parameter options: `Options()` be default.
+public func loadImage(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
+    return Loader.shared.loadImage(with: request, token: token)
 }
 
-/**
- Prepares images for the given requests for later use.
+// MARK: - Loading Extensions
 
- When you call this method, `ImageManager` starts to load and cache images for the given requests. `ImageManager` caches images with the exact target size, content mode, and filters. At any time afterward, you can create tasks with equivalent requests.
- */
-public func startPreheatingImages(requests: [ImageRequest]) {
-    ImageManager.shared.startPreheatingImages(requests)
-}
-
-/// Stop preheating for the given requests. The request parameters should match the parameters used in `startPreheatingImages` method.
-public func stopPreheatingImages(requests: [ImageRequest]) {
-    ImageManager.shared.stopPreheatingImages(requests)
-}
-
-/// Stops all preheating tasks.
-public func stopPreheatingImages() {
-    ImageManager.shared.stopPreheatingImages()
-}
-
-
-// MARK: - ImageManager (Convenience)
-
-/// Convenience methods for ImageManager.
-public extension ImageManager {
-    /// Creates a task with a given request. For more info see `taskWith(_)` methpd.
-    func taskWith(URL: NSURL, completion: ImageTaskCompletion? = nil) -> ImageTask {
-        return self.taskWith(ImageRequest(URL: URL), completion: completion)
-    }
-    
-    /// Creates a task with a given request. For more info see `taskWith(_)` methpd.
-    func taskWith(request: ImageRequest, completion: ImageTaskCompletion?) -> ImageTask {
-        let task = self.taskWith(request)
-        if completion != nil { task.completion(completion!) }
-        return task
+public extension Loading {
+    /// Creates a task with with given request.
+    func loadImage(with url: URL, token: CancellationToken? = nil) -> Promise<Image> {
+        return loadImage(with: Request(url: url), token: token)
     }
 }
 
+public extension Loader {
+    /// Shared `Loader` instance.
+    ///
+    /// Shared loader is created with `DataLoader()`, `DataDecoder()`. 
+    /// Loader is wrapped into `Deduplicator`.
+    public static var shared: Loading = {
+        return Loader(loader: DataLoader(), decoder: DataDecoder())
+    }()
+}
 
-// MARK: - ImageManager (Shared)
-
-/// Manages shared ImageManager instance.
-public extension ImageManager {
-    private static var manager = ImageManager()
-    private static var lock = OS_SPINLOCK_INIT
-    
-    /// The shared image manager. This property and all other `ImageManager` APIs are thread safe.
-    public class var shared: ImageManager {
-        set {
-            OSSpinLockLock(&lock)
-            manager = newValue
-            OSSpinLockUnlock(&lock)
-        }
-        get {
-            var result: ImageManager
-            OSSpinLockLock(&lock)
-            result = manager
-            OSSpinLockUnlock(&lock)
-            return result
-        }
-    }
+public extension Cache {
+    public static var shared = Cache()
 }

@@ -1,27 +1,15 @@
+// The MIT License (MIT)
 //
-//  AlamofireDemoViewController.swift
-//  Nuke
-//
-//  Created by Alexander Grebenyuk on 18/09/15.
-//  Copyright © 2015 CocoaPods. All rights reserved.
-//
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
 import NukeAlamofirePlugin
 
-class AlamofireDemoViewController: BasicDemoViewController {
-    var previousManager: ImageManager!
-    
-    deinit {
-        ImageManager.shared = self.previousManager
-    }
-    
+class AlamofireDemoViewController: BasicDemoViewController {    
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.previousManager = ImageManager.shared
-        
-        ImageManager.shared = (ImageManager(configuration: ImageManagerConfiguration(dataLoader: AlamofireImageDataLoader())))
+        loader = Nuke.Loader(loader: NukeAlamofirePlugin.DataLoader(), decoder: Nuke.DataDecoder())
     }
 }

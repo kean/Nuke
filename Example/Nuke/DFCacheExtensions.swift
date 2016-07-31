@@ -1,34 +1,36 @@
+// The MIT License (MIT)
 //
-//  DFCacheExtensions.swift
-//  Nuke Demo
-//
-//  Created by Alexander Grebenyuk on 18/03/16.
-//  Copyright © 2016 CocoaPods. All rights reserved.
-//
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import DFCache
 import Nuke
 
-extension DFDiskCache: ImageDiskCaching {
-    public func setData(data: NSData, response: NSURLResponse, forTask task: ImageTask) {
-        if let key = toKey(task) {
-            setData(data, forKey: key)
-        }
-    }
-    
-    public func dataFor(task: ImageTask) -> NSData? {
-        if let key = toKey(task) {
-            return dataForKey(key)
-        }
-        return nil
-    }
-    
-    public func removeAllCachedImages() {
-        removeAllData()
-    }
+public struct DFCacheCacheLookupFailed: ErrorProtocol {}
 
-    private func toKey(task: ImageTask) -> String? {
-        return task.request.URLRequest.URL?.absoluteString
+extension DFCache: Nuke.DataCaching {
+    public func setResponse(_ response: CachedURLResponse, for request: URLRequest) {
+        guard let key = makeKey(for: request) else { return }
+        store(response, forKey: key)
+    }
+    
+    public func response(for request: URLRequest, token: CancellationToken?) -> Promise<CachedURLResponse> {
+        return Promise() { fulfill, reject in
+            if let key = makeKey(for: request) {
+                cachedObject(forKey: key, completion: {
+                    if let object = $0 as? CachedURLResponse {
+                        fulfill(value: object)
+                    } else {
+                        reject(error: DFCacheCacheLookupFailed())
+                    }
+                })
+            } else {
+                reject(error: DFCacheCacheLookupFailed())
+            }
+        }
+    }
+    
+    private func makeKey(for request: URLRequest) -> String? {
+        return request.url?.absoluteString
     }
 }

@@ -9,11 +9,14 @@ public func cropImageToSquare(image: UIImage?) -> UIImage? {
         let origin = CGPoint(x: floor((size.width - side) / 2.0), y: floor((size.height - side) / 2.0))
         return CGRect(origin: origin, size: CGSize(width: side, height: side))
     }
-    let bitmapSize = CGSize(width: CGImageGetWidth(image.CGImage), height: CGImageGetHeight(image.CGImage))
-    guard let croppedImageRef = CGImageCreateWithImageInRect(image.CGImage, cropRectForSize(bitmapSize)) else {
+    guard let cgImage = image.cgImage else {
         return nil
     }
-    return UIImage(CGImage: croppedImageRef, scale: image.scale, orientation: image.imageOrientation)
+    let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
+    guard let croppedImageRef = cgImage.cropping(to: cropRectForSize(size: bitmapSize)) else {
+        return nil
+    }
+    return UIImage(cgImage: croppedImageRef, scale: image.scale, orientation: image.imageOrientation)
 }
 
 public func drawImageInCircle(image: UIImage?) -> UIImage? {
@@ -22,9 +25,9 @@ public func drawImageInCircle(image: UIImage?) -> UIImage? {
     }
     UIGraphicsBeginImageContextWithOptions(image.size, false, 0)
     let radius = min(image.size.width, image.size.height) / 2.0
-    let rect = CGRect(origin: CGPointZero, size: image.size)
+    let rect = CGRect(origin: CGPoint.zero, size: image.size)
     UIBezierPath(roundedRect: rect, cornerRadius: radius).addClip()
-    image.drawInRect(rect)
+    image.draw(in: rect)
     let processedImage = UIGraphicsGetImageFromCurrentImageContext()
     UIGraphicsEndImageContext()
     return processedImage
@@ -40,26 +43,28 @@ public extension UIImage {
     /**
      Applies closure with a filter to the image.
      
-     Performance considerations. Chaining multiple CIFilter objects is much more efficient then using ImageProcessorComposition to combine multiple instances of CoreImageFilter class. Avoid unnecessary texture transfers between the CPU and GPU.
+     Performance considerations. Chaining multiple CIFilter objects is much more efficient then using ProcessorComposition to combine multiple instances of CoreImageFilter class. Avoid unnecessary texture transfers between the CPU and GPU.
      
      - parameter context: Core Image context, uses shared context by default.
      - parameter filter: Closure for applying image filter.
      */
-    public func applyFilter(context context: CIContext = sharedContext, closure: CoreImage.CIImage -> CoreImage.CIImage?) -> UIImage? {
-        func inputImageForImage(image: UIImage) -> CoreImage.CIImage? {
-            if let image = image.CGImage {
-                return CoreImage.CIImage(CGImage: image)
+    public func applyFilter(context: CIContext = sharedContext, closure: (CIImage) -> CIImage?) -> UIImage? {
+        func inputImage(for image: UIImage) -> CIImage? {
+            if let image = image.cgImage {
+                return CIImage(cgImage: image)
             }
-            if let image = image.CIImage {
+            if let image = image.ciImage {
                 return image
             }
             return nil
         }
-        guard let inputImage = inputImageForImage(self), outputImage = closure(inputImage) else {
+        guard let inputImage = inputImage(for: self), let outputImage = closure(inputImage) else {
             return nil
         }
-        let imageRef = context.createCGImage(outputImage, fromRect: inputImage.extent)
-        return UIImage(CGImage: imageRef, scale: scale, orientation: imageOrientation)
+        guard let imageRef = context.createCGImage(outputImage, from: inputImage.extent) else {
+            return nil
+        }
+        return UIImage(cgImage: imageRef, scale: scale, orientation: imageOrientation)
     }
     
     /**

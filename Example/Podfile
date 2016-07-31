@@ -1,10 +1,11 @@
 source 'https://github.com/CocoaPods/Specs.git'
 use_frameworks!
 
-target "Nuke Demo" do
-	pod "Nuke", :path => "../"
-	pod "Nuke-AnimatedImage-Plugin", :git => "https://github.com/kean/Nuke-AnimatedImage-Plugin"
-	pod "Nuke-Alamofire-Plugin", :git => "https://github.com/kean/Nuke-Alamofire-Plugin"
-	pod "DFCache"
-	pod "Preheat", :git => "https://github.com/kean/Preheat"
+target 'Nuke Demo' do
+	pod 'Nuke', :path => '../'
+	pod 'Nuke-AnimatedImage-Plugin', :git => 'https://github.com/kean/Nuke-AnimatedImage-Plugin', :branch => 'swift3'
+	pod 'Nuke-Alamofire-Plugin', :git => 'https://github.com/kean/Nuke-Alamofire-Plugin', :branch => 'swift3'
+	pod 'DFCache'
+	pod 'Preheat', :git => 'https://github.com/kean/Preheat', :branch => 'swift3'
+	pod 'Alamofire', :git => 'https://github.com/Alamofire/Alamofire', :branch => 'swift3'
 end

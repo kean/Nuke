@@ -6,69 +6,52 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-Loading, processing, caching and [**preheating**](https://kean.github.io/blog/image-preheating) images. To get started check out http://kean.github.io/Nuke
-
-```swift
-var request = ImageRequest(URL: NSURL(string: "http://..."))
-request.targetSize = CGSize(width: 200, height: 200) // Resize image
-request.processor = ImageFilterGaussianBlur() // Apply image filter
-
-Nuke.taskWith(request) { response in
-    let image = response.image
-}.resume()
-```
+Micro-framework for loading, processing, caching and [preheating](https://kean.github.io/blog/image-preheating) images. Get started at http://kean.github.io/Nuke
 
 ## <a name="h_features"></a>Features
 
-- User-friendly API, zero configuration required
-- Performant, asynchronous, thread safe
-- Nuke is a [pipeline](#h_design) with injectable dependencies
-- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
+- Simple, user-friendly API, zero configuration required
+- Performant, asynchronous, thread-safe
 - Extensions for UI components
 - Two [cache layers](https://kean.github.io/blog/image-caching) including auto purging memory cache
-- Protocol for integrating any third-party caching library
-- Automates image [preheating (precaching)](https://kean.github.io/blog/image-preheating)
-- Create, compose and apply image filters
 - Background image decompression
-- Simple [Core Image](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide) integration
+- Custom image filters
+- Deduplication of equivalent requests
+- Automate [preheating (precaching)](https://kean.github.io/blog/image-preheating)
+- [Pipeline](#h_design) with injectable dependencies
+- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
 
 ## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
 
-- iOS 8.0+ / watchOS 2.0+ / OS X 10.9+ / tvOS 9.0+
-- Xcode 7.3+, Swift 2.2+
+- iOS 8.0 / watchOS 2.0 / OS X 10.10 / tvOS 9.0
+- Xcode 8, Swift 3
 
 ## <a name="h_getting_started"></a>Getting Started
 
-- Best place to get started is http://kean.github.io/Nuke
-- Get a demo project using `pod try Nuke` command
-- Experiment with Nuke in a [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png)
+- Get started at http://kean.github.io/Nuke
+- [Documentation](http://kean.github.io/Nuke/docs/)
+- Get a demo project using `pod try Nuke`
+- Swift [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png)
 - [Install](#installation) and `import Nuke`
-
-## <a name="h_documentation"></a>Documentation
-
-- API reference: [iOS](http://kean.github.io/Nuke/docs/ios/) / [OSX](http://kean.github.io/Nuke/docs/osx/) / [tvOS](http://kean.github.io/Nuke/docs/tvos/) / [watchOS](http://kean.github.io/Nuke/docs/watchos/)
-- [Usage](http://kean.github.io/Nuke/usage/)
-- [Plugins](http://kean.github.io/Nuke/plugins/)
-- [Docs](http://kean.github.io/Nuke/docs/)
 
 ## <a name="h_usage"></a>Usage
 
-#### Creating Image Task
+#### Loading Image
 
-Loading an image is as simple as creating and resuming an `ImageTask`. Nuke is thread safe, you can freely create and resume tasks from any thread. The completion closure is called on the main thread.
+Loading an image is as simple as creating and resuming a `Task`. The completion closure is called on the main thread.
 
 ```swift
-Nuke.taskWith(NSURL(URL: "http://...")!) {
-    let image = $0.image
-}.resume()
+Nuke.loadImage(with: URL(string: "http://...")!) { result in
+    let image = result.value
+}
 ```
 
 #### Adding Request Options
 
-Each `ImageTask` is created with an `ImageRequest` which contains request parameters. An `ImageRequest` can be initialized either with `NSURL` or `NSURLRequest`.
+Each `Task` is created with an `Request` which contains request parameters. An `Request` can be initialized either with `NSURL` or `NSURLRequest`.
 
 ```swift
-var request = ImageRequest(URLRequest: NSURLRequest(NSURL(URL: "http://...")!))
+var request = Request(URLRequest: NSURLRequest(NSURL(URL: "http://...")!))
 
 // Set target size (in pixels) and content mode that describe how to resize loaded image
 request.targetSize = CGSize(width: 300.0, height: 400.0)
@@ -79,26 +62,26 @@ request.processor = ImageFilterGaussianBlur()
 
 // Control memory caching
 request.memoryCacheStorageAllowed = true // true is default
-request.memoryCachePolicy = .ReloadIgnoringCachedImage // Force reload
+request.memoryCachePolicy = .reloadIgnoringCachedObject // Force reload
 
 // Change the priority of the underlying NSURLSessionTask
 request.priority = NSURLSessionTaskPriorityHigh
 
-Nuke.taskWith(request) {
+Nuke.task(with: request) {
     // - Image is resized to fill target size
     // - Blur filter is applied
     let image = $0.image
 }.resume()
 ```
 
-Processed images are stored into memory cache. Next time you start the same request the completion will be called synchronously.
+Processed images are stored into memory cache.
 
 #### Using Image Response
 
 The response passed into the completion closure is represented by an `ImageResponse` enum. It has two states: `Success` and `Failure`. Each state has some values associated with it.
 
 ```swift
-Nuke.taskWith(request) { response in
+Nuke.task(with: request) { response in
     switch response {
     case let .Success(image, info):
         if (info.isFastResponse) {
@@ -112,31 +95,25 @@ Nuke.taskWith(request) { response in
 
 #### Using Image Task
 
-`ImageTask` is your primary interface for controlling the image load. Task is always in one of four states: `Suspended`, `Running`, `Cancelled` or `Completed`. The task is always created in a `Suspended` state. You can use the corresponding `resume()` and `cancel()` methods to control the task's state. It's always safe to call these methods, no matter in which state the task is currently in.
+`Task` is your primary interface for controlling the image load. Task is always in one of four states: `Suspended`, `Running`, `Cancelled` or `Completed`. The task is always created in a `Suspended` state. You can use the corresponding `resume()` and `cancel()` methods to control the task's state. It's always safe to call these methods, no matter in which state the task is currently in.
 
 ```swift
-let task = Nuke.taskWith(imageURL).resume()
+let task = Nuke.task(with: imageURL).resume()
 print(task.state) // Prints "Running"
 
 // Cancels the image load, task completes with an error ImageManagerErrorCode.Cancelled
 task.cancel()
 ```
 
-You can also use `ImageTask` to monitor load progress.
+You can also use `Task` to monitor load progress.
 
 ```swift
-let task = Nuke.taskWith(imageURL).resume()
+let task = Nuke.task(with: imageURL).resume()
 print(task.progress) // The initial progress is (completed: 0, total: 0)
 
 // Add progress handler which gets called periodically on the main thread
 task.progressHandler = { progress in
    // Update progress
-}
-
-// Task represents an image promise
-// It allows you to add multiple completion handlers, even when the task is completed
-task.completion {
-    let image = $0.image
 }
 ```
 
@@ -150,14 +127,14 @@ let imageView = UIImageView()
 // Loads and displays an image for the given URL
 // Previously started requests are cancelled
 let task = imageView.nk_setImageWith(NSURL(URL: "http://...")!)
-// let task = imageView.nk_setImageWith(ImageRequest(...))
+// let task = imageView.nk_setImageWith(Request(...))
 ```
 
 You have extra control over loading via `ImageViewLoadingOptions`. If allows you to provide custom `animations`, override the completion `handler`, etc.
 
 ```swift
 let imageView = UIImageView()
-let request = ImageRequest(URLRequest: NSURLRequest(NSURL(URL: "http://...")!))
+let request = Request(URLRequest: NSURLRequest(NSURL(URL: "http://...")!))
 
 var options = ImageViewLoadingOptions()
 options.handler = {
@@ -186,7 +163,7 @@ Or providing an implementation for remaining `ImageLoadingView` methods:
 
 ```swift
 extension MKAnnotationView: ImageLoadingView {
-    public func nk_imageTask(task: ImageTask, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions) {
+    public func nk_Task(task: Task, didFinishWithResponse response: ImageResponse, options: ImageViewLoadingOptions) {
         // Handle task completion
     }
 }
@@ -208,16 +185,16 @@ func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath ind
 
 #### Applying Filters
 
-Nuke defines a simple `ImageProcessing` protocol that represents image filters. It takes just a couple line of code to create your own filters. You can also compose multiple filters together using `ImageProcessorComposition` class.
+Nuke defines a simple `Processing` protocol that represents image filters. It takes just a couple line of code to create your own filters. You can also compose multiple filters together using `ProcessorComposition` class.
 
 ```swift
-let filter1: ImageProcessing = <#filter#>
-let filter2: ImageProcessing = <#filter#>
+let filter1: Processing = <#filter#>
+let filter2: Processing = <#filter#>
 
-var request = ImageRequest(URL: <#image_url#>)
-request.processor = ImageProcessorComposition(processors: [filter1, filter2])
+var request = Request(url: <#image_url#>)
+request.processor = ProcessorComposition(processors: [filter1, filter2])
 
-Nuke.taskWith(request) {
+Nuke.task(with: request) {
     // Filters are applied, processed image is stored into memory cache
     let image = $0.image
 }.resume()
@@ -225,10 +202,10 @@ Nuke.taskWith(request) {
 
 #### Creating Filters
 
-`ImageProcessing` protocol consists of two methods: one to process the image and one to compare two (heterogeneous) filters. Here's an example of custom image filter that uses [Core Image](https://developer.apple.com/library/mac/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html). For more info see [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide).
+`Processing` protocol consists of two methods: one to process the image and one to compare two (heterogeneous) filters. Here's an example of custom image filter that uses [Core Image](https://developer.apple.com/library/mac/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html). For more info see [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide).
 
 ```swift
-public class ImageFilterGaussianBlur: ImageProcessing {
+public class ImageFilterGaussianBlur: Processing {
     public let radius: Int
     public init(radius: Int = 8) {
         self.radius = radius
@@ -248,21 +225,30 @@ public func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bo
 
 #### Preheating Images
 
-[Preheating](https://kean.github.io/blog/image-preheating) is an effective way to improve user experience in applications that display collections of images. Preheating means loading and caching images that might soon appear on the display. Nuke provides a set of self-explanatory methods for image preheating which are inspired by [PHImageManager](https://developer.apple.com/library/prerelease/ios/documentation/Photos/Reference/PHImageManager_Class/index.html):
+[Preheating](https://kean.github.io/blog/image-preheating) means loading and caching images ahead of time in anticipation of its use. Nuke provides a `Preheater` class with a set of self-explanatory methods for image preheating which were inspired by [PHImageManager](https://developer.apple.com/library/prerelease/ios/documentation/Photos/Reference/PHImageManager_Class/index.html):
 
 ```swift
-let requests = [ImageRequest(URL: imageURL1), ImageRequest(URL: imageURL2)]
-Nuke.startPreheatingImages(requests: requests)
-Nuke.stopPreheatingImages(requests: requests)
+let preheater = Preheater(manager: Manager.shared)
+
+// User enters the screen:
+let requests = [Request(url: imageURL1), Request(url: imageURL2), ...]
+preheater.startPreheating(for: requests)
+
+// User leaves the screen:
+preheater.stopPreheating(for: requests)
 ```
 
 #### Automating Preheating
 
-Nuke can be used in conjuction with [Preheat](https://github.com/kean/Preheat) package which automates precaching of content in `UICollectionView` and `UITableView`. For more info see [Image Preheating Guide](https://kean.github.io/blog/image-preheating), Nuke's demo project, and [Preheat](https://github.com/kean/Preheat) documentation.
+You can use Nuke with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`. For more info see [Image Preheating Guide](https://kean.github.io/blog/image-preheating), Nuke's demo project, and [Preheat](https://github.com/kean/Preheat) documentation.
 
 ```swift
-let preheater = PreheatControllerForCollectionView(collectionView: <#collectionView#>)
-preheater.delegate = self // Signals when preheat index paths change
+let preheater = Nuke.Preheater(manager: Manager.shared)
+let controller = Preheat.Controller(view: <#collectionView#>)
+controller.handler = { addedIndexPaths, removedIndexPaths in
+    preheater.startPreheating(for: requests(for: addedIndexPaths))
+    preheater.stopPreheating(for: requests(for: removedIndexPaths))
+}
 ```
 
 #### Caching Images
@@ -271,27 +257,36 @@ Nuke provides both on-disk and in-memory caching.
 
 For on-disk caching it relies on `NSURLCache`. The `NSURLCache` is used to cache original image data downloaded from the server. This class a part of the URL Loading System's cache management, which relies on HTTP cache.
 
-As an alternative to `NSURLCache` `Nuke` provides an `ImageDiskCaching` protocol that allows you to easily integrate any third-party caching library.
+As an alternative to `NSURLCache` `Nuke` provides an `DataCaching` protocol that allows you to easily integrate any third-party caching library.
 
-For on-memory caching Nuke provides `ImageMemoryCaching` protocol and its implementation in `ImageMemoryCache` class built on top of `NSCache`. The `ImageMemoryCache` is used for fast access to processed images that are ready for display.
+For on-memory caching Nuke provides `ImageCaching` protocol and its implementation in `ImageCache` class built on top of `NSCache`. The `ImageCache` is used for fast access to processed images that are ready for display.
 
 The combination of two cache layers results in a high performance caching system. For more info see [Image Caching Guide](https://kean.github.io/blog/image-caching) which provides a comprehensive look at HTTP cache, URL Loading System and NSCache.
 
 #### Accessing Memory Cache
 
-Nuke automatically leverages both its cache layers. It accesses in-memory cache each time you start an `ImageTask` and calls a completion closure synchronously if the image is found.
+Nuke automatically leverages both its cache layers. It accesses in-memory cache each time you start an `Task`.
 
-If you need to access memory cache directly you can use `ImageManager`:
+If you need to access memory cache directly and synchronously you can use `ImageManager`:
 
 ```swift
 let manager = ImageManager.shared
-let request = ImageRequest(URL: NSURL(string: "")!)
+let request = Request(url: NSURL(string: "")!)
 let response = ImageCachedResponse(image: UIImage(), userInfo: nil)
 manager.storeResponse(response, forRequest: request)
 let cachedResponse = manager.cachedResponseForRequest(request)
 ```
 
-`Nuke.taskWith(_:)` family of functions are just shortcuts for methods of the `ImageManager` class.
+`Nuke.task(with: _:)` family of functions are just shortcuts for methods of the `ImageManager` class.
+
+#### Request Deduplication
+
+If you attempt to load an image using `Deduplicator` more than once before the initial load is complete, it would merge duplicate tasks - the image would be loaded only once. In order to enable deduplication you should wrap a `Loading` instance into a `Deduplicator` object. The shared `Manager` uses `Deduplicator` by default.
+
+```swift
+let loader = Loader(dataLoader: DataLoader(), dataDecoder: DataDecoder())
+let manager = Manager(loader: Deduplicator(loader: loader))
+```
 
 #### Customizing Image Manager
 
@@ -299,31 +294,31 @@ let cachedResponse = manager.cachedResponseForRequest(request)
 
 |Protocol|Description|
 |--------|-----------|
-|`ImageDataLoading`|Performs loading of image data (`NSData`)|
-|`ImageDecoding`|Decodes `NSData` to `UIImage` objects|
-|`ImageMemoryCaching`|Stores processed images into memory cache|
-|`ImageDiskCaching`|Stores data into disk cache|
+|`DataLoading`|Performs loading of image data (`NSData`)|
+|`DataDecoding`|Decodes `NSData` to `UIImage` objects|
+|`ImageCaching`|Stores processed images into memory cache|
+|`DataCaching`|Stores data into disk cache|
 
 <br>
 You can either provide your own implementation of these protocols or customize existing classes that implement them. After you have all the dependencies in place you can create an `ImageManager`:
 
 ```swift
-let dataLoader: ImageDataLoading = <#dataLoader#>
-let decoder: ImageDecoding = <#decoder#>
-let cache: ImageMemoryCaching = <#cache#>
+let dataLoader: DataLoading = <#dataLoader#>
+let decoder: DataDecoding = <#decoder#>
+let cache: ImageCaching = <#cache#>
 
 let configuration = ImageManagerConfiguration(dataLoader: dataLoader, decoder: decoder, cache: cache)
 ImageManager.shared = ImageManager(configuration: configuration)
 ```
 
-If even those protocols are not enough, you can take a look at the `ImageLoading` protocol. It provides a high level API for loading images. This protocol is implemented by the `ImageLoader` class that defines a common flow of loading images (`load data` -> `decode` -> `process`) and uses the corresponding `ImageDataLoading`, `ImageDiskCaching`, `ImageDecoding` and `ImageProcessing` protocols.
+If even those protocols are not enough, you can take a look at the `ImageLoading` protocol. It provides a high level API for loading images. This protocol is implemented by the `Loader` class that defines a common flow of loading images (`load data` -> `decode` -> `process`) and uses the corresponding `DataLoading`, `DataCaching`, `DataDecoding` and `Processing` protocols.
 
 ```swift
 let loader: ImageLoading = <#loader#>
-let cache: ImageMemoryCaching = <#cache#>
+let cache: ImageCaching = <#cache#>
 
 // The ImageManagerConfiguration(dataLoader:decoder:cache:) constructor is actually
-// just a convenience initializer that creates an instance of ImageLoader class
+// just a convenience initializer that creates an instance of Loader class
 let configuration = ImageManagerConfiguration(loader: loader, cache: cache)
 ImageManager.shared = ImageManager(configuration: configuration)
 ```
@@ -335,11 +330,11 @@ ImageManager.shared = ImageManager(configuration: configuration)
 |Protocol|Description|
 |--------|-----------|
 |`ImageManager`|A top-level API for managing images|
-|`ImageDataLoading`|Performs loading of image data (`NSData`)|
-|`ImageDecoding`|Converts `NSData` to `UIImage` objects|
-|`ImageProcessing`|Processes decoded images|
-|`ImageMemoryCaching`|Stores processed images into memory cache|
-|`ImageDiskCaching`|Stores data into disk cache|
+|`DataLoading`|Performs loading of image data (`NSData`)|
+|`DataDecoding`|Converts `NSData` to `UIImage` objects|
+|`Processing`|Processes decoded images|
+|`ImageCaching`|Stores processed images into memory cache|
+|`DataCaching`|Stores data into disk cache|
 
 ## Installation<a name="installation"></a>
 
@@ -350,7 +345,7 @@ To install Nuke add a dependency to your Podfile:
 ```ruby
 # source 'https://github.com/CocoaPods/Specs.git'
 # use_frameworks!
-# platform :ios, "8.0" / :watchos, "2.0" / :osx, "10.9" / :tvos, "9.0"
+# platform :ios, "8.0" / :watchos, "2.0" / :osx, "10.10" / :tvos, "9.0"
 
 pod "Nuke"
 pod "Nuke-Alamofire-Plugin" # optional

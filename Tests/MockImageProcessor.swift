@@ -1,10 +1,6 @@
+// The MIT License (MIT)
 //
-//  MockImageProcessor.swift
-//  Nuke
-//
-//  Created by Alexander Grebenyuk on 06/10/15.
-//  Copyright (c) 2016 Alexander Grebenyuk. All rights reserved.
-//
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
@@ -24,12 +20,14 @@ private struct AssociatedKeys {
     static var ProcessorIDs = "nk_test_processorIDs"
 }
 
-class MockImageProcessor: ImageProcessing {
+// MARK: - MockImageProcessor
+
+class MockImageProcessor: Processing {
     let ID: String
     init(ID: String) {
         self.ID = ID
     }
-    func process(image: Image) -> Image? {
+    func process(_ image: Image) -> Image? {
         var processorIDs: [String] = image.nk_test_processorIDs
         processorIDs.append(self.ID)
         let processedImage = Image()
@@ -42,8 +40,15 @@ func ==(lhs: MockImageProcessor, rhs: MockImageProcessor) -> Bool {
     return lhs.ID == rhs.ID
 }
 
-class MockParameterlessImageProcessor: ImageProcessing {
-    func process(image: Image) -> Image? {
-        return image
+// MARK: - MockFailingProcessor
+
+class MockFailingProcessor: Nuke.Processing {
+    func process(_ image: Image) -> Image? {
+        return nil
     }
 }
+
+func ==(lhs: MockFailingProcessor, rhs: MockFailingProcessor) -> Bool {
+    return true
+}
+

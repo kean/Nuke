@@ -1,29 +1,58 @@
+// The MIT License (MIT)
 //
-//  XCTestCase+Nuke.swift
-//  Nuke
-//
-//  Created by Alexander Grebenyuk on 01/10/15.
-//  Copyright (c) 2016 Alexander Grebenyuk. All rights reserved.
-//
+// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 import Foundation
 
 extension XCTestCase {
-    public func expect(block: (fulfill: (Void) -> Void) -> Void) {
-        let expectation = self.expectation()
+    func expect(_ block: @noescape (fulfill: (Void) -> Void) -> Void) {
+        let expectation = makeExpectation()
         block(fulfill: { expectation.fulfill() })
     }
 
-    public func expectation() -> XCTestExpectation {
-        return self.expectationWithDescription("GenericExpectation")
+    func makeExpectation() -> XCTestExpectation {
+        return self.expectation(description: "GenericExpectation")
+    }
+    
+    func expectNotification(_ name: Notification.Name, object: AnyObject? = nil, handler: XCNotificationExpectationHandler? = nil) -> XCTestExpectation {
+        return self.expectation(forNotification: name.rawValue, object: object, handler: handler)
     }
 
-    public func expectNotification(name: String, object: AnyObject? = nil, handler: XCNotificationExpectationHandler? = nil) -> XCTestExpectation {
-        return self.expectationForNotification(name, object: object, handler: handler)
+    func wait(_ timeout: TimeInterval = 2.0, handler: XCWaitCompletionHandler? = nil) {
+        self.waitForExpectations(timeout: timeout, handler: handler)
     }
+}
 
-    public func wait(timeout: NSTimeInterval = 2.0, handler: XCWaitCompletionHandler? = nil) {
-        self.waitForExpectationsWithTimeout(timeout, handler: handler)
+// FIXME: remove (legacy)
+
+/// `Result` is the type that represent either success or a failure.
+public enum Result<V, E: ErrorProtocol> {
+    case success(V), failure(E)
+}
+
+public extension Result {
+    public var value: V? {
+        if case let .success(val) = self { return val }
+        return nil
+    }
+    
+    public var error: E? {
+        if case let .failure(err) = self { return err }
+        return nil
+    }
+    
+    public var isSuccess: Bool {
+        return value != nil
+    }
+}
+
+// MARK: - AnyError
+
+/// Type erased error.
+public struct AnyError: ErrorProtocol {
+    public var cause: ErrorProtocol
+    public init(_ cause: ErrorProtocol) {
+        self.cause = (cause as? AnyError)?.cause ?? cause
     }
 }
