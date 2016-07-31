@@ -31,7 +31,7 @@ class LoaderErrorHandlingTests: XCTestCase {
         dataLoader.results[defaultURL] = .failure(AnyError(expectedError))
 
         expect { fulfill in
-            _ = loader.loadImage(with: Request(url: defaultURL))
+            loader.loadImage(with: Request(url: defaultURL))
                 .catch { error in
                     XCTAssertNotNil(error)
                     XCTAssertEqual(((error as? AnyError)?.cause as? NSError)?.code, expectedError.code)

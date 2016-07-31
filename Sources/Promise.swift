@@ -4,9 +4,7 @@
 
 import Foundation
 
-// MARK: Promise
-
-public class Promise<T> {
+public final class Promise<T> {
     private var state: PromiseState<T> = .pending(PromiseHandlers<T>())
     private var queue = DispatchQueue(label: "\(domain).Promise")
     
@@ -66,8 +64,8 @@ public extension Promise {
         }
     }
     
-    public func `catch`(_ closure: (error: ErrorProtocol) -> Void) -> Promise {
-        return then(fulfilment: nil, rejection: closure)
+    public func `catch`(_ closure: (error: ErrorProtocol) -> Void) {
+        _ = then(fulfilment: nil, rejection: closure)
     }
     
     public func recover(_ closure: (error: ErrorProtocol) -> Promise) -> Promise {
@@ -94,7 +92,7 @@ public extension Promise {
 }
 
 // FIXME: make nested type when compiler adds support for it
-private class PromiseHandlers<T> {
+private final class PromiseHandlers<T> {
     var objects = [(PromiseResolution<T>) -> Void]()
 }
 

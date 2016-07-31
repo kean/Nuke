@@ -12,7 +12,6 @@
 
 /// By adopting `ResponseHandling` protocol the class automatically gets a bunch
 /// of methods for loading images from the `ResponseHandling` extension.
-/// In general you implement this protocol in your views.
 public protocol ResponseHandling: class {
     /// Called when the current task is completed.
     func nk_handle(response: PromiseResolution<Image>, isFromMemoryCache: Bool)
@@ -146,7 +145,7 @@ public final class ViewContext {
     /// `Loader.shared` by default.
     public var loader: Loading = Loader.shared
     
-    /// `Loader.shared.cache` by default.
+    /// `Cache.shared` by default.
     public var cache: Caching? = Cache.shared
 
     /// Cancels current task.
