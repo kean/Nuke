@@ -41,22 +41,6 @@ public struct AnyProcessor: Processing {
     }
 }
 
-public struct ProcessingFailed: Error {}
-
-public extension Processing {
-    public func process(image: Image, scheduler: Scheduler, token: CancellationToken?) -> Promise<Image> {
-        return Promise() { fulfill, reject in
-            scheduler.execute(token: token) {
-                if let image = self.process(image) {
-                    fulfill(value: image)
-                } else {
-                    reject(error: ProcessingFailed())
-                }
-            }
-        }
-    }
-}
-
 // MARK: - ProcessorComposition
 
 /// Composes multiple image processors.

@@ -126,7 +126,7 @@ let view = UIImageView()
 view.nk_context.loader = <#loader#> // `Loader.shared` by default.
 view.nk_context.cache = <#cache#> // `Cache.shared` by default.
 view.nk_context.handler = { _ in // Overwrite deafult handler.
-    // Handler response
+    // handle the response
 }
 
 ```
@@ -158,7 +158,7 @@ request.add(processor: filter1)
 request.add(processor: filter2)
 
 Nuke.loadImage(with: request).then { image in
-    // Filters are applied, processed image
+    // do something with a processed image
 }.resume()
 ```
 
@@ -178,7 +178,7 @@ struct ImageFilterGaussianBlur: Processing {
         return image.applyFilter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
     }
 
-    // `Processing` protocol also requires filters to be `Hashable`. 
+    // `Processing` protocol also requires filters to be `Equatable`. 
     // Nuke compares filters to be able to identify cached images and deduplicate equivalent requests.
     func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bool {
         return lhs.radius == rhs.radius

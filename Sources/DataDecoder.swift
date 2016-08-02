@@ -44,19 +44,3 @@ public struct DataDecoder: DataDecoding {
         }
     }
 }
-
-public struct DataDecoderFailed: Error {}
-
-public extension DataDecoding {
-    public func decode(data: Data, response: URLResponse, scheduler: Scheduler, token: CancellationToken? = nil) -> Promise<Image> {
-        return Promise() { fulfill, reject in
-            scheduler.execute(token: token) {
-                if let image = self.decode(data: data, response: response) {
-                    fulfill(value: image)
-                } else {
-                    reject(error: DataDecoderFailed())
-                }
-            }
-        }
-    }
-}

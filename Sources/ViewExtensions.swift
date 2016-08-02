@@ -33,10 +33,9 @@ public extension ResponseHandling {
     /// Loads an image for the given request and displays it when finished.
     /// Cancels previously started requests.
     ///
-    /// If the image is stored in the `Loader`'s memory cache, the image is
+    /// If the image is stored in the context's memory cache, the image is
     /// displayed immediately. Otherwise the image is loaded using the `Loader`
-    /// and is displayed when finished.
-    
+    /// instance and is displayed when finished.
     public func nk_setImage(with request: Request, options: CachingOptions = CachingOptions()) {
         let ctx = nk_context
         

@@ -74,3 +74,35 @@ public class Loader: Loading {
         public var processing: Scheduler = QueueScheduler(maxConcurrentOperationCount: 2)
     }
 }
+
+public struct DataDecoderFailed: Error {}
+
+public extension DataDecoding {
+    public func decode(data: Data, response: URLResponse, scheduler: Scheduler, token: CancellationToken? = nil) -> Promise<Image> {
+        return Promise() { fulfill, reject in
+            scheduler.execute(token: token) {
+                if let image = self.decode(data: data, response: response) {
+                    fulfill(value: image)
+                } else {
+                    reject(error: DataDecoderFailed())
+                }
+            }
+        }
+    }
+}
+
+public struct ProcessingFailed: Error {}
+
+public extension Processing {
+    public func process(image: Image, scheduler: Scheduler, token: CancellationToken?) -> Promise<Image> {
+        return Promise() { fulfill, reject in
+            scheduler.execute(token: token) {
+                if let image = self.process(image) {
+                    fulfill(value: image)
+                } else {
+                    reject(error: ProcessingFailed())
+                }
+            }
+        }
+    }
+}
