@@ -17,32 +17,31 @@ class MockImageLoader: Loading {
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidCancelTask")
     
     var createdTaskCount = 0
-    let queue = OperationQueue()
+    let queue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 1
+        return queue
+    }()
     var results = [URL: Result<Image, AnyError>]()
 
     func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image> {
         return Promise() { fulfill, reject in
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(name: MockImageLoader.DidStartTask, object: self)
-            }
+            NotificationCenter.default.post(name: MockImageLoader.DidStartTask, object: self)
+            
             token?.register {
-                DispatchQueue.main.async {
-                    NotificationCenter.default.post(name: MockImageLoader.DidCancelTask, object: self)
-                }
+                NotificationCenter.default.post(name: MockImageLoader.DidCancelTask, object: self)
             }
             
             createdTaskCount += 1
             
             queue.addOperation {
-                DispatchQueue.main.async {
-                    if let result = self.results[request.urlRequest.url!] {
-                        switch result {
-                        case let .success(val): fulfill(value: val)
-                        case let .failure(err): reject(error: err)
-                        }
-                    } else {
-                        fulfill(value: image)
+                if let result = self.results[request.urlRequest.url!] {
+                    switch result {
+                    case let .success(val): fulfill(value: val)
+                    case let .failure(err): reject(error: err)
                     }
+                } else {
+                    fulfill(value: image)
                 }
             }
         }

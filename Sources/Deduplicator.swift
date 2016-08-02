@@ -41,10 +41,8 @@ public final class Deduplicator: Loading {
                 let promise = loader.loadImage(with: request, token: cts.token)
                 task = Task(promise: promise, cts: cts, retainCount: 0)
                 tasks[key] = task
-                promise.completion { _ in
-                    self.queue.sync {
-                        self.tasks[key] = nil
-                    }
+                promise.completion(on: self.queue) { _ in
+                    self.tasks[key] = nil
                 }
             }
             

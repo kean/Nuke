@@ -6,23 +6,20 @@ import Foundation
 
 // MARK: Scheduler
 
-/// Schedules execution of asynchronous tasks.
+/// Schedules execution of synchronous work.
 public protocol Scheduler {
-    func execute(token: CancellationToken?, closure: (finish: (Void) -> Void) -> Void)
+    func execute(token: CancellationToken?, closure: (Void) -> Void)
 }
 
-public extension Scheduler {
-    public func execute(token: CancellationToken?, closure: (Void) -> Void) {
-        self.execute(token: token) { finish in
-            closure()
-            finish()
-        }
-    }
+/// Schedules execution of asynchronous work which is considered
+/// finished when `finish` closure is called.
+public protocol AsyncScheduler {
+    func execute(token: CancellationToken?, closure: (finish: (Void) -> Void) -> Void)
 }
 
 // MARK: - QueueScheduler
 
-public class QueueScheduler: Scheduler {
+public class QueueScheduler: AsyncScheduler, Scheduler {
     public let queue: OperationQueue
     
     public convenience init(maxConcurrentOperationCount: Int) {
@@ -33,6 +30,13 @@ public class QueueScheduler: Scheduler {
     
     public init(queue: OperationQueue) {
         self.queue = queue
+    }
+    
+    public func execute(token: CancellationToken?, closure: (Void) -> Void) {
+        self.execute(token: token) { (finish: (Void) -> Void) in
+            closure()
+            finish()
+        }
     }
     
     public func execute(token: CancellationToken?, closure: (finish: (Void) -> Void) -> Void) {
@@ -76,30 +80,17 @@ internal final class Operation: Foundation.Operation {
     override func start() {
         queue.sync {
             isExecuting = true
-            if isCancelled {
-                finish()
-            } else {
-                starter() { [weak self] in
-                    _ = self?.queue.async { self?.finish() }
-                }
+            DispatchQueue.global().async {
+                self.starter() { [weak self] in self?.finish() }
             }
         }
     }
     
     private func finish() {
-        if !isFinished {
-            isExecuting = false
-            isFinished = true
-        }
-    }
-    
-    override func cancel() {
         queue.sync {
-            if !isCancelled {
-                super.cancel()
-                if isExecuting {
-                    finish()
-                }
+            if !isFinished {
+                isExecuting = false
+                isFinished = true
             }
         }
     }

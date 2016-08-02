@@ -6,7 +6,7 @@ import Foundation
 import DFCache
 import Nuke
 
-public struct DFCacheCacheLookupFailed: ErrorProtocol {}
+public struct DFCacheCacheLookupFailed: Error {}
 
 extension DFCache: Nuke.DataCaching {
     public func setResponse(_ response: CachedURLResponse, for request: URLRequest) {

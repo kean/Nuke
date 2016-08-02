@@ -17,11 +17,11 @@ public protocol DataLoading {
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading {
     public private(set) var session: URLSession
-    private let scheduler: Scheduler
+    private let scheduler: AsyncScheduler
     
     /// Initialzies data loader with a given configuration.
     /// - parameter scheduler: `QueueScheduler` with `maxConcurrentOperationCount` 8 by default.
-    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration(), scheduler: Scheduler = QueueScheduler(maxConcurrentOperationCount: 8)) {
+    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration(), scheduler: AsyncScheduler = QueueScheduler(maxConcurrentOperationCount: 8)) {
         self.session = URLSession(configuration: configuration, delegate: nil, delegateQueue: nil)
         self.scheduler = scheduler
     }
@@ -45,7 +45,10 @@ public final class DataLoader: DataLoading {
                         reject(error: error)
                     }
                 }
-                token?.register { task?.cancel() }
+                token?.register {
+                    task?.cancel()
+                    finish()
+                }
                 task?.resume()
             }
         }

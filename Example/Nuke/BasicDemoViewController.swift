@@ -18,7 +18,7 @@ class BasicDemoViewController: UICollectionViewController {
         
         photos = demoPhotosURLs
         
-        collectionView?.backgroundColor = UIColor.white()
+        collectionView?.backgroundColor = UIColor.white
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
     }
     

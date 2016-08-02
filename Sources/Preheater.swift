@@ -17,7 +17,7 @@ import Foundation
 public class Preheater {
     private let loader: Loading
     private let equator: RequestEquating
-    private let scheduler: Scheduler
+    private let scheduler: AsyncScheduler
     private let syncQueue = DispatchQueue(label: "\(domain).Preheater")
     private var tasks = [Task]()
         
@@ -25,7 +25,7 @@ public class Preheater {
     /// loading images, and the request `equator`.
     /// - parameter equator: Compares requests for equivalence.
     /// `RequestLoadingEquator()` be default.
-    public init(loader: Loading, equator: RequestEquating = RequestLoadingEquator(), scheduler: Scheduler = QueueScheduler(maxConcurrentOperationCount: 3)) {
+    public init(loader: Loading, equator: RequestEquating = RequestLoadingEquator(), scheduler: AsyncScheduler = QueueScheduler(maxConcurrentOperationCount: 3)) {
         self.loader = loader
         self.equator = equator
         self.scheduler = scheduler

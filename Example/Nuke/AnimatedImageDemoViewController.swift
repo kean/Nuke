@@ -25,8 +25,8 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
         
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: textViewCellReuseID)
         collectionView?.register(AnimatedImageCell.self, forCellWithReuseIdentifier: imageCellReuseID)
-        collectionView?.backgroundColor = UIColor.white()
-        
+        collectionView?.backgroundColor = UIColor.white
+
         let layout = collectionViewLayout as! UICollectionViewFlowLayout
         layout.sectionInset = UIEdgeInsetsMake(8, 8, 8, 8)
         layout.minimumInteritemSpacing = 8
@@ -60,7 +60,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
             var textView: UITextView! = cell.viewWithTag(14) as? UITextView
             if textView == nil {
                 textView = UITextView()
-                textView.textColor = UIColor.black()
+                textView.textColor = UIColor.black
                 textView.font = UIFont.systemFont(ofSize: 16)
                 textView.isEditable = false
                 textView.textAlignment = .center

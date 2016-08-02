@@ -15,7 +15,7 @@ class DeduplicatorTests: XCTestCase {
         loader = MockImageLoader()
         deduplicator = Deduplicator(with: loader)
     }
-
+    
     func testThatEquivalentRequestsAreDeduplicated() {
         loader.queue.isSuspended = true
         
@@ -85,12 +85,8 @@ class DeduplicatorTests: XCTestCase {
             }
         }
 
-        // Wait until task is started
-        _ = expectNotification(MockImageLoader.DidStartTask, object: nil) { _ in
-            cts.cancel()
-            self.loader.queue.isSuspended = false
-            return true
-        }
+        cts.cancel()
+        self.loader.queue.isSuspended = false
 
         wait { _ in
             XCTAssertEqual(self.loader.createdTaskCount, 1)

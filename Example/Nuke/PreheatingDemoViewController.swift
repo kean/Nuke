@@ -29,7 +29,7 @@ class PreheatingDemoViewController: UICollectionViewController {
             logAddedIndexPaths(addedIndexPaths, removedIndexPaths: removedIndexPaths)
         }
         
-        collectionView?.backgroundColor = UIColor.white()
+        collectionView?.backgroundColor = UIColor.white
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
     }
     
