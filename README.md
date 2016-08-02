@@ -43,18 +43,17 @@ Nuke.loadImage(with: URL(string: "http://...")!).then { image in
 }
 ```
 
-#### Customizing Request
+#### Customizing Requests
 
 Each image request is represented by `Request` struct which can be initialized either with `URL` or `URLRequest`.
 
 ```swift
-let request = Request(urlReqeust: URLRequest(url: (URL: "http://...")!))
-Nuke.loadImage(with: request)
+Nuke.loadImage(with: Request(urlRequest: URLRequest(url: (URL: "http://...")!)))
 ```
 
 #### Using Response
 
-Each of the methods from `loadImage(with:...)` family return a `Promise` which has expected methods like `then`, `catch`, etc.
+Each of the methods from `loadImage(with:...)` family returns a `Promise<Image>` with expected methods like `then`, `catch`, etc.
 
 ```swift
 // The closures get called on the main thread by default.
@@ -98,10 +97,9 @@ let imageView = UIImageView()
 imageView.nk_setImage(with: URL(string: "http://...")!)
 ```
 
-
 #### Adding UI Extensions
 
-It's also extremely easy to add image loading capabilities (trait) to custom UI components. All you need is to implement in your view a `ResponseHandling` protocol which consists of a single method `nk_handle(response:isFromMemoryCache:)`.
+It's also extremely easy to add image loading capabilities (trait) to custom UI components. All you need is to implement `ResponseHandling` protocol in your view which consists of a single method `nk_handle(response:isFromMemoryCache:)`.
 
 ```swift
 extension MKAnnotationView: ResponseHandling {
@@ -135,7 +133,7 @@ view.nk_context.handler = { _ in // Overwrite deafult handler.
 
 #### UICollection(Table)View
 
-When you display a collection of images it becomes quite tedious to manage tasks associated with image cells. Nuke takes care of all the complexity for you:
+When you display a collection of images it becomes quite tedious to manage tasks associated with image cells. Nuke takes care of all that complexity for you:
 
 ```swift
 func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
@@ -149,7 +147,7 @@ func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath ind
 
 #### Applying Filters
 
-Nuke defines a simple `Processing` protocol that represents image filters. It takes just a couple line of code to create your own filters. You can apply filters by adding them to a `Request`.
+Nuke defines a simple `Processing` protocol that represents image filters. It takes just a couple line of code to create your own filters. You can apply filters by adding them to the `Request`.
 
 ```swift
 let filter1: Processing = <#filter#>
@@ -162,6 +160,30 @@ request.add(processor: filter2)
 Nuke.loadImage(with: request).then { image in
     // Filters are applied, processed image
 }.resume()
+```
+
+#### Creating Filters
+
+`Processing` protocol consists of a single method `process(image: Image) -> Image?`. Here's an example of custom image filter that uses [Core Image](https://developer.apple.com/library/mac/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html). For more info see [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide).
+
+```swift
+struct ImageFilterGaussianBlur: Processing {
+    private let radius: Int
+    init(radius: Int = 8) {
+        self.radius = radius
+    }
+
+    func process(image: UIImage) -> UIImage? {
+        // The `applyFilter` function is not shipped with Nuke.
+        return image.applyFilter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
+    }
+
+    // `Processing` protocol also requires filters to be `Hashable`. 
+    // Nuke compares filters to be able to identify cached images and deduplicate equivalent requests.
+    func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bool {
+        return lhs.radius == rhs.radius
+    }
+}
 ```
 
 #### Preheating Images
