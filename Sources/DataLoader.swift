@@ -37,13 +37,13 @@ public final class DataLoader: DataLoading {
         return Promise() { fulfill, reject in
             scheduler.execute(token: token) { [weak self] finish in
                 let task = self?.session.dataTask(with: request) { data, response, error in
-                    finish()
                     if let data = data, let response = response {
                         fulfill(value: (data, response))
                     } else {
                         let error = error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)
                         reject(error: error)
                     }
+                    finish()
                 }
                 token?.register {
                     task?.cancel()

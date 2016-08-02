@@ -57,6 +57,7 @@ public class Preheater {
                     }
                     finish()
                 }
+                cts.token.register { finish() }
             }
             task.cts = cts
             tasks.append(task)
