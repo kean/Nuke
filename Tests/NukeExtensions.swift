@@ -11,7 +11,7 @@ extension Nuke.PromiseResolution {
         return nil
     }
     
-    public var error: ErrorProtocol? {
+    public var error: Error? {
         if case let .rejected(err) = self { return err }
         return nil
     }

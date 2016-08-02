@@ -28,7 +28,7 @@ class MockDataLoader: DataLoading {
             
             queue.addOperation {
                 let bundle = Bundle(for: MockDataLoader.self)
-                let URL = bundle.urlForResource("Image", withExtension: "jpg")
+                let URL = bundle.url(forResource: "Image", withExtension: "jpg")
                 let data = try! Data(contentsOf: URL!)
                 DispatchQueue.main.async {
                     if let result = self.results[request.url!] {

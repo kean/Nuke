@@ -86,9 +86,9 @@ internal struct RequestKey: Hashable {
     var hashValue: Int {
         return request.urlRequest.url?.hashValue ?? 0
     }
-}
-
-/// Compares two keys for equivalence.
-func ==(lhs: RequestKey, rhs: RequestKey) -> Bool {
-    return lhs.equator.isEqual(lhs.request, to: rhs.request)
+    
+    /// Compares two keys for equivalence.
+    static func ==(lhs: RequestKey, rhs: RequestKey) -> Bool {
+        return lhs.equator.isEqual(lhs.request, to: rhs.request)
+    }
 }

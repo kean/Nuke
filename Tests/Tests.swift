@@ -7,4 +7,4 @@ import XCTest
 
 let defaultURL = URL(string: "http://test.com")!
 
-extension String: ErrorProtocol {}
+extension String: Error {}

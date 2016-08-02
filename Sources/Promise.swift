@@ -8,7 +8,7 @@ public final class Promise<T> {
     private var state: PromiseState<T> = .pending(PromiseHandlers<T>())
     private var queue = DispatchQueue(label: "\(domain).Promise")
     
-    public init(_ closure: @noescape (fulfill: (value: T) -> Void, reject: (error: ErrorProtocol) -> Void) -> Void) {
+    public init(_ closure: @noescape (fulfill: (value: T) -> Void, reject: (error: Error) -> Void) -> Void) {
         closure(fulfill: { self.resolve(resolution: .fulfilled($0)) },
                 reject: { self.resolve(resolution: .rejected($0)) })
     }
@@ -17,7 +17,7 @@ public final class Promise<T> {
         state = .resolved(.fulfilled(value))
     }
     
-    public init(error: ErrorProtocol) {
+    public init(error: Error) {
         state = .resolved(.rejected(error))
     }
 
@@ -64,11 +64,11 @@ public extension Promise {
         }
     }
     
-    public func `catch`(_ closure: (error: ErrorProtocol) -> Void) {
+    public func `catch`(_ closure: (error: Error) -> Void) {
         _ = then(fulfilment: nil, rejection: closure)
     }
     
-    public func recover(_ closure: (error: ErrorProtocol) -> Promise) -> Promise {
+    public func recover(_ closure: (error: Error) -> Promise) -> Promise {
         return Promise() { fulfill, reject in
             _ = then(
                 fulfilment: { _ = fulfill(value: $0) }, // bubble up value
@@ -80,7 +80,7 @@ public extension Promise {
         }
     }
     
-    public func then(fulfilment: ((value: T) -> Void)?, rejection: ((error: ErrorProtocol) -> Void)?) -> Promise {
+    public func then(fulfilment: ((value: T) -> Void)?, rejection: ((error: Error) -> Void)?) -> Promise {
         completion { resolution in
             switch resolution {
             case let .fulfilled(val): fulfilment?(value: val)
@@ -101,5 +101,5 @@ private enum PromiseState<T> {
 }
 
 public enum PromiseResolution<T> {
-    case fulfilled(T), rejected(ErrorProtocol)
+    case fulfilled(T), rejected(Error)
 }

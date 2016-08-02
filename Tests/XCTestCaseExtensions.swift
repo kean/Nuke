@@ -27,7 +27,7 @@ extension XCTestCase {
 // FIXME: remove (legacy)
 
 /// `Result` is the type that represent either success or a failure.
-public enum Result<V, E: ErrorProtocol> {
+public enum Result<V, E: Error> {
     case success(V), failure(E)
 }
 
@@ -50,9 +50,9 @@ public extension Result {
 // MARK: - AnyError
 
 /// Type erased error.
-public struct AnyError: ErrorProtocol {
-    public var cause: ErrorProtocol
-    public init(_ cause: ErrorProtocol) {
+public struct AnyError: Error {
+    public var cause: Error
+    public init(_ cause: Error) {
         self.cause = (cause as? AnyError)?.cause ?? cause
     }
 }

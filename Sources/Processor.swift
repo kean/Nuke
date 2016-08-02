@@ -30,17 +30,18 @@ public struct AnyProcessor: Processing {
             return (other._processor as? P) == processor
         }
     }
+    
     public func process(_ image: Image) -> Image? {
         return self._process(image)
     }
+    
+    /// Returns true if both decompressors have the same `targetSize` and `contentMode`.
+    public static func ==(lhs: AnyProcessor, rhs: AnyProcessor) -> Bool {
+        return lhs._equator(to: rhs)
+    }
 }
 
-/// Returns true if both decompressors have the same `targetSize` and `contentMode`.
-public func ==(lhs: AnyProcessor, rhs: AnyProcessor) -> Bool {
-    return lhs._equator(to: rhs)
-}
-
-public struct ProcessingFailed: ErrorProtocol {}
+public struct ProcessingFailed: Error {}
 
 public extension Processing {
     public func process(image: Image, scheduler: Scheduler, token: CancellationToken?) -> Promise<Image> {
@@ -74,12 +75,12 @@ public struct ProcessorComposition: Processing {
             return image != nil ? processor.process(image!) : nil
         }
     }
-}
-
-/// Returns true if both compositions have the same number of processors, and the processors are pairwise-equivalent.
-public func ==(lhs: ProcessorComposition, rhs: ProcessorComposition) -> Bool {
-    return lhs.processors.count == rhs.processors.count &&
-        !(zip(lhs.processors, rhs.processors).contains{ $0 != $1 })
+    
+    /// Returns true if both compositions have the same number of processors, and the processors are pairwise-equivalent.
+    public static func ==(lhs: ProcessorComposition, rhs: ProcessorComposition) -> Bool {
+        return lhs.processors.count == rhs.processors.count &&
+            !(zip(lhs.processors, rhs.processors).contains{ $0 != $1 })
+    }
 }
 
 #if !os(OSX)
@@ -127,11 +128,11 @@ public func ==(lhs: ProcessorComposition, rhs: ProcessorComposition) -> Bool {
         public func process(_ image: Image) -> Image? {
             return decompress(image, targetSize: targetSize, contentMode: contentMode)
         }
-    }
-    
-    /// Returns true if both decompressors have the same `targetSize` and `contentMode`.
-    public func ==(lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
-        return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
+        
+        /// Returns true if both decompressors have the same `targetSize` and `contentMode`.
+        public static func ==(lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
+            return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
+        }
     }
     
     private func decompress(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) -> UIImage {

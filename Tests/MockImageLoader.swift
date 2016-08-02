@@ -7,7 +7,7 @@ import Nuke
 
 private let image: Image = {
     let bundle = Bundle(for: MockImageLoader.self)
-    let URL = bundle.urlForResource("Image", withExtension: "jpg")
+    let URL = bundle.url(forResource: "Image", withExtension: "jpg")
     let data = try! Data(contentsOf: URL!)
     return Nuke.DataDecoder().decode(data: data, response: URLResponse())!
 }()

@@ -35,7 +35,7 @@ public struct DataDecoder: DataDecoding {
                 return NSImage(data: data)
             #else
                 #if os(iOS) || os(tvOS)
-                    let scale = UIScreen.main().scale
+                    let scale = UIScreen.main.scale
                 #else
                     let scale = WKInterfaceDevice.current().screenScale
                 #endif
@@ -45,7 +45,7 @@ public struct DataDecoder: DataDecoding {
     }
 }
 
-public struct DataDecoderFailed: ErrorProtocol {}
+public struct DataDecoderFailed: Error {}
 
 public extension DataDecoding {
     public func decode(data: Data, response: URLResponse, scheduler: Scheduler, token: CancellationToken? = nil) -> Promise<Image> {

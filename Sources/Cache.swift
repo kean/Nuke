@@ -33,12 +33,12 @@ public class Cache: Caching {
     // MARK: Configuring Cache
     
     /// The internal memory cache.
-    public let cache: Foundation.Cache<AnyObject, AnyObject>
+    public let cache: NSCache<AnyObject, AnyObject>
     
     private let equator: RequestEquating
 
     /// Initializes the receiver with a given memory cache.
-    public init(cache: Foundation.Cache<AnyObject, AnyObject> = Cache.makeDefaultCache(), equator: RequestEquating = RequestCachingEquator()) {
+    public init(cache: NSCache<AnyObject, AnyObject> = Cache.makeDefaultCache(), equator: RequestEquating = RequestCachingEquator()) {
         self.cache = cache
         self.equator = equator
         #if os(iOS) || os(tvOS)
@@ -47,8 +47,8 @@ public class Cache: Caching {
     }
     
     /// Initializes cache with the recommended cache total limit.
-    private static func makeDefaultCache() -> Foundation.Cache<AnyObject, AnyObject> {
-        let cache = Foundation.Cache<AnyObject, AnyObject>()
+    private static func makeDefaultCache() -> NSCache<AnyObject, AnyObject> {
+        let cache = NSCache<AnyObject, AnyObject>()
         cache.totalCostLimit = {
             let physicalMemory = ProcessInfo.processInfo.physicalMemory
             let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
