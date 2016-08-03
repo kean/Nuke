@@ -22,7 +22,7 @@ class MockImageLoader: Loading {
         queue.maxConcurrentOperationCount = 1
         return queue
     }()
-    var results = [URL: PromiseResolution<Image>]()
+    var results = [URL: Resolution<Image>]()
 
     func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image> {
         return Promise() { fulfill, reject in

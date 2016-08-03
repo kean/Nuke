@@ -13,18 +13,18 @@ private let imageCellReuseID = "imageCellReuseID"
 class AnimatedImageDemoViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout {
     var imageURLs = [URL]()
     
-    let cache: Nuke.Caching = AnimatedImageCache()
-    
-    var loader: Nuke.Loader = {
+    let manager: Nuke.Manager = {
         let decoder = NukeAnimatedImagePlugin.DataDecoderComposition(decoders: [AnimatedImageDecoder(), Nuke.DataDecoder()])
-        return Nuke.Loader(loader: Nuke.DataLoader(), decoder: decoder)
+        let cache = AnimatedImageCache()
+        let loader = Nuke.Loader(loader: Nuke.DataLoader(), decoder: decoder, cache: cache)
+        return Manager(loader: loader, cache: cache)
     }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: textViewCellReuseID)
-        collectionView?.register(AnimatedImageCell.self, forCellWithReuseIdentifier: imageCellReuseID)
+        collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: imageCellReuseID)
         collectionView?.backgroundColor = UIColor.white
 
         let layout = collectionViewLayout as! UICollectionViewFlowLayout
@@ -74,12 +74,43 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
             }
             return cell
         } else {
-            let cell: AnimatedImageCell = collectionView.dequeueReusableCell(withReuseIdentifier: imageCellReuseID, for: indexPath) as! AnimatedImageCell
-            cell.imageView.nk_context.loader = loader
-            cell.imageView.nk_context.cache = cache
-            cell.setImage(with: imageURLs[indexPath.row])
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: imageCellReuseID, for: indexPath)
+            
+            cell.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
+            
+            let imageView = imageViewForCell(cell)
+            imageView.image = nil
+            manager.loadImage(with: Request(url: imageURLs[indexPath.row]), into: imageView) { response, isFromMemoryCache in
+                switch response {
+                case let .fulfilled(image):
+                    imageView.nk_display(image)
+                    if !isFromMemoryCache {
+                        let animation = CABasicAnimation(keyPath: "opacity")
+                        animation.duration = 0.25
+                        animation.fromValue = 0
+                        animation.toValue = 1
+                        let layer: CALayer? = imageView.layer // Make compiler happy on OSX
+                        layer?.add(animation, forKey: "imageTransition")
+                    }
+                case .rejected(_): return
+                }
+            }
+            
             return cell
         }
+    }
+    
+    func imageViewForCell(_ cell: UICollectionViewCell) -> FLAnimatedImageView {
+        var imageView: FLAnimatedImageView! = cell.viewWithTag(15) as? FLAnimatedImageView
+        if imageView == nil {
+            imageView = FLAnimatedImageView(frame: cell.bounds)
+            imageView.autoresizingMask =  [.flexibleWidth, .flexibleHeight]
+            imageView.tag = 15
+            imageView.contentMode = .scaleAspectFill
+            imageView.clipsToBounds = true
+            cell.addSubview(imageView!)
+        }
+        return imageView!
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
@@ -90,67 +121,5 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
         } else {
             return CGSize(width: width, height: width)
         }
-    }
-}
-
-private class AnimatedImageCell: UICollectionViewCell {
-    private let imageView = FLAnimatedImageView(frame: CGRect.zero)
-    private let progressView = UIProgressView()
-    
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        
-        backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1)
-        
-        addSubview(imageView)
-        
-        imageView.nk_context.handler = { [weak self] response, isFromMemoryCache in
-            switch response {
-            case let .fulfilled(image):
-                self?.imageView.nk_display(image)
-                if !isFromMemoryCache {
-                    let animation = CABasicAnimation(keyPath: "opacity")
-                    animation.duration = 0.25
-                    animation.fromValue = 0
-                    animation.toValue = 1
-                    let layer: CALayer? = self?.layer // Make compiler happy on OSX
-                    layer?.add(animation, forKey: "imageTransition")
-                }
-            case .rejected(_): return
-            }
-        }
-        
-        addSubview(progressView)
-        
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        progressView.translatesAutoresizingMaskIntoConstraints = false
-        
-        let views = ["imageView": imageView, "progressView": progressView]
-        
-        addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "|[imageView]|", options: NSLayoutFormatOptions(), metrics: nil, views: views))
-        addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|[imageView]|", options: NSLayoutFormatOptions(), metrics: nil, views: views))
-        addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "|[progressView]|", options: NSLayoutFormatOptions(), metrics: nil, views: views))
-        addConstraints(NSLayoutConstraint.constraints(withVisualFormat: "V:|[progressView(==4)]", options: NSLayoutFormatOptions(), metrics: nil, views: views))
-    }
-    
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-    }
-    
-    func setImage(with url: Foundation.URL) {
-        setImage(with: Request(url: url))
-    }
-    
-    func setImage(with request: Request) {
-        imageView.nk_setImage(with: request)
-    }
-    
-    private override func prepareForReuse() {
-        super.prepareForReuse()
-        progressView.progress = 0
-        progressView.alpha = 1
-        imageView.animatedImage = nil
-        imageView.image = nil
-        imageView.nk_cancelLoading()
     }
 }

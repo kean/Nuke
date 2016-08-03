@@ -13,6 +13,13 @@ public protocol Loading {
     func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image>
 }
 
+public extension Loading {
+    /// Creates a task with with given request.
+    func loadImage(with url: URL, token: CancellationToken? = nil) -> Promise<Image> {
+        return loadImage(with: Request(url: url), token: token)
+    }
+}
+
 /// Performs loading of images.
 ///
 /// `Loader` implements an image loading pipeline. First, data is loaded using

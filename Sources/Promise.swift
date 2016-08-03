@@ -21,7 +21,7 @@ public final class Promise<T> {
         state = .resolved(.rejected(error))
     }
 
-    private func resolve(resolution: PromiseResolution<T>) {
+    private func resolve(resolution: Resolution<T>) {
         queue.async {
             if case let .pending(handlers) = self.state {
                 self.state = .resolved(resolution)
@@ -30,8 +30,8 @@ public final class Promise<T> {
         }
     }
     
-    public func completion(on queue: DispatchQueue = .main, _ closure: (resolution: PromiseResolution<T>) -> Void) {
-        let completion: (resolution: PromiseResolution<T>) -> Void = { resolution in
+    public func completion(on queue: DispatchQueue = .main, _ closure: (resolution: Resolution<T>) -> Void) {
+        let completion: (resolution: Resolution<T>) -> Void = { resolution in
             queue.async { closure(resolution: resolution) }
         }
         queue.async {
@@ -93,13 +93,13 @@ public extension Promise {
 
 // FIXME: make nested type when compiler adds support for it
 private final class PromiseHandlers<T> {
-    var objects = [(PromiseResolution<T>) -> Void]()
+    var objects = [(Resolution<T>) -> Void]()
 }
 
 private enum PromiseState<T> {
-    case pending(PromiseHandlers<T>), resolved(PromiseResolution<T>)
+    case pending(PromiseHandlers<T>), resolved(Resolution<T>)
 }
 
-public enum PromiseResolution<T> {
+public enum Resolution<T> {
     case fulfilled(T), rejected(Error)
 }

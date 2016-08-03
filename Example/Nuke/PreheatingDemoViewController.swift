@@ -77,7 +77,7 @@ class PreheatingDemoViewController: UICollectionViewController {
         let imageView = self.imageView(for: cell)
         let imageURL = photos[indexPath.row]
         imageView.image = nil
-        imageView.nk_setImage(with: Nuke.Request(url: imageURL))
+        Manager.shared.loadImage(with: Request(url: imageURL), into: imageView)
         
         return cell
     }

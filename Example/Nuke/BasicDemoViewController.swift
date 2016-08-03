@@ -10,8 +10,7 @@ private let cellReuseID = "reuseID"
 class BasicDemoViewController: UICollectionViewController {
     var photos: [URL]!
     
-    var loader = Nuke.Loader.shared
-    var cache = Nuke.Cache.shared
+    var manager = Nuke.Manager.shared
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -53,10 +52,7 @@ class BasicDemoViewController: UICollectionViewController {
         
         let imageView = imageViewForCell(cell)
         imageView.image = nil
-        let imageURL = photos[indexPath.row]
-        imageView.nk_context.loader = loader
-        imageView.nk_context.cache = cache
-        imageView.nk_setImage(with: imageURL)
+        manager.loadImage(with: photos[indexPath.row], into: imageView)
         
         return cell
     }

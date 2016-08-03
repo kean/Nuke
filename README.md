@@ -86,50 +86,28 @@ cts.cancel()
 
 This pattern provides a simple and reliable model for cooperative cancellation of asynchronous operations.
 
-#### Using UI Extensions
-
-Nuke provides UI extensions to make image loading as simple as possible.
+#### Loading Images into Image Views
 
 ```swift
 let imageView = UIImageView()
-
-// Loads and displays an image for the given URL. Previously started request is cancelled.
-imageView.nk_setImage(with: URL(string: "http://...")!)
+Nuke.loadImage(with: URL(string: "http://...")!), into: imageView)
 ```
 
-#### Adding UI Extensions
+#### Loading Images into Custom Targets
 
-It's also extremely easy to add image loading capabilities (trait) to custom UI components. All you need is to implement `ResponseHandling` protocol in your view which consists of a single method `nk_handle(response:isFromMemoryCache:)`.
+Image loading into views and other targets is coordinated by the `Manager` class. The target should implement `Target` protocol which consists of a single method that handles responses. You can make `Manager` work with your custom views by implementing `Target` protocol.
 
 ```swift
-extension MKAnnotationView: ResponseHandling {
-    public func nk_handle(response: PromiseResolution<Image>, isFromMemoryCache: Bool) {
+extension MKAnnotationView: Target {
+    public func nk_handle(response: Resolution<Image>, isFromMemoryCache: Bool) {
         // display image, handle error, etc
     }
 }
 ```
 
-Each view that implements `ResponseHandling` gets a bunch of method for loading images.
+#### Customizing Image Loading into Views
 
-```swift
-let view = MKAnnotationView()
-view.nk_setImage(with: Request(urlRequest: <#request#>))
-
-```
-
-#### Customizing UI Extensions
-
-Each view with image loading trait also get and an associated `ViewContext` object which is your primary interface for customizing image loading.
-
-```swift
-let view = UIImageView()
-view.nk_context.loader = <#loader#> // `Loader.shared` by default.
-view.nk_context.cache = <#cache#> // `Cache.shared` by default.
-view.nk_context.handler = { _ in // Overwrite deafult handler.
-    // handle the response
-}
-
-```
+TODO:
 
 #### UICollection(Table)View
 
@@ -140,7 +118,7 @@ func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath ind
     let cell = collectionView.dequeueReusableCellWithReuseIdentifier(cellReuseID, forIndexPath: indexPath)
     let imageView: ImageView = <#view#>
     imageView.image = nil
-    imageView.nk_setImage(with: imageURL)
+    Nuke.loadImage(with: imageURL, into imageView)
     return cell
 }
 ```

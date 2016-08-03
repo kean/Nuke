@@ -16,6 +16,8 @@ import Foundation
 
 internal let domain = "com.github.kean.Nuke"
 
+// MARK: - Loading Images
+
 /// Loads an image for the given `URL` using shared `Loader`.
 public func loadImage(with url: URL, token: CancellationToken? = nil) -> Promise<Image> {
     return Loader.shared.loadImage(with: url, token: token)
@@ -27,13 +29,20 @@ public func loadImage(with request: Request, token: CancellationToken? = nil) ->
     return Loader.shared.loadImage(with: request, token: token)
 }
 
-// MARK: - Loading Extensions
+// MARK: - Loading Images into Views
 
-public extension Loading {
-    /// Creates a task with with given request.
-    func loadImage(with url: URL, token: CancellationToken? = nil) -> Promise<Image> {
-        return loadImage(with: Request(url: url), token: token)
-    }
+public func loadImage(with url: URL, into target: Target) {
+    Manager.shared.loadImage(with: url, into: target)
+}
+
+public func loadImage(with request: Request, into target: Target, handler: Manager.Handler? = nil) {
+    Manager.shared.loadImage(with: request, into: target, handler: handler)
+}
+
+// MARK: - Shared
+
+public extension Manager {
+    public static var shared = Manager(loader: Loader.shared, cache: Cache.shared)
 }
 
 public extension Loader {

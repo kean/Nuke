@@ -10,7 +10,9 @@ class CustomCacheDemoViewController: BasicDemoViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        loader = Nuke.Loader(loader: Nuke.DataLoader(), decoder: Nuke.DataDecoder(), cache: DFCache(name: "test", memoryCache: nil))
+        let dataLoader = Nuke.CachingDataLoader(loader: Nuke.DataLoader(), cache: DFCache(name: "test", memoryCache: nil))
+        let loader = Nuke.Loader(loader: dataLoader, decoder: Nuke.DataDecoder(), cache: Nuke.Cache.shared)
+        manager = Manager(loader: loader, cache: Nuke.Cache.shared)
     }
 
 }
