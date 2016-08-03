@@ -18,7 +18,7 @@ public class Preheater {
     private let loader: Loading
     private let equator: RequestEquating
     private let scheduler: AsyncScheduler
-    private let syncQueue = DispatchQueue(label: "\(domain).Preheater")
+    private let queue = DispatchQueue(label: "\(domain).Preheater")
     private var tasks = [Task]()
         
     /// Initializes the `Preheater` instance with the `Loader` used for
@@ -37,7 +37,7 @@ public class Preheater {
     /// for the given requests. At any time afterward, you can create tasks
     /// for individual images with equivalent requests.
     public func startPreheating(for requests: [Request]) {
-        syncQueue.async {
+        queue.async {
             requests.forEach { self.startPreheating(for: $0) }
         }
     }
@@ -50,7 +50,7 @@ public class Preheater {
             let cts = CancellationTokenSource()
             scheduler.execute(token: cts.token) { [weak self] finish in
                 self?.loader.loadImage(with: task.request, token: cts.token).completion { _ in
-                    self?.syncQueue.async {
+                    self?.queue.async {
                         if let idx = self?.tasks.index(where: { task === $0 }) {
                             self?.tasks.remove(at: idx)
                         }
@@ -66,7 +66,7 @@ public class Preheater {
     
     /// Cancels image preparation for the given requests.
     public func stopPreheating(for requests: [Request]) {
-        syncQueue.async {
+        queue.async {
             requests.forEach { request in
                 if let index = self.indexOfTask(with: request) {
                     let task = self.tasks.remove(at: index)
@@ -82,7 +82,7 @@ public class Preheater {
 
     /// Stops all preheating tasks.
     public func stopPreheating() {
-        syncQueue.async {
+        queue.async {
             self.tasks.forEach { $0.cts?.cancel() }
             self.tasks.removeAll()
         }
