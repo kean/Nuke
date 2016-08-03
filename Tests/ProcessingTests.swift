@@ -17,7 +17,7 @@ class ProcessingTests: XCTestCase {
         mockMemoryCache = MockCache()
         
         mockSessionManager = MockDataLoader()
-        loader = Loader(loader: mockSessionManager, decoder: DataDecoder(), memoryCache: mockMemoryCache)
+        loader = Loader(loader: mockSessionManager, decoder: DataDecoder(), cache: mockMemoryCache)
     }
 
     override func tearDown() {
@@ -31,8 +31,8 @@ class ProcessingTests: XCTestCase {
         request.add(processor: MockImageProcessor(ID: "processor1"))
 
         expect { fulfill in
-            _ = loader.loadImage(with: request) {
-                XCTAssertEqual($0.value!.nk_test_processorIDs, ["processor1"])
+            _ = loader.loadImage(with: request).then { image in
+                XCTAssertEqual(image.nk_test_processorIDs, ["processor1"])
                 fulfill()
             }
         }
@@ -44,8 +44,7 @@ class ProcessingTests: XCTestCase {
             var request = Request(url: defaultURL)
             request.add(processor: MockImageProcessor(ID: "processor1"))
 
-            _ = loader.loadImage(with: request) {
-                XCTAssertNotNil($0.value)
+            _ = loader.loadImage(with: request).then { _ in
                 fulfill()
             }
         }
@@ -68,8 +67,8 @@ class ProcessingTests: XCTestCase {
         request.add(processor: MockImageProcessor(ID: "processor2"))
 
         expect { fulfill in
-            _ = loader.loadImage(with: request) {
-                XCTAssertEqual($0.value!.nk_test_processorIDs, ["processor1", "processor2"])
+            _ = loader.loadImage(with: request).then {
+                XCTAssertEqual($0.nk_test_processorIDs, ["processor1", "processor2"])
                 fulfill()
             }
         }
@@ -81,8 +80,7 @@ class ProcessingTests: XCTestCase {
             var request = Request(url: defaultURL)
             request.add(processor: MockImageProcessor(ID: "processor1"))
             request.add(processor: MockImageProcessor(ID: "processor2"))
-            _ = loader.loadImage(with: request) {
-                XCTAssertNotNil($0.value)
+            _ = loader.loadImage(with: request).then { _ in
                 fulfill()
             }
         }

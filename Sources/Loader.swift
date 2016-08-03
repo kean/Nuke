@@ -26,27 +26,57 @@ public protocol Loading {
 public class Loader: Loading {
     public let loader: DataLoading
     public let decoder: DataDecoding
+    public let cache: Caching?
     public let schedulers: Schedulers
     
     /// Initializes `Loader` instance with the given data loader, decoder and
     /// cache. You could also provide loader with you own set of queues.
     /// - parameter schedulers: `Schedulers()` by default.
-    public init(loader: DataLoading, decoder: DataDecoding, schedulers: Schedulers = Schedulers()) {
+    public init(loader: DataLoading, decoder: DataDecoding, cache: Caching?, schedulers: Schedulers = Schedulers()) {
         self.loader = loader
         self.decoder = decoder
+        self.cache = cache
         self.schedulers = schedulers
     }
 
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
+        if request.memoryCacheOptions.readAllowed, let image = cache?.image(for: request) {
+            return Promise(value: image)
+        }
         return self.loader.loadData(with: request.urlRequest, token: token)
-            .then { self.decoder.decode(data: $0, response: $1, scheduler: self.schedulers.decoding, token: token) }
+            .then { self.decode(data: $0, response: $1, token: token) }
             .then { self.process(image: $0, request: request, token: token) }
+            .then {
+                if request.memoryCacheOptions.writeAllowed {
+                    self.cache?.setImage($0, for: request)
+                }
+        }
+    }
+    
+    private func decode(data: Data, response: URLResponse, token: CancellationToken? = nil) -> Promise<Image> {
+        return Promise() { fulfill, reject in
+            schedulers.decoding.execute(token: token) {
+                if let image = self.decoder.decode(data: data, response: response) {
+                    fulfill(value: image)
+                } else {
+                    reject(error: DataDecoderFailed())
+                }
+            }
+        }
     }
 
     private func process(image: Image, request: Request, token: CancellationToken?) -> Promise<Image> {
         guard let processor = request.processor else { return Promise(value: image) }
-        return processor.process(image: image, scheduler: schedulers.processing, token: token)
+        return Promise() { fulfill, reject in
+            schedulers.processing.execute(token: token) {
+                if let image = processor.process(image) {
+                    fulfill(value: image)
+                } else {
+                    reject(error: ProcessingFailed())
+                }
+            }
+        }
     }
     
     /// Queues which are used to execute a corresponding steps of the pipeline.
@@ -61,34 +91,6 @@ public class Loader: Loading {
     }
 }
 
+// FIXME: move to enum
 public struct DataDecoderFailed: Error {}
-
-public extension DataDecoding {
-    public func decode(data: Data, response: URLResponse, scheduler: Scheduler, token: CancellationToken? = nil) -> Promise<Image> {
-        return Promise() { fulfill, reject in
-            scheduler.execute(token: token) {
-                if let image = self.decode(data: data, response: response) {
-                    fulfill(value: image)
-                } else {
-                    reject(error: DataDecoderFailed())
-                }
-            }
-        }
-    }
-}
-
 public struct ProcessingFailed: Error {}
-
-public extension Processing {
-    public func process(image: Image, scheduler: Scheduler, token: CancellationToken?) -> Promise<Image> {
-        return Promise() { fulfill, reject in
-            scheduler.execute(token: token) {
-                if let image = self.process(image) {
-                    fulfill(value: image)
-                } else {
-                    reject(error: ProcessingFailed())
-                }
-            }
-        }
-    }
-}

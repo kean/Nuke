@@ -83,6 +83,6 @@ public class CachingDataLoader: DataLoading {
         return cache.response(for: request, token: token)
             .then { ($0.data, $0.response) }
             .recover { _ in self.loader.loadData(with: request, token: token) }
-            .then { cache.setResponse(CachedURLResponse(response: $0.1, data: $0.0), for: request) }
+            .then { self.cache.setResponse(CachedURLResponse(response: $0.1, data: $0.0), for: request) }
     }
 }

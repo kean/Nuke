@@ -15,7 +15,7 @@ class MockCacheTests: XCTestCase {
 
         mockCache = MockCache()
         mockSessionManager = MockDataLoader()
-        loader = Loader(loader: mockSessionManager, decoder: DataDecoder())
+        loader = Loader(loader: mockSessionManager, decoder: DataDecoder(), cache: mockCache)
     }
     
     override func tearDown() {
@@ -29,8 +29,7 @@ class MockCacheTests: XCTestCase {
         XCTAssertNil(mockCache.image(for: request))
 
         expect { fulfill in
-            _ = loader.loadImage(with: request) { result in
-                XCTAssertTrue(result.isSuccess)
+            _ = loader.loadImage(with: request).then { _ in
                 fulfill()
             }
         }
@@ -42,8 +41,7 @@ class MockCacheTests: XCTestCase {
         mockSessionManager.queue.isSuspended = true
         
         expect { fulfill in
-            _ = loader.loadImage(with: request) { result in
-                XCTAssertTrue(result.isSuccess)
+            _ = loader.loadImage(with: request).then { _ in
                 fulfill()
             }
         }
@@ -81,16 +79,15 @@ class MockCacheTests: XCTestCase {
     }
     
     func testThatCacheStorageCanBeDisabled() {
-        let request = Request(url: defaultURL)
-        XCTAssertTrue(options.memoryCacheStorageAllowed)
-        options.memoryCacheStorageAllowed = false // Test default value
+        var request = Request(url: defaultURL)
+        XCTAssertTrue(request.memoryCacheOptions.writeAllowed)
+        request.memoryCacheOptions.writeAllowed = false // Test default value
         
         XCTAssertEqual(mockCache.images.count, 0)
         XCTAssertNil(mockCache.image(for: request))
         
         expect { fulfill in
-            _ = loader.loadImage(with: request) { result in
-                XCTAssertTrue(result.isSuccess)
+            _ = loader.loadImage(with: request).then { _ in
                 fulfill()
             }
         }
@@ -111,7 +108,7 @@ class CacheTests: XCTestCase {
         
         cache = Cache()
         mockSessionManager = MockDataLoader()
-        loader = Loader(loader: mockSessionManager, decoder: DataDecoder(), memoryCache: cache)
+        loader = Loader(loader: mockSessionManager, decoder: DataDecoder(), cache: cache)
     }
     
     func testThatImagesAreStoredInCache() {
@@ -120,8 +117,7 @@ class CacheTests: XCTestCase {
         XCTAssertNil(cache.image(for: request))
 
         expect { fulfill in
-            _ = loader.loadImage(with: request) { result in
-                XCTAssertTrue(result.isSuccess)
+            _ = loader.loadImage(with: request).then { _ in
                 fulfill()
             }
         }
@@ -132,8 +128,7 @@ class CacheTests: XCTestCase {
         mockSessionManager.queue.isSuspended = true
         
         expect { fulfill in
-            _ = loader.loadImage(with: request) { result in
-                XCTAssertTrue(result.isSuccess)
+            _ = loader.loadImage(with: request).then { _ in
                 fulfill()
             }
         }

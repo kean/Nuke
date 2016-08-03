@@ -29,6 +29,20 @@ public struct Request {
     internal var processor: ProcessorComposition? {
         return processors.isEmpty ? nil : ProcessorComposition(processors: processors)
     }
+    
+    /// A set of options affecting how `Loading` object interacts with its memory cache.
+    public struct MemoryCacheOptions {
+        public var readAllowed = true
+        
+        /// Specifies whether loaded object should be stored into memory cache.
+        /// `true` by default.
+        public var writeAllowed = true
+        
+        public init() {}
+    }
+    
+    /// `MemoryCacheOptions` by default.
+    public var memoryCacheOptions = MemoryCacheOptions()
 
     /// Allows you to pass custom info alongside the request.
     public var userInfo: Any?

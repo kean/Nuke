@@ -13,7 +13,7 @@ class LoaderTests: XCTestCase {
         super.setUp()
         
         dataLoader = MockDataLoader()
-        loader = Loader(loader: dataLoader, decoder: DataDecoder())
+        loader = Loader(loader: dataLoader, decoder: DataDecoder(), cache: nil)
     }
     
     func testThreadSafety() {
@@ -25,17 +25,17 @@ class LoaderErrorHandlingTests: XCTestCase {
 
     func testThatLoadingFailedErrorIsReturned() {
         let dataLoader = MockDataLoader()
-        let loader = Loader(loader: dataLoader, decoder: DataDecoder())
+        let loader = Loader(loader: dataLoader, decoder: DataDecoder(), cache: nil)
 
         let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
-        dataLoader.results[defaultURL] = .failure(AnyError(expectedError))
+        dataLoader.results[defaultURL] = .rejected(expectedError)
 
         expect { fulfill in
             loader.loadImage(with: Request(url: defaultURL))
                 .catch { error in
                     XCTAssertNotNil(error)
-                    XCTAssertEqual(((error as? AnyError)?.cause as? NSError)?.code, expectedError.code)
-                    XCTAssertEqual(((error as? AnyError)?.cause as? NSError)?.domain, expectedError.domain)
+                    XCTAssertEqual((error as NSError).code, expectedError.code)
+                    XCTAssertEqual((error as NSError).domain, expectedError.domain)
                     fulfill()
             }
         }
@@ -43,7 +43,7 @@ class LoaderErrorHandlingTests: XCTestCase {
     }
 
     func testThatDecodingFailedErrorIsReturned() {
-        let loader = Loader(loader: MockDataLoader(), decoder: MockFailingDecoder())
+        let loader = Loader(loader: MockDataLoader(), decoder: MockFailingDecoder(), cache: nil)
 
         expect { fulfill in
             _ = loader.loadImage(with: Request(url: defaultURL)).catch { error in
@@ -55,7 +55,7 @@ class LoaderErrorHandlingTests: XCTestCase {
     }
 
     func testThatProcessingFailedErrorIsReturned() {
-        let loader = Loader(loader: MockDataLoader(), decoder: DataDecoder())
+        let loader = Loader(loader: MockDataLoader(), decoder: DataDecoder(), cache: nil)
 
         var request = Request(url: defaultURL)
         request.add(processor: MockFailingProcessor())

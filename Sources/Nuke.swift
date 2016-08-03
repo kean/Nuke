@@ -42,7 +42,7 @@ public extension Loader {
     /// Shared loader is created with `DataLoader()`, `DataDecoder()`. 
     /// Loader is wrapped into `Deduplicator`.
     public static var shared: Loading = {
-        return Loader(loader: DataLoader(), decoder: DataDecoder())
+        return Loader(loader: DataLoader(), decoder: DataDecoder(), cache: Cache.shared)
     }()
 }
 

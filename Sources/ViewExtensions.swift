@@ -36,26 +36,20 @@ public extension ResponseHandling {
     /// If the image is stored in the context's memory cache, the image is
     /// displayed immediately. Otherwise the image is loaded using the `Loader`
     /// instance and is displayed when finished.
-    public func nk_setImage(with request: Request, options: CachingOptions = CachingOptions()) {
+    public func nk_setImage(with request: Request) {
         let ctx = nk_context
         
         ctx.cancel()
         
-        if options.memoryCachePolicy == .returnCachedObjectElseLoad,
+        if request.memoryCacheOptions.readAllowed,
             let image = ctx.cache?.image(for: request) {
             ctx.handler?(response: .fulfilled(image), isFromMemoryCache: true)
         } else {
             let requestId = ctx.nextRequestId
             let cts = CancellationTokenSource()
-            _ = ctx.loader.loadImage(with: request, token: cts.token)
-                .then {
-                    if options.memoryCacheStorageAllowed {
-                        ctx.cache?.setImage($0, for: request)
-                    }
-                }
-                .completion { resolution in
+            _ = ctx.loader.loadImage(with: request, token: cts.token).completion {
                     guard requestId == ctx.requestId else { return }
-                    ctx.handler?(response: resolution, isFromMemoryCache: false)
+                ctx.handler?(response: $0, isFromMemoryCache: false)
             }
             ctx.cts = cts
         }
@@ -73,29 +67,6 @@ public extension ResponseHandling {
         objc_setAssociatedObject(self, &contextAK, ctx, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         return ctx
     }
-}
-
-/// A set of options affecting how `ViewExtension` deliveres an image.
-public struct CachingOptions {
-    /// Defines the way `Loader` interacts with the memory cache.
-    public enum MemoryCachePolicy {
-        /// Return memory cached image corresponding the request.
-        /// If there is no existing image in the memory cache,
-        /// the image manager continues with the request.
-        case returnCachedObjectElseLoad
-        
-        /// Reload using ignoring memory cached objects.
-        case reloadIgnoringCachedObject
-    }
-    
-    /// Specifies whether loaded object should be stored into memory cache.
-    /// `true` be default.
-    public var memoryCacheStorageAllowed = true
-    
-    /// `.returnCachedObjectElseLoad` by default.
-    public var memoryCachePolicy = MemoryCachePolicy.returnCachedObjectElseLoad
-    
-    public init() {}
 }
 
 private var contextAK = "nk_context"
