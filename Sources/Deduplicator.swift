@@ -16,10 +16,14 @@ public final class Deduplicator: Loading {
     private var tasks = [RequestKey: Task]()
     private let queue = DispatchQueue(label: "\(domain).Deduplicator")
     
-    private struct Task {
+    private final class Task {
         let promise: Promise<Image>
         let cts: CancellationTokenSource
-        var retainCount: Int
+        var retainCount = 0
+        init(promise: Promise<Image>, cts: CancellationTokenSource) {
+            self.promise = promise
+            self.cts = cts
+        }
     }
     
     /// Initializes the `Deduplicator` instance with the underlying
@@ -39,10 +43,12 @@ public final class Deduplicator: Loading {
             if task == nil {
                 let cts = CancellationTokenSource()
                 let promise = loader.loadImage(with: request, token: cts.token)
-                task = Task(promise: promise, cts: cts, retainCount: 0)
+                task = Task(promise: promise, cts: cts)
                 tasks[key] = task
                 promise.completion(on: self.queue) { _ in
-                    self.tasks[key] = nil
+                    if self.tasks[key] === task {
+                        self.tasks[key] = nil
+                    }
                 }
             }
             
@@ -52,7 +58,9 @@ public final class Deduplicator: Loading {
                     task.retainCount -= 1
                     if task.retainCount == 0 {
                         task.cts.cancel()
-                        self.tasks[key] = nil
+                        if self.tasks[key] === task {
+                            self.tasks[key] = nil
+                        }
                     }
                 }
             }
