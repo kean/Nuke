@@ -19,7 +19,7 @@ public protocol AsyncScheduler {
 
 // MARK: - QueueScheduler
 
-public class QueueScheduler: AsyncScheduler, Scheduler {
+public final class QueueScheduler: AsyncScheduler {
     public let queue: OperationQueue
     
     public convenience init(maxConcurrentOperationCount: Int) {
@@ -31,19 +31,28 @@ public class QueueScheduler: AsyncScheduler, Scheduler {
     public init(queue: OperationQueue) {
         self.queue = queue
     }
-    
-    public func execute(token: CancellationToken?, closure: (Void) -> Void) {
-        self.execute(token: token) { (finish: (Void) -> Void) in
-            closure()
-            finish()
-        }
-    }
-    
+
     public func execute(token: CancellationToken?, closure: (finish: (Void) -> Void) -> Void) {
         if let token = token, token.isCancelling { return }
         let operation = Operation(starter: closure)
         token?.register { operation.cancel() }
         queue.addOperation(operation)
+    }
+}
+
+// MARK: - DispatchQueueScheduler
+
+internal final class DispatchQueueScheduler: Scheduler {
+    private let queue: DispatchQueue
+    init(queue: DispatchQueue) {
+        self.queue = queue
+    }
+
+    func execute(token: CancellationToken?, closure: (Void) -> Void) {
+        if let token = token, token.isCancelling { return }
+        let work = DispatchWorkItem(block: closure)
+        queue.async(execute: work)
+        token?.register { work.cancel() }
     }
 }
 

@@ -6,15 +6,12 @@ import Foundation
 
 /// Performs loading of images.
 public protocol Loading {
-    /// Loads an image for the given request.
-    ///
-    /// The implementation is not required to call the completion handler
-    /// when the load gets cancelled.
+    /// Loads an image with the given request.
     func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image>
 }
 
 public extension Loading {
-    /// Creates a task with with given request.
+    /// Loads an image with the given URL.
     func loadImage(with url: URL, token: CancellationToken? = nil) -> Promise<Image> {
         return loadImage(with: Request(url: url), token: token)
     }
@@ -24,21 +21,20 @@ public extension Loading {
 ///
 /// `Loader` implements an image loading pipeline. First, data is loaded using
 /// an object conforming to `DataLoading` protocol. Then data is decoded using
-/// `DataDecoding` protocol. Decoded images are then processed by objects
+/// `DataDecoding` object. Decoded images are then processed by objects
 /// conforming to `Processing` protocol which are provided by the `Request`.
 ///
-/// You can initialize `Loader` with `DataCaching` object to add data caching
-/// into the pipeline. Custom data cache might be more performant than caching
-/// provided by `URL Loading System` (if that's what is used for loading).
+/// You can initialize `Loader` with `Caching` object to add memory caching
+/// into the pipeline.
 public class Loader: Loading {
     public let loader: DataLoading
     public let decoder: DataDecoding
     public let cache: Caching?
-    public let schedulers: Schedulers
+
+    private let schedulers: Schedulers
     private let queue = DispatchQueue(label: "\(domain).Loader")
 
-    /// Initializes `Loader` instance with the given data loader, decoder and
-    /// cache. You could also provide loader with you own set of queues.
+    /// Initializes `Loader` instance with the given loader, decoder and cache.
     /// - parameter schedulers: `Schedulers()` by default.
     public init(loader: DataLoading, decoder: DataDecoding, cache: Caching?, schedulers: Schedulers = Schedulers()) {
         self.loader = loader
@@ -51,16 +47,16 @@ public class Loader: Loading {
     public func loadImage(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
         return Promise() { fulfill, reject in
             queue.async {
-                if request.memoryCacheOptions.readAllowed, let image = self.cache?.image(for: request) {
-                    fulfill(value: image)
-                } else {
-                    self.loadImage(with: request, token: token, fulfill: fulfill, reject: reject)
-                }
+                self.loadImage(with: request, token: token, fulfill: fulfill, reject: reject)
             }
         }
     }
 
-    private func loadImage(with request: Request, token: CancellationToken?, fulfill: (value: Image) -> Void, reject: (error: Error) -> Void) {
+    private func loadImage(with request: Request, token: CancellationToken?, fulfill: (Image) -> Void, reject: (Error) -> Void) {
+        if request.memoryCacheOptions.readAllowed, let image = cache?.image(for: request) {
+            fulfill(image)
+            return
+        }
         _ = loader.loadData(with: request.urlRequest, token: token)
             .then(on: queue) { self.decode(data: $0, response: $1, token: token) }
             .then(on: queue) { self.process(image: $0, request: request, token: token) }
@@ -68,9 +64,9 @@ public class Loader: Loading {
                 if request.memoryCacheOptions.writeAllowed {
                     self.cache?.setImage($0, for: request)
                 }
-                fulfill(value: $0)
+                fulfill($0)
             }
-            .catch(on: queue) { reject(error: $0) }
+            .catch(on: queue) { reject($0) }
     }
 
     private func decode(data: Data, response: URLResponse, token: CancellationToken? = nil) -> Promise<Image> {
@@ -79,7 +75,7 @@ public class Loader: Loading {
                 if let image = self.decoder.decode(data: data, response: response) {
                     fulfill(value: image)
                 } else {
-                    reject(error: DataDecoderFailed())
+                    reject(error: DecodingFailed())
                 }
             }
         }
@@ -97,19 +93,18 @@ public class Loader: Loading {
             }
         }
     }
-    
-    /// Queues which are used to execute a corresponding steps of the pipeline.
+
+    /// Schedulers used to execute a corresponding steps of the pipeline.
     public struct Schedulers {
-        /// `QueueScheduler` with `maxConcurrentOperationCount` 1 by default.
-        public var decoding: Scheduler = QueueScheduler(maxConcurrentOperationCount: 1)
+        /// `DispatchQueueScheduler` with a serial queue by default.
+        public var decoding: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "\(domain).Decoding"))
         // There is no reason to increase `maxConcurrentOperationCount` for
         // built-in `DataDecoder` that locks globally while decoding.
         
-        /// `QueueScheduler` with `maxConcurrentOperationCount` 2 by default.
-        public var processing: Scheduler = QueueScheduler(maxConcurrentOperationCount: 2)
+        /// `DispatchQueueScheduler` with a serial queue by default.
+        public var processing: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "\(domain).Processing"))
     }
 }
 
-// FIXME: move to enum
-public struct DataDecoderFailed: Error {}
+public struct DecodingFailed: Error {}
 public struct ProcessingFailed: Error {}

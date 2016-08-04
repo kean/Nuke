@@ -47,7 +47,7 @@ class LoaderErrorHandlingTests: XCTestCase {
 
         expect { fulfill in
             _ = loader.loadImage(with: Request(url: defaultURL)).catch { error in
-                XCTAssertTrue(error is DataDecoderFailed)
+                XCTAssertTrue(error is DecodingFailed)
                 fulfill()
             }
         }
