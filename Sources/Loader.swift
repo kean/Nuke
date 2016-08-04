@@ -35,7 +35,8 @@ public class Loader: Loading {
     public let decoder: DataDecoding
     public let cache: Caching?
     public let schedulers: Schedulers
-    
+    private let queue = DispatchQueue(label: "\(domain).Loader")
+
     /// Initializes `Loader` instance with the given data loader, decoder and
     /// cache. You could also provide loader with you own set of queues.
     /// - parameter schedulers: `Schedulers()` by default.
@@ -48,19 +49,30 @@ public class Loader: Loading {
 
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
-        if request.memoryCacheOptions.readAllowed, let image = cache?.image(for: request) {
-            return Promise(value: image)
+        return Promise() { fulfill, reject in
+            queue.async {
+                if request.memoryCacheOptions.readAllowed, let image = self.cache?.image(for: request) {
+                    fulfill(value: image)
+                } else {
+                    self.loadImage(with: request, token: token, fulfill: fulfill, reject: reject)
+                }
+            }
         }
-        return self.loader.loadData(with: request.urlRequest, token: token)
-            .then { self.decode(data: $0, response: $1, token: token) }
-            .then { self.process(image: $0, request: request, token: token) }
-            .then {
+    }
+
+    private func loadImage(with request: Request, token: CancellationToken?, fulfill: (value: Image) -> Void, reject: (error: Error) -> Void) {
+        _ = loader.loadData(with: request.urlRequest, token: token)
+            .then(on: queue) { self.decode(data: $0, response: $1, token: token) }
+            .then(on: queue) { self.process(image: $0, request: request, token: token) }
+            .then(on: queue) {
                 if request.memoryCacheOptions.writeAllowed {
                     self.cache?.setImage($0, for: request)
                 }
-        }
+                fulfill(value: $0)
+            }
+            .catch(on: queue) { reject(error: $0) }
     }
-    
+
     private func decode(data: Data, response: URLResponse, token: CancellationToken? = nil) -> Promise<Image> {
         return Promise() { fulfill, reject in
             schedulers.decoding.execute(token: token) {
