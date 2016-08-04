@@ -75,8 +75,8 @@ public class Cache: Caching {
         cache.removeObject(forKey: makeKey(for: request))
     }
 
-    private func makeKey(for request: Request) -> Wrapped<RequestKey> {
-        return Wrapped(val: RequestKey(request, equator: equator))
+    private func makeKey(for request: Request) -> RequestKey {
+        return RequestKey(request, equator: equator)
     }
 
     // MARK: Subclassing Hooks
@@ -93,21 +93,5 @@ public class Cache: Caching {
     
     dynamic private func didReceiveMemoryWarning(_ notification: Notification) {
         cache.removeAllObjects()
-    }
-}
-
-/// Allows to use Swift Hashable objects with NSCache
-private class Wrapped<T: Hashable>: NSObject {
-    let val: T
-    init(val: T) {
-        self.val = val
-    }
-
-    override var hash: Int {
-        return val.hashValue
-    }
-
-    override func isEqual(_ other: AnyObject?) -> Bool {
-        return val == (other as? Wrapped)?.val
     }
 }
