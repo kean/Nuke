@@ -4,29 +4,40 @@
 
 import Foundation
 
+/// Manages execution of the requests into arbitrary targets.
 public class Manager {
     public let loader: Loading
     public let cache: Caching?
     
-    public init(loader: Loading, cache: Caching? = nil) {
+    /// Initializes the `Manager` with the given image loader and memory cache.
+    public init(loader: Loading, cache: Caching?) {
         self.loader = loader
         self.cache = cache
     }
     
-    public typealias Handler = (response: Resolution<Image>, isFromMemoryCache: Bool) -> Void
-    
-    /// Loads an image for the given request and displays it when finished.
-    /// Cancels previously started requests.
+    /// Asynchronously fulfills the request into the given target.
+    /// Cancels previous request started for the given target.
     ///
-    /// If the image is stored in the context's memory cache, the image is
-    /// displayed immediately. Otherwise the image is loaded using the `Loader`
-    /// instance and is displayed when finished.
-    public func loadImage(with request: Request, into target: Target, handler: Handler? = nil) {
-        assert(Thread.isMainThread)
-        
-        let handler = handler ?? { [weak target] in
+    /// `Manager` keeps a weak reference to the target. If the target deallocates
+    /// the associated request automatically gets cancelled.
+    ///
+    /// If the image is stored in the memory cache, the image is displayed
+    /// immediately. The image is loaded using the `Loading` object otherwise.
+    public func loadImage(with request: Request, into target: Target) {
+        loadImage(with: request, into: target) { [weak target] in
             target?.handle(response: $0, isFromMemoryCache: $1)
         }
+    }
+    
+    public typealias Handler = (response: Resolution<Image>, isFromMemoryCache: Bool) -> Void
+    
+    /// Asynchronously fulfills the request into the given target and calls
+    /// the `handler`. The handler gets called only if the request is still
+    /// associated with the target by the time the request is completed.
+    ///
+    /// See `loadImage(with:into:)` method for more info.
+    public func loadImage(with request: Request, into target: AnyObject, handler: Handler) {
+        assert(Thread.isMainThread)
         
         // Cancel existing request
         cancelRequest(for: target)
@@ -46,7 +57,8 @@ public class Manager {
         }
     }
     
-    public func cancelRequest(for target: Target) {
+    /// Cancels the request which is currently associated with the target.
+    public func cancelRequest(for target: AnyObject) {
         assert(Thread.isMainThread)
         if let context = Manager.getContext(for: target) {
             context.cts.cancel()
@@ -56,11 +68,11 @@ public class Manager {
     
     // Associated objects is a simplest way to bind Context and Target lifetimes
     // The implementation might change in the future.
-    private static func getContext(for target: Target) -> Context? {
+    private static func getContext(for target: AnyObject) -> Context? {
         return objc_getAssociatedObject(target, &contextAK) as? Context
     }
     
-    private static func setContext(_ context: Context?, for target: Target) {
+    private static func setContext(_ context: Context?, for target: AnyObject) {
         objc_setAssociatedObject(target, &contextAK, context, .OBJC_ASSOCIATION_RETAIN)
     }
     
@@ -83,18 +95,11 @@ public extension Manager {
     }
 }
 
-// MARK: Target
-
-/// By adopting `Target` protocol the class automatically gets a bunch
-/// of methods for loading images from the `Target` extension.
-
 /// Represents an arbitrary target for image loading.
 public protocol Target: class {
-    /// Called when the current task is completed.
+    /// Callback that gets called when the request gets completed.
     func handle(response: Resolution<Image>, isFromMemoryCache: Bool)
 }
-
-// MARK: Target Default Implementation
 
 #if os(OSX)
     import Cocoa
@@ -109,11 +114,8 @@ public protocol Target: class {
     
     /// Default implementation of `Target` protocol for `ImageView`.
     extension ImageView: Target {
-        /// Simply displays an image on success and runs `opacity` transition if
+        /// Displays an image on success. Runs `opacity` transition if
         /// the response was not from the memory cache.
-        ///
-        /// To customize response handling you should either override this method
-        /// in the subclass, or set a `handler` on the context (`nk_context`).
         public func handle(response: Resolution<Image>, isFromMemoryCache: Bool) {
             switch response {
             case let .fulfilled(image):
