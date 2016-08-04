@@ -5,6 +5,12 @@
 import Foundation
 import Nuke
 
+private let data: Data = {
+    let bundle = Bundle(for: MockDataLoader.self)
+    let URL = bundle.url(forResource: "Image", withExtension: "jpg")
+    return try! Data(contentsOf: URL!)
+}()
+
 class MockDataLoader: DataLoading {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
@@ -23,10 +29,6 @@ class MockDataLoader: DataLoading {
             createdTaskCount += 1
             
             queue.addOperation {
-                let bundle = Bundle(for: MockDataLoader.self)
-                let URL = bundle.url(forResource: "Image", withExtension: "jpg")
-                let data = try! Data(contentsOf: URL!)
-                
                 if let result = self.results[request.url!] {
                     switch result {
                     case let .fulfilled(val): fulfill(value: val)
