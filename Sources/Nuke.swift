@@ -42,19 +42,22 @@ public func loadImage(with request: Request, into target: Target, handler: Manag
 // MARK: - Shared
 
 public extension Manager {
+    /// Shared `Manager` instance.
+    ///
+    /// Shared manager is created with `Loader.shared` and `Cache.shared`.
     public static var shared = Manager(loader: Loader.shared, cache: Cache.shared)
 }
 
 public extension Loader {
     /// Shared `Loader` instance.
     ///
-    /// Shared loader is created with `DataLoader()`, `DataDecoder()`. 
-    /// Loader is wrapped into `Deduplicator`.
+    /// Shared loader is created with `DataLoader()`, `DataDecoder()`.
     public static var shared: Loading = {
         return Loader(loader: DataLoader(), decoder: DataDecoder(), cache: Cache.shared)
     }()
 }
 
 public extension Cache {
+    /// Shared `Cache` instance.
     public static var shared = Cache()
 }

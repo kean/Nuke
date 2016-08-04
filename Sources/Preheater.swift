@@ -4,16 +4,15 @@
 
 import Foundation
 
-/// Manages preheating (also known as prefetching, precaching) of images.
+/// Manages preheating (prefetching, precaching) of images.
 ///
-/// When you are working with many images, a `Preheater` can prepare images in
-/// the background in order to eliminate delays when you later request
-/// individual images. For example, use a `Preheater` when you want to populate
-/// a collection view or similar UI with thumbnails.
+/// When you are working with a collection of images, a `Preheater` can prepare
+/// images in the background in order to eliminate delays when you later request
+/// individual images.
 ///
-/// To start preheating images call `startPreheating(for:)` method. When you
+/// To start preheating images call `startPreheating(with:)` method. When you
 /// need an individual image just start loading an image using `Loading` object.
-/// When preheating is no longer necessary call `stopPreheating(for:)` method.
+/// When preheating is no longer necessary call `stopPreheating(with:)` method.
 public class Preheater {
     private let loader: Loading
     private let equator: RequestEquating
@@ -21,11 +20,13 @@ public class Preheater {
     private let queue = DispatchQueue(label: "\(domain).Preheater")
     private var tasks = [Task]()
         
-    /// Initializes the `Preheater` instance with the `Loader` used for
-    /// loading images, and the request `equator`.
+    /// Initializes the `Preheater` instance.
+    /// - parameter loader: `Loader.shared` by default.
     /// - parameter equator: Compares requests for equivalence.
     /// `RequestLoadingEquator()` be default.
-    public init(loader: Loading, equator: RequestEquating = RequestLoadingEquator(), scheduler: AsyncScheduler = QueueScheduler(maxConcurrentOperationCount: 3)) {
+    /// - parameter scheduler: Used to throttle preheating requests.
+    /// `QueueScheduler` with `maxConcurrentOperationCount` 2 by default.
+    public init(loader: Loading = Loader.shared, equator: RequestEquating = RequestLoadingEquator(), scheduler: AsyncScheduler = QueueScheduler(maxConcurrentOperationCount: 2)) {
         self.loader = loader
         self.equator = equator
         self.scheduler = scheduler
@@ -36,13 +37,13 @@ public class Preheater {
     /// When you call this method, `Preheater` starts to load and cache images
     /// for the given requests. At any time afterward, you can create tasks
     /// for individual images with equivalent requests.
-    public func startPreheating(for requests: [Request]) {
+    public func startPreheating(with requests: [Request]) {
         queue.async {
-            requests.forEach { self.startPreheating(for: $0) }
+            requests.forEach { self.startPreheating(with: $0) }
         }
     }
     
-    private func startPreheating(for request: Request) {
+    private func startPreheating(with request: Request) {
         // FIXME: use OrderedSet when Swift get it, array if fine for now
         // since we still do everything asynchronously
         if indexOfTask(with: request) == nil {
@@ -65,7 +66,7 @@ public class Preheater {
     }
     
     /// Cancels image preparation for the given requests.
-    public func stopPreheating(for requests: [Request]) {
+    public func stopPreheating(with requests: [Request]) {
         queue.async {
             requests.forEach { request in
                 if let index = self.indexOfTask(with: request) {
@@ -88,7 +89,7 @@ public class Preheater {
         }
     }
 
-    private class Task {
+    private final class Task {
         let request: Request
         var cts: CancellationTokenSource?
         init(request: Request) {

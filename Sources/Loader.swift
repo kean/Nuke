@@ -52,7 +52,8 @@ public class Loader: Loading {
         }
     }
 
-    private func loadImage(with request: Request, token: CancellationToken?, fulfill: (Image) -> Void, reject: (Error) -> Void) {
+    private func loadImage(with request: Request, token: CancellationToken?,
+                           fulfill: (Image) -> Void, reject: (Error) -> Void) {
         if request.memoryCacheOptions.readAllowed, let image = cache?.image(for: request) {
             fulfill(image)
             return

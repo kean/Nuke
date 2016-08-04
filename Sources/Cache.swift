@@ -9,20 +9,18 @@ import Foundation
     import UIKit
 #endif
 
-/// Provides in-memory storage for image.
-/// The implementation should be thread safe.
+/// Provides in-memory storage for images.
+///
+/// The implementation is expected to be thread safe.
 public protocol Caching {
-    /// Returns an image for the specified key.
+    /// Returns an image for the request.
     func image(for request: Request) -> Image?
 
-    /// Stores the image for the specified key.
+    /// Stores the image for the request.
     func setImage(_ image: Image, for request: Request)
-    
-    /// Removes the cached image for the specified key.
-    func removeImage(for request: Request)
 }
 
-/// Auto purging memory cache that uses NSCache as its internal storage.
+/// Auto purging memory cache that uses `NSCache` as its internal storage.
 public class Cache: Caching {
     deinit {
         #if os(iOS) || os(tvOS)
@@ -34,7 +32,7 @@ public class Cache: Caching {
     
     /// The internal memory cache.
     public let cache: NSCache<AnyObject, AnyObject>
-    
+
     private let equator: RequestEquating
 
     /// Initializes the receiver with a given memory cache.
@@ -60,17 +58,17 @@ public class Cache: Caching {
     
     // MARK: Managing Cached Images
 
-    /// Returns an image for the specified key.
+    /// Returns an image for the request.
     public func image(for request: Request) -> Image? {
         return cache.object(forKey: makeKey(for: request)) as? Image
     }
 
-    /// Stores the image for the specified key.
+    /// Stores the image for the request.
     public func setImage(_ image: Image, for request: Request) {
         cache.setObject(image, forKey: makeKey(for: request), cost: cost(for: image))
     }
 
-    /// Removes the cached image for the specified key.
+    /// Removes an image for the request.
     public func removeImage(for request: Request) {
         cache.removeObject(forKey: makeKey(for: request))
     }

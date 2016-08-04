@@ -19,13 +19,13 @@ class PreheatingDemoViewController: UICollectionViewController {
             return indexPaths.map { Nuke.Request(url: photos[$0.row]) }
         }
         
-        let preheater = Preheater(loader: Nuke.Loader.shared)
+        let preheater = Preheater()
         
         photos = demoPhotosURLs
         preheatController = Preheat.Controller(view: collectionView!)
         preheatController.handler = { addedIndexPaths, removedIndexPaths in
-            preheater.startPreheating(for: request(for: addedIndexPaths))
-            preheater.stopPreheating(for: request(for: removedIndexPaths))
+            preheater.startPreheating(with: request(for: addedIndexPaths))
+            preheater.stopPreheating(with: request(for: removedIndexPaths))
             logAddedIndexPaths(addedIndexPaths, removedIndexPaths: removedIndexPaths)
         }
         

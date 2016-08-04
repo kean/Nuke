@@ -4,13 +4,9 @@
 
 import Foundation
 
-/// Performs loading of image data.
+/// Performs loading of data.
 public protocol DataLoading {
-    /// Creates a task with a given URL request.
-    /// Task is resumed by the user that called the method.
-    ///
-    /// The implementation is not required to call the completion handler
-    /// when the load gets cancelled.
+    /// Loads data with the given request.
     func loadData(with request: URLRequest, token: CancellationToken?) -> Promise<(Data, URLResponse)>
 }
 
@@ -19,7 +15,9 @@ public final class DataLoader: DataLoading {
     public private(set) var session: URLSession
     private let scheduler: AsyncScheduler
     
-    /// Initialzies data loader with a given configuration.
+    /// Initializes `DataLoader` with the given configuration.
+    /// - parameter configuration: `URLSessionConfiguration.default` with
+    /// `URLCache` with 0MB memory capacity and 200MB disk capacity.
     /// - parameter scheduler: `QueueScheduler` with `maxConcurrentOperationCount` 8 by default.
     public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration(), scheduler: AsyncScheduler = QueueScheduler(maxConcurrentOperationCount: 8)) {
         self.session = URLSession(configuration: configuration, delegate: nil, delegateQueue: nil)
@@ -32,34 +30,32 @@ public final class DataLoader: DataLoading {
         return conf
     }
     
-    /// Creates task for the given request.
+    /// Loads data with the given request.
     public func loadData(with request: URLRequest, token: CancellationToken? = nil) -> Promise<(Data, URLResponse)> {
         return Promise() { fulfill, reject in
-            scheduler.execute(token: token) { [weak self] finish in
-                let task = self?.session.dataTask(with: request) { data, response, error in
+            scheduler.execute(token: token) { finish in
+                let task = self.session.dataTask(with: request) { data, response, error in
                     if let data = data, let response = response {
                         fulfill(value: (data, response))
                     } else {
-                        let error = error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)
-                        reject(error: error)
+                        reject(error: error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))
                     }
                     finish()
                 }
                 token?.register {
-                    task?.cancel()
+                    task.cancel()
                     finish()
                 }
-                task?.resume()
+                task.resume()
             }
         }
     }
 }
 
-/// Provides in-disk storage for data.
+/// Provides storage for `CachedURLResponse` objects.
 ///
-/// Nuke doesn't provide a built-in implementation of this protocol.
-/// However, it's very easy to implement one in an extension of some
-/// existing library (like DFCache).
+/// Nuke doesn't provide a built-in implementation of this protocol. It's easy
+/// to implement one as an extension of some existing library (like `DFCache`).
 public protocol DataCaching {
     /// Returns response for the given request.
     func response(for request: URLRequest, token: CancellationToken?) -> Promise<CachedURLResponse>
@@ -67,8 +63,6 @@ public protocol DataCaching {
     /// Stores response for the given request.
     func setResponse(_ response: CachedURLResponse, for request: URLRequest)
 }
-
-// MARK: CachingDataLoader
 
 public class CachingDataLoader: DataLoading {
     private var loader: DataLoading
@@ -81,8 +75,11 @@ public class CachingDataLoader: DataLoading {
 
     public func loadData(with request: URLRequest, token: CancellationToken?) -> Promise<(Data, URLResponse)> {
         return cache.response(for: request, token: token)
-            .then { ($0.data, $0.response) }
-            .recover { _ in self.loader.loadData(with: request, token: token) }
-            .then { self.cache.setResponse(CachedURLResponse(response: $0.1, data: $0.0), for: request) }
+            .then { ($0.data, $0.response) } // convert to promise's T
+            .recover { _ in
+                self.loader.loadData(with: request, token: token).then {
+                    self.cache.setResponse(CachedURLResponse(response: $0.1, data: $0.0), for: request)
+                }
+        }
     }
 }

@@ -17,29 +17,6 @@ public protocol AsyncScheduler {
     func execute(token: CancellationToken?, closure: (finish: (Void) -> Void) -> Void)
 }
 
-// MARK: - QueueScheduler
-
-public final class QueueScheduler: AsyncScheduler {
-    public let queue: OperationQueue
-    
-    public convenience init(maxConcurrentOperationCount: Int) {
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = maxConcurrentOperationCount
-        self.init(queue: queue)
-    }
-    
-    public init(queue: OperationQueue) {
-        self.queue = queue
-    }
-
-    public func execute(token: CancellationToken?, closure: (finish: (Void) -> Void) -> Void) {
-        if let token = token, token.isCancelling { return }
-        let operation = Operation(starter: closure)
-        token?.register { operation.cancel() }
-        queue.addOperation(operation)
-    }
-}
-
 // MARK: - DispatchQueueScheduler
 
 internal final class DispatchQueueScheduler: Scheduler {
@@ -56,9 +33,32 @@ internal final class DispatchQueueScheduler: Scheduler {
     }
 }
 
+// MARK: - QueueScheduler
+
+public final class QueueScheduler: AsyncScheduler {
+    public let queue: OperationQueue
+
+    public convenience init(maxConcurrentOperationCount: Int) {
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = maxConcurrentOperationCount
+        self.init(queue: queue)
+    }
+
+    public init(queue: OperationQueue) {
+        self.queue = queue
+    }
+
+    public func execute(token: CancellationToken?, closure: (finish: (Void) -> Void) -> Void) {
+        if let token = token, token.isCancelling { return }
+        let operation = Operation(starter: closure)
+        queue.addOperation(operation)
+        token?.register { operation.cancel() }
+    }
+}
+
 // MARK: Operation
 
-internal final class Operation: Foundation.Operation {
+private final class Operation: Foundation.Operation {
     override var isExecuting : Bool {
         get { return _isExecuting }
         set {
@@ -77,10 +77,10 @@ internal final class Operation: Foundation.Operation {
             didChangeValue(forKey: "isFinished")
         }
     }
-    private var _isFinished = false
+    var _isFinished = false
     
-    private let starter: (finish: (Void) -> Void) -> Void
-    private let queue = DispatchQueue(label: "\(domain).Operation")
+    let starter: (finish: (Void) -> Void) -> Void
+    let queue = DispatchQueue(label: "\(domain).Operation")
     
     init(starter: (fulfill: (Void) -> Void) -> Void) {
         self.starter = starter
@@ -95,7 +95,7 @@ internal final class Operation: Foundation.Operation {
         }
     }
     
-    private func finish() {
+    func finish() {
         queue.sync {
             if !isFinished {
                 isExecuting = false

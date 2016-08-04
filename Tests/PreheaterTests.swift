@@ -23,11 +23,11 @@ class PreheaterTests: XCTestCase {
 
         let request = Request(url: defaultURL)
         _ = expectNotification(MockImageLoader.DidStartTask)
-        preheater.startPreheating(for: [request])
+        preheater.startPreheating(with: [request])
         wait()
 
         _ = expectNotification(MockImageLoader.DidCancelTask)
-        preheater.stopPreheating(for: [request])
+        preheater.stopPreheating(with: [request])
         wait()
     }
 
@@ -36,12 +36,12 @@ class PreheaterTests: XCTestCase {
 
         let request = Request(url: defaultURL)
         _ = expectNotification(MockImageLoader.DidStartTask)
-        preheater.startPreheating(for: [request, request])
-        preheater.startPreheating(for: [request])
+        preheater.startPreheating(with: [request, request])
+        preheater.startPreheating(with: [request])
         wait()
 
         _ = expectNotification(MockImageLoader.DidCancelTask)
-        preheater.stopPreheating(for: [request])
+        preheater.stopPreheating(with: [request])
 
         wait { _ in
             XCTAssertEqual(self.loader.createdTaskCount, 1, "")
@@ -53,17 +53,11 @@ class PreheaterTests: XCTestCase {
 
         let request = Request(url: defaultURL)
         _ = expectNotification(MockImageLoader.DidStartTask)
-        preheater.startPreheating(for: [request])
+        preheater.startPreheating(with: [request])
         wait(2)
 
         _ = expectNotification(MockImageLoader.DidCancelTask)
         preheater.stopPreheating()
         wait(2)
-    }
-
-    // MARK: Queue
-
-    func testThatPreheaterDoesntExecuteTasksUntil() {
-
     }
 }

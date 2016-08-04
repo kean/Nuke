@@ -57,8 +57,7 @@ class LoaderErrorHandlingTests: XCTestCase {
     func testThatProcessingFailedErrorIsReturned() {
         let loader = Loader(loader: MockDataLoader(), decoder: DataDecoder(), cache: nil)
 
-        var request = Request(url: defaultURL)
-        request.add(processor: MockFailingProcessor())
+        let request = Request(url: defaultURL).process(with: MockFailingProcessor())
 
         expect { fulfill in
             _ = loader.loadImage(with: request).catch { error in

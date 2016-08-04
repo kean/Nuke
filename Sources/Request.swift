@@ -20,45 +20,55 @@ public struct Request {
     
     /// Processors to be applied to the image. Empty by default.
     public var processors = [AnyProcessor]()
-    
-    /// Convenience method for adding processors to the `Request`.
-    public mutating func add<P: Processing>(processor: P) {
-        processors.append(AnyProcessor(processor))
-    }
-    
-    internal var processor: ProcessorComposition? {
-        return processors.isEmpty ? nil : ProcessorComposition(processors: processors)
-    }
-    
-    /// A set of options affecting how `Loading` object interacts with its memory cache.
+
+    /// The policy to use when dealing with memory cache.
     public struct MemoryCacheOptions {
+        /// `true` by default.
         public var readAllowed = true
-        
-        /// Specifies whether loaded object should be stored into memory cache.
+
         /// `true` by default.
         public var writeAllowed = true
         
         public init() {}
     }
     
-    /// `MemoryCacheOptions` by default.
+    /// `MemoryCacheOptions()` by default.
     public var memoryCacheOptions = MemoryCacheOptions()
 
     /// Allows you to pass custom info alongside the request.
     public var userInfo: Any?
 }
 
+public extension Request {
+    /// Adds a processor to the request.
+    public func process<P: Processing>(with processor: P) -> Request {
+        return self.process(with: [processor])
+    }
+
+    /// Adds a sequence of processors to the request.
+    public func process<S: Sequence>(with processors: S) -> Request where S.Iterator.Element: Processing {
+        var request = self
+        processors.forEach { request.processors.append(AnyProcessor($0)) }
+        return request
+    }
+
+    /// Wraps processors into ProcessorComposition.
+    internal var processor: ProcessorComposition? {
+        return processors.isEmpty ? nil : ProcessorComposition(processors: processors)
+    }
+}
+
 // MARK: - RequestEquating
 
-/// Compares two requests for equivalence in different contexts (caching,
-/// loading, etc).
+/// Tests requests for equivalence in various contexts (caching, loading, etc).
 public protocol RequestEquating {
     func isEqual(_ a: Request, to b: Request) -> Bool
 }
 
 /// Considers two requests equivalent it they have the same `URLRequests` and
-/// the same processors. `URLRequests` are compared just by their `URLs`.
-/// To customize this behaviour just create a new `RequestEquating` type.
+/// the same processors. `URLRequests` are compared by their `URL`, `cachePolicy`,
+/// and `allowsCellularAccess` properties. To change this behaviour just create
+/// a new `RequestEquating` type.
 public struct RequestLoadingEquator: RequestEquating {
     public init() {}
     
@@ -75,7 +85,7 @@ public struct RequestLoadingEquator: RequestEquating {
 
 /// Considers two requests equivalent it they have the same `URLRequests` and
 /// the same processors. `URLRequests` are compared just by their `URLs`.
-/// To customize this behaviour just create a new `RequestEquating` type.
+/// To change this behaviour just create a new `RequestEquating` type.
 public struct RequestCachingEquator: RequestEquating {
     public init() {}
     
@@ -101,7 +111,7 @@ internal final class RequestKey: NSObject {
         return request.urlRequest.url?.hashValue ?? 0
     }
 
-    /// Compares two keys for equivalence using equator.
+    /// Compares two keys for equivalence using one of their equators.
     override func isEqual(_ object: AnyObject?) -> Bool {
         guard let object = object as? RequestKey else { return false }
         return equator.isEqual(request, to: object.request)

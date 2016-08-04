@@ -4,11 +4,12 @@
 
 import Foundation
 
-// MARK: CancellationToken
-
+/// Manages cancellation tokens and signals them when cancellation is requested.
+///
+/// All `CancellationTokenSource` methods are thread safe.
 public class CancellationTokenSource {
-    private(set) var isCancelling = false
-    private var observers = [() -> Void]()
+    private var isCancelling = false
+    private var observers = [(Void) -> Void]()
     private let queue = DispatchQueue(label: "\(domain).CancellationToken")
     
     public var token: CancellationToken {
@@ -17,38 +18,49 @@ public class CancellationTokenSource {
     
     public init() {}
     
-    private func register(_ closure: () -> Void) {
-        queue.async {
-            if self.isCancelling {
+    private func register(_ closure: (Void) -> Void) {
+        queue.sync {
+            if isCancelling {
                 closure()
             } else {
-                self.observers.append(closure)
+                observers.append(closure)
             }
         }
     }
-    
+
+    /// Communicates a request for cancellation to the managed token.
     public func cancel() {
-        queue.async {
-            if !self.isCancelling {
-                self.isCancelling = true
-                self.observers.forEach { $0() }
-                self.observers.removeAll()
+        queue.sync {
+            if !isCancelling {
+                isCancelling = true
+                observers.forEach { $0() }
+                observers.removeAll()
             }
         }
     }
 }
 
+/// Enables cooperative cancellation of operations.
+///
+/// You create a cancellation token by instantiating a `CancellationTokenSource`
+/// object and calling its `token` property. You then pass the token to any
+/// number of threads, tasks, or operations that should receive notice of
+/// cancellation. When the  owning object calls `cancel()`, the `isCancelling`
+/// property on every copy of the cancellation token is set to `true`.
+/// The registered objects can respond in whatever manner is appropriate.
+///
+/// All `CancellationToken` methods are thread safe.
 public struct CancellationToken {
     private let source: CancellationTokenSource
     private init(source: CancellationTokenSource) {
         self.source = source
     }
-    
-    public var isCancelling: Bool {
-        return source.isCancelling
-    }
-    
-    public func register(closure: () -> Void) {
-        source.register(closure)
-    }
+
+    /// Returns `true` if cancellation has been requested for this token.
+    public var isCancelling: Bool { return source.isCancelling }
+
+    /// Registers the closure that will be called when the token is canceled.
+    /// If this token is already cancelled, the closure will be run immediately
+    /// and synchronously.
+    public func register(closure: () -> Void) { source.register(closure) }
 }

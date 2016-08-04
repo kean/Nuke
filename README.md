@@ -125,15 +125,13 @@ func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath ind
 
 #### Applying Filters
 
-Nuke defines a simple `Processing` protocol that represents image filters. It takes just a couple line of code to create your own filters. You can apply filters by adding them to the `Request`.
+Nuke defines a simple `Processing` protocol that represents image transformations. It takes just a couple line of code to create your own filters. You can apply filters by adding them to the `Request`.
 
 ```swift
 let filter1: Processing = <#filter#>
 let filter2: Processing = <#filter#>
 
-var request = Request(url: <#image_url#>)
-request.add(processor: filter1)
-request.add(processor: filter2)
+let request = Request(url: <#image_url#>).process(with: [filter1, filter2])
 
 Nuke.loadImage(with: request).then { image in
     // do something with a processed image

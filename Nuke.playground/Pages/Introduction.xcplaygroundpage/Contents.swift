@@ -27,7 +27,7 @@ let URLRequest = URLRequest(URL: URL(string: "https://farm4.staticflickr.com/389
 var request = Request(URLRequest: URLRequest)
 
 // Set target size in pixels
-request.processors = [ImageDecompressor(targetSize: CGSize(width: 200.0, height: 200.0), contentMode: .AspectFill)]
+request.processors = [Decompressor(targetSize: CGSize(width: 200.0, height: 200.0), contentMode: .AspectFill)]
 
 Nuke.task(with: request) {
     let image = $0.1.image
