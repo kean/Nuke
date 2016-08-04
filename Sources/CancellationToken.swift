@@ -8,7 +8,7 @@ import Foundation
 ///
 /// All `CancellationTokenSource` methods are thread safe.
 public class CancellationTokenSource {
-    private var isCancelling = false
+    public private(set) var isCancelling = false
     private var observers = [(Void) -> Void]()
     private let queue = DispatchQueue(label: "\(domain).CancellationToken")
     
