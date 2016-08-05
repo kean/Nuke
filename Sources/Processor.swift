@@ -55,7 +55,7 @@ public struct AnyProcessor: Processing {
     }
 }
 
-#if !os(OSX)
+#if !os(macOS)
 
     import UIKit
 

@@ -3,7 +3,7 @@
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-#if os(OSX)
+#if os(macOS)
     import Cocoa
 #else
     import UIKit
@@ -81,7 +81,7 @@ public class Cache: Caching {
     
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
     public func cost(for image: Image) -> Int {
-        #if os(OSX)
+        #if os(macOS)
             return 1
         #else
             guard let cgImage = image.cgImage else { return 1 }

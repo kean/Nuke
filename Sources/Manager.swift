@@ -101,7 +101,7 @@ public protocol Target: class {
     func handle(response: Resolution<Image>, isFromMemoryCache: Bool)
 }
 
-#if os(OSX)
+#if os(macOS)
     import Cocoa
     public typealias ImageView = NSImageView
 #elseif os(iOS) || os(tvOS)
@@ -110,7 +110,7 @@ public protocol Target: class {
 #endif
 
 
-#if os(OSX) || os(iOS) || os(tvOS)
+#if os(macOS) || os(iOS) || os(tvOS)
     
     /// Default implementation of `Target` protocol for `ImageView`.
     extension ImageView: Target {
@@ -125,7 +125,7 @@ public protocol Target: class {
                     animation.duration = 0.25
                     animation.fromValue = 0
                     animation.toValue = 1
-                    let layer: CALayer? = self.layer // Make compiler happy on OSX
+                    let layer: CALayer? = self.layer // Make compiler happy on macOS
                     layer?.add(animation, forKey: "imageTransition")
                 }
             case .rejected(_): return

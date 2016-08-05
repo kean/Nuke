@@ -153,7 +153,7 @@
 		0C1ECA4B1D526964009063A9 /* Manager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Manager.swift; sourceTree = "<group>"; };
 		0C22D9C51BCA9734006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C22DA2C1BCAA220006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C22DA381BCAA22A006E1D3B /* Nuke OSX Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke OSX Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C22DA381BCAA22A006E1D3B /* Nuke macOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke macOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C34BF5C1D4D1554006B8A57 /* Promise.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Promise.swift; sourceTree = "<group>"; };
 		0C34BF611D4D1576006B8A57 /* Scheduler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Scheduler.swift; sourceTree = "<group>"; };
 		0C34BF661D4D15B6006B8A57 /* CancellationToken.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CancellationToken.swift; sourceTree = "<group>"; };
@@ -356,7 +356,7 @@
 				0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */,
 				0C22D9C51BCA9734006E1D3B /* Nuke.framework */,
 				0C22DA2C1BCAA220006E1D3B /* Nuke.framework */,
-				0C22DA381BCAA22A006E1D3B /* Nuke OSX Tests.xctest */,
+				0C22DA381BCAA22A006E1D3B /* Nuke macOS Tests.xctest */,
 				0CC345971BD96CFE005C2DD8 /* Nuke.framework */,
 				0CC345A31BD96D2A005C2DD8 /* Nuke tvOS Tests.xctest */,
 			);
@@ -419,9 +419,9 @@
 			productReference = 0C22D9C51BCA9734006E1D3B /* Nuke.framework */;
 			productType = "com.apple.product-type.framework";
 		};
-		0C22DA2B1BCAA220006E1D3B /* Nuke OSX */ = {
+		0C22DA2B1BCAA220006E1D3B /* Nuke macOS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0C22DA331BCAA220006E1D3B /* Build configuration list for PBXNativeTarget "Nuke OSX" */;
+			buildConfigurationList = 0C22DA331BCAA220006E1D3B /* Build configuration list for PBXNativeTarget "Nuke macOS" */;
 			buildPhases = (
 				0C22DA271BCAA220006E1D3B /* Sources */,
 				0C22DA281BCAA220006E1D3B /* Frameworks */,
@@ -432,14 +432,14 @@
 			);
 			dependencies = (
 			);
-			name = "Nuke OSX";
+			name = "Nuke macOS";
 			productName = "Nuke OSX";
 			productReference = 0C22DA2C1BCAA220006E1D3B /* Nuke.framework */;
 			productType = "com.apple.product-type.framework";
 		};
-		0C22DA371BCAA22A006E1D3B /* Nuke OSX Tests */ = {
+		0C22DA371BCAA22A006E1D3B /* Nuke macOS Tests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0C22DA401BCAA22A006E1D3B /* Build configuration list for PBXNativeTarget "Nuke OSX Tests" */;
+			buildConfigurationList = 0C22DA401BCAA22A006E1D3B /* Build configuration list for PBXNativeTarget "Nuke macOS Tests" */;
 			buildPhases = (
 				0C22DA341BCAA22A006E1D3B /* Sources */,
 				0C22DA351BCAA22A006E1D3B /* Frameworks */,
@@ -450,9 +450,9 @@
 			dependencies = (
 				0C22DA3F1BCAA22A006E1D3B /* PBXTargetDependency */,
 			);
-			name = "Nuke OSX Tests";
+			name = "Nuke macOS Tests";
 			productName = "Nuke OSX Tests";
-			productReference = 0C22DA381BCAA22A006E1D3B /* Nuke OSX Tests.xctest */;
+			productReference = 0C22DA381BCAA22A006E1D3B /* Nuke macOS Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		0C7C06761BCA882A00089D7F /* Nuke iOS Tests */ = {
@@ -580,11 +580,11 @@
 			projectRoot = "";
 			targets = (
 				0C91748F1BAE99EE004A7905 /* Nuke iOS */,
-				0C22DA2B1BCAA220006E1D3B /* Nuke OSX */,
+				0C22DA2B1BCAA220006E1D3B /* Nuke macOS */,
 				0C22D9C41BCA9734006E1D3B /* Nuke watchOS */,
 				0CC345961BD96CFE005C2DD8 /* Nuke tvOS */,
 				0C7C06761BCA882A00089D7F /* Nuke iOS Tests */,
-				0C22DA371BCAA22A006E1D3B /* Nuke OSX Tests */,
+				0C22DA371BCAA22A006E1D3B /* Nuke macOS Tests */,
 				0CC345A21BD96D2A005C2DD8 /* Nuke tvOS Tests */,
 			);
 		};
@@ -797,7 +797,7 @@
 /* Begin PBXTargetDependency section */
 		0C22DA3F1BCAA22A006E1D3B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 0C22DA2B1BCAA220006E1D3B /* Nuke OSX */;
+			target = 0C22DA2B1BCAA220006E1D3B /* Nuke macOS */;
 			targetProxy = 0C22DA3E1BCAA22A006E1D3B /* PBXContainerItemProxy */;
 		};
 		0C7C067E1BCA882A00089D7F /* PBXTargetDependency */ = {
@@ -870,7 +870,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-OSX";
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -893,7 +893,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.10;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-OSX";
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -908,7 +908,7 @@
 				INFOPLIST_FILE = Tests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-OSX-Tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-macOS-Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 3.0;
@@ -922,7 +922,7 @@
 				INFOPLIST_FILE = Tests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-OSX-Tests";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-macOS-Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
@@ -1098,7 +1098,7 @@
 				INFOPLIST_FILE = "$(SRCROOT)/Supporting Files/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-tvOS";
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
@@ -1120,7 +1120,7 @@
 				INFOPLIST_FILE = "$(SRCROOT)/Supporting Files/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-tvOS";
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
@@ -1169,7 +1169,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0C22DA331BCAA220006E1D3B /* Build configuration list for PBXNativeTarget "Nuke OSX" */ = {
+		0C22DA331BCAA220006E1D3B /* Build configuration list for PBXNativeTarget "Nuke macOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0C22DA311BCAA220006E1D3B /* Debug */,
@@ -1178,7 +1178,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0C22DA401BCAA22A006E1D3B /* Build configuration list for PBXNativeTarget "Nuke OSX Tests" */ = {
+		0C22DA401BCAA22A006E1D3B /* Build configuration list for PBXNativeTarget "Nuke macOS Tests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0C22DA411BCAA22A006E1D3B /* Debug */,

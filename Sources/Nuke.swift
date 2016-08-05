@@ -4,7 +4,7 @@
 
 import Foundation
 
-#if os(OSX)
+#if os(macOS)
     import AppKit.NSImage
     /// Alias for NSImage
     public typealias Image = NSImage

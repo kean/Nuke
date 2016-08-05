@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
-#if os(OSX)
+#if os(macOS)
     import Cocoa
 #else
     import UIKit
@@ -31,7 +31,7 @@ public struct DataDecoder: DataDecoding {
         // - https://github.com/AFNetworking/AFNetworking/issues/2572
         // - https://github.com/Alamofire/AlamofireImage/issues/75
         return queue.sync {
-            #if os(OSX)
+            #if os(macOS)
                 return NSImage(data: data)
             #else
                 #if os(iOS) || os(tvOS)
