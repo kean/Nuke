@@ -10,7 +10,7 @@ public class Manager {
     public let cache: Caching?
     
     /// Initializes the `Manager` with the given image loader and memory cache.
-    public init(loader: Loading, cache: Caching?) {
+    public init(loader: Loading, cache: Caching? = nil) {
         self.loader = loader
         self.cache = cache
     }

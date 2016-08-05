@@ -24,8 +24,8 @@ public class Preheater {
     /// - parameter loader: `Loader.shared` by default.
     /// - parameter equator: Compares requests for equivalence.
     /// `RequestLoadingEquator()` be default.
-    /// - parameter scheduler: Used to throttle preheating requests.
-    /// `QueueScheduler` with `maxConcurrentOperationCount` 2 by default.
+    /// - parameter scheduler: Throttles preheating requests. `QueueScheduler`
+    /// with `maxConcurrentOperationCount` 2 by default.
     public init(loader: Loading = Loader.shared, equator: RequestEquating = RequestLoadingEquator(), scheduler: AsyncScheduler = QueueScheduler(maxConcurrentOperationCount: 2)) {
         self.loader = loader
         self.equator = equator
@@ -44,13 +44,11 @@ public class Preheater {
     }
     
     private func startPreheating(with request: Request) {
-        // FIXME: use OrderedSet when Swift get it, array if fine for now
-        // since we still do everything asynchronously
+        // FIXME: use OrderedSet when Swift stdlib has one
         if indexOfTask(with: request) == nil {
             let task = Task(request: request)
-            let cts = CancellationTokenSource()
-            scheduler.execute(token: cts.token) { [weak self] finish in
-                self?.loader.loadImage(with: task.request, token: cts.token).completion { _ in
+            scheduler.execute(token: task.cts.token) { [weak self] finish in
+                self?.loader.loadImage(with: task.request, token: task.cts.token).completion { _ in
                     self?.queue.async {
                         if let idx = self?.tasks.index(where: { task === $0 }) {
                             self?.tasks.remove(at: idx)
@@ -58,9 +56,8 @@ public class Preheater {
                     }
                     finish()
                 }
-                cts.token.register { finish() }
+                task.cts.token.register { finish() }
             }
-            task.cts = cts
             tasks.append(task)
         }
     }
@@ -71,7 +68,7 @@ public class Preheater {
             requests.forEach { request in
                 if let index = self.indexOfTask(with: request) {
                     let task = self.tasks.remove(at: index)
-                    task.cts?.cancel()
+                    task.cts.cancel()
                 }
             }
         }
@@ -84,14 +81,14 @@ public class Preheater {
     /// Stops all preheating tasks.
     public func stopPreheating() {
         queue.async {
-            self.tasks.forEach { $0.cts?.cancel() }
+            self.tasks.forEach { $0.cts.cancel() }
             self.tasks.removeAll()
         }
     }
 
     private final class Task {
         let request: Request
-        var cts: CancellationTokenSource?
+        var cts = CancellationTokenSource()
         init(request: Request) {
             self.request = request
         }

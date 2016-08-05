@@ -20,11 +20,6 @@ Micro-framework for loading, processing, caching and [preheating](https://kean.g
 - [Pipeline](#h_design) with injectable dependencies
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
 
-## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
-
-- iOS 8.0 / watchOS 2.0 / OS X 10.10 / tvOS 9.0
-- Xcode 8, Swift 3
-
 ## <a name="h_getting_started"></a>Getting Started
 
 - [Homepage](http://kean.github.io/Nuke)
@@ -40,11 +35,9 @@ Nuke allows for hassle-free image loading into image views (and other arbitrary 
 
 ```swift
 /// Asynchronously fulfills the request into the given target.
-/// Cancels previous request started for the given target.
+/// Cancels previous request started for the target.
 Nuke.loadImage(with: URL(string: "http://...")!, into: imageView)
 ```
-
-Nuke keeps a weak reference to the target. If the target deallocates the associated request automatically gets cancelled.
 
 
 #### Customizing Requests
@@ -59,7 +52,7 @@ Nuke.loadImage(with: requst, into: imageView)
 ```
 
 
-#### Processing Image
+#### Processing Images
 
 Each image processor should conform to `Processing` protocol which consists of a single method `process(image: Image) -> Image?`. Here's an example of custom image filter that uses [Core Image](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide).
 
@@ -136,6 +129,12 @@ Nuke is designed to support and leverage dependency injection. Nuke's core consi
 |`DataDecoding`|Converts data into image objects|
 |`Processing`|Image transformations|
 |`Caching`|Stores images into memory cache|
+
+
+## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
+
+- iOS 8.0 / watchOS 2.0 / OS X 10.10 / tvOS 9.0
+- Xcode 8, Swift 3
 
 
 ## Installation<a name="installation"></a>

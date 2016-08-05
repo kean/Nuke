@@ -38,10 +38,11 @@ public extension Manager {
 }
 
 public extension Loader {
-    /// Shared `Loader` instance.
+    /// Shared `Loading` object.
     ///
-    /// Shared loader is created with `DataLoader()`, `DataDecoder()` and `Cache.shared`.
-    public static var shared = Loader(loader: DataLoader(), decoder: DataDecoder(), cache: Cache.shared)
+    /// Shared loader is created with `DataLoader()`, `DataDecoder()` and
+    // `Cache.shared`.
+    public static var shared: Loading = Loader(loader: DataLoader(), decoder: DataDecoder(), cache: Cache.shared)
 }
 
 public extension Cache {

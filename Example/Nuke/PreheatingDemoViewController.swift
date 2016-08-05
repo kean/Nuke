@@ -7,6 +7,7 @@ import Nuke
 import Preheat
 
 private let cellReuseID = "reuseID"
+private var loggingEnabled = false
 
 class PreheatingDemoViewController: UICollectionViewController {
     var photos: [URL]!
@@ -15,8 +16,8 @@ class PreheatingDemoViewController: UICollectionViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        func request(for indexPaths: [NSIndexPath]) -> [Nuke.Request] {
-            return indexPaths.map { Nuke.Request(url: photos[$0.row]) }
+        func requests(for indexPaths: [NSIndexPath]) -> [Nuke.Request] {
+            return indexPaths.map { Nuke.Request(url: photos[$0.row]).process(with: Decompressor()) }
         }
         
         let preheater = Preheater()
@@ -24,9 +25,11 @@ class PreheatingDemoViewController: UICollectionViewController {
         photos = demoPhotosURLs
         preheatController = Preheat.Controller(view: collectionView!)
         preheatController.handler = { addedIndexPaths, removedIndexPaths in
-            preheater.startPreheating(with: request(for: addedIndexPaths))
-            preheater.stopPreheating(with: request(for: removedIndexPaths))
-            logAddedIndexPaths(addedIndexPaths, removedIndexPaths: removedIndexPaths)
+            preheater.startPreheating(with: requests(for: addedIndexPaths))
+            preheater.stopPreheating(with: requests(for: removedIndexPaths))
+            if loggingEnabled {
+                logAddedIndexPaths(addedIndexPaths, removedIndexPaths: removedIndexPaths)
+            }
         }
         
         collectionView?.backgroundColor = UIColor.white

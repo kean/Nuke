@@ -46,7 +46,7 @@ public final class Deduplicator: Loading {
             }
 
             token?.register {
-                self.queue.sync {
+                self.queue.async {
                     task.retainCount -= 1
                     if task.retainCount == 0 {
                         task.cts.cancel() // cancel underlying request
