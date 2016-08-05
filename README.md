@@ -16,7 +16,6 @@ Micro-framework for loading, processing, caching and [preheating](https://kean.g
 - Two [cache layers](https://kean.github.io/blog/image-caching) including auto-purging memory cache
 - Image transformations
 - Automated [preheating (prefetching)](https://kean.github.io/blog/image-preheating)
-- Deduplication of equivalent requests
 - [Pipeline](#h_design) with injectable dependencies
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
 
@@ -34,41 +33,34 @@ Micro-framework for loading, processing, caching and [preheating](https://kean.g
 Nuke allows for hassle-free image loading into image views (and other arbitrary targets). 
 
 ```swift
-/// Asynchronously fulfills the request into the given target.
-/// Cancels previous request started for the target.
 Nuke.loadImage(with: URL(string: "http://...")!, into: imageView)
 ```
 
-
 #### Customizing Requests
 
-Each request is represented by `Request` struct which can be initialized with either `URL` or `URLRequest`. 
+Each image request is represented by `Request` struct which can be created with either `URL` or `URLRequest`.
 
-After creating a request you can add an arbitrary number of image processors to it. One of the built-in processors is `Decompressor` which [decompresses](https://www.cocoanetics.com/2011/10/avoiding-image-decompression-sickness/) and (optionally) scales input images.
+You can add an arbitrary number of image processors to the request. One of the built-in processors is `Decompressor` which [decompresses](https://www.cocoanetics.com/2011/10/avoiding-image-decompression-sickness/) images in the background.
 
 ```swift
-let request = Request(url: URL(string: "http://...")!).process(with: Decompressor())
-Nuke.loadImage(with: requst, into: imageView)
+Nuke.loadImage(with: Request(url: url).process(with: Decompressor()), into: imageView)
 ```
 
 
 #### Processing Images
 
-Each image processor should conform to `Processing` protocol which consists of a single method `process(image: Image) -> Image?`. Here's an example of custom image filter that uses [Core Image](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide).
+You can specify custom image processors using `Processing` protocol which consists of a single method `process(image: Image) -> Image?`. Here's an example of custom image filter that uses [Core Image](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide):
 
 ```swift
 struct GaussianBlur: Processing {
-    private let radius: Int
-    init(radius: Int = 8) {
-        self.radius = radius
-    }
+    var radius = 8
 
     func process(image: UIImage) -> UIImage? {
         return image.applyFilter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
     }
 
-    // `Processing` protocol inherits `Equatable` to identify cached images, etc.
-    func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bool {
+    // `Processing` protocol inherits `Equatable` to identify cached images
+    func ==(lhs: GaussianBlur, rhs: GaussianBlur) -> Bool {
         return lhs.radius == rhs.radius
     }
 }
@@ -77,13 +69,13 @@ struct GaussianBlur: Processing {
 
 #### Preheating Images
 
-[Preheating](https://kean.github.io/blog/image-preheating) means loading and caching images ahead of time in anticipation of its use. Nuke provides a `Preheater` class with a set of self-explanatory methods for image preheating:
+[Preheating](https://kean.github.io/blog/image-preheating) (prefetching) means loading images ahead of time in anticipation of its use. Nuke provides a `Preheater` class that does just that:
 
 ```swift
-let preheater = Preheater(loader: Loader.shared)
+let preheater = Preheater()
 
 // User enters the screen:
-let requests = [Request(url: imageURL1), Request(url: imageURL2), ...]
+let requests = [Request(url: url1), Request(url: url2), ...]
 preheater.startPreheating(for: requests)
 
 // User leaves the screen:
@@ -93,11 +85,11 @@ preheater.stopPreheating(for: requests)
 
 #### Automating Preheating
 
-You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`. For more info see [Image Preheating Guide](https://kean.github.io/blog/image-preheating), Nuke's demo project, and [Preheat](https://github.com/kean/Preheat) documentation.
+You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`.
 
 ```swift
-let preheater = Nuke.Preheater(loader: Loader.shared)
-let controller = Preheat.Controller(view: <#collectionView#>)
+let preheater = Preheater()
+let controller = Preheat.Controller(view: collectionView)
 controller.handler = { addedIndexPaths, removedIndexPaths in
     preheater.startPreheating(for: requests(for: addedIndexPaths))
     preheater.stopPreheating(for: requests(for: removedIndexPaths))
@@ -107,7 +99,7 @@ controller.handler = { addedIndexPaths, removedIndexPaths in
 
 #### Loading Images Directly
 
-One of the core Nuke's classes is `Loader` which manages loading, decoding, processing and caching images. It has a Promise-based API and implementation. You can use it to load images directly:
+One of the Nuke's core classes is `Loader`. Its API and implementation is based on Promises. You can use it to load images directly.
 
 ```swift
 let cts = CancellationTokenSource()
@@ -119,12 +111,12 @@ Loader.shared.loadImage(with: URL(string: "http://...")!, token: cts.token)
 
 ## <a name="h_design"></a>Design
 
-Nuke is designed to support and leverage dependency injection. Nuke's core consists of a set of protocols - each with a single responsibility - that come together in an object graph that manages loading, decoding, processing, and caching images. You can easily create and use/inject your own implementations of the following core protocols:
+Nuke is designed to support and leverage dependency injection. It consists of a set of protocols - each with a single responsibility - that come together in an object graph that manages loading, decoding, processing, and caching images. You can easily create and use/inject your own implementations of the following core protocols:
 
 |Protocol|Description|
 |--------|-----------|
-|`Loading`|A top-level API for loading images|
-|`DataLoading`|Loads image data|
+|`Loading`|Loads images|
+|`DataLoading`|Loads data|
 |`DataCaching`|Stores data into disk cache|
 |`DataDecoding`|Converts data into image objects|
 |`Processing`|Image transformations|
