@@ -2,7 +2,6 @@
 <playground version='6.0' target-platform='ios' auto-termination-delay='31' display-mode='rendered'>
     <pages>
         <page name='Introduction'/>
-        <page name='Image Task'/>
         <page name='Image Filters'/>
     </pages>
 </playground>

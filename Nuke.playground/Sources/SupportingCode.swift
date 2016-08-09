@@ -1,6 +1,6 @@
 import Foundation
 
-public func example(description: String, action: () -> ()) {
+public func example(_ description: String, action: () -> ()) {
     print("\n-- \(description) --")
     action()
 }

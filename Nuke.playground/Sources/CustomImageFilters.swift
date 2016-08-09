@@ -1,6 +1,6 @@
 import UIKit
 
-public func cropImageToSquare(image: UIImage?) -> UIImage? {
+public func cropImageToSquare(_ image: UIImage?) -> UIImage? {
     guard let image = image else {
         return nil
     }
@@ -19,7 +19,7 @@ public func cropImageToSquare(image: UIImage?) -> UIImage? {
     return UIImage(cgImage: croppedImageRef, scale: image.scale, orientation: image.imageOrientation)
 }
 
-public func drawImageInCircle(image: UIImage?) -> UIImage? {
+public func drawImageInCircle(_ image: UIImage?) -> UIImage? {
     guard let image = image else {
         return nil
     }
@@ -40,14 +40,15 @@ private let sharedContext = CIContext(options: [kCIContextPriorityRequestLow: tr
 
 /// Core Image helper methods.
 public extension UIImage {
-    /**
-     Applies closure with a filter to the image.
-     
-     Performance considerations. Chaining multiple CIFilter objects is much more efficient then using ProcessorComposition to combine multiple instances of CoreImageFilter class. Avoid unnecessary texture transfers between the CPU and GPU.
-     
-     - parameter context: Core Image context, uses shared context by default.
-     - parameter filter: Closure for applying image filter.
-     */
+    /// Applies closure with a filter to the image.
+    ///
+    // Performance considerations. Chaining multiple CIFilter objects is much
+    /// more efficient then using ProcessorComposition to combine multiple
+    /// instances of CoreImageFilter class. Avoid unnecessary texture transfers
+    /// between the CPU and GPU.
+    ///
+    /// - parameter context: Core Image context, uses shared context by default.
+    /// - parameter filter: Closure for applying image filter.
     public func applyFilter(context: CIContext = sharedContext, closure: (CIImage) -> CIImage?) -> UIImage? {
         func inputImage(for image: UIImage) -> CIImage? {
             if let image = image.cgImage {
@@ -67,13 +68,11 @@ public extension UIImage {
         return UIImage(cgImage: imageRef, scale: scale, orientation: imageOrientation)
     }
     
-    /**
-     Applies filter to the image.
-     
-     - parameter context: Core Image context, uses shared context by default.
-     - parameter filter: Image filter. Function automatically sets input image on the filter.
-     */
-    public func applyFilter(filter: CIFilter?, context: CIContext = sharedContext) -> UIImage? {
+    /// Applies filter to the image.
+    ///
+    /// - parameter context: Core Image context, uses shared context by default.
+    /// - parameter filter: Image filter.
+    public func applyFilter(_ filter: CIFilter?, context: CIContext = sharedContext) -> UIImage? {
         guard let filter = filter else {
             return nil
         }

@@ -42,14 +42,9 @@ public struct Request {
 public extension Request {
     /// Adds a processor to the request.
     public func process<P: Processing>(with processor: P) -> Request {
-        return self.process(with: [processor])
-    }
-
-    /// Adds a sequence of processors to the request.
-    public func process<S: Sequence>(with processors: S) -> Request where S.Iterator.Element: Processing {
         var request = self
-        processors.forEach { request.processors.append(AnyProcessor($0)) }
-        return request
+        request.processors.append(AnyProcessor(processor))
+        return self
     }
 
     /// Wraps processors into ProcessorComposition.

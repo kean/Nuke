@@ -4,22 +4,27 @@ import XCPlayground
 
 /*:
 ### Applying Filters
-Applying image filters is as easy as setting `processor` property on the `Request`. Nuke does all the heavy lifting, including storing processed images into memory cache. Creating image filters is also dead simple thanks to `Processing` protocol and its extensions.
+Applying image filters is as easy as calling `process` method on the `Request`. Nuke does all the heavy lifting, including storing processed images into memory cache.
+ 
+You can specify custom image processors using `Processing` protocol which consists of a single method `process(image: Image) -> Image?`.
 */
 
-class ImageFilterDrawInCircle: Processing {
-    func process(image: UIImage) -> UIImage? {
+class DrawInCircle: Processing {
+    func process(_ image: Image) -> Image? {
         return drawImageInCircle(cropImageToSquare(image))
+    }
+    
+    static func ==(lhs: DrawInCircle, rhs: DrawInCircle) -> Bool {
+        return true
     }
 }
 
 example("Applying Filters") {
-    var request = Request(url: NSURL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
-    request.processor = ImageFilterDrawInCircle()
+    let request = Request(url: URL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!).process(with: DrawInCircle())
     
-    Nuke.task(with: request) {
-        let image = $0.image
-    }.resume()
+    Nuke.Loader.shared.loadImage(with: request, token: nil).then {
+        let image = $0
+    }
 }
 
 /*:
@@ -28,47 +33,34 @@ example("Applying Filters") {
  */
 
 /// Blurs image using CIGaussianBlur filter.
-public struct ImageFilterGaussianBlur: Processing {
+struct GaussianBlur: Processing {
     /// Blur radius.
-    public let radius: Int
-    
-    /**
-     Initializes the receiver with a blur radius.
-     
-     - parameter radius: Blur radius, default value is 8.
-     */
-    public init(radius: Int = 8) {
-        self.radius = radius
-    }
+    let radius: Int = 8
     
     /// Applies CIGaussianBlur filter to the image.
-    public func process(image: UIImage) -> UIImage? {
+    func process(_ image: Image) -> Image? {
         return image.applyFilter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : radius]))
     }
-}
-
-/// Compares two filters based on their radius.
-public func ==(lhs: ImageFilterGaussianBlur, rhs: ImageFilterGaussianBlur) -> Bool {
-    return lhs.radius == rhs.radius
+    
+    static func ==(lhs: GaussianBlur, rhs: GaussianBlur) -> Bool {
+        return lhs.radius == rhs.radius
+    }
 }
 
 /*:
 ### Composing Filters
-It's easy to combine multiple filters using `ImageFilterComposition` class. Lets use a `ImageFilterDrawInCircle` from the previous example and combine it with a gaussian blur filter.
+It's easy to combine multiple filters. Lets use a `ImageFilterDrawInCircle` from the previous example and combine it with a gaussian blur filter.
 */
 
 import CoreImage
 
 example("Composing Filters") {
-    var request = Request(url: NSURL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
+    let request = Request(url: URL(string: "https://farm4.staticflickr.com/3803/14287618563_b21710bd8c_z_d.jpg")!)
+        .process(with: GaussianBlur()).process(with: DrawInCircle())
     
-    // Compose filters
-    let filter = ProcessorComposition(processors: [ ImageFilterGaussianBlur(), ImageFilterDrawInCircle()])
-    request.processor = filter
-
-    Nuke.task(with: request) {
-        let image = $0.image
-    }.resume()
+    Nuke.Loader.shared.loadImage(with: request, token: nil).then {
+        let image = $0
+    }
 }
 
 XCPlaygroundPage.currentPage.needsIndefiniteExecution = true
