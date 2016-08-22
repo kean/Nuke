@@ -29,7 +29,7 @@ public class Manager {
         }
     }
     
-    public typealias Handler = (response: Resolution<Image>, isFromMemoryCache: Bool) -> Void
+    public typealias Handler = (Resolution<Image>, _ isFromMemoryCache: Bool) -> Void
     
     /// Asynchronously fulfills the request into the given target and calls
     /// the `handler`. The handler gets called only if the request is still
@@ -44,7 +44,7 @@ public class Manager {
         
         // Quick memory cache lookup
         if request.memoryCacheOptions.readAllowed, let image = cache?.image(for: request) {
-            handler(response: .fulfilled(image), isFromMemoryCache: true)
+            handler(.fulfilled(image), true)
         } else {
             let ctx = Context()
             Manager.setContext(ctx, for: target)
@@ -52,7 +52,7 @@ public class Manager {
             loader.loadImage(with: request, token: ctx.cts.token).completion { [weak ctx, weak target] in
                 guard let ctx = ctx, let target = target else { return }
                 guard Manager.getContext(for: target) === ctx else { return }
-                handler(response: $0, isFromMemoryCache: false)
+                handler($0, false)
             }
         }
     }

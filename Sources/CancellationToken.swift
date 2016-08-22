@@ -18,7 +18,7 @@ public class CancellationTokenSource {
     
     public init() {}
     
-    private func register(_ closure: (Void) -> Void) {
+    fileprivate func register(_ closure: @escaping (Void) -> Void) {
         queue.sync {
             if isCancelling {
                 closure()
@@ -52,7 +52,7 @@ public class CancellationTokenSource {
 /// All `CancellationToken` methods are thread safe.
 public struct CancellationToken {
     private let source: CancellationTokenSource
-    private init(source: CancellationTokenSource) {
+    fileprivate init(source: CancellationTokenSource) {
         self.source = source
     }
 
@@ -62,5 +62,5 @@ public struct CancellationToken {
     /// Registers the closure that will be called when the token is canceled.
     /// If this token is already cancelled, the closure will be run immediately
     /// and synchronously.
-    public func register(closure: () -> Void) { source.register(closure) }
+    public func register(closure: @escaping (Void) -> Void) { source.register(closure) }
 }

@@ -53,7 +53,7 @@ public class Loader: Loading {
     }
 
     private func loadImage(with request: Request, token: CancellationToken?,
-                           fulfill: (Image) -> Void, reject: (Error) -> Void) {
+                           fulfill: @escaping (Image) -> Void, reject: @escaping (Error) -> Void) {
         if request.memoryCacheOptions.readAllowed, let image = cache?.image(for: request) {
             fulfill(image)
             return
@@ -74,9 +74,9 @@ public class Loader: Loading {
         return Promise() { fulfill, reject in
             schedulers.decoding.execute(token: token) {
                 if let image = self.decoder.decode(data: data, response: response) {
-                    fulfill(value: image)
+                    fulfill(image)
                 } else {
-                    reject(error: DecodingFailed())
+                    reject(DecodingFailed())
                 }
             }
         }
@@ -87,9 +87,9 @@ public class Loader: Loading {
         return Promise() { fulfill, reject in
             schedulers.processing.execute(token: token) {
                 if let image = processor.process(image) {
-                    fulfill(value: image)
+                    fulfill(image)
                 } else {
-                    reject(error: ProcessingFailed())
+                    reject(ProcessingFailed())
                 }
             }
         }

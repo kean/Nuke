@@ -36,9 +36,9 @@ public final class DataLoader: DataLoading {
             scheduler.execute(token: token) { finish in
                 let task = self.session.dataTask(with: request) { data, response, error in
                     if let data = data, let response = response {
-                        fulfill(value: (data, response))
+                        fulfill((data, response))
                     } else {
-                        reject(error: error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))
+                        reject(error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))
                     }
                     finish()
                 }

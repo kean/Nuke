@@ -31,11 +31,11 @@ class MockDataLoader: DataLoading {
             queue.addOperation {
                 if let result = self.results[request.url!] {
                     switch result {
-                    case let .fulfilled(val): fulfill(value: val)
-                    case let .rejected(err): reject(error: err)
+                    case let .fulfilled(val): fulfill(val)
+                    case let .rejected(err): reject(err)
                     }
                 } else {
-                    fulfill(value: (data, URLResponse()))
+                    fulfill((data, URLResponse()))
                 }
             }
         }

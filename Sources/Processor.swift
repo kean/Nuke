@@ -38,7 +38,7 @@ public struct ProcessorComposition: Processing {
 public struct AnyProcessor: Processing {
     private let _process: (Image) -> Image?
     private let _processor: Any
-    private let _equals: (to: AnyProcessor) -> Bool
+    private let _equals: (AnyProcessor) -> Bool
 
     public init<P: Processing>(_ processor: P) {
         self._process = { processor.process($0) }
@@ -51,7 +51,7 @@ public struct AnyProcessor: Processing {
     }
 
     public static func ==(lhs: AnyProcessor, rhs: AnyProcessor) -> Bool {
-        return lhs._equals(to: rhs)
+        return lhs._equals(rhs)
     }
 }
 
@@ -129,7 +129,7 @@ public struct AnyProcessor: Processing {
         guard let ctx = CGContext(data: nil, width: Int(size.width), height: Int(size.height), bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: alphaInfo.rawValue) else {
             return image
         }
-        ctx.draw(in: CGRect(origin: CGPoint.zero, size: size), image: cgImage)
+        ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: size))
         guard let decompressed = ctx.makeImage() else { return image }
         return UIImage(cgImage: decompressed, scale: image.scale, orientation: image.imageOrientation)
     }

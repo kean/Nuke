@@ -60,7 +60,9 @@ class ProcessingTests: XCTestCase {
     // MARK: Composing Filters
 
     func testThatImageIsProcessedWithFilterComposition() {
-        let request = Request(url: defaultURL).process(with: [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")])
+        let request = Request(url: defaultURL)
+            .process(with: MockImageProcessor(ID: "processor1"))
+            .process(with: MockImageProcessor(ID: "processor2"))
 
         expect { fulfill in
             _ = loader.loadImage(with: request).then {
@@ -73,7 +75,9 @@ class ProcessingTests: XCTestCase {
 
     func testThatImageProcessedWithFilterCompositionIsMemCached() {
         expect { fulfill in
-            let request = Request(url: defaultURL).process(with: [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")])
+            let request = Request(url: defaultURL)
+                .process(with: MockImageProcessor(ID: "processor1"))
+                .process(with: MockImageProcessor(ID: "processor2"))
 
             _ = loader.loadImage(with: request).then { _ in
                 fulfill()
@@ -81,7 +85,9 @@ class ProcessingTests: XCTestCase {
         }
         wait()
 
-        let request = Request(url: defaultURL).process(with: [MockImageProcessor(ID: "processor1"), MockImageProcessor(ID: "processor2")])
+        let request = Request(url: defaultURL)
+            .process(with: MockImageProcessor(ID: "processor1"))
+            .process(with: MockImageProcessor(ID: "processor2"))
         
         guard let image = mockMemoryCache.image(for: request) else {
             XCTFail()

@@ -8,13 +8,13 @@ import Foundation
 
 /// Schedules execution of synchronous work.
 public protocol Scheduler {
-    func execute(token: CancellationToken?, closure: (Void) -> Void)
+    func execute(token: CancellationToken?, closure: @escaping (Void) -> Void)
 }
 
 /// Schedules execution of asynchronous work which is considered
 /// finished when `finish` closure is called.
 public protocol AsyncScheduler {
-    func execute(token: CancellationToken?, closure: (finish: (Void) -> Void) -> Void)
+    func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping (Void) -> Void) -> Void)
 }
 
 // MARK: - DispatchQueueScheduler
@@ -25,7 +25,7 @@ internal final class DispatchQueueScheduler: Scheduler {
         self.queue = queue
     }
 
-    func execute(token: CancellationToken?, closure: (Void) -> Void) {
+    func execute(token: CancellationToken?, closure: @escaping (Void) -> Void) {
         if let token = token, token.isCancelling { return }
         let work = DispatchWorkItem(block: closure)
         queue.async(execute: work)
@@ -48,7 +48,7 @@ public final class QueueScheduler: AsyncScheduler {
         self.queue = queue
     }
 
-    public func execute(token: CancellationToken?, closure: (finish: (Void) -> Void) -> Void) {
+    public func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping (Void) -> Void) -> Void) {
         if let token = token, token.isCancelling { return }
         let operation = Operation(starter: closure)
         queue.addOperation(operation)
@@ -79,10 +79,10 @@ private final class Operation: Foundation.Operation {
     }
     var _isFinished = false
     
-    let starter: (finish: (Void) -> Void) -> Void
+    let starter: (_ finish: @escaping (Void) -> Void) -> Void
     let queue = DispatchQueue(label: "\(domain).Operation")
     
-    init(starter: (fulfill: (Void) -> Void) -> Void) {
+    init(starter: @escaping (_ fulfill: @escaping (Void) -> Void) -> Void) {
         self.starter = starter
     }
     

@@ -44,7 +44,7 @@ public extension Request {
     public func process<P: Processing>(with processor: P) -> Request {
         var request = self
         request.processors.append(AnyProcessor(processor))
-        return self
+        return request
     }
 
     /// Wraps processors into ProcessorComposition.
@@ -107,7 +107,7 @@ internal final class RequestKey: NSObject {
     }
 
     /// Compares two keys for equivalence using one of their equators.
-    override func isEqual(_ object: AnyObject?) -> Bool {
+    override func isEqual(_ object: Any?) -> Bool {
         guard let object = object as? RequestKey else { return false }
         return equator.isEqual(request, to: object.request)
     }

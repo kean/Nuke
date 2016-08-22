@@ -8,9 +8,9 @@ public final class Promise<T> {
     private var state: PromiseState<T> = .pending(PromiseHandlers<T>())
     private var queue = DispatchQueue(label: "\(domain).Promise")
     
-    public init(_ closure: @noescape (fulfill: (value: T) -> Void, reject: (error: Error) -> Void) -> Void) {
-        closure(fulfill: { self.resolve(resolution: .fulfilled($0)) },
-                reject: { self.resolve(resolution: .rejected($0)) })
+    public init(_ closure: (_ fulfill: @escaping (T) -> Void, _ reject: @escaping (Error) -> Void) -> Void) {
+        closure({ self.resolve(resolution: .fulfilled($0)) },
+                { self.resolve(resolution: .rejected($0)) })
     }
     
     public init(value: T) {
@@ -30,63 +30,63 @@ public final class Promise<T> {
         }
     }
     
-    public func completion(on queue: DispatchQueue = .main, _ closure: (resolution: Resolution<T>) -> Void) {
-        let completion: (resolution: Resolution<T>) -> Void = { resolution in
-            queue.async { closure(resolution: resolution) }
+    public func completion(on queue: DispatchQueue = .main, _ closure: @escaping (Resolution<T>) -> Void) {
+        let completion: (Resolution<T>) -> Void = { resolution in
+            queue.async { closure(resolution) }
         }
         self.queue.async {
             switch self.state {
             case let .pending(handlers): handlers.objects.append(completion)
-            case let .resolved(resolution): completion(resolution: resolution)
+            case let .resolved(resolution): completion(resolution)
             }
         }
     }
 }
 
 public extension Promise {
-    public func then(on queue: DispatchQueue = .main, _ closure: (value: T) -> Void) -> Promise {
+    public func then(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> Void) -> Promise {
         return then(on: queue, fulfilment: closure, rejection: nil)
     }
     
-    public func then<U>(on queue: DispatchQueue = .main, _ closure: (value: T) -> U) -> Promise<U> {
-        return then(on: queue) { Promise<U>(value: closure(value: $0)) }
+    public func then<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> U) -> Promise<U> {
+        return then(on: queue) { Promise<U>(value: closure($0)) }
     }
     
-    public func then<U>(on queue: DispatchQueue = .main, _ closure: (value: T) -> Promise<U>) -> Promise<U> {
+    public func then<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> Promise<U>) -> Promise<U> {
         return Promise<U>() { fulfill, reject in
             _ = then(
                 on: queue,
                 fulfilment: {
-                    _ = closure(value: $0).then(
-                        fulfilment: { fulfill(value: $0) },
-                        rejection: { reject(error: $0) })
+                    _ = closure($0).then(
+                        fulfilment: { _ = fulfill($0) },
+                        rejection: { _ = reject($0) })
                 },
-                rejection: { _ = reject(error: $0) }) // bubble up error
+                rejection: { _ = reject($0) }) // bubble up error
         }
     }
     
-    public func `catch`(on queue: DispatchQueue = .main, _ closure: (error: Error) -> Void) {
+    public func `catch`(on queue: DispatchQueue = .main, _ closure: @escaping (Error) -> Void) {
         _ = then(on: queue, fulfilment: nil, rejection: closure)
     }
     
-    public func recover(on queue: DispatchQueue = .main, _ closure: (error: Error) -> Promise) -> Promise {
+    public func recover(on queue: DispatchQueue = .main, _ closure: @escaping (Error) -> Promise) -> Promise {
         return Promise() { fulfill, reject in
             _ = then(
                 on: queue,
-                fulfilment: { _ = fulfill(value: $0) }, // bubble up value
+                fulfilment: { _ = fulfill($0) }, // bubble up value
                 rejection: {
-                    _ = closure(error: $0).then(
-                        fulfilment: { fulfill(value: $0) },
-                        rejection: { reject(error: $0) })
+                    _ = closure($0).then(
+                        fulfilment: { _ = fulfill($0) },
+                        rejection: { _ = reject($0) })
             })
         }
     }
     
-    public func then(on queue: DispatchQueue = .main, fulfilment: ((value: T) -> Void)?, rejection: ((error: Error) -> Void)?) -> Promise {
+    public func then(on queue: DispatchQueue = .main, fulfilment: (@escaping (T) -> Void)?, rejection: (@escaping (Error) -> Void)?) -> Promise {
         completion(on: queue) { resolution in
             switch resolution {
-            case let .fulfilled(val): fulfilment?(value: val)
-            case let .rejected(err): rejection?(error: err)
+            case let .fulfilled(val): fulfilment?(val)
+            case let .rejected(err): rejection?(err)
             }
         }
         return self

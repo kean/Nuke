@@ -6,9 +6,9 @@ import XCTest
 import Foundation
 
 extension XCTestCase {
-    func expect(_ block: @noescape (fulfill: (Void) -> Void) -> Void) {
+    func expect(_ block: (_ fulfill: @escaping (Void) -> Void) -> Void) {
         let expectation = makeExpectation()
-        block(fulfill: { expectation.fulfill() })
+        block({ expectation.fulfill() })
     }
 
     func makeExpectation() -> XCTestExpectation {
