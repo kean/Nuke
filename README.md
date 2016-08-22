@@ -125,7 +125,7 @@ Nuke is designed to support and leverage dependency injection. It consists of a 
 
 ## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
 
-- iOS 8.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0
+- iOS 9.0 / watchOS 2.0 / macOS 10.11 / tvOS 9.0
 - Xcode 8, Swift 3
 
 
@@ -138,7 +138,7 @@ To install Nuke add a dependency to your Podfile:
 ```ruby
 # source 'https://github.com/CocoaPods/Specs.git'
 # use_frameworks!
-# platform :ios, "8.0" / :watchos, "2.0" / :macos, "10.10" / :tvos, "9.0"
+# platform :ios, "9.0" / :watchos, "2.0" / :macos, "10.11" / :tvos, "9.0"
 
 pod "Nuke"
 pod "Nuke-Alamofire-Plugin" # optional

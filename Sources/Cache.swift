@@ -21,7 +21,7 @@ public protocol Caching {
 }
 
 /// Auto purging memory cache that uses `NSCache` as its internal storage.
-public class Cache: Caching {
+open class Cache: Caching {
     deinit {
         #if os(iOS) || os(tvOS)
             NotificationCenter.default.removeObserver(self)
@@ -59,17 +59,17 @@ public class Cache: Caching {
     // MARK: Managing Cached Images
 
     /// Returns an image for the request.
-    public func image(for request: Request) -> Image? {
+    open func image(for request: Request) -> Image? {
         return cache.object(forKey: makeKey(for: request)) as? Image
     }
 
     /// Stores the image for the request.
-    public func setImage(_ image: Image, for request: Request) {
+    open func setImage(_ image: Image, for request: Request) {
         cache.setObject(image, forKey: makeKey(for: request), cost: cost(for: image))
     }
 
     /// Removes an image for the request.
-    public func removeImage(for request: Request) {
+    open func removeImage(for request: Request) {
         cache.removeObject(forKey: makeKey(for: request))
     }
 
@@ -80,7 +80,7 @@ public class Cache: Caching {
     // MARK: Subclassing Hooks
     
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
-    public func cost(for image: Image) -> Int {
+    open func cost(for image: Image) -> Int {
         #if os(macOS)
             return 1
         #else

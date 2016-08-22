@@ -16,7 +16,7 @@ class PreheatingDemoViewController: UICollectionViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        func requests(for indexPaths: [NSIndexPath]) -> [Nuke.Request] {
+        func requests(for indexPaths: [IndexPath]) -> [Nuke.Request] {
             return indexPaths.map { Nuke.Request(url: photos[$0.row]).process(with: Decompressor()) }
         }
         

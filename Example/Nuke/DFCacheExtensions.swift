@@ -19,13 +19,13 @@ extension DFCache: Nuke.DataCaching {
             if let key = makeKey(for: request) {
                 cachedObject(forKey: key, completion: {
                     if let object = $0 as? CachedURLResponse {
-                        fulfill(value: object)
+                        fulfill(object)
                     } else {
-                        reject(error: DFCacheCacheLookupFailed())
+                        reject(DFCacheCacheLookupFailed())
                     }
                 })
             } else {
-                reject(error: DFCacheCacheLookupFailed())
+                reject(DFCacheCacheLookupFailed())
             }
         }
     }
