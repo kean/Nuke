@@ -108,7 +108,7 @@ Loader.shared.loadImage(with: URL(string: "http://...")!, token: cts.token)
 ```
 
 
-## <a name="h_design"></a>Design
+## Design<a name="h_design"></a>
 
 Nuke is designed to support and leverage dependency injection. It consists of a set of protocols - each with a single responsibility - that come together in an object graph that manages loading, decoding, processing, and caching images. You can easily create and use/inject your own implementations of the following core protocols:
 
@@ -122,7 +122,7 @@ Nuke is designed to support and leverage dependency injection. It consists of a 
 |`Caching`|Stores images into memory cache|
 
 
-## <a name="h_requirements"></a>[Requirements](https://github.com/kean/Nuke/wiki/Supported-Platforms)
+## Requirements<a name="h_requirements"></a>
 
 - iOS 9.0 / watchOS 2.0 / macOS 10.11 / tvOS 9.0
 - Xcode 8, Swift 3
@@ -137,7 +137,6 @@ To install Nuke add a dependency to your Podfile:
 ```ruby
 # source 'https://github.com/CocoaPods/Specs.git'
 # use_frameworks!
-# platform :ios, "9.0" / :watchos, "2.0" / :macos, "10.11" / :tvos, "9.0"
 
 pod "Nuke"
 pod "Nuke-Alamofire-Plugin" # optional
