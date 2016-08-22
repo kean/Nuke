@@ -24,7 +24,6 @@ Micro-framework for loading, processing, caching and [preheating](https://kean.g
 - [Homepage](http://kean.github.io/Nuke)
 - [Documentation](http://kean.github.io/Nuke/docs/)
 - Demo project (`pod try Nuke`)
-- Swift [playground](https://cloud.githubusercontent.com/assets/1567433/10491357/057ac246-72af-11e5-9c60-6f30e0ea9d52.png)
 
 ## <a name="h_usage"></a>Usage
 
