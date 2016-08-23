@@ -15,20 +15,16 @@ import Foundation
 /// When preheating is no longer necessary call `stopPreheating(with:)` method.
 public class Preheater {
     private let loader: Loading
-    private let equator: RequestEquating
     private let scheduler: AsyncScheduler
     private let queue = DispatchQueue(label: "\(domain).Preheater")
     private var tasks = [Task]()
         
     /// Initializes the `Preheater` instance.
     /// - parameter loader: `Loader.shared` by default.
-    /// - parameter equator: Compares requests for equivalence.
-    /// `RequestLoadingEquator()` be default.
     /// - parameter scheduler: Throttles preheating requests. `QueueScheduler`
     /// with `maxConcurrentOperationCount` 2 by default.
-    public init(loader: Loading = Loader.shared, equator: RequestEquating = RequestLoadingEquator(), scheduler: AsyncScheduler = QueueScheduler(maxConcurrentOperationCount: 2)) {
+    public init(loader: Loading = Loader.shared, scheduler: AsyncScheduler = QueueScheduler(maxConcurrentOperationCount: 2)) {
         self.loader = loader
-        self.equator = equator
         self.scheduler = scheduler
     }
 
@@ -75,7 +71,8 @@ public class Preheater {
     }
     
     private func indexOfTask(with request: Request) -> Int? {
-        return tasks.index { equator.isEqual($0.request, to: request) }
+        let key = Request.loadKey(for: request)
+        return tasks.index { key == Request.loadKey(for: $0.request) }
     }
 
     /// Stops all preheating tasks.

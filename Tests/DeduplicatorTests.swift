@@ -21,7 +21,7 @@ class DeduplicatorTests: XCTestCase {
         
         let request1 = Request(url: defaultURL)
         let request2 = Request(url: defaultURL)
-        XCTAssertTrue(RequestLoadingEquator().isEqual(request1, to: request2))
+        XCTAssertTrue(Request.loadKey(for: request1) == Request.loadKey(for: request2))
 
         expect { fulfill in
             _ = deduplicator.loadImage(with: request1).then { _ in
@@ -45,7 +45,7 @@ class DeduplicatorTests: XCTestCase {
     func testThatNonEquivalentRequestsAreNotDeduplicated() {
         let request1 = Request(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
         let request2 = Request(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
-        XCTAssertFalse(RequestLoadingEquator().isEqual(request1, to: request2))
+        XCTAssertFalse(Request.loadKey(for: request1) == Request.loadKey(for: request2))
                 
         expect { fulfill in
             _ = deduplicator.loadImage(with: request1).then { _ in

@@ -11,25 +11,21 @@ import Foundation
 /// The image will be loaded just once.
 public final class Deduplicator: Loading {
     private let loader: Loading
-    private let equator: RequestEquating
-    private var tasks = [RequestKey: Task]()
+    private var tasks = [AnyHashable: Task]()
     private let queue = DispatchQueue(label: "\(domain).Deduplicator")
 
     /// Initializes the `Deduplicator` instance with the underlying
     /// `loader` used for actual image loading, and the request `equator`.
     /// - parameter loader: Underlying loader used for loading images.
-    /// - parameter equator: Compares requests for equivalence.
-    /// `RequestLoadingEquator()` be default.
-    public init(with loader: Loading, equator: RequestEquating = RequestLoadingEquator()) {
+    public init(with loader: Loading) {
         self.loader = loader
-        self.equator = equator
     }
 
     /// Returns an existing pending promise if there is one. Starts a new load
     /// request otherwise.
     public func loadImage(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
         return queue.sync {
-            let key = RequestKey(request, equator: equator)
+            let key = Request.loadKey(for: request)
             var task: Task! = tasks[key] // Find existing promise
             if task == nil {
                 let cts = CancellationTokenSource()

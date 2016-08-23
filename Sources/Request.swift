@@ -35,6 +35,16 @@ public struct Request {
     /// `MemoryCacheOptions()` by default.
     public var memoryCacheOptions = MemoryCacheOptions()
 
+    /// Returns key which compares requests with regards to loading images.
+    ///
+    /// If `nil` default key is used. `nil` by default.
+    public var loadKey: AnyHashable?
+
+    /// Returns key which compares requests with regards to cachings images.
+    ///
+    /// If `nil` default key is used. `nil` by default.
+    public var cacheKey: AnyHashable?
+
     /// Allows you to pass custom info alongside the request.
     public var userInfo: Any?
 }
@@ -46,68 +56,56 @@ public extension Request {
         request.processors.append(AnyProcessor(processor))
         return request
     }
-
+    
     /// Wraps processors into ProcessorComposition.
     internal var processor: ProcessorComposition? {
         return processors.isEmpty ? nil : ProcessorComposition(processors: processors)
     }
 }
 
-// MARK: - RequestEquating
-
-/// Tests requests for equivalence in various contexts (caching, loading, etc).
-public protocol RequestEquating {
-    func isEqual(_ a: Request, to b: Request) -> Bool
-}
-
-/// Considers two requests equivalent it they have the same `URLRequests` and
-/// the same processors. `URLRequests` are compared by their `URL`, `cachePolicy`,
-/// and `allowsCellularAccess` properties. To change this behaviour just create
-/// a new `RequestEquating` type.
-public struct RequestLoadingEquator: RequestEquating {
-    public init() {}
-    
-    public func isEqual(_ a: Request, to b: Request) -> Bool {
-        return isEqual(a.urlRequest, to: b.urlRequest) && a.processor == b.processor
+public extension Request {
+    /// Returns key which compares requests with regards to cachings images.
+    /// Returns `cacheKey` if not nil. Returns default key otherwise.
+    ///
+    /// The default key considers two requests equivalent it they have the same
+    /// `URLRequests` and the same processors. `URLRequests` are compared
+    /// just by their `URLs`.
+    public static func cacheKey(for request: Request) -> AnyHashable {
+        return request.cacheKey ?? AnyHashable(RequestKey(request: request) {
+            $0.urlRequest.url == $0.urlRequest.url && $1.processor == $1.processor
+        })
     }
     
-    private func isEqual(_ a: URLRequest, to b: URLRequest) -> Bool {
-        return a.url == b.url &&
-            a.cachePolicy == b.cachePolicy &&
-            a.allowsCellularAccess == b.allowsCellularAccess
-    }
-}
-
-/// Considers two requests equivalent it they have the same `URLRequests` and
-/// the same processors. `URLRequests` are compared just by their `URLs`.
-/// To change this behaviour just create a new `RequestEquating` type.
-public struct RequestCachingEquator: RequestEquating {
-    public init() {}
-    
-    public func isEqual(_ a: Request, to b: Request) -> Bool {
-        return a.urlRequest.url == b.urlRequest.url && a.processor == b.processor
+    /// Returns key which compares requests with regards to loading images.
+    /// Returns `loadKey` if not nil. Returns default key otherwise.
+    ///
+    /// The default key considers two requests equivalent it they have the same
+    /// `URLRequests` and the same processors. `URLRequests` are compared by
+    /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
+    public static func loadKey(for request: Request) -> AnyHashable {
+        func isEqual(_ a: URLRequest, to b: URLRequest) -> Bool {
+            return a.url == b.url &&
+                a.cachePolicy == b.cachePolicy &&
+                a.allowsCellularAccess == b.allowsCellularAccess
+        }
+        return request.loadKey ?? AnyHashable(RequestKey(request: request) {
+            isEqual($0.urlRequest, to: $1.urlRequest) && $0.processor == $1.processor
+        })
     }
 }
 
-// MARK: - RequestKey
-
-/// Makes it possible to use Request as a key.
-internal struct RequestKey: Hashable {
-    private let request: Request
-    private let equator: RequestEquating
-
-    init(_ request: Request, equator: RequestEquating) {
-        self.request = request
-        self.equator = equator
-    }
-
+/// Compares two requests for equivalence using an `equator` closure.
+private struct RequestKey: Hashable {
+    let request: Request
+    let equator: (Request, Request) -> Bool
+    
     /// Returns hash from the request's URL.
     var hashValue: Int {
         return request.urlRequest.url?.hashValue ?? 0
     }
-
+    
     /// Compares two keys for equivalence.
     static func ==(lhs: RequestKey, rhs: RequestKey) -> Bool {
-        return lhs.equator.isEqual(lhs.request, to: rhs.request)
+        return lhs.equator(lhs.request, rhs.request)
     }
 }

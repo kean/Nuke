@@ -13,11 +13,23 @@ import Foundation
 ///
 /// The implementation is expected to be thread safe.
 public protocol Caching {
+    /// Returns an image for the key.
+    func image(for key: AnyHashable) -> Image?
+
+    /// Stores the image for the key.
+    func setImage(_ image: Image, for key: AnyHashable)
+}
+
+public extension Caching {
     /// Returns an image for the request.
-    func image(for request: Request) -> Image?
+    public func image(for request: Request) -> Image? {
+        return image(for: Request.cacheKey(for: request))
+    }
 
     /// Stores the image for the request.
-    func setImage(_ image: Image, for request: Request)
+    func setImage(_ image: Image, for request: Request) {
+        setImage(image, for: Request.cacheKey(for: request))
+    }
 }
 
 /// Auto purging memory cache that uses `NSCache` as its internal storage.
@@ -33,12 +45,9 @@ open class Cache: Caching {
     /// The internal memory cache.
     public let cache: NSCache<AnyObject, AnyObject>
 
-    private let equator: RequestEquating
-
     /// Initializes the receiver with a given memory cache.
-    public init(cache: NSCache<AnyObject, AnyObject> = Cache.makeDefaultCache(), equator: RequestEquating = RequestCachingEquator()) {
+    public init(cache: NSCache<AnyObject, AnyObject> = Cache.makeDefaultCache()) {
         self.cache = cache
-        self.equator = equator
         #if os(iOS) || os(tvOS)
             NotificationCenter.default.addObserver(self, selector: #selector(didReceiveMemoryWarning(_:)), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
         #endif
@@ -58,23 +67,24 @@ open class Cache: Caching {
     
     // MARK: Managing Cached Images
 
-    /// Returns an image for the request.
-    open func image(for request: Request) -> Image? {
-        return cache.object(forKey: makeKey(for: request)) as? Image
+    /// Stores the image for the key.
+    open func image(for key: AnyHashable) -> Image? {
+        return cache.object(forKey: AnyHashableObject(key)) as? Image
     }
 
-    /// Stores the image for the request.
-    open func setImage(_ image: Image, for request: Request) {
-        cache.setObject(image, forKey: makeKey(for: request), cost: cost(for: image))
+    /// Stores the image for the key.
+    open func setImage(_ image: Image, for key: AnyHashable) {
+        cache.setObject(image, forKey: AnyHashableObject(key), cost: cost(for: image))
+    }
+
+    /// Removes an image for the key.
+    open func removeImage(for key: AnyHashable) {
+        cache.removeObject(forKey: AnyHashableObject(key))
     }
 
     /// Removes an image for the request.
     open func removeImage(for request: Request) {
-        cache.removeObject(forKey: makeKey(for: request))
-    }
-
-    private func makeKey(for request: Request) -> AnyHashableObject {
-        return AnyHashableObject(RequestKey(request, equator: equator))
+        removeImage(for: Request.cacheKey(for: request))
     }
 
     // MARK: Subclassing Hooks
