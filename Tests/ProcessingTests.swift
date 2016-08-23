@@ -50,7 +50,7 @@ class ProcessingTests: XCTestCase {
 
         let request = Request(url: defaultURL).process(with: MockImageProcessor(ID: "processor1"))
         
-        guard let image = mockMemoryCache.image(for: request) else {
+        guard let image = mockMemoryCache[request] else {
             XCTFail()
             return
         }
@@ -89,7 +89,7 @@ class ProcessingTests: XCTestCase {
             .process(with: MockImageProcessor(ID: "processor1"))
             .process(with: MockImageProcessor(ID: "processor2"))
         
-        guard let image = mockMemoryCache.image(for: request) else {
+        guard let image = mockMemoryCache[request] else {
             XCTFail()
             return
         }

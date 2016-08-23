@@ -43,7 +43,7 @@ public class Manager {
         cancelRequest(for: target)
         
         // Quick memory cache lookup
-        if request.memoryCacheOptions.readAllowed, let image = cache?.image(for: request) {
+        if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
             handler(.fulfilled(image), true)
         } else {
             let ctx = Context()

@@ -10,27 +10,8 @@ class MockCache: Caching {
     var images = [AnyHashable: Image]()
     init() {}
 
-    func image(for key: AnyHashable) -> Image? {
-        return enabled ? images[key] : nil
-    }
-
-    func setImage(_ image: Image, for key: AnyHashable) {
-        if enabled {
-            images[key] = image
-        }
-    }
-
-    func removeImage(for key: AnyHashable) {
-        if enabled {
-            images[key] = nil
-        }
-    }
-    
-    func removeImage(for request: Request) {
-        removeImage(for: Request.cacheKey(for: request))
-    }
-    
-    func clear() {
-        images.removeAll()
+    subscript(key: AnyHashable) -> Image? {
+        get { return enabled ? images[key] : nil }
+        set { if enabled { images[key] = newValue } }
     }
 }

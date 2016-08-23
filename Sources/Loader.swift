@@ -54,7 +54,7 @@ public class Loader: Loading {
 
     private func loadImage(with request: Request, token: CancellationToken?,
                            fulfill: @escaping (Image) -> Void, reject: @escaping (Error) -> Void) {
-        if request.memoryCacheOptions.readAllowed, let image = cache?.image(for: request) {
+        if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
             fulfill(image)
             return
         }
@@ -63,7 +63,7 @@ public class Loader: Loading {
             .then(on: queue) { self.process(image: $0, request: request, token: token) }
             .then(on: queue) {
                 if request.memoryCacheOptions.writeAllowed {
-                    self.cache?.setImage($0, for: request)
+                    self.cache?[request] = $0
                 }
                 fulfill($0)
             }

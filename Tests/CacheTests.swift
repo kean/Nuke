@@ -26,7 +26,7 @@ class MockCacheTests: XCTestCase {
         let request = Request(url: defaultURL)
         
         XCTAssertEqual(mockCache.images.count, 0)
-        XCTAssertNil(mockCache.image(for: request))
+        XCTAssertNil(mockCache[request])
 
         expect { fulfill in
             _ = loader.loadImage(with: request).then { _ in
@@ -36,7 +36,7 @@ class MockCacheTests: XCTestCase {
         wait()
         
         XCTAssertEqual(mockCache.images.count, 1)
-        XCTAssertNotNil(mockCache.image(for: request))
+        XCTAssertNotNil(mockCache[request])
         
         mockSessionManager.queue.isSuspended = true
         
@@ -52,12 +52,12 @@ class MockCacheTests: XCTestCase {
         let request = Request(url: defaultURL)
         
         XCTAssertEqual(mockCache.images.count, 0)
-        XCTAssertNil(mockCache.image(for: request))
+        XCTAssertNil(mockCache[request])
         
-        mockCache.setImage(Image(), for: request)
+        mockCache[request] = Image()
         
         XCTAssertEqual(mockCache.images.count, 1)
-        let image = mockCache.image(for: request)
+        let image = mockCache[request]
         XCTAssertNotNil(image)
     }
     
@@ -65,17 +65,17 @@ class MockCacheTests: XCTestCase {
         let request = Request(url: defaultURL)
         
         XCTAssertEqual(mockCache.images.count, 0)
-        XCTAssertNil(mockCache.image(for: request))
+        XCTAssertNil(mockCache[request])
         
-        mockCache.setImage(Image(), for: request)
+        mockCache[request] = Image()
         
         XCTAssertEqual(mockCache.images.count, 1)
-        let response = mockCache.image(for: request)
-        XCTAssertNotNil(response)
+        let image = mockCache[request]
+        XCTAssertNotNil(image)
         
-        mockCache.removeImage(for: request)
+        mockCache[request] = nil
         XCTAssertEqual(mockCache.images.count, 0)
-        XCTAssertNil(mockCache.image(for: request))
+        XCTAssertNil(mockCache[request])
     }
     
     func testThatCacheStorageCanBeDisabled() {
@@ -84,7 +84,7 @@ class MockCacheTests: XCTestCase {
         request.memoryCacheOptions.writeAllowed = false // Test default value
         
         XCTAssertEqual(mockCache.images.count, 0)
-        XCTAssertNil(mockCache.image(for: request))
+        XCTAssertNil(mockCache[request])
         
         expect { fulfill in
             _ = loader.loadImage(with: request).then { _ in
@@ -94,7 +94,7 @@ class MockCacheTests: XCTestCase {
         wait()
         
         XCTAssertEqual(mockCache.images.count, 0)
-        XCTAssertNil(mockCache.image(for: request))
+        XCTAssertNil(mockCache[request])
     }
 }
 
@@ -114,7 +114,7 @@ class CacheTests: XCTestCase {
     func testThatImagesAreStoredInCache() {
         let request = Request(url: defaultURL)
         
-        XCTAssertNil(cache.image(for: request))
+        XCTAssertNil(cache[request])
 
         expect { fulfill in
             _ = loader.loadImage(with: request).then { _ in
@@ -123,7 +123,7 @@ class CacheTests: XCTestCase {
         }
         wait()
         
-        XCTAssertNotNil(cache.image(for: request))
+        XCTAssertNotNil(cache[request])
         
         mockSessionManager.queue.isSuspended = true
         
@@ -138,12 +138,12 @@ class CacheTests: XCTestCase {
     #if os(iOS) || os(tvOS)
     func testThatImageAreRemovedOnMemoryWarnings() {
         let request = Request(url: defaultURL)
-        cache.setImage(Image(), for: request)
-        XCTAssertNotNil(cache.image(for: request))
+        cache[request] = Image()
+        XCTAssertNotNil(cache[request])
         
         NotificationCenter.default.post(name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
         
-        XCTAssertNil(cache.image(for: request))
+        XCTAssertNil(cache[request])
     }
     #endif
 }

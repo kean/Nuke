@@ -12,23 +12,16 @@ import Foundation
 /// Provides in-memory storage for images.
 ///
 /// The implementation is expected to be thread safe.
-public protocol Caching {
-    /// Returns an image for the key.
-    func image(for key: AnyHashable) -> Image?
-
-    /// Stores the image for the key.
-    func setImage(_ image: Image, for key: AnyHashable)
+public protocol Caching: class {
+    /// Accesses the image associated with the given key.
+    subscript(key: AnyHashable) -> Image? { get set }
 }
 
 public extension Caching {
-    /// Returns an image for the request.
-    public func image(for request: Request) -> Image? {
-        return image(for: Request.cacheKey(for: request))
-    }
-
-    /// Stores the image for the request.
-    public func setImage(_ image: Image, for request: Request) {
-        setImage(image, for: Request.cacheKey(for: request))
+    /// Accesses the image associated with the given request.
+    subscript(request: Request) -> Image? {
+        get { return self[Request.cacheKey(for: request)] }
+        set { self[Request.cacheKey(for: request)] = newValue }
     }
 }
 
@@ -67,26 +60,20 @@ public class Cache: Caching {
     
     // MARK: Managing Cached Images
 
-    /// Stores the image for the key.
-    public func image(for key: AnyHashable) -> Image? {
-        return cache.object(forKey: AnyHashableObject(key)) as? Image
+    /// Accesses the image associated with the given key.
+    public subscript(key: AnyHashable) -> Image? {
+        get {
+            return cache.object(forKey: Key(key)) as? Image
+        }
+        set {
+            if let image = newValue {
+                cache.setObject(image, forKey: Key(key), cost: cost(image))
+            } else {
+                cache.removeObject(forKey: Key(key))
+            }
+        }
     }
-
-    /// Stores the image for the key.
-    public func setImage(_ image: Image, for key: AnyHashable) {
-        cache.setObject(image, forKey: AnyHashableObject(key), cost: cost(image))
-    }
-
-    /// Removes an image for the key.
-    public func removeImage(for key: AnyHashable) {
-        cache.removeObject(forKey: AnyHashableObject(key))
-    }
-
-    /// Removes an image for the request.
-    public func removeImage(for request: Request) {
-        removeImage(for: Request.cacheKey(for: request))
-    }
-
+    
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
     public var cost: (Image) -> Int = {
         #if os(macOS)
@@ -100,22 +87,17 @@ public class Cache: Caching {
     dynamic private func didReceiveMemoryWarning(_ notification: Notification) {
         cache.removeAllObjects()
     }
-}
-
-/// Allows to use Swift Hashable objects with NSCache
-private final class AnyHashableObject: NSObject {
-    let val: AnyHashable
-
-    init<T: Hashable>(_ val: T) {
-        self.val = AnyHashable(val)
-    }
-
-    override var hash: Int {
-        return val.hashValue
-    }
-
-    override func isEqual(_ other: Any?) -> Bool {
-        return val == (other as? AnyHashableObject)?.val
+    
+    /// Wraps `Hashable` types in NSObject (required by NSCache)
+    private final class Key: NSObject {
+        let val: AnyHashable
+        
+        init(_ val: AnyHashable) { self.val = val }
+        
+        override var hash: Int { return val.hashValue }
+        
+        override func isEqual(_ other: Any?) -> Bool {
+            return val == (other as? Key)?.val
+        }
     }
 }
-
