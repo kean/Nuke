@@ -27,13 +27,13 @@ public extension Caching {
     }
 
     /// Stores the image for the request.
-    func setImage(_ image: Image, for request: Request) {
+    public func setImage(_ image: Image, for request: Request) {
         setImage(image, for: Request.cacheKey(for: request))
     }
 }
 
 /// Auto purging memory cache that uses `NSCache` as its internal storage.
-open class Cache: Caching {
+public class Cache: Caching {
     deinit {
         #if os(iOS) || os(tvOS)
             NotificationCenter.default.removeObserver(self)
@@ -68,33 +68,31 @@ open class Cache: Caching {
     // MARK: Managing Cached Images
 
     /// Stores the image for the key.
-    open func image(for key: AnyHashable) -> Image? {
+    public func image(for key: AnyHashable) -> Image? {
         return cache.object(forKey: AnyHashableObject(key)) as? Image
     }
 
     /// Stores the image for the key.
-    open func setImage(_ image: Image, for key: AnyHashable) {
-        cache.setObject(image, forKey: AnyHashableObject(key), cost: cost(for: image))
+    public func setImage(_ image: Image, for key: AnyHashable) {
+        cache.setObject(image, forKey: AnyHashableObject(key), cost: cost(image))
     }
 
     /// Removes an image for the key.
-    open func removeImage(for key: AnyHashable) {
+    public func removeImage(for key: AnyHashable) {
         cache.removeObject(forKey: AnyHashableObject(key))
     }
 
     /// Removes an image for the request.
-    open func removeImage(for request: Request) {
+    public func removeImage(for request: Request) {
         removeImage(for: Request.cacheKey(for: request))
     }
 
-    // MARK: Subclassing Hooks
-    
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
-    open func cost(for image: Image) -> Int {
+    public var cost: (Image) -> Int = {
         #if os(macOS)
             return 1
         #else
-            guard let cgImage = image.cgImage else { return 1 }
+            guard let cgImage = $0.cgImage else { return 1 }
             return cgImage.bytesPerRow * cgImage.height
         #endif
     }
