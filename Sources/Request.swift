@@ -92,23 +92,22 @@ public struct RequestCachingEquator: RequestEquating {
 // MARK: - RequestKey
 
 /// Makes it possible to use Request as a key.
-internal final class RequestKey: NSObject {
+internal struct RequestKey: Hashable {
     private let request: Request
     private let equator: RequestEquating
-    
+
     init(_ request: Request, equator: RequestEquating) {
         self.request = request
         self.equator = equator
     }
-    
+
     /// Returns hash from the request's URL.
-    override var hash: Int {
+    var hashValue: Int {
         return request.urlRequest.url?.hashValue ?? 0
     }
 
-    /// Compares two keys for equivalence using one of their equators.
-    override func isEqual(_ object: Any?) -> Bool {
-        guard let object = object as? RequestKey else { return false }
-        return equator.isEqual(request, to: object.request)
+    /// Compares two keys for equivalence.
+    static func ==(lhs: RequestKey, rhs: RequestKey) -> Bool {
+        return lhs.equator.isEqual(lhs.request, to: rhs.request)
     }
 }

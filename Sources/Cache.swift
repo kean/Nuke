@@ -73,8 +73,8 @@ open class Cache: Caching {
         cache.removeObject(forKey: makeKey(for: request))
     }
 
-    private func makeKey(for request: Request) -> RequestKey {
-        return RequestKey(request, equator: equator)
+    private func makeKey(for request: Request) -> AnyHashableObject {
+        return AnyHashableObject(RequestKey(request, equator: equator))
     }
 
     // MARK: Subclassing Hooks
@@ -93,3 +93,21 @@ open class Cache: Caching {
         cache.removeAllObjects()
     }
 }
+
+/// Allows to use Swift Hashable objects with NSCache
+private final class AnyHashableObject: NSObject {
+    let val: AnyHashable
+
+    init<T: Hashable>(_ val: T) {
+        self.val = AnyHashable(val)
+    }
+
+    override var hash: Int {
+        return val.hashValue
+    }
+
+    override func isEqual(_ other: Any?) -> Bool {
+        return val == (other as? AnyHashableObject)?.val
+    }
+}
+
