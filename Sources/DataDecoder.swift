@@ -27,6 +27,7 @@ public struct DataDecoder: DataDecoding {
 
     /// Decodes image data using built-in `Image` initializers.
     public func decode(data: Data, response: URLResponse) -> Image? {
+        guard DataDecoder.validate(response: response) else { return nil }
         // Image initializers are not thread safe:
         // - https://github.com/AFNetworking/AFNetworking/issues/2572
         // - https://github.com/Alamofire/AlamofireImage/issues/75
@@ -42,5 +43,10 @@ public struct DataDecoder: DataDecoding {
                 return UIImage(data: data, scale: scale)
             #endif
         }
+    }
+    
+    private static func validate(response: URLResponse) -> Bool {
+        guard let response = response as? HTTPURLResponse else { return true }
+        return (200..<300).contains(response.statusCode)
     }
 }
