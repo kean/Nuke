@@ -11,31 +11,36 @@ private var loggingEnabled = false
 
 class PreheatingDemoViewController: UICollectionViewController {
     var photos: [URL]!
+
+    var preheater: Preheater!
     var preheatController: Preheat.Controller<UICollectionView>!
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        func requests(for indexPaths: [IndexPath]) -> [Nuke.Request] {
-            return indexPaths.map { Nuke.Request(url: photos[$0.row]).process(with: Decompressor()) }
-        }
-        
-        let preheater = Preheater()
-        
         photos = demoPhotosURLs
+
+        preheater = Preheater()
         preheatController = Preheat.Controller(view: collectionView!)
-        preheatController.handler = { addedIndexPaths, removedIndexPaths in
-            preheater.startPreheating(with: requests(for: addedIndexPaths))
-            preheater.stopPreheating(with: requests(for: removedIndexPaths))
-            if loggingEnabled {
-                logAddedIndexPaths(addedIndexPaths, removedIndexPaths: removedIndexPaths)
-            }
+        preheatController.handler = { [weak self] addedIndexPaths, removedIndexPaths in
+            self?.preheat(added: addedIndexPaths, removed: removedIndexPaths)
         }
         
         collectionView?.backgroundColor = UIColor.white
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
     }
-    
+
+    func preheat(added: [IndexPath], removed: [IndexPath]) {
+        func requests(for indexPaths: [IndexPath]) -> [Request] {
+            return indexPaths.map { Request(url: photos[$0.row]).process(with: Decompressor()) }
+        }
+        preheater.startPreheating(with: requests(for: added))
+        preheater.stopPreheating(with: requests(for: removed))
+        if loggingEnabled {
+            logAddedIndexPaths(added, removedIndexPaths: removed)
+        }
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         updateItemSize()
