@@ -37,6 +37,9 @@
 		0C0FD61D1CA47FE1002A78FB /* Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */; };
 		0C0FD61E1CA47FE1002A78FB /* Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */; };
 		0C0FD61F1CA47FE1002A78FB /* Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */; };
+		0C1E620B1D6F817700AD5CF5 /* RequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E620A1D6F817700AD5CF5 /* RequestTests.swift */; };
+		0C1E620C1D6F817700AD5CF5 /* RequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E620A1D6F817700AD5CF5 /* RequestTests.swift */; };
+		0C1E620D1D6F817700AD5CF5 /* RequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E620A1D6F817700AD5CF5 /* RequestTests.swift */; };
 		0C1ECA421D526461009063A9 /* CacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* CacheTests.swift */; };
 		0C1ECA431D526461009063A9 /* CacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* CacheTests.swift */; };
 		0C1ECA441D526462009063A9 /* CacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* CacheTests.swift */; };
@@ -150,6 +153,7 @@
 		0C0FD5D81CA47FE1002A78FB /* Processor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Processor.swift; sourceTree = "<group>"; };
 		0C0FD5D91CA47FE1002A78FB /* Request.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Request.swift; sourceTree = "<group>"; };
 		0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Nuke.swift; sourceTree = "<group>"; };
+		0C1E620A1D6F817700AD5CF5 /* RequestTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RequestTests.swift; sourceTree = "<group>"; };
 		0C1ECA4B1D526964009063A9 /* Manager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Manager.swift; sourceTree = "<group>"; };
 		0C22D9C51BCA9734006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C22DA2C1BCAA220006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -270,6 +274,7 @@
 				0C5D81831D46A18F000ECCB6 /* IntegrationTests.swift */,
 				0C5D81871D46A385000ECCB6 /* ThreadSafetyTests.swift */,
 				0C94466D1D47EC0E006DB314 /* ManagerExtensionsTests.swift */,
+				0C1E620A1D6F817700AD5CF5 /* RequestTests.swift */,
 				0C7C069B1BCA889000089D7F /* Extensions */,
 				0C7C069A1BCA888C00089D7F /* Mocks */,
 				0C7C06831BCA888800089D7F /* Resources */,
@@ -699,6 +704,7 @@
 				0C1ECA491D52673D009063A9 /* IntegrationTests.swift in Sources */,
 				0C22DA531BCAAA06006E1D3B /* Tests.swift in Sources */,
 				0CE3992E1D4697CE00A87D47 /* LoaderTests.swift in Sources */,
+				0C1E620C1D6F817700AD5CF5 /* RequestTests.swift in Sources */,
 				0C1ECA431D526461009063A9 /* CacheTests.swift in Sources */,
 				0C22DA591BCAAA3A006E1D3B /* MockImageProcessor.swift in Sources */,
 				0C22DA5B1BCAAA3A006E1D3B /* MockDataLoader.swift in Sources */,
@@ -721,6 +727,7 @@
 				0C1ECA481D52673C009063A9 /* IntegrationTests.swift in Sources */,
 				0C75279E1D473AEF00EC6222 /* MockImageCache.swift in Sources */,
 				0C75279D1D473AE800EC6222 /* ThreadSafetyTests.swift in Sources */,
+				0C1E620B1D6F817700AD5CF5 /* RequestTests.swift in Sources */,
 				0C1ECA421D526461009063A9 /* CacheTests.swift in Sources */,
 				0C7C06981BCA888800089D7F /* Tests.swift in Sources */,
 				0C7C06971BCA888800089D7F /* MockDataLoader.swift in Sources */,
@@ -783,6 +790,7 @@
 				0C1ECA4A1D52673D009063A9 /* IntegrationTests.swift in Sources */,
 				0CE3992F1D4697CE00A87D47 /* LoaderTests.swift in Sources */,
 				0CC345C31BD96E16005C2DD8 /* MockDataLoader.swift in Sources */,
+				0C1E620D1D6F817700AD5CF5 /* RequestTests.swift in Sources */,
 				0C1ECA441D526462009063A9 /* CacheTests.swift in Sources */,
 				0CC345C51BD96E1D005C2DD8 /* Tests.swift in Sources */,
 				0CC345C01BD96E16005C2DD8 /* MockImageCache.swift in Sources */,

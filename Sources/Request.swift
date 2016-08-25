@@ -72,7 +72,7 @@ public extension Request {
     /// just by their `URLs`.
     public static func cacheKey(for request: Request) -> AnyHashable {
         return request.cacheKey ?? AnyHashable(RequestKey(request: request) {
-            $0.urlRequest.url == $0.urlRequest.url && $1.processor == $1.processor
+            $0.urlRequest.url == $1.urlRequest.url && $0.processor == $1.processor
         })
     }
     
@@ -83,13 +83,13 @@ public extension Request {
     /// `URLRequests` and the same processors. `URLRequests` are compared by
     /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
     public static func loadKey(for request: Request) -> AnyHashable {
-        func isEqual(_ a: URLRequest, to b: URLRequest) -> Bool {
+        func isEqual(_ a: URLRequest, _ b: URLRequest) -> Bool {
             return a.url == b.url &&
                 a.cachePolicy == b.cachePolicy &&
                 a.allowsCellularAccess == b.allowsCellularAccess
         }
         return request.loadKey ?? AnyHashable(RequestKey(request: request) {
-            isEqual($0.urlRequest, to: $1.urlRequest) && $0.processor == $1.processor
+            isEqual($0.urlRequest, $1.urlRequest) && $0.processor == $1.processor
         })
     }
 }
