@@ -18,7 +18,7 @@ public protocol DataDecoding {
     func decode(data: Data, response: URLResponse) -> Image?
 }
 
-private let queue = DispatchQueue(label: "\(domain).DataDecoder")
+private let queue = DispatchQueue(label: "com.github.kean.Nuke.DataDecoder")
 
 /// Decodes image data. Image scale is set to the scale of the main screen.
 public struct DataDecoder: DataDecoding {

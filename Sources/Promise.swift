@@ -6,7 +6,7 @@ import Foundation
 
 public final class Promise<T> {
     private var state: PromiseState<T> = .pending(PromiseHandlers<T>())
-    private var queue = DispatchQueue(label: "\(domain).Promise")
+    private var queue = DispatchQueue(label: "com.github.kean.Nuke.Promise")
     
     public init(_ closure: (_ fulfill: @escaping (T) -> Void, _ reject: @escaping (Error) -> Void) -> Void) {
         closure({ self.resolve(resolution: .fulfilled($0)) },

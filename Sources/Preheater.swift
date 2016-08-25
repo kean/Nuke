@@ -16,7 +16,7 @@ import Foundation
 public class Preheater {
     private let loader: Loading
     private let scheduler: AsyncScheduler
-    private let queue = DispatchQueue(label: "\(domain).Preheater")
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
     private var tasks = [Task]()
         
     /// Initializes the `Preheater` instance.

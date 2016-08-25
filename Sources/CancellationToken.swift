@@ -10,7 +10,7 @@ import Foundation
 public class CancellationTokenSource {
     public private(set) var isCancelling = false
     private var observers = [(Void) -> Void]()
-    private let queue = DispatchQueue(label: "\(domain).CancellationToken")
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.CancellationToken")
     
     public var token: CancellationToken {
         return CancellationToken(source: self)

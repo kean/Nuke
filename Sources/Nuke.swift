@@ -14,8 +14,6 @@ import Foundation
     public typealias Image = UIImage
 #endif
 
-internal let domain = "com.github.kean.Nuke"
-
 /// Asynchronously fulfills the request into the given target.
 ///
 /// For more info see `loadImage(with:into:)` method of `Manager` class.

@@ -12,7 +12,7 @@ import Foundation
 public final class Deduplicator: Loading {
     private let loader: Loading
     private var tasks = [AnyHashable: Task]()
-    private let queue = DispatchQueue(label: "\(domain).Deduplicator")
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Deduplicator")
 
     /// Initializes the `Deduplicator` instance with the underlying
     /// `loader` used for actual image loading, and the request `equator`.

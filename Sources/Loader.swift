@@ -32,7 +32,7 @@ public class Loader: Loading {
     public let cache: Caching?
 
     private let schedulers: Schedulers
-    private let queue = DispatchQueue(label: "\(domain).Loader")
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
 
     /// Initializes `Loader` instance with the given loader, decoder and cache.
     /// - parameter schedulers: `Schedulers()` by default.
@@ -98,12 +98,12 @@ public class Loader: Loading {
     /// Schedulers used to execute a corresponding steps of the pipeline.
     public struct Schedulers {
         /// `DispatchQueueScheduler` with a serial queue by default.
-        public var decoding: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "\(domain).Decoding"))
+        public var decoding: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.Decoding"))
         // There is no reason to increase `maxConcurrentOperationCount` for
         // built-in `DataDecoder` that locks globally while decoding.
         
         /// `DispatchQueueScheduler` with a serial queue by default.
-        public var processing: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "\(domain).Processing"))
+        public var processing: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.Processing"))
     }
 }
 

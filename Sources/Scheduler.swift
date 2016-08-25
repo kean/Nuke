@@ -80,7 +80,7 @@ private final class Operation: Foundation.Operation {
     var _isFinished = false
     
     let starter: (_ finish: @escaping (Void) -> Void) -> Void
-    let queue = DispatchQueue(label: "\(domain).Operation")
+    let queue = DispatchQueue(label: "com.github.kean.Nuke.Operation")
     
     init(starter: @escaping (_ fulfill: @escaping (Void) -> Void) -> Void) {
         self.starter = starter

@@ -53,6 +53,7 @@ public class Manager {
                 guard let ctx = ctx, let target = target else { return }
                 guard Manager.getContext(for: target) === ctx else { return }
                 handler($0, false)
+                Manager.setContext(nil, for: target)
             }
         }
     }
