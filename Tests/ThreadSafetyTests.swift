@@ -8,7 +8,7 @@ import XCTest
 extension XCTestCase {
     func runThreadSafetyTests(for loader: Loading) {
         for _ in 0..<250 {
-            self.expect { fulfill in
+            expect { fulfill in
                 let request = Request(url: URL(string: "\(defaultURL)/\(arc4random_uniform(10))")!)
                 let shouldCancel = arc4random_uniform(3) == 0
                 

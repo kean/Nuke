@@ -7,7 +7,7 @@ import Foundation
 /// Manages cancellation tokens and signals them when cancellation is requested.
 ///
 /// All `CancellationTokenSource` methods are thread safe.
-public class CancellationTokenSource {
+public final class CancellationTokenSource {
     public private(set) var isCancelling = false
     private var observers = [(Void) -> Void]()
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.CancellationToken")
@@ -19,6 +19,7 @@ public class CancellationTokenSource {
     public init() {}
     
     fileprivate func register(_ closure: @escaping (Void) -> Void) {
+        if isCancelling { closure(); return } // fast pre-lock check
         queue.sync {
             if isCancelling {
                 closure()
@@ -30,6 +31,7 @@ public class CancellationTokenSource {
 
     /// Communicates a request for cancellation to the managed token.
     public func cancel() {
+        if isCancelling { return } // fast pre-lock check
         queue.sync {
             if !isCancelling {
                 isCancelling = true
@@ -51,10 +53,7 @@ public class CancellationTokenSource {
 ///
 /// All `CancellationToken` methods are thread safe.
 public struct CancellationToken {
-    private let source: CancellationTokenSource
-    fileprivate init(source: CancellationTokenSource) {
-        self.source = source
-    }
+    fileprivate let source: CancellationTokenSource
 
     /// Returns `true` if cancellation has been requested for this token.
     public var isCancelling: Bool { return source.isCancelling }

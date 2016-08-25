@@ -46,25 +46,26 @@ public class Manager {
         if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
             handler(.fulfilled(image), true)
         } else {
-            let context = Context()
+            let cts = CancellationTokenSource()
+            let context = Context(cts)
+            
             Manager.setContext(context, for: target)
             
-            loader.loadImage(with: request, token: context.cts.token).completion { [weak context, weak target] in
+            loader.loadImage(with: request, token: cts.token).completion { [weak context, weak target] in
                 guard let context = context, let target = target else { return }
                 guard Manager.getContext(for: target) === context else { return }
                 handler($0, false)
-                Manager.setContext(nil, for: target)
+                context.cts = nil // avoid redundant cancellations
             }
         }
     }
     
     /// Cancels the request which is currently associated with the target.
+    ///
+    /// The request might still complete after the cancellation.
     public func cancelRequest(for target: AnyObject) {
         assert(Thread.isMainThread)
-        if let context = Manager.getContext(for: target) {
-            context.cts.cancel()
-            Manager.setContext(nil, for: target)
-        }
+        Manager.getContext(for: target)?.cts?.cancel()
     }
     
     // Associated objects is a simplest way to bind Context and Target lifetimes
@@ -78,13 +79,12 @@ public class Manager {
     }
     
     private final class Context {
-        let cts = CancellationTokenSource()
+        var cts: CancellationTokenSource?
         
-        deinit {
-            if !cts.isCancelling {
-                cts.cancel()
-            }
-        }
+        init(_ cts: CancellationTokenSource) { self.cts = cts }
+        
+        // Automatically cancel request when target deallocates
+        deinit { cts?.cancel() }
     }
 }
 
