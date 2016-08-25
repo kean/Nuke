@@ -13,7 +13,7 @@ class DeduplicatorTests: XCTestCase {
         super.setUp()
         
         loader = MockImageLoader()
-        deduplicator = Deduplicator(with: loader)
+        deduplicator = Deduplicator(loader: loader)
     }
     
     func testThatEquivalentRequestsAreDeduplicated() {

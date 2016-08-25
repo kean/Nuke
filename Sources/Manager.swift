@@ -46,12 +46,12 @@ public class Manager {
         if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
             handler(.fulfilled(image), true)
         } else {
-            let ctx = Context()
-            Manager.setContext(ctx, for: target)
+            let context = Context()
+            Manager.setContext(context, for: target)
             
-            loader.loadImage(with: request, token: ctx.cts.token).completion { [weak ctx, weak target] in
-                guard let ctx = ctx, let target = target else { return }
-                guard Manager.getContext(for: target) === ctx else { return }
+            loader.loadImage(with: request, token: context.cts.token).completion { [weak context, weak target] in
+                guard let context = context, let target = target else { return }
+                guard Manager.getContext(for: target) === context else { return }
                 handler($0, false)
                 Manager.setContext(nil, for: target)
             }

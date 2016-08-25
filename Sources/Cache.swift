@@ -33,9 +33,6 @@ public class Cache: Caching {
         #endif
     }
     
-    // MARK: Configuring Cache
-    
-    /// The internal memory cache.
     public let cache: NSCache<AnyObject, AnyObject>
 
     /// Initializes the receiver with a given memory cache.
@@ -57,8 +54,6 @@ public class Cache: Caching {
         }()
         return cache
     }
-    
-    // MARK: Managing Cached Images
 
     /// Accesses the image associated with the given key.
     public subscript(key: AnyHashable) -> Image? {

@@ -39,8 +39,8 @@ public extension Loader {
     /// Shared `Loading` object.
     ///
     /// Shared loader is created with `DataLoader()`, `DataDecoder()` and
-    // `Cache.shared`.
-    public static var shared: Loading = Loader(loader: DataLoader(), decoder: DataDecoder(), cache: Cache.shared)
+    // `Cache.shared`. The resulting loader is wrapped in a `Deduplicator`.
+    public static var shared: Loading = Deduplicator(loader: Loader(loader: DataLoader(), decoder: DataDecoder(), cache: Cache.shared))
 }
 
 public extension Cache {

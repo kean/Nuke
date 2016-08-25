@@ -12,7 +12,7 @@ class IntegrationTests: XCTestCase {
         super.setUp()
         
         let loader = Loader(loader: MockDataLoader(), decoder: DataDecoder(), cache: nil)
-        deduplicator = Deduplicator(with: loader)
+        deduplicator = Deduplicator(loader: loader)
     }
 
     // MARK: Thread-Safety

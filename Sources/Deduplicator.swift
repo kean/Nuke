@@ -17,7 +17,7 @@ public final class Deduplicator: Loading {
     /// Initializes the `Deduplicator` instance with the underlying
     /// `loader` used for actual image loading, and the request `equator`.
     /// - parameter loader: Underlying loader used for loading images.
-    public init(with loader: Loading) {
+    public init(loader: Loading) {
         self.loader = loader
     }
 
