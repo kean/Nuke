@@ -33,9 +33,9 @@ internal final class DispatchQueueScheduler: Scheduler {
     }
 }
 
-// MARK: - QueueScheduler
+// MARK: - OperationQueueScheduler
 
-public final class QueueScheduler: AsyncScheduler {
+public final class OperationQueueScheduler: AsyncScheduler {
     public let queue: OperationQueue
 
     public convenience init(maxConcurrentOperationCount: Int) {

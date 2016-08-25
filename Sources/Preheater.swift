@@ -21,9 +21,9 @@ public class Preheater {
         
     /// Initializes the `Preheater` instance.
     /// - parameter loader: `Loader.shared` by default.
-    /// - parameter scheduler: Throttles preheating requests. `QueueScheduler`
+    /// - parameter scheduler: Throttles preheating requests. `OperationQueueScheduler`
     /// with `maxConcurrentOperationCount` 2 by default.
-    public init(loader: Loading = Loader.shared, scheduler: AsyncScheduler = QueueScheduler(maxConcurrentOperationCount: 2)) {
+    public init(loader: Loading = Loader.shared, scheduler: AsyncScheduler = OperationQueueScheduler(maxConcurrentOperationCount: 2)) {
         self.loader = loader
         self.scheduler = scheduler
     }
