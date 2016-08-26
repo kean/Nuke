@@ -18,8 +18,13 @@ public struct Request {
         self.urlRequest = urlRequest
     }
     
-    /// Processors to be applied to the image. Empty by default.
-    public var processors = [AnyProcessor]()
+    #if !os(macOS)
+    /// Processor to be applied to the image. `Decompressor` by default.
+    public var processor: AnyProcessor? = AnyProcessor(Decompressor())
+    #else
+    /// Processor to be applied to the image. `nil` by default.
+    public var processor: AnyProcessor?
+    #endif
 
     /// The policy to use when dealing with memory cache.
     public struct MemoryCacheOptions {
@@ -50,16 +55,17 @@ public struct Request {
 }
 
 public extension Request {
-    /// Adds a processor to the request.
+    /// Appends a processor to the request. You can append arbitrary number of
+    /// processors to the request.
     public func process<P: Processing>(with processor: P) -> Request {
         var request = self
-        request.processors.append(AnyProcessor(processor))
+        if let existing = self.processor {
+            // Chain new processor and the existing one.
+            request.processor = AnyProcessor(ProcessorComposition([existing, AnyProcessor(processor)]))
+        } else {
+            request.processor = AnyProcessor(processor)
+        }
         return request
-    }
-    
-    /// Wraps processors into ProcessorComposition.
-    internal var processor: ProcessorComposition? {
-        return processors.isEmpty ? nil : ProcessorComposition(processors: processors)
     }
 }
 

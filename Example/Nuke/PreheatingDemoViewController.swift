@@ -32,7 +32,7 @@ class PreheatingDemoViewController: UICollectionViewController {
 
     func preheat(added: [IndexPath], removed: [IndexPath]) {
         func requests(for indexPaths: [IndexPath]) -> [Request] {
-            return indexPaths.map { Request(url: photos[$0.row]).process(with: Decompressor()) }
+            return indexPaths.map { Request(url: photos[$0.row]) }
         }
         preheater.startPreheating(with: requests(for: added))
         preheater.stopPreheating(with: requests(for: removed))
@@ -85,7 +85,7 @@ class PreheatingDemoViewController: UICollectionViewController {
         let imageView = self.imageView(for: cell)
         let imageURL = photos[indexPath.row]
         imageView.image = nil
-        Manager.shared.loadImage(with: Request(url: imageURL).process(with: Decompressor()), into: imageView)
+        Manager.shared.loadImage(with: Request(url: imageURL), into: imageView)
         
         return cell
     }

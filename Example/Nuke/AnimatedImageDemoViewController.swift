@@ -80,7 +80,13 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
             
             let imageView = imageViewForCell(cell)
             imageView.image = nil
-            manager.loadImage(with: Request(url: imageURLs[indexPath.row]), into: imageView) { response, isFromMemoryCache in
+
+            var request = Request(url: imageURLs[indexPath.row])
+
+            // as an alternative you can wrap existing processor in AnimatedImageProcessor
+            request.processor = nil
+            
+            manager.loadImage(with: request, into: imageView) { response, isFromMemoryCache in
                 switch response {
                 case let .fulfilled(image):
                     imageView.nk_display(image)

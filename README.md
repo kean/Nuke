@@ -39,10 +39,10 @@ Nuke.loadImage(with: URL(string: "http://...")!, into: imageView)
 
 Each image request is represented by `Request` struct which can be created with either `URL` or `URLRequest`.
 
-You can add an arbitrary number of image processors to the request. One of the built-in processors is `Decompressor` which [decompresses](https://www.cocoanetics.com/2011/10/avoiding-image-decompression-sickness/) images in the background.
+You can add an arbitrary number of image processors to the request.
 
 ```swift
-Nuke.loadImage(with: Request(url: url).process(with: Decompressor()), into: imageView)
+Nuke.loadImage(with: Request(url: url).process(with: BlurFilter()), into: imageView)
 ```
 
 

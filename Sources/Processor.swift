@@ -10,12 +10,12 @@ public protocol Processing: Equatable {
     func process(_ image: Image) -> Image?
 }
 
-/// Composes multiple image processors.
+/// Composes multiple processors.
 public struct ProcessorComposition: Processing {
     private let processors: [AnyProcessor]
     
-    /// Composes multiple image processors.
-    public init(processors: [AnyProcessor]) {
+    /// Composes multiple processors.
+    public init(_ processors: [AnyProcessor]) {
         self.processors = processors
     }
     

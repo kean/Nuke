@@ -53,7 +53,7 @@ class BasicDemoViewController: UICollectionViewController {
         let imageView = imageViewForCell(cell)
         imageView.image = nil
 
-        let request = Request(url: photos[indexPath.row]).process(with: Decompressor())
+        let request = Request(url: photos[indexPath.row])
 
         manager.loadImage(with: request, into: imageView)
         
