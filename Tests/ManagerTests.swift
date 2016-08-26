@@ -21,14 +21,33 @@ class ManagerTests: XCTestCase {
     func testThatImageIsLoaded() {
         expect { fulfill in
             manager.loadImage(with: Request(url: defaultURL), into: view) {
-                if case .fulfilled(_) = $0.0 {
+                if case .fulfilled(_) = $0 {
                     fulfill()
                 }
+                XCTAssertFalse($1)
             }
         }
         wait()
     }
 
+    func testThatImageLoadedIntoTarget() {
+        expect { fulfill in
+            let target = MockTarget()
+            target.handler = { resolution, isFromMemoryCache in
+                if case .fulfilled(_) = resolution {
+                    fulfill()
+                }
+                XCTAssertFalse(isFromMemoryCache)
+                
+                // capture target in a closure
+                target.handler = nil
+            }
+            
+            manager.loadImage(with: defaultURL, into: target)
+        }
+        wait()
+    }
+    
     func testThatPreviousTaskIsCancelledWhenNewOneIsCreated() {
         expect { fulfill in
             manager.loadImage(with: Request(url: URL(string: "http://test.com/1")!), into: view) {
