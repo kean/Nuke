@@ -28,7 +28,7 @@ class MockDataLoader: DataLoading {
             
             createdTaskCount += 1
             
-            queue.addOperation {
+            let operation = BlockOperation() {
                 if let result = self.results[request.url!] {
                     switch result {
                     case let .fulfilled(val): fulfill(val)
@@ -37,6 +37,11 @@ class MockDataLoader: DataLoading {
                 } else {
                     fulfill((data, URLResponse()))
                 }
+            }
+            queue.addOperation(operation)
+            
+            token?.register {
+                operation.cancel()
             }
         }
     }

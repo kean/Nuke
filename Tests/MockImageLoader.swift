@@ -23,18 +23,15 @@ class MockImageLoader: Loading {
         return queue
     }()
     var results = [URL: Resolution<Image>]()
+    var ignoreCancellation = false
 
     func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image> {
         return Promise() { fulfill, reject in
             NotificationCenter.default.post(name: MockImageLoader.DidStartTask, object: self)
             
-            token?.register {
-                NotificationCenter.default.post(name: MockImageLoader.DidCancelTask, object: self)
-            }
-            
             createdTaskCount += 1
             
-            queue.addOperation {
+            let operation = BlockOperation() {
                 if let result = self.results[request.urlRequest.url!] {
                     switch result {
                     case let .fulfilled(val): fulfill(val)
@@ -42,6 +39,14 @@ class MockImageLoader: Loading {
                     }
                 } else {
                     fulfill(image)
+                }
+            }
+            queue.addOperation(operation)
+            
+            if !ignoreCancellation {
+                token?.register {
+                    operation.cancel()
+                    NotificationCenter.default.post(name: MockImageLoader.DidCancelTask, object: self)
                 }
             }
         }
