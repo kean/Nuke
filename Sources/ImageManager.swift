@@ -167,7 +167,9 @@ public class ImageManager {
                 let key = ImageRequestKey($0, owner: self)
                 if preheatingTasks[key] == nil { // Don't create more than one task for the equivalent requests.
                     preheatingTasks[key] = ImageTaskInternal(manager: self, request: $0, identifier: nextTaskIdentifier).completion { [weak self] _ in
-                        self?.preheatingTasks[key] = nil
+                        self?.perform {
+                            self?.preheatingTasks[key] = nil
+                        }
                     }
                 }
             }

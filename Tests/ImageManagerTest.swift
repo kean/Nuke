@@ -323,6 +323,29 @@ class ImageManagerTest: XCTestCase {
         self.wait(2)
     }
 
+    func testPreheatingThreadSafety() {
+        var requests = [ImageRequest]()
+        for _ in 0...30 {
+            requests.append(ImageRequest(URL: NSURL(string: "http://\(arc4random_uniform(10))")!))
+        }
+        
+        for _ in 0...1000 {
+            expect { fulfill in
+                let delayTime = dispatch_time(DISPATCH_TIME_NOW, Int64(Double(arc4random_uniform(3)) * Double(NSEC_PER_SEC)))
+                dispatch_after(delayTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)) {
+                    self.manager.stopPreheatingImages()
+                    self.manager.startPreheatingImages(requests)
+                    self.manager.stopPreheatingImages()
+                    self.manager.startPreheatingImages(requests)
+                    self.manager.stopPreheatingImages()
+                    fulfill()
+                }
+            }
+        }
+        
+        wait(5)
+    }
+    
     // MARK: Invalidation
 
     func testThatInvalidateAndCancelMethodCancelsOutstandingRequests() {
