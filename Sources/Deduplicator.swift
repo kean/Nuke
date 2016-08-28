@@ -32,22 +32,23 @@ public final class Deduplicator: Loading {
                 let promise = loader.loadImage(with: request, token: cts.token)
                 task = Task(promise: promise, cts: cts)
                 tasks[key] = task
-                promise.completion(on: self.queue) { _ in
-                    if self.tasks[key] === task {
-                        self.tasks[key] = nil
+                promise.completion(on: self.queue) { [weak self, weak task] _ in
+                    if let task = task, self?.tasks[key] === task {
+                        self?.tasks[key] = nil
                     }
                 }
             } else {
                 task.retainCount += 1
             }
 
-            token?.register {
-                self.queue.async {
+            token?.register { [weak self, weak task] in
+                guard let task = task else { return }
+                self?.queue.async {
                     task.retainCount -= 1
                     if task.retainCount == 0 {
                         task.cts.cancel() // cancel underlying request
-                        if self.tasks[key] === task {
-                            self.tasks[key] = nil
+                        if self?.tasks[key] === task {
+                            self?.tasks[key] = nil
                         }
                     }
                 }

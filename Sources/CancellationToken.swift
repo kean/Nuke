@@ -53,13 +53,13 @@ public final class CancellationTokenSource {
 ///
 /// All `CancellationToken` methods are thread safe.
 public struct CancellationToken {
-    fileprivate let source: CancellationTokenSource
+    fileprivate weak var source: CancellationTokenSource?
 
     /// Returns `true` if cancellation has been requested for this token.
-    public var isCancelling: Bool { return source.isCancelling }
+    public var isCancelling: Bool { return source?.isCancelling ?? false }
 
     /// Registers the closure that will be called when the token is canceled.
     /// If this token is already cancelled, the closure will be run immediately
     /// and synchronously.
-    public func register(closure: @escaping (Void) -> Void) { source.register(closure) }
+    public func register(closure: @escaping (Void) -> Void) { source?.register(closure) }
 }
