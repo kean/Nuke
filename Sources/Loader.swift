@@ -58,6 +58,7 @@ public class Loader: Loading {
             fulfill(image)
             return
         }
+        // It's safe to capture `Loader` cause it's just a simple registry
         _ = loader.loadData(with: request.urlRequest, token: token)
             .then(on: queue) { self.decode(data: $0, response: $1, token: token) }
             .then(on: queue) { self.process(image: $0, request: request, token: token) }

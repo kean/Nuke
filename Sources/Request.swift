@@ -77,7 +77,7 @@ public extension Request {
     /// `URLRequests` and the same processors. `URLRequests` are compared
     /// just by their `URLs`.
     public static func cacheKey(for request: Request) -> AnyHashable {
-        return request.cacheKey ?? AnyHashable(RequestKey(request: request) {
+        return request.cacheKey ?? AnyHashable(Key(request: request) {
             $0.urlRequest.url == $1.urlRequest.url && $0.processor == $1.processor
         })
     }
@@ -94,24 +94,24 @@ public extension Request {
                 a.cachePolicy == b.cachePolicy &&
                 a.allowsCellularAccess == b.allowsCellularAccess
         }
-        return request.loadKey ?? AnyHashable(RequestKey(request: request) {
+        return request.loadKey ?? AnyHashable(Key(request: request) {
             isEqual($0.urlRequest, $1.urlRequest) && $0.processor == $1.processor
         })
     }
-}
-
-/// Compares two requests for equivalence using an `equator` closure.
-private struct RequestKey: Hashable {
-    let request: Request
-    let equator: (Request, Request) -> Bool
     
-    /// Returns hash from the request's URL.
-    var hashValue: Int {
-        return request.urlRequest.url?.hashValue ?? 0
-    }
-    
-    /// Compares two keys for equivalence.
-    static func ==(lhs: RequestKey, rhs: RequestKey) -> Bool {
-        return lhs.equator(lhs.request, rhs.request)
+    /// Compares two requests for equivalence using an `equator` closure.
+    private struct Key: Hashable {
+        let request: Request
+        let equator: (Request, Request) -> Bool
+        
+        /// Returns hash from the request's URL.
+        var hashValue: Int {
+            return request.urlRequest.url?.hashValue ?? 0
+        }
+        
+        /// Compares two keys for equivalence.
+        static func ==(lhs: Key, rhs: Key) -> Bool {
+            return lhs.equator(lhs.request, rhs.request)
+        }
     }
 }

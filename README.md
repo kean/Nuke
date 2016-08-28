@@ -13,7 +13,7 @@ Micro-framework for loading, processing, caching and [preheating](https://kean.g
 - Simple API, zero configuration required
 - Performant, asynchronous, thread-safe
 - Hassle-free image loading into image views (and other targets)
-- Two [cache layers](https://kean.github.io/blog/image-caching) including auto-purging memory cache
+- Two [cache layers](https://kean.github.io/blog/image-caching) including auto-purging LRU memory cache
 - Image transformations
 - Automated [preheating (prefetching)](https://kean.github.io/blog/image-preheating)
 - [Pipeline](#h_design) with injectable dependencies
