@@ -42,7 +42,7 @@ Each image request is represented by `Request` struct which can be created with 
 You can add an arbitrary number of image processors to the request.
 
 ```swift
-Nuke.loadImage(with: Request(url: url).process(with: BlurFilter()), into: imageView)
+Nuke.loadImage(with: Request(url: url).process(with: GaussianBlur()), into: imageView)
 ```
 
 
