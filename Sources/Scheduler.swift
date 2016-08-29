@@ -29,7 +29,7 @@ internal final class DispatchQueueScheduler: Scheduler {
         if let token = token, token.isCancelling { return }
         let work = DispatchWorkItem(block: closure)
         queue.async(execute: work)
-        token?.register { work.cancel() }
+        token?.register { [weak work] in work?.cancel() }
     }
 }
 
@@ -52,7 +52,7 @@ public final class OperationQueueScheduler: AsyncScheduler {
         if let token = token, token.isCancelling { return }
         let operation = Operation(starter: closure)
         queue.addOperation(operation)
-        token?.register { operation.cancel() }
+        token?.register { [weak operation] in operation?.cancel() }
     }
 }
 
