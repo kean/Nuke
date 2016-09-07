@@ -6,7 +6,7 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-Micro-framework for loading, processing, caching and [preheating](https://kean.github.io/blog/image-preheating) images.
+Swift μ-framework for loading, processing, caching and [preheating](https://kean.github.io/blog/image-preheating) images.
 
 ## <a name="h_features"></a>Features
 
