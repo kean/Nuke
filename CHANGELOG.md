@@ -1,5 +1,10 @@
 [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+## Nuke 3.2
+
+- Swift 2.3 support
+- Preheating is now thread-safe #75
+
 ## Nuke 3.1.2
 
 - #71 ImageViewLoadingController now cancels tasks synchronously, thanks to @adomanico
