@@ -82,7 +82,7 @@ public extension Promise {
         }
     }
     
-    public func then(on queue: DispatchQueue = .main, fulfilment: (@escaping (T) -> Void)?, rejection: (@escaping (Error) -> Void)?) -> Promise {
+    public func then(on queue: DispatchQueue = .main, fulfilment: ((T) -> Void)?, rejection: ((Error) -> Void)?) -> Promise {
         completion(on: queue) { resolution in
             switch resolution {
             case let .fulfilled(val): fulfilment?(val)
