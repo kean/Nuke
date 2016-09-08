@@ -36,7 +36,7 @@ public class Manager {
     /// associated with the target by the time the request is completed.
     ///
     /// See `loadImage(with:into:)` method for more info.
-    public func loadImage(with request: Request, into target: AnyObject, handler: Handler) {
+    public func loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler) {
         assert(Thread.isMainThread)
         
         // Cancel existing request
