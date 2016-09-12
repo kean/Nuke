@@ -6,7 +6,7 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-Swift μ-framework for loading, processing, caching and [preheating](https://kean.github.io/blog/image-preheating) images.
+A powerful **image loading** and **caching** framework.
 
 ## <a name="h_features"></a>Features
 
@@ -15,8 +15,8 @@ Swift μ-framework for loading, processing, caching and [preheating](https://kea
 - Hassle-free image loading into image views (and other targets)
 - Two [cache layers](https://kean.github.io/blog/image-caching) including auto-purging LRU memory cache
 - Image transformations
-- Automated [preheating (prefetching)](https://kean.github.io/blog/image-preheating)
-- [Pipeline](#h_design) with injectable dependencies
+- Automated [prefetching](https://kean.github.io/blog/image-preheating)
+- [Freedom to use](#h_design) networking, caching, and other libraries of your choice
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
 
 ## <a name="h_getting_started"></a>Getting Started
@@ -24,6 +24,10 @@ Swift μ-framework for loading, processing, caching and [preheating](https://kea
 - [Homepage](http://kean.github.io/Nuke)
 - [Documentation](http://kean.github.io/Nuke/docs/)
 - Demo project (`pod try Nuke`)
+
+## <a name="h_migration_guides"></a>Migration Guides
+
+- [Nuke 4 Migration Guide](https://github.com/kean/Nuke/blob/master/Docs/Nuke%204%20Migration%20Guide.md)
 
 ## <a name="h_usage"></a>Usage
 
@@ -58,7 +62,7 @@ struct GaussianBlur: Processing {
         return image.applyFilter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
     }
 
-    // `Processing` protocol inherits `Equatable` to identify cached images
+    // `Processing` protocol requires `Equatable` to identify cached images
     func ==(lhs: GaussianBlur, rhs: GaussianBlur) -> Bool {
         return lhs.radius == rhs.radius
     }

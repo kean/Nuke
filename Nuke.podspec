@@ -1,9 +1,9 @@
 Pod::Spec.new do |s|
     s.name             = 'Nuke'
     s.version          = '4.0-beta2'
-    s.summary          = 'Advanced Swift framework for loading, processing and caching images'
+    s.summary          = 'A powerful image loading and caching framework'
     s.description  = <<-EOS
-    Advanced pure Swift framework for loading, caching, processing, displaying and preheating images.
+    A powerful image loading and caching framework.
 
     Has full featured UI extensions, support for image filters, optional Alamofire and FLAnimatedImage plugins and [more](https://github.com/kean/Nuke).
     EOS
@@ -20,5 +20,4 @@ Pod::Spec.new do |s|
     s.tvos.deployment_target = '9.0'
 
     s.source_files  = 'Sources/**/*'
-    s.watchos.exclude_files = 'Sources/ImageLoadingView.swift'
 end
