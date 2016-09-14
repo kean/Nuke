@@ -4,15 +4,14 @@
 
 import Foundation
 
-/// Manages preheating (prefetching, precaching) of images.
+/// Prefetches and caches image in order to eliminate delays when you request 
+/// individual images later.
 ///
-/// When you are working with a collection of images, a `Preheater` can prepare
-/// images in the background in order to eliminate delays when you later request
-/// individual images.
-///
-/// To start preheating images call `startPreheating(with:)` method. When you
+/// To start preheating call `startPreheating(with:)` method. When you
 /// need an individual image just start loading an image using `Loading` object.
 /// When preheating is no longer necessary call `stopPreheating(with:)` method.
+///
+/// All `Preheater` methods are thread-safe.
 public class Preheater {
     private let loader: Loading
     private let scheduler: AsyncScheduler
@@ -28,7 +27,7 @@ public class Preheater {
         self.scheduler = scheduler
     }
 
-    /// Prepares images for the given requests for later use.
+    /// Preheats images for the given requests.
     ///
     /// When you call this method, `Preheater` starts to load and cache images
     /// for the given requests. At any time afterward, you can create tasks
@@ -58,7 +57,8 @@ public class Preheater {
         }
     }
     
-    /// Cancels image preparation for the given requests.
+    /// Stops preheating images for the given requests and cancels outstanding
+    /// requests.
     public func stopPreheating(with requests: [Request]) {
         queue.async {
             requests.forEach { request in

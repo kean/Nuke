@@ -4,7 +4,7 @@
 
 import Foundation
 
-/// Performs loading of images.
+/// Loads images.
 public protocol Loading {
     /// Loads an image with the given request.
     func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image>
@@ -17,16 +17,19 @@ public extension Loading {
     }
 }
 
-/// Performs loading of images.
+/// `Loader` implements an image loading pipeline which consists of the
+/// several steps:
 ///
-/// `Loader` implements an image loading pipeline. First, data is loaded using
-/// an object conforming to `DataLoading` protocol. Then data is decoded using
-/// `DataDecoding` object. Decoded images are then processed by objects
-/// conforming to `Processing` protocol which are provided by the `Request`.
+/// 1. Read an image from the memory cache (if cache isn't `nil`). If the image
+/// is found skip remaining steps.
+/// 2. Load data using an object conforming to `DataLoading` protocol.
+/// 3. Create an image with the data using `DataDecoding` object.
+/// 4. Transform the image using processor (`Processing`) provided in the request.
+/// 5. Save the image into the memory cache (if cache isn't `nil`).
 ///
-/// You can initialize `Loader` with `Caching` object to add memory caching
+/// See built-in `CachingDataLoader` class if you need to add custom data cache
 /// into the pipeline.
-public class Loader: Loading {
+public class Loader: Loading { // thread-safe
     public let loader: DataLoading
     public let decoder: DataDecoding
     public let cache: Caching?

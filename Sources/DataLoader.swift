@@ -4,7 +4,7 @@
 
 import Foundation
 
-/// Performs loading of data.
+/// Loads data.
 public protocol DataLoading {
     /// Loads data with the given request.
     func loadData(with request: URLRequest, token: CancellationToken?) -> Promise<(Data, URLResponse)>
@@ -52,10 +52,7 @@ public final class DataLoader: DataLoading {
     }
 }
 
-/// Provides storage for `CachedURLResponse` objects.
-///
-/// Nuke doesn't provide a built-in implementation of this protocol. It's easy
-/// to implement one as an extension of some existing library (like `DFCache`).
+/// Stores `CachedURLResponse` objects.
 public protocol DataCaching {
     /// Returns response for the given request.
     func response(for request: URLRequest, token: CancellationToken?) -> Promise<CachedURLResponse>

@@ -20,12 +20,13 @@ public protocol DataDecoding {
 
 private let queue = DispatchQueue(label: "com.github.kean.Nuke.DataDecoder")
 
-/// Decodes image data. Image scale is set to the scale of the main screen.
+/// Decodes image data.
 public struct DataDecoder: DataDecoding {
     /// Initializes the receiver.
     public init() {}
 
-    /// Decodes image data using built-in `Image` initializers.
+    /// Creates an `UIImage` (`NSImage` on macOS) with the given data.
+    /// Image scale is set to the scale of the main screen.
     public func decode(data: Data, response: URLResponse) -> Image? {
         guard DataDecoder.validate(response: response) else { return nil }
         // Image initializers are not thread safe:

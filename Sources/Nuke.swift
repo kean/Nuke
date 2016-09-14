@@ -14,22 +14,21 @@ import Foundation
     public typealias Image = UIImage
 #endif
 
-/// Asynchronously fulfills the request into the given target.
+/// Loads an image into the given target.
 ///
 /// For more info see `loadImage(with:into:)` method of `Manager`.
 public func loadImage(with url: URL, into target: Target) {
     Manager.shared.loadImage(with: url, into: target)
 }
 
-/// Asynchronously fulfills the request into the given target.
+/// Loads an image into the given target.
 ///
 /// For more info see `loadImage(with:into:)` method of `Manager`.
 public func loadImage(with request: Request, into target: Target) {
     Manager.shared.loadImage(with: request, into: target)
 }
 
-/// Asynchronously fulfills the request into the given target and calls
-/// the given `handler`.
+/// Loads an image into the given target and calls the given `handler`.
 ///
 /// For more info see `loadImage(with:into:handler:)` method of `Manager`.
 public func loadImage(with request: Request, into target: AnyObject, handler: @escaping Manager.Handler) {

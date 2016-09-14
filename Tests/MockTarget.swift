@@ -6,9 +6,9 @@ import Foundation
 import Nuke
 
 class MockTarget: Target {
-    var handler: ((Resolution<Image>, Bool) -> Void)?
+    var handler: Manager.Handler?
     
-    func handle(response: Resolution<Image>, isFromMemoryCache: Bool) {
+    func handle(response: Response, isFromMemoryCache: Bool) {
         handler?(response, isFromMemoryCache)
     }
 }

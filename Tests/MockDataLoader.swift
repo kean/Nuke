@@ -16,7 +16,7 @@ class MockDataLoader: DataLoading {
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
     
     var createdTaskCount = 0
-    var results = [URL: Resolution<(Data, URLResponse)>]()
+    var results = [URL: PromiseResolution<(Data, URLResponse)>]()
     let queue = OperationQueue()
 
     func loadData(with request: URLRequest, token: CancellationToken?) -> Promise<(Data, URLResponse)> {

@@ -4,42 +4,45 @@
 
 import Foundation
 
-/// Manages execution of the requests into arbitrary targets.
+/// Loads images into the given targets.
+///
+/// All methods should be called on the main thread.
 public class Manager {
     public let loader: Loading
     public let cache: Caching?
     
-    /// Initializes the `Manager` with the given image loader and memory cache.
+    /// Initializes the `Manager` with the image loader and the memory cache.
+    /// - parameter cache: `nil` by default.
     public init(loader: Loading, cache: Caching? = nil) {
         self.loader = loader
         self.cache = cache
     }
     
-    /// Asynchronously fulfills the request into the given target.
-    /// Cancels previous request started for the given target.
+    /// Loads an image into the given target. Cancels previous outstanding request
+    /// associated with the target.
+    ///
+    /// If the image is stored in the memory cache, the image is displayed
+    /// immediately. The image is loaded using the `loader` object otherwise.
     ///
     /// `Manager` keeps a weak reference to the target. If the target deallocates
     /// the associated request automatically gets cancelled.
-    ///
-    /// If the image is stored in the memory cache, the image is displayed
-    /// immediately. The image is loaded using the `Loading` object otherwise.
     public func loadImage(with request: Request, into target: Target) {
         loadImage(with: request, into: target) { [weak target] in
             target?.handle(response: $0, isFromMemoryCache: $1)
         }
     }
     
-    public typealias Handler = (Resolution<Image>, _ isFromMemoryCache: Bool) -> Void
+    public typealias Handler = (Response, _ isFromMemoryCache: Bool) -> Void
     
-    /// Asynchronously fulfills the request into the given target and calls
-    /// the `handler`. The handler gets called only if the request is still
-    /// associated with the target by the time the request is completed.
+    /// Loads an image into the given target and calls the given `handler`.
+    /// The handler only gets called if the request is still associated with
+    /// the target by the time it's completed.
     ///
     /// See `loadImage(with:into:)` method for more info.
     public func loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler) {
         assert(Thread.isMainThread)
         
-        // Cancel existing request
+        // Cancel outstanding request
         cancelRequest(for: target)
         
         // Quick memory cache lookup
@@ -60,9 +63,7 @@ public class Manager {
         }
     }
     
-    /// Cancels the request which is currently associated with the target.
-    ///
-    /// The request might still complete after the cancellation.
+    /// Cancels an outstanding request associated with the target.
     public func cancelRequest(for target: AnyObject) {
         assert(Thread.isMainThread)
         Manager.getContext(for: target)?.cts?.cancel()
@@ -83,7 +84,7 @@ public class Manager {
         
         init(_ cts: CancellationTokenSource) { self.cts = cts }
         
-        // Automatically cancel request when target deallocates
+        // Automatically cancel the request when target deallocates
         deinit { cts?.cancel() }
     }
 }
@@ -91,15 +92,18 @@ public class Manager {
 private var contextAK = "Manager.Context.AssociatedKey"
 
 public extension Manager {
+    /// Loads an image into the given target.
     public func loadImage(with url: URL, into target: Target) {
         loadImage(with: Request(url: url), into: target)
     }
 }
 
+public typealias Response = PromiseResolution<Image>
+
 /// Represents an arbitrary target for image loading.
 public protocol Target: class {
     /// Callback that gets called when the request gets completed.
-    func handle(response: Resolution<Image>, isFromMemoryCache: Bool)
+    func handle(response: Response, isFromMemoryCache: Bool)
 }
 
 #if os(macOS)
@@ -117,7 +121,7 @@ public protocol Target: class {
     extension ImageView: Target {
         /// Displays an image on success. Runs `opacity` transition if
         /// the response was not from the memory cache.
-        public func handle(response: Resolution<Image>, isFromMemoryCache: Bool) {
+        public func handle(response: Response, isFromMemoryCache: Bool) {
             switch response {
             case let .fulfilled(image):
                 self.image = image

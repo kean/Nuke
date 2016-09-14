@@ -4,11 +4,10 @@
 
 import Foundation
 
-/// Deduplicates equivalent requests.
+/// Combines requests with the same `loadKey` into a single request. This request
+/// is only cancelled when all underlying requests are cancelled.
 ///
-/// If you attempt to load the same image using `Deduplicator` more than once
-/// before the initial load is complete, it will merge duplicate requests.
-/// The image will be loaded just once.
+/// All `Deduplicator` methods are thread-safe.
 public final class Deduplicator: Loading {
     private let loader: Loading
     private var tasks = [AnyHashable: Task]()
@@ -21,8 +20,7 @@ public final class Deduplicator: Loading {
         self.loader = loader
     }
 
-    /// Returns an existing pending promise if there is one. Starts a new load
-    /// request otherwise.
+    /// Returns an existing pending promise if there is one. Starts a new request otherwise.
     public func loadImage(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
         return queue.sync {
             let key = Request.loadKey(for: request)

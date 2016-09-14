@@ -8,12 +8,10 @@ import Foundation
 public struct Request {
     public var urlRequest: URLRequest
     
-    /// Initializes `Request` with the URL.
     public init(url: URL) {
         self.urlRequest = URLRequest(url: url)
     }
-    
-    /// Initializes `Request` with the URL request.
+
     public init(urlRequest: URLRequest) {
         self.urlRequest = urlRequest
     }
@@ -40,17 +38,17 @@ public struct Request {
     /// `MemoryCacheOptions()` by default.
     public var memoryCacheOptions = MemoryCacheOptions()
 
-    /// Returns key which compares requests with regards to loading images.
+    /// Returns a key that compares requests with regards to loading images.
     ///
-    /// If `nil` default key is used. `nil` by default.
+    /// If `nil` default key is used. See `Request.loadKey(for:)` for more info.
     public var loadKey: AnyHashable?
 
-    /// Returns key which compares requests with regards to cachings images.
+    /// Returns a key that compares requests with regards to caching images.
     ///
-    /// If `nil` default key is used. `nil` by default.
+    /// If `nil` default key is used. See `Request.cacheKey(for:)` for more info.
     public var cacheKey: AnyHashable?
 
-    /// Allows you to pass custom info alongside the request.
+    /// Custom info passed alongside the request.
     public var userInfo: Any?
 }
 
@@ -70,8 +68,8 @@ public extension Request {
 }
 
 public extension Request {
-    /// Returns key which compares requests with regards to cachings images.
-    /// Returns `cacheKey` if not nil. Returns default key otherwise.
+    /// Returns a key which compares requests with regards to caching images.
+    /// Returns `cacheKey` if not `nil`. Returns default key otherwise.
     ///
     /// The default key considers two requests equivalent it they have the same
     /// `URLRequests` and the same processors. `URLRequests` are compared
@@ -82,8 +80,8 @@ public extension Request {
         })
     }
     
-    /// Returns key which compares requests with regards to loading images.
-    /// Returns `loadKey` if not nil. Returns default key otherwise.
+    /// Returns a key which compares requests with regards to loading images.
+    /// Returns `loadKey` if not `nil`. Returns default key otherwise.
     ///
     /// The default key considers two requests equivalent it they have the same
     /// `URLRequests` and the same processors. `URLRequests` are compared by

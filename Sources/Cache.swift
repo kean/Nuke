@@ -9,9 +9,9 @@ import Foundation
     import UIKit
 #endif
 
-/// Provides in-memory storage for images.
+/// In-memory image cache.
 ///
-/// The implementation is expected to be thread safe.
+/// The implementation must be thread safe.
 public protocol Caching: class {
     /// Accesses the image associated with the given key.
     subscript(key: AnyHashable) -> Image? { get set }
@@ -25,14 +25,15 @@ public extension Caching {
     }
 }
 
-/// Auto-purging memory cache with LRU cleanup algorithm.
+/// Auto-purging in-memory cache with LRU cleanup.
 public final class Cache: Caching {
     // We don't use `NSCache` because it's not LRU
     
     private var map = [AnyHashable: Node<CachedImage>]()
     private var list = LinkedList<CachedImage>()
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Cache")
-    
+
+    /// `Cache` automatically shrinks when capacity is reduced.
     public var capacity: Int { didSet { cleanup() } }
     private var usedCost = 0
     
@@ -44,7 +45,7 @@ public final class Cache: Caching {
     
     /// Initializes `Cache`.
     /// - parameter capacity: Default value is calculated based on the amount
-    /// of available memory.
+    /// of the available memory.
     public init(capacity: Int = Cache.defaultCapacity()) {
         self.capacity = capacity
         #if os(iOS) || os(tvOS)

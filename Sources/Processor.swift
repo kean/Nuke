@@ -59,23 +59,18 @@ public struct AnyProcessor: Processing {
 
     import UIKit
 
-    /// Decompresses and (optionally) scales input images.
+    /// Decompresses and (optionally) scales down input images. Maintains
+    /// original aspect ratio.
     ///
-    /// Images are decompressed and scaled in a single pass which improves
-    /// performance and reduces memory usage.
-    ///
-    /// If the input image size is bigger then the `targetSize` the image is
-    /// resized to either fit or fill the size (see `ContentMode` enum
-    /// for more info). Image aspect ratio is always maintained.
+    /// Images are decompressed and scaled in a single pass which is extremely
+    /// efficient when scaling images down by a large factor.
     public struct Decompressor: Processing {
-        /// An option for how to resize the image to the target size.
         public enum ContentMode {
             /// Scales the image so that it completely fills the target size.
-            /// Maintains image aspect ratio. Images are not clipped.
+            /// Doesn't clip images.
             case aspectFill
             
-            /// Scales the image so that its larger dimension fits the target size.
-            /// Maintains image aspect ratio.
+            /// Scales the image so that it fits the target size.
             case aspectFit
         }
         
