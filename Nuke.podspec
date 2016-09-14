@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name             = 'Nuke'
-    s.version          = '4.0-beta2'
+    s.version          = '4.0-beta3'
     s.summary          = 'A powerful image loading and caching framework'
     s.description  = <<-EOS
     A powerful image loading and caching framework.

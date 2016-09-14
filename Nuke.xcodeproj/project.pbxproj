@@ -96,6 +96,10 @@
 		0C75279E1D473AEF00EC6222 /* MockImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockImageCache.swift */; };
 		0C75279F1D473AEF00EC6222 /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
 		0C7527A01D473AF100EC6222 /* MockImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C01287F1D43E85100668A1F /* MockImageLoader.swift */; };
+		0C778CFD1D89634B00361A1F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C778CFC1D89634B00361A1F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		0C778CFE1D89634B00361A1F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C778CFC1D89634B00361A1F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		0C778CFF1D89634B00361A1F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C778CFC1D89634B00361A1F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		0C778D001D89634B00361A1F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C778CFC1D89634B00361A1F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0C7C067C1BCA882A00089D7F /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C7C06971BCA888800089D7F /* MockDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockDataLoader.swift */; };
 		0C7C06981BCA888800089D7F /* Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068D1BCA888800089D7F /* Tests.swift */; };
@@ -103,10 +107,6 @@
 		0C8BE62A1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
 		0C8BE62B1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
 		0C8BE62C1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
-		0CAD12071D3FDD22004CE84F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0CAD12051D3FDCEB004CE84F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		0CAD12091D3FDD4A004CE84F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0CAD12051D3FDCEB004CE84F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		0CAD120A1D3FDD4F004CE84F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0CAD12051D3FDCEB004CE84F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		0CAD120B1D3FDD53004CE84F /* Nuke.h in Headers */ = {isa = PBXBuildFile; fileRef = 0CAD12051D3FDCEB004CE84F /* Nuke.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		0CC345A81BD96D2A005C2DD8 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CC345971BD96CFE005C2DD8 /* Nuke.framework */; };
 		0CC345C01BD96E16005C2DD8 /* MockImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockImageCache.swift */; };
 		0CC345C11BD96E16005C2DD8 /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
@@ -171,6 +171,7 @@
 		0C34BF661D4D15B6006B8A57 /* CancellationToken.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CancellationToken.swift; sourceTree = "<group>"; };
 		0C5D81831D46A18F000ECCB6 /* IntegrationTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IntegrationTests.swift; sourceTree = "<group>"; };
 		0C5D81871D46A385000ECCB6 /* ThreadSafetyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThreadSafetyTests.swift; sourceTree = "<group>"; };
+		0C778CFC1D89634B00361A1F /* Nuke.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke iOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C7C06821BCA888800089D7F /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; name = Info.plist; path = Tests/Info.plist; sourceTree = "<group>"; };
 		0C7C06871BCA888800089D7F /* CacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CacheTests.swift; sourceTree = "<group>"; };
@@ -185,7 +186,6 @@
 		0C8BE6291D45E6EC00613839 /* Image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = Image.jpg; path = Tests/Image.jpg; sourceTree = SOURCE_ROOT; };
 		0C9174901BAE99EE004A7905 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C94466D1D47EC0E006DB314 /* ManagerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ManagerTests.swift; sourceTree = "<group>"; };
-		0CAD12051D3FDCEB004CE84F /* Nuke.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0CC345971BD96CFE005C2DD8 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CC345A31BD96D2A005C2DD8 /* Nuke tvOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke tvOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0CD195291D4348AC00E011BB /* PreheaterTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreheaterTests.swift; sourceTree = "<group>"; };
@@ -253,6 +253,7 @@
 		0C096C781BAE9AC9007FE380 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				0C778CFC1D89634B00361A1F /* Nuke.h */,
 				0C096C791BAE9AC9007FE380 /* Info.plist */,
 			);
 			path = "Supporting Files";
@@ -261,7 +262,6 @@
 		0C096C7B1BAE9ADD007FE380 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				0CAD12051D3FDCEB004CE84F /* Nuke.h */,
 				0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */,
 				0C8808CC1D45197100CDDA91 /* Core */,
 				0C8808CD1D45197D00CDDA91 /* Advanced */,
@@ -385,7 +385,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0CAD120A1D3FDD4F004CE84F /* Nuke.h in Headers */,
+				0C778CFF1D89634B00361A1F /* Nuke.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -393,7 +393,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0CAD12091D3FDD4A004CE84F /* Nuke.h in Headers */,
+				0C778CFE1D89634B00361A1F /* Nuke.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -401,7 +401,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0CAD12071D3FDD22004CE84F /* Nuke.h in Headers */,
+				0C778CFD1D89634B00361A1F /* Nuke.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -409,7 +409,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0CAD120B1D3FDD53004CE84F /* Nuke.h in Headers */,
+				0C778D001D89634B00361A1F /* Nuke.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -852,6 +852,7 @@
 				PRODUCT_NAME = Nuke;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "appletvsimulator appletvos";
 				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 2.0;
@@ -873,6 +874,7 @@
 				PRODUCT_NAME = Nuke;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "appletvsimulator appletvos";
 				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 2.0;
@@ -898,6 +900,7 @@
 				PRODUCT_NAME = Nuke;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_VERSION = 3.0;
 			};
 			name = Debug;
@@ -921,6 +924,7 @@
 				PRODUCT_NAME = Nuke;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
 				SWIFT_VERSION = 3.0;
 			};
 			name = Release;
@@ -999,7 +1003,6 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -1020,8 +1023,8 @@
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
-				SWIFT_INSTALL_OBJC_HEADER = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
@@ -1048,7 +1051,6 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -1062,7 +1064,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
-				SWIFT_INSTALL_OBJC_HEADER = NO;
+				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -1086,7 +1088,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 3.0;
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 			};
 			name = Debug;
 		};
@@ -1106,7 +1108,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 3.0;
+				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 			};
 			name = Release;
 		};
@@ -1126,6 +1128,7 @@
 				PRODUCT_NAME = Nuke;
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
 				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 9.0;
@@ -1148,6 +1151,7 @@
 				PRODUCT_NAME = Nuke;
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
 				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 9.0;
