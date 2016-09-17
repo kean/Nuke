@@ -7,5 +7,4 @@ target 'Nuke Demo' do
 	pod 'Nuke-Alamofire-Plugin', :git => 'https://github.com/kean/Nuke-Alamofire-Plugin', :branch => 'swift3'
 	pod 'DFCache'
 	pod 'Preheat', :git => 'https://github.com/kean/Preheat', :branch => 'swift3'
-	pod 'Alamofire', :git => 'https://github.com/Alamofire/Alamofire', :branch => 'swift3'
 end

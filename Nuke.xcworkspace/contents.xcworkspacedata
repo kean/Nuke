@@ -5,6 +5,13 @@
       location = "group:Nuke.xcodeproj">
    </FileRef>
    <Group
+      location = "group:Docs"
+      name = "Docs">
+      <FileRef
+         location = "group:Nuke 4 Migration Guide.md">
+      </FileRef>
+   </Group>
+   <Group
       location = "container:"
       name = "Metadata">
       <FileRef

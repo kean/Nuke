@@ -25,7 +25,7 @@ Here's a few design principles adopted in Nuke 4:
 - **Principle of Least Astonishment**. Nuke 3 had a several excessive protocols, classes and methods which are *all gone* now (`ImageTask`, `ImageResponseInfo`, `ImageManagerConfiguration` just to name a few). Those features were re-implemented in a straightforward manner and are much easier to use now.
 - **Simpler Async**. Image loading involves a lot of asynchronous code, managing it was a chore. Nuke 4 adopts two design patterns (**Promise** and **CancellationToken**) that solves most of those problems.
 
-The adoption of those design principles resulted in a simpler, more testable, and more concise code base (which is now under 850 slocs, compared to AlamofireImage's 1426, and Kingfisher's whopping 2357).
+The adoption of those design principles resulted in a simpler, more testable, and more concise code base (which is now under 900 slocs, compared to AlamofireImage's 1426, and Kingfisher's whopping 2357).
 
 I hope that Nuke 4 is going to be a pleasure to use. Thanks for your interest 😄
 

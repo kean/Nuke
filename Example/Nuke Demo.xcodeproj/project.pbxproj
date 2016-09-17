@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0C0CCD9E1BACC1A7002D10D5 /* PreheatingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */; };
+		0C3A69CE1D8D3E2200339CC2 /* RateLimiterDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C3A69CD1D8D3E2200339CC2 /* RateLimiterDemoViewController.swift */; };
 		0C826FA51BAC066E0069FCE1 /* BasicDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */; };
 		0C826FA71BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */; };
 		0CAA23701BAC9C6A002D7080 /* AlamofireDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */; };
@@ -23,6 +24,7 @@
 
 /* Begin PBXFileReference section */
 		0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreheatingDemoViewController.swift; sourceTree = "<group>"; };
+		0C3A69CD1D8D3E2200339CC2 /* RateLimiterDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RateLimiterDemoViewController.swift; sourceTree = "<group>"; };
 		0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BasicDemoViewController.swift; sourceTree = "<group>"; };
 		0C826FA61BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnimatedImageDemoViewController.swift; sourceTree = "<group>"; };
 		0CAA236F1BAC9C6A002D7080 /* AlamofireDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AlamofireDemoViewController.swift; sourceTree = "<group>"; };
@@ -91,6 +93,7 @@
 				0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */,
 				0CE7E9FE1C9C419A0082216D /* CustomCacheDemoViewController.swift */,
 				0CE7EA001C9C42700082216D /* DFCacheExtensions.swift */,
+				0C3A69CD1D8D3E2200339CC2 /* RateLimiterDemoViewController.swift */,
 				607FACD91AFB9204008FA782 /* Main.storyboard */,
 				607FACDC1AFB9204008FA782 /* Images.xcassets */,
 				607FACDE1AFB9204008FA782 /* LaunchScreen.xib */,
@@ -216,7 +219,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_ROOT}/../Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [[ $? != 0 ]] ; then\n    cat << EOM\nerror: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\nEOM\n    exit 1\nfi\n";
+			shellScript = "diff \"${PODS_ROOT}/../Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 		76BF124BD5037FFCBDAA20F1 /* [CP] Embed Pods Frameworks */ = {
@@ -245,6 +248,7 @@
 				0C0CCD9E1BACC1A7002D10D5 /* PreheatingDemoViewController.swift in Sources */,
 				0C826FA51BAC066E0069FCE1 /* BasicDemoViewController.swift in Sources */,
 				607FACD81AFB9204008FA782 /* MenuViewController.swift in Sources */,
+				0C3A69CE1D8D3E2200339CC2 /* RateLimiterDemoViewController.swift in Sources */,
 				0CAA23701BAC9C6A002D7080 /* AlamofireDemoViewController.swift in Sources */,
 				0CE7E9FF1C9C419A0082216D /* CustomCacheDemoViewController.swift in Sources */,
 				0C826FA71BAC0BA70069FCE1 /* AnimatedImageDemoViewController.swift in Sources */,

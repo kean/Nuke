@@ -67,6 +67,12 @@ class MenuViewController: UITableViewController {
             self?.push(controller)
         })
         
+        items.append(MenuItem(title: "Rate Limiter Demo", subtitle: "Infinite scroll, highlights rate limiter performance") { [weak self] in
+            let controller = RateLimiterDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+            controller.title = $0.title
+            self?.push(controller)
+        })
+        
         sections.append(MenuSection(title: "Nuke", items: items))
     }
     

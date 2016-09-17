@@ -11,6 +11,7 @@ class BasicDemoViewController: UICollectionViewController {
     var photos: [URL]!
     
     var manager = Nuke.Manager.shared
+    var itemsPerRow = 4
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -35,7 +36,6 @@ class BasicDemoViewController: UICollectionViewController {
         let layout = collectionViewLayout as! UICollectionViewFlowLayout
         layout.minimumLineSpacing = 2.0
         layout.minimumInteritemSpacing = 2.0
-        let itemsPerRow = 4
         let side = (Double(view.bounds.size.width) - Double(itemsPerRow - 1) * 2.0) / Double(itemsPerRow)
         layout.itemSize = CGSize(width: side, height: side)
     }
@@ -53,11 +53,15 @@ class BasicDemoViewController: UICollectionViewController {
         let imageView = imageViewForCell(cell)
         imageView.image = nil
 
-        let request = Request(url: photos[indexPath.row])
+        let request = makeRequest(with: photos[indexPath.row])
 
         manager.loadImage(with: request, into: imageView)
         
         return cell
+    }
+    
+    func makeRequest(with url: URL) -> Request {
+        return Request(url: url)
     }
 
     func imageViewForCell(_ cell: UICollectionViewCell) -> UIImageView {
@@ -71,5 +75,11 @@ class BasicDemoViewController: UICollectionViewController {
             cell.addSubview(imageView!)
         }
         return imageView!
+    }
+    
+    override func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        // Makes sure that requests get cancelled as soon as the
+        // cell goes offscreen
+        manager.cancelRequest(for: self.imageViewForCell(cell))
     }
 }

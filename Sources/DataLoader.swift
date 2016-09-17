@@ -19,7 +19,8 @@ public final class DataLoader: DataLoading {
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0MB memory capacity and 200MB disk capacity.
     /// - parameter scheduler: `OperationQueueScheduler` with `maxConcurrentOperationCount` 8 by default.
-    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration(), scheduler: AsyncScheduler = OperationQueueScheduler(maxConcurrentOperationCount: 8)) {
+    /// Scheduler is wrapped in a `RateLimiter` to prevent `URLSession` trashing.
+    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration(), scheduler: AsyncScheduler = RateLimiter(scheduler: OperationQueueScheduler(maxConcurrentOperationCount: 8))) {
         self.session = URLSession(configuration: configuration, delegate: nil, delegateQueue: nil)
         self.scheduler = scheduler
     }
@@ -29,7 +30,7 @@ public final class DataLoader: DataLoading {
         conf.urlCache = URLCache(memoryCapacity: 0, diskCapacity: (200 * 1024 * 1024), diskPath: "com.github.kean.Nuke.Cache")
         return conf
     }
-    
+
     /// Loads data with the given request.
     public func loadData(with request: URLRequest, token: CancellationToken? = nil) -> Promise<(Data, URLResponse)> {
         return Promise() { fulfill, reject in
