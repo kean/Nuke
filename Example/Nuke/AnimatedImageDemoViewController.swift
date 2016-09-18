@@ -13,22 +13,11 @@ private let imageCellReuseID = "imageCellReuseID"
 class AnimatedImageDemoViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout {
     var imageURLs = [URL]()
     
-    let manager: Nuke.Manager = {
-        let decoder = Nuke.DataDecoderComposition(decoders: [AnimatedImageDecoder(), Nuke.DataDecoder()])
-        let cache = Nuke.Cache().preparedForAnimatedImages()
-        let loader = Nuke.Loader(loader: Nuke.DataLoader(), decoder: decoder, cache: cache)
-        // Disable processing of animated images.
-        loader.makeProcessor = { image, request in
-            return image is AnimatedImage ? nil : request.processor
-        }
-        return Manager(loader: loader, cache: cache)
-    }()
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: textViewCellReuseID)
-        collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: imageCellReuseID)
+        collectionView?.register(AnimatedImageCell.self, forCellWithReuseIdentifier: imageCellReuseID)
         collectionView?.backgroundColor = UIColor.white
 
         let layout = collectionViewLayout as! UICollectionViewFlowLayout
@@ -78,44 +67,16 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
             }
             return cell
         } else {
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: imageCellReuseID, for: indexPath)
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: imageCellReuseID, for: indexPath) as! AnimatedImageCell
             
-            cell.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
-            
-            let imageView = imageViewForCell(cell)
-            imageView.image = nil
-
-            manager.loadImage(with: Request(url: imageURLs[indexPath.row]), into: imageView) { response, isFromMemoryCache in
-                switch response {
-                case let .fulfilled(image):
-                    imageView.nk_display(image)
-                    if !isFromMemoryCache {
-                        let animation = CABasicAnimation(keyPath: "opacity")
-                        animation.duration = 0.25
-                        animation.fromValue = 0
-                        animation.toValue = 1
-                        let layer: CALayer? = imageView.layer // Make compiler happy on OSX
-                        layer?.add(animation, forKey: "imageTransition")
-                    }
-                case .rejected(_): return
-                }
+            cell.activityIndicator.startAnimating()
+            AnimatedImage.manager.loadImage(with: Request(url: imageURLs[indexPath.row]), into: cell.imageView) { [weak cell] in
+                cell?.activityIndicator.stopAnimating()
+                cell?.imageView.handle(response: $0, isFromMemoryCache: $1)
             }
             
             return cell
         }
-    }
-    
-    func imageViewForCell(_ cell: UICollectionViewCell) -> FLAnimatedImageView {
-        var imageView: FLAnimatedImageView! = cell.viewWithTag(15) as? FLAnimatedImageView
-        if imageView == nil {
-            imageView = FLAnimatedImageView(frame: cell.bounds)
-            imageView.autoresizingMask =  [.flexibleWidth, .flexibleHeight]
-            imageView.tag = 15
-            imageView.contentMode = .scaleAspectFill
-            imageView.clipsToBounds = true
-            cell.addSubview(imageView!)
-        }
-        return imageView!
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
@@ -126,5 +87,41 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
         } else {
             return CGSize(width: width, height: width)
         }
+    }
+}
+
+class AnimatedImageCell: UICollectionViewCell {
+    let imageView: AnimatedImageView
+    let activityIndicator: UIActivityIndicatorView
+    
+    override init(frame: CGRect) {
+        imageView = AnimatedImageView()
+        activityIndicator = UIActivityIndicatorView(activityIndicatorStyle: .gray)
+        
+        super.init(frame: frame)
+        
+        self.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
+        
+        imageView.imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        
+        contentView.addSubview(imageView)
+        imageView.frame = contentView.bounds
+        imageView.autoresizingMask =  [.flexibleWidth, .flexibleHeight]
+        
+        contentView.addSubview(activityIndicator)
+        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addConstraint(NSLayoutConstraint(item: activityIndicator, attribute: .centerX, relatedBy: .equal, toItem: contentView, attribute: .centerX, multiplier: 1.0, constant: 0.0))
+        contentView.addConstraint(NSLayoutConstraint(item: activityIndicator, attribute: .centerY, relatedBy: .equal, toItem: contentView, attribute: .centerY, multiplier: 1.0, constant: 0.0))
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        
+        imageView.imageView.image = nil
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError()
     }
 }
