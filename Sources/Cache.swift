@@ -33,9 +33,17 @@ public final class Cache: Caching {
     private var list = LinkedList<CachedImage>()
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Cache")
 
-    /// `Cache` automatically shrinks when capacity is reduced.
-    public var capacity: Int { didSet { cleanup() } }
-    private var usedCost = 0
+    /// The maximum total cost that the cache can hold.
+    public var costLimit: Int { didSet { trim() } }
+    
+    /// The maximum number of items that the cache can hold.
+    public var countLimit: Int { didSet { trim() } }
+    
+    /// The total cost of items in the cache.
+    public private(set) var totalCost = 0
+    
+    /// The total number of items in the cache.
+    public var totalCount: Int { return map.count }
     
     deinit {
         #if os(iOS) || os(tvOS)
@@ -44,16 +52,17 @@ public final class Cache: Caching {
     }
     
     /// Initializes `Cache`.
-    /// - parameter capacity: Default value is calculated based on the amount
+    /// - parameter costLimit: Default value is calculated based on the amount
     /// of the available memory.
-    public init(capacity: Int = Cache.defaultCapacity()) {
-        self.capacity = capacity
+    public init(costLimit: Int = Cache.defaultCostLimit(), countLimit: Int = Int.max) {
+        self.costLimit = costLimit
+        self.countLimit = countLimit
         #if os(iOS) || os(tvOS)
             NotificationCenter.default.addObserver(self, selector: #selector(Cache.removeAll), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
         #endif
     }
     
-    private static func defaultCapacity() -> Int {
+    private static func defaultCostLimit() -> Int {
         let physicalMemory = ProcessInfo.processInfo.physicalMemory
         let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
         let limit = physicalMemory / UInt64(1 / ratio)
@@ -76,19 +85,25 @@ public final class Cache: Caching {
         set {
             queue.sync {
                 if let image = newValue {
-                    let node = Node(value: CachedImage(image: image, cost: cost(image), key: key))
-                    map[key] = node
-                    list.append(node)
-                    
-                    usedCost += node.value.cost
-                    cleanup()
-                } else {
-                    if let node = map.removeValue(forKey: key) {
-                        list.remove(node)
-                    }
+                    add(node: Node(value: CachedImage(image: image, cost: cost(image), key: key)))
+                    trim()
+                } else if let node = map[key] {
+                    remove(node: node)
                 }
             }
         }
+    }
+    
+    private func add(node: Node<CachedImage>) {
+        list.append(node)
+        map[node.value.key] = node
+        totalCost += node.value.cost
+    }
+    
+    private func remove(node: Node<CachedImage>) {
+        list.remove(node)
+        map[node.value.key] = nil
+        totalCost -= node.value.cost
     }
     
     /// Removes all cached images.
@@ -96,16 +111,28 @@ public final class Cache: Caching {
         queue.sync {
             map.removeAll()
             list.removeAll()
-            usedCost = 0
+            totalCost = 0
         }
     }
     
-    /// Removes images until the currently used cost is smaller than capacity.
-    private func cleanup() {
-        while usedCost > capacity, let node = list.tail { // least recently used
-            list.remove(node)
-            map[node.value.key] = nil
-            usedCost -= node.value.cost
+    private func trim() {
+        trim(toCost: costLimit)
+        trim(toCount: countLimit)
+    }
+    
+    /// Removes least recently used items from the cache until the total cost
+    /// of the remaining items is less than the given cost limit.
+    public func trim(toCost limit: Int) {
+        while totalCost > limit, let node = list.tail { // least recently used
+            remove(node: node)
+        }
+    }
+    
+    /// Removes least recently used items from the cache until the total count
+    /// of the remaining items is less than the given count limit.
+    public func trim(toCount limit: Int) {
+        while totalCount > limit, let node = list.tail { // least recently used
+            remove(node: node)
         }
     }
     
