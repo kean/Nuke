@@ -67,6 +67,7 @@ public class Manager {
     public func cancelRequest(for target: AnyObject) {
         assert(Thread.isMainThread)
         Manager.getContext(for: target)?.cts?.cancel()
+        Manager.setContext(nil, for: target)
     }
     
     // Associated objects is a simplest way to bind Context and Target lifetimes
