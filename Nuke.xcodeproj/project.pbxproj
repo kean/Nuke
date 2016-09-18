@@ -848,11 +848,11 @@
 				INFOPLIST_FILE = "Supporting Files/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-watchOS";
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "appletvsimulator appletvos";
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
 				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 2.0;
@@ -870,11 +870,11 @@
 				INFOPLIST_FILE = "Supporting Files/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-watchOS";
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "appletvsimulator appletvos";
+				SUPPORTED_PLATFORMS = "watchsimulator watchos";
 				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 2.0;
@@ -1128,7 +1128,7 @@
 				PRODUCT_NAME = Nuke;
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SUPPORTED_PLATFORMS = "appletvsimulator appletvos";
 				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 9.0;
@@ -1151,7 +1151,7 @@
 				PRODUCT_NAME = Nuke;
 				SDKROOT = appletvos;
 				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "watchsimulator watchos";
+				SUPPORTED_PLATFORMS = "appletvsimulator appletvos";
 				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 9.0;
