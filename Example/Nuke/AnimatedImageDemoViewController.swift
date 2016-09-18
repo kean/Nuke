@@ -14,7 +14,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
     var imageURLs = [URL]()
     
     let manager: Nuke.Manager = {
-        let decoder = NukeAnimatedImagePlugin.DataDecoderComposition(decoders: [AnimatedImageDecoder(), Nuke.DataDecoder()])
+        let decoder = Nuke.DataDecoderComposition(decoders: [AnimatedImageDecoder(), Nuke.DataDecoder()])
         let cache = Nuke.Cache().preparedForAnimatedImages()
         let loader = Nuke.Loader(loader: Nuke.DataLoader(), decoder: decoder, cache: cache)
         return Manager(loader: loader, cache: cache)

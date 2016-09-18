@@ -51,3 +51,24 @@ public struct DataDecoder: DataDecoding {
         return (200..<300).contains(response.statusCode)
     }
 }
+
+/// Composes multiple data decoders.
+public class DataDecoderComposition: DataDecoding {
+    public let decoders: [DataDecoding]
+    
+    /// Composes multiple data decoders.
+    public init(decoders: [DataDecoding]) {
+        self.decoders = decoders
+    }
+    
+    /// Decoders are applied in order in which they are present in the decoders
+    /// array. The decoding stops when one of the decoders produces an image.
+    public func decode(data: Data, response: URLResponse) -> Image? {
+        for decoder in decoders {
+            if let image = decoder.decode(data: data, response: response) {
+                return image
+            }
+        }
+        return nil
+    }
+}
