@@ -36,6 +36,12 @@ public class Loader: Loading { // thread-safe
 
     private let schedulers: Schedulers
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
+    
+    /// Returns a processor for the given image and request. Default
+    /// implementation simply returns `request.processor`.
+    public var makeProcessor: (Image, Request) -> AnyProcessor? = {
+        return $1.processor
+    }
 
     /// Initializes `Loader` instance with the given loader, decoder and cache.
     /// - parameter schedulers: `Schedulers()` by default.
@@ -87,7 +93,7 @@ public class Loader: Loading { // thread-safe
     }
 
     private func process(image: Image, request: Request, token: CancellationToken?) -> Promise<Image> {
-        guard let processor = request.processor else { return Promise(value: image) }
+        guard let processor = makeProcessor(image, request) else { return Promise(value: image) }
         return Promise() { fulfill, reject in
             schedulers.processing.execute(token: token) {
                 if let image = processor.process(image) {

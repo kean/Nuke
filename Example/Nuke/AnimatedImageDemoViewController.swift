@@ -17,6 +17,10 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
         let decoder = Nuke.DataDecoderComposition(decoders: [AnimatedImageDecoder(), Nuke.DataDecoder()])
         let cache = Nuke.Cache().preparedForAnimatedImages()
         let loader = Nuke.Loader(loader: Nuke.DataLoader(), decoder: decoder, cache: cache)
+        // Disable processing of animated images.
+        loader.makeProcessor = { image, request in
+            return image is AnimatedImage ? nil : request.processor
+        }
         return Manager(loader: loader, cache: cache)
     }()
     
@@ -81,12 +85,7 @@ class AnimatedImageDemoViewController: UICollectionViewController, UICollectionV
             let imageView = imageViewForCell(cell)
             imageView.image = nil
 
-            var request = Request(url: imageURLs[indexPath.row])
-
-            // as an alternative you can wrap existing processor in AnimatedImageProcessor
-            request.processor = nil
-            
-            manager.loadImage(with: request, into: imageView) { response, isFromMemoryCache in
+            manager.loadImage(with: Request(url: imageURLs[indexPath.row]), into: imageView) { response, isFromMemoryCache in
                 switch response {
                 case let .fulfilled(image):
                     imageView.nk_display(image)
