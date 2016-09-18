@@ -59,6 +59,7 @@ public final class Cache: Caching {
         self.countLimit = countLimit
         #if os(iOS) || os(tvOS)
             NotificationCenter.default.addObserver(self, selector: #selector(Cache.removeAll), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(Cache.didEnterBackground), name: .UIApplicationDidEnterBackground, object: nil)
         #endif
     }
     
@@ -118,6 +119,15 @@ public final class Cache: Caching {
     private func trim() {
         trim(toCost: costLimit)
         trim(toCount: countLimit)
+    }
+    
+    private dynamic func didEnterBackground() {
+        // Remove most of the stored items when entering background.
+        // This behaviour is similar to `NSCache` (which removes all
+        // items). This feature is not documented and may be subject
+        // to change in future Nuke versions.
+        trim(toCost: Int(Double(costLimit) * 0.1))
+        trim(toCount: Int(Double(countLimit) * 0.1))
     }
     
     /// Removes least recently used items from the cache until the total cost
