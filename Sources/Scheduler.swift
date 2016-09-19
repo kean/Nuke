@@ -19,13 +19,13 @@ public protocol AsyncScheduler {
 
 // MARK: - DispatchQueueScheduler
 
-internal final class DispatchQueueScheduler: Scheduler {
-    private let queue: DispatchQueue
-    init(queue: DispatchQueue) {
+public final class DispatchQueueScheduler: Scheduler {
+    public let queue: DispatchQueue
+    public init(queue: DispatchQueue) {
         self.queue = queue
     }
 
-    func execute(token: CancellationToken?, closure: @escaping (Void) -> Void) {
+    public func execute(token: CancellationToken?, closure: @escaping (Void) -> Void) {
         if let token = token, token.isCancelling { return }
         let work = DispatchWorkItem(block: closure)
         queue.async(execute: work)
