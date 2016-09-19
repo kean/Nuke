@@ -115,7 +115,7 @@ Adding processors to the request is now easier.
 
 ```swift
 // Nuke 4 (NEW)
-request.process(with: GaussianBlur())
+request.processed(with: GaussianBlur())
 ```
 
 You can now customize cache (used for memory caching) and load (used for deduplicating equivalent requests) keys using `Request`.

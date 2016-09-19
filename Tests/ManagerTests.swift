@@ -66,19 +66,4 @@ class ManagerTests: XCTestCase {
         
         wait()
     }
-    
-    func testThatCancelledTaskStillFinishes() {
-        loader.ignoreCancellation = true
-        
-        expect { fulfill in
-            manager.loadImage(with: Request(url: defaultURL), into: view) {
-                if case .fulfilled(_) = $0 {
-                    fulfill()
-                }
-                XCTAssertFalse($1)
-            }
-            manager.cancelRequest(for: view)
-        }
-        wait()
-    }
 }

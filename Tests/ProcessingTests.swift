@@ -27,7 +27,7 @@ class ProcessingTests: XCTestCase {
     // MARK: Applying Filters
 
     func testThatImageIsProcessed() {
-        let request = Request(url: defaultURL).process(with: MockImageProcessor(ID: "processor1"))
+        let request = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "processor1"))
 
         expect { fulfill in
             _ = loader.loadImage(with: request).then { image in
@@ -40,7 +40,7 @@ class ProcessingTests: XCTestCase {
 
     func testThatProcessedImageIsMemCached() {
         expect { fulfill in
-            let request = Request(url: defaultURL).process(with:  MockImageProcessor(ID: "processor1"))
+            let request = Request(url: defaultURL).processed(with:  MockImageProcessor(ID: "processor1"))
 
             _ = loader.loadImage(with: request).then { _ in
                 fulfill()
@@ -48,7 +48,7 @@ class ProcessingTests: XCTestCase {
         }
         wait()
 
-        let request = Request(url: defaultURL).process(with: MockImageProcessor(ID: "processor1"))
+        let request = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "processor1"))
         
         guard let image = mockMemoryCache[request] else {
             XCTFail()
@@ -61,8 +61,8 @@ class ProcessingTests: XCTestCase {
 
     func testThatImageIsProcessedWithFilterComposition() {
         let request = Request(url: defaultURL)
-            .process(with: MockImageProcessor(ID: "processor1"))
-            .process(with: MockImageProcessor(ID: "processor2"))
+            .processed(with: MockImageProcessor(ID: "processor1"))
+            .processed(with: MockImageProcessor(ID: "processor2"))
 
         expect { fulfill in
             _ = loader.loadImage(with: request).then {
@@ -76,8 +76,8 @@ class ProcessingTests: XCTestCase {
     func testThatImageProcessedWithFilterCompositionIsMemCached() {
         expect { fulfill in
             let request = Request(url: defaultURL)
-                .process(with: MockImageProcessor(ID: "processor1"))
-                .process(with: MockImageProcessor(ID: "processor2"))
+                .processed(with: MockImageProcessor(ID: "processor1"))
+                .processed(with: MockImageProcessor(ID: "processor2"))
 
             _ = loader.loadImage(with: request).then { _ in
                 fulfill()
@@ -86,8 +86,8 @@ class ProcessingTests: XCTestCase {
         wait()
 
         let request = Request(url: defaultURL)
-            .process(with: MockImageProcessor(ID: "processor1"))
-            .process(with: MockImageProcessor(ID: "processor2"))
+            .processed(with: MockImageProcessor(ID: "processor1"))
+            .processed(with: MockImageProcessor(ID: "processor2"))
         
         guard let image = mockMemoryCache[request] else {
             XCTFail()

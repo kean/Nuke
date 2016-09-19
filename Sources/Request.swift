@@ -55,14 +55,20 @@ public struct Request {
 public extension Request {
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    public func process<P: Processing>(with processor: P) -> Request {
-        var request = self
+    public mutating func process<P: Processing>(with processor: P) {
         if let existing = self.processor {
             // Chain new processor and the existing one.
-            request.processor = AnyProcessor(ProcessorComposition([existing, AnyProcessor(processor)]))
+            self.processor = AnyProcessor(ProcessorComposition([existing, AnyProcessor(processor)]))
         } else {
-            request.processor = AnyProcessor(processor)
+            self.processor = AnyProcessor(processor)
         }
+    }
+    
+    /// Appends a processor to the request. You can append arbitrary number of
+    /// processors to the request.
+    public func processed<P: Processing>(with processor: P) -> Request {
+        var request = self
+        request.process(with: processor)
         return request
     }
 }

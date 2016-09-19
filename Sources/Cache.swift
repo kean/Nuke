@@ -25,7 +25,7 @@ public extension Caching {
     }
 }
 
-/// Auto-purging in-memory cache with LRU cleanup.
+/// Auto-purging memory cache with LRU cleanup.
 public final class Cache: Caching {
     // We don't use `NSCache` because it's not LRU
     

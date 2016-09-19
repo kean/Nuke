@@ -6,18 +6,21 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-A powerful **image loading** and **caching** framework.
+A powerful **image loading** and **caching** framework which allows for hassle-free image loading in your app - often in one line of code.
+
+Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into **simple**, **lightweight** package that lets you focus on *getting things done*.
 
 ## <a name="h_features"></a>Features
 
-- Simple API, zero configuration required
-- Performant, asynchronous, thread-safe
-- Hassle-free image loading into image views (and other targets)
-- Two [cache layers](https://kean.github.io/blog/image-caching) including auto-purging LRU memory cache
-- Image transformations
-- Automated [prefetching](https://kean.github.io/blog/image-preheating)
-- [Freedom to use](#h_design) networking, caching, and other libraries of your choice
+- Simple and expressive API, zero configuration required
+- Hassle-free image loading into image views and other targets
+- Two [cache layers](https://kean.github.io/blog/image-caching) including LRU memory cache
+- Extandable image transformations
+- [Freedom to use](#h_design) networking, caching libraries of your choice
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
+- Automated [prefetching](https://kean.github.io/blog/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
+- Peformant, supports large (or infinite) collection views of images
+- Comprehensive test coverage
 
 ## <a name="h_getting_started"></a>Getting Started
 
@@ -33,20 +36,50 @@ A powerful **image loading** and **caching** framework.
 
 #### Loading Images
 
-Nuke allows for hassle-free image loading into image views (and other arbitrary targets). 
+Nuke allows for hassle-free image loading into image views (and other arbitrary targets).
 
 ```swift
-Nuke.loadImage(with: URL(string: "http://...")!, into: imageView)
+Nuke.loadImage(with: url, into: imageView)
+```
+
+#### Reusing Views
+
+```swift
+func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    // View reusing is handled automatically
+    Nuke.loadImage(with: url, into: cell.imageView)
+}
+```
+
+Nuke cancels outstanding requests when the image view is reused (or deallocated). You can also (optionally) implement `collectionView(didEndDisplaying:forItemAt:)` method to cancel
+the requests as soon as the cell goes of screen.
+
+```swift
+func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+    Nuke.cancelRequest(for: cell.imageView)
+}
 ```
 
 #### Customizing Requests
 
-Each image request is represented by `Request` struct which can be created with either `URL` or `URLRequest`.
-
-You can add an arbitrary number of image processors to the request.
+Each image request is represented by `Request` struct. It can be created with either `URL` or `URLRequest` and then further customized.
 
 ```swift
-Nuke.loadImage(with: Request(url: url).process(with: GaussianBlur()), into: imageView)
+// Create and customize URLRequest
+var urlRequest = URLRequest(url: url)
+urlRequest.cachePolicy = .reloadIgnoringLocalCacheData
+urlRequest.timeoutInterval = 30
+
+var request = Request(urlRequest: urlRequest)
+
+// You can add arbitrary number of transformations to the request
+request.process(with: GaussianBlur())
+
+// Disable memory caching
+request.memoryCacheOptions.writeAllowed = false
+
+// Load an image
+Nuke.loadImage(with: request, into: imageView)
 ```
 
 
@@ -106,11 +139,20 @@ One of the Nuke's core classes is `Loader`. Its API and implementation is based 
 
 ```swift
 let cts = CancellationTokenSource()
-Loader.shared.loadImage(with: URL(string: "http://...")!, token: cts.token)
+Loader.shared.loadImage(with: url, token: cts.token)
     .then { image in print("\(image) loaded") }
     .catch { error in print("catched \(error)") }
 ```
 
+## Plugins<a name="h_plugins"></a>
+
+#### [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
+
+Allows you to replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire). Combine the power of both frameworks!
+
+#### [FLAnimatedImage Plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin)
+
+[FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) plugin allows you to load and display animated GIFs with [smooth scrolling performance](https://www.youtube.com/watch?v=fEJqQMJrET4) and low memory footprint.
 
 ## Design<a name="h_design"></a>
 
@@ -125,11 +167,13 @@ Nuke is designed to support and leverage dependency injection. It consists of a 
 |`Processing`|Image transformations|
 |`Caching`|Stores images into memory cache|
 
+You can learn more from an in-depth [Nuke 4 Migration Guide](https://github.com/kean/Nuke/blob/master/Docs/Nuke%204%20Migration%20Guide.md).
 
 ## Requirements<a name="h_requirements"></a>
 
 - iOS 9.0 / watchOS 2.0 / macOS 10.11 / tvOS 9.0
-- Xcode 8, Swift 3
+- Xcode 8
+- Swift 3
 
 
 ## Installation<a name="installation"></a>

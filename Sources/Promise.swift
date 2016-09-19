@@ -4,6 +4,8 @@
 
 import Foundation
 
+// Promise is built-in into Nuke to avoid external dependencies.
+
 public final class Promise<T> {
     private var state: PromiseState<T> = .pending(PromiseHandlers<T>())
     private var queue = DispatchQueue(label: "com.github.kean.Nuke.Promise")
