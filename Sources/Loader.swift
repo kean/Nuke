@@ -62,7 +62,7 @@ public class Loader: Loading { // thread-safe
     }
 
     private func loadImage(with request: Request, token: CancellationToken?,
-                           fulfill: @escaping (Image) -> Void, reject: @escaping (Error) -> Void) {
+                           fulfill: @escaping (Image) -> Void, reject: @escaping (Swift.Error) -> Void) {
         if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
             fulfill(image)
             return
@@ -86,7 +86,7 @@ public class Loader: Loading { // thread-safe
                 if let image = self.decoder.decode(data: data, response: response) {
                     fulfill(image)
                 } else {
-                    reject(DecodingFailed())
+                    reject(Error.decodingFailed)
                 }
             }
         }
@@ -99,7 +99,7 @@ public class Loader: Loading { // thread-safe
                 if let image = processor.process(image) {
                     fulfill(image)
                 } else {
-                    reject(ProcessingFailed())
+                    reject(Error.processingFailed)
                 }
             }
         }
@@ -115,7 +115,11 @@ public class Loader: Loading { // thread-safe
         /// `DispatchQueueScheduler` with a serial queue by default.
         public var processing: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.Processing"))
     }
-}
 
-public struct DecodingFailed: Error {}
-public struct ProcessingFailed: Error {}
+    /// Error returns by `Loader` class itself. `Loader` might also return
+    /// errors from underlying `DataLoading` object.
+    public enum Error: Swift.Error { // unfortunately I can't make it a nested type
+        case decodingFailed
+        case processingFailed
+    }
+}
