@@ -19,9 +19,9 @@
       </Group>
       <Group
          location = "group:Migration"
-         name = "Migration">
+         name = "Migrations">
          <FileRef
-            location = "group:Nuke 4 Migration Guide.md">
+            location = "group:../Migrations/Nuke 4 Migration Guide.md">
          </FileRef>
       </Group>
       <FileRef

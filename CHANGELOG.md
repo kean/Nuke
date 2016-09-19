@@ -1,5 +1,46 @@
 [Changelog](https://github.com/kean/Nuke/releases) for all versions
 
+## Nuke 4.0
+
+### Overview
+ 
+Nuke 4 has fully adopted the new **Swift 3** changes and conventions, including the new [API Design Guidelines](https://swift.org/documentation/api-design-guidelines/).
+ 
+Nuke 3 was already a slim framework. Nuke 4 takes it a step further by simplifying almost all of its components.
+ 
+Here's a few design principles adopted in Nuke 4:
+ 
+- **Protocol-Oriented Programming.** Nuke 3 promised a lot of customization by providing a set of protocols for loading, caching, transforming images, etc. However, those protocols were vaguely defined and hard to implement in practice. Protocols in Nuke 4 are simple and precise, often consisting of a single method.
+- **Single Responsibility Principle.** For example, instead of packing preheating and deduplicating of equivalent requests in a single vague `ImageManager` class, those features were implemented as a separate classes (`Preheater`, `Deduplicator`). This makes core classes much easier to reason about.
+- **Principle of Least Astonishment**. Nuke 3 had a several excessive protocols, classes and methods which are *all gone* now (`ImageTask`, `ImageResponseInfo`, `ImageManagerConfiguration` just to name a few). Those features were re-implemented in a straightforward manner and are much easier to use now.
+- **Simpler Async**. Image loading involves a lot of asynchronous code, managing it was a chore. Nuke 4 adopts two design patterns (**Promise** and **CancellationToken**) that solves most of those problems.
+ 
+The adoption of those design principles resulted in a simpler, more testable, and more concise code base (which is now under 900 slocs, compared to AlamofireImage's 1426, and Kingfisher's whopping 2357).
+ 
+I hope that Nuke 4 is going to be a pleasure to use. Thanks for your interest 😄
+ 
+You can learn more about Nuke 4 in an in-depth [**Nuke 4 Migration Guide**](https://github.com/kean/Nuke/blob/master/Documentations/Migrations/Nuke%204%20Migration%20Guide.md).
+
+### Highlighted New Features
+ 
+#### LRU Memory Cache
+ 
+Nuke 4 features a new custom LRU memory cache which replaced `NSCache`. The primary reason behind this change was the fact that `NSCache` [is not LRU](https://github.com/apple/swift-corelibs-foundation/blob/master/Foundation/NSCache.swift). The new `Nuke.Cache` has some other benefits like better performance, and more control which would enable some new advanced features in future versions.
+
+#### Rate Limiter
+ 
+There is a known problem with `URLSession` that it gets trashed pretty easily when you resume and cancel `URLSessionTasks` at a very high rate (say, scrolling a large collection view with images). Some frameworks combat this problem by simply never cancelling `URLSessionTasks` which are already in `.running` state. This is not an ideal solution, because it forces users to wait for cancelled requests for images which might never appear on the display.
+ 
+Nuke has a better, classic solution for this problem - it introduces a new `RateLimiter` class which limits the rate at which `URLSessionTasks` are created. `RateLimiter` uses a [token bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm. The implementation supports quick bursts of requests which can be executed without any delays when "the bucket is full". This is important to prevent the rate limiter from affecting "normal" requests flow. `RateLimiter` is enabled by default.
+ 
+You can see `RateLimiter` in action in a new `Rate Limiter Demo` added in the sample project.
+ 
+ 
+## Nuke 3.2
+ 
+ - Swift 2.3 support
+ - Preheating is now thread-safe #75
+
 ## Nuke 3.1.2
 
 - #71 ImageViewLoadingController now cancels tasks synchronously, thanks to @adomanico

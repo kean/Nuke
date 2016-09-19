@@ -118,7 +118,7 @@ public class Loader: Loading { // thread-safe
 
     /// Error returns by `Loader` class itself. `Loader` might also return
     /// errors from underlying `DataLoading` object.
-    public enum Error: Swift.Error { // unfortunately I can't make it a nested type
+    public enum Error: Swift.Error {
         case decodingFailed
         case processingFailed
     }

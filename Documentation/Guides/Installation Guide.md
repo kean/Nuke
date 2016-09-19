@@ -16,7 +16,7 @@ platform :ios, '10.0'
 use_frameworks!
 
 target '<Your Target Name>' do
-pod 'Nuke', '~> 4.0'
+    pod 'Nuke', '~> 4.0'
 end
 ```
 

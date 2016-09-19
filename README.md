@@ -8,7 +8,7 @@
 
 A powerful **image loading** and **caching** framework which allows for hassle-free image loading in your app - often in one line of code.
 
-Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into **simple**, **lightweight** package that lets you focus on *getting things done*.
+Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into **simple**, **lightweight** package that lets you focus on getting things done.
 
 
 ## <a name="h_features"></a>Features
@@ -28,9 +28,9 @@ Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into *
 
 - [Installation Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md)
 - [Wiki](https://github.com/kean/Nuke/blob/master/Documentation/)
-- [API Reference](http://cocoadocs.org/docsets/Nuke/)
+- [API Reference](http://cocoadocs.org/docsets/Nuke/4.0/)
 
-Upgrading from the previous version? Use a [migration guide](https://github.com/kean/Nuke/blob/master/Documentation/Migration).
+Upgrading from the previous version? Use a [migration guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations).
 
 
 ## <a name="h_usage"></a>Usage
@@ -86,7 +86,7 @@ Nuke.loadImage(with: request, into: imageView)
 
 #### Processing Images
 
-You can specify custom image processors using `Processing` protocol which consists of a single method `process(image: Image) -> Image?`. Here's an example of custom image filter that uses [Core Image](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide):
+You can specify custom image processors using `Processing` protocol which consists of a single method `process(image: Image) -> Image?`. Here's an example of custom image filter that uses [Core Image](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md):
 
 ```swift
 struct GaussianBlur: Processing {
@@ -169,7 +169,7 @@ Nuke is designed to support and leverage dependency injection. It consists of a 
 |`Processing`|Image transformations|
 |`Caching`|Stores images into memory cache|
 
-You can learn more from an in-depth [Nuke 4 Migration Guide](https://github.com/kean/Nuke/blob/master/Docs/Nuke%204%20Migration%20Guide.md).
+You can learn more from an in-depth [Nuke 4 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%204%20Migration%20Guide.md).
 
 
 ## Requirements<a name="h_requirements"></a>

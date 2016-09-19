@@ -26,39 +26,38 @@ And here's a `UIImage` extension that shows one way to use `CIContext` to apply 
 
 ```swift
 extension UIImage {
-func applyFilter(context context: CIContext = sharedCIContext, closure: CoreImage.CIImage -> CoreImage.CIImage?) -> UIImage? {
-func inputImageForImage(image: Image) -> CoreImage.CIImage? {
-if let image = image.CGImage {
-return CoreImage.CIImage(CGImage: image)
-}
-if let image = image.CIImage {
-return image
-}
-return nil
-}
-guard let inputImage = inputImageForImage(self), outputImage = closure(inputImage) else {
-return nil
-}
-let imageRef = context.createCGImage(outputImage, fromRect: inputImage.extent)
-return UIImage(CGImage: imageRef, scale: self.scale, orientation: self.imageOrientation)
-}
+    func applyFilter(context context: CIContext = sharedCIContext, closure: CoreImage.CIImage -> CoreImage.CIImage?) -> UIImage? {
+        func inputImageForImage(image: Image) -> CoreImage.CIImage? {
+            if let image = image.CGImage {
+                return CoreImage.CIImage(CGImage: image)
+            }
+            if let image = image.CIImage {
+                return image
+            }
+            return nil
+        }
+        guard let inputImage = inputImageForImage(self), outputImage = closure(inputImage) else {
+            return nil
+        }
+        let imageRef = context.createCGImage(outputImage, fromRect: inputImage.extent)
+        return UIImage(CGImage: imageRef, scale: self.scale, orientation: self.imageOrientation)
+    }
 
-func applyFilter(filter: CIFilter?, context: CIContext = sharedCIContext) -> UIImage? {
-guard let filter = filter else {
-return nil
-}
-return applyFilter(context: context) {
-filter.setValue($0, forKey: kCIInputImageKey)
-return filter.outputImage
-}
-}
+    func applyFilter(filter: CIFilter?, context: CIContext = sharedCIContext) -> UIImage? {
+        guard let filter = filter else {
+            return nil
+        }
+        return applyFilter(context: context) {
+            filter.setValue($0, forKey: kCIInputImageKey)
+            return filter.outputImage
+        }
+    }
 }
 ```
 
 Now lets create `CIFilter` and use our extension to apply it:
 
 ```swift
-let image = <#UIImage#>
 let filter = CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : 10.0])
 let processedImage = image.applyFilter(filter)
 ```
@@ -69,23 +68,23 @@ Here's an example of a blur filter that implements Nuke's `Processing` protocol 
 
 ```swift
 /// Blurs image using CIGaussianBlur filter.
-struct GaussianBlur: Processing 
-private let radius: Int
+struct GaussianBlur: Processing { 
+    private let radius: Int
 
-/// Initializes the receiver with a blur radius.
-init(radius: Int = 8) {
-self.radius = radius
-}
+    /// Initializes the receiver with a blur radius.
+    init(radius: Int = 8) {
+        self.radius = radius
+    }
 
-/// Applies CIGaussianBlur filter to the image.
-func process(image: UIImage) -> UIImage? {
-return image.applyFilter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : radius]))
-}
+    /// Applies CIGaussianBlur filter to the image.
+    func process(image: UIImage) -> UIImage? {
+        return image.applyFilter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : radius]))
+    }
 
-/// Compares two filters based on their radius.
-func ==(lhs: GaussianBlur, rhs: GaussianBlur) -> Bool {
-return lhs.radius == rhs.radius
-}
+    /// Compares two filters based on their radius.
+    func ==(lhs: GaussianBlur, rhs: GaussianBlur) -> Bool {
+        return lhs.radius == rhs.radius
+    }
 }
 ```
 

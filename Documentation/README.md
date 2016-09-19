@@ -2,17 +2,17 @@
 
 - [Installation Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md)
 - [Usage Guide](https://github.com/kean/Nuke#usage)
-- [API Reference](http://cocoadocs.org/docsets/Nuke/)
+- [API Reference](http://cocoadocs.org/docsets/Nuke/4.0/)
 
 ## Migration Guides
 
-- [Nuke 4 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Nuke%204%20Migration%20Guide.md)
+- [Nuke 4 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%204%20Migration%20Guide.md)
 
 ## Guides
 
 - [Image Caching Guide](https://kean.github.io/blog/image-caching)
 - [Image Preheating Guide](https://kean.github.io/blog/image-preheating)
-- [Core Image Integration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core-Image-Integration-Guide)
+- [Core Image Integration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md)
 
 ## Support
 
