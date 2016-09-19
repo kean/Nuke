@@ -10,6 +10,7 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 
 Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into **simple**, **lightweight** package that lets you focus on *getting things done*.
 
+
 ## <a name="h_features"></a>Features
 
 - Simple and expressive API, zero configuration required
@@ -22,15 +23,15 @@ Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into *
 - Peformant, supports large (or infinite) collection views of images
 - Comprehensive test coverage
 
+
 ## <a name="h_getting_started"></a>Getting Started
 
-- [Homepage](http://kean.github.io/Nuke)
-- [Documentation](http://kean.github.io/Nuke/docs/)
-- Demo project (`pod try Nuke`)
+- [Installation Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md)
+- [Wiki](https://github.com/kean/Nuke/blob/master/Documentation/)
+- [API Reference](http://cocoadocs.org/docsets/Nuke/)
 
-## <a name="h_migration_guides"></a>Migration Guides
+Upgrading from the previous version? Use a [migration guide](https://github.com/kean/Nuke/blob/master/Documentation/Migration).
 
-- [Nuke 4 Migration Guide](https://github.com/kean/Nuke/blob/master/Docs/Nuke%204%20Migration%20Guide.md)
 
 ## <a name="h_usage"></a>Usage
 
@@ -154,6 +155,7 @@ Allows you to replace networking layer with [Alamofire](https://github.com/Alamo
 
 [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) plugin allows you to load and display animated GIFs with [smooth scrolling performance](https://www.youtube.com/watch?v=fEJqQMJrET4) and low memory footprint.
 
+
 ## Design<a name="h_design"></a>
 
 Nuke is designed to support and leverage dependency injection. It consists of a set of protocols - each with a single responsibility - that come together in an object graph that manages loading, decoding, processing, and caching images. You can easily create and use/inject your own implementations of the following core protocols:
@@ -169,37 +171,13 @@ Nuke is designed to support and leverage dependency injection. It consists of a 
 
 You can learn more from an in-depth [Nuke 4 Migration Guide](https://github.com/kean/Nuke/blob/master/Docs/Nuke%204%20Migration%20Guide.md).
 
+
 ## Requirements<a name="h_requirements"></a>
 
 - iOS 9.0 / watchOS 2.0 / macOS 10.11 / tvOS 9.0
 - Xcode 8
 - Swift 3
 
-
-## Installation<a name="installation"></a>
-
-### [CocoaPods](http://cocoapods.org)
-
-To install Nuke add a dependency to your Podfile:
-
-```ruby
-# source 'https://github.com/CocoaPods/Specs.git'
-# use_frameworks!
-
-pod "Nuke"
-pod "Nuke-Alamofire-Plugin" # optional
-pod "Nuke-AnimatedImage-Plugin" # optional
-```
-
-### [Carthage](https://github.com/Carthage/Carthage)
-
-To install Nuke add a dependency to your Cartfile:
-
-```
-github "kean/Nuke"
-github "kean/Nuke-Alamofire-Plugin" # optional
-github "kean/Nuke-AnimatedImage-Plugin" # optional
-```
 
 ## License
 

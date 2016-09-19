@@ -5,10 +5,27 @@
       location = "group:Nuke.xcodeproj">
    </FileRef>
    <Group
-      location = "group:Docs"
-      name = "Docs">
+      location = "group:Documentation"
+      name = "Documentation">
+      <Group
+         location = "group:Guides"
+         name = "Guides">
+         <FileRef
+            location = "group:Installation Guide.md">
+         </FileRef>
+         <FileRef
+            location = "group:Core Image Integration Guide.md">
+         </FileRef>
+      </Group>
+      <Group
+         location = "group:Migration"
+         name = "Migration">
+         <FileRef
+            location = "group:Nuke 4 Migration Guide.md">
+         </FileRef>
+      </Group>
       <FileRef
-         location = "group:Nuke 4 Migration Guide.md">
+         location = "group:README.md">
       </FileRef>
    </Group>
    <Group
