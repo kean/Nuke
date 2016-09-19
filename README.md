@@ -6,9 +6,7 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-A powerful **image loading** and **caching** framework which allows for hassle-free image loading in your app - often in one line of code.
-
-Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into **simple**, **lightweight** package that lets you focus on getting things done.
+A powerful **image loading** and **caching** framework which allows for hassle-free image loading in your app - often in one line of code. Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into **simple**, **lightweight** package that lets you focus on getting things done.
 
 
 ## <a name="h_features"></a>Features
