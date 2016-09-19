@@ -35,45 +35,34 @@ class MenuViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        var items = [MenuItem]()
-
-        items.append(MenuItem(title: "Basic Demo") { [weak self] in
-            let controller = BasicDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-            controller.title = $0.title
-            self?.push(controller)
-        })
-
-        items.append(MenuItem(title: "Alamofire Demo", subtitle: "'Nuke/Alamofire' subspec") { [weak self] in
-            let controller = AlamofireDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-            controller.title = $0.title
-            self?.push(controller)
-        })
-
-        items.append(MenuItem(title: "Custom Cache Demo", subtitle: "Uses DFCache for on-disk caching") { [weak self] in
-            let controller = CustomCacheDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-            controller.title = $0.title
-            self?.push(controller)
-        })
-
-        items.append(MenuItem(title: "Animated GIF Demo", subtitle: "'Nuke/GIF' subspec") { [weak self] in
-            let controller = AnimatedImageDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-            controller.title = $0.title
-            self?.push(controller)
-        })
-
-        items.append(MenuItem(title: "Preheat Demo", subtitle: "Uses Preheat library") { [weak self] in
-            let controller = PreheatingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-            controller.title = $0.title
-            self?.push(controller)
-        })
+        sections.append(MenuSection(title: "Nuke", items: {
+            var items = [MenuItem]()
+            
+            items.append(MenuItem(title: "Basic", subtitle: "Zero config") { [weak self] in
+                let controller = BasicDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                controller.title = $0.title
+                self?.push(controller)
+            })
+            
+            items.append(MenuItem(title: "Custom Cache", subtitle: "Uses DFCache for on-disk caching") { [weak self] in
+                let controller = CustomCacheDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                controller.title = $0.title
+                self?.push(controller)
+            })
         
-        items.append(MenuItem(title: "Rate Limiter Demo", subtitle: "Infinite scroll, highlights rate limiter performance") { [weak self] in
-            let controller = RateLimiterDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-            controller.title = $0.title
-            self?.push(controller)
-        })
-        
-        sections.append(MenuSection(title: "Nuke", items: items))
+            items.append(MenuItem(title: "Preheating", subtitle: "Uses Preheat library") { [weak self] in
+                let controller = PreheatingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                controller.title = $0.title
+                self?.push(controller)
+            })
+            
+            items.append(MenuItem(title: "Rate Limiter", subtitle: "Infinite scroll, highlights rate limiter performance") { [weak self] in
+                let controller = RateLimiterDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                controller.title = $0.title
+                self?.push(controller)
+            })
+            return items
+        }()))
     }
     
     func push(_ controller: UIViewController) {

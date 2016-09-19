@@ -3,8 +3,6 @@ use_frameworks!
 
 target 'Nuke Demo' do
 	pod 'Nuke', :path => '../'
-	pod 'Nuke-AnimatedImage-Plugin', :git => 'https://github.com/kean/Nuke-AnimatedImage-Plugin', :branch => 'swift3'
-	pod 'Nuke-Alamofire-Plugin', :git => 'https://github.com/kean/Nuke-Alamofire-Plugin', :branch => 'swift3'
 	pod 'DFCache'
 	pod 'Preheat', :git => 'https://github.com/kean/Preheat', :branch => 'swift3'
 end
