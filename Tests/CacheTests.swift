@@ -175,6 +175,8 @@ class CacheTests: XCTestCase {
         XCTAssertNotNil(cache["key2"])
     }
     
+    #if !os(macOS)
+    
     // MARK: Cost
     
     func testDefaultImageCost() {
@@ -258,6 +260,7 @@ class CacheTests: XCTestCase {
         XCTAssertNil(cache["key2"])
         XCTAssertNotNil(cache["key3"])
     }
+    #endif
     
     // MARK: Misc
     
