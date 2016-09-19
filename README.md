@@ -14,11 +14,11 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 - Simple and expressive API, zero configuration required
 - Hassle-free image loading into image views and other targets
 - Two [cache layers](https://kean.github.io/blog/image-caching) including LRU memory cache
-- Extandable image transformations
+- Extensible image transformations
 - [Freedom to use](#h_design) networking, caching libraries of your choice
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
 - Automated [prefetching](https://kean.github.io/blog/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
-- Peformant, supports large (or infinite) collection views of images
+- Performant, supports large (or infinite) collection views of images
 - Comprehensive test coverage
 
 
@@ -51,7 +51,7 @@ func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath:
 ```
 
 Nuke cancels outstanding requests when the image view is reused (or deallocated). You can also (optionally) implement `collectionView(didEndDisplaying:forItemAt:)` method to cancel
-the requests as soon as the cell goes of screen.
+the requests as soon as the cell goes off screen:
 
 ```swift
 func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
