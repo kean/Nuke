@@ -29,7 +29,25 @@ The adoption of those design principles resulted in a simpler, more testable, an
 
 I hope that Nuke 4 is going to be a pleasure to use. Thanks for your interest 😄
 
-## Changes
+## New in Nuke 4
+
+### LRU Memory Cache
+
+Nuke 4 features a new custom LRU memory cache which replaced `NSCache`. The primary reason behind this change was the fact that `NSCache` [is not LRU](https://github.com/apple/swift-corelibs-foundation/blob/master/Foundation/NSCache.swift). The new `Nuke.Cache` has some other benefits like better performance, and more control which would enable some new advanced features in future versions.
+
+### Rate Limiter
+
+There is a known problem with `URLSession` that it gets trashed pretty easily when you resume and cancel `URLSessionTasks` at a very high rate (say, scrolling a large collection view with images). Some frameworks combat this problem by simply never cancelling `URLSessionTasks` which are already in `.running` state. This is not an ideal solution, because it forces users to wait for cancelled requests for images which might never appear on the display.
+
+Nuke has a better, classic solution for this problem - it introduces a new `RateLimiter` class which limits the rate at which `URLSessionTasks` are created. `RateLimiter` uses a [token bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm. The implementation supports quick bursts of requests which can be executed without any delays when "the bucket is full". This is important to prevent the rate limiter from affecting "normal" requests flow. `RateLimiter` is enabled by default.
+
+You can see `RateLimiter` in action in a new `Rate Limiter Demo` added in the sample project.
+
+### Better Documentation
+
+Nuke documentation now has a better structure, and it is stored in a [git repository](https://github.com/kean/Nuke/tree/master/Documentation) alongside the framework itself.
+
+## Changes in Nuke 4
 
 Almost every API in Nuke has been modified in some way. It's impossible to document every single changes, so here's a list of some of the major and mostly user-visible changes.
 
@@ -115,7 +133,7 @@ Adding processors to the request is now easier.
 
 ```swift
 // Nuke 4 (NEW)
-request.processed(with: GaussianBlur())
+request.process(with: GaussianBlur())
 ```
 
 You can now customize cache (used for memory caching) and load (used for deduplicating equivalent requests) keys using `Request`.
@@ -123,8 +141,8 @@ You can now customize cache (used for memory caching) and load (used for dedupli
 ```swift
 // Nuke 4 (NEW)
 public struct Request {
-     public var loadKey: AnyHashable?
-     public var cacheKey: AnyHashable?
+    public var loadKey: AnyHashable?
+    public var cacheKey: AnyHashable?
 }
 ```
 
@@ -142,6 +160,17 @@ public protocol ImageProcessing {
 // Nuke 4
 public protocol Processing: Equatable {
     func process(_ image: Image) -> Image?
+}
+```
+
+#### Targets
+
+New `Target` protocol replaced `ImageLoadingView` and `ImageDisplayingView` which had a lot of methods with a default implementation and were very confusing. New protocol on the other hand consists of a single method:
+
+```swift
+public protocol Target: class {
+    /// Callback that gets called when the request gets completed.
+    func handle(response: Response, isFromMemoryCache: Bool)
 }
 ```
 
@@ -208,7 +237,7 @@ cts.cancel()
 Protocols in Nuke 4 are simple and precise, often consisting of a single method.
 
 ```swift
-// Nuke 4 (NEW)
+// Nuke 4
 
 public protocol Loading {
     func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image>
@@ -236,9 +265,28 @@ public protocol Caching: class {
 }
 ```
 
-### Other Notable Changes
+#### Adopt AnyHashable
 
-- New custom LRU memory cache instead of `NSCache` (which [is not LRU](https://github.com/apple/swift-corelibs-foundation/blob/master/Foundation/NSCache.swift)).
-- New `Deduplicator` class (deduplicates equivalent requests) that implements `Loading` protocol. Nuke 3 used to implement this feature in `Loader` class itself.
-- Adopt `AnyHashable` instead of `ImageRequestKey` (which was renamed to `Request.Key` and made private).
-- Couple of performance optimizations.
+Adopt `AnyHashable` instead of `ImageRequestKey` (which was renamed to `Request.Key` and made private).
+
+## Removed in Nuke 4
+
+### Request Priority
+
+Priority was removed temporary from `Request` because it wasn't performing as good as expected. There should be a better way to implement it.
+
+### Progress Handler
+
+Progress handler was temporary removed from `Request`. I'm still on the fence whether this feature should be included in the framework itself. It might be better handled by notification implemented in a specific `DataLoader`. 
+
+You can always just display an activity indicator instead:
+
+```swift
+let indicator = activityIndicator(for: cell)
+
+indicator.startAnimating()
+    Nuke.loadImage(with: request, into: imageView) { [weak imageView] in
+    imageView?.handle(response: $0, isFromMemoryCache: $1)
+    indicator.stopAnimating()
+}
+```

@@ -1,4 +1,4 @@
-### CocoaPods
+# CocoaPods
 
 [CocoaPods](http://cocoapods.org) is a dependency manager for Cocoa projects. You can install it with the following command:
 
@@ -26,7 +26,7 @@ Then, run the following command:
 $ pod install
 ```
 
-### Carthage
+# Carthage
 
 [Carthage](https://github.com/Carthage/Carthage) is a decentralized dependency manager that builds your dependencies and provides you with binary frameworks.
 
@@ -45,11 +45,11 @@ github "Nuke/Nuke" ~> 4.0
 
 Run `carthage update` to build the framework and drag the built `Nuke.framework` into your Xcode project.
 
-### Manually
+# Manually
 
 If you prefer not to use either of the aforementioned dependency managers, you can integrate Nuke into your project manually.
 
-#### Embedded Framework
+## Embedded Framework
 
 - Open up Terminal, `cd` into your top-level project directory, and run the following command "if" your project is not initialized as a git repository:
 
