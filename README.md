@@ -6,17 +6,18 @@
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
-A powerful **image loading** and **caching** framework which allows for hassle-free image loading in your app - often in one line of code. Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into **simple**, **lightweight** package that lets you focus on getting things done.
-
+A powerful **image loading** and **caching** framework which allows for hassle-free image loading in your app - often in one line of code.
 
 ## <a name="h_features"></a>Features
+
+Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into **simple**, **lightweight** package that lets you focus on getting things done.
 
 - Simple and expressive API, zero configuration required
 - Hassle-free image loading into image views and other targets
 - Two [cache layers](https://kean.github.io/blog/image-caching) including LRU memory cache
 - Extensible image transformations
 - [Freedom to use](#h_design) networking, caching libraries of your choice
-- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin) and [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin) plugins
+- Plugins: [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin), [Toucan](https://github.com/kean/Nuke-Toucan-Plugin)
 - Automated [prefetching](https://kean.github.io/blog/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
 - Performant, supports large (or infinite) collection views of images
 - Comprehensive test coverage
@@ -145,13 +146,17 @@ Loader.shared.loadImage(with: url, token: cts.token)
 
 ## Plugins<a name="h_plugins"></a>
 
-#### [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
+### [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
 
 Allows you to replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire). Combine the power of both frameworks!
 
-#### [FLAnimatedImage Plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin)
+### [FLAnimatedImage Plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin)
 
 [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) plugin allows you to load and display animated GIFs with [smooth scrolling performance](https://www.youtube.com/watch?v=fEJqQMJrET4) and low memory footprint.
+
+### [Toucan Plugin](https://github.com/kean/Nuke-Toucan-Plugin)
+
+[Toucan](https://github.com/gavinbunney/Toucan) plugin provides a simple API for processing images. It supports resizing, cropping, rounded rect masking and more.
 
 
 ## Design<a name="h_design"></a>
