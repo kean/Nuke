@@ -21,9 +21,9 @@ Nuke 3 was already a slim framework. Nuke 4 takes it a step further by simplifyi
 Here's a few design principles adopted in Nuke 4:
 
 - **Protocol-Oriented Programming.** Nuke 3 promised a lot of customization by providing a set of protocols for loading, caching, transforming images, etc. However, those protocols were vaguely defined and hard to implement in practice. Protocols in Nuke 4 are simple and precise, often consisting of a single method.
-- **Single Responsibility Principle.** For example, instead of packing preheating and deduplicating of equivalent requests in a single vague `ImageManager` class, those features were implemented as a separate classes (`Preheater`, `Deduplicator`). This makes core classes much easier to reason about.
-- **Principle of Least Astonishment**. Nuke 3 had a several excessive protocols, classes and methods which are *all gone* now (`ImageTask`, `ImageResponseInfo`, `ImageManagerConfiguration` just to name a few). Those features were re-implemented in a straightforward manner and are much easier to use now.
-- **Simpler Async**. Image loading involves a lot of asynchronous code, managing it was a chore. Nuke 4 adopts two design patterns (**Promise** and **CancellationToken**) that solves most of those problems.
+- **Single Responsibility Principle.** For example, instead of implementing preheating and deduplicating of equivalent requests in a single vague `ImageManager` class, those features were moved to separate classes (`Preheater`, `Deduplicator`). This makes core classes much easier to reason about.
+- **Principle of Least Astonishment**. Nuke 3 had a several excessive protocols, classes and methods which are *all gone* now (`ImageTask`, `ImageManagerConfiguration` just to name a few). Those features are much easier to use now.
+- **Simpler Async**. Image loading involves a lot of asynchronous code, managing it was a chore. Nuke 4 adopts two design patterns ([**Promise**](https://github.com/kean/Promise) and **CancellationToken**) that solve most of those problems.
 
 The adoption of those design principles resulted in a simpler, more testable, and more concise code base (which is now under 900 slocs, compared to AlamofireImage's 1426, and Kingfisher's whopping 2357).
 
@@ -43,9 +43,9 @@ Nuke has a better, classic solution for this problem - it introduces a new `Rate
 
 You can see `RateLimiter` in action in a new `Rate Limiter Demo` added in the sample project.
 
-### Better Documentation
+### Toucan Plugin
 
-Nuke documentation now has a better structure, and it is stored in a [git repository](https://github.com/kean/Nuke/tree/master/Documentation) alongside the framework itself.
+Make sure to check out new [Toucan plugin](https://github.com/kean/Nuke-Toucan-Plugin) which provides a simple API for processing images. It supports resizing, cropping, rounded rect masking and more.
 
 ## Changes in Nuke 4
 

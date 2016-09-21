@@ -21,7 +21,7 @@
          location = "group:Migration"
          name = "Migrations">
          <FileRef
-            location = "group:../Migrations/Nuke 4 Migration Guide.md">
+            location = "group:Documentation/Migrations/Nuke 4 Migration Guide.md">
          </FileRef>
       </Group>
       <FileRef

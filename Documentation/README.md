@@ -16,4 +16,5 @@
 
 ## Support
 
-- The [GitHub issues](https://github.com/kean/Nuke/issues/new) page is the best place to ask questions, find answers, and report issues.
+- The [GitHub Issues](https://github.com/kean/Nuke/issues/new) is the best place to ask questions, report issues, and submit feature requests
+- [Changelog](https://github.com/kean/Nuke/blob/master/CHANGELOG.md)
