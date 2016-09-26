@@ -1,8 +1,9 @@
 <p align="center"><img src="https://cloud.githubusercontent.com/assets/1567433/13918338/f8670eea-ef7f-11e5-814d-f15bdfd6b2c0.png" height="180"/>
 
 <p align="center">
-<a href="https://cocoapods.org"><img src="https://img.shields.io/cocoapods/v/Nuke.svg"></a>
 <a href="https://github.com/Carthage/Carthage"><img src="https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat"></a>
+<a href="https://cocoapods.org"><img src="https://img.shields.io/cocoapods/v/Nuke.svg"></a>
+<a href="https://swift.org/package-manager/"><img src="https://img.shields.io/badge/SPM-ready-orange.svg"></a>
 <a href="http://cocoadocs.org/docsets/Nuke"><img src="https://img.shields.io/cocoapods/p/Nuke.svg?style=flat)"></a>
 </p>
 
@@ -36,7 +37,7 @@ Upgrading from the previous version? Use a [migration guide](https://github.com/
 
 #### Loading Images
 
-Nuke allows for hassle-free image loading into image views (and other arbitrary targets).
+Nuke allows for hassle-free image loading into image views and other targets.
 
 ```swift
 Nuke.loadImage(with: url, into: imageView)
@@ -44,15 +45,15 @@ Nuke.loadImage(with: url, into: imageView)
 
 #### Reusing Views
 
+`Nuke.loadImage(with:into:)` method cancels previous outstanding request associated with the target. No need to implement `prepareForReuse`. The requests also get cancelled automatically when the target deallocates (Nuke holds a weak reference to a target).
+
 ```swift
 func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-    // View reusing is handled automatically
     Nuke.loadImage(with: url, into: cell.imageView)
 }
 ```
 
-Nuke cancels outstanding requests when the image view is reused (or deallocated). You can also (optionally) implement `collectionView(didEndDisplaying:forItemAt:)` method to cancel
-the requests as soon as the cell goes off screen:
+You can also (optionally) implement `collectionView(didEndDisplaying:forItemAt:)` method to cancel the request as soon as the cell goes off screen:
 
 ```swift
 func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
@@ -166,7 +167,7 @@ Nuke is designed to support and leverage dependency injection. It consists of a 
 |Protocol|Description|
 |--------|-----------|
 |`Loading`|Loads images|
-|`DataLoading`|Loads data|
+|`DataLoading`|Downloads data|
 |`DataCaching`|Stores data into disk cache|
 |`DataDecoding`|Converts data into image objects|
 |`Processing`|Image transformations|

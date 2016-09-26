@@ -16,6 +16,9 @@
          <FileRef
             location = "group:Core Image Integration Guide.md">
          </FileRef>
+         <FileRef
+            location = "group:Performance Guide.md">
+         </FileRef>
       </Group>
       <Group
          location = "group:Migration"

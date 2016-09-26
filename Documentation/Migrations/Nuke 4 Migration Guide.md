@@ -37,7 +37,7 @@ Nuke 4 features a new custom LRU memory cache which replaced `NSCache`. The prim
 
 ### Rate Limiter
 
-There is a known problem with `URLSession` that it gets trashed pretty easily when you resume and cancel `URLSessionTasks` at a very high rate (say, scrolling a large collection view with images). Some frameworks combat this problem by simply never cancelling `URLSessionTasks` which are already in `.running` state. This is not an ideal solution, because it forces users to wait for cancelled requests for images which might never appear on the display.
+There is [a known problem](https://github.com/kean/Nuke/issues/59) with `URLSession` that it gets trashed pretty easily when you resume and cancel `URLSessionTasks` at a very high rate (say, scrolling a large collection view with images). Some frameworks combat this problem by simply never cancelling `URLSessionTasks` which are already in `.running` state. This is not an ideal solution, because it forces users to wait for cancelled requests for images which might never appear on the display.
 
 Nuke has a better, classic solution for this problem - it introduces a new `RateLimiter` class which limits the rate at which `URLSessionTasks` are created. `RateLimiter` uses a [token bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm. The implementation supports quick bursts of requests which can be executed without any delays when "the bucket is full". This is important to prevent the rate limiter from affecting "normal" requests flow. `RateLimiter` is enabled by default.
 
@@ -84,6 +84,16 @@ Nuke.loadImage(with: request, into: imageView) { response, isFromMemoryCache in
     // Handle response
 }
 ```
+
+There are many reasons behind the change, just to name a few:
+
+- `Manager` class has context about all the requests per all targets (or just targets per screen if you create a `Manager` per screen). It will allow to add features like: _lower the priority of the requests when the UIVC goes off screen_ - something that works really well in practice.
+- `ImageView` no longer "loads images into itself". So Nuke doesn't break MVC.
+- No need to prefix methods.
+- Nuke 3 had elaborate `ImageLoadingView` and `ImageDisplayingView` protocols. They had lots of methods, some implemented by default, some added in extensions. It was a mess. New `Manager` -> `Target` relation is super simple and feels natural.
+- If you want to use custom manager for a specific target you no longer have to inject it anywhere - just use it.
+
+Adding extensions to `UIImageView` that would do something as complicated as loading images is an abuse of extensions. The reason why other frameworks do this is because this is how it was initially implemented in `SDWebImage`.
 
 #### Request
 
