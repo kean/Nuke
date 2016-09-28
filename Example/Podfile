@@ -4,5 +4,5 @@ use_frameworks!
 target 'Nuke Demo' do
 	pod 'Nuke', :path => '../'
 	pod 'DFCache'
-	pod 'Preheat', :git => 'https://github.com/kean/Preheat', :branch => 'swift3'
+	pod 'Preheat', '~>3.0'
 end
