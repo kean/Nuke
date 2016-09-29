@@ -29,7 +29,9 @@ public extension Loading {
 ///
 /// See built-in `CachingDataLoader` class if you need to add custom data cache
 /// into the pipeline.
-public final class Loader: Loading { // thread-safe
+///
+/// `Loader` is thread-safe.
+public final class Loader: Loading {
     public let loader: DataLoading
     public let decoder: DataDecoding
     public let cache: Caching?
@@ -54,30 +56,22 @@ public final class Loader: Loading { // thread-safe
 
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
-        return Promise() { fulfill, reject in
-            queue.async {
-                self.loadImage(with: request, token: token, fulfill: fulfill, reject: reject)
-            }
-        }
+        return queue.sync { promise(with: request, token: token) }
     }
 
-    private func loadImage(with request: Request, token: CancellationToken?,
-                           fulfill: @escaping (Image) -> Void, reject: @escaping (Swift.Error) -> Void) {
+    public func promise(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
         if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
-            fulfill(image)
-            return
+            return Promise(value: image)
         }
-        // It's safe to capture `Loader` cause it's just a simple registry
-        _ = loader.loadData(with: request.urlRequest, token: token)
+        // It's safe to capture `Loader` in promises
+        return loader.loadData(with: request.urlRequest, token: token)
             .then(on: queue) { self.decode(data: $0, response: $1, token: token) }
             .then(on: queue) { self.process(image: $0, request: request, token: token) }
             .then(on: queue) {
                 if request.memoryCacheOptions.writeAllowed {
                     self.cache?[request] = $0
                 }
-                fulfill($0)
-            }
-            .catch(on: queue) { reject($0) }
+        }
     }
 
     private func decode(data: Data, response: URLResponse, token: CancellationToken? = nil) -> Promise<Image> {

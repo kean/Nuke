@@ -107,6 +107,9 @@
 		0C8BE62A1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
 		0C8BE62B1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
 		0C8BE62C1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
+		0C8D74211D9D6EEB0036349E /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */; };
+		0C8D74221D9D6EEB0036349E /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */; };
+		0C8D74231D9D6EEB0036349E /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */; };
 		0CC345A81BD96D2A005C2DD8 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0CC345971BD96CFE005C2DD8 /* Nuke.framework */; };
 		0CC345C01BD96E16005C2DD8 /* MockImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockImageCache.swift */; };
 		0CC345C11BD96E16005C2DD8 /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
@@ -184,6 +187,7 @@
 		0C820F761D44048200263E5D /* Deduplicator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Deduplicator.swift; sourceTree = "<group>"; };
 		0C820F7E1D440D1300263E5D /* DeduplicatorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeduplicatorTests.swift; sourceTree = "<group>"; };
 		0C8BE6291D45E6EC00613839 /* Image.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = Image.jpg; path = Tests/Image.jpg; sourceTree = SOURCE_ROOT; };
+		0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
 		0C9174901BAE99EE004A7905 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C94466D1D47EC0E006DB314 /* ManagerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ManagerTests.swift; sourceTree = "<group>"; };
 		0CC345971BD96CFE005C2DD8 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -284,6 +288,7 @@
 				0C94466D1D47EC0E006DB314 /* ManagerTests.swift */,
 				0C1E620A1D6F817700AD5CF5 /* RequestTests.swift */,
 				0C1E623A1D6FA0FB00AD5CF5 /* CancellationTokenTests.swift */,
+				0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */,
 				0C7C069B1BCA889000089D7F /* Extensions */,
 				0C7C069A1BCA888C00089D7F /* Mocks */,
 				0C7C06831BCA888800089D7F /* Resources */,
@@ -722,6 +727,7 @@
 				0C22DA5B1BCAAA3A006E1D3B /* MockDataLoader.swift in Sources */,
 				0C1ECA511D52811D009063A9 /* ManagerTests.swift in Sources */,
 				0C1ECA461D52667B009063A9 /* ProcessingTests.swift in Sources */,
+				0C8D74221D9D6EEB0036349E /* PerformanceTests.swift in Sources */,
 				0C5D81891D46A385000ECCB6 /* ThreadSafetyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -747,6 +753,7 @@
 				0C7C06971BCA888800089D7F /* MockDataLoader.swift in Sources */,
 				0C1ECA501D52811D009063A9 /* ManagerTests.swift in Sources */,
 				0C1ECA451D52667B009063A9 /* ProcessingTests.swift in Sources */,
+				0C8D74211D9D6EEB0036349E /* PerformanceTests.swift in Sources */,
 				0CE3992D1D4697CE00A87D47 /* LoaderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -812,6 +819,7 @@
 				0CC345C01BD96E16005C2DD8 /* MockImageCache.swift in Sources */,
 				0C1ECA521D52811D009063A9 /* ManagerTests.swift in Sources */,
 				0C1ECA471D52667B009063A9 /* ProcessingTests.swift in Sources */,
+				0C8D74231D9D6EEB0036349E /* PerformanceTests.swift in Sources */,
 				0C5D818A1D46A385000ECCB6 /* ThreadSafetyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

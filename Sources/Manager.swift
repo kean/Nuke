@@ -10,7 +10,9 @@ import Foundation
 public final class Manager {
     public let loader: Loading
     public let cache: Caching?
-    
+
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Manager")
+
     /// Initializes the `Manager` with the image loader and the memory cache.
     /// - parameter cache: `nil` by default.
     public init(loader: Loading, cache: Caching? = nil) {
@@ -53,12 +55,14 @@ public final class Manager {
             let context = Context(cts)
             
             Manager.setContext(context, for: target)
-            
-            loader.loadImage(with: request, token: cts.token).completion { [weak context, weak target] in
-                guard let context = context, let target = target else { return }
-                guard Manager.getContext(for: target) === context else { return }
-                handler($0, false)
-                context.cts = nil // avoid redundant cancellations
+
+            queue.async {
+                self.loader.loadImage(with: request, token: cts.token).completion { [weak context, weak target] in
+                    guard let context = context, let target = target else { return }
+                    guard Manager.getContext(for: target) === context else { return }
+                    handler($0, false)
+                    context.cts = nil // avoid redundant cancellations
+                }
             }
         }
     }
