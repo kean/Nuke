@@ -34,9 +34,9 @@ public final class Manager {
     
     public typealias Handler = (Response, _ isFromMemoryCache: Bool) -> Void
     
-    /// Loads an image into the given target and calls the given `handler`.
-    /// The handler only gets called if the request is still associated with
-    /// the target by the time it's completed.
+    /// Loads an image and calls the given `handler`. The handler only gets
+    /// called if the request is still associated with the target by the time
+    /// it's completed.
     ///
     /// See `loadImage(with:into:)` method for more info.
     public func loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler) {
@@ -93,9 +93,17 @@ public final class Manager {
 private var contextAK = "Manager.Context.AssociatedKey"
 
 public extension Manager {
-    /// Loads an image into the given target.
+    /// Loads an image into the given target. See the corresponding
+    /// `loadImage(with:into)` method that takes `Request` for more info.
     public func loadImage(with url: URL, into target: Target) {
         loadImage(with: Request(url: url), into: target)
+    }
+
+    /// Loads an image and calls the given `handler`.
+    /// See the corresponding `loadImage(with:into:handler:)` method that
+    /// takes `Request` for more info.
+    public func loadImage(with url: URL, into target: AnyObject, handler: @escaping Handler) {
+        loadImage(with: Request(url: url), into: target, handler: handler)
     }
 }
 
