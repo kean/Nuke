@@ -12,10 +12,10 @@ class ManagerPerformanceTests: XCTestCase {
 
         let view = ImageView()
 
-        let request = Request(url: URL(string: "http://test.com/image.jpeg")!)
         measure {
             for _ in 0..<10_000 {
-                manager.loadImage(with: request, into: view)
+                let url = URL(string: "http://test.com/\(arc4random_uniform(200))")!
+                manager.loadImage(with: url, into: view)
             }
         }
     }
@@ -26,10 +26,10 @@ class ManagerPerformanceTests: XCTestCase {
 
         let view = ImageView()
 
-        let request = Request(url: URL(string: "http://test.com/image.jpeg")!)
         measure {
             for _ in 0..<10_000 {
-                manager.loadImage(with: request, into: view)
+                let url = URL(string: "http://test.com/\(arc4random_uniform(200))")!
+                manager.loadImage(with: url, into: view)
             }
         }
     }

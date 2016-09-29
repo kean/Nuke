@@ -19,6 +19,7 @@ public struct Request {
     #if !os(macOS)
     /// Processor to be applied to the image. `Decompressor` by default.
     public var processor: AnyProcessor? = AnyProcessor(Decompressor())
+    private static let decompressor = AnyProcessor(Decompressor())
     #else
     /// Processor to be applied to the image. `nil` by default.
     public var processor: AnyProcessor?
