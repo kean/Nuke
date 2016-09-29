@@ -62,7 +62,7 @@ public protocol DataCaching {
     func setResponse(_ response: CachedURLResponse, for request: URLRequest)
 }
 
-public class CachingDataLoader: DataLoading {
+public final class CachingDataLoader: DataLoading {
     private var loader: DataLoading
     private var cache: DataCaching
 

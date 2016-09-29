@@ -29,7 +29,7 @@ public extension Loading {
 ///
 /// See built-in `CachingDataLoader` class if you need to add custom data cache
 /// into the pipeline.
-public class Loader: Loading { // thread-safe
+public final class Loader: Loading { // thread-safe
     public let loader: DataLoading
     public let decoder: DataDecoding
     public let cache: Caching?

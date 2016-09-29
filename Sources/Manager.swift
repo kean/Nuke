@@ -7,7 +7,7 @@ import Foundation
 /// Loads images into the given targets.
 ///
 /// All methods should be called on the main thread.
-public class Manager {
+public final class Manager {
     public let loader: Loading
     public let cache: Caching?
     

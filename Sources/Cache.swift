@@ -164,7 +164,7 @@ private struct CachedImage {
 }
 
 /// Basic doubly linked list.
-private class LinkedList<V> {
+private final class LinkedList<V> {
     // head <-> node <-> ... <-> tail
     private(set) var head: Node<V>?
     private(set) var tail: Node<V>?
@@ -196,7 +196,7 @@ private class LinkedList<V> {
     }
 }
 
-private class Node<V> {
+private final class Node<V> {
     let value: V
     var next: Node<V>?
     weak var previous: Node<V>?

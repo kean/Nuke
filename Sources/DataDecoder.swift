@@ -53,7 +53,7 @@ public struct DataDecoder: DataDecoding {
 }
 
 /// Composes multiple data decoders.
-public class DataDecoderComposition: DataDecoding {
+public final class DataDecoderComposition: DataDecoding {
     public let decoders: [DataDecoding]
     
     /// Composes multiple data decoders.

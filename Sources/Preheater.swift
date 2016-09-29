@@ -12,7 +12,7 @@ import Foundation
 /// When preheating is no longer necessary call `stopPreheating(with:)` method.
 ///
 /// All `Preheater` methods are thread-safe.
-public class Preheater {
+public final class Preheater {
     private let loader: Loading
     private let scheduler: AsyncScheduler
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
