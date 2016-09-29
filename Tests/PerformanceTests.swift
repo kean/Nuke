@@ -34,4 +34,3 @@ class ManagerPerformanceTests: XCTestCase {
         }
     }
 }
-

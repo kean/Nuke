@@ -46,7 +46,7 @@ public final class Promise<T> {
 }
 
 public extension Promise {
-    public func then(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> Void) -> Promise {
+    @discardableResult public func then(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> Void) -> Promise {
         return then(on: queue, fulfilment: closure, rejection: nil)
     }
     
@@ -56,35 +56,35 @@ public extension Promise {
     
     public func then<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> Promise<U>) -> Promise<U> {
         return Promise<U>() { fulfill, reject in
-            _ = then(
+            then(
                 on: queue,
                 fulfilment: {
-                    _ = closure($0).then(
-                        fulfilment: { _ = fulfill($0) },
-                        rejection: { _ = reject($0) })
+                    closure($0).then(
+                        fulfilment: { fulfill($0) },
+                        rejection: { reject($0) })
                 },
-                rejection: { _ = reject($0) }) // bubble up error
+                rejection: { reject($0) }) // bubble up error
         }
     }
     
-    public func `catch`(on queue: DispatchQueue = .main, _ closure: @escaping (Error) -> Void) {
-        _ = then(on: queue, fulfilment: nil, rejection: closure)
+    @discardableResult public func `catch`(on queue: DispatchQueue = .main, _ closure: @escaping (Error) -> Void) {
+        then(on: queue, fulfilment: nil, rejection: closure)
     }
     
     public func recover(on queue: DispatchQueue = .main, _ closure: @escaping (Error) -> Promise) -> Promise {
         return Promise() { fulfill, reject in
-            _ = then(
+            then(
                 on: queue,
-                fulfilment: { _ = fulfill($0) }, // bubble up value
+                fulfilment: { fulfill($0) }, // bubble up value
                 rejection: {
-                    _ = closure($0).then(
-                        fulfilment: { _ = fulfill($0) },
-                        rejection: { _ = reject($0) })
+                    closure($0).then(
+                        fulfilment: { fulfill($0) },
+                        rejection: { reject($0) })
             })
         }
     }
     
-    public func then(on queue: DispatchQueue = .main, fulfilment: ((T) -> Void)?, rejection: ((Error) -> Void)?) -> Promise {
+    @discardableResult public func then(on queue: DispatchQueue = .main, fulfilment: ((T) -> Void)?, rejection: ((Error) -> Void)?) -> Promise {
         completion(on: queue) { resolution in
             switch resolution {
             case let .fulfilled(val): fulfilment?(val)
