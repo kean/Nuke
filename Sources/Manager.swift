@@ -57,6 +57,7 @@ public final class Manager {
             Manager.setContext(context, for: target)
 
             queue.async {
+                guard !cts.isCancelling else { return } // fast preflight check
                 self.loader.loadImage(with: request, token: cts.token).completion { [weak context, weak target] in
                     guard let context = context, let target = target else { return }
                     guard Manager.getContext(for: target) === context else { return }
@@ -66,7 +67,6 @@ public final class Manager {
             }
         }
     }
-    
     /// Cancels an outstanding request associated with the target.
     public func cancelRequest(for target: AnyObject) {
         assert(Thread.isMainThread)
