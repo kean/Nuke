@@ -51,7 +51,7 @@ public final class Manager {
         if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
             handler(.fulfilled(image), true)
         } else {
-            let cts = CancellationTokenSource()
+            let cts = CancellationTokenSource(queue: CancellationTokenSource.queue)
             let context = Context(cts)
             
             Manager.setContext(context, for: target)
@@ -61,7 +61,7 @@ public final class Manager {
                     guard let context = context, let target = target else { return }
                     guard Manager.getContext(for: target) === context else { return }
                     handler($0, false)
-                    context.cts = nil // avoid redundant cancellations
+                    context.cts = nil // avoid redundant cancellations on deinit
                 }
             }
         }

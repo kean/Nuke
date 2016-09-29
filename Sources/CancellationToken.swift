@@ -10,13 +10,21 @@ import Foundation
 public final class CancellationTokenSource {
     public private(set) var isCancelling = false
     private var observers = [(Void) -> Void]()
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.CancellationToken")
+    private let queue: DispatchQueue
     
     public var token: CancellationToken {
         return CancellationToken(source: self)
     }
     
-    public init() {}
+    public init() {
+        queue = DispatchQueue(label: "com.github.kean.Nuke.CancellationToken")
+    }
+    
+    // Allows to create cts with a shared queue to avoid excessive allocations.
+    // This optimization gives you small wins in absolute numbers. It's also
+    // tricky to get right thus `internal` access modifier.
+    internal init(queue: DispatchQueue) { self.queue = queue }
+    internal static let queue = DispatchQueue(label: "com.github.kean.Nuke.CancellationToken.Shared")
     
     fileprivate func register(_ closure: @escaping (Void) -> Void) {
         if isCancelling { closure(); return } // fast pre-lock check
