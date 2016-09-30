@@ -6,14 +6,43 @@ import Foundation
 
 /// Represents an image request.
 public struct Request {
-    public var urlRequest: URLRequest
-    
+    public var urlRequest: URLRequest {
+        set { container = Container.request(newValue) }
+        get { return container.urlRequest }
+    }
+
+    fileprivate var container: Container {
+        didSet { urlString = container.urlString }
+    }
+    fileprivate var urlString: String? // memoized absoluteString
+
+    /// URL/URLRequest container which only exists to improve performance
+    /// by creating requests lazily.
+    fileprivate enum Container {
+        case url(URL)
+        case request(URLRequest)
+
+        var urlRequest: URLRequest {
+            switch self {
+            case let .url(url): return URLRequest(url: url)
+            case let .request(request): return request
+            }
+        }
+
+        var urlString: String? {
+            switch self {
+            case let .url(url): return url.absoluteString
+            case let .request(request): return request.url?.absoluteString
+            }
+        }
+    }
+
     public init(url: URL) {
-        self.urlRequest = URLRequest(url: url)
+        self.container = Container.url(url)
     }
 
     public init(urlRequest: URLRequest) {
-        self.urlRequest = urlRequest
+        self.container = Container.request(urlRequest)
     }
     
     #if !os(macOS)
@@ -83,7 +112,7 @@ public extension Request {
     /// just by their `URLs`.
     public static func cacheKey(for request: Request) -> AnyHashable {
         return request.cacheKey ?? AnyHashable(Key(request: request) {
-            $0.urlRequest.url == $1.urlRequest.url && $0.processor == $1.processor
+            $0.urlString == $1.urlString && $0.processor == $1.processor
         })
     }
     
@@ -105,13 +134,18 @@ public extension Request {
     }
     
     /// Compares two requests for equivalence using an `equator` closure.
-    private struct Key: Hashable {
+    private class Key: Hashable {
         let request: Request
         let equator: (Request, Request) -> Bool
-        
+
+        init(request: Request, equator: @escaping (Request, Request) -> Bool) {
+            self.request = request
+            self.equator = equator
+        }
+
         /// Returns hash from the request's URL.
         var hashValue: Int {
-            return request.urlRequest.url?.hashValue ?? 0
+            return request.urlString?.hashValue ?? 0
         }
         
         /// Compares two keys for equivalence.

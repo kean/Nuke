@@ -8,10 +8,9 @@ import XCTest
 class ManagerPerformanceTests: XCTestCase {
     func testSharedManagerPerfomance() {
         let view = ImageView()
-        
+
         measure {
             for _ in 0..<10_000 {
-                // There are going to be some cache hits and cache misses
                 let url = URL(string: "http://test.com/\(arc4random_uniform(5000))")!
                 Nuke.loadImage(with: url, into: view)
             }
