@@ -2,15 +2,19 @@
 
 This is a draft of a new Performance Guide for Nuke. Items are in a no particular order (for now).
 
-### #1. Decompression
+### Create `URL`s in a Background
+
+`URL` initializer is quite expensive (it parses string's components etc) and might take as much time as actual call to `Nuke.loadImage(with:into)`. Make sure that you create those `URL`s in a background, for instance when creating objects from JSON.
+
+### Decompression
 
 By default each `Request` comes with a `Decompressor` which forces compressed image data to be drawn into a bitmap. This happens in a background to [avoid decompression sickness](https://www.cocoanetics.com/2011/10/avoiding-image-decompression-sickness/) on the main thread.
 
-### #2. Avoid excessive cancellations
+### Avoid excessive cancellations
 
 Don't cancel outstanding requests when it's not necessary. For instance, when reloading `UITableView` you might want to check if the cell that you are updating is not already loading the same image.
 
-### #3. Cancel requests in `UICollectionView` / `UITableView`
+### Cancel requests in `UICollectionView` / `UITableView`
 
 You can implement `didEndDisplaying:forItemAt:` method to cancel the requests as soon as the cell goes off screen:
 
@@ -20,7 +24,7 @@ func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: U
 }
 ```
 
-### #4. On-Disk Caching
+### On-Disk Caching
 
 Nuke comes with a `Foundation.URLCache` by default. It's [a great option](https://kean.github.io/blog/image-caching) especially when you need a HTTP cache validation. However, it might be a little bit slow.
 
@@ -28,7 +32,7 @@ Cache lookup is a part of `URLSessionTask` flow which has some implications. The
 
 In order to optimize on-disk caching you might want to use a third-party caching library. It's easy to integrate way using `DataCaching` protocol provided by Nuke. Check out demo project for an example.
 
-### #5. Rate Limiting Requests
+### Rate Limiting Requests
 
 There is [a known problem](https://github.com/kean/Nuke/issues/59) with `URLSession` that it gets trashed pretty easily when you resume and cancel `URLSessionTasks` at a very high rate (say, scrolling a large collection view with images). Some frameworks combat this problem by simply never cancelling `URLSessionTasks` which are already in `.running` state. This is not an ideal solution, because it forces users to wait for cancelled requests for images which might never appear on the display.
 
@@ -36,6 +40,6 @@ Nuke has a better, classic solution for this problem - it introduces a new `Rate
 
 You can see `RateLimiter` in action in a new `Rate Limiter Demo` added in the sample project.
 
-### #6. Resizing Images
+### Resizing Images
 
 Resizing (and cropping) images might help both in terms of [image drawing performance](https://developer.apple.com/library/content/qa/qa1708/_index.html) and memory usage.
