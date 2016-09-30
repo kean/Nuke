@@ -9,9 +9,10 @@ class ManagerPerformanceTests: XCTestCase {
     func testSharedManagerPerfomance() {
         let view = ImageView()
 
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(5000))")! }
+        
         measure {
-            for _ in 0..<10_000 {
-                let url = URL(string: "http://test.com/\(arc4random_uniform(5000))")!
+            for url in urls {
                 Nuke.loadImage(with: url, into: view)
             }
         }
@@ -23,9 +24,10 @@ class ManagerPerformanceTests: XCTestCase {
         
         let view = ImageView()
         
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(5000))")! }
+        
         measure {
-            for _ in 0..<10_000 {
-                let url = URL(string: "http://test.com/\(arc4random_uniform(5000))")!
+            for url in urls {
                 manager.loadImage(with: url, into: view)
             }
         }
@@ -37,9 +39,10 @@ class ManagerPerformanceTests: XCTestCase {
 
         let view = ImageView()
 
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(5000))")! }
+        
         measure {
-            for _ in 0..<10_000 {
-                let url = URL(string: "http://test.com/\(arc4random_uniform(5000))")!
+            for url in urls {
                 manager.loadImage(with: url, into: view)
             }
         }
@@ -51,9 +54,10 @@ class CachePerformanceTests: XCTestCase {
         let cache = Cache()
         let image = UIImage()
         
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(500))")! }
+        
         measure {
-            for _ in 0..<10_000 {
-                let url = URL(string: "http://test.com/\(arc4random_uniform(200))")!
+            for url in urls {
                 let request = Request(url: url)
                 cache[request] = image
             }
@@ -69,9 +73,10 @@ class CachePerformanceTests: XCTestCase {
         
         var hits = 0
         
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(200))")! }
+        
         measure {
-            for _ in 0..<10_000 {
-                let url = URL(string: "http://test.com/\(arc4random_uniform(200))")!
+            for url in urls {
                 let request = Request(url: url)
                 if cache[request] != nil {
                     hits += 1
@@ -87,9 +92,10 @@ class CachePerformanceTests: XCTestCase {
         
         var misses = 0
         
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(200))")! }
+        
         measure {
-            for _ in 0..<10_000 {
-                let url = URL(string: "http://test.com/\(arc4random_uniform(200))")!
+            for url in urls {
                 let request = Request(url: url)
                 if cache[request] == nil {
                     misses += 1

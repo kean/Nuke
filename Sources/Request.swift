@@ -7,53 +7,29 @@ import Foundation
 /// Represents an image request.
 public struct Request {
     public var urlRequest: URLRequest {
-        set { container = Container.request(newValue) }
-        get { return container.urlRequest }
+        set { container.resource = Resource.request(newValue) }
+        get { return container.resource.urlRequest }
     }
-
-    fileprivate var container: Container {
-        didSet { urlString = container.urlString }
-    }
-    fileprivate var urlString: String? // memoized absoluteString
-
-    /// URL/URLRequest container which only exists to improve performance
-    /// by creating requests lazily.
-    fileprivate enum Container {
-        case url(URL)
-        case request(URLRequest)
-
-        var urlRequest: URLRequest {
-            switch self {
-            case let .url(url): return URLRequest(url: url)
-            case let .request(request): return request
-            }
-        }
-
-        var urlString: String? {
-            switch self {
-            case let .url(url): return url.absoluteString
-            case let .request(request): return request.url?.absoluteString
-            }
-        }
-    }
+    
+    /// `Request` stores its parameters in a `Container` class to avoid
+    /// excessive memberwise retain/release when `Request` is passed around
+    /// (and it is passed around **a lot**).
+    fileprivate let container: Container
 
     public init(url: URL) {
-        self.container = Container.url(url)
+        self.container = Container(resource: Resource.url(url))
     }
 
     public init(urlRequest: URLRequest) {
-        self.container = Container.request(urlRequest)
+        self.container = Container(resource: Resource.request(urlRequest))
     }
     
-    #if !os(macOS)
     /// Processor to be applied to the image. `Decompressor` by default.
-    public var processor: AnyProcessor? = decompressor
-    private static let decompressor = AnyProcessor(Decompressor())
-    #else
-    /// Processor to be applied to the image. `nil` by default.
-    public var processor: AnyProcessor?
-    #endif
-
+    public var processor: AnyProcessor? {
+        set { container.processor = newValue }
+        get { return container.processor }
+    }
+    
     /// The policy to use when dealing with memory cache.
     public struct MemoryCacheOptions {
         /// `true` by default.
@@ -80,6 +56,53 @@ public struct Request {
 
     /// Custom info passed alongside the request.
     public var userInfo: Any?
+    
+    
+    // everything below exists solely to improve performance
+    
+    /// Request needs `struct` semantics, but not the way `struct` manages
+    /// memory (memberwise retain-release on each copy). This is way `Container`
+    /// exists - solely to improve memory performance.
+    fileprivate class Container {
+        var resource: Resource {
+            didSet { urlString = resource.urlString }
+        }
+        var urlString: String? // memoized absoluteString
+        var processor: AnyProcessor?
+        
+        init(resource: Resource) {
+            self.resource = resource
+            self.urlString = resource.urlString
+            
+            #if !os(macOS)
+            self.processor = Container.decompressor
+            #endif
+        }
+        
+        /// Memoized decompressor
+        private static let decompressor = AnyProcessor(Decompressor())
+    }
+    
+    /// Resource representation (either URL or URLRequest). Only exists to
+    /// improve performance by lazily creating requests.
+    fileprivate enum Resource {
+        case url(URL)
+        case request(URLRequest)
+        
+        var urlRequest: URLRequest {
+            switch self {
+            case let .url(url): return URLRequest(url: url) // create lazily
+            case let .request(request): return request
+            }
+        }
+        
+        var urlString: String? {
+            switch self {
+            case let .url(url): return url.absoluteString
+            case let .request(request): return request.url?.absoluteString
+            }
+        }
+    }
 }
 
 public extension Request {
@@ -112,7 +135,7 @@ public extension Request {
     /// just by their `URLs`.
     public static func cacheKey(for request: Request) -> AnyHashable {
         return request.cacheKey ?? AnyHashable(Key(request: request) {
-            $0.urlString == $1.urlString && $0.processor == $1.processor
+            $0.container.urlString == $1.container.urlString && $0.processor == $1.processor
         })
     }
     
@@ -145,7 +168,7 @@ public extension Request {
 
         /// Returns hash from the request's URL.
         var hashValue: Int {
-            return request.urlString?.hashValue ?? 0
+            return request.container.urlString?.hashValue ?? 0
         }
         
         /// Compares two keys for equivalence.

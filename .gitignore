@@ -4,6 +4,7 @@
 ## Build generated
 build/
 DerivedData
+Nuke.xcodeproj/xcshareddata/xcbaselines/
 
 ## Various settings
 *.pbxuser
