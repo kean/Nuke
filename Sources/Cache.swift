@@ -30,7 +30,7 @@ public final class Cache: Caching {
     // We don't use `NSCache` because it's not LRU
     
     private var map = [AnyHashable: Node<CachedImage>]()
-    private var list = LinkedList<CachedImage>()
+    private let list = LinkedList<CachedImage>()
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Cache")
 
     /// The maximum total cost that the cache can hold.
@@ -133,15 +133,17 @@ public final class Cache: Caching {
     /// Removes least recently used items from the cache until the total cost
     /// of the remaining items is less than the given cost limit.
     public func trim(toCost limit: Int) {
-        while totalCost > limit, let node = list.tail { // least recently used
-            remove(node: node)
-        }
+        trim(while: { totalCost > limit })
     }
     
     /// Removes least recently used items from the cache until the total count
     /// of the remaining items is less than the given count limit.
     public func trim(toCount limit: Int) {
-        while totalCount > limit, let node = list.tail { // least recently used
+        trim(while: { totalCount > limit })
+    }
+    
+    private func trim(while condition: (Void) -> Bool) {
+        while condition(), let node = list.tail { // least recently used
             remove(node: node)
         }
     }
