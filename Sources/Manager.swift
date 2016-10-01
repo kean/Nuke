@@ -67,6 +67,7 @@ public final class Manager {
             }
         }
     }
+    
     /// Cancels an outstanding request associated with the target.
     public func cancelRequest(for target: AnyObject) {
         assert(Thread.isMainThread)

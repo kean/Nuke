@@ -42,6 +42,11 @@ public func loadImage(with request: Request, into target: AnyObject, handler: @e
     Manager.shared.loadImage(with: request, into: target, handler: handler)
 }
 
+/// Cancels an outstanding request associated with the target.
+public func cancelRequest(for target: AnyObject) {
+    Manager.shared.cancelRequest(for: target)
+}
+
 public extension Manager {
     /// Shared `Manager` instance.
     ///
