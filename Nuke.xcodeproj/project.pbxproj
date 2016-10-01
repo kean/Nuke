@@ -107,9 +107,6 @@
 		0C8BE62A1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
 		0C8BE62B1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
 		0C8BE62C1D45E6EC00613839 /* Image.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C8BE6291D45E6EC00613839 /* Image.jpg */; };
-		0C8D74211D9D6EEB0036349E /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */; };
-		0C8D74221D9D6EEB0036349E /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */; };
-		0C8D74231D9D6EEB0036349E /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */; };
 		0C8D7BD31D9DBF1600D12EB7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD21D9DBF1600D12EB7 /* AppDelegate.swift */; };
 		0C8D7BD51D9DBF1600D12EB7 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD41D9DBF1600D12EB7 /* ViewController.swift */; };
 		0C8D7BD81D9DBF1600D12EB7 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD61D9DBF1600D12EB7 /* Main.storyboard */; };
@@ -676,7 +673,6 @@
 					0C7C06761BCA882A00089D7F = {
 						CreatedOnToolsVersion = 7.0.1;
 						LastSwiftMigration = 0800;
-						TestTargetID = 0C8D7BCF1D9DBF1600D12EB7;
 					};
 					0C8D7BCF1D9DBF1600D12EB7 = {
 						CreatedOnToolsVersion = 8.0;
@@ -863,7 +859,6 @@
 				0C22DA5B1BCAAA3A006E1D3B /* MockDataLoader.swift in Sources */,
 				0C1ECA511D52811D009063A9 /* ManagerTests.swift in Sources */,
 				0C1ECA461D52667B009063A9 /* ProcessingTests.swift in Sources */,
-				0C8D74221D9D6EEB0036349E /* PerformanceTests.swift in Sources */,
 				0C5D81891D46A385000ECCB6 /* ThreadSafetyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -889,7 +884,6 @@
 				0C7C06971BCA888800089D7F /* MockDataLoader.swift in Sources */,
 				0C1ECA501D52811D009063A9 /* ManagerTests.swift in Sources */,
 				0C1ECA451D52667B009063A9 /* ProcessingTests.swift in Sources */,
-				0C8D74211D9D6EEB0036349E /* PerformanceTests.swift in Sources */,
 				0CE3992D1D4697CE00A87D47 /* LoaderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -972,7 +966,6 @@
 				0CC345C01BD96E16005C2DD8 /* MockImageCache.swift in Sources */,
 				0C1ECA521D52811D009063A9 /* ManagerTests.swift in Sources */,
 				0C1ECA471D52667B009063A9 /* ProcessingTests.swift in Sources */,
-				0C8D74231D9D6EEB0036349E /* PerformanceTests.swift in Sources */,
 				0C5D818A1D46A385000ECCB6 /* ThreadSafetyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1164,7 +1157,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 3.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Nuke iOS Tests Host.app/Nuke iOS Tests Host";
 			};
 			name = Debug;
 		};
@@ -1178,7 +1170,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 				SWIFT_VERSION = 3.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Nuke iOS Tests Host.app/Nuke iOS Tests Host";
 			};
 			name = Release;
 		};
@@ -1193,7 +1184,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = NR8DLKJ7E6;
 				INFOPLIST_FILE = "$(SRCROOT)/Tests/Host/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-iOS-Tests-Host";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1213,7 +1204,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = NR8DLKJ7E6;
 				INFOPLIST_FILE = "$(SRCROOT)/Tests/Host/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-iOS-Tests-Host";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1512,6 +1503,7 @@
 				0C8D7BE01D9DBF1600D12EB7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		0C8D7BF01D9DC02B00D12EB7 /* Build configuration list for PBXNativeTarget "Nuke iOS Performance Tests" */ = {
 			isa = XCConfigurationList;
@@ -1520,6 +1512,7 @@
 				0C8D7BF21D9DC02B00D12EB7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		0C91748A1BAE99EE004A7905 /* Build configuration list for PBXProject "Nuke" */ = {
 			isa = XCConfigurationList;

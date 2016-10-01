@@ -80,7 +80,9 @@ public struct Request {
         }
         
         /// Memoized decompressor
+        #if !os(macOS)
         private static let decompressor = AnyProcessor(Decompressor())
+        #endif
     }
     
     /// Resource representation (either URL or URLRequest). Only exists to

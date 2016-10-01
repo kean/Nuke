@@ -1,0 +1,36 @@
+language: objective-c
+os: osx
+osx_image: xcode8
+
+env:
+  global:
+  - WORKSPACE=Nuke.xcworkspace
+  - IOS_FRAMEWORK_SCHEME="Nuke iOS"
+  - MACOS_FRAMEWORK_SCHEME="Nuke macOS"
+  - TVOS_FRAMEWORK_SCHEME="Nuke tvOS"
+  - WATCHOS_FRAMEWORK_SCHEME="Nuke watchOS"
+
+  matrix:
+    - DESTINATION="OS=3.0,name=Apple Watch - 42mm" SCHEME="$WATCHOS_FRAMEWORK_SCHEME" RUN_TESTS="NO"
+    - DESTINATION="OS=2.0,name=Apple Watch - 42mm" SCHEME="$WATCHOS_FRAMEWORK_SCHEME" RUN_TESTS="NO"
+
+    - DESTINATION="OS=10.0,name=iPhone 7 Plus"     SCHEME="$IOS_FRAMEWORK_SCHEME"     RUN_TESTS="YES"
+    - DESTINATION="OS=9.0,name=iPhone 5"           SCHEME="$IOS_FRAMEWORK_SCHEME"     RUN_TESTS="YES"
+
+    - DESTINATION="OS=10.0,name=Apple TV 1080p"    SCHEME="$TVOS_FRAMEWORK_SCHEME"    RUN_TESTS="YES"
+    - DESTINATION="OS=9.0,name=Apple TV 1080p"     SCHEME="$TVOS_FRAMEWORK_SCHEME"    RUN_TESTS="YES"
+
+    - DESTINATION="arch=x86_64"                    SCHEME="$MACOS_FRAMEWORK_SCHEME"   RUN_TESTS="YES"
+
+script:
+  - set -o pipefail
+  - xcodebuild -version
+  - xcodebuild -showsdks
+
+  - if [ $RUN_TESTS == "YES" ]; then
+      xcodebuild clean test -workspace "$WORKSPACE" -scheme "$SCHEME" -destination "$DESTINATION" -configuration Debug | xcpretty;
+      xcodebuild clean test -workspace "$WORKSPACE" -scheme "$SCHEME" -destination "$DESTINATION" -configuration Release | xcpretty;
+    else
+      xcodebuild clean build -workspace "$WORKSPACE" -scheme "$SCHEME" -destination "$DESTINATION" -configuration Debug | xcpretty;
+      xcodebuild clean build -workspace "$WORKSPACE" -scheme "$SCHEME" -destination "$DESTINATION" -configuration Release | xcpretty;
+    fi

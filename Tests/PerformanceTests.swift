@@ -52,7 +52,7 @@ class ManagerPerformanceTests: XCTestCase {
 class CachePerformanceTests: XCTestCase {
     func testCacheWritePerformance() {
         let cache = Cache()
-        let image = UIImage()
+        let image = Image()
         
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(500))")! }
         
@@ -68,7 +68,7 @@ class CachePerformanceTests: XCTestCase {
         let cache = Cache()
         
         for i in 0..<200 {
-            cache[Request(url: URL(string: "http://test.com/\(i))")!)] = UIImage()
+            cache[Request(url: URL(string: "http://test.com/\(i))")!)] = Image()
         }
         
         var hits = 0
