@@ -40,20 +40,24 @@ public final class Preheater {
     
     private func startPreheating(with request: Request) {
         // FIXME: use OrderedSet when Swift stdlib has one
-        if indexOfTask(with: request) == nil {
-            let task = Task(request: request)
-            scheduler.execute(token: task.cts.token) { [weak self] finish in
-                self?.loader.loadImage(with: task.request, token: task.cts.token).completion { _ in
-                    self?.queue.async {
-                        if let idx = self?.tasks.index(where: { task === $0 }) {
-                            self?.tasks.remove(at: idx)
-                        }
-                    }
-                    finish()
-                }
-                task.cts.token.register { finish() }
+        guard indexOfTask(with: request) == nil else { return } // already exists
+
+        let task = Task(request: request)
+        scheduler.execute(token: task.cts.token) { [weak self] finish in
+            self?.loader.loadImage(with: task.request, token: task.cts.token).completion { _ in
+                self?.complete(task)
+                finish()
             }
-            tasks.append(task)
+            task.cts.token.register { finish() }
+        }
+        tasks.append(task)
+    }
+    
+    private func complete(_ task: Task) {
+        queue.async {
+            if let idx = self.tasks.index(where: { task === $0 }) {
+                self.tasks.remove(at: idx)
+            }
         }
     }
     

@@ -30,29 +30,34 @@ public final class Deduplicator: Loading {
                 let promise = loader.loadImage(with: request, token: cts.token)
                 task = Task(promise: promise, cts: cts)
                 tasks[key] = task
-                promise.completion(on: self.queue) { [weak self, weak task] _ in
-                    if let task = task, self?.tasks[key] === task {
-                        self?.tasks[key] = nil
-                    }
+                promise.completion(on: queue) { [weak self, weak task] _ in
+                    if let task = task { self?.remove(task, key: key) }
                 }
             } else {
                 task.retainCount += 1
             }
 
             token?.register { [weak self, weak task] in
-                guard let task = task else { return }
-                self?.queue.async {
-                    task.retainCount -= 1
-                    if task.retainCount == 0 {
-                        task.cts.cancel() // cancel underlying request
-                        if self?.tasks[key] === task {
-                            self?.tasks[key] = nil
-                        }
-                    }
-                }
+                if let task = task { self?.cancel(task, key: key) }
             }
             
             return task.promise
+        }
+    }
+    
+    private func cancel(_ task: Task, key: AnyHashable) {
+        queue.async {
+            task.retainCount -= 1
+            if task.retainCount == 0 { // No more requests registered
+                task.cts.cancel() // Cancel underlying request
+                self.remove(task, key: key)
+            }
+        }
+    }
+    
+    private func remove(_ task: Task, key: AnyHashable) {
+        if tasks[key] === task { // Still managed by Deduplicator
+            tasks[key] = nil
         }
     }
 
