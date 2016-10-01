@@ -51,7 +51,7 @@ public final class Manager {
         if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
             handler(.fulfilled(image), true)
         } else {
-            let cts = CancellationTokenSource(queue: CancellationTokenSource.queue)
+            let cts = CancellationTokenSource(lock: CancellationTokenSource.lock)
             let context = Context(cts)
             
             Manager.setContext(context, for: target)
