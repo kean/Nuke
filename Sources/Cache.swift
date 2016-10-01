@@ -171,6 +171,8 @@ private final class LinkedList<V> {
     private(set) var head: Node<V>?
     private(set) var tail: Node<V>?
     
+    deinit { removeAll() }
+    
     /// Appends node to the head.
     func append(_ node: Node<V>) {
         if let currentHead = head {
@@ -193,6 +195,13 @@ private final class LinkedList<V> {
     }
     
     func removeAll() {
+        // Here's a clever trick to avoid recursive Nodes deallocation
+        var node = tail
+        while let previous = node?.previous {
+            previous.next = nil
+            node = previous
+        }
+        
         head = nil
         tail = nil
     }
