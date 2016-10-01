@@ -5,6 +5,22 @@
 import XCTest
 import Nuke
 
+class RequestSemanticsTests: XCTestCase {
+    func testThatStructSemanticsArePreserved() {
+        let url1 =  URL(string: "http://test.com/1.png")!
+        let url2 = URL(string: "http://test.com/2.png")!
+        
+        var request = Request(url: url1)
+        XCTAssertEqual(url1, request.urlRequest.url)
+        
+        var copy = request
+        copy.urlRequest = URLRequest(url: url2)
+        
+        XCTAssertEqual(url2, copy.urlRequest.url)
+        XCTAssertEqual(url1, request.urlRequest.url)
+    }
+}
+
 class RequestCacheKeyTests: XCTestCase {
     func testDefaults() {
         let request = Request(url: defaultURL)

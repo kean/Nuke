@@ -7,15 +7,10 @@ import Foundation
 /// Represents an image request.
 public struct Request {
     public var urlRequest: URLRequest {
-        set { container.resource = Resource.request(newValue) }
         get { return container.resource.urlRequest }
+        set { applyMutation { $0.resource = Resource.request(newValue) } }
     }
     
-    /// `Request` stores its parameters in a `Container` class to avoid
-    /// excessive memberwise retain/release when `Request` is passed around
-    /// (and it is passed around **a lot**).
-    fileprivate let container: Container
-
     public init(url: URL) {
         self.container = Container(resource: Resource.url(url))
     }
@@ -26,8 +21,8 @@ public struct Request {
     
     /// Processor to be applied to the image. `Decompressor` by default.
     public var processor: AnyProcessor? {
-        set { container.processor = newValue }
         get { return container.processor }
+        set { applyMutation { $0.processor = newValue } }
     }
     
     /// The policy to use when dealing with memory cache.
@@ -60,6 +55,19 @@ public struct Request {
     
     // everything below exists solely to improve performance
     
+    /// Here we implement copy-on-write semantics.
+    private mutating func applyMutation(_ block: (Container) -> Void) {
+        if !isKnownUniquelyReferenced(&container) {
+            container = container.copy()
+        }
+        block(container)
+    }
+    
+    /// `Request` stores its parameters in a `Container` class to avoid
+    /// excessive memberwise retain/release when `Request` is passed around
+    /// (and it is passed around **a lot**).
+    fileprivate var container: Container
+    
     /// Request needs `struct` semantics, but not the way `struct` manages
     /// memory (memberwise retain-release on each copy). This is way `Container`
     /// exists - solely to improve memory performance.
@@ -77,6 +85,13 @@ public struct Request {
             #if !os(macOS)
             self.processor = Container.decompressor
             #endif
+        }
+        
+        func copy() -> Container {
+            let ref = Container(resource: resource)
+            ref.urlString = urlString
+            ref.processor = processor
+            return ref
         }
         
         /// Memoized decompressor
