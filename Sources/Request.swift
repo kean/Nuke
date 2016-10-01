@@ -8,22 +8,36 @@ import Foundation
 public struct Request {
     public var urlRequest: URLRequest {
         get { return container.resource.urlRequest }
-        set { applyMutation { $0.resource = Resource.request(newValue) } }
+        set {
+            applyMutation {
+                $0.resource = Resource.request(newValue)
+                $0.urlString = newValue.url?.absoluteString
+            }
+        }
     }
     
     public init(url: URL) {
-        self.container = Container(resource: Resource.url(url))
+        container = Container(resource: Resource.url(url))
+        container.urlString = url.absoluteString
     }
 
     public init(urlRequest: URLRequest) {
-        self.container = Container(resource: Resource.request(urlRequest))
+        container = Container(resource: Resource.request(urlRequest))
+        container.urlString = urlRequest.url?.absoluteString
     }
     
     /// Processor to be applied to the image. `Decompressor` by default.
     public var processor: AnyProcessor? {
         get { return container.processor }
-        set { applyMutation { $0.processor = newValue } }
+        set {
+            applyMutation {
+                $0.processor = newValue
+                isDefaultProcessor = false
+            }
+        }
     }
+    
+    var isDefaultProcessor = true // false when processor is changed from the outside
     
     /// The policy to use when dealing with memory cache.
     public struct MemoryCacheOptions {
@@ -72,18 +86,12 @@ public struct Request {
     /// memory (memberwise retain-release on each copy). This is way `Container`
     /// exists - solely to improve memory performance.
     fileprivate class Container {
-        var resource: Resource {
-            didSet { urlString = resource.urlString }
-        }
+        var resource: Resource
         var urlString: String? // memoized absoluteString
-        var processor: AnyProcessor? {
-            didSet { isDefaultProcessor = false }
-        }
-        var isDefaultProcessor = true // false when processor is changed from the outside
-        
+        var processor: AnyProcessor?
+    
         init(resource: Resource) {
             self.resource = resource
-            self.urlString = resource.urlString
             
             #if !os(macOS)
             self.processor = Container.decompressor
@@ -113,13 +121,6 @@ public struct Request {
             switch self {
             case let .url(url): return URLRequest(url: url) // create lazily
             case let .request(request): return request
-            }
-        }
-        
-        var urlString: String? {
-            switch self {
-            case let .url(url): return url.absoluteString
-            case let .request(request): return request.url?.absoluteString
             }
         }
     }
@@ -158,7 +159,7 @@ public extension Request {
         if let key = request.cacheKey { return key }
         
         // We can avoid creating a separate Request.Key and just pass an absolute
-        if request.container.isDefaultProcessor, let str = request.container.urlString {
+        if request.isDefaultProcessor, let str = request.container.urlString {
             return AnyHashable(str)
         }
         
