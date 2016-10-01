@@ -76,7 +76,10 @@ public struct Request {
             didSet { urlString = resource.urlString }
         }
         var urlString: String? // memoized absoluteString
-        var processor: AnyProcessor?
+        var processor: AnyProcessor? {
+            didSet { isDefaultProcessor = false }
+        }
+        var isDefaultProcessor = true // false when processor is changed from the outside
         
         init(resource: Resource) {
             self.resource = resource
@@ -151,7 +154,15 @@ public extension Request {
     /// `URLRequests` and the same processors. `URLRequests` are compared
     /// just by their `URLs`.
     public static func cacheKey(for request: Request) -> AnyHashable {
-        return request.cacheKey ?? AnyHashable(Key(request: request) {
+        // User provided custom key
+        if let key = request.cacheKey { return key }
+        
+        // We can avoid creating a separate Request.Key and just pass an absolute
+        if request.container.isDefaultProcessor, let str = request.container.urlString {
+            return AnyHashable(str)
+        }
+        
+        return AnyHashable(Key(request: request) {
             $0.container.urlString == $1.container.urlString && $0.processor == $1.processor
         })
     }
