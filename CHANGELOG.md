@@ -1,4 +1,29 @@
-## Nuke 4.0
+## Nuke 4.1 ⚡️
+
+Nuke 4.1 is all about **performance**. Here are some notable performance improvements:
+
+- `loadImage(with:into:)` method with a default config is **6.3x** faster
+- `Cache` operations (write/hit/miss) are from **3.1x** to **4.5x** faster
+
+Nuke 4.0 focused on stability first, naturally there were some performance regressions. With the version 4.1 Nuke is again [the fastest framework](https://github.com/kean/Image-Frameworks-Benchmark) out there. The performance is ensured by a new set of performance tests.
+
+<img src="https://cloud.githubusercontent.com/assets/1567433/19019388/26463bb2-888f-11e6-87dd-42c2d82c5dae.png" width="500"/>
+
+If you're interested in the types of optimizations that were made check out recent commits. There is a lot of awesome stuff there!
+
+Nuke 4.1 also includes a new [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) and a collection of [Tips and Tricks](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Tips%20and%20Tricks.md).
+
+### Other Changes
+
+- Add convenience method `loadImage(with url: URL, into target: AnyObject, handler: @escaping Handler)` (more useful than anticipated).
+- #88 Add convenience `cancelRequest(for:)` function
+- Use `@discardableResult` in `Promise` where it makes sense
+- Simplified `Loader` implementation
+- `Cache` nodes are no longer deallocated recursively on `removeAll()` and `deinit` (I was hitting stack limit in benchmarks, it's impossible in real-world use).
+- Fix: All `Cache` public `trim()` methods are now thread-safe too.
+
+
+## Nuke 4.0 🚀
 
 ### Overview
  
