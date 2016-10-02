@@ -6,7 +6,7 @@ import Nuke
 import XCTest
 
 class ManagerPerformanceTests: XCTestCase {
-    func testSharedManagerPerfomance() {
+    func testDefaultManager() {
         let view = ImageView()
 
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(5000))")! }
@@ -18,7 +18,7 @@ class ManagerPerformanceTests: XCTestCase {
         }
     }
 
-    func testPerformanceWithoutMemoryCache() {
+    func testWithoutMemoryCache() {
         let loader = Loader(loader: DataLoader(), decoder: DataDecoder(), cache: nil)
         let manager = Manager(loader: Deduplicator(loader: loader))
         
@@ -33,7 +33,7 @@ class ManagerPerformanceTests: XCTestCase {
         }
     }
     
-    func testPerformanceWithoutDeduplicator() {
+    func testWithoutDeduplicator() {
         let loader = Loader(loader: DataLoader(), decoder: DataDecoder(), cache: nil)
         let manager = Manager(loader: loader)
 
@@ -50,7 +50,7 @@ class ManagerPerformanceTests: XCTestCase {
 }
 
 class CachePerformanceTests: XCTestCase {
-    func testCacheWritePerformance() {
+    func testCacheWrite() {
         let cache = Cache()
         let image = Image()
         
@@ -64,7 +64,7 @@ class CachePerformanceTests: XCTestCase {
         }
     }
     
-    func testCacheHitPerformance() {
+    func testCacheHit() {
         let cache = Cache()
         
         for i in 0..<200 {
@@ -87,7 +87,7 @@ class CachePerformanceTests: XCTestCase {
         print("hits: \(hits)")
     }
     
-    func testCacheMissPerformance() {
+    func testCacheMiss() {
         let cache = Cache()
         
         var misses = 0
@@ -104,5 +104,43 @@ class CachePerformanceTests: XCTestCase {
         }
         
         print("misses: \(misses)")
+    }
+}
+
+class DeduplicatorPerformanceTests: XCTestCase {
+    func testDeduplicatorHits() {
+        let deduplicator = Deduplicator(loader: MockImageLoader())
+        
+        let request = Request(url: URL(string: "http://test.com/\(arc4random())")!)
+        
+        measure {
+            let cts = CancellationTokenSource()
+            for _ in (0..<10_000) {
+                _ = deduplicator.loadImage(with: request, token:cts.token)
+            }
+        }
+    }
+ 
+    func testDeduplicatorMisses() {
+        let deduplicator = Deduplicator(loader: MockImageLoader())
+        
+        let requests = (0..<10_000)
+            .map { _ in return URL(string: "http://test.com/\(arc4random())")! }
+            .map { return Request(url: $0) }
+        
+        measure {
+            let cts = CancellationTokenSource()
+            for request in requests {
+                _ = deduplicator.loadImage(with: request, token:cts.token)
+            }
+        }
+    }
+}
+
+class MockImageLoader: Loading {
+    func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image> {
+        return Promise() { fulfill, reject in
+            return
+        }
     }
 }

@@ -67,7 +67,7 @@ public extension Cache {
     public static var shared = Cache()
 }
 
-internal final class Mutex {
+internal final class Lock {
     var mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
     
     init() {

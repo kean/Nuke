@@ -176,12 +176,12 @@ public extension Request {
     /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
     public static func loadKey(for request: Request) -> AnyHashable {
         func isEqual(_ a: URLRequest, _ b: URLRequest) -> Bool {
-            return a.url == b.url &&
-                a.cachePolicy == b.cachePolicy &&
-                a.allowsCellularAccess == b.allowsCellularAccess
+            return a.cachePolicy == b.cachePolicy && a.allowsCellularAccess == b.allowsCellularAccess
         }
         return request.loadKey ?? AnyHashable(Key(request: request) {
-            isEqual($0.urlRequest, $1.urlRequest) && $0.processor == $1.processor
+            $0.container.urlString == $1.container.urlString
+                && isEqual($0.urlRequest, $1.urlRequest)
+                && $0.processor == $1.processor
         })
     }
     

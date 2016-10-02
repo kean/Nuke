@@ -31,7 +31,7 @@ public final class Cache: Caching {
     
     private var map = [AnyHashable: Node<CachedImage>]()
     private let list = LinkedList<CachedImage>()
-    private let lock = Mutex()
+    private let lock = Lock()
     
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int { didSet { lock.sync { trim() } } }
