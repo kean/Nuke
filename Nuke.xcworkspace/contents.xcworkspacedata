@@ -19,6 +19,9 @@
          <FileRef
             location = "group:Performance Guide.md">
          </FileRef>
+         <FileRef
+            location = "group:Tips and Tricks.md">
+         </FileRef>
       </Group>
       <Group
          location = "group:Migration"
