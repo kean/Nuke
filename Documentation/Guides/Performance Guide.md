@@ -1,10 +1,6 @@
-# Draft
-
-This is a draft of a new Performance Guide for Nuke. Items are in a no particular order (for now).
-
 ### Create `URL`s in a Background
 
-`URL` initializer is quite expensive (it parses string's components etc) and might take as much time as actual call to `Nuke.loadImage(with:into)`. Make sure that you create those `URL`s in a background, for instance when creating objects from JSON.
+`URL` initializer is quite expensive (parses string's components) and might take more time as an actual call to `Nuke.loadImage(with:into)`. Make sure that you create those `URL`s in a background. Creating objects from JSON would be a good place.
 
 ### Decompression
 

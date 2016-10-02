@@ -71,6 +71,6 @@ class CancellationTokenTests: XCTestCase {
             }
         }
         
-        wait()
+        wait(10)
     }
 }

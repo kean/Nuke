@@ -27,6 +27,6 @@ extension XCTestCase {
                 }
             }
         }
-        wait(5)
+        wait(10)
     }
 }

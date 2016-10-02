@@ -79,6 +79,6 @@ class PreheaterTests: XCTestCase {
             }
         }
         
-        wait(5)
+        wait(10)
     }
 }
