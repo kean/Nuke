@@ -84,6 +84,17 @@ request.memoryCacheOptions.writeAllowed = false
 Nuke.loadImage(with: request, into: imageView)
 ```
 
+#### Custom Handler
+
+Nuke has a flexible `loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler)` method in which target is a simple reuse token. It doesn't do anything after the image is loaded, you have full control. Here's one simple way to use it:
+
+```swift
+indicator.startAnimating()
+Nuke.loadImage(with: request, into: view) { [weak view] in
+    view?.handle(response: $0, isFromMemoryCache: $1)
+    indicator.stopAnimating()
+}
+```
 
 #### Processing Images
 
@@ -104,6 +115,7 @@ struct GaussianBlur: Processing {
 }
 ```
 
+> Check out [Toucan plugin](https://github.com/kean/Nuke-Toucan-Plugin) for some useful image transformations
 
 #### Preheating Images
 
@@ -134,6 +146,7 @@ controller.handler = { addedIndexPaths, removedIndexPaths in
 }
 ```
 
+> Check out [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
 
 #### Loading Images Directly
 
