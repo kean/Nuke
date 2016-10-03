@@ -29,15 +29,8 @@ public struct Request {
     /// Processor to be applied to the image. `Decompressor` by default.
     public var processor: AnyProcessor? {
         get { return container.processor }
-        set {
-            applyMutation {
-                $0.processor = newValue
-                isDefaultProcessor = false
-            }
-        }
+        set { applyMutation { $0.processor = newValue } }
     }
-    
-    var isDefaultProcessor = true // false when processor is changed from the outside
     
     /// The policy to use when dealing with memory cache.
     public struct MemoryCacheOptions {
@@ -155,15 +148,7 @@ public extension Request {
     /// `URLRequests` and the same processors. `URLRequests` are compared
     /// just by their `URLs`.
     public static func cacheKey(for request: Request) -> AnyHashable {
-        // User provided custom key
-        if let key = request.cacheKey { return key }
-        
-        // We can avoid creating a separate Request.Key and just pass an absolute
-        if request.isDefaultProcessor, let str = request.container.urlString {
-            return AnyHashable(str)
-        }
-        
-        return AnyHashable(Key(request: request) {
+        return request.cacheKey ?? AnyHashable(Key(request: request) {
             $0.container.urlString == $1.container.urlString && $0.processor == $1.processor
         })
     }

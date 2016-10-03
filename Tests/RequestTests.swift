@@ -35,6 +35,12 @@ class RequestCacheKeyTests: XCTestCase {
         XCTAssertTrue(Request.cacheKey(for: request1) == Request.cacheKey(for: request2))
     }
     
+    func testThatRequestsWithDefaultURLRequestAndURLAreEquivalent() {
+        let request1 = Request(url: defaultURL)
+        let request2 = Request(urlRequest: URLRequest(url: defaultURL))
+        XCTAssertTrue(Request.cacheKey(for: request1) == Request.cacheKey(for: request2))
+    }
+    
     func testThatRequestsWithDifferentURLsAreNotEquivalent() {
         let request1 = Request(url: URL(string: "http://test.com/1.png")!)
         let request2 = Request(url: URL(string: "http://test.com/2.png")!)
