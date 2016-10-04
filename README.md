@@ -21,7 +21,7 @@ Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into *
 - [Freedom to use](#h_design) networking, caching libraries of your choice
 - Plugins: [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin), [Toucan](https://github.com/kean/Nuke-Toucan-Plugin)
 - Automated [prefetching](https://kean.github.io/blog/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
-- [**Fast**](https://github.com/kean/Image-Frameworks-Benchmark), supports large collection views of images
+- Fast (see [benchmarks](https://github.com/kean/Image-Frameworks-Benchmark)), supports large collection views of images
 - Comprehensive test coverage
 
 

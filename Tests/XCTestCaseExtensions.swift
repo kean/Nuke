@@ -23,3 +23,19 @@ extension XCTestCase {
         self.waitForExpectations(timeout: timeout, handler: handler)
     }
 }
+
+
+func rnd() -> Int {
+    return Int(arc4random())
+}
+
+func rnd(_ uniform: Int) -> Int {
+    return Int(arc4random_uniform(UInt32(uniform)))
+}
+
+extension Array {
+    func randomItem() -> Element {
+        let index = Int(arc4random_uniform(UInt32(self.count)))
+        return self[index]
+    }
+}

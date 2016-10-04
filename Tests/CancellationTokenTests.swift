@@ -56,9 +56,9 @@ class CancellationTokenTests: XCTestCase {
             let cts = CancellationTokenSource()
             
             for _ in 0...100 {
-                self.expect { fulfill in
+                expect { fulfill in
                     DispatchQueue.global().async {
-                        if arc4random_uniform(4) == 0 {
+                        if rnd(4) == 0 {
                             cts.cancel()
                             fulfill()
                         } else {

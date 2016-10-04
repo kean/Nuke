@@ -9,7 +9,7 @@ class ManagerPerformanceTests: XCTestCase {
     func testDefaultManager() {
         let view = ImageView()
 
-        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(5000))")! }
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }
         
         measure {
             for url in urls {
@@ -24,7 +24,7 @@ class ManagerPerformanceTests: XCTestCase {
         
         let view = ImageView()
         
-        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(5000))")! }
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }
         
         measure {
             for url in urls {
@@ -39,7 +39,7 @@ class ManagerPerformanceTests: XCTestCase {
 
         let view = ImageView()
 
-        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(5000))")! }
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }
         
         measure {
             for url in urls {
@@ -54,7 +54,7 @@ class CachePerformanceTests: XCTestCase {
         let cache = Cache()
         let image = Image()
         
-        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(500))")! }
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
         
         measure {
             for url in urls {
@@ -73,7 +73,7 @@ class CachePerformanceTests: XCTestCase {
         
         var hits = 0
         
-        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(200))")! }
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
         
         measure {
             for url in urls {
@@ -92,7 +92,7 @@ class CachePerformanceTests: XCTestCase {
         
         var misses = 0
         
-        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(arc4random_uniform(200))")! }
+        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
         
         measure {
             for url in urls {

@@ -7,23 +7,26 @@ import XCTest
 
 extension XCTestCase {
     func runThreadSafetyTests(for loader: Loading) {
-        for _ in 0..<250 {
+        for _ in 0..<500 {
             expect { fulfill in
-                let request = Request(url: URL(string: "\(defaultURL)/\(arc4random_uniform(10))")!)
-                let shouldCancel = arc4random_uniform(3) == 0
-                
-                let cts = CancellationTokenSource()
-                _ = loader.loadImage(with: request, token: cts.token).then { _ in
+                DispatchQueue.global().async {
+                    let request = Request(url: URL(string: "\(defaultURL)/\(rnd(10))")!)
+                    let shouldCancel = rnd(3) == 0
+                    
+                    let cts = CancellationTokenSource()
+                    // Dispatch on global queue to avoid waiting on main thread
+                    _ = loader.loadImage(with: request, token: cts.token).then(on: DispatchQueue.global()) { _ in
+                        if shouldCancel {
+                            // do nothing, we don't expect completion on cancel
+                        } else {
+                            fulfill()
+                        }
+                    }
+                    
                     if shouldCancel {
-                        // do nothing, we don't expect completion on cancel
-                    } else {
+                        cts.cancel()
                         fulfill()
                     }
-                }
-                
-                if shouldCancel {
-                    cts.cancel()
-                    fulfill()
                 }
             }
         }

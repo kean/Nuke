@@ -284,4 +284,48 @@ class CacheTests: XCTestCase {
         XCTAssertNil(cache[request])
     }
     #endif
+    
+    // MARK: Thread Safety
+    
+    func testThreadSafety() {
+        let cache = Cache()
+        
+        func rnd_cost() -> Int {
+            return (2 + rnd(20)) * 1024 * 1024
+        }
+        
+        var ops = [(Void) -> Void]()
+            
+        for _ in 0..<10 { // those ops happen more frequently
+            ops += [
+                { cache[rnd(10)] = defaultImage },
+                { cache[rnd(10)] = nil },
+                { let _ = cache[rnd(10)] }
+            ]
+        }
+        
+        ops += [
+            { cache.costLimit = rnd_cost() },
+            { cache.countLimit = rnd(10) },
+            { cache.trim(toCost: rnd_cost()) },
+            { cache.removeAll() }
+        ]
+
+        #if os(iOS) || os(tvOS)
+            ops.append {
+                NotificationCenter.default.post(name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
+            }
+        #endif
+        
+        for _ in 0..<5000 {
+            expect { fulfill in
+                DispatchQueue.global().async {
+                    ops.randomItem()()
+                    fulfill()
+                }
+            }
+        }
+        
+        wait()
+    }
 }

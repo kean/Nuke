@@ -65,13 +65,13 @@ class PreheaterTests: XCTestCase {
     
     func testPreheatingThreadSafety() {
         func makeRequests() -> [Request] {
-            return (0...arc4random_uniform(30)).map { _ in
-                return Request(url: URL(string: "http://\(arc4random_uniform(15))")!)
+            return (0...rnd(30)).map { _ in
+                return Request(url: URL(string: "http://\(rnd(15))")!)
             }
         }
         for _ in 0...1000 {
             expect { fulfill in
-                DispatchQueue.global().asyncAfter(deadline: .now() + Double(arc4random_uniform(2))) {
+                DispatchQueue.global().asyncAfter(deadline: .now() + Double(rnd(1))) {
                     self.preheater.stopPreheating(with: makeRequests())
                     self.preheater.startPreheating(with: makeRequests())
                     fulfill()
