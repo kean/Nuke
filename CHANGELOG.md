@@ -1,3 +1,8 @@
+## Nuke 4.1.1
+
+- Fix deadlock in `Cache` - small typo, much embarrassment  😄 (https://github.com/kean/Nuke-Alamofire-Plugin/issues/8)
+
+
 ## Nuke 4.1 ⚡️
 
 Nuke 4.1 is all about **performance**. Here are some notable performance improvements:
