@@ -129,8 +129,8 @@ public final class Cache: Caching {
         // items). This feature is not documented and may be subject
         // to change in future Nuke versions.
         lock.sync {
-            trim(toCost: Int(Double(costLimit) * 0.1))
-            trim(toCount: Int(Double(countLimit) * 0.1))
+            _trim(toCost: Int(Double(costLimit) * 0.1))
+            _trim(toCount: Int(Double(countLimit) * 0.1))
         }
     }
     
