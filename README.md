@@ -114,7 +114,7 @@ struct GaussianBlur: Processing {
 }
 ```
 
-> Check out [Toucan plugin](https://github.com/kean/Nuke-Toucan-Plugin) for some useful image transformations
+> See [Toucan plugin](https://github.com/kean/Nuke-Toucan-Plugin) for some useful image transformations
 
 #### Preheating Images
 
@@ -145,7 +145,7 @@ controller.handler = { addedIndexPaths, removedIndexPaths in
 }
 ```
 
-> Check out [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
+> See [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
 
 #### Loading Images Directly
 
@@ -175,7 +175,7 @@ Allows you to replace networking layer with [Alamofire](https://github.com/Alamo
 
 ## Design<a name="h_design"></a>
 
-Nuke is designed to support and leverage dependency injection. It consists of a set of protocols - each with a single responsibility - that come together in an object graph that manages loading, decoding, processing, and caching images. You can easily create and use/inject your own implementations of the following core protocols:
+Nuke is designed to support [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection). It provides a set of protocols - each with a single responsibility - which manage loading, decoding, processing, and caching images. You can easily create and inject your own implementations of those protocols:
 
 |Protocol|Description|
 |--------|-----------|
@@ -186,8 +186,17 @@ Nuke is designed to support and leverage dependency injection. It consists of a 
 |`Processing`|Image transformations|
 |`Caching`|Stores images into memory cache|
 
-You can learn more from an in-depth [Nuke 4 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%204%20Migration%20Guide.md).
+### Data Loading and Caching
 
+Nuke has a basic built-in `DataLoader` class that implements `DataLoading` protocol. It uses [`Foundation.URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) which is a part of the Foundation's [URL Loading System](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html). Another part of it is [`Foundation.URLCache`](https://developer.apple.com/reference/foundation/urlcache) which provides a composite in-memory and on-disk cache for data. By default it is initialized with a memory capacity of 0 MB (Nuke only stores decompressed images in memory) and a disk capacity of 200 MB.
+
+> See [Image Caching Guide](https://kean.github.io/blog/image-caching) to learn more about URLCache, HTTP caching, and more
+
+Most developers either have their own networking layer, or use some third-party framework. Nuke supports both of these workflows. You can integrate a custom networking layer by implementing `DataLoading` protocol.
+
+> See [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin) that implements `DataLoading` protocol using [Alamofire](https://github.com/Alamofire/Alamofire) framework
+
+Another useful protocol in Nuke is `DataCaching`. It is used by `CachingDataLoader` which wraps around `DataLoading` object to add a custom cache layer for image data. The main reason to use it is performance. While built-in `Foundation.URLCache` is a great option - it's available out of the box, it's hip to cache control and handles cache revalidation transparently - it might be slow and unpredictable at times.
 
 ## Requirements<a name="h_requirements"></a>
 
