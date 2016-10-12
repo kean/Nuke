@@ -20,8 +20,6 @@ env:
     - DESTINATION="OS=10.0,name=Apple TV 1080p"    SCHEME="$TVOS_FRAMEWORK_SCHEME"    RUN_TESTS="YES"
     - DESTINATION="OS=9.0,name=Apple TV 1080p"     SCHEME="$TVOS_FRAMEWORK_SCHEME"    RUN_TESTS="YES"
 
-    - DESTINATION="arch=x86_64"                    SCHEME="$MACOS_FRAMEWORK_SCHEME"   RUN_TESTS="YES"
-
 script:
   - set -o pipefail
   - xcodebuild -version
