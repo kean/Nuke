@@ -9,11 +9,10 @@
 
 A powerful **image loading** and **caching** framework which allows for hassle-free image loading in your app - often in one line of code.
 
-## <a name="h_features"></a>Features
+# <a name="h_features"></a>Features
 
 Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into **simple**, **lightweight** package that lets you focus on getting things done.
 
-- Simple and expressive API, zero configuration required
 - Hassle-free image loading into image views and other targets
 - Two [cache layers](https://kean.github.io/blog/image-caching) including LRU memory cache
 - Extensible image transformations
@@ -24,7 +23,7 @@ Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into *
 - Comprehensive test coverage
 
 
-## <a name="h_getting_started"></a>Getting Started
+# <a name="h_getting_started"></a>Quick Start
 
 - [Installation Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md)
 - [Wiki](https://github.com/kean/Nuke/blob/master/Documentation/)
@@ -33,7 +32,7 @@ Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into *
 Upgrading from the previous version? Use a [migration guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations).
 
 
-## <a name="h_usage"></a>Usage
+# <a name="h_usage"></a>Usage
 
 #### Loading Images
 
@@ -158,7 +157,7 @@ Loader.shared.loadImage(with: url, token: cts.token)
     .catch { error in print("catched \(error)") }
 ```
 
-## Plugins<a name="h_plugins"></a>
+# Plugins<a name="h_plugins"></a>
 
 ### [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
 
@@ -173,7 +172,7 @@ Allows you to replace networking layer with [Alamofire](https://github.com/Alamo
 [Toucan](https://github.com/gavinbunney/Toucan) plugin provides a simple API for processing images. It supports resizing, cropping, rounded rect masking and more.
 
 
-## Design<a name="h_design"></a>
+# Design<a name="h_design"></a>
 
 Nuke is designed to support [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection). It provides a set of protocols - each with a single responsibility - which manage loading, decoding, processing, and caching images. You can easily create and inject your own implementations of those protocols:
 
@@ -198,13 +197,17 @@ Most developers either have their own networking layer, or use some third-party 
 
 Another useful protocol in Nuke is `DataCaching`. It is used by `CachingDataLoader` which wraps around `DataLoading` object to add a custom cache layer for image data. The main reason to use it is performance. While built-in `Foundation.URLCache` is a great option - it's available out of the box, it's hip to cache control and handles cache revalidation transparently - it might be slow and unpredictable at times.
 
-## Requirements<a name="h_requirements"></a>
+### Memory Cache
+
+Nuke provides a fast in-memory `Cache` that implements `Caching` protocol. It stores processed images ready to be displayed. `Cache` uses [LRU (least-recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. By default it is initialized with a memory capacity of 20% of the available RAM. As a good citizen `Cache` automatically evicts images on memory warnings, and removes most of the images when application enters background. 
+
+# Requirements<a name="h_requirements"></a>
 
 - iOS 9.0 / watchOS 2.0 / macOS 10.11 / tvOS 9.0
 - Xcode 8
 - Swift 3
 
 
-## License
+# License
 
 Nuke is available under the MIT license. See the LICENSE file for more info.
