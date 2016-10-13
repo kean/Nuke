@@ -63,7 +63,8 @@ public final class Promise<T> {
     /// The provided closure executes asynchronously when the promise resolves.
     ///
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
-    public func completion(on queue: DispatchQueue = .main, _ closure: @escaping (PromiseResolution<T>) -> Void) {
+    /// - returns: self
+    @discardableResult public func completion(on queue: DispatchQueue = .main, _ closure: @escaping (PromiseResolution<T>) -> Void) -> Promise {
         let completion: (PromiseResolution<T>) -> Void = { resolution in
             queue.async { closure(resolution) }
         }
@@ -73,6 +74,7 @@ public final class Promise<T> {
         case let .resolved(resolution): completion(resolution)
         }
         lock.unlock()
+        return self
     }
 }
 
