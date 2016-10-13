@@ -4,7 +4,6 @@ osx_image: xcode8
 
 env:
   global:
-  - WORKSPACE=Nuke.xcworkspace
   - IOS_FRAMEWORK_SCHEME="Nuke iOS"
   - MACOS_FRAMEWORK_SCHEME="Nuke macOS"
   - TVOS_FRAMEWORK_SCHEME="Nuke tvOS"
@@ -26,9 +25,9 @@ script:
   - xcodebuild -showsdks
 
   - if [ $RUN_TESTS == "YES" ]; then
-      xcodebuild clean test -workspace "$WORKSPACE" -scheme "$SCHEME" -destination "$DESTINATION" -configuration Debug | xcpretty;
-      xcodebuild clean test -workspace "$WORKSPACE" -scheme "$SCHEME" -destination "$DESTINATION" -configuration Release | xcpretty;
+      xcodebuild test -scheme "$SCHEME" -destination "$DESTINATION" -configuration Debug | xcpretty;
+      xcodebuild test -scheme "$SCHEME" -destination "$DESTINATION" -configuration Release | xcpretty;
     else
-      xcodebuild clean build -workspace "$WORKSPACE" -scheme "$SCHEME" -destination "$DESTINATION" -configuration Debug | xcpretty;
-      xcodebuild clean build -workspace "$WORKSPACE" -scheme "$SCHEME" -destination "$DESTINATION" -configuration Release | xcpretty;
+      xcodebuild build -scheme "$SCHEME" -destination "$DESTINATION" -configuration Debug | xcpretty;
+      xcodebuild build -scheme "$SCHEME" -destination "$DESTINATION" -configuration Release | xcpretty;
     fi
