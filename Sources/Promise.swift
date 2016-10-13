@@ -8,7 +8,7 @@ import Foundation
 
 public final class Promise<T> {
     private var state: PromiseState<T> = .pending(PromiseHandlers<T>())
-    private var queue = DispatchQueue(label: "com.github.kean.Nuke.Promise")
+    private let lock = Lock()
     
     public init(_ closure: (_ fulfill: @escaping (T) -> Void, _ reject: @escaping (Error) -> Void) -> Void) {
         closure({ self.resolve(resolution: .fulfilled($0)) },
@@ -24,24 +24,24 @@ public final class Promise<T> {
     }
 
     private func resolve(resolution: PromiseResolution<T>) {
-        queue.async {
-            if case let .pending(handlers) = self.state {
-                self.state = .resolved(resolution)
-                handlers.objects.forEach { $0(resolution) }
-            }
+        lock.lock()
+        if case let .pending(handlers) = self.state {
+            self.state = .resolved(resolution)
+            handlers.objects.forEach { $0(resolution) }
         }
+        lock.unlock()
     }
     
     public func completion(on queue: DispatchQueue = .main, _ closure: @escaping (PromiseResolution<T>) -> Void) {
         let completion: (PromiseResolution<T>) -> Void = { resolution in
             queue.async { closure(resolution) }
         }
-        self.queue.async {
-            switch self.state {
-            case let .pending(handlers): handlers.objects.append(completion)
-            case let .resolved(resolution): completion(resolution)
-            }
+        lock.lock()
+        switch self.state {
+        case let .pending(handlers): handlers.objects.append(completion)
+        case let .resolved(resolution): completion(resolution)
         }
+        lock.unlock()
     }
 }
 

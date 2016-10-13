@@ -92,6 +92,7 @@
 		0C69FA4E1D4E222D00DA9982 /* PreheaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD195291D4348AC00E011BB /* PreheaterTests.swift */; };
 		0C69FA4F1D4E222D00DA9982 /* PreheaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD195291D4348AC00E011BB /* PreheaterTests.swift */; };
 		0C69FA501D4E222E00DA9982 /* PreheaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD195291D4348AC00E011BB /* PreheaterTests.swift */; };
+		0C6CF0CD1DAF789C007B8C0E /* XCTestCaseExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068E1BCA888800089D7F /* XCTestCaseExtensions.swift */; };
 		0C75279D1D473AE800EC6222 /* ThreadSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C5D81871D46A385000ECCB6 /* ThreadSafetyTests.swift */; };
 		0C75279E1D473AEF00EC6222 /* MockImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockImageCache.swift */; };
 		0C75279F1D473AEF00EC6222 /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
@@ -923,6 +924,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C6CF0CD1DAF789C007B8C0E /* XCTestCaseExtensions.swift in Sources */,
 				0C8D7BF51D9DC07E00D12EB7 /* PerformanceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
