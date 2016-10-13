@@ -20,20 +20,6 @@ public final class Promise<T> {
 
     /// Creates a new, pending promise.
     ///
-    /// ```
-    /// func loadData(url: URL) -> Promise<Data> {
-    ///     return Promise<Data> { fulfill, reject in
-    ///         URLSession.shared.dataTask(with: url) { data, _, error in
-    ///             if let data = data {
-    ///                 fulfill(data)
-    ///             } else {
-    ///                 reject(error ?? unknownError)
-    ///             }
-    ///         }.resume()
-    ///     }
-    /// }
-    /// ```
-    ///
     /// - parameter value: The provided closure is called immediately on the
     /// current thread. In the closure you should start an asynchronous task and
     /// call either `fulfill` or `reject` when it completes.
@@ -86,7 +72,7 @@ public extension Promise {
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
     /// - returns: self
     @discardableResult public func then(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> Void) -> Promise {
-        return then(on: queue, fulfilment: closure, rejection: nil)
+        return completion(on: queue, fulfill: closure, reject: nil)
     }
 
     /// The provided closure executes asynchronously when the promise fulfills
@@ -107,14 +93,12 @@ public extension Promise {
     /// returned by the given closure. Allows to chain promises.
     public func then<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> Promise<U>) -> Promise<U> {
         return Promise<U>() { fulfill, reject in
-            then(
+            completion(
                 on: queue,
-                fulfilment: {
-                    closure($0).then(
-                        fulfilment: { fulfill($0) },
-                        rejection: { reject($0) })
+                fulfill: { // resolve new promise with the promise returned by the closure
+                    closure($0).completion(on: queue, fulfill: fulfill, reject: reject)
                 },
-                rejection: { reject($0) }) // bubble up error
+                reject: reject) // bubble up error
         }
     }
 
@@ -123,7 +107,7 @@ public extension Promise {
     ///
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
     @discardableResult public func `catch`(on queue: DispatchQueue = .main, _ closure: @escaping (Error) -> Void) {
-        then(on: queue, fulfilment: nil, rejection: closure)
+        completion(on: queue, fulfill: nil, reject: closure)
     }
 
     /// The provided closure executes asynchronously when the promise is rejected.
@@ -133,28 +117,23 @@ public extension Promise {
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
     public func recover(on queue: DispatchQueue = .main, _ closure: @escaping (Error) -> Promise) -> Promise {
         return Promise() { fulfill, reject in
-            then(
+            completion(
                 on: queue,
-                fulfilment: { fulfill($0) }, // bubble up value
-                rejection: {
-                    closure($0).then(
-                        fulfilment: { fulfill($0) },
-                        rejection: { reject($0) })
+                fulfill: fulfill, // bubble up value
+                reject: { // resolve new promise with the promise returned by the closure
+                    closure($0).completion(on: queue, fulfill: fulfill, reject: reject)
             })
         }
     }
 
-    /// The provided closure executes asynchronously when the promise resolves.
-    ///
-    /// - parameter on: A queue on which the closure is executed. `.main` by default.
-    @discardableResult public func then(on queue: DispatchQueue = .main, fulfilment: ((T) -> Void)?, rejection: ((Error) -> Void)?) -> Promise {
-        completion(on: queue) { resolution in
-            switch resolution {
-            case let .fulfilled(val): fulfilment?(val)
-            case let .rejected(err): rejection?(err)
+    /// Private convenience method on top of `completion(on:closure:)`.
+    @discardableResult private func completion(on queue: DispatchQueue = .main, fulfill: ((T) -> Void)?, reject: ((Error) -> Void)?) -> Promise {
+        return completion(on: queue) {
+            switch $0 {
+            case let .fulfilled(val): fulfill?(val)
+            case let .rejected(err): reject?(err)
             }
         }
-        return self
     }
 }
 
@@ -167,6 +146,7 @@ private enum PromiseState<T> {
     case pending(PromiseHandlers<T>), resolved(PromiseResolution<T>)
 }
 
+/// Represents a *resolution* (result) of a promise.
 public enum PromiseResolution<T> {
     case fulfilled(T), rejected(Error)
 }
