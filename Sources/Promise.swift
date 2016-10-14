@@ -59,6 +59,18 @@ public final class Promise<T> {
         lock.unlock()
         return self
     }
+
+    // MARK: Properties
+
+    /// Returns `true` if the promise is still pending.
+    public var isPending: Bool {
+        return resolution == nil
+    }
+
+    /// Returns resolution if the promise has already resolved.
+    public var resolution: PromiseResolution<T>? {
+        return lock.sync { state.resolution }
+    }
 }
 
 public extension Promise {
@@ -153,9 +165,24 @@ private final class PromiseHandlers<T> {
 
 private enum PromiseState<T> {
     case pending(PromiseHandlers<T>), resolved(PromiseResolution<T>)
+
+    var resolution: PromiseResolution<T>? {
+        if case let .resolved(resolution) = self { return resolution }
+        return nil
+    }
 }
 
 /// Represents a *resolution* (result) of a promise.
 public enum PromiseResolution<T> {
     case fulfilled(T), rejected(Error)
+
+    public var value: T? {
+        if case let .fulfilled(val) = self { return val }
+        return nil
+    }
+
+    public var error: Error? {
+        if case let .rejected(err) = self { return err }
+        return nil
+    }
 }
