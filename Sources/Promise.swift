@@ -73,11 +73,11 @@ public extension Promise {
     }
 
     /// The provided closure executes asynchronously when the promise fulfills
-    /// with a value.
+    /// with a value. Allows you to chain promises.
     ///
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
     /// - returns: A promise that resolves with the resolution of the promise
-    /// returned by the given closure. Allows to chain promises.
+    /// returned by the given closure.
     public func then<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> Promise<U>) -> Promise<U> {
         return Promise<U>() { fulfill, reject in
             completion(
@@ -100,9 +100,8 @@ public extension Promise {
         completion(on: queue, fulfill: nil, reject: closure)
     }
 
-    /// The provided closure executes asynchronously when the promise is rejected.
     /// Unlike `catch` `recover` allows you to continue the chain of promises
-    /// by recovering from an error with a new promise.
+    /// by recovering from the error by creating a new promise.
     ///
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
     public func recover(on queue: DispatchQueue = .main, _ closure: @escaping (Error) -> Promise) -> Promise {
@@ -126,14 +125,24 @@ public extension Promise {
         }
     }
 
-    /// The provided closure executes asynchronously when the promise fulfills
-    /// with a value. Allows you to transform `Promise<T>` to `Promise<U>`.
+    /// Transforms `Promise<T>` to `Promise<U>`.
     ///
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
     /// queue by default.
     /// - returns: A promise fulfilled with a value returns by the closure.
     public func map<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> U) -> Promise<U> {
         return then(on: queue) { Promise<U>(value: closure($0)) }
+    }
+
+    // deprecated
+    @available(*, deprecated: 4.2, message: "Renamed to map()")
+    public func then<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> U) -> Promise<U> {
+        return map(on: queue, closure)
+    }
+
+    @available(*, deprecated: 4.2, message: "Use completion() instead which now also returns a Promise")
+    @discardableResult public func then(on queue: DispatchQueue = .main, fulfilment: ((T) -> Void)?, rejection: ((Error) -> Void)?) -> Promise {
+        return completion(on: queue, fulfill: fulfilment, reject: rejection)
     }
 }
 
