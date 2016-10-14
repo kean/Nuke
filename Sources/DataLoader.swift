@@ -73,7 +73,7 @@ public final class CachingDataLoader: DataLoading {
 
     public func loadData(with request: URLRequest, token: CancellationToken?) -> Promise<(Data, URLResponse)> {
         return cache.response(for: request, token: token)
-            .then { ($0.data, $0.response) } // Convert to promise's T
+            .map { ($0.data, $0.response) }
             .recover { _ in
                 self.loader.loadData(with: request, token: token).then {
                     self.cache.setResponse(CachedURLResponse(response: $0.1, data: $0.0), for: request)

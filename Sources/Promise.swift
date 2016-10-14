@@ -4,14 +4,11 @@
 
 import Foundation
 
-/// A promise is an object that represents an asynchronous task. Use `then(...)` to
-/// get the result of the promise. Use `catch(...)` to catch errors.
+/// A promise is an object that represents an asynchronous task. Use `then()`
+/// to get the result of the promise. Use `catch()` to catch errors.
 ///
 /// Promises start in a *pending* state and *resolve* with a value to become
 /// *fulfilled* or an `Error` to become *rejected*.
-///
-/// A notable `Promise` feature is that it bubbles up errors. It allows you to
-/// catch all errors returned by a chain of promises with a single `catch(...)`.
 public final class Promise<T> {
     // Promise is built into Nuke to avoid fetching external dependencies.
 
@@ -79,16 +76,6 @@ public extension Promise {
     /// with a value.
     ///
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
-    /// queue by default.
-    /// - returns: A promise fulfilled with a value returns by the closure.
-    public func then<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> U) -> Promise<U> {
-        return then(on: queue) { Promise<U>(value: closure($0)) }
-    }
-
-    /// The provided closure executes asynchronously when the promise fulfills
-    /// with a value.
-    ///
-    /// - parameter on: A queue on which the closure is executed. `.main` by default.
     /// - returns: A promise that resolves with the resolution of the promise
     /// returned by the given closure. Allows to chain promises.
     public func then<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> Promise<U>) -> Promise<U> {
@@ -104,6 +91,9 @@ public extension Promise {
 
     /// The provided closure executes asynchronously when the promise is
     /// rejected with an error.
+    ///
+    /// A promise bubbles up errors. It allows you to catch all errors returned
+    /// by a chain of promises with a single `catch()`.
     ///
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
     @discardableResult public func `catch`(on queue: DispatchQueue = .main, _ closure: @escaping (Error) -> Void) {
@@ -134,6 +124,16 @@ public extension Promise {
             case let .rejected(err): reject?(err)
             }
         }
+    }
+
+    /// The provided closure executes asynchronously when the promise fulfills
+    /// with a value. Allows you to transform `Promise<T>` to `Promise<U>`.
+    ///
+    /// - parameter on: A queue on which the closure is executed. `.main` by default.
+    /// queue by default.
+    /// - returns: A promise fulfilled with a value returns by the closure.
+    public func map<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> U) -> Promise<U> {
+        return then(on: queue) { Promise<U>(value: closure($0)) }
     }
 }
 
