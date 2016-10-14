@@ -292,7 +292,7 @@ class CacheIntegrationTests: XCTestCase {
 
     func testThatCacheWorks() {
         let request = Request(url: defaultURL)
-        
+
         XCTAssertEqual(mockCache.images.count, 0)
         XCTAssertNil(mockCache[request])
 
@@ -302,18 +302,20 @@ class CacheIntegrationTests: XCTestCase {
             }
         }
         wait()
-        
-        XCTAssertEqual(mockCache.images.count, 1)
-        XCTAssertNotNil(mockCache[request])
-        
+
+        // Suspend queue to make sure that the next request can
+        // come only from cache.
         mockSessionManager.queue.isSuspended = true
-        
+
         expect { fulfill in
             _ = loader.loadImage(with: request).then { _ in
                 fulfill()
             }
         }
         wait()
+
+        XCTAssertEqual(mockCache.images.count, 1)
+        XCTAssertNotNil(mockCache[request])
     }
     
     func testThatStoreResponseMethodWorks() {
