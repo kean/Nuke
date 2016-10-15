@@ -76,7 +76,7 @@ public final class Promise<T> {
 public extension Promise {
 
     /// The provided closure executes asynchronously when the promise fulfills
-    /// with a value.
+    /// with a value. Allows to add a handler without breaking the chain.
     ///
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
     /// - returns: self
@@ -85,7 +85,17 @@ public extension Promise {
     }
 
     /// The provided closure executes asynchronously when the promise fulfills
-    /// with a value. Allows you to chain promises.
+    /// with a value. Allows to transform `Promise<T>` to `Promise<U>`.
+    ///
+    /// - parameter on: A queue on which the closure is executed. `.main` by default.
+    /// queue by default.
+    /// - returns: A promise fulfilled with a value returns by the closure.
+    public func then<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> U) -> Promise<U> {
+        return then(on: queue) { Promise<U>(value: closure($0)) }
+    }
+    
+    /// The provided closure executes asynchronously when the promise fulfills
+    /// with a value. Allows to chain promises.
     ///
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
     /// - returns: A promise that resolves with the resolution of the promise
@@ -135,21 +145,6 @@ public extension Promise {
             case let .rejected(err): reject?(err)
             }
         }
-    }
-
-    /// Transforms `Promise<T>` to `Promise<U>`.
-    ///
-    /// - parameter on: A queue on which the closure is executed. `.main` by default.
-    /// queue by default.
-    /// - returns: A promise fulfilled with a value returns by the closure.
-    public func map<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> U) -> Promise<U> {
-        return then(on: queue) { Promise<U>(value: closure($0)) }
-    }
-
-    // deprecated
-    @available(*, deprecated: 4.2, message: "Renamed to map()")
-    public func then<U>(on queue: DispatchQueue = .main, _ closure: @escaping (T) -> U) -> Promise<U> {
-        return map(on: queue, closure)
     }
 
     @available(*, deprecated: 4.2, message: "Use completion() instead which now also returns a Promise")
