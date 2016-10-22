@@ -1,3 +1,13 @@
+## Nuke 4.1.2
+
+Bunch of improvements in built-in `Promise`:
+- `Promise` now also uses new `Lock` - faster creation, faster locking
+- Add convenience `isPending`, `resolution`, `value` and `error` properties
+- Simpler implementation migrated from [Pill.Promise](https://github.com/kean/Pill)*
+
+*`Nuke.Promise` is a simplified variant of [Pill.Promise](https://github.com/kean/Pill) (doesn't allow `throws`, adds `completion`, etc). The `Promise` is built into Nuke to avoid fetching external dependencies.
+
+
 ## Nuke 4.1.1
 
 - Fix deadlock in `Cache` - small typo, much embarrassment  😄 (https://github.com/kean/Nuke-Alamofire-Plugin/issues/8)
