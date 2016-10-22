@@ -11,7 +11,7 @@ import Foundation
 /// Promises start in a *pending* state and *resolve* with a value to become
 /// *fulfilled* or an `Error` to become *rejected*.
 ///
-/// This `Nuke.Promise` is a variant of [Pill.Promise](https://github.com/kean/Pill)
+/// `Nuke.Promise` is a variant of [Pill.Promise](https://github.com/kean/Pill)
 /// with simplified APIs (adds `completion`, doesn't allow `throws`, etc).
 /// The `Promise` is built into Nuke to avoid fetching external dependencies.
 public final class Promise<T> {
@@ -70,9 +70,8 @@ public final class Promise<T> {
     ///
     /// - parameter on: A queue on which the closure is executed. `.main` by default.
     /// - returns: self
-    @discardableResult public func completion(on queue: DispatchQueue = .main, _ closure: @escaping (PromiseResolution<T>) -> Void) -> Promise {
+    public func completion(on queue: DispatchQueue = .main, _ closure: @escaping (PromiseResolution<T>) -> Void) {
         _observe(on: queue, closure)
-        return self
     }
     
     // MARK: Then
