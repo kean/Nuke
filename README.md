@@ -84,7 +84,7 @@ Nuke.loadImage(with: request, into: imageView)
 
 #### Custom Handler
 
-Nuke has a flexible `loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler)` method in which target is a simple reuse token. It doesn't do anything after the image is loaded, you have full control. Here's one simple way to use it:
+Nuke has a flexible `loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler)` method in which target is a simple reuse token. The method itself doesn't do anything when the image is loaded - you have full control over how to display it, etc. Here's one simple way to use it:
 
 ```swift
 indicator.startAnimating()

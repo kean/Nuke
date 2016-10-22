@@ -28,9 +28,14 @@ public func loadImage(with request: Request, into target: Target) {
     Manager.shared.loadImage(with: request, into: target)
 }
 
-/// Loads an image and calls the given `handler`.
+/// Loads an image and calls the given `handler`. The method itself
+/// **doesn't do** anything when the image is loaded - you have full
+/// control over how to display it, etc.
 ///
-/// For more info see `loadImage(with:into:handler:)` method of `Manager`.
+/// The handler only gets called if the request is still associated with the
+/// `target` by the time it's completed.
+///
+/// See `loadImage(with:into:)` method for more info.
 public func loadImage(with url: URL, into target: AnyObject, handler: @escaping Manager.Handler) {
     Manager.shared.loadImage(with: url, into: target, handler: handler)
 }
