@@ -1,3 +1,20 @@
+## Display a placeholder
+
+```swift
+imageView.image = UIImage(named: "placeHolder")
+Nuke.loadImage(with: url, into: imageView)
+```
+
+If you worry about performance:
+```swift
+Nuke.loadImage(with: url, into: imageView)
+if imageView.image == nil {
+    imageView.image = UIImage(named: "placeHolder")
+}
+```
+
+You can also add your own extension method to `Nuke.Manager` that has a placeholder parameter.
+
 ## Show a low-res image first and swap to a higher-res one when it arrives
 
 The idea is two have two separate image views: one for a low-res image, one for the high-res one. Here's a fully functional example in a collection view:
