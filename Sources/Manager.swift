@@ -5,8 +5,6 @@
 import Foundation
 
 /// Loads images into the given targets.
-///
-/// All methods should be called on the main thread.
 public final class Manager {
     public let loader: Loading
     public let cache: Caching?
@@ -14,7 +12,8 @@ public final class Manager {
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Manager")
 
     /// Initializes the `Manager` with the image loader and the memory cache.
-    /// - parameter cache: `nil` by default.
+    /// - parameter cache: `nil` by default. `Manager` reads from the memory
+    /// cache but doesn't write anything into it.
     public init(loader: Loading, cache: Caching? = nil) {
         self.loader = loader
         self.cache = cache
@@ -41,7 +40,8 @@ public final class Manager {
     /// control over how to display it, etc.
     ///
     /// The handler only gets called if the request is still associated with the
-    /// `target` by the time it's completed.
+    /// `target` by the time it's completed. The handler gets called immediately
+    /// if the image was stored in the memory cache.
     ///
     /// See `loadImage(with:into:)` method for more info.
     public func loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler) {
@@ -93,7 +93,7 @@ public final class Manager {
         
         init(_ cts: CancellationTokenSource) { self.cts = cts }
         
-        // Automatically cancel the request when target deallocates
+        // Automatically cancel the request when target deallocates.
         deinit { cts?.cancel() }
     }
 }
@@ -107,9 +107,15 @@ public extension Manager {
         loadImage(with: Request(url: url), into: target)
     }
 
-    /// Loads an image and calls the given `handler`.
-    /// See the corresponding `loadImage(with:into:handler:)` method that
-    /// takes `Request` for more info.
+    /// Loads an image and calls the given `handler`. The method itself
+    /// **doesn't do** anything when the image is loaded - you have full
+    /// control over how to display it, etc.
+    ///
+    /// The handler only gets called if the request is still associated with the
+    /// `target` by the time it's completed. The handler gets called immediately
+    /// if the image was stored in the memory cache.
+    ///
+    /// See `loadImage(with:into:)` method for more info.
     public func loadImage(with url: URL, into target: AnyObject, handler: @escaping Handler) {
         loadImage(with: Request(url: url), into: target, handler: handler)
     }
@@ -139,8 +145,7 @@ public protocol Target: class {
         /// Displays an image on success. Runs `opacity` transition if
         /// the response was not from the memory cache.
         public func handle(response: Response, isFromMemoryCache: Bool) {
-            switch response {
-            case let .fulfilled(image):
+            if case let .fulfilled(image) = response {
                 self.image = image
                 if !isFromMemoryCache {
                     let animation = CABasicAnimation(keyPath: "opacity")
@@ -150,7 +155,6 @@ public protocol Target: class {
                     let layer: CALayer? = self.layer // Make compiler happy on macOS
                     layer?.add(animation, forKey: "imageTransition")
                 }
-            case .rejected(_): return
             }
         }
     }

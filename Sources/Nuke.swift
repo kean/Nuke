@@ -6,11 +6,11 @@ import Foundation
 
 #if os(macOS)
     import AppKit.NSImage
-    /// Alias for NSImage
+    /// Alias for `NSImage`.
     public typealias Image = NSImage
 #else
     import UIKit.UIImage
-    /// Alias for UIImage
+    /// Alias for `UIImage`.
     public typealias Image = UIImage
 #endif
 
@@ -33,14 +33,21 @@ public func loadImage(with request: Request, into target: Target) {
 /// control over how to display it, etc.
 ///
 /// The handler only gets called if the request is still associated with the
-/// `target` by the time it's completed.
+/// `target` by the time it's completed. The handler gets called immediately
+/// if the image was stored in the memory cache.
 ///
 /// See `loadImage(with:into:)` method for more info.
 public func loadImage(with url: URL, into target: AnyObject, handler: @escaping Manager.Handler) {
     Manager.shared.loadImage(with: url, into: target, handler: handler)
 }
 
-/// Loads an image and calls the given `handler`.
+/// Loads an image and calls the given `handler`. The method itself
+/// **doesn't do** anything when the image is loaded - you have full
+/// control over how to display it, etc.
+///
+/// The handler only gets called if the request is still associated with the
+/// `target` by the time it's completed. The handler gets called immediately
+/// if the image was stored in the memory cache.
 ///
 /// For more info see `loadImage(with:into:handler:)` method of `Manager`.
 public func loadImage(with request: Request, into target: AnyObject, handler: @escaping Manager.Handler) {
