@@ -17,7 +17,7 @@ Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into *
 - Two [cache layers](https://kean.github.io/blog/image-caching) including LRU memory cache
 - Extensible image transformations
 - [Freedom to use](#h_design) networking, caching libraries of your choice
-- Plugins: [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-AnimatedImage-Plugin), [Toucan](https://github.com/kean/Nuke-Toucan-Plugin)
+- Plugins: [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [Toucan](https://github.com/kean/Nuke-Toucan-Plugin)
 - Automated [prefetching](https://kean.github.io/blog/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
 - Fast (see [benchmarks](https://github.com/kean/Image-Frameworks-Benchmark)), supports large collection views of images
 - Comprehensive test coverage
@@ -163,13 +163,17 @@ Loader.shared.loadImage(with: url, token: cts.token)
 
 Allows you to replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire). Combine the power of both frameworks!
 
-### [FLAnimatedImage Plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin)
+### [Gifu Plugin](https://github.com/kean/Nuke-Gifu-Plugin)
 
-[FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) plugin allows you to load and display animated GIFs with [smooth scrolling performance](https://www.youtube.com/watch?v=fEJqQMJrET4) and low memory footprint.
+[Gifu](https://github.com/kaishin/Gifu) plugin allows you to load and display animated GIFs.
 
 ### [Toucan Plugin](https://github.com/kean/Nuke-Toucan-Plugin)
 
 [Toucan](https://github.com/gavinbunney/Toucan) plugin provides a simple API for processing images. It supports resizing, cropping, rounded rect masking and more.
+
+### [FLAnimatedImage Plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin) (Deprecated)
+
+[FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) plugin allows you to load and display animated GIFs with [smooth scrolling performance](https://www.youtube.com/watch?v=fEJqQMJrET4) and low memory footprint.
 
 
 # Design<a name="h_design"></a>
@@ -199,7 +203,7 @@ Another useful protocol in Nuke is `DataCaching`. It is used by `CachingDataLoad
 
 ### Memory Cache
 
-Nuke provides a fast in-memory `Cache` that implements `Caching` protocol. It stores processed images ready to be displayed. `Cache` uses [LRU (least-recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. By default it is initialized with a memory capacity of 20% of the available RAM. As a good citizen `Cache` automatically evicts images on memory warnings, and removes most of the images when application enters background. 
+Nuke provides a fast in-memory `Cache` that implements `Caching` protocol. It stores processed images ready to be displayed. `Cache` uses [LRU (least-recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. By default it is initialized with a memory capacity of 20% of the available RAM. As a good citizen `Cache` automatically evicts images on memory warnings, and removes most of the images when application enters background.
 
 # Requirements<a name="h_requirements"></a>
 
