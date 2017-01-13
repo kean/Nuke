@@ -151,10 +151,9 @@ controller.handler = { addedIndexPaths, removedIndexPaths in
 One of the Nuke's core classes is `Loader`. Its API and implementation is based on Promises. You can use it to load images directly.
 
 ```swift
-let cts = CancellationTokenSource()
-Loader.shared.loadImage(with: url, token: cts.token)
-    .then { image in print("\(image) loaded") }
-    .catch { error in print("catched \(error)") }
+Loader.shared.loadImage(with: url).completion {
+    print("image \($0.value)")
+}
 ```
 
 # Plugins<a name="h_plugins"></a>
