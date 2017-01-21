@@ -8,7 +8,7 @@ import Nuke
 class MockTarget: Target {
     var handler: Manager.Handler?
     
-    func handle(response: Response, isFromMemoryCache: Bool) {
+    func handle(response: Result<Image>, isFromMemoryCache: Bool) {
         handler?(response, isFromMemoryCache)
     }
 }

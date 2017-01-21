@@ -22,10 +22,10 @@ class MockImageLoader: Loading {
         queue.maxConcurrentOperationCount = 1
         return queue
     }()
-    var results = [URL: Response]()
+    var results = [URL: Result<Image>]()
     var ignoreCancellation = false
 
-    func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Response) -> Void) {
+    func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         NotificationCenter.default.post(name: MockImageLoader.DidStartTask, object: self)
         
         createdTaskCount += 1

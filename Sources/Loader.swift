@@ -7,16 +7,16 @@ import Foundation
 /// Loads images.
 public protocol Loading {
     /// Loads an image with the given request.
-    func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Response) -> Void)
+    func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void)
 }
 
 public extension Loading {
-    public func loadImage(with request: Request, completion: @escaping (Response) -> Void) {
+    public func loadImage(with request: Request, completion: @escaping (Result<Image>) -> Void) {
         loadImage(with: request, token: nil, completion: completion)
     }
     
     /// Loads an image with the given url.
-    public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Response) -> Void) {
+    public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
         loadImage(with: Request(url: url), token: token, completion: completion)
     }
 }
@@ -59,7 +59,7 @@ public final class Loader: Loading {
     }
 
     /// Loads an image for the given request using image loading pipeline.
-    public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Response) -> Void) {
+    public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         queue.sync {
             promise(with: request, token: token).completion(completion)
         }

@@ -21,7 +21,7 @@ public final class Deduplicator: Loading {
     }
 
     /// Returns an existing pending promise if there is one. Starts a new request otherwise.
-    public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Response) -> Void) {
+    public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         queue.sync {
             let key = Request.loadKey(for: request)
             var task: Task! = tasks[key] // Find existing promise

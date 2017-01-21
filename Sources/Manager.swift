@@ -33,7 +33,7 @@ public final class Manager {
         }
     }
     
-    public typealias Handler = (Response, _ isFromMemoryCache: Bool) -> Void
+    public typealias Handler = (Result<Image>, _ isFromMemoryCache: Bool) -> Void
     
     /// Loads an image and calls the given `handler`. The method itself 
     /// **doesn't do** anything when the image is loaded - you have full
@@ -136,12 +136,10 @@ public enum Result<T> {
     }
 }
 
-public typealias Response = Result<Image>
-
 /// Represents an arbitrary target for image loading.
 public protocol Target: class {
     /// Callback that gets called when the request gets completed.
-    func handle(response: Response, isFromMemoryCache: Bool)
+    func handle(response: Result<Image>, isFromMemoryCache: Bool)
 }
 
 #if os(macOS)
@@ -161,7 +159,7 @@ public protocol Target: class {
     extension ImageView: Target {
         /// Displays an image on success. Runs `opacity` transition if
         /// the response was not from the memory cache.
-        public func handle(response: Response, isFromMemoryCache: Bool) {
+        public func handle(response: Result<Image>, isFromMemoryCache: Bool) {
             guard let image = response.value else { return }
             self.image = image
             if !isFromMemoryCache {
