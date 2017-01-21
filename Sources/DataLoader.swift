@@ -7,7 +7,7 @@ import Foundation
 /// Loads data.
 public protocol DataLoading {
     /// Loads data with the given request.
-    func loadData(with request: URLRequest, token: CancellationToken?) -> Promise<(Data, URLResponse)>
+    func loadData(with request: URLRequest, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void)
 }
 
 /// Provides basic networking using `URLSession`.
@@ -30,25 +30,23 @@ public final class DataLoader: DataLoading {
         conf.urlCache = URLCache(memoryCapacity: 0, diskCapacity: (200 * 1024 * 1024), diskPath: "com.github.kean.Nuke.Cache")
         return conf
     }
-
+    
     /// Loads data with the given request.
-    public func loadData(with request: URLRequest, token: CancellationToken? = nil) -> Promise<(Data, URLResponse)> {
-        return Promise() { fulfill, reject in
-            scheduler.execute(token: token) { finish in
-                let task = self.session.dataTask(with: request) { data, response, error in
-                    if let data = data, let response = response {
-                        fulfill((data, response))
-                    } else {
-                        reject(error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))
-                    }
-                    finish()
+    public func loadData(with request: URLRequest, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+        scheduler.execute(token: token) { finish in
+            let task = self.session.dataTask(with: request) { data, response, error in
+                if let data = data, let response = response {
+                    completion(Result.success((data, response)))
+                } else {
+                    completion(Result.failure((error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))))
                 }
-                token?.register {
-                    task.cancel()
-                    finish()
-                }
-                task.resume()
+                finish()
             }
+            token?.register {
+                task.cancel()
+                finish()
+            }
+            task.resume()
         }
     }
 }
@@ -56,7 +54,7 @@ public final class DataLoader: DataLoading {
 /// Stores `CachedURLResponse` objects.
 public protocol DataCaching {
     /// Returns response for the given request.
-    func response(for request: URLRequest, token: CancellationToken?) -> Promise<CachedURLResponse>
+    func response(for request: URLRequest, token: CancellationToken?, completion: @escaping (CachedURLResponse?) -> Void)
     
     /// Stores response for the given request.
     func setResponse(_ response: CachedURLResponse, for request: URLRequest)
@@ -70,14 +68,19 @@ public final class CachingDataLoader: DataLoading {
         self.loader = loader
         self.cache = cache
     }
-
-    public func loadData(with request: URLRequest, token: CancellationToken?) -> Promise<(Data, URLResponse)> {
-        return cache.response(for: request, token: token)
-            .then { ($0.data, $0.response) }
-            .recover { _ in
-                self.loader.loadData(with: request, token: token).then {
-                    self.cache.setResponse(CachedURLResponse(response: $0.1, data: $0.0), for: request)
+    
+    public func loadData(with request: URLRequest, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+        cache.response(for: request, token: token) { [weak self] in
+            if let response = $0 {
+                completion(Result.success((response.data, response.response)))
+            } else {
+                self?.loader.loadData(with: request, token: token) {
+                    if let val = $0.value {
+                        self?.cache.setResponse(CachedURLResponse(response: val.1, data: val.0), for: request)
+                    }
+                    completion($0)
                 }
+            }
         }
     }
 }

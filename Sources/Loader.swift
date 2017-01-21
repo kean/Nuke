@@ -7,13 +7,17 @@ import Foundation
 /// Loads images.
 public protocol Loading {
     /// Loads an image with the given request.
-    func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image>
+    func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Response) -> Void)
 }
 
 public extension Loading {
-    /// Loads an image with the given URL.
-    func loadImage(with url: URL, token: CancellationToken? = nil) -> Promise<Image> {
-        return loadImage(with: Request(url: url), token: token)
+    public func loadImage(with request: Request, completion: @escaping (Response) -> Void) {
+        loadImage(with: request, token: nil, completion: completion)
+    }
+    
+    /// Loads an image with the given url.
+    public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Response) -> Void) {
+        loadImage(with: Request(url: url), token: token, completion: completion)
     }
 }
 
@@ -55,11 +59,13 @@ public final class Loader: Loading {
     }
 
     /// Loads an image for the given request using image loading pipeline.
-    public func loadImage(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
-        return queue.sync { promise(with: request, token: token) }
+    public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Response) -> Void) {
+        queue.sync {
+            promise(with: request, token: token).completion(completion)
+        }
     }
 
-    public func promise(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
+    private func promise(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
         if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
             return Promise(value: image)
         }
@@ -71,6 +77,7 @@ public final class Loader: Loading {
                 if request.memoryCacheOptions.writeAllowed {
                     self.cache?[request] = $0
                 }
+                return Promise(value: $0) // continue the chain
         }
     }
 

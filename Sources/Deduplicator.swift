@@ -21,8 +21,8 @@ public final class Deduplicator: Loading {
     }
 
     /// Returns an existing pending promise if there is one. Starts a new request otherwise.
-    public func loadImage(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
-        return queue.sync {
+    public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Response) -> Void) {
+        queue.sync {
             let key = Request.loadKey(for: request)
             var task: Task! = tasks[key] // Find existing promise
             if task == nil {
@@ -30,7 +30,7 @@ public final class Deduplicator: Loading {
                 let promise = loader.loadImage(with: request, token: cts.token)
                 task = Task(promise: promise, cts: cts)
                 tasks[key] = task
-                promise.completion(on: queue) { [weak self, weak task] _ in
+                promise.finally(on: queue) { [weak self, weak task] in
                     if let task = task { self?.remove(task, key: key) }
                 }
             } else {
@@ -41,7 +41,7 @@ public final class Deduplicator: Loading {
                 if let task = task { self?.cancel(task, key: key) }
             }
             
-            return task.promise
+            task.promise.completion(completion)
         }
     }
     

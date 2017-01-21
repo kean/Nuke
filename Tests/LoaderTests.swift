@@ -3,7 +3,7 @@
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-import Nuke
+@testable import Nuke
 
 class LoaderTests: XCTestCase {
     var dataLoader: MockDataLoader!
@@ -28,7 +28,7 @@ class LoaderErrorHandlingTests: XCTestCase {
         let loader = Loader(loader: dataLoader, decoder: DataDecoder(), cache: nil)
 
         let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
-        dataLoader.results[defaultURL] = .rejected(expectedError)
+        dataLoader.results[defaultURL] = .failure(expectedError)
 
         expect { fulfill in
             loader.loadImage(with: Request(url: defaultURL))

@@ -44,7 +44,7 @@ public final class Preheater {
 
         let task = Task(request: request)
         scheduler.execute(token: task.cts.token) { [weak self] finish in
-            self?.loader.loadImage(with: task.request, token: task.cts.token).completion { _ in
+            self?.loader.loadImage(with: task.request, token: task.cts.token).finally {
                 self?.complete(task)
                 finish()
             }

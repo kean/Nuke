@@ -22,32 +22,27 @@ class MockImageLoader: Loading {
         queue.maxConcurrentOperationCount = 1
         return queue
     }()
-    var results = [URL: PromiseResolution<Image>]()
+    var results = [URL: Response]()
     var ignoreCancellation = false
 
-    func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image> {
-        return Promise() { fulfill, reject in
-            NotificationCenter.default.post(name: MockImageLoader.DidStartTask, object: self)
-            
-            createdTaskCount += 1
-            
-            let operation = BlockOperation() {
-                if let result = self.results[request.urlRequest.url!] {
-                    switch result {
-                    case let .fulfilled(val): fulfill(val)
-                    case let .rejected(err): reject(err)
-                    }
-                } else {
-                    fulfill(image)
-                }
+    func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Response) -> Void) {
+        NotificationCenter.default.post(name: MockImageLoader.DidStartTask, object: self)
+        
+        createdTaskCount += 1
+        
+        let operation = BlockOperation() {
+            if let result = self.results[request.urlRequest.url!] {
+                completion(result)
+            } else {
+                completion(Result.success(image))
             }
-            queue.addOperation(operation)
-            
-            if !ignoreCancellation {
-                token?.register {
-                    operation.cancel()
-                    NotificationCenter.default.post(name: MockImageLoader.DidCancelTask, object: self)
-                }
+        }
+        queue.addOperation(operation)
+        
+        if !ignoreCancellation {
+            token?.register {
+                operation.cancel()
+                NotificationCenter.default.post(name: MockImageLoader.DidCancelTask, object: self)
             }
         }
     }

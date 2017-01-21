@@ -19,7 +19,7 @@ public protocol Caching: class {
 
 public extension Caching {
     /// Accesses the image associated with the given request.
-    subscript(request: Request) -> Image? {
+    public subscript(request: Request) -> Image? {
         get { return self[Request.cacheKey(for: request)] }
         set { self[Request.cacheKey(for: request)] = newValue }
     }

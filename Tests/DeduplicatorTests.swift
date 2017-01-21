@@ -3,7 +3,7 @@
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-import Nuke
+@testable import Nuke
 
 class DeduplicatorTests: XCTestCase {
     var deduplicator: Deduplicator!
@@ -74,13 +74,13 @@ class DeduplicatorTests: XCTestCase {
         // We expect promise to resolve, since it going to be "retained" by
         // other request.
         expect { fulfill in
-            _ = deduplicator.loadImage(with: defaultURL, token: cts.token).then { _ in
+            _ = deduplicator.loadImage(with: Request(url: defaultURL), token: cts.token).then { _ in
                 fulfill()
             }
         }
         
         expect { fulfill in // This work we don't cancel
-            _ = deduplicator.loadImage(with: defaultURL, token: nil).then { _ in
+            _ = deduplicator.loadImage(with: Request(url: defaultURL), token: nil).then { _ in
                 fulfill()
             }
         }

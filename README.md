@@ -148,12 +148,22 @@ controller.handler = { addedIndexPaths, removedIndexPaths in
 
 #### Loading Images Directly
 
-One of the Nuke's core classes is `Loader`. Its API and implementation is based on Promises. You can use it to load images directly.
+One of the Nuke's core classes is `Loader`. You can use it to load images directly.
 
 ```swift
-Loader.shared.loadImage(with: url).completion {
+Loader.shared.loadImage(with: url) {
     print("image \($0.value)")
 }
+```
+
+If you want to be able to cancel the requests use a `CancellationTokenSource`:
+
+```swift
+let cts = CancellationTokenSource()
+Loader.shared.loadImage(with: url, token: cts.token) {
+    print("image \($0.value)")
+}
+cts.cancel()
 ```
 
 # Plugins<a name="h_plugins"></a>

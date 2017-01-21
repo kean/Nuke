@@ -52,7 +52,7 @@ public final class Manager {
         
         // Quick memory cache lookup
         if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
-            handler(.fulfilled(image), true)
+            handler(.success(image), true)
         } else {
             let cts = CancellationTokenSource(lock: CancellationTokenSource.lock)
             let context = Context(cts)
@@ -61,7 +61,7 @@ public final class Manager {
 
             queue.async {
                 guard !cts.isCancelling else { return } // fast preflight check
-                self.loader.loadImage(with: request, token: cts.token).completion { [weak context, weak target] in
+                self.loader.loadImage(with: request, token: cts.token) { [weak context, weak target] in
                     guard let context = context, let target = target else { return }
                     guard Manager.getContext(for: target) === context else { return }
                     handler($0, false)
@@ -121,7 +121,22 @@ public extension Manager {
     }
 }
 
-public typealias Response = PromiseResolution<Image>
+/// An enum representing either a success with a result value, or a failure.
+public enum Result<T> {
+    case success(T), failure(Error)
+    
+    /// Returns a `value` if the result is success.
+    public var value: T? {
+        if case let .success(val) = self { return val } else { return nil }
+    }
+    
+    /// Returns an `error` if the result is failure.
+    public var error: Error? {
+        if case let .failure(err) = self { return err } else { return nil }
+    }
+}
+
+public typealias Response = Result<Image>
 
 /// Represents an arbitrary target for image loading.
 public protocol Target: class {
@@ -131,9 +146,11 @@ public protocol Target: class {
 
 #if os(macOS)
     import Cocoa
+    /// Alias for `NSImageView`
     public typealias ImageView = NSImageView
 #elseif os(iOS) || os(tvOS)
     import UIKit
+    /// Alias for `UIImageView`
     public typealias ImageView = UIImageView
 #endif
 
@@ -145,16 +162,15 @@ public protocol Target: class {
         /// Displays an image on success. Runs `opacity` transition if
         /// the response was not from the memory cache.
         public func handle(response: Response, isFromMemoryCache: Bool) {
-            if case let .fulfilled(image) = response {
-                self.image = image
-                if !isFromMemoryCache {
-                    let animation = CABasicAnimation(keyPath: "opacity")
-                    animation.duration = 0.25
-                    animation.fromValue = 0
-                    animation.toValue = 1
-                    let layer: CALayer? = self.layer // Make compiler happy on macOS
-                    layer?.add(animation, forKey: "imageTransition")
-                }
+            guard let image = response.value else { return }
+            self.image = image
+            if !isFromMemoryCache {
+                let animation = CABasicAnimation(keyPath: "opacity")
+                animation.duration = 0.25
+                animation.fromValue = 0
+                animation.toValue = 1
+                let layer: CALayer? = self.layer // Make compiler happy on macOS
+                layer?.add(animation, forKey: "imageTransition")
             }
         }
     }

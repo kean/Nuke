@@ -3,7 +3,7 @@
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-import Nuke
+@testable import Nuke
 
 class CacheTests: XCTestCase {
     var cache: Nuke.Cache!

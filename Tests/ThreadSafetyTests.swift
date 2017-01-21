@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
-import Nuke
+@testable import Nuke
 import XCTest
 
 extension XCTestCase {
