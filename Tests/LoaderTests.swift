@@ -3,7 +3,7 @@
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-@testable import Nuke
+import Nuke
 
 class LoaderTests: XCTestCase {
     var dataLoader: MockDataLoader!
@@ -31,12 +31,12 @@ class LoaderErrorHandlingTests: XCTestCase {
         dataLoader.results[defaultURL] = .failure(expectedError)
 
         expect { fulfill in
-            loader.loadImage(with: Request(url: defaultURL))
-                .catch { error in
-                    XCTAssertNotNil(error)
-                    XCTAssertEqual((error as NSError).code, expectedError.code)
-                    XCTAssertEqual((error as NSError).domain, expectedError.domain)
-                    fulfill()
+            loader.loadImage(with: Request(url: defaultURL)) {
+                guard let error = $0.error else { XCTFail(); return }
+                XCTAssertNotNil(error)
+                XCTAssertEqual((error as NSError).code, expectedError.code)
+                XCTAssertEqual((error as NSError).domain, expectedError.domain)
+                fulfill()
             }
         }
         wait()
@@ -46,7 +46,8 @@ class LoaderErrorHandlingTests: XCTestCase {
         let loader = Loader(loader: MockDataLoader(), decoder: MockFailingDecoder(), cache: nil)
 
         expect { fulfill in
-            _ = loader.loadImage(with: Request(url: defaultURL)).catch { error in
+            _ = loader.loadImage(with: Request(url: defaultURL)) {
+                guard let error = $0.error else { XCTFail(); return }
                 XCTAssertTrue((error as! Loader.Error) == Loader.Error.decodingFailed)
                 fulfill()
             }
@@ -60,7 +61,8 @@ class LoaderErrorHandlingTests: XCTestCase {
         let request = Request(url: defaultURL).processed(with: MockFailingProcessor())
 
         expect { fulfill in
-            _ = loader.loadImage(with: request).catch { error in
+            _ = loader.loadImage(with: request) {
+                guard let error = $0.error else { XCTFail(); return }
                 XCTAssertTrue((error as! Loader.Error) == Loader.Error.processingFailed)
                 fulfill()
             }

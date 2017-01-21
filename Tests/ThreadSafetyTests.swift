@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
-@testable import Nuke
+import Nuke
 import XCTest
 
 extension XCTestCase {
@@ -14,8 +14,7 @@ extension XCTestCase {
                     let shouldCancel = rnd(3) == 0
                     
                     let cts = CancellationTokenSource()
-                    // Dispatch on global queue to avoid waiting on main thread
-                    _ = loader.loadImage(with: request, token: cts.token).then(on: DispatchQueue.global()) { _ in
+                    _ = loader.loadImage(with: request, token: cts.token) { _ in
                         if shouldCancel {
                             // do nothing, we don't expect completion on cancel
                         } else {

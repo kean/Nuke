@@ -3,7 +3,7 @@
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-@testable import Nuke
+import Nuke
 
 class CacheTests: XCTestCase {
     var cache: Nuke.Cache!
@@ -297,7 +297,8 @@ class CacheIntegrationTests: XCTestCase {
         XCTAssertNil(mockCache[request])
 
         expect { fulfill in
-            _ = loader.loadImage(with: request).then { _ in
+            _ = loader.loadImage(with: request) {
+                XCTAssertNotNil($0.value)
                 fulfill()
             }
         }
@@ -308,7 +309,8 @@ class CacheIntegrationTests: XCTestCase {
         mockSessionManager.queue.isSuspended = true
 
         expect { fulfill in
-            _ = loader.loadImage(with: request).then { _ in
+            _ = loader.loadImage(with: request) {
+                XCTAssertNotNil($0.value)
                 fulfill()
             }
         }
@@ -357,7 +359,8 @@ class CacheIntegrationTests: XCTestCase {
         XCTAssertNil(mockCache[request])
         
         expect { fulfill in
-            _ = loader.loadImage(with: request).then { _ in
+            _ = loader.loadImage(with: request) {
+                XCTAssertNotNil($0.value)
                 fulfill()
             }
         }

@@ -3,7 +3,7 @@
 // Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-@testable import Nuke
+import Nuke
 
 class ProcessingTests: XCTestCase {
     var mockMemoryCache: MockCache!
@@ -30,7 +30,8 @@ class ProcessingTests: XCTestCase {
         let request = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "processor1"))
 
         expect { fulfill in
-            _ = loader.loadImage(with: request).then { image in
+            _ = loader.loadImage(with: request) {
+                guard let image = $0.value else { XCTFail(); return }
                 XCTAssertEqual(image.nk_test_processorIDs, ["processor1"])
                 fulfill()
             }
@@ -42,7 +43,8 @@ class ProcessingTests: XCTestCase {
         expect { fulfill in
             let request = Request(url: defaultURL).processed(with:  MockImageProcessor(ID: "processor1"))
 
-            _ = loader.loadImage(with: request).then { _ in
+            _ = loader.loadImage(with: request) {
+                guard let _ = $0.value else { XCTFail(); return }
                 fulfill()
             }
         }
@@ -65,8 +67,9 @@ class ProcessingTests: XCTestCase {
             .processed(with: MockImageProcessor(ID: "processor2"))
 
         expect { fulfill in
-            _ = loader.loadImage(with: request).then {
-                XCTAssertEqual($0.nk_test_processorIDs, ["processor1", "processor2"])
+            _ = loader.loadImage(with: request) {
+                guard let image = $0.value else { XCTFail(); return }
+                XCTAssertEqual(image.nk_test_processorIDs, ["processor1", "processor2"])
                 fulfill()
             }
         }
@@ -79,7 +82,8 @@ class ProcessingTests: XCTestCase {
                 .processed(with: MockImageProcessor(ID: "processor1"))
                 .processed(with: MockImageProcessor(ID: "processor2"))
 
-            _ = loader.loadImage(with: request).then { _ in
+            _ = loader.loadImage(with: request) {
+                guard let _ = $0.value else { XCTFail(); return }
                 fulfill()
             }
         }
