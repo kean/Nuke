@@ -15,13 +15,6 @@ internal func wrap<T>(_ body: (@escaping (Result<T>) -> Void) -> Void) -> Promis
     }
 }
 
-internal extension Promise {
-    internal func completion(_ closure: @escaping (Result<T>) -> Void) {
-        self.then { closure(Result.success($0)) }
-        self.catch { closure(Result.failure($0)) }
-    }
-}
-
 internal extension Loading { // Promisify Loading protocol
     internal func loadImage(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
         return wrap { loadImage(with: request, token: token, completion: $0) }
@@ -31,6 +24,13 @@ internal extension Loading { // Promisify Loading protocol
 internal extension DataLoading { // Promisify DataLoading protocol
     internal func loadData(with request: URLRequest, token: CancellationToken?) -> Promise<(Data, URLResponse)> {
         return wrap { loadData(with: request, token: token, completion: $0) }
+    }
+}
+
+internal extension Promise {
+    internal func completion(_ closure: @escaping (Result<T>) -> Void) {
+        self.then { closure(Result.success($0)) }
+        self.catch { closure(Result.failure($0)) }
     }
 }
 
