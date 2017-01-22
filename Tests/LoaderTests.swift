@@ -13,7 +13,7 @@ class LoaderTests: XCTestCase {
         super.setUp()
         
         dataLoader = MockDataLoader()
-        loader = Loader(loader: dataLoader, decoder: DataDecoder())
+        loader = Loader(loader: dataLoader)
     }
     
     func testThreadSafety() {
@@ -25,7 +25,7 @@ class LoaderErrorHandlingTests: XCTestCase {
 
     func testThatLoadingFailedErrorIsReturned() {
         let dataLoader = MockDataLoader()
-        let loader = Loader(loader: dataLoader, decoder: DataDecoder())
+        let loader = Loader(loader: dataLoader)
 
         let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
         dataLoader.results[defaultURL] = .failure(expectedError)
@@ -46,7 +46,7 @@ class LoaderErrorHandlingTests: XCTestCase {
         let loader = Loader(loader: MockDataLoader(), decoder: MockFailingDecoder())
 
         expect { fulfill in
-            _ = loader.loadImage(with: Request(url: defaultURL)) {
+            loader.loadImage(with: Request(url: defaultURL)) {
                 guard let error = $0.error else { XCTFail(); return }
                 XCTAssertTrue((error as! Loader.Error) == Loader.Error.decodingFailed)
                 fulfill()
@@ -56,12 +56,12 @@ class LoaderErrorHandlingTests: XCTestCase {
     }
 
     func testThatProcessingFailedErrorIsReturned() {
-        let loader = Loader(loader: MockDataLoader(), decoder: DataDecoder())
+        let loader = Loader(loader: MockDataLoader())
 
         let request = Request(url: defaultURL).processed(with: MockFailingProcessor())
 
         expect { fulfill in
-            _ = loader.loadImage(with: request) {
+            loader.loadImage(with: request) {
                 guard let error = $0.error else { XCTFail(); return }
                 XCTAssertTrue((error as! Loader.Error) == Loader.Error.processingFailed)
                 fulfill()

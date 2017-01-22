@@ -14,7 +14,7 @@ extension XCTestCase {
                     let shouldCancel = rnd(3) == 0
                     
                     let cts = CancellationTokenSource()
-                    _ = loader.loadImage(with: request, token: cts.token) { _ in
+                    loader.loadImage(with: request, token: cts.token) { _ in
                         if shouldCancel {
                             // do nothing, we don't expect completion on cancel
                         } else {

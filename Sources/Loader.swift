@@ -48,8 +48,9 @@ public final class Loader: Loading {
     }
 
     /// Initializes `Loader` instance with the given loader, decoder and cache.
+    /// - parameter decoder: `DataDecoder()` by default.
     /// - parameter schedulers: `Schedulers()` by default.
-    public init(loader: DataLoading, decoder: DataDecoding, schedulers: Schedulers = Schedulers()) {
+    public init(loader: DataLoading, decoder: DataDecoding = DataDecoder(), schedulers: Schedulers = Schedulers()) {
         self.loader = loader
         self.decoder = decoder
         self.schedulers = schedulers

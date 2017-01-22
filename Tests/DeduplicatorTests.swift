@@ -24,14 +24,14 @@ class DeduplicatorTests: XCTestCase {
         XCTAssertTrue(Request.loadKey(for: request1) == Request.loadKey(for: request2))
 
         expect { fulfill in
-            _ = deduplicator.loadImage(with: request1) {
+            deduplicator.loadImage(with: request1) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
         }
 
         expect { fulfill in
-            _ = deduplicator.loadImage(with: request2) {
+            deduplicator.loadImage(with: request2) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
@@ -50,14 +50,14 @@ class DeduplicatorTests: XCTestCase {
         XCTAssertFalse(Request.loadKey(for: request1) == Request.loadKey(for: request2))
                 
         expect { fulfill in
-            _ = deduplicator.loadImage(with: request1) {
+            deduplicator.loadImage(with: request1) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
         }
         
         expect { fulfill in
-            _ = deduplicator.loadImage(with: request2) {
+            deduplicator.loadImage(with: request2) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
@@ -78,14 +78,14 @@ class DeduplicatorTests: XCTestCase {
         // We expect completion to get called, since it going to be "retained" by
         // other request.
         expect { fulfill in
-            _ = deduplicator.loadImage(with: Request(url: defaultURL), token: cts.token) {
+            deduplicator.loadImage(with: Request(url: defaultURL), token: cts.token) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
         }
         
         expect { fulfill in // This work we don't cancel
-            _ = deduplicator.loadImage(with: Request(url: defaultURL), token: nil) {
+            deduplicator.loadImage(with: Request(url: defaultURL), token: nil) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }

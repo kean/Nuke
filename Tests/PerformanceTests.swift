@@ -19,7 +19,7 @@ class ManagerPerformanceTests: XCTestCase {
     }
 
     func testWithoutMemoryCache() {
-        let loader = Loader(loader: DataLoader(), decoder: DataDecoder(), cache: nil)
+        let loader = Loader(loader: DataLoader())
         let manager = Manager(loader: Deduplicator(loader: loader))
         
         let view = ImageView()
@@ -34,7 +34,7 @@ class ManagerPerformanceTests: XCTestCase {
     }
     
     func testWithoutDeduplicator() {
-        let loader = Loader(loader: DataLoader(), decoder: DataDecoder(), cache: nil)
+        let loader = Loader(loader: DataLoader())
         let manager = Manager(loader: loader)
 
         let view = ImageView()
@@ -116,7 +116,7 @@ class DeduplicatorPerformanceTests: XCTestCase {
         measure {
             let cts = CancellationTokenSource()
             for _ in (0..<10_000) {
-                _ = deduplicator.loadImage(with: request, token:cts.token)
+                deduplicator.loadImage(with: request, token:cts.token) { _ in return }
             }
         }
     }
@@ -131,7 +131,7 @@ class DeduplicatorPerformanceTests: XCTestCase {
         measure {
             let cts = CancellationTokenSource()
             for request in requests {
-                _ = deduplicator.loadImage(with: request, token:cts.token)
+                deduplicator.loadImage(with: request, token:cts.token) { _ in return }
             }
         }
     }

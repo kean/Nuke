@@ -13,7 +13,7 @@ class ProcessingTests: XCTestCase {
         super.setUp()
 
         mockSessionManager = MockDataLoader()
-        loader = Loader(loader: mockSessionManager, decoder: DataDecoder())
+        loader = Loader(loader: mockSessionManager)
     }
 
     override func tearDown() {
@@ -26,7 +26,7 @@ class ProcessingTests: XCTestCase {
         let request = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "processor1"))
 
         expect { fulfill in
-            _ = loader.loadImage(with: request) {
+            loader.loadImage(with: request) {
                 guard let image = $0.value else { XCTFail(); return }
                 XCTAssertEqual(image.nk_test_processorIDs, ["processor1"])
                 fulfill()
@@ -43,7 +43,7 @@ class ProcessingTests: XCTestCase {
             .processed(with: MockImageProcessor(ID: "processor2"))
 
         expect { fulfill in
-            _ = loader.loadImage(with: request) {
+            loader.loadImage(with: request) {
                 guard let image = $0.value else { XCTFail(); return }
                 XCTAssertEqual(image.nk_test_processorIDs, ["processor1", "processor2"])
                 fulfill()
