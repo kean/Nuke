@@ -21,6 +21,7 @@ class ManagerTests: XCTestCase {
     func testThatImageIsLoaded() {
         expect { fulfill in
             manager.loadImage(with: Request(url: defaultURL), into: view) {
+                XCTAssertTrue(Thread.isMainThread)
                 if case .success(_) = $0 {
                     fulfill()
                 }
@@ -34,6 +35,7 @@ class ManagerTests: XCTestCase {
         expect { fulfill in
             let target = MockTarget()
             target.handler = { resolution, isFromMemoryCache in
+                XCTAssertTrue(Thread.isMainThread)
                 if case .success(_) = resolution {
                     fulfill()
                 }

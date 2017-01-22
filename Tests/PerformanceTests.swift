@@ -138,9 +138,7 @@ class DeduplicatorPerformanceTests: XCTestCase {
 }
 
 class MockImageLoader: Loading {
-    func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image> {
-        return Promise() { fulfill, reject in
-            return
-        }
+    func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+        return
     }
 }

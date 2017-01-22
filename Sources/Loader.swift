@@ -7,6 +7,10 @@ import Foundation
 /// Loads images.
 public protocol Loading {
     /// Loads an image with the given request.
+    ///
+    /// Loader doesn't make guarantees on which thread the completion
+    /// closure is called and whether it gets called or not after
+    /// the operation gets cancelled.
     func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void)
 }
 
@@ -53,35 +57,39 @@ public final class Loader: Loading {
 
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
-        queue.sync { promise(with: request, token: token).completion(completion) }
-    }
-
-    private func promise(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
-        return loader.loadData(with: request.urlRequest, token: token)
-            .then(on: queue) { self.decode(data: $0, response: $1, token: token) }
-            .then(on: queue) { self.process(image: $0, request: request, token: token) }
-    }
-
-    private func decode(data: Data, response: URLResponse, token: CancellationToken? = nil) -> Promise<Image> {
-        return Promise() { fulfill, reject in
-            schedulers.decoding.execute(token: token) {
-                if let image = self.decoder.decode(data: data, response: response) {
-                    fulfill(image)
-                } else {
-                    reject(Error.decodingFailed)
+        queue.async {
+            self.loader.loadData(with: request.urlRequest, token: token) { [weak self] in
+                switch $0 {
+                case let .success(val): self?.decode(data: val.0, response: val.1, request: request, token: token, completion: completion)
+                case let .failure(err): completion(Result.failure(err))
                 }
             }
         }
     }
 
-    private func process(image: Image, request: Request, token: CancellationToken?) -> Promise<Image> {
-        guard let processor = makeProcessor(image, request) else { return Promise(value: image) }
-        return Promise() { fulfill, reject in
-            schedulers.processing.execute(token: token) {
-                if let image = processor.process(image) {
-                    fulfill(image)
+    private func decode(data: Data, response: URLResponse, request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+        queue.async {
+            self.schedulers.decoding.execute(token: token) { [weak self] in
+                if let image = self?.decoder.decode(data: data, response: response) {
+                    self?.process(image: image, request: request, token: token, completion: completion)
                 } else {
-                    reject(Error.processingFailed)
+                    completion(Result.failure(Error.decodingFailed))
+                }
+            }
+        }
+    }
+    
+    private func process(image: Image, request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+        queue.async {
+            guard let processor = self.makeProcessor(image, request) else {
+                completion(Result.success(image))
+                return
+            }
+            self.schedulers.processing.execute(token: token) {
+                if let image = processor.process(image) {
+                    completion(Result.success(image))
+                } else {
+                    completion(Result.failure(Error.processingFailed))
                 }
             }
         }

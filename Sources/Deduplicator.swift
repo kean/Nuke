@@ -4,8 +4,8 @@
 
 import Foundation
 
-/// Combines requests with the same `loadKey` into a single request. This request
-/// is only cancelled when all underlying requests are cancelled.
+/// Combines requests with the same `loadKey` into a single request. The request
+/// only gets cancelled when all the underlying requests are cancelled.
 ///
 /// All `Deduplicator` methods are thread-safe.
 public final class Deduplicator: Loading {
@@ -16,58 +16,53 @@ public final class Deduplicator: Loading {
     /// Initializes the `Deduplicator` instance with the underlying
     /// `loader` used for actual image loading, and the request `equator`.
     /// - parameter loader: Underlying loader used for loading images.
-    public init(loader: Loading) {
-        self.loader = loader
-    }
+    public init(loader: Loading) { self.loader = loader }
 
-    /// Returns an existing pending promise if there is one. Starts a new request otherwise.
+    /// Combines requests with the same `loadKey` into a single request. The request
+    /// only gets cancelled when all the underlying requests are cancelled.
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
-        queue.sync {
-            let key = Request.loadKey(for: request)
-            var task: Task! = tasks[key] // Find existing promise
-            if task == nil {
-                let cts = CancellationTokenSource()
-                let promise = loader.loadImage(with: request, token: cts.token)
-                task = Task(promise: promise, cts: cts)
-                tasks[key] = task
-                promise.finally(on: queue) { [weak self, weak task] in
-                    if let task = task { self?.remove(task, key: key) }
-                }
-            } else {
-                task.retainCount += 1
-            }
+        queue.async { self._loadImage(with: request, token: token, completion: completion) }
+    }
+    
+    private func _loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+        let key = Request.loadKey(for: request)
+        let task = tasks[key] ?? startTask(with: request, key: key)
 
-            token?.register { [weak self, weak task] in
-                if let task = task { self?.cancel(task, key: key) }
-            }
-            
-            task.promise.completion(completion)
+        task.retainCount += 1
+        task.handlers.append(completion)
+
+        token?.register { [weak self] in
+            self?.queue.async { self?.cancel(task, key: key) }
         }
+    }
+    
+    private func startTask(with request: Request, key: AnyHashable) -> Task {
+        let task = Task()
+        tasks[key] = task
+        loader.loadImage(with: request, token: task.cts.token) {  [weak self] result in
+            self?.queue.async { self?.complete(task, key: key, result: result) }
+        }
+        return task
+    }
+    
+    private func complete(_ task: Task, key: AnyHashable, result: Result<Image>) {
+        guard tasks[key] === task else { return } // check if still registered
+        task.handlers.forEach { $0(result) }
+        tasks[key] = nil
     }
     
     private func cancel(_ task: Task, key: AnyHashable) {
-        queue.async {
-            task.retainCount -= 1
-            if task.retainCount == 0 { // No more requests registered
-                task.cts.cancel() // Cancel underlying request
-                self.remove(task, key: key)
-            }
-        }
-    }
-    
-    private func remove(_ task: Task, key: AnyHashable) {
-        if tasks[key] === task { // Still managed by Deduplicator
+        guard tasks[key] === task else { return } // check if still registered
+        task.retainCount -= 1
+        if task.retainCount == 0 {
+            task.cts.cancel() // cancel underlying request
             tasks[key] = nil
         }
     }
-
+    
     private final class Task {
-        let promise: Promise<Image>
-        let cts: CancellationTokenSource
-        var retainCount = 1
-        init(promise: Promise<Image>, cts: CancellationTokenSource) {
-            self.promise = promise
-            self.cts = cts
-        }
+        let cts = CancellationTokenSource()
+        var handlers = [(Result<Image>) -> Void]()
+        var retainCount = 0 // number of non-cancelled handlers
     }
 }

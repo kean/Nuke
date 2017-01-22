@@ -75,7 +75,7 @@ class DeduplicatorTests: XCTestCase {
         // to call completion handler for cancelled requests.
         let cts = CancellationTokenSource()
         
-        // We expect promise to resolve, since it going to be "retained" by
+        // We expect completion to get called, since it going to be "retained" by
         // other request.
         expect { fulfill in
             _ = deduplicator.loadImage(with: Request(url: defaultURL), token: cts.token) {

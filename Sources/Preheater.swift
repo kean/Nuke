@@ -44,7 +44,7 @@ public final class Preheater {
 
         let task = Task(request: request)
         scheduler.execute(token: task.cts.token) { [weak self] finish in
-            self?.loader.loadImage(with: task.request, token: task.cts.token).finally {
+            self?.loader.loadImage(with: task.request, token: task.cts.token) { _ in
                 self?.complete(task)
                 finish()
             }
@@ -90,8 +90,6 @@ public final class Preheater {
     private final class Task {
         let request: Request
         var cts = CancellationTokenSource()
-        init(request: Request) {
-            self.request = request
-        }
+        init(request: Request) { self.request = request }
     }
 }

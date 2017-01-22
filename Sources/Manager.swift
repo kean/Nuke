@@ -53,23 +53,30 @@ public final class Manager {
         // Quick memory cache lookup
         if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
             handler(.success(image), true)
-        } else {
-            let cts = CancellationTokenSource(lock: CancellationTokenSource.lock)
-            let context = Context(cts)
-            
-            Manager.setContext(context, for: target)
-
-            queue.async {
-                guard !cts.isCancelling else { return } // fast preflight check
-                self.loader.loadImage(with: request, token: cts.token) { [weak self, weak context, weak target] in
-                    if request.memoryCacheOptions.writeAllowed, let image = $0.value {
-                        self?.cache?[request] = image
-                    }
-                    guard let context = context, let target = target else { return }
-                    guard Manager.getContext(for: target) === context else { return }
-                    handler($0, false)
-                    context.cts = nil // avoid redundant cancellations on deinit
-                }
+            return
+        }
+        
+        // Start the request
+        let cts = CancellationTokenSource(lock: CancellationTokenSource.lock)
+        let context = Context(cts)
+        Manager.setContext(context, for: target)
+        
+        loadImage(with: request, token: cts.token) { [weak self, weak context, weak target] result in
+            if request.memoryCacheOptions.writeAllowed, let image = result.value {
+                self?.cache?[request] = image
+            }
+            guard let context = context, let target = target else { return }
+            guard Manager.getContext(for: target) === context else { return }
+            handler(result, false)
+            context.cts = nil // avoid redundant cancellations on deinit
+        }
+    }
+    
+    private func loadImage(with request: Request, token: CancellationToken, completion: @escaping (Result<Image>) -> Void) {
+        queue.async {
+            guard !token.isCancelling else { return } // fast preflight check
+            self.loader.loadImage(with: request, token: token) { result in
+                DispatchQueue.main.async { completion(result) }
             }
         }
     }

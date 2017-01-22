@@ -214,10 +214,6 @@ Another useful protocol in Nuke is `DataCaching`. It is used by `CachingDataLoad
 
 Nuke provides a fast in-memory `Cache` that implements `Caching` protocol. It stores processed images ready to be displayed. `Cache` uses [LRU (least-recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. By default it is initialized with a memory capacity of 20% of the available RAM. As a good citizen `Cache` automatically evicts images on memory warnings, and removes most of the images when application enters background.
 
-### Promises
-
-Under the hood Nuke uses Promises provided by [Pill](https://github.com/kean/Pill). Promises are built directly into Nuke to avoid external dependencies and to simplify integration. If you want to promisify Nuke public APIs check out [Promise.swift](https://github.com/kean/Nuke/blob/nuke5/Sources/Promise.swift) file.
-
 # Requirements<a name="h_requirements"></a>
 
 - iOS 9.0 / watchOS 2.0 / macOS 10.11 / tvOS 9.0
