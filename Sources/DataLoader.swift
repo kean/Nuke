@@ -27,7 +27,7 @@ public final class DataLoader: DataLoading {
     
     private static func defaultConfiguration() -> URLSessionConfiguration {
         let conf = URLSessionConfiguration.default
-        conf.urlCache = URLCache(memoryCapacity: 0, diskCapacity: (200 * 1024 * 1024), diskPath: "com.github.kean.Nuke.Cache")
+        conf.urlCache = URLCache(memoryCapacity: 0, diskCapacity: (150 * 1024 * 1024), diskPath: "com.github.kean.Nuke.Cache")
         return conf
     }
     
