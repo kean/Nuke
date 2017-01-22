@@ -6,7 +6,6 @@ import XCTest
 import Nuke
 
 class ProcessingTests: XCTestCase {
-    var mockMemoryCache: MockCache!
     var mockSessionManager: MockDataLoader!
     var loader: Loader!
 
@@ -14,10 +13,7 @@ class ProcessingTests: XCTestCase {
         super.setUp()
 
         mockSessionManager = MockDataLoader()
-        mockMemoryCache = MockCache()
-        
-        mockSessionManager = MockDataLoader()
-        loader = Loader(loader: mockSessionManager, decoder: DataDecoder(), cache: mockMemoryCache)
+        loader = Loader(loader: mockSessionManager, decoder: DataDecoder())
     }
 
     override func tearDown() {
@@ -39,26 +35,6 @@ class ProcessingTests: XCTestCase {
         wait()
     }
 
-    func testThatProcessedImageIsMemCached() {
-        expect { fulfill in
-            let request = Request(url: defaultURL).processed(with:  MockImageProcessor(ID: "processor1"))
-
-            _ = loader.loadImage(with: request) {
-                guard let _ = $0.value else { XCTFail(); return }
-                fulfill()
-            }
-        }
-        wait()
-
-        let request = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "processor1"))
-        
-        guard let image = mockMemoryCache[request] else {
-            XCTFail()
-            return
-        }
-        XCTAssertEqual(image.nk_test_processorIDs, ["processor1"])
-    }
-
     // MARK: Composing Filters
 
     func testThatImageIsProcessedWithFilterComposition() {
@@ -74,29 +50,5 @@ class ProcessingTests: XCTestCase {
             }
         }
         wait()
-    }
-
-    func testThatImageProcessedWithFilterCompositionIsMemCached() {
-        expect { fulfill in
-            let request = Request(url: defaultURL)
-                .processed(with: MockImageProcessor(ID: "processor1"))
-                .processed(with: MockImageProcessor(ID: "processor2"))
-
-            _ = loader.loadImage(with: request) {
-                guard let _ = $0.value else { XCTFail(); return }
-                fulfill()
-            }
-        }
-        wait()
-
-        let request = Request(url: defaultURL)
-            .processed(with: MockImageProcessor(ID: "processor1"))
-            .processed(with: MockImageProcessor(ID: "processor2"))
-        
-        guard let image = mockMemoryCache[request] else {
-            XCTFail()
-            return
-        }
-        XCTAssertEqual(image.nk_test_processorIDs, ["processor1", "processor2"])
     }
 }

@@ -21,25 +21,19 @@ public extension Loading {
     }
 }
 
-/// `Loader` implements an image loading pipeline which consists of the
-/// several steps:
+/// `Loader` implements an image loading pipeline:
 ///
-/// 1. Read an image from the memory cache (if cache isn't `nil`). If the image
-/// is found skip remaining steps.
-/// 2. Load data using an object conforming to `DataLoading` protocol.
-/// 3. Create an image with the data using `DataDecoding` object.
-/// 4. Transform the image using processor (`Processing`) provided in the request.
-/// 5. Save the image into the memory cache (if cache isn't `nil`).
+/// 1. Load data using an object conforming to `DataLoading` protocol.
+/// 2. Create an image with the data using `DataDecoding` object.
+/// 3. Transform the image using processor (`Processing`) provided in the request.
 ///
-/// See built-in `CachingDataLoader` class if you need to add custom data cache
-/// into the pipeline.
+/// See built-in `CachingDataLoader` class too add custom data caching.
 ///
 /// `Loader` is thread-safe.
 public final class Loader: Loading {
     public let loader: DataLoading
     public let decoder: DataDecoding
-    public let cache: Caching?
-
+    
     private let schedulers: Schedulers
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
     
@@ -51,34 +45,21 @@ public final class Loader: Loading {
 
     /// Initializes `Loader` instance with the given loader, decoder and cache.
     /// - parameter schedulers: `Schedulers()` by default.
-    public init(loader: DataLoading, decoder: DataDecoding, cache: Caching?, schedulers: Schedulers = Schedulers()) {
+    public init(loader: DataLoading, decoder: DataDecoding, schedulers: Schedulers = Schedulers()) {
         self.loader = loader
         self.decoder = decoder
-        self.cache = cache
         self.schedulers = schedulers
     }
 
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
-        queue.sync {
-            promise(with: request, token: token).completion(completion)
-        }
+        queue.sync { promise(with: request, token: token).completion(completion) }
     }
 
     private func promise(with request: Request, token: CancellationToken? = nil) -> Promise<Image> {
-        if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
-            return Promise(value: image)
-        }
-        // It's safe to capture `Loader` in promises
         return loader.loadData(with: request.urlRequest, token: token)
             .then(on: queue) { self.decode(data: $0, response: $1, token: token) }
             .then(on: queue) { self.process(image: $0, request: request, token: token) }
-            .then(on: queue) {
-                if request.memoryCacheOptions.writeAllowed {
-                    self.cache?[request] = $0
-                }
-                return Promise(value: $0) // continue the chain
-        }
     }
 
     private func decode(data: Data, response: URLResponse, token: CancellationToken? = nil) -> Promise<Image> {

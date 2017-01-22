@@ -29,7 +29,7 @@ class RateLimiterDemoViewController: UICollectionViewController {
         // We don't want default Deduplicator to affect the results
         // We don't want a memory cache either (but we take care of it
         // using memoryCacheOptions anyway).
-        let loader = Loader(loader: DataLoader(configuration: urlSessionConf), decoder: DataDecoder(), cache: nil)
+        let loader = Loader(loader: DataLoader(configuration: urlSessionConf), decoder: DataDecoder())
         manager = Manager(loader: loader, cache: nil)
         
         photos = demoPhotosURLs

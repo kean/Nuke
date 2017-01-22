@@ -69,9 +69,9 @@ public extension Manager {
 public extension Loader {
     /// Shared `Loading` object.
     ///
-    /// Shared loader is created with `DataLoader()`, `DataDecoder()` and
-    // `Cache.shared`. The resulting loader is wrapped in a `Deduplicator`.
-    public static var shared: Loading = Deduplicator(loader: Loader(loader: DataLoader(), decoder: DataDecoder(), cache: Cache.shared))
+    /// Shared loader is created with `DataLoader()`, `DataDecoder()`.
+    /// The resulting loader is wrapped in a `Deduplicator`.
+    public static var shared: Loading = Deduplicator(loader: Loader(loader: DataLoader(), decoder: DataDecoder()))
 }
 
 public extension Cache {

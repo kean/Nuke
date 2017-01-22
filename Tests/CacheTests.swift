@@ -279,15 +279,15 @@ class CacheTests: XCTestCase {
 
 class CacheIntegrationTests: XCTestCase {
     var mockCache: MockCache!
-    var mockSessionManager: MockDataLoader!
-    var loader: Loader!
+    var mockDataLoader: MockDataLoader!
+    var manager: Manager!
     
     override func setUp() {
         super.setUp()
 
         mockCache = MockCache()
-        mockSessionManager = MockDataLoader()
-        loader = Loader(loader: mockSessionManager, decoder: DataDecoder(), cache: mockCache)
+        mockDataLoader = MockDataLoader()
+        manager = Manager(loader: Loader(loader: mockDataLoader, decoder: DataDecoder()), cache: mockCache)
     }
 
     func testThatCacheWorks() {
@@ -297,8 +297,8 @@ class CacheIntegrationTests: XCTestCase {
         XCTAssertNil(mockCache[request])
 
         expect { fulfill in
-            _ = loader.loadImage(with: request) {
-                XCTAssertNotNil($0.value)
+            _ = manager.loadImage(with: request, into: self) {
+                XCTAssertNotNil($0.0.value)
                 fulfill()
             }
         }
@@ -306,11 +306,11 @@ class CacheIntegrationTests: XCTestCase {
 
         // Suspend queue to make sure that the next request can
         // come only from cache.
-        mockSessionManager.queue.isSuspended = true
+        mockDataLoader.queue.isSuspended = true
 
         expect { fulfill in
-            _ = loader.loadImage(with: request) {
-                XCTAssertNotNil($0.value)
+            _ = manager.loadImage(with: request, into: self) {
+                XCTAssertNotNil($0.0.value)
                 fulfill()
             }
         }
@@ -359,8 +359,8 @@ class CacheIntegrationTests: XCTestCase {
         XCTAssertNil(mockCache[request])
         
         expect { fulfill in
-            _ = loader.loadImage(with: request) {
-                XCTAssertNotNil($0.value)
+            _ = manager.loadImage(with: request, into: self) {
+                XCTAssertNotNil($0.0.value)
                 fulfill()
             }
         }

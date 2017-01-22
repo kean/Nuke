@@ -11,7 +11,7 @@ class CustomCacheDemoViewController: BasicDemoViewController {
         super.viewDidLoad()
         
         let dataLoader = Nuke.CachingDataLoader(loader: Nuke.DataLoader(), cache: DFCache(name: "test", memoryCache: nil))
-        let loader = Nuke.Loader(loader: dataLoader, decoder: Nuke.DataDecoder(), cache: Nuke.Cache.shared)
+        let loader = Nuke.Loader(loader: dataLoader, decoder: Nuke.DataDecoder())
         manager = Manager(loader: loader, cache: Nuke.Cache.shared)
     }
 

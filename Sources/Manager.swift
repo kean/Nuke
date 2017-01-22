@@ -61,7 +61,10 @@ public final class Manager {
 
             queue.async {
                 guard !cts.isCancelling else { return } // fast preflight check
-                self.loader.loadImage(with: request, token: cts.token) { [weak context, weak target] in
+                self.loader.loadImage(with: request, token: cts.token) { [weak self, weak context, weak target] in
+                    if request.memoryCacheOptions.writeAllowed, let image = $0.value {
+                        self?.cache?[request] = image
+                    }
                     guard let context = context, let target = target else { return }
                     guard Manager.getContext(for: target) === context else { return }
                     handler($0, false)
