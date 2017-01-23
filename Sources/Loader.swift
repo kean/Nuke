@@ -35,9 +35,8 @@ public extension Loading {
 ///
 /// `Loader` is thread-safe.
 public final class Loader: Loading {
-    public let loader: DataLoading
-    public let decoder: DataDecoding
-    
+    private let loader: DataLoading
+    private let decoder: DataDecoding
     private let schedulers: Schedulers
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
     

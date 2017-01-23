@@ -21,9 +21,7 @@ public protocol AsyncScheduler {
 
 public final class DispatchQueueScheduler: Scheduler {
     public let queue: DispatchQueue
-    public init(queue: DispatchQueue) {
-        self.queue = queue
-    }
+    public init(queue: DispatchQueue) { self.queue = queue }
 
     public func execute(token: CancellationToken?, closure: @escaping (Void) -> Void) {
         if let token = token, token.isCancelling { return }
