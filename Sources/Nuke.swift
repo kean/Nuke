@@ -82,9 +82,7 @@ public extension Cache {
 internal final class Lock {
     var mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
     
-    init() {
-        pthread_mutex_init(mutex, nil)
-    }
+    init() { pthread_mutex_init(mutex, nil) }
     
     deinit {
         pthread_mutex_destroy(mutex)

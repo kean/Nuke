@@ -3,11 +3,12 @@
 - [Installation Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md)
 - [Usage Guide](https://github.com/kean/Nuke#usage)
 - [Tips and Tricks](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Tips%20and%20Tricks.md)
-- [API Reference](http://cocoadocs.org/docsets/Nuke/4.0/)
+- [Latest API Reference](http://cocoadocs.org/docsets/Nuke/)
 
 ## Migration Guides
 
 - [Nuke 4 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%204%20Migration%20Guide.md)
+- [Nuke 5 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%205%20Migration%20Guide.md)
 
 ## Guides
 
