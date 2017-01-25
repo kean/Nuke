@@ -112,8 +112,7 @@ public struct AnyProcessor: Processing {
     private func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
         guard let cgImage = image.cgImage else { return image }
 
-        let size = CGSize(width: round(scale * CGFloat(cgImage.width)),
-                          height: round(scale * CGFloat(cgImage.height)))
+        let size = CGSize(width: round(scale * CGFloat(cgImage.width)), height: round(scale * CGFloat(cgImage.height)))
         
         // For more info see:
         // - Quartz 2D Programming Guide

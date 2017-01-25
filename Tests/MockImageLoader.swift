@@ -34,7 +34,7 @@ class MockImageLoader: Loading {
             if let result = self.results[request.urlRequest.url!] {
                 completion(result)
             } else {
-                completion(Result.success(image))
+                completion(.success(image))
             }
         }
         queue.addOperation(operation)

@@ -31,7 +31,7 @@ class MockDataLoader: DataLoading {
             if let result = self.results[request.url!] {
                 completion(result)
             } else {
-                completion(Result.success((data, URLResponse())))
+                completion(.success((data, URLResponse())))
             }
         }
         queue.addOperation(operation)

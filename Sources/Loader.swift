@@ -59,7 +59,7 @@ public final class Loader: Loading {
             self.loader.loadData(with: request.urlRequest, token: token) { [weak self] in
                 switch $0 {
                 case let .success(val): self?.decode(data: val.0, response: val.1, request: request, token: token, completion: completion)
-                case let .failure(err): completion(Result.failure(err))
+                case let .failure(err): completion(.failure(err))
                 }
             }
         }
@@ -71,7 +71,7 @@ public final class Loader: Loading {
                 if let image = self?.decoder.decode(data: data, response: response) {
                     self?.process(image: image, request: request, token: token, completion: completion)
                 } else {
-                    completion(Result.failure(Error.decodingFailed))
+                    completion(.failure(Error.decodingFailed))
                 }
             }
         }
@@ -80,14 +80,14 @@ public final class Loader: Loading {
     private func process(image: Image, request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         queue.async {
             guard let processor = self.makeProcessor(image, request) else {
-                completion(Result.success(image))
+                completion(.success(image))
                 return
             }
             self.schedulers.processing.execute(token: token) {
                 if let image = processor.process(image) {
-                    completion(Result.success(image))
+                    completion(.success(image))
                 } else {
-                    completion(Result.failure(Error.processingFailed))
+                    completion(.failure(Error.processingFailed))
                 }
             }
         }

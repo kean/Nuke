@@ -17,7 +17,7 @@ public final class DataLoader: DataLoading {
     
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
-    /// `URLCache` with 0MB memory capacity and 200MB disk capacity.
+    /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
     /// - parameter scheduler: `OperationQueueScheduler` with `maxConcurrentOperationCount` 8 by default.
     /// Scheduler is wrapped in a `RateLimiter` to prevent `URLSession` trashing.
     public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration(), scheduler: AsyncScheduler = RateLimiter(scheduler: OperationQueueScheduler(maxConcurrentOperationCount: 8))) {
@@ -36,9 +36,9 @@ public final class DataLoader: DataLoading {
         scheduler.execute(token: token) { finish in
             let task = self.session.dataTask(with: request) { data, response, error in
                 if let data = data, let response = response {
-                    completion(Result.success((data, response)))
+                    completion(.success((data, response)))
                 } else {
-                    completion(Result.failure((error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))))
+                    completion(.failure((error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))))
                 }
                 finish()
             }
