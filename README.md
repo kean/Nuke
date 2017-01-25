@@ -193,7 +193,6 @@ Nuke is designed to support [dependency injection](https://en.wikipedia.org/wiki
 |--------|-----------|
 |`Loading`|Loads images|
 |`DataLoading`|Downloads data|
-|`DataCaching`|Stores data into disk cache|
 |`DataDecoding`|Converts data into image objects|
 |`Processing`|Image transformations|
 |`Caching`|Stores images into memory cache|
@@ -204,11 +203,11 @@ Nuke has a basic built-in `DataLoader` class that implements `DataLoading` proto
 
 > See [Image Caching Guide](https://kean.github.io/blog/image-caching) to learn more about URLCache, HTTP caching, and more
 
+> If you'd like to use a third-party caching library check out [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md#on-disk-caching)
+
 Most developers either have their own networking layer, or use some third-party framework. Nuke supports both of these workflows. You can integrate a custom networking layer by implementing `DataLoading` protocol.
 
 > See [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin) that implements `DataLoading` protocol using [Alamofire](https://github.com/Alamofire/Alamofire) framework
-
-Another useful protocol in Nuke is `DataCaching`. It is used by `CachingDataLoader` which wraps around `DataLoading` object to add a custom cache layer for image data. The main reason to use it is performance. While built-in `Foundation.URLCache` is a great option - it's available out of the box, it's hip to cache control and handles cache revalidation transparently - it might be slow and unpredictable at times.
 
 ### Memory Cache
 

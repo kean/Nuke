@@ -31,8 +31,6 @@ public extension Loading {
 /// 2. Create an image with the data using `DataDecoding` object.
 /// 3. Transform the image using processor (`Processing`) provided in the request.
 ///
-/// See built-in `CachingDataLoader` class too add custom data caching.
-///
 /// `Loader` is thread-safe.
 public final class Loader: Loading {
     private let loader: DataLoading

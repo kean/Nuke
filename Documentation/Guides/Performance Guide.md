@@ -20,14 +20,6 @@ func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: U
 }
 ```
 
-### On-Disk Caching
-
-Nuke comes with a `Foundation.URLCache` by default. It's [a great option](https://kean.github.io/blog/image-caching) especially when you need a HTTP cache validation. However, it might be a little bit slow.
-
-Cache lookup is a part of `URLSessionTask` flow which has some implications. The amount of concurrent `URLSessionTasks` is limited to 8 by Nuke (you can't just fire off an arbitrary number of concurrent HTTP requests). It means that if there are already 8 outstanding requests, you won't be able to check on-disk cache for the 9th request until one of the outstanding requests finishes.
-
-In order to optimize on-disk caching you might want to use a third-party caching library. It's easy to integrate way using `DataCaching` protocol provided by Nuke. Check out demo project for an example.
-
 ### Rate Limiting Requests
 
 There is [a known problem](https://github.com/kean/Nuke/issues/59) with `URLSession` that it gets trashed pretty easily when you resume and cancel `URLSessionTasks` at a very high rate (say, scrolling a large collection view with images). Some frameworks combat this problem by simply never cancelling `URLSessionTasks` which are already in `.running` state. This is not an ideal solution, because it forces users to wait for cancelled requests for images which might never appear on the display.
@@ -39,3 +31,50 @@ You can see `RateLimiter` in action in a new `Rate Limiter Demo` added in the sa
 ### Resizing Images
 
 Resizing (and cropping) images might help both in terms of [image drawing performance](https://developer.apple.com/library/content/qa/qa1708/_index.html) and memory usage.
+
+### On-Disk Caching
+
+Nuke comes with a `Foundation.URLCache` by default. It's [a great option](https://kean.github.io/blog/image-caching) especially when you need a HTTP cache validation. However, it might be a little bit slow.
+
+Cache lookup is a part of `URLSessionTask` flow which has some implications. The amount of concurrent `URLSessionTasks` is limited to 8 by Nuke (you can't just fire off an arbitrary number of concurrent HTTP requests). It means that if there are already 8 outstanding requests, you won't be able to check on-disk cache for the 9th request until one of the outstanding requests finishes.
+
+In order to optimize on-disk caching you might want to use a third-party caching library. Check out demo project for an example. And here's the code used in the demo project: 
+
+```swift
+import Nuke
+import DFCache
+
+// usage:
+let dataLoader = CachingDataLoader(loader: Nuke.DataLoader(), cache: DFCache(name: "test", memoryCache: nil))
+let manager = Manager(loader: Nuke.Loader(loader: dataLoader), cache: Nuke.Cache.shared)
+
+class CachingDataLoader: DataLoading {
+    private var loader: DataLoading // underlying loader
+    private var cache: DFCache
+
+    public init(loader: DataLoading, cache: DFCache) {
+        self.loader = loader
+        self.cache = cache
+    }
+
+    public func loadData(with request: URLRequest, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+        if let token = token, token.isCancelling { return }
+        guard let cacheKey = request.url?.absoluteString else { // can't consruct key
+            loader.loadData(with: request, token: token, completion: completion)
+            return
+        }
+        cache.cachedObject(forKey: cacheKey) { [weak self] in
+            if let response = $0 as? CachedURLResponse {
+                completion(.success((response.data, response.response)))
+            } else {
+                self?.loader.loadData(with: request, token: token) {
+                    if let val = $0.value {
+                        self?.cache.store(CachedURLResponse(response: val.1, data: val.0), forKey: cacheKey)
+                    }
+                    completion($0)
+                }
+            }
+        }
+    }
+}
+```

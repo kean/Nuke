@@ -37,6 +37,10 @@ If you are not using `Loader` directly this change doesn't affect you.
 
 The reason behind this change is to reduce confusion about `Cache` usage. In previous versions the user had to pass `Cache` instance to both `Loader` (which was both reading and writing to cache asynchronously), and to `Manager` (which was just reading from the cache synchronously).
 
+### Remove `DataCaching` and `CachingDataLoader`
+
+Those two types were included in Nuke to make integrating third party caching libraries a bit easier. However, they were not actually that useful. Instead of using those types you could've just wrapped `DataLoader` yourself with a comparable amount of code and get much more control. Some sample code is now available in a [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md#on-disk-caching). 
+
 ### Other Changes
 
 - `Loader` constructor now provides a default value for `DataDecoding` object

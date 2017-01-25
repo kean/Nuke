@@ -50,37 +50,3 @@ public final class DataLoader: DataLoading {
         }
     }
 }
-
-/// Stores `CachedURLResponse` objects.
-public protocol DataCaching {
-    /// Returns response for the given request.
-    func response(for request: URLRequest, token: CancellationToken?, completion: @escaping (CachedURLResponse?) -> Void)
-    
-    /// Stores response for the given request.
-    func setResponse(_ response: CachedURLResponse, for request: URLRequest)
-}
-
-public final class CachingDataLoader: DataLoading {
-    private var loader: DataLoading
-    private var cache: DataCaching
-
-    public init(loader: DataLoading, cache: DataCaching) {
-        self.loader = loader
-        self.cache = cache
-    }
-    
-    public func loadData(with request: URLRequest, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        cache.response(for: request, token: token) { [weak self] in
-            if let response = $0 {
-                completion(Result.success((response.data, response.response)))
-            } else {
-                self?.loader.loadData(with: request, token: token) {
-                    if let val = $0.value {
-                        self?.cache.setResponse(CachedURLResponse(response: val.1, data: val.0), for: request)
-                    }
-                    completion($0)
-                }
-            }
-        }
-    }
-}
