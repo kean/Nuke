@@ -3,7 +3,7 @@
 //  Nuke iOS Tests Host
 //
 //  Created by Alexander Grebenyuk on 30/09/16.
-//  Copyright © 2016 Alexander Grebenyuk. All rights reserved.
+//  Copyright © 2017 Alexander Grebenyuk. All rights reserved.
 //
 
 import UIKit
