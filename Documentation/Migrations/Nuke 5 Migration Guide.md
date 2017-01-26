@@ -10,39 +10,44 @@ This guide is provided in order to ease the transition of existing applications 
 
 ## Overview
 
-Nuke 5 is a relatively small release which removes some of the complexity from the framework. Chances are that changes made in Nuke 5 are not going to affect your code.
+Nuke 5 is a relatively small release which removes some of the complexity from the framework. Hopefully it will make *contributing* to Nuke easier.
 
-One of the major changes is the removal of promisified API as well as `Promise` itself. Promises were briefly added in Nuke 4 as an effort to simplify async code. But ultimately I decided that there were adding more problems that they were solving. The extra added complexity (especially in memory management, debugging) was too high, performance penalties of using Promises weren't welcome either. As a result I've decided to remove the Promises from Nuke altogether.
+One of the major changes is the removal of promisified API as well as `Promise` itself. Promises were briefly added in Nuke 4 as an effort to simplify async code. The major downside of promises is that their memory management model becomes too complex in a languages without a GC capable of resolving cycles. There are some other problems like extra complexity for users unfamiliar with promises, complicated debugging, performance penalties. Ultimately I decided that promises were adding more problems that they were solving. 
+
+Chances are that changes made in Nuke 5 are not going to affect your code.
 
 ## Changes
 
-### Remove promisified API and `Promise` itself
+### Removed promisified API and `Promise` itself
 
-- Remove promisified API, use simple closures instead. For example, `Loading` protocol's method `func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image>` was replaced with a method with a completion closure `func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void)`. The same applies to `DataLoading` protocol.
-- Remove `Promise` class
-- Remove `PromiseResolution<T>` enum
-- Remove `Response` typealias
-- Add `Result<T>` enum which is now used as a replacement for `PromiseResolution<T>` (for instance, in `Target` protocol, etc)
+> - Remove promisified API, use simple closures instead. For example, `Loading` protocol's method `func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image>` was replaced with a method with a completion closure `func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void)`. The same applies to `DataLoading` protocol.
+> - Remove `Promise` class
+> - Remove `PromiseResolution<T>` enum
+> - Remove `Response` typealias
+> - Add `Result<T>` enum which is now used as a replacement for `PromiseResolution<T>` (for instance, in `Target` protocol, etc)
 
-If you've used promisified APIs you should replace them with a new closure-based APIs. If you still want to use promisified APIs please use [PromiseKit](https://github.com/mxcl/PromiseKit) (or other promise library) to wrap Nuke APIs.
-
-Replace `PromiseResolution<T>` with `Result<T>` where necessary (custom `Target` conformances, custom `Manager.Handler`).
+- If you've used promisified APIs you should replace them with a new closure-based APIs. If you still want to use promisified APIs please use [PromiseKit](https://github.com/mxcl/PromiseKit) or some other promise library to wrap Nuke APIs.
+- If you've provided a custom `Loading` or `DataLoading` protocols you should update them to a new closure-based APIs.
+- Replace `PromiseResolution<T>` with `Result<T>` where necessary (custom `Target` conformances, custom `Manager.Handler`).
 
 ### Memory cache is now managed exclusively by `Manager`
 
-- Remove memory cache from `Loader`
-- `Manager` now not only reads, but also writes to `Cache`
+> - Remove memory cache from `Loader`
+> - `Manager` now not only reads, but also writes to `Cache`
 
-If you are not using `Loader` directly this change doesn't affect you.
+- If you're not constructing a custom `Loader` and you're not using it directly this change doesn't affect you
+- If you're using custom `Loader` directly and rely on its memory caching make sure to update accordingly
+- If you're constructing a custom `Loader` but don't use it directly then simply update to a new initializer which not longer requires you to pass memory cache in
 
-The reason behind this change is to reduce confusion about `Cache` usage. In previous versions the user had to pass `Cache` instance to both `Loader` (which was both reading and writing to cache asynchronously), and to `Manager` (which was just reading from the cache synchronously).
+### Removed `DataCaching` and `CachingDataLoader`
 
-### Remove `DataCaching` and `CachingDataLoader`
-
-Those two types were included in Nuke to make integrating third party caching libraries a bit easier. However, they were not actually that useful. Instead of using those types you could've just wrapped `DataLoader` yourself with a comparable amount of code and get much more control. Some sample code is now available in a [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md#on-disk-caching). 
+- Instead of using those types you'll need to wrap `DataLoader` by yourself. Some sample code is now available in a [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md#on-disk-caching). 
 
 ### Other Changes
 
-- `Loader` constructor now provides a default value for `DataDecoding` object
-- `DataLoading` protocol now works with a `Nuke.Request` and not `URLRequest` in case some extra info from `URLRequest` is required
-- Default `URLCache` disk capacity reduced to 150 Mb
+Make sure that you take those minor changes into account to:
+
+> - `Loader` constructor now provides a default value for `DataDecoding` object
+> - `DataLoading` protocol now works with a `Nuke.Request` and not `URLRequest` in case some extra info from `URLRequest` is required
+> - Reduce default `URLCache` disk capacity from 200 MB to 150 MB
+> - Reduce default `maxConcurrentOperationCount` of `DataLoader` from 8 to 6.

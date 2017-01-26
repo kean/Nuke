@@ -18,9 +18,9 @@ public final class DataLoader: DataLoading {
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
-    /// - parameter scheduler: `OperationQueueScheduler` with `maxConcurrentOperationCount` 8 by default.
+    /// - parameter scheduler: `OperationQueueScheduler` with `maxConcurrentOperationCount` 6 by default.
     /// Scheduler is wrapped in a `RateLimiter` to prevent `URLSession` trashing.
-    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration(), scheduler: AsyncScheduler = RateLimiter(scheduler: OperationQueueScheduler(maxConcurrentOperationCount: 8))) {
+    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration(), scheduler: AsyncScheduler = RateLimiter(scheduler: OperationQueueScheduler(maxConcurrentOperationCount: 6))) {
         self.session = URLSession(configuration: configuration, delegate: nil, delegateQueue: nil)
         self.scheduler = scheduler
     }

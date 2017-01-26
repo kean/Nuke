@@ -25,9 +25,9 @@ class CachingDataLoader: DataLoading {
         self.cache = cache
     }
 
-    public func loadData(with request: URLRequest, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+    public func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
         if let token = token, token.isCancelling { return }
-        guard let cacheKey = request.url?.absoluteString else { // can't consruct key
+        guard let cacheKey = request.urlRequest.url?.absoluteString else { // can't consruct key
             loader.loadData(with: request, token: token, completion: completion)
             return
         }

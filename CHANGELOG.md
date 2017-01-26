@@ -1,3 +1,43 @@
+
+## Nuke 5.0
+
+### Overview
+
+Nuke 5 is a relatively small release which removes some of the complexity from the framework. Hopefully it will make *contributing* to Nuke easier.
+
+One of the major changes is the removal of promisified API as well as `Promise` itself. Promises were briefly added in Nuke 4 as an effort to simplify async code. The major downside of promises is that their memory management model becomes too complex in a languages without a GC capable of resolving cycles. There are some other problems like extra complexity for users unfamiliar with promises, complicated debugging, performance penalties. Ultimately I decided that promises were adding more problems that they were solving. 
+
+Chances are that changes made in Nuke 5 are not going to affect your code.
+
+### Changes
+
+#### Removed promisified API and `Promise` itself
+
+- Remove promisified API, use simple closures instead. For example, `Loading` protocol's method `func loadImage(with request: Request, token: CancellationToken?) -> Promise<Image>` was replaced with a method with a completion closure `func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void)`. The same applies to `DataLoading` protocol.
+- Remove `Promise` class
+- Remove `PromiseResolution<T>` enum
+- Remove `Response` typealias
+- Add `Result<T>` enum which is now used as a replacement for `PromiseResolution<T>` (for instance, in `Target` protocol, etc)
+
+#### Memory cache is now managed exclusively by `Manager`
+
+- Remove memory cache from `Loader`
+- `Manager` now not only reads, but also writes to `Cache`
+
+The reason behind this change is to reduce confusion about `Cache` usage. In previous versions the user had to pass `Cache` instance to both `Loader` (which was both reading and writing to cache asynchronously), and to `Manager` (which was just reading from the cache synchronously). In a new setup it's clear who's responsible for managing memory cache.
+
+#### Removed `DataCaching` and `CachingDataLoader`
+
+Those two types were included in Nuke to make integrating third party caching libraries a bit easier. However, they were actually not that useful. Instead of using those types you could've just wrapped `DataLoader` yourself with a comparable amount of code and get much more control. Some sample code is now available in a [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md#on-disk-caching). 
+
+#### Other Changes
+
+- `Loader` constructor now provides a default value for `DataDecoding` object
+- `DataLoading` protocol now works with a `Nuke.Request` and not `URLRequest` in case some extra info from `URLRequest` is required
+- Reduce default `URLCache` disk capacity from 200 MB to 150 MB
+- Reduce default `maxConcurrentOperationCount` of `DataLoader` from 8 to 6.
+
+
 ## Nuke 4.1.2
 
 Bunch of improvements in built-in `Promise`:
