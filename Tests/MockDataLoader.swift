@@ -19,7 +19,7 @@ class MockDataLoader: DataLoading {
     var results = [URL: Result<(Data, URLResponse)>]()
     let queue = OperationQueue()
 
-    func loadData(with request: URLRequest, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+    func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
         token?.register {
             NotificationCenter.default.post(name: MockDataLoader.DidCancelTask, object: self)
@@ -28,7 +28,7 @@ class MockDataLoader: DataLoading {
         createdTaskCount += 1
         
         let operation = BlockOperation() {
-            if let result = self.results[request.url!] {
+            if let result = self.results[request.urlRequest.url!] {
                 completion(result)
             } else {
                 completion(.success((data, URLResponse())))

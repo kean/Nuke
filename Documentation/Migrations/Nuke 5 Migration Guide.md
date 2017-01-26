@@ -44,4 +44,5 @@ Those two types were included in Nuke to make integrating third party caching li
 ### Other Changes
 
 - `Loader` constructor now provides a default value for `DataDecoding` object
+- `DataLoading` protocol now works with a `Nuke.Request` and not `URLRequest` in case some extra info from `URLRequest` is required
 - Default `URLCache` disk capacity reduced to 150 Mb

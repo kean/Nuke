@@ -56,7 +56,7 @@ public final class Loader: Loading {
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         queue.async {
-            self.loader.loadData(with: request.urlRequest, token: token) { [weak self] in
+            self.loader.loadData(with: request, token: token) { [weak self] in
                 switch $0 {
                 case let .success(val): self?.decode(data: val.0, response: val.1, request: request, token: token, completion: completion)
                 case let .failure(err): completion(.failure(err))
