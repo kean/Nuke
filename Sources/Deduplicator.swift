@@ -35,7 +35,8 @@ public final class Deduplicator: Loading {
         task.retainCount += 1
         task.handlers.append(completion)
 
-        token?.register { [weak self] in
+        token?.register { [weak self, weak task] in
+            guard let task = task else { return }
             self?.queue.async { self?.cancel(task, key: key) }
         }
     }
@@ -43,7 +44,8 @@ public final class Deduplicator: Loading {
     private func startTask(with request: Request, key: AnyHashable) -> Task {
         let task = Task()
         tasks[key] = task
-        loader.loadImage(with: request, token: task.cts.token) {  [weak self] result in
+        loader.loadImage(with: request, token: task.cts.token) { [weak self, weak task] result in
+            guard let task = task else { return }
             self?.queue.async { self?.complete(task, key: key, result: result) }
         }
         return task
