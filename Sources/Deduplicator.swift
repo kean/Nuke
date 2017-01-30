@@ -16,12 +16,16 @@ public final class Deduplicator: Loading {
     /// Initializes the `Deduplicator` instance with the underlying
     /// `loader` used for actual image loading, and the request `equator`.
     /// - parameter loader: Underlying loader used for loading images.
-    public init(loader: Loading) { self.loader = loader }
+    public init(loader: Loading) {
+        self.loader = loader
+    }
 
     /// Combines requests with the same `loadKey` into a single request. The request
     /// only gets cancelled when all the underlying requests are cancelled.
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
-        queue.async { self._loadImage(with: request, token: token, completion: completion) }
+        queue.async {
+            self._loadImage(with: request, token: token, completion: completion)
+        }
     }
     
     private func _loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {

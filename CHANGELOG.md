@@ -36,6 +36,7 @@ Those two types were included in Nuke to make integrating third party caching li
 - `DataLoading` protocol now works with a `Nuke.Request` and not `URLRequest` in case some extra info from `URLRequest` is required
 - Reduce default `URLCache` disk capacity from 200 MB to 150 MB
 - Reduce default `maxConcurrentOperationCount` of `DataLoader` from 8 to 6.
+- Improved documentation
 
 
 ## Nuke 4.1.2

@@ -56,11 +56,12 @@ public final class Manager {
             return
         }
         
-        // Start the request
+        // Create context and associate it with target
         let cts = CancellationTokenSource(lock: CancellationTokenSource.lock)
         let context = Context(cts)
         Manager.setContext(context, for: target)
         
+        // Start the request
         loadImage(with: request, token: cts.token) { [weak self, weak context, weak target] result in
             if request.memoryCacheOptions.writeAllowed, let image = result.value {
                 self?.cache?[request] = image
@@ -68,13 +69,13 @@ public final class Manager {
             guard let context = context, let target = target else { return }
             guard Manager.getContext(for: target) === context else { return }
             handler(result, false)
-            context.cts = nil // avoid redundant cancellations on deinit
+            context.cts = nil // Avoid redundant cancellations on deinit
         }
     }
     
     private func loadImage(with request: Request, token: CancellationToken, completion: @escaping (Result<Image>) -> Void) {
         queue.async {
-            guard !token.isCancelling else { return } // fast preflight check
+            guard !token.isCancelling else { return } // Fast preflight check
             self.loader.loadImage(with: request, token: token) { result in
                 DispatchQueue.main.async { completion(result) }
             }
