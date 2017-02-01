@@ -35,7 +35,7 @@ public final class DataLoader: DataLoading {
     public func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
         scheduler.execute(token: token) { finish in
             let task = self.session.dataTask(with: request.urlRequest) { data, response, error in
-                if let data = data, let response = response {
+                if let data = data, let response = response, error == nil {
                     completion(.success((data, response)))
                 } else {
                     completion(.failure((error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))))
