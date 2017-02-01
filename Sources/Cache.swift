@@ -45,11 +45,8 @@ public final class Cache: Caching {
     /// The total number of items in the cache.
     public var totalCount: Int { return map.count }
     
-    deinit {
-        #if os(iOS) || os(tvOS)
-            NotificationCenter.default.removeObserver(self)
-        #endif
-    }
+    /// Shared `Cache` instance.
+    public static let shared = Cache()
     
     /// Initializes `Cache`.
     /// - parameter costLimit: Default value is calculated based on the amount
@@ -60,6 +57,12 @@ public final class Cache: Caching {
         #if os(iOS) || os(tvOS)
             NotificationCenter.default.addObserver(self, selector: #selector(Cache.removeAll), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
             NotificationCenter.default.addObserver(self, selector: #selector(Cache.didEnterBackground), name: .UIApplicationDidEnterBackground, object: nil)
+        #endif
+    }
+    
+    deinit {
+        #if os(iOS) || os(tvOS)
+            NotificationCenter.default.removeObserver(self)
         #endif
     }
     

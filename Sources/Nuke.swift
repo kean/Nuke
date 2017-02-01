@@ -59,26 +59,6 @@ public func cancelRequest(for target: AnyObject) {
     Manager.shared.cancelRequest(for: target)
 }
 
-public extension Manager {
-    /// Shared `Manager` instance.
-    ///
-    /// Shared manager is created with `Loader.shared` and `Cache.shared`.
-    public static var shared = Manager(loader: Loader.shared, cache: Cache.shared)
-}
-
-public extension Loader {
-    /// Shared `Loading` object.
-    ///
-    /// Shared loader is created with `DataLoader()`.
-    /// The resulting loader is wrapped in a `Deduplicator`.
-    public static var shared: Loading = Deduplicator(loader: Loader(loader: DataLoader()))
-}
-
-public extension Cache {
-    /// Shared `Cache` instance.
-    public static var shared = Cache()
-}
-
 /// An enum representing either a success with a result value, or a failure.
 public enum Result<T> {
     case success(T), failure(Error)

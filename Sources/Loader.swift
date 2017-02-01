@@ -43,6 +43,11 @@ public final class Loader: Loading {
     public var makeProcessor: (Image, Request) -> AnyProcessor? = {
         return $1.processor
     }
+    
+    /// Shared `Loading` object.
+    ///
+    /// Shared loader is created with `DataLoader()` wrapped in `Deduplicator`.
+    public static let shared: Loading = Deduplicator(loader: Loader(loader: DataLoader()))
 
     /// Initializes `Loader` instance with the given loader, decoder and cache.
     /// - parameter decoder: `DataDecoder()` by default.

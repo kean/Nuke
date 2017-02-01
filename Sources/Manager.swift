@@ -10,7 +10,12 @@ public final class Manager {
     public let cache: Caching?
 
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Manager")
-
+    
+    /// Shared `Manager` instance.
+    ///
+    /// Shared manager is created with `Loader.shared` and `Cache.shared`.
+    public static let shared = Manager(loader: Loader.shared, cache: Cache.shared)
+    
     /// Initializes the `Manager` with the image loader and the memory cache.
     /// - parameter cache: `nil` by default. `Manager` reads from the memory
     /// cache but doesn't write anything into it.
