@@ -15,12 +15,11 @@ Nuke pulls together **stable**, **mature** libraries from Swift ecosystem into *
 
 - Hassle-free image loading into image views and other targets
 - Two [cache layers](https://kean.github.io/blog/image-caching) including LRU memory cache
-- Extensible image transformations
+- Image transformations
 - [Freedom to use](#h_design) networking, caching libraries of your choice
-- Plugins: [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [Toucan](https://github.com/kean/Nuke-Toucan-Plugin)
+- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [Toucan](https://github.com/kean/Nuke-Toucan-Plugin) plugins
 - Automated [prefetching](https://kean.github.io/blog/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
-- Fast (see [benchmarks](https://github.com/kean/Image-Frameworks-Benchmark)), supports large collection views of images
-- Comprehensive test coverage
+- [Performant](https://github.com/kean/Image-Frameworks-Benchmark), handles heavy workloads with ease
 
 
 # <a name="h_getting_started"></a>Quick Start
@@ -86,6 +85,19 @@ Nuke.loadImage(with: request, into: view) { [weak view] in
 }
 ```
 
+#### Custom Target
+
+Another way to use Nuke with custom target is to implement `Target` protocol:
+
+```swift
+extension UIButton: Nuke.Target {
+    func handle(response: Result<Image>, isFromMemoryCache: Bool) {
+        guard let image = response.value else { return }
+        self.setImage(image, for: .normal)
+    }
+}
+```
+
 #### Processing Images
 
 You can specify custom image processors using `Processing` protocol which consists of a single method `process(image: Image) -> Image?`. Here's an example of custom image filter that uses [Core Image](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md):
@@ -98,7 +110,8 @@ struct GaussianBlur: Processing {
         return image.applyFilter(CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : self.radius]))
     }
 
-    // `Processing` protocol requires `Equatable` to identify cached images
+    // `Processing` protocol requires `Equatable` to identify cached images.
+    // If your processor doesn't have any parameters simply return `true`.
     func ==(lhs: GaussianBlur, rhs: GaussianBlur) -> Bool {
         return lhs.radius == rhs.radius
     }
