@@ -87,7 +87,7 @@ Nuke.loadImage(with: request, into: view) { [weak view] in
 
 #### Custom Target
 
-Another way to use Nuke with custom target is to implement `Target` protocol:
+Another way to use Nuke with custom targets is to implement `Target` protocol:
 
 ```swift
 extension UIButton: Nuke.Target {

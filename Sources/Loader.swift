@@ -61,41 +61,51 @@ public final class Loader: Loading {
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         queue.async {
-            self.loader.loadData(with: request, token: token) { [weak self] in
-                switch $0 {
-                case let .success(val): self?.decode(data: val.0, response: val.1, request: request, token: token, completion: completion)
-                case let .failure(err): completion(.failure(err))
-                }
+            self.loadImage(with: Context(request: request, token: token, completion: completion))
+        }
+    }
+    
+    private func loadImage(with ctx: Context) {
+        self.loader.loadData(with: ctx.request, token: ctx.token) { [weak self] in
+            switch $0 {
+            case let .success(val): self?.decode(response: val, context: ctx)
+            case let .failure(err): ctx.completion(.failure(err))
             }
         }
     }
 
-    private func decode(data: Data, response: URLResponse, request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+    private func decode(response: (Data, URLResponse), context ctx: Context) {
         queue.async {
-            self.schedulers.decoding.execute(token: token) { [weak self] in
-                if let image = self?.decoder.decode(data: data, response: response) {
-                    self?.process(image: image, request: request, token: token, completion: completion)
+            self.schedulers.decoding.execute(token: ctx.token) { [weak self] in
+                if let image = self?.decoder.decode(data: response.0, response: response.1) {
+                    self?.process(image: image, context: ctx)
                 } else {
-                    completion(.failure(Error.decodingFailed))
+                    ctx.completion(.failure(Error.decodingFailed))
                 }
             }
         }
     }
     
-    private func process(image: Image, request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+    private func process(image: Image, context ctx: Context) {
         queue.async {
-            guard let processor = self.makeProcessor(image, request) else {
-                completion(.success(image))
+            guard let processor = self.makeProcessor(image, ctx.request) else {
+                ctx.completion(.success(image))
                 return
             }
-            self.schedulers.processing.execute(token: token) {
+            self.schedulers.processing.execute(token: ctx.token) {
                 if let image = processor.process(image) {
-                    completion(.success(image))
+                    ctx.completion(.success(image))
                 } else {
-                    completion(.failure(Error.processingFailed))
+                    ctx.completion(.failure(Error.processingFailed))
                 }
             }
         }
+    }
+    
+    private struct Context {
+        let request: Request
+        let token: CancellationToken?
+        let completion: (Result<Image>) -> Void
     }
 
     /// Schedulers used to execute a corresponding steps of the pipeline.
