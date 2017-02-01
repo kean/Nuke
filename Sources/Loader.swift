@@ -89,7 +89,7 @@ public final class Loader: Loading {
     private func process(image: Image, context ctx: Context) {
         queue.async {
             guard let processor = self.makeProcessor(image, ctx.request) else {
-                ctx.completion(.success(image))
+                ctx.completion(.success(image)) // no need to process
                 return
             }
             self.schedulers.processing.execute(token: ctx.token) {
