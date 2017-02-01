@@ -10,16 +10,6 @@ By default each `Request` comes with a `Decompressor` which forces compressed im
 
 Don't cancel outstanding requests when it's not necessary. For instance, when reloading `UITableView` you might want to check if the cell that you are updating is not already loading the same image.
 
-### Cancel requests in `UICollectionView` / `UITableView`
-
-You can implement `didEndDisplaying:forItemAt:` method to cancel the requests as soon as the cell goes off screen:
-
-```swift
-func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-    Nuke.cancelRequest(for: cell.imageView)
-}
-```
-
 ### Rate Limiting Requests
 
 There is [a known problem](https://github.com/kean/Nuke/issues/59) with `URLSession` that it gets trashed pretty easily when you resume and cancel `URLSessionTasks` at a very high rate (say, scrolling a large collection view with images). Some frameworks combat this problem by simply never cancelling `URLSessionTasks` which are already in `.running` state. This is not an ideal solution, because it forces users to wait for cancelled requests for images which might never appear on the display.

@@ -89,10 +89,4 @@ class RateLimiterDemoViewController: UICollectionViewController {
         }
         return imageView!
     }
-    
-    override func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        // Makes sure that requests get cancelled as soon as the
-        // cell goes offscreen
-        manager.cancelRequest(for: self.imageViewForCell(cell))
-    }
 }

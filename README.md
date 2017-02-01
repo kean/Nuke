@@ -52,14 +52,6 @@ func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath:
 }
 ```
 
-You can also (optionally) implement `collectionView(didEndDisplaying:forItemAt:)` method to cancel the request as soon as the cell goes off screen:
-
-```swift
-func collectionView(_ collectionView: UICollectionView, didEndDisplaying cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-    Nuke.cancelRequest(for: cell.imageView)
-}
-```
-
 #### Customizing Requests
 
 Each image request is represented by `Request` struct. It can be created with either `URL` or `URLRequest` and then further customized.
