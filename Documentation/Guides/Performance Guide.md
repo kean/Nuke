@@ -38,43 +38,4 @@ Nuke comes with a `Foundation.URLCache` by default. It's [a great option](https:
 
 Cache lookup is a part of `URLSessionTask` flow which has some implications. The amount of concurrent `URLSessionTasks` is limited to 8 by Nuke (you can't just fire off an arbitrary number of concurrent HTTP requests). It means that if there are already 8 outstanding requests, you won't be able to check on-disk cache for the 9th request until one of the outstanding requests finishes.
 
-In order to optimize on-disk caching you might want to use a third-party caching library. Check out demo project for an example. And here's the code used in the demo project: 
-
-```swift
-import Nuke
-import DFCache
-
-// usage:
-let dataLoader = CachingDataLoader(loader: Nuke.DataLoader(), cache: DFCache(name: "test", memoryCache: nil))
-let manager = Manager(loader: Nuke.Loader(loader: dataLoader), cache: Nuke.Cache.shared)
-
-class CachingDataLoader: DataLoading {
-    private var loader: DataLoading // underlying loader
-    private var cache: DFCache
-
-    public init(loader: DataLoading, cache: DFCache) {
-        self.loader = loader
-        self.cache = cache
-    }
-
-    public func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        if let token = token, token.isCancelling { return }
-        guard let cacheKey = request.urlRequest.url?.absoluteString else { // can't consruct key
-            loader.loadData(with: request, token: token, completion: completion)
-            return
-        }
-        cache.cachedObject(forKey: cacheKey) { [weak self] in
-            if let response = $0 as? CachedURLResponse {
-                completion(.success((response.data, response.response)))
-            } else {
-                self?.loader.loadData(with: request, token: token) {
-                    if let val = $0.value {
-                        self?.cache.store(CachedURLResponse(response: val.1, data: val.0), forKey: cacheKey)
-                    }
-                    completion($0)
-                }
-            }
-        }
-    }
-}
-```
+In order to optimize on-disk caching you might want to use a third-party caching library. Check out [Third Party Libraries: Using Other Caching Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries) for an example.

@@ -12,7 +12,7 @@ public protocol DataLoading {
 
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading {
-    public private(set) var session: URLSession
+    public let session: URLSession
     private let scheduler: AsyncScheduler
     
     /// Initializes `DataLoader` with the given configuration.

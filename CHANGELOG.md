@@ -28,7 +28,7 @@ The reason behind this change is to reduce confusion about `Cache` usage. In pre
 
 #### Removed `DataCaching` and `CachingDataLoader`
 
-Those two types were included in Nuke to make integrating third party caching libraries a bit easier. However, they were actually not that useful. Instead of using those types you could've just wrapped `DataLoader` yourself with a comparable amount of code and get much more control. Some sample code is now available in a [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md#on-disk-caching). 
+Those two types were included in Nuke to make integrating third party caching libraries a bit easier. However, they were actually not that useful. Instead of using those types you could've just wrapped `DataLoader` yourself with a comparable amount of code and get much more control. For more info see [Third Party Libraries: Using Other Caching Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries). 
 
 #### Other Changes
 
@@ -37,6 +37,7 @@ Those two types were included in Nuke to make integrating third party caching li
 - Reduce default `URLCache` disk capacity from 200 MB to 150 MB
 - Reduce default `maxConcurrentOperationCount` of `DataLoader` from 8 to 6
 - Shared objects (like `Manager.shared`) are now constants.
+- Add new [Third Party Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md) guide.
 - Improved documentation
 
 

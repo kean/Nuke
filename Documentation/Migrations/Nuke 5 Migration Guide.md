@@ -41,7 +41,7 @@ Chances are that changes made in Nuke 5 are not going to affect your code.
 
 ### Removed `DataCaching` and `CachingDataLoader`
 
-- Instead of using those types you'll need to wrap `DataLoader` by yourself. Some sample code is now available in a [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md#on-disk-caching). 
+- Instead of using those types you'll need to wrap `DataLoader` by yourself. For more info see [Third Party Libraries: Using Other Caching Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries). 
 
 ### Other Changes
 
