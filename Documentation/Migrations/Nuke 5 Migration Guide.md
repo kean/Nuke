@@ -12,7 +12,7 @@ This guide is provided in order to ease the transition of existing applications 
 
 Nuke 5 is a relatively small release which removes some of the complexity from the framework. Hopefully it will make *contributing* to Nuke easier.
 
-One of the major changes is the removal of promisified API as well as `Promise` itself. Promises were briefly added in Nuke 4 as an effort to simplify async code. The major downside of promises is that their memory management model becomes too complex in a languages without a GC capable of resolving cycles. There are some other problems like extra complexity for users unfamiliar with promises, complicated debugging, performance penalties. Ultimately I decided that promises were adding more problems that they were solving. 
+One of the major changes is the removal of promisified API as well as `Promise` itself. Promises were briefly added in Nuke 4 as an effort to simplify async code. The major downsides of promises are compelex memory management, extra complexity for users unfamiliar with promises, complicated debugging, performance penalties. Ultimately I decided that promises were adding more problems that they were solving. 
 
 Chances are that changes made in Nuke 5 are not going to affect your code.
 

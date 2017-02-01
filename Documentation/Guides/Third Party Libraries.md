@@ -1,12 +1,61 @@
+### Using Other Networking Libraries
+
+By default, Nuke uses a `Foundation.URLSession` for all the networking. Apps may have their own network layer they may wish to use instead.
+
+Nuke already has an [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin) that allows you to use [Alamofire](https://github.com/Alamofire/Alamofire) for networking.  If you want to use Nuke with Alamofire simply follow the plugin's docs.
+
+If you'd like to use some other networking library or your own custom code you can use Alamofire plugin as a reference. Here's a full implementation of Alamofire plugin which you can adopt to your needs:
+
+```swift
+import Foundation
+import Alamofire
+import Nuke
+
+/// Implements data loading using Alamofire framework.
+public class DataLoader: Nuke.DataLoading {
+    public let manager: Alamofire.SessionManager
+    private let scheduler: Nuke.AsyncScheduler
+
+    /// Initializes the receiver with a given Alamofire.SessionManager.
+    /// - parameter manager: Alamofire.SessionManager.default by default.
+    /// - parameter scheduler: `QueueScheduler` with `maxConcurrentOperationCount` 8 by default.
+    /// Scheduler is wrapped in a `RateLimiter`.
+    public init(manager: Alamofire.SessionManager = Alamofire.SessionManager.default, scheduler: Nuke.AsyncScheduler = Nuke.RateLimiter(scheduler: Nuke.OperationQueueScheduler(maxConcurrentOperationCount: 8))) {
+        self.manager = manager
+        self.scheduler = scheduler
+    }
+
+    // MARK: DataLoading
+
+    /// Loads data using Alamofire.SessionManager.
+    public func loadData(with request: Nuke.Request, token: Nuke.CancellationToken?, completion: @escaping (Nuke.Result<(Data, URLResponse)>) -> Void) {
+        scheduler.execute(token: token) { finish in
+            let task = self.manager.request(request.urlRequest).response(completionHandler: { (response) in
+                if let data = response.data, let response: URLResponse = response.response {
+                    completion(.success((data, response)))
+                } else {
+                    completion(.failure(response.error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
+                }
+                finish()
+            })
+            token?.register {
+                task.cancel()
+                finish()
+            }
+        }
+    }
+}
+```
+
 ### Using Other Caching Libraries
 
-By default Nuke uses a `Foundation.URLCache` which is a part of Foundation URL Loading System. However sometimes built-in cache might not be performant enough, or might not fit your needs.
+By default, Nuke uses a `Foundation.URLCache` which is a part of Foundation URL Loading System. However sometimes built-in cache might not be performant enough, or might not fit your needs.
 
 > See [Image Caching Guide](https://kean.github.io/blog/image-caching) to learn more about URLCache, HTTP caching, and more
 
 > See [Performance Guide: On-Disk Caching](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md#on-disk-caching) for more info
 
-Nuke can be used with a third party caching libraries. I'm going to use [DFCache](https://github.com/kean/DFCache) as an example, however any caching library with a similar APIs can be used instead. Here are the step to configure Nuke to use DFCache:
+Nuke can be used with a third party caching library. I'm going to use [DFCache](https://github.com/kean/DFCache) as an example, however any caching library with a similar APIs can be used instead. Here are the steps to configure Nuke to use DFCache:
 
 1. Create a custom CachingDataLoader that uses `Nuke.DataLoader` for networking, but checks `DFCache` before starting a network request:
 
