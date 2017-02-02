@@ -1,4 +1,10 @@
 
+## Nuke 5.0.1
+
+- #116 `Manager` can now be used to load images w/o specifying a target
+- `Preheater` is now initialized with `Manager` instead of object conforming to `Loading` protocol
+
+
 ## Nuke 5.0
 
 ### Overview
