@@ -17,12 +17,13 @@ public final class Manager {
     public static let shared = Manager(loader: Loader.shared, cache: Cache.shared)
     
     /// Initializes the `Manager` with the image loader and the memory cache.
-    /// - parameter cache: `nil` by default. `Manager` reads from the memory
-    /// cache but doesn't write anything into it.
+    /// - parameter cache: `nil` by default.
     public init(loader: Loading, cache: Caching? = nil) {
         self.loader = loader
         self.cache = cache
     }
+
+    // MARK: Loading Images into Targets
     
     /// Loads an image into the given target. Cancels previous outstanding request
     /// associated with the target.
@@ -52,41 +53,29 @@ public final class Manager {
     public func loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler) {
         assert(Thread.isMainThread)
         
-        // Cancel outstanding request
+        // Cancel outstanding request if any
         cancelRequest(for: target)
         
-        // Quick memory cache lookup
-        if request.memoryCacheOptions.readAllowed, let image = cache?[request] {
+        // Quick synchronous memory cache lookup
+        if let image = cachedImage(for: request) {
             handler(.success(image), true)
             return
         }
         
-        // Create context and associate it with target
+        // Create context and associate it with a target
         let cts = CancellationTokenSource(lock: CancellationTokenSource.lock)
         let context = Context(cts)
         Manager.setContext(context, for: target)
         
         // Start the request
-        loadImage(with: request, token: cts.token) { [weak self, weak context, weak target] result in
-            if request.memoryCacheOptions.writeAllowed, let image = result.value {
-                self?.cache?[request] = image
-            }
+        loadImage(with: request, token: cts.token) { [weak context, weak target] in
             guard let context = context, let target = target else { return }
             guard Manager.getContext(for: target) === context else { return }
-            handler(result, false)
+            handler($0, false)
             context.cts = nil // Avoid redundant cancellations on deinit
         }
     }
-    
-    private func loadImage(with request: Request, token: CancellationToken, completion: @escaping (Result<Image>) -> Void) {
-        queue.async {
-            guard !token.isCancelling else { return } // Fast preflight check
-            self.loader.loadImage(with: request, token: token) { result in
-                DispatchQueue.main.async { completion(result) }
-            }
-        }
-    }
-    
+
     /// Cancels an outstanding request associated with the target.
     public func cancelRequest(for target: AnyObject) {
         assert(Thread.isMainThread)
@@ -95,7 +84,57 @@ public final class Manager {
             Manager.setContext(nil, for: target)
         }
     }
-    
+
+    // MARK: Loading Images w/o Targets
+
+    /// Loads an image with a given url by using manager's cache and loader.
+    ///
+    /// - parameter completion: Gets called asynchronously on the main thread.
+    public func loadImage(with url: URL, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+        loadImage(with: Request(url: url), token: token, completion: completion)
+    }
+
+    /// Loads an image with a given request by using manager's cache and loader.
+    ///
+    /// - parameter completion: Gets called asynchronously on the main thread.
+    public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+        queue.async {
+            if token?.isCancelling == true { return } // Fast preflight check
+            self._loadImage(with: request, token: token) { result in
+                DispatchQueue.main.async { completion(result) }
+            }
+        }
+    }
+
+    private func _loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
+        // Check if image is in memory cache
+        if let image = cachedImage(for: request) {
+            completion(.success(image))
+        } else {
+            // Use underlying loader to load an image and store in into cache
+            loader.loadImage(with: request, token: token) { [weak self] in
+                if let image = $0.value {
+                    self?.store(image: image, for: request)
+                }
+                completion($0)
+            }
+        }
+    }
+
+    // MARK: Memory Cache Helpers
+
+    private func cachedImage(for request: Request) -> Image? {
+        guard request.memoryCacheOptions.readAllowed else { return nil }
+        return cache?[request]
+    }
+
+    private func store(image: Image, for request: Request) {
+        guard request.memoryCacheOptions.writeAllowed else { return }
+        cache?[request] = image
+    }
+
+    // MARK: Managing Context
+
     // Associated objects is a simplest way to bind Context and Target lifetimes
     // The implementation might change in the future.
     private static func getContext(for target: AnyObject) -> Context? {
@@ -114,6 +153,10 @@ public final class Manager {
         // Automatically cancel the request when target deallocates.
         deinit { cts?.cancel() }
     }
+}
+
+private extension Manager {
+
 }
 
 private var contextAK = "Manager.Context.AssociatedKey"

@@ -49,7 +49,7 @@ public final class Loader: Loading {
     /// Shared loader is created with `DataLoader()` wrapped in `Deduplicator`.
     public static let shared: Loading = Deduplicator(loader: Loader(loader: DataLoader()))
 
-    /// Initializes `Loader` instance with the given loader, decoder and cache.
+    /// Initializes `Loader` instance with the given loader, decoder.
     /// - parameter decoder: `DataDecoder()` by default.
     /// - parameter schedulers: `Schedulers()` by default.
     public init(loader: DataLoading, decoder: DataDecoding = DataDecoder(), schedulers: Schedulers = Schedulers()) {
