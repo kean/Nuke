@@ -155,10 +155,6 @@ public final class Manager {
     }
 }
 
-private extension Manager {
-
-}
-
 private var contextAK = "Manager.Context.AssociatedKey"
 
 public extension Manager {
