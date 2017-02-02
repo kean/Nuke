@@ -7,13 +7,15 @@ import Nuke
 
 class PreheaterTests: XCTestCase {
     var loader: MockImageLoader!
+    var manager: Manager!
     var preheater: Preheater!
 
     override func setUp() {
         super.setUp()
 
         loader = MockImageLoader()
-        preheater = Preheater(loader: loader)
+        manager = Manager(loader: loader)
+        preheater = Preheater(manager: manager)
     }
     
     // MARK: Starting and Stoping Preheating

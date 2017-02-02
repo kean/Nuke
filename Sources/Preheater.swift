@@ -13,17 +13,17 @@ import Foundation
 ///
 /// All `Preheater` methods are thread-safe.
 public final class Preheater {
-    private let loader: Loading
+    private let manager: Manager
     private let scheduler: AsyncScheduler
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
     private var tasks = [Task]()
         
     /// Initializes the `Preheater` instance.
-    /// - parameter loader: `Loader.shared` by default.
+    /// - parameter manager: `Loader.shared` by default.
     /// - parameter scheduler: Throttles preheating requests. `OperationQueueScheduler`
     /// with `maxConcurrentOperationCount` 2 by default.
-    public init(loader: Loading = Loader.shared, scheduler: AsyncScheduler = OperationQueueScheduler(maxConcurrentOperationCount: 2)) {
-        self.loader = loader
+    public init(manager: Manager = Manager.shared, scheduler: AsyncScheduler = OperationQueueScheduler(maxConcurrentOperationCount: 2)) {
+        self.manager = manager
         self.scheduler = scheduler
     }
 
@@ -44,7 +44,7 @@ public final class Preheater {
 
         let task = Task(request: request)
         scheduler.execute(token: task.cts.token) { [weak self] finish in
-            self?.loader.loadImage(with: task.request, token: task.cts.token) { _ in
+            self?.manager.loadImage(with: task.request, token: task.cts.token) { _ in
                 self?.complete(task)
                 finish()
             }

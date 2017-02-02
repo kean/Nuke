@@ -125,7 +125,7 @@ struct GaussianBlur: Processing {
 [Preheating](https://kean.github.io/blog/image-preheating) (prefetching) means loading images ahead of time in anticipation of its use. Nuke provides a `Preheater` class that does just that:
 
 ```swift
-let preheater = Preheater()
+let preheater = Preheater(manager: Manager.shared)
 
 // User enters the screen:
 let requests = [Request(url: url1), Request(url: url2), ...]
@@ -141,7 +141,7 @@ preheater.stopPreheating(for: requests)
 You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`.
 
 ```swift
-let preheater = Preheater()
+let preheater = Preheater(manager: Manager.shared)
 let controller = Preheat.Controller(view: collectionView)
 controller.handler = { addedIndexPaths, removedIndexPaths in
     preheater.startPreheating(for: requests(for: addedIndexPaths))
