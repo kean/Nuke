@@ -73,7 +73,7 @@ request.memoryCacheOptions.writeAllowed = false
 Nuke.loadImage(with: request, into: imageView)
 ```
 
-#### Custom Handler
+#### Providing Custom Handlers
 
 Nuke has a flexible `loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler)` method in which target is a simple reuse token. The method itself doesn't do anything when the image is loaded - you have full control over how to display it, etc. Here's one simple way to use it:
 
@@ -85,7 +85,7 @@ Nuke.loadImage(with: request, into: view) { [weak view] in
 }
 ```
 
-#### Custom Target
+#### Supporting Custom Targets
 
 Another way to use Nuke with custom targets is to implement `Target` protocol:
 
@@ -97,6 +97,27 @@ extension UIButton: Nuke.Target {
     }
 }
 ```
+
+#### Loading Images w/o Targets
+
+You can use `Manager` to load images directly without providing a target.
+
+```swift
+Manager.shared.loadImage(with: url, token: nil) {
+    print("image \($0.value)")
+}
+```
+
+If you'd like to be able to cancel the requests use a `CancellationTokenSource`:
+
+```swift
+let cts = CancellationTokenSource()
+Manager.shared.loadImage(with: url, token: cts.token) {
+    print("image \($0.value)")
+}
+cts.cancel()
+```
+
 
 #### Processing Images
 
@@ -120,6 +141,7 @@ struct GaussianBlur: Processing {
 
 > See [Toucan plugin](https://github.com/kean/Nuke-Toucan-Plugin) for some useful image transformations
 
+
 #### Preheating Images
 
 [Preheating](https://kean.github.io/blog/image-preheating) (prefetching) means loading images ahead of time in anticipation of its use. Nuke provides a `Preheater` class that does just that:
@@ -135,21 +157,10 @@ preheater.startPreheating(for: requests)
 preheater.stopPreheating(for: requests)
 ```
 
-
-#### Automating Preheating
-
-You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`.
-
-```swift
-let preheater = Preheater(manager: Manager.shared)
-let controller = Preheat.Controller(view: collectionView)
-controller.handler = { addedIndexPaths, removedIndexPaths in
-    preheater.startPreheating(for: requests(for: addedIndexPaths))
-    preheater.stopPreheating(for: requests(for: removedIndexPaths))
-}
-```
+You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`. With iOS 10.0 you might want to use new [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) provided by iOS.
 
 > See [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
+
 
 # Plugins<a name="h_plugins"></a>
 
