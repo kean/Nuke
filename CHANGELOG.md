@@ -3,11 +3,9 @@
 
 ### Overview
 
-Nuke 5 is a relatively small release which removes some of the complexity from the framework. Hopefully it will make *contributing* to Nuke easier.
+Nuke 5 is a relatively small release which removes some of the complexity from the framework.
 
 One of the major changes is the removal of promisified API as well as `Promise` itself. Promises were briefly added in Nuke 4 as an effort to simplify async code. The major downsides of promises are compelex memory management, extra complexity for users unfamiliar with promises, complicated debugging, performance penalties. Ultimately I decided that promises were adding more problems that they were solving. 
-
-Chances are that changes made in Nuke 5 are not going to affect your code.
 
 ### Changes
 
@@ -23,6 +21,7 @@ Chances are that changes made in Nuke 5 are not going to affect your code.
 
 - Remove memory cache from `Loader`
 - `Manager` now not only reads, but also writes to `Cache`
+- `Manager` now has new methods to load images w/o target (Nuke 5.0.1) 
 
 The reason behind this change is to reduce confusion about `Cache` usage. In previous versions the user had to pass `Cache` instance to both `Loader` (which was both reading and writing to cache asynchronously), and to `Manager` (which was just reading from the cache synchronously). In a new setup it's clear who's responsible for managing memory cache.
 
@@ -37,6 +36,7 @@ Those two types were included in Nuke to make integrating third party caching li
 - Reduce default `URLCache` disk capacity from 200 MB to 150 MB
 - Reduce default `maxConcurrentOperationCount` of `DataLoader` from 8 to 6
 - Shared objects (like `Manager.shared`) are now constants.
+- `Preheater` is now initialized with `Manager` instead of `Loading` object
 - Add new [Third Party Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md) guide.
 - Improved documentation
 

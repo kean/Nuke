@@ -34,9 +34,10 @@ Chances are that changes made in Nuke 5 are not going to affect your code.
 
 > - Remove memory cache from `Loader`
 > - `Manager` now not only reads, but also writes to `Cache`
+> - `Manager` now has new methods to load images w/o target (Nuke 5.0.1)
 
 - If you're not constructing a custom `Loader` and you're not using it directly this change doesn't affect you
-- If you're using custom `Loader` directly and rely on its memory caching make sure to update accordingly
+- If you're using custom `Loader` directly and rely on its memory caching please new `Manager` APIs that load images w/o target
 - If you're constructing a custom `Loader` but don't use it directly then simply update to a new initializer which not longer requires you to pass memory cache in
 
 ### Removed `DataCaching` and `CachingDataLoader`
@@ -51,3 +52,5 @@ Make sure that you take those minor changes into account to:
 > - `DataLoading` protocol now works with a `Nuke.Request` and not `URLRequest` in case some extra info from `URLRequest` is required
 > - Reduce default `URLCache` disk capacity from 200 MB to 150 MB
 > - Reduce default `maxConcurrentOperationCount` of `DataLoader` from 8 to 6.
+> - Shared objects (like `Manager.shared`) are now constants.
+> - `Preheater` is now initialized with `Manager` instead of `Loading` object

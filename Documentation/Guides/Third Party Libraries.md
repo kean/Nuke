@@ -57,7 +57,7 @@ By default, Nuke uses a `Foundation.URLCache` which is a part of Foundation URL 
 
 Nuke can be used with a third party caching library. I'm going to use [DFCache](https://github.com/kean/DFCache) as an example, however any caching library with a similar APIs can be used instead. Here are the steps to configure Nuke to use DFCache:
 
-1. Create a custom CachingDataLoader that uses `Nuke.DataLoader` for networking, but checks `DFCache` before starting a network request:
+1) Create a custom CachingDataLoader that uses `Nuke.DataLoader` for networking, but checks `DFCache` before starting a network request:
 
 ```swift
 import Nuke
@@ -100,7 +100,7 @@ class CachingDataLoader: DataLoading {
 }
 ```
 
-2. Configure `Nuke.Manager` to use a new `CachingDataLoader`:
+2) Configure `Nuke.Manager` to use a new `CachingDataLoader`:
 
 ```swift
 // Create DFCache instance. It makes sense not to store data in memory cache:
