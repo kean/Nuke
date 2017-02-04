@@ -15,6 +15,7 @@ public protocol Loading {
 }
 
 public extension Loading {
+    /// Loads an image with the given request.
     public func loadImage(with request: Request, completion: @escaping (Result<Image>) -> Void) {
         loadImage(with: request, token: nil, completion: completion)
     }

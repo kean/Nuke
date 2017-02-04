@@ -56,11 +56,11 @@ class PreheaterTests: XCTestCase {
         let request = Request(url: defaultURL)
         _ = expectNotification(MockImageLoader.DidStartTask, object: loader)
         preheater.startPreheating(with: [request])
-        wait(2)
+        wait()
 
         _ = expectNotification(MockImageLoader.DidCancelTask, object: loader)
         preheater.stopPreheating()
-        wait(2)
+        wait()
     }
     
     // MARK: Thread Safety

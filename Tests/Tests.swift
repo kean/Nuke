@@ -15,3 +15,5 @@ let defaultImage: Image = {
 }()
 
 extension String: Error {}
+
+
