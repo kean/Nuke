@@ -148,43 +148,39 @@ public final class RateLimiter: AsyncScheduler {
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.RateLimiter")
     private var pendingItems = [Item]()
     private var isExecutingPendingItems = false
-    
-    private struct Item {
-        let token: CancellationToken?
-        let closure: (@escaping (Void) -> Void) -> Void
-    }
+
+    private typealias Item = (CancellationToken?, (@escaping (Void) -> Void) -> Void)
     
     /// Initializes the `RateLimiter` with the given scheduler and configuration.
     /// - parameter scheduler: Underlying scheduler which `RateLimiter` uses
     /// to execute items.
-    /// - parameter rate: Maximum number of requests per second. 30 by default.
+    /// - parameter rate: Maximum number of requests per second. 45 by default.
     /// - parameter burst: Maximum number of requests which can be executed without
     /// any delays when "bucket is full". 15 by default.
-    public init(scheduler: AsyncScheduler, rate: Int = 30, burst: Int = 15) {
+    public init(scheduler: AsyncScheduler, rate: Int = 45, burst: Int = 15) {
         self.scheduler = scheduler
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
     
     public func execute(token: CancellationToken?, closure: @escaping (@escaping (Void) -> Void) -> Void) {
-        if token?.isCancelling == true { // Quick pre-lock check
+        if token?.isCancelling == true { // quick pre-lock check
             return
         }
         queue.sync {
-            if !pendingItems.isEmpty || !execute(token: token, closure: closure) {
-                // `pending` is a queue: insert at 0; popLast() later
-                pendingItems.insert(Item(token: token, closure: closure), at: 0)
+            let item = Item(token, closure)
+            if !pendingItems.isEmpty || !execute(item) {
+                pendingItems.insert(item, at: 0)
                 setNeedsExecutePendingItems()
             }
         }
     }
     
-    private func execute(token: CancellationToken?, closure: @escaping (@escaping (Void) -> Void) -> Void) -> Bool {
-        // Drop cancelled items before they get to the bucket
-        if token?.isCancelling == true {
-            return true
+    private func execute(_ item: Item) -> Bool {
+        if item.0?.isCancelling == true {
+            return true // no need to execute cancelling items
         }
         return bucket.execute {
-            scheduler.execute(token: token, closure: closure)
+            scheduler.execute(token: item.0, closure: item.1)
         }
     }
     
@@ -197,14 +193,11 @@ public final class RateLimiter: AsyncScheduler {
     }
     
     private func executePendingItems() {
-        while let item = pendingItems.popLast() {
-            if !execute(token: item.token, closure: item.closure) {
-                pendingItems.append(item) // Put the item back
-                break // Stop executing items
-            }
+        while let item = pendingItems.last, execute(item) {
+            pendingItems.removeLast()
         }
         isExecutingPendingItems = false
-        if !pendingItems.isEmpty {
+        if !pendingItems.isEmpty { // not all pending items were executed
             setNeedsExecutePendingItems()
         }
     }
