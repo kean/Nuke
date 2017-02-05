@@ -143,17 +143,11 @@ private final class Operation: Foundation.Operation {
 /// without any delays when "the bucket is full". This is important to prevent
 /// rate limiter from affecting "normal" requests flow.
 public final class RateLimiter: AsyncScheduler {
+    private let bucket: TokenBucket
     private let scheduler: AsyncScheduler // underlying scheduler
-    
-    private let burst: Double
-    private let burstInterval: TimeInterval
-    private var bucket: Double
-    private var lastRefill: TimeInterval
-    
-    private var isExecutingPendingItems = false
-    private var pendingItems = [Item]()
-    
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.RateLimiter")
+    private var pendingItems = [Item]()
+    private var isExecutingPendingItems = false
     
     private struct Item {
         let token: CancellationToken?
@@ -168,10 +162,7 @@ public final class RateLimiter: AsyncScheduler {
     /// any delays when "bucket is full". 15 by default.
     public init(scheduler: AsyncScheduler, rate: Int = 30, burst: Int = 15) {
         self.scheduler = scheduler
-        self.burst = Double(burst)
-        self.burstInterval = Double(burst) / Double(rate)
-        self.bucket = Double(burst)
-        self.lastRefill = CFAbsoluteTimeGetCurrent()
+        self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
     
     public func execute(token: CancellationToken?, closure: @escaping (@escaping (Void) -> Void) -> Void) {
@@ -192,24 +183,8 @@ public final class RateLimiter: AsyncScheduler {
         if token?.isCancelling == true {
             return true
         }
-        
-        refillBucket()
-        if bucket < 1.0 {
-            return false // Bucket is empty
-        }
-        
-        // Execute an item
-        bucket -= 1.0
-        scheduler.execute(token: token, closure: closure)
-        return true
-    }
-    
-    private func refillBucket() {
-        let now = CFAbsoluteTimeGetCurrent()
-        bucket += (now - lastRefill) * (burst / burstInterval) // passed time * rate
-        lastRefill = now
-        if bucket > burst { // Prevent bucket overflow
-            bucket = burst
+        return bucket.execute {
+            scheduler.execute(token: token, closure: closure)
         }
     }
     
@@ -231,6 +206,42 @@ public final class RateLimiter: AsyncScheduler {
         isExecutingPendingItems = false
         if !pendingItems.isEmpty {
             setNeedsExecutePendingItems()
+        }
+    }
+
+    private final class TokenBucket {
+        private let rate: Double
+        private let burst: Double // maximum bucket size
+        private var bucket: Double
+        private var timestamp: TimeInterval // last refill timestamp
+        
+        /// - parameter rate: Rate (tokens/second) at which bucket is refilled.
+        /// - parameter burst: Bucket size (maximum number of tokens).
+        init(rate: Double = 30.0, burst: Double = 15.0) {
+            self.rate = rate
+            self.burst = burst
+            self.bucket = burst
+            self.timestamp = CFAbsoluteTimeGetCurrent()
+        }
+        
+        /// Returns `true` if the closure was executed, `false` if dropped.
+        func execute(closure: (Void) -> Void) -> Bool {
+            refill()
+            guard bucket >= 1.0 else {
+                return false // bucket is empty
+            }
+            bucket -= 1.0
+            closure()
+            return true
+        }
+        
+        private func refill() {
+            let now = CFAbsoluteTimeGetCurrent()
+            bucket += rate * max(0, now - timestamp) // rate * (time delta)
+            timestamp = now
+            if bucket > burst { // prevent bucket overflow
+                bucket = burst
+            }
         }
     }
 }
