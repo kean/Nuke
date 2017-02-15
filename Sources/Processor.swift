@@ -98,6 +98,16 @@ public struct AnyProcessor: Processing {
         public static func ==(lhs: Decompressor, rhs: Decompressor) -> Bool {
             return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
         }
+
+        #if !os(watchOS)
+        /// Returns target size in pixels for the given view. Takes main screen
+        /// scale into the account.
+        public static func targetSize(for view: UIView) -> CGSize { // in pixels
+            let scale = UIScreen.main.scale
+            let size = view.bounds.size
+            return CGSize(width: size.width * scale, height: size.height * scale)
+        }
+        #endif
     }
     
     private func decompress(_ image: UIImage, targetSize: CGSize, contentMode: Decompressor.ContentMode) -> UIImage {
