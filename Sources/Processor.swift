@@ -65,6 +65,8 @@ public struct AnyProcessor: Processing {
     /// Images are decompressed and scaled in a single pass which is extremely
     /// efficient when scaling images down by a large factor.
     public struct Decompressor: Processing {
+        
+        /// An option for how to resize the image.
         public enum ContentMode {
             /// Scales the image so that it completely fills the target size.
             /// Doesn't clip images.
