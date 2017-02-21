@@ -128,6 +128,8 @@ public final class Manager: Loading {
 
     // MARK: Managing Context
 
+    private static var contextAK = "Manager.Context.AssociatedKey"
+    
     // Associated objects is a simplest way to bind Context and Target lifetimes
     // The implementation might change in the future.
     private static func getContext(for target: AnyObject) -> Context? {
@@ -147,8 +149,6 @@ public final class Manager: Loading {
         deinit { cts?.cancel() }
     }
 }
-
-private var contextAK = "Manager.Context.AssociatedKey"
 
 public extension Manager {
     /// Loads an image into the given target. See the corresponding
