@@ -62,6 +62,7 @@ public final class Loader: Loading {
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         queue.async {
+            if token?.isCancelling == true { return } // Fast preflight check
             self.loadImage(with: Context(request: request, token: token, completion: completion))
         }
     }
