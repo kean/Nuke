@@ -2,46 +2,80 @@
 
 By default, Nuke uses a `Foundation.URLSession` for all the networking. Apps may have their own network layer they may wish to use instead.
 
-Nuke already has an [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin) that allows you to use [Alamofire](https://github.com/Alamofire/Alamofire) for networking.  If you want to use Nuke with Alamofire simply follow the plugin's docs.
+Nuke already has an [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) that allows you to load image data using [Alamofire.SessionManager](https://github.com/Alamofire/Alamofire).  If you want to use Nuke with Alamofire simply follow the plugin's docs.
 
-If you'd like to use some other networking library or your own custom code you can use Alamofire plugin as a reference. Here's a full implementation of Alamofire plugin which you can adopt to your needs:
+If you'd like to use some other networking library or use your own custom code all you need to do is implement `Nuke.DataLoading` protocol which consists of a single method:
 
 ```swift
-import Foundation
+/// Loads data.
+public protocol DataLoading {
+    /// Loads data with the given request.
+    func loadData(with request: Request,
+                  token: CancellationToken?,
+                  completion: @escaping (Result<(Data, URLResponse)>) -> Void)
+}
+```
+
+You can use [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) as a starting point. Here's its slightly simplified implementation:
+
+```swift
 import Alamofire
 import Nuke
 
-/// Implements data loading using Alamofire framework.
-public class DataLoader: Nuke.DataLoading {
-    public let manager: Alamofire.SessionManager
-    private let scheduler: Nuke.AsyncScheduler
+class AlamofireDataLoader: Nuke.DataLoading {
+    private let manager: Alamofire.SessionManager
 
-    /// Initializes the receiver with a given Alamofire.SessionManager.
-    /// - parameter manager: Alamofire.SessionManager.default by default.
-    /// - parameter scheduler: `QueueScheduler` with `maxConcurrentOperationCount` 8 by default.
-    /// Scheduler is wrapped in a `RateLimiter`.
-    public init(manager: Alamofire.SessionManager = Alamofire.SessionManager.default, scheduler: Nuke.AsyncScheduler = Nuke.RateLimiter(scheduler: Nuke.OperationQueueScheduler(maxConcurrentOperationCount: 8))) {
+    init(manager: Alamofire.SessionManager = Alamofire.SessionManager.default) {
         self.manager = manager
-        self.scheduler = scheduler
     }
 
-    // MARK: DataLoading
+    // MARK: Nuke.DataLoading
 
-    /// Loads data using Alamofire.SessionManager.
-    public func loadData(with request: Nuke.Request, token: Nuke.CancellationToken?, completion: @escaping (Nuke.Result<(Data, URLResponse)>) -> Void) {
-        scheduler.execute(token: token) { finish in
-            let task = self.manager.request(request.urlRequest).response(completionHandler: { (response) in
-                if let data = response.data, let response: URLResponse = response.response {
-                    completion(.success((data, response)))
-                } else {
-                    completion(.failure(response.error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
-                }
-                finish()
-            })
-            token?.register {
-                task.cancel()
-                finish()
+    func loadData(with request: Nuke.Request, token: CancellationToken?, completion: @escaping (Nuke.Result<(Data, URLResponse)>) -> Void) {
+        // Alamofire.SessionManager automatically starts requests as soon as they are created (see `startRequestsImmediately`)
+        let task = self.manager.request(request.urlRequest).response(completionHandler: { (response) in
+            if let data = response.data, let response: URLResponse = response.response {
+                completion(.success((data, response)))
+            } else {
+                completion(.failure(response.error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
             }
+        })
+        token?.register {
+            task.cancel() // gets called when the token gets cancelled
+        }
+    }
+}
+```
+
+That's it. You can now create a `Nuke.Manager` instance with your custom data loader and use it to load images:
+
+```swift
+let loader = Nuke.Loader(loader: AlamofireDataLoader())
+let manager = Nuke.Manager(loader: loader, cache: Cache.shared)
+
+manager.loadImage(with: url, into: imageView)
+```
+
+There is one more thing that you may want to consider. Your networking layers might not provide a built-in way to set a hard limit on a maximum number of concurrent requests. In case you do want to add such limit you can use a *Scheduling* infrastructure provided by Nuke, namely `Nuke.OperationQueueScheduler` class:
+
+```swift
+private let scheduler = Nuke.OperationQueueScheduler(maxConcurrentOperationCount: 6)
+
+/// Loads data using Alamofire.SessionManager.
+public func loadData(with request: Nuke.Request, token: CancellationToken?, completion: @escaping (Nuke.Result<(Data, URLResponse)>) -> Void) {
+    scheduler.execute(token: token) { finish in
+        // Alamofire.SessionManager automatically starts requests as soon as they are created (see `startRequestsImmediately`)
+        let task = self.manager.request(request.urlRequest).response(completionHandler: { (response) in
+            if let data = response.data, let response: URLResponse = response.response {
+                completion(.success((data, response)))
+            } else {
+                completion(.failure(response.error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
+            }
+            finish() // finish an underlying concurrent Foundation.Operation
+        })
+        token?.register {
+            task.cancel()
+            finish()
         }
     }
 }
@@ -68,13 +102,13 @@ class CachingDataLoader: DataLoading {
     private let cache: DFCache
     private let scheduler: Scheduler
 
-    public init(loader: DataLoading, cache: DFCache, scheduler: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.CachingDataLoader"))) {
+    init(loader: DataLoading, cache: DFCache, scheduler: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.CachingDataLoader"))) {
         self.loader = loader
         self.cache = cache
         self.scheduler = scheduler
     }
 
-    public func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+    func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
         guard let key = makeCacheKey(for: request) else {
             loader.loadData(with: request, token: token, completion: completion)
             return
