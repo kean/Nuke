@@ -12,6 +12,3 @@ extension Nuke.Request {
         return request
     }
 }
-
-/// Manager de-facto already implements Loading protocol
-extension Nuke.Manager: Nuke.Loading {}

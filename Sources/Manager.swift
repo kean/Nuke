@@ -5,7 +5,7 @@
 import Foundation
 
 /// Loads images into the given targets.
-public final class Manager {
+public final class Manager: Loading {
     public let loader: Loading
     public let cache: Caching?
 
@@ -87,13 +87,6 @@ public final class Manager {
 
     // MARK: Loading Images w/o Targets
 
-    /// Loads an image with a given url by using manager's cache and loader.
-    ///
-    /// - parameter completion: Gets called asynchronously on the main thread.
-    public func loadImage(with url: URL, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
-        loadImage(with: Request(url: url), token: token, completion: completion)
-    }
-
     /// Loads an image with a given request by using manager's cache and loader.
     ///
     /// - parameter completion: Gets called asynchronously on the main thread.
@@ -111,7 +104,7 @@ public final class Manager {
         if let image = cachedImage(for: request) {
             completion(.success(image))
         } else {
-            // Use underlying loader to load an image and store in into cache
+            // Use underlying loader to load an image and then store it in cache
             loader.loadImage(with: request, token: token) { [weak self] in
                 if let image = $0.value {
                     self?.store(image: image, for: request)
