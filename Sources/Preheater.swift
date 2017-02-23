@@ -16,10 +16,10 @@ public final class Preheater {
     private let manager: Manager
     private let scheduler: AsyncScheduler
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
-    private var tasks = [Task]()
-        
+    private var tasks = [AnyHashable: Task]()
+
     /// Initializes the `Preheater` instance.
-    /// - parameter manager: `Loader.shared` by default.
+    /// - parameter manager: `Manager.shared` by default.
     /// - parameter scheduler: Throttles preheating requests. `OperationQueueScheduler`
     /// with `maxConcurrentOperationCount` 2 by default.
     public init(manager: Manager = Manager.shared, scheduler: AsyncScheduler = OperationQueueScheduler(maxConcurrentOperationCount: 2)) {
@@ -33,63 +33,61 @@ public final class Preheater {
     /// for the given requests. At any time afterward, you can create tasks
     /// for individual images with equivalent requests.
     public func startPreheating(with requests: [Request]) {
-        queue.async {
-            requests.forEach { self.startPreheating(with: $0) }
-        }
+        queue.async { requests.forEach(self.startPreheating) }
     }
     
     private func startPreheating(with request: Request) {
-        // FIXME: use OrderedSet when Swift stdlib has one
-        guard indexOfTask(with: request) == nil else { return } // already exists
+        let key = Request.loadKey(for: request)
+        guard tasks[key] == nil else { return } // already exists
 
-        let task = Task(request: request)
-        scheduler.execute(token: task.cts.token) { [weak self] finish in
-            self?.manager.loadImage(with: task.request, token: task.cts.token) { _ in
-                self?.complete(task)
+        let task = Task(request: request, key: key)
+        let token = task.cts.token
+        scheduler.execute(token: token) { [weak self] finish in
+            self?.manager.loadImage(with: request, token: token) { _ in
+                self?.remove(task)
                 finish()
             }
-            task.cts.token.register { finish() }
+            token.register { finish() }
         }
-        tasks.append(task)
+        tasks[key] = task
     }
     
-    private func complete(_ task: Task) {
+    private func remove(_ task: Task) {
         queue.async {
-            if let idx = self.tasks.index(where: { task === $0 }) {
-                self.tasks.remove(at: idx)
-            }
+            guard self.tasks[task.key] === task else { return }
+            self.tasks[task.key] = nil
         }
     }
     
     /// Stops preheating images for the given requests and cancels outstanding
     /// requests.
     public func stopPreheating(with requests: [Request]) {
-        queue.async {
-            requests.forEach { request in
-                if let index = self.indexOfTask(with: request) {
-                    let task = self.tasks.remove(at: index)
-                    task.cts.cancel()
-                }
-            }
-        }
+        queue.async { requests.forEach(self.stopPreheating) }
     }
     
-    private func indexOfTask(with request: Request) -> Int? {
-        let key = Request.loadKey(for: request)
-        return tasks.index { key == Request.loadKey(for: $0.request) }
+    private func stopPreheating(with request: Request) {
+        if let task = tasks[Request.loadKey(for: request)] {
+            tasks[task.key] = nil
+            task.cts.cancel()
+        }
     }
 
     /// Stops all preheating tasks.
     public func stopPreheating() {
         queue.async {
-            self.tasks.forEach { $0.cts.cancel() }
+            self.tasks.forEach { $0.1.cts.cancel() }
             self.tasks.removeAll()
         }
     }
 
     private final class Task {
+        let key: AnyHashable
         let request: Request
-        var cts = CancellationTokenSource()
-        init(request: Request) { self.request = request }
+        let cts = CancellationTokenSource()
+        
+        init(request: Request, key: AnyHashable) {
+            self.request = request
+            self.key = key
+        }
     }
 }
