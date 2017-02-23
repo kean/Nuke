@@ -18,17 +18,26 @@ public final class DataLoader: DataLoading {
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
-    /// - parameter scheduler: `OperationQueueScheduler` with `maxConcurrentOperationCount` 6 by default.
-    /// Scheduler is wrapped in a `RateLimiter` to prevent `URLSession` trashing.
-    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration(), scheduler: AsyncScheduler = RateLimiter(scheduler: OperationQueueScheduler(maxConcurrentOperationCount: 6))) {
-        self.session = URLSession(configuration: configuration, delegate: nil, delegateQueue: nil)
+    /// - parameter scheduler: `OperationQueueScheduler` with
+    /// `maxConcurrentOperationCount` 6 by default.
+    public init(configuration: URLSessionConfiguration = DataLoader.defaultConf,
+                scheduler: AsyncScheduler = DataLoader.defaultScheduler) {
+        self.session = URLSession(configuration: configuration)
         self.scheduler = scheduler
     }
     
-    private static func defaultConfiguration() -> URLSessionConfiguration {
+    private static var defaultConf: URLSessionConfiguration {
         let conf = URLSessionConfiguration.default
-        conf.urlCache = URLCache(memoryCapacity: 0, diskCapacity: (150 * 1024 * 1024), diskPath: "com.github.kean.Nuke.Cache")
+        conf.urlCache = URLCache(
+            memoryCapacity: 0,
+            diskCapacity: 150 * 1024 * 1024, // 150 MB
+            diskPath: "com.github.kean.Nuke.Cache"
+        )
         return conf
+    }
+    
+    private static var defaultScheduler: AsyncScheduler {
+        return RateLimiter(scheduler: OperationQueueScheduler(maxConcurrentOperationCount: 6))
     }
     
     /// Loads data with the given request.

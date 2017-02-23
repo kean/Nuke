@@ -62,8 +62,9 @@ public struct AnyProcessor: Processing {
     /// Decompresses and (optionally) scales down input images. Maintains
     /// original aspect ratio.
     ///
-    /// Images are decompressed and scaled in a single pass which is extremely
-    /// efficient when scaling images down by a large factor.
+    /// Decompressing compressed image formats (such as JPEG) can significantly
+    /// improve drawing performance as it allows a bitmap representation to be
+    /// created in the background rather than on the main thread.
     public struct Decompressor: Processing {
         
         /// An option for how to resize the image.

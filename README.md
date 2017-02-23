@@ -78,7 +78,7 @@ Nuke.loadImage(with: request, into: view) { [weak view] response, _ in
 }
 ```
 
-> The target in this method is declared simple as `AnyObject` with which the requests get associated. This enables a number of use cases. For example, with a couple lines of code you can [show a low-res image and swap to a higher-res one](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Tips%20and%20Tricks.md#show-a-low-res-image-first-and-swap-to-a-higher-res-one-when-it-arrives) when loaded.
+> The target in this method is declared as `AnyObject` with which the requests get associated. This enables a number of use cases. For example, with a couple lines of code you can [show a low-res image and swap to a higher-res one](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Tips%20and%20Tricks.md#show-a-low-res-image-first-and-swap-to-a-higher-res-one-when-it-arrives) when loaded.
 
 
 #### Customizing Requests
