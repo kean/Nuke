@@ -12,7 +12,6 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 # <a name="h_features"></a>Features
 
 - Load images into image views and other targets
-- Image resizing, custom image transformations
 - Two [cache layers](https://kean.github.io/blog/image-caching), fast LRU memory cache
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [Toucan](https://github.com/kean/Nuke-Toucan-Plugin) plugins
 - [Freedom to use](#h_design) networking, caching libraries of your choice
@@ -96,26 +95,9 @@ Nuke.loadImage(with: request, into: imageView)
 ```
 
 
-#### Resizing Images
-
-By resizing images to fit/fill the size of the image views you can reduce memory usage and improve drawing performance. Nuke provides a convenience API to do just that:
-
-```swift
-var request = Request(url: url)
-
-// Use current image view size as a target size for a loaded image.
-// By default, Nuke will resize the image to fill (`.aspectFill`) the image view.
-// Image won't be resized if it's smaller than the target size.
-request.resize(for: imageView)
-
-// As an alternative you can provide a target size (in pixels) yourself.
-request.resize(to: CGSize(width: 150, height: 150), mode: .aspectFit)
-```
-
-
 #### Processing Images
 
-You can specify custom image processors using `Processing` protocol which consists of a single method `process(image: Image) -> Image?`:
+Nuke provides an infrastructure for processing images and caching them. You can specify custom image processors using `Processing` protocol which consists of a single method `process(image: Image) -> Image?`:
 
 ```swift
 struct GaussianBlur: Processing {
@@ -126,16 +108,64 @@ struct GaussianBlur: Processing {
     }
 
     // `Processing` protocol requires `Equatable` to identify cached images.
-    // If your processor doesn't have any parameters simply return `true`.
     func ==(lhs: GaussianBlur, rhs: GaussianBlur) -> Bool {
-        return lhs.radius == rhs.radius
+        return lhs.radius == rhs.radius // If the processor has no parameters, simply return true
     }
+}
+
+// Usage:
+let request = Request(url: url).processed(with: GaussianBlur())
+Nuke.loadImage(with: request, into: imageView)
+```
+
+> See [Core Image Integration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md) for more info about using Core Image with Nuke
+
+
+#### Using Toucan Plugin
+
+Check out [Toucan Plugin](https://github.com/kean/Nuke-Toucan-Plugin) for some useful image transformations. [Toucan](https://github.com/gavinbunney/Toucan) is a library that provides a clean API for processing images, including resizing, elliptical and rounded rect masking, and more:
+
+```swift
+let request = Nuke.Request(url: url).processed(key: "Avatar") { 
+    return $0.resize(CGSize(width: 500, height: 500), fitMode: .crop)
+             .maskWithEllipse()
 }
 ```
 
-> See [Toucan Plugin](https://github.com/kean/Nuke-Toucan-Plugin) for some useful image transformations
 
-> See [Core Image Integration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md) for more info about using Core Image with Nuke
+#### Loading Images w/o Targets
+
+You can also use `Manager` to load images directly without providing a target.
+
+```swift
+Manager.shared.loadImage(with: url) {
+    print("image \($0.value)")
+}
+```
+
+If you'd like to be able to cancel the requests use a cancellation token:
+
+```swift
+let cts = CancellationTokenSource()
+Manager.shared.loadImage(with: url, token: cts.token) {
+    print("image \($0.value)")
+}
+cts.cancel()
+```
+
+
+#### Using Memory Cache
+
+You can get a directly access to the default memory cache used by Nuke:
+
+```swift
+Cache.shared.costLimit = 1024 * 1024 * 100 // 100 MB
+Cache.shared.countLimit = 100
+
+let request = Request(url: url)
+Cache.shared[request] = image
+let image = Cache.shared[request]
+```
 
 
 #### Preheating Images
@@ -156,40 +186,6 @@ preheater.stopPreheating(for: requests)
 You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`. With iOS 10.0 you might want to use new [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) provided by iOS.
 
 > See [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
-
-
-#### Loading Images w/o Targets
-
-You can use `Manager` to load images directly without providing a target.
-
-```swift
-Manager.shared.loadImage(with: url) {
-    print("image \($0.value)")
-}
-```
-
-If you'd like to be able to cancel the requests use a cancellation token:
-
-```swift
-let cts = CancellationTokenSource()
-Manager.shared.loadImage(with: url, token: cts.token) {
-    print("image \($0.value)")
-}
-cts.cancel()
-```
-
-#### Using Memory Cache
-
-You can get a directly access to the default memory cache used by Nuke:
-
-```swift
-Cache.shared.costLimit = 1024 * 1024 * 100 // 100 MB
-Cache.shared.countLimit = 100
-
-let request = Request(url: url)
-Cache.shared[request] = image
-let image = Cache.shared[request]
-```
 
 
 # Plugins<a name="h_plugins"></a>

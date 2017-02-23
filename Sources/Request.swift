@@ -140,40 +140,6 @@ public extension Request {
     }
 }
 
-#if !os(macOS)
-import UIKit
-
-public extension Request {
-    /// Resizes the loaded image to *fill* (or *fit* depending on the `mode`)
-    /// the given target size.
-    /// 
-    /// This method replaces the current request's processor. If you want to add
-    /// more processors to the request add them after calling this method.
-    ///
-    /// - parameter targetSize: Size in pixels. `MaximumSize` by default.
-    /// - parameter mode: An option for how to resize the image to the target
-    /// size. `.aspectFill` by default.
-    public mutating func resize(to targetSize: CGSize, mode: Decompressor.ContentMode = .aspectFill) {
-        self.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: mode))
-    }
-
-    #if !os(watchOS)
-    /// Resizes the loaded image to *fill* (or *fit* depending on the `mode`)
-    /// the given target. Uses the current size of the target.
-    ///
-    /// This method replaces the current request's processor. If you want to add
-    /// more processors to the request add them after calling this method.
-    ///
-    /// - parameter target: View for which the image should be resized.
-    /// - parameter mode: An option for how to resize the image to the target
-    /// size. `.aspectFill` by default.
-    public mutating func resize(for target: UIView, mode: Decompressor.ContentMode = .aspectFill) {
-        resize(to: Decompressor.targetSize(for: target), mode: mode)
-    }
-    #endif
-}
-#endif
-
 public extension Request {
     /// Returns a key which compares requests with regards to caching images.
     /// Returns `cacheKey` if not `nil`. Returns default key otherwise.
