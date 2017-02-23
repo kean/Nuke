@@ -1,4 +1,12 @@
 
+## Nuke 5.1
+
+- De facto `Manager` has already implemented `Loading` protocol in Nuke 5 (you could use it to load images directly w/o targets). Now it also conforms to `Loading` protocols which gives access to some convenience functions available in `Loading` extensions.
+- Add `static func targetSize(for view: UIView) -> CGSize` method to `Decompressor`
+- Simpler, faster `Preheater`
+- Improved documentation
+
+
 ## Nuke 5.0.1
 
 - #116 `Manager` can now be used to load images w/o specifying a target
