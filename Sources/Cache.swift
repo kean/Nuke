@@ -55,8 +55,8 @@ public final class Cache: Caching {
         self.costLimit = costLimit
         self.countLimit = countLimit
         #if os(iOS) || os(tvOS)
-            NotificationCenter.default.addObserver(self, selector: #selector(Cache.removeAll), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
-            NotificationCenter.default.addObserver(self, selector: #selector(Cache.didEnterBackground), name: .UIApplicationDidEnterBackground, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(removeAll), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
+            NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: .UIApplicationDidEnterBackground, object: nil)
         #endif
     }
     
