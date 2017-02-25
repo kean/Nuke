@@ -89,47 +89,67 @@ By default, Nuke uses a `Foundation.URLCache` which is a part of Foundation URL 
 
 > See [Performance Guide: On-Disk Caching](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md#on-disk-caching) for more info
 
-Nuke can be used with a third party caching library. I'm going to use [DFCache](https://github.com/kean/DFCache) as an example, however any caching library with a similar APIs can be used instead. Here are the steps to configure Nuke to use DFCache:
-
-1) Create a custom CachingDataLoader that uses `Nuke.DataLoader` for networking, but checks `DFCache` before starting a network request:
+Nuke can be used with any third party caching library. Every caching library is a bit different, and that is why Nuke doesn't have any built-in infrastructure to support custom caching. However, it's easy to add your own. Here's is an example of `CachingDataLoader` that can be used with any object that conforms to `DataCaching` protocol:
 
 ```swift
 import Nuke
-import DFCache
+
+protocol DataCaching {
+    func cachedResponse(for request: URLRequest) -> CachedURLResponse?
+    func storeResponse(_ response: CachedURLResponse, for request: URLRequest)
+}
 
 class CachingDataLoader: DataLoading {
     private let loader: DataLoading
-    private let cache: DFCache
-    private let scheduler: Scheduler
+    private let cache: DataCaching
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.CachingDataLoader")
 
-    init(loader: DataLoading, cache: DFCache, scheduler: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.CachingDataLoader"))) {
+    public init(loader: DataLoading, cache: DataCaching) {
         self.loader = loader
         self.cache = cache
-        self.scheduler = scheduler
     }
 
-    func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        guard let key = makeCacheKey(for: request) else {
-            loader.loadData(with: request, token: token, completion: completion)
-            return
-        }
-        scheduler.execute(token: token) { [weak self] in
-            if let response = self?.cache.cachedObject(forKey: key) as? CachedURLResponse {
+    public func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+        queue.async { [weak self] in
+            if token?.isCancelling == true {
+                return
+            }
+            let urlRequest = request.urlRequest
+            if let response = self?.cache.cachedResponse(for: urlRequest) {
                 completion(.success((response.data, response.response)))
             } else {
                 self?.loader.loadData(with: request, token: token) {
-                    if let val = $0.value {
-                        self?.cache.store(CachedURLResponse(response: val.1, data: val.0), forKey: key)
-                    }
+                    $0.value.map { self?.store($0, for: urlRequest) }
                     completion($0)
                 }
-
             }
         }
     }
 
-    private func makeCacheKey(for request: Request) -> String? {
-        return request.urlRequest.url?.absoluteString
+    private func store(_ val: (Data, URLResponse), for request: URLRequest) {
+        queue.async { [weak self] in
+            self?.cache.storeResponse(CachedURLResponse(response: val.1, data: val.0), for: request)
+        }
+    }
+}
+```
+
+You can copy `CachingDataLoader` to yout project as is, or modify it to fit your needs. In order to use `CachingDataLoader` you should also implement `DataCaching` protocol. I'm going to use [DFCache](https://github.com/kean/DFCache) as an example, however any caching library with a similar APIs can be used instead. Here are the steps to configure Nuke to use DFCache:
+
+1) Add conformance to `DataCaching` protocol:
+
+```swift
+extension DFCache: DataCaching {
+    func cachedResponse(for request: URLRequest) -> CachedURLResponse? {
+        return key(for: request).map(cachedObject) as? CachedURLResponse
+    }
+    
+    func storeResponse(_ response: CachedURLResponse, for request: URLRequest) {
+        key(for: request).map { store(response, forKey: $0) }
+    }
+    
+    private func key(for request: URLRequest) -> String? {
+        return request.url?.absoluteString
     }
 }
 ```

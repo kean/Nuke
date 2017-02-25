@@ -23,38 +23,55 @@ class CustomCacheDemoViewController: BasicDemoViewController {
 }
 
 
+protocol DataCaching {
+    func cachedResponse(for request: URLRequest) -> CachedURLResponse?
+    func storeResponse(_ response: CachedURLResponse, for request: URLRequest)
+}
+
 class CachingDataLoader: DataLoading {
     private let loader: DataLoading
-    private let cache: DFCache
-    private let scheduler: Scheduler
+    private let cache: DataCaching
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.CachingDataLoader")
 
-    public init(loader: DataLoading, cache: DFCache, scheduler: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.CachingDataLoader"))) {
+    public init(loader: DataLoading, cache: DataCaching) {
         self.loader = loader
         self.cache = cache
-        self.scheduler = scheduler
     }
 
     public func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        guard let key = makeCacheKey(for: request) else {
-            loader.loadData(with: request, token: token, completion: completion)
-            return
-        }
-        scheduler.execute(token: token) { [weak self] in
-            if let response = self?.cache.cachedObject(forKey: key) as? CachedURLResponse {
+        queue.async { [weak self] in
+            if token?.isCancelling == true {
+                return
+            }
+            let urlRequest = request.urlRequest
+            if let response = self?.cache.cachedResponse(for: urlRequest) {
                 completion(.success((response.data, response.response)))
             } else {
                 self?.loader.loadData(with: request, token: token) {
-                    if let val = $0.value {
-                        self?.cache.store(CachedURLResponse(response: val.1, data: val.0), forKey: key)
-                    }
+                    $0.value.map { self?.store($0, for: urlRequest) }
                     completion($0)
                 }
-
             }
         }
     }
 
-    private func makeCacheKey(for request: Request) -> String? {
-        return request.urlRequest.url?.absoluteString
+    private func store(_ val: (Data, URLResponse), for request: URLRequest) {
+        queue.async { [weak self] in
+            self?.cache.storeResponse(CachedURLResponse(response: val.1, data: val.0), for: request)
+        }
+    }
+}
+
+extension DFCache: DataCaching {
+    func cachedResponse(for request: URLRequest) -> CachedURLResponse? {
+        return key(for: request).map(cachedObject) as? CachedURLResponse
+    }
+    
+    func storeResponse(_ response: CachedURLResponse, for request: URLRequest) {
+        key(for: request).map { store(response, forKey: $0) }
+    }
+    
+    private func key(for request: URLRequest) -> String? {
+        return request.url?.absoluteString
     }
 }
