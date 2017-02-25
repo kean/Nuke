@@ -79,23 +79,22 @@ public final class Cache: Caching {
             lock.lock()  // faster than `sync()`
             defer { lock.unlock() }
             
-            if let node = map[key] {
+            return map[key].map {
                 // bubble node up to the head
-                list.remove(node)
-                list.append(node)
-                return node.value.image
+                list.remove($0)
+                list.append($0)
+                return $0.value.image
             }
-            return nil
         }
         set {
             lock.lock() // faster than `sync()`
             defer { lock.unlock() }
-            
+
             if let image = newValue {
                 add(node: Node(value: CachedImage(image: image, cost: cost(image), key: key)))
                 trim()
-            } else if let node = map[key] {
-                remove(node: node)
+            } else {
+                map[key].map(remove)
             }
         }
     }
