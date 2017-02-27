@@ -27,7 +27,7 @@ public final class Deduplicator: Loading {
             self._loadImage(with: request, token: token, completion: completion)
         }
     }
-    
+
     private func _loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         let key = Request.loadKey(for: request)
         let task = tasks[key] ?? startTask(with: request, key: key)
@@ -40,7 +40,7 @@ public final class Deduplicator: Loading {
             self?.queue.async { self?.cancel(task, key: key) }
         }
     }
-    
+
     private func startTask(with request: Request, key: AnyHashable) -> Task {
         let task = Task()
         tasks[key] = task
@@ -50,13 +50,13 @@ public final class Deduplicator: Loading {
         }
         return task
     }
-    
+
     private func complete(_ task: Task, key: AnyHashable, result: Result<Image>) {
         guard tasks[key] === task else { return } // check if still registered
         task.handlers.forEach { $0(result) }
         tasks[key] = nil
     }
-    
+
     private func cancel(_ task: Task, key: AnyHashable) {
         guard tasks[key] === task else { return } // check if still registered
         task.retainCount -= 1
@@ -65,7 +65,7 @@ public final class Deduplicator: Loading {
             tasks[key] = nil
         }
     }
-    
+
     private final class Task {
         let cts = CancellationTokenSource()
         var handlers = [(Result<Image>) -> Void]()

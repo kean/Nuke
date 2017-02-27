@@ -19,7 +19,7 @@ public extension Loading {
     public func loadImage(with request: Request, completion: @escaping (Result<Image>) -> Void) {
         loadImage(with: request, token: nil, completion: completion)
     }
-    
+
     /// Loads an image with the given url.
     public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
         loadImage(with: Request(url: url), token: token, completion: completion)
@@ -38,13 +38,13 @@ public final class Loader: Loading {
     private let decoder: DataDecoding
     private let schedulers: Schedulers
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
-    
+
     /// Returns a processor for the given image and request. Default
     /// implementation simply returns `request.processor`.
     public var makeProcessor: (Image, Request) -> AnyProcessor? = {
         return $1.processor
     }
-    
+
     /// Shared `Loading` object.
     ///
     /// Shared loader is created with `DataLoader()` wrapped in `Deduplicator`.
@@ -66,7 +66,7 @@ public final class Loader: Loading {
             self.loadImage(with: Context(request: request, token: token, completion: completion))
         }
     }
-    
+
     private func loadImage(with ctx: Context) {
         self.loader.loadData(with: ctx.request, token: ctx.token) { [weak self] in
             switch $0 {
@@ -87,7 +87,7 @@ public final class Loader: Loading {
             }
         }
     }
-    
+
     private func process(image: Image, context ctx: Context) {
         queue.async {
             guard let processor = self.makeProcessor(image, ctx.request) else {
@@ -103,7 +103,7 @@ public final class Loader: Loading {
             }
         }
     }
-    
+
     private struct Context {
         let request: Request
         let token: CancellationToken?
@@ -116,7 +116,7 @@ public final class Loader: Loading {
         public var decoding: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.Decoding"))
         // There is no reason to increase `maxConcurrentOperationCount` for
         // built-in `DataDecoder` that locks globally while decoding.
-        
+
         /// `DispatchQueueScheduler` with a serial queue by default.
         public var processing: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.Processing"))
     }

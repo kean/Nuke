@@ -45,7 +45,7 @@ public struct DataDecoder: DataDecoding {
             #endif
         }
     }
-    
+
     private static func validate(response: URLResponse) -> Bool {
         guard let response = response as? HTTPURLResponse else { return true }
         return (200..<300).contains(response.statusCode)
@@ -55,12 +55,12 @@ public struct DataDecoder: DataDecoding {
 /// Composes multiple data decoders.
 public final class DataDecoderComposition: DataDecoding {
     public let decoders: [DataDecoding]
-    
+
     /// Composes multiple data decoders.
     public init(decoders: [DataDecoding]) {
         self.decoders = decoders
     }
-    
+
     /// Decoders are applied in order in which they are present in the decoders
     /// array. The decoding stops when one of the decoders produces an image.
     public func decode(data: Data, response: URLResponse) -> Image? {

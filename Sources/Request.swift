@@ -15,7 +15,7 @@ public struct Request {
             }
         }
     }
-    
+
     public init(url: URL) {
         container = Container(resource: Resource.url(url))
         container.urlString = url.absoluteString
@@ -25,13 +25,13 @@ public struct Request {
         container = Container(resource: Resource.request(urlRequest))
         container.urlString = urlRequest.url?.absoluteString
     }
-    
+
     /// Processor to be applied to the image. `Decompressor` by default.
     public var processor: AnyProcessor? {
         get { return container.processor }
         set { applyMutation { $0.processor = newValue } }
     }
-    
+
     /// The policy to use when dealing with memory cache.
     public struct MemoryCacheOptions {
         /// `true` by default.
@@ -39,10 +39,10 @@ public struct Request {
 
         /// `true` by default.
         public var writeAllowed = true
-        
+
         public init() {}
     }
-    
+
     /// `MemoryCacheOptions()` by default.
     public var memoryCacheOptions = MemoryCacheOptions()
 
@@ -58,10 +58,9 @@ public struct Request {
 
     /// Custom info passed alongside the request.
     public var userInfo: Any?
-    
-    
+
     // everything below exists solely to improve performance
-    
+
     /// Here we implement copy-on-write semantics.
     private mutating func applyMutation(_ block: (Container) -> Void) {
         if !isKnownUniquelyReferenced(&container) {
@@ -69,12 +68,12 @@ public struct Request {
         }
         block(container)
     }
-    
+
     /// `Request` stores its parameters in a `Container` class to avoid
     /// excessive memberwise retain/release when `Request` is passed around
     /// (and it is passed around **a lot**).
     fileprivate var container: Container
-    
+
     /// Request needs `struct` semantics, but not the way `struct` manages
     /// memory (memberwise retain-release on each copy). This is way `Container`
     /// exists - solely to improve memory performance.
@@ -82,34 +81,34 @@ public struct Request {
         var resource: Resource
         var urlString: String? // memoized absoluteString
         var processor: AnyProcessor?
-    
+
         init(resource: Resource) {
             self.resource = resource
-            
+
             #if !os(macOS)
             self.processor = Container.decompressor
             #endif
         }
-        
+
         func copy() -> Container {
             let ref = Container(resource: resource)
             ref.urlString = urlString
             ref.processor = processor
             return ref
         }
-        
+
         /// Memoized decompressor
         #if !os(macOS)
         private static let decompressor = AnyProcessor(Decompressor())
         #endif
     }
-    
+
     /// Resource representation (either URL or URLRequest). Only exists to
     /// improve performance by lazily creating requests.
     fileprivate enum Resource {
         case url(URL)
         case request(URLRequest)
-        
+
         var urlRequest: URLRequest {
             switch self {
             case let .url(url): return URLRequest(url: url) // create lazily
@@ -130,7 +129,7 @@ public extension Request {
             self.processor = AnyProcessor(processor)
         }
     }
-    
+
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
     public func processed<P: Processing>(with processor: P) -> Request {
@@ -152,7 +151,7 @@ public extension Request {
             $0.container.urlString == $1.container.urlString && $0.processor == $1.processor
         })
     }
-    
+
     /// Returns a key which compares requests with regards to loading images.
     /// Returns `loadKey` if not `nil`. Returns default key otherwise.
     ///
@@ -169,7 +168,7 @@ public extension Request {
                 && $0.processor == $1.processor
         })
     }
-    
+
     /// Compares two requests for equivalence using an `equator` closure.
     private class Key: Hashable {
         let request: Request
@@ -184,7 +183,7 @@ public extension Request {
         var hashValue: Int {
             return request.container.urlString?.hashValue ?? 0
         }
-        
+
         /// Compares two keys for equivalence.
         static func ==(lhs: Key, rhs: Key) -> Bool {
             return lhs.equator(lhs.request, rhs.request)

@@ -35,7 +35,7 @@ public final class Preheater {
     public func startPreheating(with requests: [Request]) {
         queue.async { requests.forEach(self.startPreheating) }
     }
-    
+
     private func startPreheating(with request: Request) {
         let key = Request.loadKey(for: request)
         guard tasks[key] == nil else { return } // already exists
@@ -51,20 +51,20 @@ public final class Preheater {
         }
         tasks[key] = task
     }
-    
+
     private func remove(_ task: Task) {
         queue.async {
             guard self.tasks[task.key] === task else { return }
             self.tasks[task.key] = nil
         }
     }
-    
+
     /// Stops preheating images for the given requests and cancels outstanding
     /// requests.
     public func stopPreheating(with requests: [Request]) {
         queue.async { requests.forEach(self.stopPreheating) }
     }
-    
+
     private func stopPreheating(with request: Request) {
         if let task = tasks[Request.loadKey(for: request)] {
             tasks[task.key] = nil
@@ -84,7 +84,7 @@ public final class Preheater {
         let key: AnyHashable
         let request: Request
         let cts = CancellationTokenSource()
-        
+
         init(request: Request, key: AnyHashable) {
             self.request = request
             self.key = key

@@ -10,12 +10,12 @@ public final class Manager: Loading {
     public let cache: Caching?
 
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Manager")
-    
+
     /// Shared `Manager` instance.
     ///
     /// Shared manager is created with `Loader.shared` and `Cache.shared`.
     public static let shared = Manager(loader: Loader.shared, cache: Cache.shared)
-    
+
     /// Initializes the `Manager` with the image loader and the memory cache.
     /// - parameter cache: `nil` by default.
     public init(loader: Loading, cache: Caching? = nil) {
@@ -24,7 +24,7 @@ public final class Manager: Loading {
     }
 
     // MARK: Loading Images into Targets
-    
+
     /// Loads an image into the given target. Cancels previous outstanding request
     /// associated with the target.
     ///
@@ -38,9 +38,9 @@ public final class Manager: Loading {
             target?.handle(response: $0, isFromMemoryCache: $1)
         }
     }
-    
+
     public typealias Handler = (Result<Image>, _ isFromMemoryCache: Bool) -> Void
-    
+
     /// Loads an image and calls the given `handler`. The method itself 
     /// **doesn't do** anything when the image is loaded - you have full
     /// control over how to display it, etc.
@@ -52,21 +52,21 @@ public final class Manager: Loading {
     /// See `loadImage(with:into:)` method for more info.
     public func loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler) {
         assert(Thread.isMainThread)
-        
+
         // Cancel outstanding request if any
         cancelRequest(for: target)
-        
+
         // Quick synchronous memory cache lookup
         if let image = cachedImage(for: request) {
             handler(.success(image), true)
             return
         }
-        
+
         // Create context and associate it with a target
         let cts = CancellationTokenSource(lock: CancellationTokenSource.lock)
         let context = Context(cts)
         Manager.setContext(context, for: target)
-        
+
         // Start the request
         loadImage(with: request, token: cts.token) { [weak context, weak target] in
             guard let context = context, let target = target else { return }
@@ -129,22 +129,22 @@ public final class Manager: Loading {
     // MARK: Managing Context
 
     private static var contextAK = "Manager.Context.AssociatedKey"
-    
+
     // Associated objects is a simplest way to bind Context and Target lifetimes
     // The implementation might change in the future.
     private static func getContext(for target: AnyObject) -> Context? {
         return objc_getAssociatedObject(target, &contextAK) as? Context
     }
-    
+
     private static func setContext(_ context: Context?, for target: AnyObject) {
         objc_setAssociatedObject(target, &contextAK, context, .OBJC_ASSOCIATION_RETAIN)
     }
-    
+
     private final class Context {
         var cts: CancellationTokenSource?
-        
+
         init(_ cts: CancellationTokenSource) { self.cts = cts }
-        
+
         // Automatically cancel the request when target deallocates.
         deinit { cts?.cancel() }
     }
@@ -187,9 +187,8 @@ public protocol Target: class {
     public typealias ImageView = UIImageView
 #endif
 
-
 #if os(macOS) || os(iOS) || os(tvOS)
-    
+
     /// Default implementation of `Target` protocol for `ImageView`.
     extension ImageView: Target {
         /// Displays an image on success. Runs `opacity` transition if
@@ -207,5 +206,5 @@ public protocol Target: class {
             }
         }
     }
-    
+
 #endif

@@ -11,7 +11,7 @@ public final class CancellationTokenSource {
     public private(set) var isCancelling = false
     private var observers = [(Void) -> Void]()
     private let lock: Lock
-    
+
     /// Creates a new token associated with the source.
     public var token: CancellationToken {
         return CancellationToken(source: self)
@@ -21,14 +21,14 @@ public final class CancellationTokenSource {
     public init() {
         self.lock = Lock()
     }
-    
+
     /// Allows to create cts with a shared lock to avoid excessive allocations.
     /// This is tricky to use thus `internal` access modifier.
     internal init(lock: Lock) {
         self.lock = lock
     }
     internal static let lock = Lock()
-    
+
     fileprivate func register(_ closure: @escaping (Void) -> Void) {
         if isCancelling { closure(); return } // fast pre-lock check
         lock.sync {
