@@ -1,22 +1,34 @@
 ### Create `URL`s in a Background
 
-`URL` initializer is quite expensive (parses string's components) and might take more time as an actual call to `Nuke.loadImage(with:into)`. Make sure that you create those `URL`s in a background. Creating objects from JSON would be a good place.
+`URL` initializer is expensive because it needs to parse the input strings. It might take more time than the call to `Nuke.loadImage(with:into)` itself. Make sure to create the `URL` objects somewhere in a background. For example, it might be a good idea to create `URL` when parsing JSON to create your model objects.
 
-### Decompression
+
+### Avoiding Decompression on the Main Thread
 
 By default each `Request` comes with a `Decompressor` which forces compressed image data to be drawn into a bitmap. This happens in a background to [avoid decompression sickness](https://www.cocoanetics.com/2011/10/avoiding-image-decompression-sickness/) on the main thread.
 
-### Avoid Excessive Cancellations
+
+### Avoiding High Memory Usage
+
+Displaying images takes a lot of memory. Here's a couple of tips to reduce memory usage when using Nuke:
+
+- The loaded images should ideally be the same size as the image views (taking retina into account). If the loaded images have a resolution which is higher than necessary make sure to resize them. Nuke has a built-in way to resize images:
+
+```swift
+var request = Request(url: url)
+let targetSize = Decompressor.targetSize(for: view)
+request.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: .aspectFill))
+```
+
+- Reduce the `costLimit` and/or `countLimit` of `Cache.shared`. In most cases having a single global memory cache is what you want. However Nuke also allows you to have multiple memory caches (for e.g. one cache per screen). To do that create a separate `Nuke.Manager` instance per screen, each should be initialized with its own cache.
+
+
+### Avoiding Excessive Cancellations
 
 Don't cancel outstanding requests when it's not necessary. For instance, when reloading `UITableView` you might want to check if the cell that you are updating is not already loading the same image.
 
-You can see `RateLimiter` in action in a new `Rate Limiter Demo` added in the sample project.
 
-### Resizing Images
-
-Resizing (and cropping) images might help both in terms of [image drawing performance](https://developer.apple.com/library/content/qa/qa1708/_index.html) and memory usage.
-
-### On-Disk Caching
+### Optimizing On-Disk Caching
 
 Nuke comes with a `Foundation.URLCache` by default. It's [a great option](https://kean.github.io/blog/image-caching) especially when you need a HTTP cache validation. However, it might be a little bit slow.
 
