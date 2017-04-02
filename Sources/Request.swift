@@ -6,6 +6,9 @@ import Foundation
 
 /// Represents an image request.
 public struct Request {
+    
+    // MARK: Parameters of the Request
+    
     public var urlRequest: URLRequest {
         get { return container.resource.urlRequest }
         set {
@@ -14,16 +17,6 @@ public struct Request {
                 $0.urlString = newValue.url?.absoluteString
             }
         }
-    }
-
-    public init(url: URL) {
-        container = Container(resource: Resource.url(url))
-        container.urlString = url.absoluteString
-    }
-
-    public init(urlRequest: URLRequest) {
-        container = Container(resource: Resource.request(urlRequest))
-        container.urlString = urlRequest.url?.absoluteString
     }
 
     /// Processor to be applied to the image. `Decompressor` by default.
@@ -58,25 +51,35 @@ public struct Request {
 
     /// Custom info passed alongside the request.
     public var userInfo: Any?
+    
+    
+    // MARK: Initializers
+    
+    public init(url: URL) {
+        container = Container(resource: Resource.url(url))
+        container.urlString = url.absoluteString
+    }
+    
+    public init(urlRequest: URLRequest) {
+        container = Container(resource: Resource.request(urlRequest))
+        container.urlString = urlRequest.url?.absoluteString
+    }
 
-    // everything below exists solely to improve performance
+    
+    // Everything in the scope below exists solely to improve performance
 
-    /// Here we implement copy-on-write semantics.
-    private mutating func applyMutation(_ block: (Container) -> Void) {
+    fileprivate var container: Container
+
+    private mutating func applyMutation(_ closure: (Container) -> Void) {
         if !isKnownUniquelyReferenced(&container) {
             container = container.copy()
         }
-        block(container)
+        closure(container)
     }
 
-    /// `Request` stores its parameters in a `Container` class to avoid
-    /// excessive memberwise retain/release when `Request` is passed around
-    /// (and it is passed around **a lot**).
-    fileprivate var container: Container
-
-    /// Request needs `struct` semantics, but not the way `struct` manages
-    /// memory (memberwise retain-release on each copy). This is way `Container`
-    /// exists - solely to improve memory performance.
+    /// `Request` stores its parameters in a `Container` to avoid memberwise
+    /// retain/release when `Request` is passed around (and it is passed around
+    /// **a lot**). This optimization is known as `copy-on-write`.
     fileprivate class Container {
         var resource: Resource
         var urlString: String? // memoized absoluteString
@@ -97,7 +100,6 @@ public struct Request {
             return ref
         }
 
-        /// Memoized decompressor
         #if !os(macOS)
         private static let decompressor = AnyProcessor(Decompressor())
         #endif
@@ -147,9 +149,13 @@ public extension Request {
     /// `URLRequests` and the same processors. `URLRequests` are compared
     /// just by their `URLs`.
     public static func cacheKey(for request: Request) -> AnyHashable {
-        return request.cacheKey ?? AnyHashable(Key(request: request) {
+        return request.cacheKey ?? AnyHashable(makeCacheKey(request))
+    }
+    
+    private static func makeCacheKey(_ request: Request) -> Key {
+        return Key(request: request) {
             $0.container.urlString == $1.container.urlString && $0.processor == $1.processor
-        })
+        }
     }
 
     /// Returns a key which compares requests with regards to loading images.
@@ -159,14 +165,18 @@ public extension Request {
     /// `URLRequests` and the same processors. `URLRequests` are compared by
     /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
     public static func loadKey(for request: Request) -> AnyHashable {
+        return request.loadKey ?? AnyHashable(makeLoadKey(request))
+    }
+    
+    private static func makeLoadKey(_ request: Request) -> Key {
         func isEqual(_ a: URLRequest, _ b: URLRequest) -> Bool {
             return a.cachePolicy == b.cachePolicy && a.allowsCellularAccess == b.allowsCellularAccess
         }
-        return request.loadKey ?? AnyHashable(Key(request: request) {
+        return Key(request: request) {
             $0.container.urlString == $1.container.urlString
                 && isEqual($0.urlRequest, $1.urlRequest)
                 && $0.processor == $1.processor
-        })
+        }
     }
 
     /// Compares two requests for equivalence using an `equator` closure.
