@@ -12,10 +12,10 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 # <a name="h_features"></a>Features
 
 - Load images into image views and other targets
-- Two [cache layers](https://kean.github.io/blog/image-caching), fast LRU memory cache
+- Two [cache layers](https://kean.github.io/post/image-caching), fast LRU memory cache
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [Toucan](https://github.com/kean/Nuke-Toucan-Plugin) plugins
 - [Freedom to use](#h_design) networking, caching libraries of your choice
-- Automated [prefetching](https://kean.github.io/blog/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
+- Automated [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
 - Simple, small (~1k sloc), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
 
 
@@ -170,7 +170,7 @@ let image = Cache.shared[request]
 
 #### Preheating Images
 
-[Preheating](https://kean.github.io/blog/image-preheating) (prefetching) means loading images ahead of time in anticipation of its use. Nuke provides a `Preheater` class that does just that:
+[Preheating](https://kean.github.io/post/image-preheating) (prefetching) means loading images ahead of time in anticipation of its use. Nuke provides a `Preheater` class that does just that:
 
 ```swift
 let preheater = Preheater(manager: Manager.shared)
@@ -223,7 +223,7 @@ Nuke is designed to support [dependency injection](https://en.wikipedia.org/wiki
 
 Nuke has a basic built-in `DataLoader` class that implements `DataLoading` protocol. It uses [`Foundation.URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) which is a part of the Foundation's [URL Loading System](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/URLLoadingSystem/URLLoadingSystem.html). Another part of it is [`Foundation.URLCache`](https://developer.apple.com/reference/foundation/urlcache) which provides a composite in-memory and on-disk cache for data. By default it is initialized with a memory capacity of 0 MB (Nuke only stores decompressed images in memory) and a disk capacity of 150 MB.
 
-> See [Image Caching Guide](https://kean.github.io/blog/image-caching) to learn more about URLCache, HTTP caching, and more
+> See [Image Caching Guide](https://kean.github.io/post/image-caching) to learn more about URLCache, HTTP caching, and more
 
 > If you'd like to use a third-party caching library check out [Third Party Libraries: Using Other Caching Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries)
 

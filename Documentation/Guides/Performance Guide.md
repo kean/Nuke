@@ -30,7 +30,7 @@ Don't cancel outstanding requests when it's not necessary. For instance, when re
 
 ### Optimizing On-Disk Caching
 
-Nuke comes with a `Foundation.URLCache` by default. It's [a great option](https://kean.github.io/blog/image-caching) especially when you need a HTTP cache validation. However, it might be a little bit slow.
+Nuke comes with a `Foundation.URLCache` by default. It's [a great option](https://kean.github.io/post/image-caching) especially when you need a HTTP cache validation. However, it might be a little bit slow.
 
 Cache lookup is a part of `URLSessionTask` flow which has some implications. The amount of concurrent `URLSessionTasks` is limited to 8 by Nuke (you can't just fire off an arbitrary number of concurrent HTTP requests). It means that if there are already 8 outstanding requests, you won't be able to check on-disk cache for the 9th request until one of the outstanding requests finishes.
 
