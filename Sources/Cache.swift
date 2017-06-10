@@ -156,7 +156,7 @@ public final class Cache: Caching {
         trim(while: { totalCount > limit })
     }
 
-    private func trim(while condition: (Void) -> Bool) {
+    private func trim(while condition: () -> Bool) {
         while condition(), let node = list.tail { // least recently used
             remove(node: node)
         }

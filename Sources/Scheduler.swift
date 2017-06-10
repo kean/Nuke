@@ -9,7 +9,7 @@ import Foundation
 /// Schedules execution of the given closures.
 public protocol Scheduler {
     /// Schedules execution of the given closure.
-    func execute(token: CancellationToken?, closure: @escaping (Void) -> Void)
+    func execute(token: CancellationToken?, closure: @escaping () -> Void)
 }
 
 /// Schedules execution of asynchronous work which is considered
@@ -17,7 +17,7 @@ public protocol Scheduler {
 public protocol AsyncScheduler {
     /// Schedules execution of asynchronous work which is considered
     /// finished when `finish` closure is called.
-    func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping (Void) -> Void) -> Void)
+    func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping () -> Void) -> Void)
 }
 
 // MARK: - DispatchQueueScheduler
@@ -33,7 +33,7 @@ public final class DispatchQueueScheduler: Scheduler {
 
     /// Executes the given closure asynchronously on the underlying queue.
     /// The scheduler automatically reacts to the token cancellation.
-    public func execute(token: CancellationToken?, closure: @escaping (Void) -> Void) {
+    public func execute(token: CancellationToken?, closure: @escaping () -> Void) {
         if token?.isCancelling == true {
             return
         }
@@ -68,7 +68,7 @@ public final class OperationQueueScheduler: AsyncScheduler {
     /// by wrapping the closure in the asynchronous operation. The operations
     /// gets finished when the given `finish` closure is called.
     /// The scheduler automatically reacts to the token cancellation.
-    public func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping (Void) -> Void) -> Void) {
+    public func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
         if token?.isCancelling == true {
             return
         }
@@ -103,10 +103,10 @@ private final class Operation: Foundation.Operation {
     }
     var _isFinished = false
 
-    let starter: (_ finish: @escaping (Void) -> Void) -> Void
+    let starter: (_ finish: @escaping () -> Void) -> Void
     let queue = DispatchQueue(label: "com.github.kean.Nuke.Operation")
 
-    init(starter: @escaping (_ fulfill: @escaping (Void) -> Void) -> Void) {
+    init(starter: @escaping (_ fulfill: @escaping () -> Void) -> Void) {
         self.starter = starter
     }
 
@@ -149,7 +149,7 @@ public final class RateLimiter: AsyncScheduler {
     private var pendingItems = [Item]()
     private var isExecutingPendingItems = false
 
-    private typealias Item = (CancellationToken?, (@escaping (Void) -> Void) -> Void)
+    private typealias Item = (CancellationToken?, (@escaping () -> Void) -> Void)
 
     /// Initializes the `RateLimiter` with the given scheduler and configuration.
     /// - parameter scheduler: Underlying scheduler which `RateLimiter` uses
@@ -162,7 +162,7 @@ public final class RateLimiter: AsyncScheduler {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
-    public func execute(token: CancellationToken?, closure: @escaping (@escaping (Void) -> Void) -> Void) {
+    public func execute(token: CancellationToken?, closure: @escaping (@escaping () -> Void) -> Void) {
         if token?.isCancelling == true { // quick pre-lock check
             return
         }
@@ -218,7 +218,7 @@ public final class RateLimiter: AsyncScheduler {
         }
 
         /// Returns `true` if the closure was executed, `false` if dropped.
-        func execute(closure: (Void) -> Void) -> Bool {
+        func execute(closure: () -> Void) -> Bool {
             refill()
             guard bucket >= 1.0 else {
                 return false // bucket is empty

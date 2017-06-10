@@ -86,7 +86,7 @@ internal final class Lock {
     }
 
     /// In critical places it's better to use lock() and unlock() manually
-    func sync<T>(_ closure: (Void) -> T) -> T {
+    func sync<T>(_ closure: () -> T) -> T {
         pthread_mutex_lock(mutex)
         defer { pthread_mutex_unlock(mutex) }
         return closure()
