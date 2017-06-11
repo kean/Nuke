@@ -4,7 +4,7 @@
 - [Usage Guide](https://github.com/kean/Nuke#usage)
 - [Third Party Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md)
 - [Tips and Tricks](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Tips%20and%20Tricks.md)
-- [Latest API Reference](http://kean.github.io/Nuke/reference/5.1/index.html)
+- [Latest API Reference](http://kean.github.io/Nuke/reference/5.1.1/index.html)
 
 ## Guides
 
