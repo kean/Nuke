@@ -15,6 +15,7 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 - Two [cache layers](https://kean.github.io/post/image-caching), fast LRU memory cache
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [Toucan](https://github.com/kean/Nuke-Toucan-Plugin) plugins
 - [Freedom to use](#h_design) networking, caching libraries of your choice
+- [RxSwift](https://github.com/ReactiveX/RxSwift) extensions provided by [RxNuke](https://github.com/kean/RxNuke)
 - Automated [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
 - Simple, small (~1k sloc), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
 
@@ -77,7 +78,7 @@ Nuke.loadImage(with: request, into: view) { [weak view] response, _ in
 }
 ```
 
-> The target in this method is declared as `AnyObject` with which the requests get associated. This enables a number of use cases. For example, with a couple lines of code you can [show a low-res image and swap to a higher-res one](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Tips%20and%20Tricks.md#show-a-low-res-image-first-and-swap-to-a-higher-res-one-when-it-arrives) when loaded.
+> The target in this method is declared as `AnyObject` with which the requests get associated. 
 
 
 #### Customizing Requests
@@ -154,6 +155,20 @@ cts.cancel()
 ```
 
 
+#### Using RxNuke
+
+[RxNuke](https://github.com/kean/RxNuke) adds [RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke and enables many common use cases:
+
+- Going From Low to High Resolution
+- Loading the First Available Image
+- Showing Stale Image While Validating It
+- Load Multiple Images, Display All at Once
+- Auto Retry
+- Tracking Activities
+
+And [many more...](https://github.com/kean/RxNuke#use-cases)
+
+
 #### Using Memory Cache
 
 You can get a directly access to the default memory cache used by Nuke:
@@ -189,6 +204,10 @@ You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) 
 
 
 # Plugins<a name="h_plugins"></a>
+
+### [RxNuke](https://github.com/kean/RxNuke)
+
+[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with an examples of common use cases solved by Rx.
 
 ### [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
 
