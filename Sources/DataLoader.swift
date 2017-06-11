@@ -28,13 +28,16 @@ public final class DataLoader: DataLoading {
 
     private static var defaultConf: URLSessionConfiguration {
         let conf = URLSessionConfiguration.default
-        conf.urlCache = URLCache(
-            memoryCapacity: 0,
-            diskCapacity: 150 * 1024 * 1024, // 150 MB
-            diskPath: "com.github.kean.Nuke.Cache"
-        )
+        conf.urlCache = DataLoader.sharedUrlCache
         return conf
     }
+
+    /// Shared url cached used by a default `DataLoader`.
+    public static let sharedUrlCache = URLCache(
+        memoryCapacity: 0,
+        diskCapacity: 150 * 1024 * 1024, // 150 MB
+        diskPath: "com.github.kean.Nuke.Cache"
+    )
 
     private static var defaultScheduler: AsyncScheduler {
         return RateLimiter(scheduler: OperationQueueScheduler(maxConcurrentOperationCount: 6))
