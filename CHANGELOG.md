@@ -1,3 +1,10 @@
+## Nuke 5.1.1
+
+- Fix Swift 4 warnings
+- Add `DataDecoder.sharedUrlCache` to easy access for shared `URLCache` object
+- Add references to [RxNuke](https://github.com/kean/RxNuke)
+- Minor improvements under the hood
+
 
 ## Nuke 5.1
 
