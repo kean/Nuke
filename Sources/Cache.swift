@@ -100,6 +100,10 @@ public final class Cache: Caching {
     }
 
     private func add(node: Node<CachedImage>) {
+        if let existingNode = map[node.value.key] {
+            remove(node: existingNode)
+        }
+        
         list.append(node)
         map[node.value.key] = node
         totalCost += node.value.cost
