@@ -69,9 +69,9 @@ class CacheTests: XCTestCase {
         XCTAssertNotNil(cache["key2"])
     }
 
-    #if !os(macOS)
-
     // MARK: Cost
+
+    #if !os(macOS)
 
     func testDefaultImageCost() {
         XCTAssertEqual(cache.cost(defaultImage), 1228800)
@@ -139,6 +139,20 @@ class CacheTests: XCTestCase {
     }
 
     #endif
+
+    func testThatAfterAddingEntryForExistingKeyCostIsUpdated() {
+        cache.cost = { _ in 10 }
+
+        cache["key1"] = defaultImage
+        cache["key2"] = defaultImage
+
+        XCTAssertEqual(cache.totalCost, 20)
+
+        cache.cost = { _ in 5 }
+
+        cache["key1"] = defaultImage
+        XCTAssertEqual(cache.totalCost, 15)
+    }
 
     // MARK: LRU
 
