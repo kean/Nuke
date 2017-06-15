@@ -25,13 +25,22 @@ public struct DataDecoder: DataDecoding {
     /// Initializes the receiver.
     public init() {}
 
-    /// Creates an `UIImage` (`NSImage` on macOS) with the given data.
-    /// Image scale is set to the scale of the main screen.
+    /// Creates an image with the given data.
     public func decode(data: Data, response: URLResponse) -> Image? {
         guard DataDecoder.validate(response: response) else { return nil }
-        // Image initializers are not thread safe:
-        // - https://github.com/AFNetworking/AFNetworking/issues/2572
-        // - https://github.com/Alamofire/AlamofireImage/issues/75
+
+        // Image initializers are documented as fully-thread safe:
+        //
+        // > The immutable nature of image objects also means that they are safe
+        //   to create and use from any thread.
+        //
+        // However, there are some versions of iOS which violated this. The
+        // `UIImage` is supposably fully thread safe again starting with iOS 10.
+        //
+        // The `queue.sync` call below prevents the majority of the potential
+        // crashes that could happen on the previous versions of iOS.
+        //
+        // See also https://github.com/AFNetworking/AFNetworking/issues/2572
         return queue.sync {
             #if os(macOS)
                 return NSImage(data: data)
