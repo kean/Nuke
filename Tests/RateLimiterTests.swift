@@ -16,7 +16,7 @@ class RateLimiterTests: XCTestCase {
         // can't figure out how to put closures that accept 
         // escaping closures as parameters directly in the array
         struct Op {
-            let closure: (@escaping (Void) -> Void) -> Void
+            let closure: (@escaping () -> Void) -> Void
         }
         
         var ops = [Op]()
@@ -78,7 +78,7 @@ private class MockScheduler: Nuke.AsyncScheduler {
         return queue
     }()
     
-    fileprivate func execute(token: CancellationToken?, closure: @escaping (@escaping (Void) -> Void) -> Void) {
+    fileprivate func execute(token: CancellationToken?, closure: @escaping (@escaping () -> Void) -> Void) {
         queue.addOperation {
             closure { return }
         }

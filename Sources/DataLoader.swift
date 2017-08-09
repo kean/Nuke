@@ -26,7 +26,7 @@ public final class DataLoader: DataLoading {
         self.scheduler = scheduler
     }
 
-    private static var defaultConf: URLSessionConfiguration {
+    public static var defaultConf: URLSessionConfiguration {
         let conf = URLSessionConfiguration.default
         conf.urlCache = DataLoader.sharedUrlCache
         return conf
@@ -39,7 +39,7 @@ public final class DataLoader: DataLoading {
         diskPath: "com.github.kean.Nuke.Cache"
     )
 
-    private static var defaultScheduler: AsyncScheduler {
+    public static var defaultScheduler: AsyncScheduler {
         return RateLimiter(scheduler: OperationQueueScheduler(maxConcurrentOperationCount: 6))
     }
 

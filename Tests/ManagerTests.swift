@@ -52,18 +52,18 @@ class ManagerTests: XCTestCase {
     
     func testThatPreviousTaskIsCancelledWhenNewOneIsCreated() {
         expect { fulfill in
-            manager.loadImage(with: Request(url: URL(string: "http://test.com/1")!), into: view) {
+            manager.loadImage(with: Request(url: URL(string: "http://test.com/1")!), into: view, handler: { result, isFromMemoryCache in
                 // we don't expect this to be called
-                if case .success(_) = $0.0 {
+                if case .success = result {
                     fulfill()
                 }
-            }
+            })
             
-            manager.loadImage(with: Request(url: URL(string: "http://test.com/2")!), into: view) {
-                if case .success(_) = $0.0 {
+            manager.loadImage(with: Request(url: URL(string: "http://test.com/2")!), into: view, handler: { result, isFromMemoryCache in
+                if case .success = result {
                     fulfill()
                 }
-            }
+            })
         }
         wait()
     }
