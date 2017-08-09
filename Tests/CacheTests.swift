@@ -251,7 +251,7 @@ class CacheTests: XCTestCase {
             return (2 + rnd(20)) * 1024 * 1024
         }
 
-        var ops = [(Void) -> Void]()
+        var ops = [() -> Void]()
 
         for _ in 0..<10 { // those ops happen more frequently
             ops += [
@@ -311,10 +311,10 @@ class CacheIntegrationTests: XCTestCase {
         XCTAssertNil(mockCache[request])
 
         expect { fulfill in
-            manager.loadImage(with: request, into: self) {
-                XCTAssertNotNil($0.0.value)
+            manager.loadImage(with: request, into: self, handler: { result, _ in
+                XCTAssertNotNil(result.value)
                 fulfill()
-            }
+            })
         }
         wait()
 
@@ -323,10 +323,10 @@ class CacheIntegrationTests: XCTestCase {
         mockDataLoader.queue.isSuspended = true
 
         expect { fulfill in
-            manager.loadImage(with: request, into: self) {
-                XCTAssertNotNil($0.0.value)
+            manager.loadImage(with: request, into: self, handler: { result, _ in
+                XCTAssertNotNil(result.value)
                 fulfill()
-            }
+            })
         }
         wait()
 
@@ -373,10 +373,10 @@ class CacheIntegrationTests: XCTestCase {
         XCTAssertNil(mockCache[request])
         
         expect { fulfill in
-            manager.loadImage(with: request, into: self) {
-                XCTAssertNotNil($0.0.value)
+            manager.loadImage(with: request, into: self, handler: { result, _ in
+                XCTAssertNotNil(result.value)
                 fulfill()
-            }
+            })
         }
         wait()
         

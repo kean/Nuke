@@ -66,7 +66,7 @@ public final class Cache: Caching {
         #endif
     }
 
-    private static func defaultCostLimit() -> Int {
+    public static func defaultCostLimit() -> Int {
         let physicalMemory = ProcessInfo.processInfo.physicalMemory
         let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
         let limit = physicalMemory / UInt64(1 / ratio)
@@ -117,7 +117,7 @@ public final class Cache: Caching {
     }
 
     /// Removes all cached images.
-    public dynamic func removeAll() {
+    @objc public dynamic func removeAll() {
         lock.sync {
             map.removeAll()
             list.removeAll()
@@ -130,7 +130,7 @@ public final class Cache: Caching {
         _trim(toCount: countLimit)
     }
 
-    private dynamic func didEnterBackground() {
+    @objc private dynamic func didEnterBackground() {
         // Remove most of the stored items when entering background.
         // This behaviour is similar to `NSCache` (which removes all
         // items). This feature is not documented and may be subject
