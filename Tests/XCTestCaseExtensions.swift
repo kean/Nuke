@@ -15,8 +15,8 @@ extension XCTestCase {
         return self.expectation(description: "GenericExpectation")
     }
     
-    func expectNotification(_ name: Notification.Name, object: AnyObject? = nil, handler: XCTNSNotificationExpectation.Handler? = nil) -> XCTestExpectation {
-        return self.expectation(forNotification: NSNotification.Name(rawValue: name.rawValue), object: object, handler: handler)
+    func expectNotification(_ name: Notification.Name, object: AnyObject? = nil, handler: XCNotificationExpectationHandler? = nil) -> XCTestExpectation {
+        return self.expectation(forNotification: name.rawValue, object: object, handler: handler)
     }
 
     func wait(_ timeout: TimeInterval = 2.0, handler: XCWaitCompletionHandler? = nil) {
