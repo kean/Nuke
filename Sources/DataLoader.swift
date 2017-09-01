@@ -20,13 +20,15 @@ public final class DataLoader: DataLoading {
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
     /// - parameter scheduler: `OperationQueueScheduler` with
     /// `maxConcurrentOperationCount` 6 by default.
-    public init(configuration: URLSessionConfiguration = DataLoader.defaultConf,
+    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
                 scheduler: AsyncScheduler = DataLoader.defaultScheduler) {
         self.session = URLSession(configuration: configuration)
         self.scheduler = scheduler
     }
 
-    public static var defaultConf: URLSessionConfiguration {
+    /// Returns a default configuration which has a `sharedUrlCache` set
+    /// as a `urlCache`.
+    public static var defaultConfiguration: URLSessionConfiguration {
         let conf = URLSessionConfiguration.default
         conf.urlCache = DataLoader.sharedUrlCache
         return conf

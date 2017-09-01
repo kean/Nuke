@@ -119,10 +119,9 @@ public final class Loader: Loading {
 
         /// `DispatchQueueScheduler` with a serial queue by default.
         public var processing: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.Processing"))
-        
-        public init() {
-            
-        }
+
+        /// Creates a default `Schedulers`. instance.
+        public init() {}
     }
 
     /// Error returns by `Loader` class itself. `Loader` might also return
