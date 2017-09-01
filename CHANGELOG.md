@@ -1,3 +1,7 @@
+## Nuke 5.2
+
+Add support for both Swift 3.2 and 4.0.
+
 ## Nuke 5.1.1
 
 - Fix Swift 4 warnings
