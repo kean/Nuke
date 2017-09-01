@@ -259,8 +259,8 @@ Nuke provides a fast in-memory `Cache` that implements `Caching` protocol. It st
 # Requirements<a name="h_requirements"></a>
 
 - iOS 9.0 / watchOS 2.0 / macOS 10.11 / tvOS 9.0
-- Xcode 8
-- Swift 3
+- Xcode 8, 9
+- Swift 3.2 and 4.0
 
 
 # License
