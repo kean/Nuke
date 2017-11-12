@@ -13,7 +13,7 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 
 - Load images into image views and other targets
 - Two [cache layers](https://kean.github.io/post/image-caching), fast LRU memory cache
-- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [Toucan](https://github.com/kean/Nuke-Toucan-Plugin) plugins
+- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) plugins
 - [Freedom to use](#h_design) networking, caching libraries of your choice
 - [RxSwift](https://github.com/ReactiveX/RxSwift) extensions provided by [RxNuke](https://github.com/kean/RxNuke)
 - Automated [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
@@ -122,18 +122,6 @@ Nuke.loadImage(with: request, into: imageView)
 > See [Core Image Integration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md) for more info about using Core Image with Nuke
 
 
-#### Using Toucan Plugin
-
-Check out [Toucan Plugin](https://github.com/kean/Nuke-Toucan-Plugin) for some useful image transformations. [Toucan](https://github.com/gavinbunney/Toucan) is a library that provides a clean API for processing images, including resizing, elliptical and rounded rect masking, and more:
-
-```swift
-let request = Nuke.Request(url: url).processed(key: "Avatar") { 
-    return $0.resize(CGSize(width: 500, height: 500), fitMode: .crop)
-             .maskWithEllipse()
-}
-```
-
-
 #### Loading Images w/o Targets
 
 You can also use `Manager` to load images directly without providing a target.
@@ -217,7 +205,7 @@ Allows you to replace networking layer with [Alamofire](https://github.com/Alamo
 
 [Gifu](https://github.com/kaishin/Gifu) plugin allows you to load and display animated GIFs.
 
-### [Toucan Plugin](https://github.com/kean/Nuke-Toucan-Plugin)
+### [Toucan Plugin](https://github.com/kean/Nuke-Toucan-Plugin) (Deprecated)
 
 [Toucan](https://github.com/gavinbunney/Toucan) plugin provides a simple API for processing images. It supports resizing, cropping, rounded rect masking and more.
 
