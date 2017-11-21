@@ -5,16 +5,10 @@
 import Foundation
 import Nuke
 
-// The MIT License (MIT)
-//
-// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
-
-import UIKit
-import Nuke
 
 private let cellReuseID = "reuseID"
 
-class RateLimiterDemoViewController: UICollectionViewController {
+final class RateLimiterDemoViewController: UICollectionViewController {
     var photos: [URL]!
     
     var manager = Nuke.Manager.shared

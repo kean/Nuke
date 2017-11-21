@@ -9,7 +9,7 @@ import Preheat
 private let cellReuseID = "reuseID"
 private var loggingEnabled = false
 
-class PreheatingDemoViewController: UICollectionViewController {
+final class PreheatingDemoViewController: UICollectionViewController {
     var photos: [URL]!
 
     var preheater: Preheater!

@@ -5,7 +5,8 @@
 import UIKit
 import Nuke
 
-struct MenuItem {
+
+fileprivate struct MenuItem {
     typealias Action = ((MenuItem) -> Void)
     
     var title: String?
@@ -19,7 +20,7 @@ struct MenuItem {
     }
 }
 
-struct MenuSection {
+fileprivate struct MenuSection {
     var title: String
     var items: [MenuItem]
     
@@ -29,13 +30,18 @@ struct MenuSection {
     }
 }
 
-class MenuViewController: UITableViewController {
-    var sections = [MenuSection]()
+final class MenuViewController: UITableViewController {
+    fileprivate var sections = [MenuSection]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        sections.append(MenuSection(title: "Nuke", items: {
+
+        if #available(iOS 11.0, *) {
+            navigationController?.navigationBar.prefersLargeTitles = true
+            navigationItem.largeTitleDisplayMode = .automatic
+        }
+
+        sections.append(MenuSection(title: "Examples", items: {
             var items = [MenuItem]()
             
             items.append(MenuItem(title: "Basic", subtitle: "Zero config") { [weak self] in

@@ -6,7 +6,8 @@ import Foundation
 import Nuke
 import DFCache
 
-class CustomCacheDemoViewController: BasicDemoViewController {
+
+final class CustomCacheDemoViewController: BasicDemoViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -32,7 +33,7 @@ protocol DataCaching {
     func storeResponse(_ response: CachedURLResponse, for request: URLRequest)
 }
 
-class CachingDataLoader: DataLoading {
+final class CachingDataLoader: DataLoading {
     private let loader: DataLoading
     private let cache: DataCaching
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.CachingDataLoader")
