@@ -36,7 +36,7 @@ Upgrading from the previous version? Use a [migration guide](https://github.com/
 You can load an image into an image view with a single line of code. Nuke will automatically load image data, decompress it in the background, store the image in the memory cache, and finally display it.
 
 ```swift
-Nuke.loadImage(with: url, into: imageView)
+Manager.shared.loadImage(with: url, into: imageView)
 ```
 
 
@@ -48,7 +48,7 @@ Nuke.loadImage(with: url, into: imageView)
 func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     ...
     cell.imageView.image = nil
-    Nuke.loadImage(with: url, into: cell.imageView)
+    Manager.shared.loadImage(with: url, into: cell.imageView)
     ...
 }
 ```
@@ -72,7 +72,7 @@ Nuke also has a flexible `loadImage(with:into:handler:)` method which lets you h
 
 ```swift
 indicator.startAnimating()
-Nuke.loadImage(with: request, into: view) { [weak view] response, _ in
+Manager.shared.loadImage(with: request, into: view) { [weak view] response, _ in
     view?.image = response.value
     indicator.stopAnimating()
 }
@@ -92,7 +92,7 @@ var request = Request(url: url)
 // A request has a number of options that you can change:
 request.memoryCacheOptions.writeAllowed = false
 
-Nuke.loadImage(with: request, into: imageView)
+Manager.shared.loadImage(with: request, into: imageView)
 ```
 
 
@@ -116,7 +116,7 @@ struct GaussianBlur: Processing {
 
 // Usage:
 let request = Request(url: url).processed(with: GaussianBlur())
-Nuke.loadImage(with: request, into: imageView)
+Manager.shared.loadImage(with: request, into: imageView)
 ```
 
 > See [Core Image Integration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md) for more info about using Core Image with Nuke
