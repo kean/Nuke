@@ -37,6 +37,7 @@ public final class Loader: Loading {
     private let loader: DataLoading
     private let decoder: DataDecoding
     private let schedulers: Schedulers
+    private var tasks = [AnyHashable: Task]()
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
 
     /// Returns a processor for the given image and request. Default
@@ -47,8 +48,8 @@ public final class Loader: Loading {
 
     /// Shared `Loading` object.
     ///
-    /// Shared loader is created with `DataLoader()` wrapped in `Deduplicator`.
-    public static let shared: Loading = Deduplicator(loader: Loader(loader: DataLoader()))
+    /// Shared loader is created with `DataLoader()`.
+    public static let shared: Loading = Loader(loader: DataLoader())
 
     /// Initializes `Loader` instance with the given loader, decoder.
     /// - parameter decoder: `DataDecoder()` by default.
@@ -63,52 +64,104 @@ public final class Loader: Loading {
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         queue.async {
             if token?.isCancelling == true { return } // Fast preflight check
-            self.loadImage(with: Context(request: request, token: token, completion: completion))
+            self._loadImage(with: request, token: token, completion: completion)
         }
     }
 
-    private func loadImage(with ctx: Context) {
-        self.loader.loadData(with: ctx.request, token: ctx.token) { [weak self] in
+    private func _loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+        let task = _startTask(with: request)
+
+        // Combine requests with the same `loadKey` into a single request.
+        // The request only gets cancelled when all the underlying requests are.
+        task.retainCount += 1
+        task.handlers.append(completion)
+
+        token?.register { [weak self, weak task] in
+            if let task = task { self?._cancel(task) }
+        }
+    }
+
+    // Returns existing task (if there is one). Returns a new task otherwise.
+    private func _startTask(with request: Request) -> Task {
+        let key = Request.loadKey(for: request)
+        if let task = tasks[key] { return task } // already running
+        let task = Task(request: request, key: key)
+        tasks[key] = task
+        _loadImage(with: task)
+        return task
+    }
+
+    private func _loadImage(with task: Task) { // would be nice to rewrite to async/await
+        self.loader.loadData(with: task.request, token: task.cts.token) { [weak self] in
             switch $0 {
-            case let .success(val): self?.decode(response: val, context: ctx)
-            case let .failure(err): ctx.completion(.failure(err))
+            case let .success(val): self?.decode(response: val, task: task)
+            case let .failure(err): self?._complete(task, result: .failure(err))
             }
         }
     }
 
-    private func decode(response: (Data, URLResponse), context ctx: Context) {
+    private func decode(response: (Data, URLResponse), task: Task) {
         queue.async {
-            self.schedulers.decoding.execute(token: ctx.token) { [weak self] in
+            self.schedulers.decoding.execute(token: task.cts.token) { [weak self] in
                 if let image = self?.decoder.decode(data: response.0, response: response.1) {
-                    self?.process(image: image, context: ctx)
+                    self?.process(image: image, task: task)
                 } else {
-                    ctx.completion(.failure(Error.decodingFailed))
+                    self?._complete(task, result: .failure(Error.decodingFailed))
                 }
             }
         }
     }
 
-    private func process(image: Image, context ctx: Context) {
+    private func process(image: Image, task: Task) {
         queue.async {
-            guard let processor = self.makeProcessor(image, ctx.request) else {
-                ctx.completion(.success(image)) // no need to process
+            guard let processor = self.makeProcessor(image, task.request) else {
+                self._complete(task, result: .success(image)) // no need to process
                 return
             }
-            self.schedulers.processing.execute(token: ctx.token) {
+            self.schedulers.processing.execute(token: task.cts.token) { [weak self] in
                 if let image = processor.process(image) {
-                    ctx.completion(.success(image))
+                    self?._complete(task, result: .success(image))
                 } else {
-                    ctx.completion(.failure(Error.processingFailed))
+                    self?._complete(task, result: .failure(Error.processingFailed))
                 }
             }
         }
     }
 
-    private struct Context {
-        let request: Request
-        let token: CancellationToken?
-        let completion: (Result<Image>) -> Void
+    private func _complete(_ task: Task, result: Result<Image>) {
+        queue.async {
+            guard self.tasks[task.key] === task else { return } // check if still registered
+            task.handlers.forEach { $0(result) }
+            self.tasks[task.key] = nil
+        }
     }
+
+    private func _cancel(_ task: Task) {
+        queue.async {
+            guard self.tasks[task.key] === task else { return } // check if still registered
+            task.retainCount -= 1
+            if task.retainCount == 0 {
+                task.cts.cancel() // cancel underlying request
+                self.tasks[task.key] = nil
+            }
+        }
+    }
+
+    private final class Task {
+        let request: Request
+        let key: AnyHashable
+
+        let cts = CancellationTokenSource()
+        var handlers = [(Result<Image>) -> Void]()
+        var retainCount = 0 // number of non-cancelled handlers
+
+        init(request: Request, key: AnyHashable) {
+            self.request = request
+            self.key = key
+        }
+    }
+
+    // MARK: Schedulers
 
     /// Schedulers used to execute a corresponding steps of the pipeline.
     public struct Schedulers {
