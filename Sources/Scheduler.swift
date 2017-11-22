@@ -4,21 +4,10 @@
 
 import Foundation
 
-// MARK: Scheduler
 
-/// Schedules execution of asynchronous work which is considered
-/// finished when `finish` closure is called.
-public protocol AsyncScheduler {
-    /// Schedules execution of asynchronous work which is considered
-    /// finished when `finish` closure is called.
-    func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping () -> Void) -> Void)
-}
-
-// MARK: - DispatchQueue
+// MARK: - Extensions
 
 internal extension DispatchQueue {
-    /// Executes the given closure asynchronously on the underlying queue.
-    /// The scheduler automatically reacts to the token cancellation.
     func execute(token: CancellationToken?, closure: @escaping () -> Void) {
         if token?.isCancelling == true { return }
         let work = DispatchWorkItem(block: closure)
@@ -27,42 +16,17 @@ internal extension DispatchQueue {
     }
 }
 
-// MARK: - OperationQueueScheduler
-
-/// A scheduler that executes work on the underlying `OperationQueue`.
-public final class OperationQueueScheduler: AsyncScheduler {
-    public let queue: OperationQueue
-
-    /// Initializes the `OperationQueueScheduler` with the queue created
-    /// with the given `maxConcurrentOperationCount`.
-    public convenience init(maxConcurrentOperationCount: Int) {
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = maxConcurrentOperationCount
-        self.init(queue: queue)
-    }
-
-    /// Initializes the `OperationQueueScheduler` with the given queue.
-    public init(queue: OperationQueue) {
-        self.queue = queue
-    }
-
-    /// Executes the given closure asynchronously  on the underlying queue by
-    /// by wrapping the closure in the asynchronous operation. The operations
-    /// gets finished when the given `finish` closure is called.
-    /// The scheduler automatically reacts to the token cancellation.
-    public func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
-        if token?.isCancelling == true {
-            return
-        }
+internal extension OperationQueue {
+    /// Executes the given closure asynchronously on the queue by wrapping the
+    /// closure in the asynchronous operation. The operation gets finished when
+    /// the given `finish` closure is called.
+    func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
+        if token?.isCancelling == true { return }
         let operation = Operation(starter: closure)
-        queue.addOperation(operation)
-        token?.register { [weak operation] in
-            operation?.cancel()
-        }
+        addOperation(operation)
+        token?.register { [weak operation] in operation?.cancel() }
     }
 }
-
-// MARK: Operation
 
 private final class Operation: Foundation.Operation {
     override var isExecuting: Bool {
@@ -113,10 +77,11 @@ private final class Operation: Foundation.Operation {
     }
 }
 
+
 // MARK: RateLimiter
 
-/// Controls the rate at which the underlying scheduler executes work. Uses
-/// classic [token bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm.
+/// Controls the rate at which the work is executed. Uses the classic [token
+/// bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm.
 ///
 /// The main use case for rate limiter is to support large (infinite) collections
 /// of images by preventing trashing of underlying systems, primary URLSession.
@@ -124,63 +89,57 @@ private final class Operation: Foundation.Operation {
 /// The implementation supports quick bursts of requests which can be executed
 /// without any delays when "the bucket is full". This is important to prevent
 /// rate limiter from affecting "normal" requests flow.
-public final class RateLimiter: AsyncScheduler {
+public final class RateLimiter {
     private let bucket: TokenBucket
-    private let scheduler: AsyncScheduler // underlying scheduler
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.RateLimiter")
     private var pendingItems = [Item]()
     private var isExecutingPendingItems = false
 
-    private typealias Item = (CancellationToken?, (@escaping () -> Void) -> Void)
+    private typealias Item = (CancellationToken?, () -> Void)
 
-    /// Initializes the `RateLimiter` with the given scheduler and configuration.
-    /// - parameter scheduler: Underlying scheduler which `RateLimiter` uses
-    /// to execute items.
+    /// Initializes the `RateLimiter` with the given configuration.
     /// - parameter rate: Maximum number of requests per second. 45 by default.
     /// - parameter burst: Maximum number of requests which can be executed without
     /// any delays when "bucket is full". 15 by default.
-    public init(scheduler: AsyncScheduler, rate: Int = 45, burst: Int = 15) {
-        self.scheduler = scheduler
+    public init(rate: Int = 45, burst: Int = 15) {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
-    public func execute(token: CancellationToken?, closure: @escaping (@escaping () -> Void) -> Void) {
+    public func execute(token: CancellationToken?, closure: @escaping () -> Void) {
         if token?.isCancelling == true { // quick pre-lock check
             return
         }
         queue.sync {
             let item = Item(token, closure)
-            if !pendingItems.isEmpty || !execute(item) {
+            if !pendingItems.isEmpty || !_execute(item) {
                 pendingItems.insert(item, at: 0)
-                setNeedsExecutePendingItems()
+                _setNeedsExecutePendingItems()
             }
         }
     }
 
-    private func execute(_ item: Item) -> Bool {
+    private func _execute(_ item: Item) -> Bool {
         if item.0?.isCancelling == true {
             return true // no need to execute cancelling items
         }
-        return bucket.execute {
-            scheduler.execute(token: item.0, closure: item.1)
-        }
+        return bucket.execute { item.1() }
     }
 
-    private func setNeedsExecutePendingItems() {
+    private func _setNeedsExecutePendingItems() {
         guard !isExecutingPendingItems else { return }
         isExecutingPendingItems = true
         queue.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            self?.executePendingItems()
+            self?._executePendingItems()
         }
     }
 
-    private func executePendingItems() {
-        while let item = pendingItems.last, execute(item) {
+    private func _executePendingItems() {
+        while let item = pendingItems.last, _execute(item) {
             pendingItems.removeLast()
         }
         isExecutingPendingItems = false
         if !pendingItems.isEmpty { // not all pending items were executed
-            setNeedsExecutePendingItems()
+            _setNeedsExecutePendingItems()
         }
     }
 

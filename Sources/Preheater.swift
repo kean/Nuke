@@ -14,17 +14,16 @@ import Foundation
 /// All `Preheater` methods are thread-safe.
 public final class Preheater {
     private let manager: Manager
-    private let scheduler: AsyncScheduler
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
+    private let preheatQueue = OperationQueue()
     private var tasks = [AnyHashable: Task]()
 
     /// Initializes the `Preheater` instance.
     /// - parameter manager: `Manager.shared` by default.
-    /// - parameter scheduler: Throttles preheating requests. `OperationQueueScheduler`
-    /// with `maxConcurrentOperationCount` 2 by default.
-    public init(manager: Manager = Manager.shared, scheduler: AsyncScheduler = OperationQueueScheduler(maxConcurrentOperationCount: 2)) {
+    /// - parameter `maxConcurrentRequestCount`: 2 by default.
+    public init(manager: Manager = Manager.shared, maxConcurrentRequestCount: Int = 2) {
         self.manager = manager
-        self.scheduler = scheduler
+        self.preheatQueue.maxConcurrentOperationCount = maxConcurrentRequestCount
     }
 
     /// Preheats images for the given requests.
@@ -42,7 +41,7 @@ public final class Preheater {
 
         let task = Task(request: request, key: key)
         let token = task.cts.token
-        scheduler.execute(token: token) { [weak self] finish in
+        preheatQueue.execute(token: token) { [weak self] finish in
             self?.manager.loadImage(with: request, token: token) { _ in
                 self?.remove(task)
                 finish()

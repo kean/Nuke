@@ -13,17 +13,17 @@ public protocol DataLoading {
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading {
     public let session: URLSession
-    private let scheduler: AsyncScheduler
+    private let queue = OperationQueue()
+    private let rateLimiter = RateLimiter()
 
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
-    /// - parameter scheduler: `OperationQueueScheduler` with
-    /// `maxConcurrentOperationCount` 6 by default.
+    /// - parameter `maxConcurrentRequestCount`: 6 by default.
     public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
-                scheduler: AsyncScheduler = DataLoader.defaultScheduler) {
+                maxConcurrentRequestCount: Int = 6) {
         self.session = URLSession(configuration: configuration)
-        self.scheduler = scheduler
+        self.queue.maxConcurrentOperationCount = maxConcurrentRequestCount
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
@@ -41,13 +41,15 @@ public final class DataLoader: DataLoading {
         diskPath: "com.github.kean.Nuke.Cache"
     )
 
-    public static var defaultScheduler: AsyncScheduler {
-        return RateLimiter(scheduler: OperationQueueScheduler(maxConcurrentOperationCount: 6))
-    }
-
     /// Loads data with the given request.
     public func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        scheduler.execute(token: token) { finish in
+        rateLimiter.execute(token: token) { [weak self] in
+            self?._loadData(with: request, token: token, completion: completion)
+        }
+    }
+
+    private func _loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+        queue.execute(token: token) { finish in
             let task = self.session.dataTask(with: request.urlRequest) { data, response, error in
                 if let data = data, let response = response, error == nil {
                     completion(.success((data, response)))
