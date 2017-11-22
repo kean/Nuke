@@ -36,9 +36,10 @@ public extension Loading {
 public final class Loader: Loading {
     private let loader: DataLoading
     private let decoder: DataDecoding
-    private let schedulers: Schedulers
     private var tasks = [AnyHashable: Task]()
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
+    private let decodingQueue = DispatchQueue(label: "com.github.kean.Nuke.Decoding")
+    private let processingQueue = DispatchQueue(label: "com.github.kean.Nuke.Processing")
 
     /// Returns a processor for the given image and request. Default
     /// implementation simply returns `request.processor`.
@@ -53,11 +54,9 @@ public final class Loader: Loading {
 
     /// Initializes `Loader` instance with the given loader, decoder.
     /// - parameter decoder: `DataDecoder()` by default.
-    /// - parameter schedulers: `Schedulers()` by default.
-    public init(loader: DataLoading, decoder: DataDecoding = DataDecoder(), schedulers: Schedulers = Schedulers()) {
+    public init(loader: DataLoading, decoder: DataDecoding = DataDecoder()) {
         self.loader = loader
         self.decoder = decoder
-        self.schedulers = schedulers
     }
 
     /// Loads an image for the given request using image loading pipeline.
@@ -102,7 +101,7 @@ public final class Loader: Loading {
 
     private func decode(response: (Data, URLResponse), task: Task) {
         queue.async {
-            self.schedulers.decoding.execute(token: task.cts.token) { [weak self] in
+            self.decodingQueue.execute(token: task.cts.token) { [weak self] in
                 if let image = self?.decoder.decode(data: response.0, response: response.1) {
                     self?.process(image: image, task: task)
                 } else {
@@ -118,7 +117,7 @@ public final class Loader: Loading {
                 self._complete(task, result: .success(image)) // no need to process
                 return
             }
-            self.schedulers.processing.execute(token: task.cts.token) { [weak self] in
+            self.processingQueue.execute(token: task.cts.token) { [weak self] in
                 if let image = processor.process(image) {
                     self?._complete(task, result: .success(image))
                 } else {
@@ -159,22 +158,6 @@ public final class Loader: Loading {
             self.request = request
             self.key = key
         }
-    }
-
-    // MARK: Schedulers
-
-    /// Schedulers used to execute a corresponding steps of the pipeline.
-    public struct Schedulers {
-        /// `DispatchQueueScheduler` with a serial queue by default.
-        public var decoding: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.Decoding"))
-        // There is no reason to increase `maxConcurrentOperationCount` for
-        // built-in `DataDecoder` that locks globally while decoding.
-
-        /// `DispatchQueueScheduler` with a serial queue by default.
-        public var processing: Scheduler = DispatchQueueScheduler(queue: DispatchQueue(label: "com.github.kean.Nuke.Processing"))
-
-        /// Creates a default `Schedulers`. instance.
-        public init() {}
     }
 
     /// Error returns by `Loader` class itself. `Loader` might also return

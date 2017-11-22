@@ -6,12 +6,6 @@ import Foundation
 
 // MARK: Scheduler
 
-/// Schedules execution of the given closures.
-public protocol Scheduler {
-    /// Schedules execution of the given closure.
-    func execute(token: CancellationToken?, closure: @escaping () -> Void)
-}
-
 /// Schedules execution of asynchronous work which is considered
 /// finished when `finish` closure is called.
 public protocol AsyncScheduler {
@@ -20,28 +14,16 @@ public protocol AsyncScheduler {
     func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping () -> Void) -> Void)
 }
 
-// MARK: - DispatchQueueScheduler
+// MARK: - DispatchQueue
 
-/// A scheduler that executes work on the underlying `DispatchQueue`.
-public final class DispatchQueueScheduler: Scheduler {
-    public let queue: DispatchQueue
-
-    /// Initializes the `DispatchQueueScheduler` with the given queue.
-    public init(queue: DispatchQueue) {
-        self.queue = queue
-    }
-
+internal extension DispatchQueue {
     /// Executes the given closure asynchronously on the underlying queue.
     /// The scheduler automatically reacts to the token cancellation.
-    public func execute(token: CancellationToken?, closure: @escaping () -> Void) {
-        if token?.isCancelling == true {
-            return
-        }
+    func execute(token: CancellationToken?, closure: @escaping () -> Void) {
+        if token?.isCancelling == true { return }
         let work = DispatchWorkItem(block: closure)
-        queue.async(execute: work)
-        token?.register { [weak work] in
-            work?.cancel()
-        }
+        async(execute: work)
+        token?.register { [weak work] in work?.cancel() }
     }
 }
 
