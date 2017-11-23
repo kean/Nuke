@@ -29,7 +29,7 @@ public extension Caching {
 public final class Cache: Caching {
     // We don't use `NSCache` because it's not LRU
 
-    private var map = [AnyHashable: Node<CachedImage>]()
+    private var map = [AnyHashable: LinkedList<CachedImage>.Node]()
     private let list = LinkedList<CachedImage>()
     private let lock = Lock()
 
@@ -92,7 +92,7 @@ public final class Cache: Caching {
             defer { lock.unlock() }
 
             if let image = newValue {
-                add(node: Node(value: CachedImage(image: image, cost: cost(image), key: key)))
+                add(node: LinkedList.Node(value: CachedImage(image: image, cost: cost(image), key: key)))
                 trim()
             } else {
                 guard let node = map[key] else { return }
@@ -101,7 +101,7 @@ public final class Cache: Caching {
         }
     }
 
-    private func add(node: Node<CachedImage>) {
+    private func add(node: LinkedList<CachedImage>.Node) {
         if let existingNode = map[node.value.key] {
             remove(node: existingNode)
         }
@@ -110,7 +110,7 @@ public final class Cache: Caching {
         totalCost += node.value.cost
     }
 
-    private func remove(node: Node<CachedImage>) {
+    private func remove(node: LinkedList<CachedImage>.Node) {
         list.remove(node)
         map[node.value.key] = nil
         totalCost -= node.value.cost
@@ -187,13 +187,13 @@ private struct CachedImage {
 /// Basic doubly linked list.
 private final class LinkedList<V> {
     // head <-> node <-> ... <-> tail
-    private(set) var head: Node<V>?
-    private(set) var tail: Node<V>?
+    private(set) var head: Node?
+    private(set) var tail: Node?
 
     deinit { removeAll() }
 
     /// Appends node to the head.
-    func append(_ node: Node<V>) {
+    func append(_ node: Node) {
         if let currentHead = head {
             head = node
             currentHead.previous = node
@@ -204,7 +204,7 @@ private final class LinkedList<V> {
         }
     }
 
-    func remove(_ node: Node<V>) {
+    func remove(_ node: Node) {
         node.next?.previous = node.previous // node.previous is nil if node=head
         node.previous?.next = node.next // node.next is nil if node=tail
         if node === head { head = node.next }
@@ -224,12 +224,12 @@ private final class LinkedList<V> {
         head = nil
         tail = nil
     }
-}
 
-private final class Node<V> {
-    let value: V
-    var next: Node<V>?
-    weak var previous: Node<V>?
+    final class Node {
+        let value: V
+        var next: Node?
+        weak var previous: Node?
 
-    init(value: V) { self.value = value }
+        init(value: V) { self.value = value }
+    }
 }
