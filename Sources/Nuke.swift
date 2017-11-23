@@ -30,6 +30,8 @@ public enum Result<T> {
     }
 }
 
+// MARK: - Internals
+
 internal final class Lock {
     var mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
 
@@ -41,7 +43,8 @@ internal final class Lock {
         mutex.deallocate(capacity: 1)
     }
 
-    /// In critical places it's better to use lock() and unlock() manually
+    // In performance critical places using lock() and unlock() is slightly
+    // faster than using `sync(_:)` method.
     func sync<T>(_ closure: () -> T) -> T {
         pthread_mutex_lock(mutex)
         defer { pthread_mutex_unlock(mutex) }
@@ -50,4 +53,74 @@ internal final class Lock {
 
     func lock() { pthread_mutex_lock(mutex) }
     func unlock() { pthread_mutex_unlock(mutex) }
+}
+
+internal extension DispatchQueue {
+    func execute(token: CancellationToken?, closure: @escaping () -> Void) {
+        if token?.isCancelling == true { return }
+        let work = DispatchWorkItem(block: closure)
+        async(execute: work)
+        token?.register { [weak work] in work?.cancel() }
+    }
+}
+
+internal extension OperationQueue {
+    /// Executes the given closure asynchronously on the queue by wrapping the
+    /// closure in the asynchronous operation. The operation gets finished when
+    /// the given `finish` closure is called.
+    func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
+        if token?.isCancelling == true { return }
+        let operation = Operation(starter: closure)
+        addOperation(operation)
+        token?.register { [weak operation] in operation?.cancel() }
+    }
+}
+
+private final class Operation: Foundation.Operation {
+    override var isExecuting: Bool {
+        get { return _isExecuting }
+        set {
+            willChangeValue(forKey: "isExecuting")
+            _isExecuting = newValue
+            didChangeValue(forKey: "isExecuting")
+        }
+    }
+    private var _isExecuting = false
+
+    override var isFinished: Bool {
+        get { return _isFinished }
+        set {
+            willChangeValue(forKey: "isFinished")
+            _isFinished = newValue
+            didChangeValue(forKey: "isFinished")
+        }
+    }
+    var _isFinished = false
+
+    let starter: (_ finish: @escaping () -> Void) -> Void
+    let queue = DispatchQueue(label: "com.github.kean.Nuke.Operation")
+
+    init(starter: @escaping (_ fulfill: @escaping () -> Void) -> Void) {
+        self.starter = starter
+    }
+
+    override func start() {
+        queue.sync {
+            isExecuting = true
+            DispatchQueue.global().async {
+                self.starter { [weak self] in
+                    self?.finish()
+                }
+            }
+        }
+    }
+
+    func finish() {
+        queue.sync {
+            if !isFinished {
+                isExecuting = false
+                isFinished = true
+            }
+        }
+    }
 }
