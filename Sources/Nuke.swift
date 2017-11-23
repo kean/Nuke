@@ -64,63 +64,50 @@ internal extension DispatchQueue {
     }
 }
 
-internal extension OperationQueue {
-    /// Executes the given closure asynchronously on the queue by wrapping the
-    /// closure in the asynchronous operation. The operation gets finished when
-    /// the given `finish` closure is called.
-    func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
-        if token?.isCancelling == true { return }
-        let operation = Operation(starter: closure)
-        addOperation(operation)
-        token?.register { [weak operation] in operation?.cancel() }
-    }
-}
+// MARK: - TaskQueue
 
-private final class Operation: Foundation.Operation {
-    override var isExecuting: Bool {
-        get { return _isExecuting }
-        set {
-            willChangeValue(forKey: "isExecuting")
-            _isExecuting = newValue
-            didChangeValue(forKey: "isExecuting")
+/// Limits number of maximum concurrent tasks.
+public class TaskQueue {
+    // An alternative of using custom Foundation.Operation requires more code,
+    // less performant and even harder to get right https://github.com/kean/Nuke/issues/141.
+    private var executingTaskCount: Int = 0
+    private var pendingTasks = LinkedList<Task>()
+    private let maxConcurrentTaskCount: Int
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Queue")
+
+    public init(maxConcurrentTaskCount: Int) {
+        self.maxConcurrentTaskCount = maxConcurrentTaskCount
+    }
+
+    public func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
+        queue.async {
+            if token?.isCancelling == true { return } // fast preflight check
+            let task = Task(token: token, execute: closure)
+            self.pendingTasks.append(LinkedList.Node(value: task))
+            self._executeTasksIfNecessary()
         }
     }
-    private var _isExecuting = false
 
-    override var isFinished: Bool {
-        get { return _isFinished }
-        set {
-            willChangeValue(forKey: "isFinished")
-            _isFinished = newValue
-            didChangeValue(forKey: "isFinished")
+    private func _executeTasksIfNecessary() {
+        while executingTaskCount < maxConcurrentTaskCount, let task = pendingTasks.tail {
+            pendingTasks.remove(task)
+            _executeTask(task.value)
         }
     }
-    var _isFinished = false
 
-    let starter: (_ finish: @escaping () -> Void) -> Void
-    let queue = DispatchQueue(label: "com.github.kean.Nuke.Operation")
-
-    init(starter: @escaping (_ fulfill: @escaping () -> Void) -> Void) {
-        self.starter = starter
-    }
-
-    override func start() {
-        queue.sync {
-            isExecuting = true
-            DispatchQueue.global().async {
-                self.starter { [weak self] in
-                    self?.finish()
-                }
+    private func _executeTask(_ task: Task) {
+        if task.token?.isCancelling == true { return } // fast preflight check
+        executingTaskCount += 1
+        task.execute { [weak self] in
+            self?.queue.async {
+                self?.executingTaskCount -= 1
+                self?._executeTasksIfNecessary()
             }
         }
     }
 
-    func finish() {
-        queue.sync {
-            if !isFinished {
-                isExecuting = false
-                isFinished = true
-            }
-        }
+    private struct Task {
+        let token: CancellationToken?
+        let execute: (_ finish: @escaping () -> Void) -> Void
     }
 }

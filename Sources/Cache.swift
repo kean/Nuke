@@ -185,7 +185,7 @@ private struct CachedImage {
 }
 
 /// Basic doubly linked list.
-private final class LinkedList<V> {
+internal final class LinkedList<V> {
     // head <-> node <-> ... <-> tail
     private(set) var head: Node?
     private(set) var tail: Node?

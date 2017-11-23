@@ -13,7 +13,7 @@ public protocol DataLoading {
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading {
     public let session: URLSession
-    private let queue = OperationQueue()
+    private let queue: TaskQueue
     private let rateLimiter = RateLimiter()
 
     /// Initializes `DataLoader` with the given configuration.
@@ -23,7 +23,7 @@ public final class DataLoader: DataLoading {
     public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
                 maxConcurrentRequestCount: Int = 6) {
         self.session = URLSession(configuration: configuration)
-        self.queue.maxConcurrentOperationCount = maxConcurrentRequestCount
+        self.queue = TaskQueue(maxConcurrentTaskCount: maxConcurrentRequestCount)
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
