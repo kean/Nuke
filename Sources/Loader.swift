@@ -151,7 +151,8 @@ public final class Loader: Loading {
     private func _complete(_ task: Task, result: Result<Image>) {
         queue.async {
             guard self.tasks[task.key] === task else { return } // check if still registered
-            task.handlers.forEach { $0(result) }
+            let handlers = task.handlers
+            DispatchQueue.main.async { handlers.forEach { $0(result) } }
             self.tasks[task.key] = nil
         }
     }
