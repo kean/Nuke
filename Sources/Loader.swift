@@ -40,6 +40,7 @@ public final class Loader: Loading {
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
     private let decodingQueue = DispatchQueue(label: "com.github.kean.Nuke.Decoding")
     private let processingQueue = DispatchQueue(label: "com.github.kean.Nuke.Processing")
+    private let rateLimiter = RateLimiter()
 
     /// Returns a processor for the given image and request. Default
     /// implementation simply returns `request.processor`.
@@ -86,7 +87,10 @@ public final class Loader: Loading {
         if let task = tasks[key] { return task } // already running
         let task = Task(request: request, key: key)
         tasks[key] = task
-        _loadImage(with: task)
+        // Use rate limiter to prevent trashing of the underlying systems
+        rateLimiter.execute(token: task.cts.token) { [weak self] in
+            self?._loadImage(with: task)
+        }
         return task
     }
 

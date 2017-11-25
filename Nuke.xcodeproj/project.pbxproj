@@ -65,10 +65,6 @@
 		0C22DA581BCAAA3A006E1D3B /* MockCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockCache.swift */; };
 		0C22DA591BCAAA3A006E1D3B /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
 		0C22DA5B1BCAAA3A006E1D3B /* MockDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockDataLoader.swift */; };
-		0C34BF621D4D1576006B8A57 /* RateLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C34BF611D4D1576006B8A57 /* RateLimiter.swift */; };
-		0C34BF631D4D1576006B8A57 /* RateLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C34BF611D4D1576006B8A57 /* RateLimiter.swift */; };
-		0C34BF641D4D1576006B8A57 /* RateLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C34BF611D4D1576006B8A57 /* RateLimiter.swift */; };
-		0C34BF651D4D1576006B8A57 /* RateLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C34BF611D4D1576006B8A57 /* RateLimiter.swift */; };
 		0C34BF671D4D15B6006B8A57 /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C34BF661D4D15B6006B8A57 /* CancellationToken.swift */; };
 		0C34BF681D4D15B6006B8A57 /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C34BF661D4D15B6006B8A57 /* CancellationToken.swift */; };
 		0C34BF691D4D15B6006B8A57 /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C34BF661D4D15B6006B8A57 /* CancellationToken.swift */; };
@@ -83,6 +79,10 @@
 		0C7101D71FC70860000CE3C9 /* TaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7101D51FC70860000CE3C9 /* TaskQueueTests.swift */; };
 		0C7101D81FC70860000CE3C9 /* TaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7101D51FC70860000CE3C9 /* TaskQueueTests.swift */; };
 		0C7101D91FC70860000CE3C9 /* TaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7101D51FC70860000CE3C9 /* TaskQueueTests.swift */; };
+		0C7150091FC9724C00B880AC /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7150081FC9724C00B880AC /* Internal.swift */; };
+		0C71500A1FC9724F00B880AC /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7150081FC9724C00B880AC /* Internal.swift */; };
+		0C71500B1FC9725000B880AC /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7150081FC9724C00B880AC /* Internal.swift */; };
+		0C71500C1FC9725000B880AC /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7150081FC9724C00B880AC /* Internal.swift */; };
 		0C75279D1D473AE800EC6222 /* ThreadSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C5D81871D46A385000ECCB6 /* ThreadSafetyTests.swift */; };
 		0C75279E1D473AEF00EC6222 /* MockCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockCache.swift */; };
 		0C75279F1D473AEF00EC6222 /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
@@ -206,12 +206,12 @@
 		0C22D9C51BCA9734006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C22DA2C1BCAA220006E1D3B /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C22DA381BCAA22A006E1D3B /* Nuke macOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke macOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C34BF611D4D1576006B8A57 /* RateLimiter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RateLimiter.swift; sourceTree = "<group>"; };
 		0C34BF661D4D15B6006B8A57 /* CancellationToken.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CancellationToken.swift; sourceTree = "<group>"; };
 		0C4B6A341E36630E00E86B21 /* Nuke 5 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 5 Migration Guide.md"; sourceTree = "<group>"; };
 		0C5D81871D46A385000ECCB6 /* ThreadSafetyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThreadSafetyTests.swift; sourceTree = "<group>"; };
 		0C66879A1E41EF2F00CEBFAE /* Third Party Libraries.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Third Party Libraries.md"; sourceTree = "<group>"; };
 		0C7101D51FC70860000CE3C9 /* TaskQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskQueueTests.swift; sourceTree = "<group>"; };
+		0C7150081FC9724C00B880AC /* Internal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Internal.swift; sourceTree = "<group>"; };
 		0C778CFC1D89634B00361A1F /* Nuke.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke iOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C7C06821BCA888800089D7F /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; name = Info.plist; path = Tests/Info.plist; sourceTree = "<group>"; };
@@ -347,8 +347,8 @@
 				0C0FD5D11CA47FE1002A78FB /* DataDecoder.swift */,
 				0C0FD5D81CA47FE1002A78FB /* Processor.swift */,
 				0CF4DE7C1D412A9E00170289 /* Preheater.swift */,
-				0C34BF611D4D1576006B8A57 /* RateLimiter.swift */,
 				0C34BF661D4D15B6006B8A57 /* CancellationToken.swift */,
+				0C7150081FC9724C00B880AC /* Internal.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -857,7 +857,7 @@
 				0CF4DE7F1D412A9E00170289 /* Preheater.swift in Sources */,
 				0C1ECA4E1D526964009063A9 /* Manager.swift in Sources */,
 				0C0FD6061CA47FE1002A78FB /* Request.swift in Sources */,
-				0C34BF641D4D1576006B8A57 /* RateLimiter.swift in Sources */,
+				0C71500B1FC9725000B880AC /* Internal.swift in Sources */,
 				0C34BF691D4D15B6006B8A57 /* CancellationToken.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -866,7 +866,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C34BF631D4D1576006B8A57 /* RateLimiter.swift in Sources */,
 				0C0FD6011CA47FE1002A78FB /* Processor.swift in Sources */,
 				0C0FD5FD1CA47FE1002A78FB /* Cache.swift in Sources */,
 				0C0FD5E51CA47FE1002A78FB /* DataDecoder.swift in Sources */,
@@ -876,6 +875,7 @@
 				0C0FD61D1CA47FE1002A78FB /* Nuke.swift in Sources */,
 				0C0FD6051CA47FE1002A78FB /* Request.swift in Sources */,
 				0C1ECA4D1D526964009063A9 /* Manager.swift in Sources */,
+				0C71500A1FC9724F00B880AC /* Internal.swift in Sources */,
 				0CF4DE7E1D412A9E00170289 /* Preheater.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -956,7 +956,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C34BF621D4D1576006B8A57 /* RateLimiter.swift in Sources */,
 				0C0FD6001CA47FE1002A78FB /* Processor.swift in Sources */,
 				0C0FD5FC1CA47FE1002A78FB /* Cache.swift in Sources */,
 				0C0FD5E41CA47FE1002A78FB /* DataDecoder.swift in Sources */,
@@ -966,6 +965,7 @@
 				0C0FD61C1CA47FE1002A78FB /* Nuke.swift in Sources */,
 				0C0FD6041CA47FE1002A78FB /* Request.swift in Sources */,
 				0C1ECA4C1D526964009063A9 /* Manager.swift in Sources */,
+				0C7150091FC9724C00B880AC /* Internal.swift in Sources */,
 				0CF4DE7D1D412A9E00170289 /* Preheater.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -974,7 +974,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C34BF651D4D1576006B8A57 /* RateLimiter.swift in Sources */,
 				0C0FD6031CA47FE1002A78FB /* Processor.swift in Sources */,
 				0C0FD5FF1CA47FE1002A78FB /* Cache.swift in Sources */,
 				0C0FD5E71CA47FE1002A78FB /* DataDecoder.swift in Sources */,
@@ -984,6 +983,7 @@
 				0C0FD61F1CA47FE1002A78FB /* Nuke.swift in Sources */,
 				0C0FD6071CA47FE1002A78FB /* Request.swift in Sources */,
 				0C1ECA4F1D526964009063A9 /* Manager.swift in Sources */,
+				0C71500C1FC9725000B880AC /* Internal.swift in Sources */,
 				0CF4DE801D412A9E00170289 /* Preheater.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

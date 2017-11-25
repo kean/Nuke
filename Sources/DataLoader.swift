@@ -14,7 +14,6 @@ public protocol DataLoading {
 public final class DataLoader: DataLoading {
     public let session: URLSession
     private let queue: TaskQueue
-    private let rateLimiter = RateLimiter()
 
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
@@ -43,12 +42,6 @@ public final class DataLoader: DataLoading {
 
     /// Loads data with the given request.
     public func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        rateLimiter.execute(token: token) { [weak self] in
-            self?._loadData(with: request, token: token, completion: completion)
-        }
-    }
-
-    private func _loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
         queue.execute(token: token) { finish in
             let task = self.session.dataTask(with: request.urlRequest) { data, response, error in
                 if let data = data, let response = response, error == nil {

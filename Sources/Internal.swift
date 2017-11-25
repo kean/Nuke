@@ -4,6 +4,44 @@
 
 import Foundation
 
+// MARK: - Lock
+
+internal final class Lock {
+    var mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
+
+    init() { pthread_mutex_init(mutex, nil) }
+
+    deinit {
+        pthread_mutex_destroy(mutex)
+        mutex.deinitialize()
+        mutex.deallocate(capacity: 1)
+    }
+
+    // In performance critical places using lock() and unlock() is slightly
+    // faster than using `sync(_:)` method.
+    func sync<T>(_ closure: () -> T) -> T {
+        pthread_mutex_lock(mutex)
+        defer { pthread_mutex_unlock(mutex) }
+        return closure()
+    }
+
+    func lock() { pthread_mutex_lock(mutex) }
+    func unlock() { pthread_mutex_unlock(mutex) }
+}
+
+// MARK: - Extensions
+
+internal extension DispatchQueue {
+    func execute(token: CancellationToken?, closure: @escaping () -> Void) {
+        if token?.isCancelling == true { return }
+        let work = DispatchWorkItem(block: closure)
+        async(execute: work)
+        token?.register { [weak work] in work?.cancel() }
+    }
+}
+
+// MARK: - RateLimiter
+
 /// Controls the rate at which the work is executed. Uses the classic [token
 /// bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm.
 ///
@@ -13,7 +51,7 @@ import Foundation
 /// The implementation supports quick bursts of requests which can be executed
 /// without any delays when "the bucket is full". This is important to prevent
 /// rate limiter from affecting "normal" requests flow.
-public final class RateLimiter {
+internal final class RateLimiter {
     private let bucket: TokenBucket
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.RateLimiter")
     private var pendingItems = [Item]()
@@ -25,11 +63,11 @@ public final class RateLimiter {
     /// - parameter rate: Maximum number of requests per second. 45 by default.
     /// - parameter burst: Maximum number of requests which can be executed without
     /// any delays when "bucket is full". 15 by default.
-    public init(rate: Int = 45, burst: Int = 15) {
+    internal init(rate: Int = 45, burst: Int = 15) {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
-    public func execute(token: CancellationToken?, closure: @escaping () -> Void) {
+    internal func execute(token: CancellationToken?, closure: @escaping () -> Void) {
         if token?.isCancelling == true { // quick pre-lock check
             return
         }

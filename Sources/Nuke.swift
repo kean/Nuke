@@ -30,40 +30,6 @@ public enum Result<T> {
     }
 }
 
-// MARK: - Internals
-
-internal final class Lock {
-    var mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
-
-    init() { pthread_mutex_init(mutex, nil) }
-
-    deinit {
-        pthread_mutex_destroy(mutex)
-        mutex.deinitialize()
-        mutex.deallocate(capacity: 1)
-    }
-
-    // In performance critical places using lock() and unlock() is slightly
-    // faster than using `sync(_:)` method.
-    func sync<T>(_ closure: () -> T) -> T {
-        pthread_mutex_lock(mutex)
-        defer { pthread_mutex_unlock(mutex) }
-        return closure()
-    }
-
-    func lock() { pthread_mutex_lock(mutex) }
-    func unlock() { pthread_mutex_unlock(mutex) }
-}
-
-internal extension DispatchQueue {
-    func execute(token: CancellationToken?, closure: @escaping () -> Void) {
-        if token?.isCancelling == true { return }
-        let work = DispatchWorkItem(block: closure)
-        async(execute: work)
-        token?.register { [weak work] in work?.cancel() }
-    }
-}
-
 // MARK: - TaskQueue
 
 /// Limits number of maximum concurrent tasks.
