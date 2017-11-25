@@ -9,8 +9,6 @@ public final class Manager: Loading {
     public let loader: Loading
     public let cache: Caching?
 
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Manager")
-
     /// Shared `Manager` instance.
     ///
     /// Shared manager is created with `Loader.shared` and `Cache.shared`.
@@ -68,7 +66,7 @@ public final class Manager: Loading {
         Manager.setContext(context, for: target)
 
         // Start the request
-        loadImage(with: request, token: cts.token) { [weak context, weak target] in
+        _loadImage(with: request, token: cts.token) { [weak context, weak target] in
             guard let context = context, let target = target else { return }
             guard Manager.getContext(for: target) === context else { return }
             handler($0, false)
@@ -91,26 +89,21 @@ public final class Manager: Loading {
     ///
     /// - parameter completion: Gets called asynchronously on the main thread.
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
-        queue.async {
-            if token?.isCancelling == true { return } // Fast preflight check
-            self._loadImage(with: request, token: token) { result in
-                DispatchQueue.main.async { completion(result) }
-            }
+        // Check if image is in memory cache
+        if let image = cachedImage(for: request) {
+            DispatchQueue.main.async { completion(.success(image)) }
+        } else {
+            _loadImage(with: request, token: token, completion: completion)
         }
     }
 
     private func _loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-        // Check if image is in memory cache
-        if let image = cachedImage(for: request) {
-            completion(.success(image))
-        } else {
-            // Use underlying loader to load an image and then store it in cache
-            loader.loadImage(with: request, token: token) { [weak self] in
-                if let image = $0.value {
-                    self?.store(image: image, for: request)
-                }
-                completion($0)
+        // Use underlying loader to load an image and then store it in cache
+        loader.loadImage(with: request, token: token) { [weak self] result in
+            if let image = result.value { // save in cache
+                self?.store(image: image, for: request)
             }
+            DispatchQueue.main.async { completion(result) }
         }
     }
 
