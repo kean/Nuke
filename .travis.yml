@@ -1,22 +1,32 @@
 language: objective-c
 os: osx
-osx_image: xcode8
+osx_image: xcode9
 
 env:
   global:
-  - IOS_FRAMEWORK_SCHEME="Nuke iOS"
-  - MACOS_FRAMEWORK_SCHEME="Nuke macOS"
-  - TVOS_FRAMEWORK_SCHEME="Nuke tvOS"
-  - WATCHOS_FRAMEWORK_SCHEME="Nuke watchOS"
+  - IOS_SCHEME="Nuke iOS"
+  - MACOS_SCHEME="Nuke macOS"
+  - TVOS_SCHEME="Nuke tvOS"
+  - WATCHOS_SCHEME="Nuke watchOS"
 
   matrix:
-    - DESTINATION="OS=3.0,name=Apple Watch - 42mm" SCHEME="$WATCHOS_FRAMEWORK_SCHEME" RUN_TESTS="NO"
-    - DESTINATION="OS=2.0,name=Apple Watch - 42mm" SCHEME="$WATCHOS_FRAMEWORK_SCHEME" RUN_TESTS="NO"
+  - DESTINATION="OS=11.0,name=iPhone X"
+    SCHEME="$IOS_SCHEME"     RUN_TESTS="YES"
+  - DESTINATION="OS=10.3.1,name=iPhone 7 Plus"
+    SCHEME="$IOS_SCHEME"     RUN_TESTS="YES"
+  - DESTINATION="OS=9.0,name=iPhone 5"
+    SCHEME="$IOS_SCHEME"     RUN_TESTS="YES"
 
-    - DESTINATION="OS=10.0,name=iPhone 7 Plus"     SCHEME="$IOS_FRAMEWORK_SCHEME"     RUN_TESTS="YES"
-    - DESTINATION="OS=9.0,name=iPhone 5"           SCHEME="$IOS_FRAMEWORK_SCHEME"     RUN_TESTS="YES"
+  - DESTINATION="OS=10.0,name=Apple TV 1080p"
+    SCHEME="$TVOS_SCHEME"    RUN_TESTS="YES"
 
-    - DESTINATION="OS=10.0,name=Apple TV 1080p"    SCHEME="$TVOS_FRAMEWORK_SCHEME"    RUN_TESTS="YES"
+  - DESTINATION="arch=x86_64"
+    SCHEME="$MACOS_SCHEME"   RUN_TESTS="YES"
+
+  - DESTINATION="OS=4.0,name=Apple Watch - 42mm"
+    SCHEME="$WATCHOS_SCHEME" RUN_TESTS="NO"
+  - DESTINATION="OS=3.2,name=Apple Watch - 42mm"
+    SCHEME="$WATCHOS_SCHEME" RUN_TESTS="NO"
 
 script:
   - set -o pipefail
@@ -25,8 +35,6 @@ script:
 
   - if [ $RUN_TESTS == "YES" ]; then
       xcodebuild test -scheme "$SCHEME" -destination "$DESTINATION" -configuration Debug | xcpretty;
-      xcodebuild test -scheme "$SCHEME" -destination "$DESTINATION" -configuration Release | xcpretty;
     else
       xcodebuild build -scheme "$SCHEME" -destination "$DESTINATION" -configuration Debug | xcpretty;
-      xcodebuild build -scheme "$SCHEME" -destination "$DESTINATION" -configuration Release | xcpretty;
     fi
