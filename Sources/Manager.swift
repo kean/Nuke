@@ -8,6 +8,7 @@ import Foundation
 public final class Manager: Loading {
     public let loader: Loading
     public let cache: Caching?
+    private let lock = Lock()
 
     /// Shared `Manager` instance.
     ///
@@ -61,7 +62,7 @@ public final class Manager: Loading {
         }
 
         // Create context and associate it with a target
-        let cts = CancellationTokenSource(lock: CancellationTokenSource.lock)
+        let cts = CancellationTokenSource(lock: lock)
         let context = Context(cts)
         Manager.setContext(context, for: target)
 

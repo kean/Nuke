@@ -13,24 +13,17 @@ public final class CancellationTokenSource {
     private let lock: Lock
 
     /// Creates a new token associated with the source.
-    public var token: CancellationToken {
-        return CancellationToken(source: self)
-    }
+    public var token: CancellationToken { return CancellationToken(source: self) }
 
     /// Initializes the `CancellationTokenSource` instance.
-    public init() {
-        self.lock = Lock()
-    }
+    public init() { self.lock = Lock() }
 
     /// Allows to create cts with a shared lock to avoid excessive allocations.
     /// This is tricky to use thus `internal` access modifier.
-    internal init(lock: Lock) {
-        self.lock = lock
-    }
-    internal static let lock = Lock()
+    internal init(lock: Lock) { self.lock = lock }
 
     fileprivate func register(_ closure: @escaping () -> Void) {
-        if isCancelling { closure(); return } // fast pre-lock check
+        guard !isCancelling else { closure(); return }  // fast pre-lock check
         lock.sync {
             if isCancelling {
                 closure()
@@ -42,7 +35,7 @@ public final class CancellationTokenSource {
 
     /// Communicates a request for cancellation to the managed token.
     public func cancel() {
-        if isCancelling { return } // fast pre-lock check
+        guard !isCancelling else { return } // fast pre-lock check
         lock.sync {
             if !isCancelling {
                 isCancelling = true
