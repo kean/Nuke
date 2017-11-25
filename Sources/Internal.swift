@@ -141,3 +141,60 @@ internal final class RateLimiter {
         }
     }
 }
+
+// MARK: - TaskQueue
+
+/// Limits number of maximum concurrent tasks.
+internal final class TaskQueue {
+    // An alternative of using custom Foundation.Operation requires more code,
+    // less performant and even harder to get right https://github.com/kean/Nuke/issues/141.
+    private var executingTaskCount: Int = 0
+    private var pendingTasks = LinkedList<Task>()
+    private let maxConcurrentTaskCount: Int
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Queue")
+
+    internal init(maxConcurrentTaskCount: Int) {
+        self.maxConcurrentTaskCount = maxConcurrentTaskCount
+    }
+
+    internal func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
+        queue.async {
+            if token?.isCancelling == true { return } // fast preflight check
+            let task = Task(token: token, execute: closure)
+            self.pendingTasks.append(LinkedList.Node(value: task))
+            self._executeTasksIfNecessary()
+        }
+    }
+
+    private func _executeTasksIfNecessary() {
+        while executingTaskCount < maxConcurrentTaskCount, let task = pendingTasks.tail {
+            pendingTasks.remove(task)
+            _executeTask(task.value)
+        }
+    }
+
+    private func _executeTask(_ task: Task) {
+        if task.token?.isCancelling == true { return } // fast preflight check
+        executingTaskCount += 1
+        task.execute { [weak self] in
+            self?.queue.async {
+                guard !task.isFinished else { return } // finish called twice
+                task.isFinished = true
+                self?.executingTaskCount -= 1
+                self?._executeTasksIfNecessary()
+            }
+        }
+    }
+
+    private final class Task {
+        let token: CancellationToken?
+        let execute: (_ finish: @escaping () -> Void) -> Void
+        var isFinished: Bool = false
+
+        init(token: CancellationToken?, execute: @escaping (_ finish: @escaping () -> Void) -> Void) {
+            self.token = token
+            self.execute = execute
+        }
+    }
+}
+

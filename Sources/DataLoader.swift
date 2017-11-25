@@ -13,16 +13,12 @@ public protocol DataLoading {
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading {
     public let session: URLSession
-    private let queue: TaskQueue
 
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
-    /// - parameter `maxConcurrentRequestCount`: 6 by default.
-    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
-                maxConcurrentRequestCount: Int = 6) {
+    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration) {
         self.session = URLSession(configuration: configuration)
-        self.queue = TaskQueue(maxConcurrentTaskCount: maxConcurrentRequestCount)
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
@@ -42,20 +38,16 @@ public final class DataLoader: DataLoading {
 
     /// Loads data with the given request.
     public func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        queue.execute(token: token) { finish in
-            let task = self.session.dataTask(with: request.urlRequest) { data, response, error in
-                if let data = data, let response = response, error == nil {
-                    completion(.success((data, response)))
-                } else {
-                    completion(.failure((error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))))
-                }
-                finish()
+        let task = self.session.dataTask(with: request.urlRequest) { data, response, error in
+            if let data = data, let response = response, error == nil {
+                completion(.success((data, response)))
+            } else {
+                completion(.failure((error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))))
             }
-            token?.register {
-                task.cancel()
-                finish()
-            }
-            task.resume()
         }
+        token?.register {
+            task.cancel()
+        }
+        task.resume()
     }
 }

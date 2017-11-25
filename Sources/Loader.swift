@@ -37,7 +37,12 @@ public final class Loader: Loading {
     private let loader: DataLoading
     private let decoder: DataDecoding
     private var tasks = [AnyHashable: Task]()
+
+    // sync queue
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
+
+    // queues limiting underlying systems
+    private let taskQueue: TaskQueue
     private let decodingQueue = DispatchQueue(label: "com.github.kean.Nuke.Decoding")
     private let processingQueue = DispatchQueue(label: "com.github.kean.Nuke.Processing")
     private let rateLimiter = RateLimiter()
@@ -55,9 +60,11 @@ public final class Loader: Loading {
 
     /// Initializes `Loader` instance with the given loader, decoder.
     /// - parameter decoder: `DataDecoder()` by default.
-    public init(loader: DataLoading, decoder: DataDecoding = DataDecoder()) {
+    /// - parameter `maxConcurrentRequestCount`: 6 by default.
+    public init(loader: DataLoading, decoder: DataDecoding = DataDecoder(), maxConcurrentRequestCount: Int = 6) {
         self.loader = loader
         self.decoder = decoder
+        self.taskQueue = TaskQueue(maxConcurrentTaskCount: maxConcurrentRequestCount)
     }
 
     /// Loads an image for the given request using image loading pipeline.
@@ -95,11 +102,21 @@ public final class Loader: Loading {
     }
 
     private func _loadImage(with task: Task) { // would be nice to rewrite to async/await
-        self.loader.loadData(with: task.request, token: task.cts.token) { [weak self] in
+        _loadData(with: task.request, token: task.cts.token) { [weak self] in
             switch $0 {
             case let .success(val): self?.decode(response: val, task: task)
             case let .failure(err): self?._complete(task, result: .failure(err))
             }
+        }
+    }
+
+    public func _loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+        taskQueue.execute(token: token) { [weak self] finish in
+            self?.loader.loadData(with: request, token: token) {
+                finish()
+                completion($0)
+            }
+            token?.register { finish() }
         }
     }
 
