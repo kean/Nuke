@@ -100,14 +100,22 @@ public class TaskQueue {
         executingTaskCount += 1
         task.execute { [weak self] in
             self?.queue.async {
+                guard !task.isFinished else { return } // finish called twice
+                task.isFinished = true
                 self?.executingTaskCount -= 1
                 self?._executeTasksIfNecessary()
             }
         }
     }
 
-    private struct Task {
+    private final class Task {
         let token: CancellationToken?
         let execute: (_ finish: @escaping () -> Void) -> Void
+        var isFinished: Bool = false
+
+        init(token: CancellationToken?, execute: @escaping (_ finish: @escaping () -> Void) -> Void) {
+            self.token = token
+            self.execute = execute
+        }
     }
 }
