@@ -79,9 +79,7 @@ internal final class RateLimiter {
     }
 
     private func _execute(_ item: Item) -> Bool {
-        guard !item.0.isCancelling else {
-            return true // no need to execute cancelling items
-        }
+        guard !item.0.isCancelling else { return true } // no need to execute
         return bucket.execute { item.1() }
     }
 
@@ -247,4 +245,3 @@ internal final class LinkedList<V> {
         init(value: V) { self.value = value }
     }
 }
-

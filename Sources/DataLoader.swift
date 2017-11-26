@@ -39,16 +39,14 @@ public final class DataLoader: DataLoading {
 
     /// Loads data with the given request.
     public func loadData(with request: URLRequest, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        let task = self.session.dataTask(with: request)
-        let handler = SessionTaskHandler(
-            progress: progress,
-            completion: { (data, response, error) in
-                if let response = response, error == nil {
-                    completion(.success((data, response)))
-                } else {
-                    completion(.failure((error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))))
-                }
-        })
+        let task = session.dataTask(with: request)
+        let handler = SessionTaskHandler(progress: progress) { (data, response, error) in
+            if let response = response, error == nil {
+                completion(.success((data, response)))
+            } else {
+                completion(.failure((error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))))
+            }
+        }
         delegate.register(handler, for: task)
 
         token?.register { task.cancel() }

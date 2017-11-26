@@ -182,7 +182,6 @@ public protocol Target: class {
 #endif
 
 #if os(macOS) || os(iOS) || os(tvOS)
-
     /// Default implementation of `Target` protocol for `ImageView`.
     extension ImageView: Target {
         /// Displays an image on success. Runs `opacity` transition if
@@ -200,5 +199,4 @@ public protocol Target: class {
             }
         }
     }
-
 #endif

@@ -40,7 +40,7 @@ public final class Loader: Loading {
     private let decoder: DataDecoding
     private var tasks = [AnyHashable: Task]()
 
-    // sync queue
+    // synchronization queue
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
 
     // queues limiting underlying systems
@@ -91,10 +91,11 @@ public final class Loader: Loading {
         }
     }
 
-    // Returns existing task (if there is one). Returns a new task otherwise.
     private func _startTask(with request: Request) -> Task {
+        // Check if the task for the same request already exists.
         let key = Request.loadKey(for: request)
-        if let task = tasks[key] { return task } // already running
+        if let task = tasks[key] { return task }
+
         let task = Task(request: request, key: key)
         tasks[key] = task
         // Use rate limiter to prevent trashing of the underlying systems
@@ -114,14 +115,15 @@ public final class Loader: Loading {
     }
 
     private func _loadData(with task: Task, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        taskQueue.execute(token: task.cts.token) { [weak self] finish in
-            self?.loader.loadData(with: task.request.urlRequest, token: task.cts.token, progress: {
+        let token = task.cts.token
+        taskQueue.execute(token: token) { [weak self] finish in
+            self?.loader.loadData(with: task.request.urlRequest, token: token, progress: {
                 self?._progress(completed: $0, total: $1, task: task)
             }, completion: {
                 finish()
                 completion($0)
             })
-            task.cts.token.register { finish() }
+            token.register { finish() }
         }
     }
 
@@ -172,7 +174,7 @@ public final class Loader: Loading {
     private func _cancel(_ task: Task) {
         queue.async {
             guard self.tasks[task.key] === task else { return } // check if still registered
-            task.retainCount -= 1
+            task.retainCount -= 1 // CTS makes sure cancel can't be called twice
             if task.retainCount == 0 {
                 task.cts.cancel() // cancel underlying request
                 self.tasks[task.key] = nil
