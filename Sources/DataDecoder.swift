@@ -27,8 +27,6 @@ public struct DataDecoder: DataDecoding {
 
     /// Creates an image with the given data.
     public func decode(data: Data, response: URLResponse) -> Image? {
-        guard DataDecoder.validate(response: response) else { return nil }
-
         // Image initializers are documented as fully-thread safe:
         //
         // > The immutable nature of image objects also means that they are safe
@@ -53,11 +51,6 @@ public struct DataDecoder: DataDecoding {
                 return UIImage(data: data, scale: scale)
             #endif
         }
-    }
-
-    private static func validate(response: URLResponse) -> Bool {
-        guard let response = response as? HTTPURLResponse else { return true }
-        return (200..<300).contains(response.statusCode)
     }
 }
 

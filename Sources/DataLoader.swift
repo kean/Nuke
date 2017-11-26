@@ -13,13 +13,15 @@ public protocol DataLoading {
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading {
     public let session: URLSession
+    private let validate: (Data, URLResponse) -> Error?
     private let delegate = SessionDelegate()
 
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
-    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration) {
+    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration, validate: @escaping (Data, URLResponse) -> Error? = DataLoader.validate) {
         self.session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: delegate.queue)
+        self.validate = validate
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
@@ -28,6 +30,11 @@ public final class DataLoader: DataLoading {
         let conf = URLSessionConfiguration.default
         conf.urlCache = DataLoader.sharedUrlCache
         return conf
+    }
+
+    public static func validate(data: Data, response: URLResponse) -> Error? {
+        guard let response = response as? HTTPURLResponse else { return nil }
+        return (200..<300).contains(response.statusCode) ? nil : NSError(domain: NSURLErrorDomain, code: NSURLErrorBadServerResponse, userInfo: [NSLocalizedDescriptionKey: "Response status code was unacceptable: \(response.statusCode)."])
     }
 
     /// Shared url cached used by a default `DataLoader`.
@@ -40,12 +47,20 @@ public final class DataLoader: DataLoading {
     /// Loads data with the given request.
     public func loadData(with request: URLRequest, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
         let task = session.dataTask(with: request)
+        let validate = self.validate
         let handler = SessionTaskHandler(progress: progress) { (data, response, error) in
-            if let response = response, error == nil {
-                completion(.success((data, response)))
-            } else {
-                completion(.failure((error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))))
+            // Check if request failed with error
+            if let error = error { completion(.failure(error)); return }
+
+            // Check if response & data non empty
+            guard let response = response, !data.isEmpty else {
+                let error = NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)
+                completion(.failure(error)); return
             }
+
+            // Validate response
+            if let error = validate(data, response) { completion(.failure(error)); return }
+            completion(.success((data, response)))
         }
         delegate.register(handler, for: task)
 
