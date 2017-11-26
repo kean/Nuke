@@ -17,7 +17,7 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 - [Freedom to use](#h_design) networking, caching libraries of your choice
 - [RxSwift](https://github.com/ReactiveX/RxSwift) extensions provided by [RxNuke](https://github.com/kean/RxNuke)
 - Automated [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
-- Simple, small (~1k sloc), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
+- Small (< 1000 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
 
 
 # <a name="h_getting_started"></a>Quick Start

@@ -56,31 +56,6 @@ let manager = Nuke.Manager(loader: loader, cache: Cache.shared)
 manager.loadImage(with: url, into: imageView)
 ```
 
-There is one more thing that you may want to consider. Your networking layers might not provide a built-in way to set a hard limit on a maximum number of concurrent requests. In case you do want to add such limit you can use a *Scheduling* infrastructure provided by Nuke, namely `Nuke.OperationQueueScheduler` class:
-
-```swift
-private let scheduler = Nuke.OperationQueueScheduler(maxConcurrentOperationCount: 6)
-
-/// Loads data using Alamofire.SessionManager.
-public func loadData(with request: Nuke.Request, token: CancellationToken?, completion: @escaping (Nuke.Result<(Data, URLResponse)>) -> Void) {
-    scheduler.execute(token: token) { finish in
-        // Alamofire.SessionManager automatically starts requests as soon as they are created (see `startRequestsImmediately`)
-        let task = self.manager.request(request.urlRequest).response(completionHandler: { (response) in
-            if let data = response.data, let response: URLResponse = response.response {
-                completion(.success((data, response)))
-            } else {
-                completion(.failure(response.error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
-            }
-            finish() // finish an underlying concurrent Foundation.Operation
-        })
-        token?.register {
-            task.cancel()
-            finish()
-        }
-    }
-}
-```
-
 ### Using Other Caching Libraries
 
 By default, Nuke uses a `Foundation.URLCache` which is a part of Foundation URL Loading System. However sometimes built-in cache might not be performant enough, or might not fit your needs.
@@ -109,17 +84,16 @@ class CachingDataLoader: DataLoading {
         self.cache = cache
     }
 
-    public func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+    public func loadData(with request: URLRequest, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
         queue.async { [weak self] in
             if token?.isCancelling == true {
                 return
             }
-            let urlRequest = request.urlRequest
-            if let response = self?.cache.cachedResponse(for: urlRequest) {
+            if let response = self?.cache.cachedResponse(for: request) {
                 completion(.success((response.data, response.response)))
             } else {
-                self?.loader.loadData(with: request, token: token) {
-                    $0.value.map { self?.store($0, for: urlRequest) }
+                self?.loader.loadData(with: request, token: token, progress: progress) {
+                    $0.value.map { self?.store($0, for: request) }
                     completion($0)
                 }
             }
