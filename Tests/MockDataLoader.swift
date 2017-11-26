@@ -19,14 +19,18 @@ class MockDataLoader: DataLoading {
     var results = [URL: Result<(Data, URLResponse)>]()
     let queue = OperationQueue()
 
-    func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+    func loadData(with request: Request, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
         token?.register {
             NotificationCenter.default.post(name: MockDataLoader.DidCancelTask, object: self)
         }
         
         createdTaskCount += 1
-        
+
+        if let progress = progress {
+            queue.addOperation { progress(10, 20) }
+            queue.addOperation { progress(20, 20) }
+        }
         let operation = BlockOperation() {
             if let result = self.results[request.urlRequest.url!] {
                 completion(result)
@@ -35,7 +39,7 @@ class MockDataLoader: DataLoading {
             }
         }
         queue.addOperation(operation)
-        
+
         token?.register {
             operation.cancel()
         }

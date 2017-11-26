@@ -14,6 +14,8 @@ public protocol Loading {
     func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void)
 }
 
+public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
+
 public extension Loading {
     /// Loads an image with the given request.
     public func loadImage(with request: Request, completion: @escaping (Result<Image>) -> Void) {
@@ -112,7 +114,7 @@ public final class Loader: Loading {
 
     public func _loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
         taskQueue.execute(token: token) { [weak self] finish in
-            self?.loader.loadData(with: request, token: token) {
+            self?.loader.loadData(with: request, token: token, progress: nil) {
                 finish()
                 completion($0)
             }

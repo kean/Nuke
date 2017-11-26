@@ -7,7 +7,7 @@ import Foundation
 /// Loads data.
 public protocol DataLoading {
     /// Loads data with the given request.
-    func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void)
+    func loadData(with request: Request, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void)
 }
 
 /// Provides basic networking using `URLSession`.
@@ -38,15 +38,17 @@ public final class DataLoader: DataLoading {
     )
 
     /// Loads data with the given request.
-    public func loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+    public func loadData(with request: Request, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
         let task = self.session.dataTask(with: request.urlRequest)
-        let handler = SessionTaskHandler { (data, response, error) in
-            if let response = response, error == nil {
-                completion(.success((data, response)))
-            } else {
-                completion(.failure((error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))))
-            }
-        }
+        let handler = SessionTaskHandler(
+            progress: progress,
+            completion: { (data, response, error) in
+                if let response = response, error == nil {
+                    completion(.success((data, response)))
+                } else {
+                    completion(.failure((error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil))))
+                }
+        })
         delegate.register(handler, for: task)
 
         token?.register { task.cancel() }
@@ -74,8 +76,7 @@ private final class SessionDelegate: NSObject, URLSessionDataDelegate {
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         if let handler = handlers[dataTask] {
             handler.data.append(data)
-            // TODO: report progress
-//            handler.progress(completed: dataTask.countOfBytesReceived, total: dataTask.countOfBytesExpectedToReceive)
+            handler.progress?(dataTask.countOfBytesReceived, dataTask.countOfBytesExpectedToReceive)
         }
     }
 
@@ -89,9 +90,11 @@ private final class SessionDelegate: NSObject, URLSessionDataDelegate {
 
 private final class SessionTaskHandler {
     var data = Data()
+    let progress: ProgressHandler?
     let completion: (Data, URLResponse?, Error?) -> Void
 
-    init(completion: @escaping (Data, URLResponse?, Error?) -> Void) {
+    init(progress: ProgressHandler?, completion: @escaping (Data, URLResponse?, Error?) -> Void) {
+        self.progress = progress
         self.completion = completion
     }
 }
