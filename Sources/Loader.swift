@@ -83,7 +83,8 @@ public final class Loader: Loading {
         // Combine requests with the same `loadKey` into a single request.
         // The request only gets cancelled when all the underlying requests are.
         task.retainCount += 1
-        task.handlers.append(completion)
+        let handler = Task.Handler(progress: request.progress, completion: completion)
+        task.handlers.append(handler)
 
         token?.register { [weak self, weak task] in
             if let task = task { self?._cancel(task) }
@@ -104,7 +105,7 @@ public final class Loader: Loading {
     }
 
     private func _loadImage(with task: Task) { // would be nice to rewrite to async/await
-        _loadData(with: task.request, token: task.cts.token) { [weak self] in
+        _loadData(with: task) { [weak self] in
             switch $0 {
             case let .success(val): self?.decode(response: val, task: task)
             case let .failure(err): self?._complete(task, result: .failure(err))
@@ -112,13 +113,22 @@ public final class Loader: Loading {
         }
     }
 
-    public func _loadData(with request: Request, token: CancellationToken?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        taskQueue.execute(token: token) { [weak self] finish in
-            self?.loader.loadData(with: request, token: token, progress: nil) {
+    private func _loadData(with task: Task, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+        taskQueue.execute(token: task.cts.token) { [weak self] finish in
+            self?.loader.loadData(with: task.request, token: task.cts.token, progress: {
+                self?._progress(completed: $0, total: $1, task: task)
+            }, completion: {
                 finish()
                 completion($0)
-            }
-            token?.register { finish() }
+            })
+            task.cts.token.register { finish() }
+        }
+    }
+
+    private func _progress(completed: Int64, total: Int64, task: Task) {
+        queue.async {
+            let handlers = task.handlers.flatMap { $0.progress }
+            DispatchQueue.main.async { handlers.forEach { $0(completed, total) } }
         }
     }
 
@@ -154,7 +164,7 @@ public final class Loader: Loading {
         queue.async {
             guard self.tasks[task.key] === task else { return } // check if still registered
             let handlers = task.handlers
-            DispatchQueue.main.async { handlers.forEach { $0(result) } }
+            DispatchQueue.main.async { handlers.forEach { $0.completion(result) } }
             self.tasks[task.key] = nil
         }
     }
@@ -175,12 +185,17 @@ public final class Loader: Loading {
         let key: AnyHashable
 
         let cts = CancellationTokenSource()
-        var handlers = [(Result<Image>) -> Void]()
+        var handlers = [Handler]()
         var retainCount = 0 // number of non-cancelled handlers
 
         init(request: Request, key: AnyHashable) {
             self.request = request
             self.key = key
+        }
+
+        struct Handler {
+            let progress: ProgressHandler?
+            let completion: (Result<Image>) -> Void
         }
     }
 

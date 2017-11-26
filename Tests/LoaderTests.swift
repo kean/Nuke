@@ -20,6 +20,30 @@ class LoaderTests: XCTestCase {
     func testThreadSafety() {
         runThreadSafetyTests(for: loader)
     }
+
+    // MARK: Progress
+
+    func testThatProgressIsReported() {
+        var request = Request(url: defaultURL)
+        expect { fulfill in
+            var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
+            request.progress = {
+                XCTAssertTrue(Thread.isMainThread)
+                XCTAssertTrue(expected.first?.0 == $0)
+                XCTAssertTrue(expected.first?.1 == $1)
+                expected.remove(at: 0)
+                if expected.isEmpty {
+                    fulfill()
+                }
+            }
+        }
+        expect { fulfill in
+            loader.loadImage(with: request) { _ in
+                fulfill()
+            }
+        }
+        wait()
+    }
 }
 
 

@@ -49,6 +49,11 @@ public struct Request {
     /// If `nil` default key is used. See `Request.cacheKey(for:)` for more info.
     public var cacheKey: AnyHashable?
 
+    public var progress: ProgressHandler? {
+        get { return container.progress }
+        set { applyMutation { $0.progress = newValue }}
+    }
+
     /// Custom info passed alongside the request.
     public var userInfo: Any?
     
@@ -84,6 +89,7 @@ public struct Request {
         var resource: Resource
         var urlString: String? // memoized absoluteString
         var processor: AnyProcessor?
+        var progress: ProgressHandler?
 
         init(resource: Resource) {
             self.resource = resource
@@ -97,6 +103,7 @@ public struct Request {
             let ref = Container(resource: resource)
             ref.urlString = urlString
             ref.processor = processor
+            ref.progress = progress
             return ref
         }
 

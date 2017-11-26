@@ -27,11 +27,10 @@ class MockDataLoader: DataLoading {
         
         createdTaskCount += 1
 
-        if let progress = progress {
-            queue.addOperation { progress(10, 20) }
-            queue.addOperation { progress(20, 20) }
-        }
         let operation = BlockOperation() {
+            progress?(10, 20)
+            progress?(20, 20)
+
             if let result = self.results[request.urlRequest.url!] {
                 completion(result)
             } else {
