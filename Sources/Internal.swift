@@ -32,11 +32,11 @@ internal final class Lock {
 // MARK: - Extensions
 
 internal extension DispatchQueue {
-    func execute(token: CancellationToken?, closure: @escaping () -> Void) {
-        if token?.isCancelling == true { return }
+    func execute(token: CancellationToken, closure: @escaping () -> Void) {
+        guard !token.isCancelling else { return } // fast preflight check
         let work = DispatchWorkItem(block: closure)
         async(execute: work)
-        token?.register { [weak work] in work?.cancel() }
+        token.register { [weak work] in work?.cancel() }
     }
 }
 
@@ -57,7 +57,7 @@ internal final class RateLimiter {
     private var pendingItems = [Item]()
     private var isExecutingPendingItems = false
 
-    private typealias Item = (CancellationToken?, () -> Void)
+    private typealias Item = (CancellationToken, () -> Void)
 
     /// Initializes the `RateLimiter` with the given configuration.
     /// - parameter rate: Maximum number of requests per second. 45 by default.
@@ -67,10 +67,8 @@ internal final class RateLimiter {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
-    internal func execute(token: CancellationToken?, closure: @escaping () -> Void) {
-        if token?.isCancelling == true { // quick pre-lock check
-            return
-        }
+    internal func execute(token: CancellationToken, closure: @escaping () -> Void) {
+        guard !token.isCancelling else { return } // fast preflight check
         queue.sync {
             let item = Item(token, closure)
             if !pendingItems.isEmpty || !_execute(item) {
@@ -81,7 +79,7 @@ internal final class RateLimiter {
     }
 
     private func _execute(_ item: Item) -> Bool {
-        if item.0?.isCancelling == true {
+        guard !item.0.isCancelling else {
             return true // no need to execute cancelling items
         }
         return bucket.execute { item.1() }
@@ -157,9 +155,9 @@ internal final class TaskQueue {
         self.maxConcurrentTaskCount = maxConcurrentTaskCount
     }
 
-    internal func execute(token: CancellationToken?, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
+    internal func execute(token: CancellationToken, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
         queue.async {
-            if token?.isCancelling == true { return } // fast preflight check
+            guard !token.isCancelling else { return } // fast preflight check
             let task = Task(token: token, execute: closure)
             self.pendingTasks.append(LinkedList.Node(value: task))
             self._executeTasksIfNecessary()
@@ -174,7 +172,7 @@ internal final class TaskQueue {
     }
 
     private func _executeTask(_ task: Task) {
-        if task.token?.isCancelling == true { return } // fast preflight check
+        guard !task.token.isCancelling else { return } // check if still not cancelled
         executingTaskCount += 1
         task.execute { [weak self] in
             self?.queue.async {
@@ -187,14 +185,13 @@ internal final class TaskQueue {
     }
 
     private final class Task {
-        let token: CancellationToken?
+        let token: CancellationToken
         let execute: (_ finish: @escaping () -> Void) -> Void
         var isFinished: Bool = false
 
-        init(token: CancellationToken?, execute: @escaping (_ finish: @escaping () -> Void) -> Void) {
+        init(token: CancellationToken, execute: @escaping (_ finish: @escaping () -> Void) -> Void) {
             self.token = token
             self.execute = execute
         }
     }
 }
-

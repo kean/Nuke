@@ -22,7 +22,8 @@ class RateLimiterTests: XCTestCase {
         var ops = [Op]()
         
         ops.append(Op() { fulfill in
-            limiter.execute(token: nil) {
+            let cts = CancellationTokenSource()
+            limiter.execute(token: cts.token) {
                 sleep(UInt32(Double(rnd(10)) / 100.0))
                 fulfill()
             }

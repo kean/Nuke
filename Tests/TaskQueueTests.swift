@@ -22,7 +22,8 @@ class TaskQueueTests: XCTestCase {
         var ops = [Op]()
 
         ops.append(Op() { fulfill in
-            queue.execute(token: nil) {
+            let cts = CancellationTokenSource()
+            queue.execute(token: cts.token) {
                 sleep(UInt32(Double(rnd(10)) / 100.0))
                 fulfill()
                 $0()
