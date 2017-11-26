@@ -115,7 +115,7 @@ public final class Loader: Loading {
 
     private func _loadData(with task: Task, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
         taskQueue.execute(token: task.cts.token) { [weak self] finish in
-            self?.loader.loadData(with: task.request, token: task.cts.token, progress: {
+            self?.loader.loadData(with: task.request.urlRequest, token: task.cts.token, progress: {
                 self?._progress(completed: $0, total: $1, task: task)
             }, completion: {
                 finish()

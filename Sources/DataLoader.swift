@@ -7,7 +7,7 @@ import Foundation
 /// Loads data.
 public protocol DataLoading {
     /// Loads data with the given request.
-    func loadData(with request: Request, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void)
+    func loadData(with request: URLRequest, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void)
 }
 
 /// Provides basic networking using `URLSession`.
@@ -38,8 +38,8 @@ public final class DataLoader: DataLoading {
     )
 
     /// Loads data with the given request.
-    public func loadData(with request: Request, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        let task = self.session.dataTask(with: request.urlRequest)
+    public func loadData(with request: URLRequest, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+        let task = self.session.dataTask(with: request)
         let handler = SessionTaskHandler(
             progress: progress,
             completion: { (data, response, error) in
