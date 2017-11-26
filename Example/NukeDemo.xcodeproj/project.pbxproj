@@ -16,15 +16,17 @@
 		607FACDB1AFB9204008FA782 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 607FACD91AFB9204008FA782 /* Main.storyboard */; };
 		607FACDD1AFB9204008FA782 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDC1AFB9204008FA782 /* Images.xcassets */; };
 		607FACE01AFB9204008FA782 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDE1AFB9204008FA782 /* LaunchScreen.xib */; };
-		CEBFD1782397EAE482F57274 /* Pods_Nuke_Demo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1C764F283FAFD6FF8599B6A /* Pods_Nuke_Demo.framework */; };
+		FB9C7F99A2A92EA4FBE0BE45 /* Pods_NukeDemo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2442112AC8FA4C39769980B5 /* Pods_NukeDemo.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		00FA96EF2356DC078B067A4F /* Pods-NukeDemo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NukeDemo.release.xcconfig"; path = "Pods/Target Support Files/Pods-NukeDemo/Pods-NukeDemo.release.xcconfig"; sourceTree = "<group>"; };
 		0C0CCD9D1BACC1A7002D10D5 /* PreheatingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreheatingDemoViewController.swift; sourceTree = "<group>"; };
 		0C3A69CD1D8D3E2200339CC2 /* RateLimiterDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RateLimiterDemoViewController.swift; sourceTree = "<group>"; };
 		0C826FA41BAC066E0069FCE1 /* BasicDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BasicDemoViewController.swift; sourceTree = "<group>"; };
 		0CE7E9FE1C9C419A0082216D /* CustomCacheDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomCacheDemoViewController.swift; sourceTree = "<group>"; };
-		607FACD01AFB9204008FA782 /* Nuke Demo_Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Nuke Demo_Example.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		2442112AC8FA4C39769980B5 /* Pods_NukeDemo.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_NukeDemo.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		607FACD01AFB9204008FA782 /* Nuke Demo_Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "Nuke Demo_Example.app"; path = NukeDemo_Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		607FACD41AFB9204008FA782 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		607FACD51AFB9204008FA782 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		607FACD71AFB9204008FA782 /* MenuViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuViewController.swift; sourceTree = "<group>"; };
@@ -32,6 +34,7 @@
 		607FACDC1AFB9204008FA782 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		607FACDF1AFB9204008FA782 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/LaunchScreen.xib; sourceTree = "<group>"; };
 		6F9382A8DD1F371E4165DA59 /* Pods-Nuke Demo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nuke Demo.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Nuke Demo/Pods-Nuke Demo.debug.xcconfig"; sourceTree = "<group>"; };
+		A073DD252587936237FEDE9F /* Pods-NukeDemo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NukeDemo.debug.xcconfig"; path = "Pods/Target Support Files/Pods-NukeDemo/Pods-NukeDemo.debug.xcconfig"; sourceTree = "<group>"; };
 		CA4F98B22D21BCC69907752C /* Pods-Nuke Demo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Nuke Demo.release.xcconfig"; path = "Pods/Target Support Files/Pods-Nuke Demo/Pods-Nuke Demo.release.xcconfig"; sourceTree = "<group>"; };
 		D1C764F283FAFD6FF8599B6A /* Pods_Nuke_Demo.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Nuke_Demo.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D41C16807F95F83FB63DA311 /* Pods.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -42,7 +45,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CEBFD1782397EAE482F57274 /* Pods_Nuke_Demo.framework in Frameworks */,
+				FB9C7F99A2A92EA4FBE0BE45 /* Pods_NukeDemo.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -54,6 +57,8 @@
 			children = (
 				6F9382A8DD1F371E4165DA59 /* Pods-Nuke Demo.debug.xcconfig */,
 				CA4F98B22D21BCC69907752C /* Pods-Nuke Demo.release.xcconfig */,
+				A073DD252587936237FEDE9F /* Pods-NukeDemo.debug.xcconfig */,
+				00FA96EF2356DC078B067A4F /* Pods-NukeDemo.release.xcconfig */,
 			);
 			name = Pods;
 			sourceTree = "<group>";
@@ -107,6 +112,7 @@
 			children = (
 				D41C16807F95F83FB63DA311 /* Pods.framework */,
 				D1C764F283FAFD6FF8599B6A /* Pods_Nuke_Demo.framework */,
+				2442112AC8FA4C39769980B5 /* Pods_NukeDemo.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -114,9 +120,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		607FACCF1AFB9204008FA782 /* Nuke Demo */ = {
+		607FACCF1AFB9204008FA782 /* NukeDemo */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 607FACEF1AFB9204008FA782 /* Build configuration list for PBXNativeTarget "Nuke Demo" */;
+			buildConfigurationList = 607FACEF1AFB9204008FA782 /* Build configuration list for PBXNativeTarget "NukeDemo" */;
 			buildPhases = (
 				73BBAB7FD0F50CF526C7A123 /* [CP] Check Pods Manifest.lock */,
 				607FACCC1AFB9204008FA782 /* Sources */,
@@ -129,7 +135,7 @@
 			);
 			dependencies = (
 			);
-			name = "Nuke Demo";
+			name = NukeDemo;
 			productName = Nuke;
 			productReference = 607FACD01AFB9204008FA782 /* Nuke Demo_Example.app */;
 			productType = "com.apple.product-type.application";
@@ -146,12 +152,11 @@
 				TargetAttributes = {
 					607FACCF1AFB9204008FA782 = {
 						CreatedOnToolsVersion = 6.3.1;
-						DevelopmentTeam = 2MGJ28AV6C;
 						LastSwiftMigration = 0910;
 					};
 				};
 			};
-			buildConfigurationList = 607FACCB1AFB9204008FA782 /* Build configuration list for PBXProject "Nuke Demo" */;
+			buildConfigurationList = 607FACCB1AFB9204008FA782 /* Build configuration list for PBXProject "NukeDemo" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -164,7 +169,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				607FACCF1AFB9204008FA782 /* Nuke Demo */,
+				607FACCF1AFB9204008FA782 /* NukeDemo */,
 			);
 		};
 /* End PBXProject section */
@@ -195,7 +200,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-Nuke Demo/Pods-Nuke Demo-resources.sh\"\n";
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		73BBAB7FD0F50CF526C7A123 /* [CP] Check Pods Manifest.lock */ = {
@@ -204,13 +209,16 @@
 			files = (
 			);
 			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
 			);
 			name = "[CP] Check Pods Manifest.lock";
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-NukeDemo-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_ROOT}/../Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n";
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
 		76BF124BD5037FFCBDAA20F1 /* [CP] Embed Pods Frameworks */ = {
@@ -219,13 +227,20 @@
 			files = (
 			);
 			inputPaths = (
+				"${SRCROOT}/Pods/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-frameworks.sh",
+				"${BUILT_PRODUCTS_DIR}/DFCache/DFCache.framework",
+				"${BUILT_PRODUCTS_DIR}/Nuke/Nuke.framework",
+				"${BUILT_PRODUCTS_DIR}/Preheat/Preheat.framework",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/DFCache.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Nuke.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Preheat.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-Nuke Demo/Pods-Nuke Demo-frameworks.sh\"\n";
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -366,34 +381,34 @@
 		};
 		607FACF01AFB9204008FA782 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6F9382A8DD1F371E4165DA59 /* Pods-Nuke Demo.debug.xcconfig */;
+			baseConfigurationReference = A073DD252587936237FEDE9F /* Pods-NukeDemo.debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				DEVELOPMENT_TEAM = 2MGJ28AV6C;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = Nuke/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MODULE_NAME = ExampleApp;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.$(PRODUCT_NAME:rfc1034identifier)";
-				PRODUCT_NAME = "Nuke Demo_Example";
+				PRODUCT_NAME = NukeDemo_Example;
 				SWIFT_VERSION = 4.0;
 			};
 			name = Debug;
 		};
 		607FACF11AFB9204008FA782 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = CA4F98B22D21BCC69907752C /* Pods-Nuke Demo.release.xcconfig */;
+			baseConfigurationReference = 00FA96EF2356DC078B067A4F /* Pods-NukeDemo.release.xcconfig */;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				DEVELOPMENT_TEAM = 2MGJ28AV6C;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = Nuke/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MODULE_NAME = ExampleApp;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.$(PRODUCT_NAME:rfc1034identifier)";
-				PRODUCT_NAME = "Nuke Demo_Example";
+				PRODUCT_NAME = NukeDemo_Example;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 				SWIFT_VERSION = 4.0;
 			};
@@ -402,7 +417,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		607FACCB1AFB9204008FA782 /* Build configuration list for PBXProject "Nuke Demo" */ = {
+		607FACCB1AFB9204008FA782 /* Build configuration list for PBXProject "NukeDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				607FACED1AFB9204008FA782 /* Debug */,
@@ -411,7 +426,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		607FACEF1AFB9204008FA782 /* Build configuration list for PBXNativeTarget "Nuke Demo" */ = {
+		607FACEF1AFB9204008FA782 /* Build configuration list for PBXNativeTarget "NukeDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				607FACF01AFB9204008FA782 /* Debug */,

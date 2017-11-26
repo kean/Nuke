@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "607FACCF1AFB9204008FA782"
-               BuildableName = "Nuke Demo_Example.app"
-               BlueprintName = "Nuke Demo"
-               ReferencedContainer = "container:Nuke Demo.xcodeproj">
+               BuildableName = "NukeDemo_Example.app"
+               BlueprintName = "NukeDemo"
+               ReferencedContainer = "container:NukeDemo.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -31,7 +31,7 @@
                BlueprintIdentifier = "607FACE41AFB9204008FA782"
                BuildableName = "Nuke Demo_Example.xctest"
                BlueprintName = "Nuke Demo_Tests"
-               ReferencedContainer = "container:Nuke Demo.xcodeproj">
+               ReferencedContainer = "container:NukeDemo.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -50,7 +50,7 @@
                BlueprintIdentifier = "607FACE41AFB9204008FA782"
                BuildableName = "Nuke Demo_Example.xctest"
                BlueprintName = "Nuke Demo_Tests"
-               ReferencedContainer = "container:Nuke Demo.xcodeproj">
+               ReferencedContainer = "container:NukeDemo.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -58,9 +58,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "607FACCF1AFB9204008FA782"
-            BuildableName = "Nuke Demo_Example.app"
-            BlueprintName = "Nuke Demo"
-            ReferencedContainer = "container:Nuke Demo.xcodeproj">
+            BuildableName = "NukeDemo_Example.app"
+            BlueprintName = "NukeDemo"
+            ReferencedContainer = "container:NukeDemo.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <AdditionalOptions>
@@ -70,6 +70,7 @@
       buildConfiguration = "Release"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      enableThreadSanitizer = "YES"
       language = ""
       launchStyle = "0"
       useCustomWorkingDirectory = "NO"
@@ -83,9 +84,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "607FACCF1AFB9204008FA782"
-            BuildableName = "Nuke Demo_Example.app"
-            BlueprintName = "Nuke Demo"
-            ReferencedContainer = "container:Nuke Demo.xcodeproj">
+            BuildableName = "NukeDemo_Example.app"
+            BlueprintName = "NukeDemo"
+            ReferencedContainer = "container:NukeDemo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <EnvironmentVariables>
@@ -109,9 +110,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "607FACCF1AFB9204008FA782"
-            BuildableName = "Nuke Demo_Example.app"
-            BlueprintName = "Nuke Demo"
-            ReferencedContainer = "container:Nuke Demo.xcodeproj">
+            BuildableName = "NukeDemo_Example.app"
+            BlueprintName = "NukeDemo"
+            ReferencedContainer = "container:NukeDemo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

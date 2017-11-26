@@ -2,9 +2,12 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:Nuke Demo.xcodeproj">
+      location = "group:/Users/kean/Develop/Source/Nuke/Example/NukeDemo.xcodeproj">
    </FileRef>
    <FileRef
       location = "group:Pods/Pods.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:NukeDemo.xcodeproj">
    </FileRef>
 </Workspace>
