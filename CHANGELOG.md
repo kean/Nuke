@@ -1,3 +1,29 @@
+## Nuke 6.0-beta1
+
+> About 8 months ago I've started using Nuke in production. The project matured from being a playground for experimenting with Swift features to something that I rely on in my days work. The primary goal behind Nuke 6 is to simplify the project even further, and to get rid of the implementation details leaking into a public API.
+
+Nuke is now Swift 4 only. It's simpler, smaller (< 1000 lines of code) , and faster. It features progress reporting and makes it simpler to create custom data loader (e.g. [Alamofire data loader](https://github.com/kean/Nuke-Alamofire-Plugin)).
+
+### Features
+
+- Implements progress reporting https://github.com/kean/Nuke/issues/81
+
+### Removed APIs 
+
+- Remove global `loadImage(...)` functions https://github.com/kean/Nuke/issues/142
+- Remove `Deduplicator` class, make this functionality part of `Loader`. This has a number of benefits: reduced API surface, improves performance by reducing number of queue switching, enables new features like progress reporting.
+- Remove `Scheduler`, `AsyncScheduler`, `Loader.Schedulers`, `DispatchQueueScheduler`, `OperationQueueScheduler`. This whole infrastructure was way too excessive.
+- Make `RateLimiter` private.
+
+### Improvements 
+
+- Replace `Foundation.OperationQueue` & custom `Foundation.Operation` subclass with a new `Queue` type. It's simpler, faster, and gets rid of pesky Thread Sanitizer warnings https://github.com/kean/Nuke/issues/141
+- `DataLoader` now works with `URLRequest`, not `Request`
+- `Loader` now always call completion on the main thread.
+- Move `URLResponse` validation from `DataDecoder` to `DataLoader`
+- Make use of some Swift 4 feature like nested types inside generic types.
+
+
 ## Nuke 5.2
 
 Add support for both Swift 3.2 and 4.0.
