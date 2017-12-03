@@ -13,7 +13,7 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 
 - Load images into image views and other targets
 - Two [cache layers](https://kean.github.io/post/image-caching), fast LRU memory cache
-- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) plugins
+- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) extensions
 - [Freedom to use](#h_design) networking, caching libraries of your choice
 - [RxSwift](https://github.com/ReactiveX/RxSwift) extensions provided by [RxNuke](https://github.com/kean/RxNuke)
 - Automated [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
@@ -191,32 +191,20 @@ You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) 
 > See [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
 
 
-# Plugins<a name="h_plugins"></a>
+# Extensions<a name="h_plugins"></a>
 
-### [RxNuke](https://github.com/kean/RxNuke)
-
-[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with an examples of common use cases solved by Rx.
-
-### [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
-
-Allows you to replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire). Combine the power of both frameworks!
-
-### [Gifu Plugin](https://github.com/kean/Nuke-Gifu-Plugin)
-
-[Gifu](https://github.com/kaishin/Gifu) plugin allows you to load and display animated GIFs.
-
-### [Toucan Plugin](https://github.com/kean/Nuke-Toucan-Plugin) (Deprecated)
-
-[Toucan](https://github.com/gavinbunney/Toucan) plugin provides a simple API for processing images. It supports resizing, cropping, rounded rect masking and more.
-
-### [FLAnimatedImage Plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin) (Deprecated)
-
-[FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) plugin allows you to load and display animated GIFs with [smooth scrolling performance](https://www.youtube.com/watch?v=fEJqQMJrET4) and low memory footprint.
+|Name|Description|
+|--|--|
+|[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples of common use cases solved by Rx|
+|[**Alamofire**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks|
+|[**Gifu**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
+|[**Toucan**](https://github.com/kean/Nuke-Toucan-Plugin)|**(Deprecated)** [Toucan](https://github.com/gavinbunney/Toucan) offers a simple API for processing images|
+|[**FLAnimatedImage**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|**(Deprecated)** Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
 
 
 # Design<a name="h_design"></a>
 
-Nuke is designed to support [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection). It provides a set of protocols - each with a single responsibility - which manage loading, decoding, processing, and caching images. You can easily create and inject your own implementations of those protocols:
+Nuke is designed to support [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection). It provides a set of protocols - each with a single responsibility - which manage loading, decoding, processing, and caching images. You can easily create and inject your own implementations of the following protocols:
 
 |Protocol|Description|
 |--------|-----------|
