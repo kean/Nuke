@@ -238,8 +238,8 @@ internal final class LinkedList<V> {
 
     final class Node {
         let value: V
-        var next: Node?
-        var previous: Node?
+        fileprivate var next: Node?
+        fileprivate var previous: Node?
 
         init(value: V) { self.value = value }
     }
