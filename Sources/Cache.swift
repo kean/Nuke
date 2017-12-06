@@ -25,7 +25,16 @@ public extension Caching {
     }
 }
 
-/// Auto-purging memory cache with LRU cleanup.
+/// Memory cache with LRU cleanup policy (least recently used are removed first).
+///
+/// The elements stored in cache are automatically discarded if either *cost* or
+/// *count* limit is reached. The default cost limit represents a number of bytes
+/// and is calculated based on the amount of physical memory available on the
+/// device. The default count limit is set to `Int.max`.
+///
+/// `Cache` automatically removes all stored elements when it received a
+/// memory warning. It also automatically removes *most* of cached elements
+/// when the app enters background.
 public final class Cache: Caching {
     // We don't use `NSCache` because it's not LRU
 
@@ -34,10 +43,10 @@ public final class Cache: Caching {
     private let lock = Lock()
 
     /// The maximum total cost that the cache can hold.
-    public var costLimit: Int { didSet { lock.sync { trim() } } }
+    public var costLimit: Int { didSet { lock.sync { _trim() } } }
 
     /// The maximum number of items that the cache can hold.
-    public var countLimit: Int { didSet { lock.sync { trim() } } }
+    public var countLimit: Int { didSet { lock.sync { _trim() } } }
 
     /// The total cost of items in the cache.
     public private(set) var totalCost = 0
@@ -49,8 +58,9 @@ public final class Cache: Caching {
     public static let shared = Cache()
 
     /// Initializes `Cache`.
-    /// - parameter costLimit: Default value is calculated based on the amount
-    /// of the available memory.
+    /// - parameter costLimit: Default value representes a number of bytes and is
+    /// calculated based on the amount of the phisical memory available on the device.
+    /// - parameter countLimit: `Int.max` by default.
     public init(costLimit: Int = Cache.defaultCostLimit(), countLimit: Int = Int.max) {
         self.costLimit = costLimit
         self.countLimit = countLimit
@@ -66,6 +76,8 @@ public final class Cache: Caching {
         #endif
     }
 
+    /// Returns a recommended cost limit which is computed based on the amount
+    /// of the phisical memory available on the device.
     public static func defaultCostLimit() -> Int {
         let physicalMemory = ProcessInfo.processInfo.physicalMemory
         let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
@@ -76,7 +88,7 @@ public final class Cache: Caching {
     /// Accesses the image associated with the given key.
     public subscript(key: AnyHashable) -> Image? {
         get {
-            lock.lock()  // fslightly aster than `sync()`
+            lock.lock()  // slightly aster than `sync()`
             defer { lock.unlock() }
 
             guard let node = map[key] else { return nil }
@@ -88,29 +100,30 @@ public final class Cache: Caching {
             return node.value.image
         }
         set {
-            lock.lock() // fslightly faster than `sync()`
+            lock.lock() // slightly faster than `sync()`
             defer { lock.unlock() }
 
             if let image = newValue {
-                add(node: LinkedList.Node(value: CachedImage(image: image, cost: cost(image), key: key)))
-                trim()
+                let value = CachedImage(image: image, cost: cost(image), key: key)
+                _add(node: LinkedList.Node(value: value))
+                _trim() // _trim is extremely fast, it's OK to call it each time
             } else {
                 guard let node = map[key] else { return }
-                remove(node: node)
+                _remove(node: node)
             }
         }
     }
 
-    private func add(node: LinkedList<CachedImage>.Node) {
+    private func _add(node: LinkedList<CachedImage>.Node) {
         if let existingNode = map[node.value.key] {
-            remove(node: existingNode)
+            _remove(node: existingNode)
         }
         list.append(node)
         map[node.value.key] = node
         totalCost += node.value.cost
     }
 
-    private func remove(node: LinkedList<CachedImage>.Node) {
+    private func _remove(node: LinkedList<CachedImage>.Node) {
         list.remove(node)
         map[node.value.key] = nil
         totalCost -= node.value.cost
@@ -125,14 +138,14 @@ public final class Cache: Caching {
         }
     }
 
-    private func trim() {
+    private func _trim() {
         _trim(toCost: costLimit)
         _trim(toCount: countLimit)
     }
 
     @objc private dynamic func didEnterBackground() {
         // Remove most of the stored items when entering background.
-        // This behaviour is similar to `NSCache` (which removes all
+        // This behavior is similar to `NSCache` (which removes all
         // items). This feature is not documented and may be subject
         // to change in future Nuke versions.
         lock.sync {
@@ -148,7 +161,7 @@ public final class Cache: Caching {
     }
 
     private func _trim(toCost limit: Int) {
-        trim(while: { totalCost > limit })
+        _trim(while: { totalCost > limit })
     }
 
     /// Removes least recently used items from the cache until the total count
@@ -158,12 +171,12 @@ public final class Cache: Caching {
     }
 
     private func _trim(toCount limit: Int) {
-        trim(while: { totalCount > limit })
+        _trim(while: { totalCount > limit })
     }
 
-    private func trim(while condition: () -> Bool) {
+    private func _trim(while condition: () -> Bool) {
         while condition(), let node = list.tail { // least recently used
-            remove(node: node)
+            _remove(node: node)
         }
     }
 
@@ -172,6 +185,9 @@ public final class Cache: Caching {
         #if os(macOS)
             return 1
         #else
+            // bytesPerRow * height gives a rough estimation of how much memory
+            // image uses in bytes. In practice this algorithm combined with a 
+            // concervative default cost limit works OK.
             guard let cgImage = $0.cgImage else { return 1 }
             return cgImage.bytesPerRow * cgImage.height
         #endif
@@ -179,7 +195,7 @@ public final class Cache: Caching {
 }
 
 private struct CachedImage {
-    var image: Image
-    var cost: Int
-    var key: AnyHashable
+    let image: Image
+    let cost: Int
+    let key: AnyHashable
 }

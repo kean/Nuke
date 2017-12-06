@@ -17,15 +17,15 @@ internal final class Lock {
         mutex.deallocate(capacity: 1)
     }
 
-    @inline(__always) func sync<T>(_ closure: () -> T) -> T {
+    func sync<T>(_ closure: () -> T) -> T {
         pthread_mutex_lock(mutex)
         defer { pthread_mutex_unlock(mutex) }
         return closure()
     }
 
-    @inline(__always) func lock() { pthread_mutex_lock(mutex) }
+    func lock() { pthread_mutex_lock(mutex) }
 
-    @inline(__always) func unlock() { pthread_mutex_unlock(mutex) }
+    func unlock() { pthread_mutex_unlock(mutex) }
 }
 
 // MARK: - Extensions
