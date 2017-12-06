@@ -53,7 +53,7 @@ class CachePerformanceTests: XCTestCase {
         let cache = Cache()
         
         for i in 0..<200 {
-            cache[Request(url: URL(string: "http://test.com/\(i))")!)] = Image()
+            cache[Request(url: URL(string: "http://test.com/\(i)")!)] = Image()
         }
         
         var hits = 0
