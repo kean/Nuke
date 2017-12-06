@@ -196,7 +196,7 @@ internal final class TaskQueue {
 
 // MARK: - LinkedList
 
-/// Basic doubly linked list.
+// Basic doubly linked list.
 internal final class LinkedList<V> {
     // head <-> node <-> ... <-> tail
     private(set) var head: Node?
@@ -226,13 +226,13 @@ internal final class LinkedList<V> {
     }
 
     func removeAll() {
-        // Here's a clever trick to avoid recursive Nodes deallocation
-        var node = tail
-        while let previous = node?.previous {
-            previous.next = nil
-            node = previous
+        // avoid recursive Nodes deallocation
+        var node = head
+        while let next = node?.next {
+            node?.next = nil
+            next.previous = nil
+            node = next
         }
-
         head = nil
         tail = nil
     }
@@ -240,7 +240,7 @@ internal final class LinkedList<V> {
     final class Node {
         let value: V
         var next: Node?
-        weak var previous: Node?
+        var previous: Node?
 
         init(value: V) { self.value = value }
     }
