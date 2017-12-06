@@ -17,16 +17,15 @@ internal final class Lock {
         mutex.deallocate(capacity: 1)
     }
 
-    // In performance critical places using lock() and unlock() is slightly
-    // faster than using `sync(_:)` method.
-    func sync<T>(_ closure: () -> T) -> T {
+    @inline(__always) func sync<T>(_ closure: () -> T) -> T {
         pthread_mutex_lock(mutex)
         defer { pthread_mutex_unlock(mutex) }
         return closure()
     }
 
-    func lock() { pthread_mutex_lock(mutex) }
-    func unlock() { pthread_mutex_unlock(mutex) }
+    @inline(__always) func lock() { pthread_mutex_lock(mutex) }
+
+    @inline(__always) func unlock() { pthread_mutex_unlock(mutex) }
 }
 
 // MARK: - Extensions

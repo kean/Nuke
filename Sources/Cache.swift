@@ -76,7 +76,7 @@ public final class Cache: Caching {
     /// Accesses the image associated with the given key.
     public subscript(key: AnyHashable) -> Image? {
         get {
-            lock.lock()  // faster than `sync()`
+            lock.lock()  // fslightly aster than `sync()`
             defer { lock.unlock() }
 
             guard let node = map[key] else { return nil }
@@ -88,7 +88,7 @@ public final class Cache: Caching {
             return node.value.image
         }
         set {
-            lock.lock() // faster than `sync()`
+            lock.lock() // fslightly faster than `sync()`
             defer { lock.unlock() }
 
             if let image = newValue {
