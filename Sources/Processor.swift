@@ -30,7 +30,7 @@ public struct ProcessorComposition: Processing {
 
     /// Returns true if the underlying processors are pairwise-equivalent.
     public static func ==(lhs: ProcessorComposition, rhs: ProcessorComposition) -> Bool {
-        return lhs.processors.elementsEqual(rhs.processors)
+        return lhs.processors == rhs.processors
     }
 }
 

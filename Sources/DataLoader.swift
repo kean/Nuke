@@ -32,12 +32,14 @@ public final class DataLoader: DataLoading {
         return conf
     }
 
+    /// Validates `HTTP` responses by checking that the status code is 2xx.
     public static func validate(data: Data, response: URLResponse) -> Error? {
         guard let response = response as? HTTPURLResponse else { return nil }
         return (200..<300).contains(response.statusCode) ? nil : NSError(domain: NSURLErrorDomain, code: NSURLErrorBadServerResponse, userInfo: [NSLocalizedDescriptionKey: "Response status code was unacceptable: \(response.statusCode)."])
     }
 
-    /// Shared url cached used by a default `DataLoader`.
+    /// Shared url cached used by a default `DataLoader`. The cache is
+    /// initialized with 0 MB memory capacity and 150 MB disk capacity.
     public static let sharedUrlCache = URLCache(
         memoryCapacity: 0,
         diskCapacity: 150 * 1024 * 1024, // 150 MB

@@ -28,11 +28,19 @@ public extension Loading {
     }
 }
 
-/// `Loader` implements an image loading pipeline:
+/// `Loader` implements an image loading pipeline. It loads image data using
+/// data loader (`DataLoading`), then creates an image using `DataDecoding`
+/// object, and transform the image using processors (`Processing`) provided
+/// in the `Request`.
 ///
-/// 1. Load data using an object conforming to `DataLoading` protocol.
-/// 2. Create an image with the data using `DataDecoding` object.
-/// 3. Transform the image using processor (`Processing`) provided in the request.
+/// `Loader` combines the requests with the same `loadKey` into a single request.
+/// The request only gets cancelled when all the underlying requests are.
+///
+/// `Loader` limits the number of concurrent requests (the default maximum limit
+/// is 6). It also rate limits the requests to prevent `Loader` from trashing
+/// underlying systems with the requests (e.g. `URLSession`). The rate limiter
+/// only comes into play when the requests are started and cancelled at a high
+/// rate (e.g. fast scrolling through a collection view).
 ///
 /// `Loader` is thread-safe.
 public final class Loader: Loading {
@@ -108,7 +116,7 @@ public final class Loader: Loading {
     private func _loadImage(with task: Task) { // would be nice to rewrite to async/await
         _loadData(with: task) { [weak self] in
             switch $0 {
-            case let .success(val): self?.decode(response: val, task: task)
+            case let .success(val): self?._decode(response: val, task: task)
             case let .failure(err): self?._complete(task, result: .failure(err))
             }
         }
@@ -134,11 +142,11 @@ public final class Loader: Loading {
         }
     }
 
-    private func decode(response: (Data, URLResponse), task: Task) {
+    private func _decode(response: (Data, URLResponse), task: Task) {
         queue.async {
             self.decodingQueue.execute(token: task.cts.token) { [weak self] in
                 if let image = self?.decoder.decode(data: response.0, response: response.1) {
-                    self?.process(image: image, task: task)
+                    self?._process(image: image, task: task)
                 } else {
                     self?._complete(task, result: .failure(Error.decodingFailed))
                 }
@@ -146,7 +154,7 @@ public final class Loader: Loading {
         }
     }
 
-    private func process(image: Image, task: Task) {
+    private func _process(image: Image, task: Task) {
         queue.async {
             guard let processor = self.makeProcessor(image, task.request) else {
                 self._complete(task, result: .success(image)) // no need to process

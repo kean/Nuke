@@ -89,6 +89,8 @@ public final class Manager: Loading {
     /// Loads an image with a given request by using manager's cache and loader.
     ///
     /// - parameter completion: Gets called asynchronously on the main thread.
+    /// If the request is cancelled the completion closure isn't guaranteed to
+    /// be called.
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         // Check if image is in memory cache
         if let image = cachedImage(for: request) {
