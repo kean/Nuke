@@ -64,7 +64,7 @@ public struct AnyProcessor: Processing {
     ///
     /// Decompressing compressed image formats (such as JPEG) can significantly
     /// improve drawing performance as it allows a bitmap representation to be
-    /// created in the background rather than on the main thread.
+    /// created in a background rather than on the main thread.
     public struct Decompressor: Processing {
 
         /// An option for how to resize the image.

@@ -8,24 +8,29 @@ import Foundation
 public struct Request {
     
     // MARK: Parameters of the Request
-    
+
+    /// The `URLRequest` used for loading an image.
     public var urlRequest: URLRequest {
-        get { return container.resource.urlRequest }
+        get { return _container.resource.urlRequest }
         set {
-            applyMutation {
-                $0.resource = Resource.request(newValue)
+            _mutate {
+                $0.resource = Resource.urlRequest(newValue)
                 $0.urlString = newValue.url?.absoluteString
             }
         }
     }
 
     /// Processor to be applied to the image. `Decompressor` by default.
+    ///
+    /// Decompressing compressed image formats (such as JPEG) can significantly
+    /// improve drawing performance as it allows a bitmap representation to be
+    /// created in a background rather than on the main thread.
     public var processor: AnyProcessor? {
-        get { return container.processor }
-        set { applyMutation { $0.processor = newValue } }
+        get { return _container.processor }
+        set { _mutate { $0.processor = newValue } }
     }
 
-    /// The policy to use when dealing with memory cache.
+    /// The policy to use when reading or writing images to the memory cache.
     public struct MemoryCacheOptions {
         /// `true` by default.
         public var readAllowed = true
@@ -36,7 +41,7 @@ public struct Request {
         public init() {}
     }
 
-    /// `MemoryCacheOptions()` by default.
+    /// `MemoryCacheOptions()` (read allowed, write allowed) by default.
     public var memoryCacheOptions = MemoryCacheOptions()
 
     /// Returns a key that compares requests with regards to loading images.
@@ -49,43 +54,46 @@ public struct Request {
     /// If `nil` default key is used. See `Request.cacheKey(for:)` for more info.
     public var cacheKey: AnyHashable?
 
+    /// The closure that is executed periodically on the main thread to report
+    /// the progress of the request. `nil` by default.
     public var progress: ProgressHandler? {
-        get { return container.progress }
-        set { applyMutation { $0.progress = newValue }}
+        get { return _container.progress }
+        set { _mutate { $0.progress = newValue }}
     }
 
     /// Custom info passed alongside the request.
     public var userInfo: Any?
-    
-    
+
+
     // MARK: Initializers
-    
+
+    /// Initializes a request with the given URL.
     public init(url: URL) {
-        container = Container(resource: Resource.url(url))
-        container.urlString = url.absoluteString
+        _container = Container(resource: Resource.url(url))
+        _container.urlString = url.absoluteString
     }
-    
+
+    /// Initializes a request with the given request.
     public init(urlRequest: URLRequest) {
-        container = Container(resource: Resource.request(urlRequest))
-        container.urlString = urlRequest.url?.absoluteString
+        _container = Container(resource: Resource.urlRequest(urlRequest))
+        _container.urlString = urlRequest.url?.absoluteString
     }
 
     
-    // Everything in the scope below exists solely to improve performance
+    // CoW:
 
-    fileprivate var container: Container
+    private var _container: Container
 
-    private mutating func applyMutation(_ closure: (Container) -> Void) {
-        if !isKnownUniquelyReferenced(&container) {
-            container = container.copy()
+    private mutating func _mutate(_ closure: (Container) -> Void) {
+        if !isKnownUniquelyReferenced(&_container) {
+            _container = _container.copy()
         }
-        closure(container)
+        closure(_container)
     }
 
-    /// `Request` stores its parameters in a `Container` to avoid memberwise
-    /// retain/release when `Request` is passed around (and it is passed around
-    /// **a lot**). This optimization is known as `copy-on-write`.
-    fileprivate class Container {
+    /// Just like many Swift built-in types, `Request` uses CoW approach to
+    /// avoid memberwise retain/releases when `Request is passed around.
+    private class Container {
         var resource: Resource
         var urlString: String? // memoized absoluteString
         var processor: AnyProcessor?
@@ -112,16 +120,15 @@ public struct Request {
         #endif
     }
 
-    /// Resource representation (either URL or URLRequest). Only exists to
-    /// improve performance by lazily creating requests.
-    fileprivate enum Resource {
+    /// Resource representation (either URL or URLRequest).
+    private enum Resource {
         case url(URL)
-        case request(URLRequest)
+        case urlRequest(URLRequest)
 
         var urlRequest: URLRequest {
             switch self {
             case let .url(url): return URLRequest(url: url) // create lazily
-            case let .request(request): return request
+            case let .urlRequest(urlRequest): return urlRequest
             }
         }
     }
@@ -161,7 +168,7 @@ public extension Request {
     
     private static func makeCacheKey(_ request: Request) -> Key {
         return Key(request: request) {
-            $0.container.urlString == $1.container.urlString && $0.processor == $1.processor
+            $0._container.urlString == $1._container.urlString && $0.processor == $1.processor
         }
     }
 
@@ -180,7 +187,7 @@ public extension Request {
             return a.cachePolicy == b.cachePolicy && a.allowsCellularAccess == b.allowsCellularAccess
         }
         return Key(request: request) {
-            $0.container.urlString == $1.container.urlString
+            $0._container.urlString == $1._container.urlString
                 && isEqual($0.urlRequest, $1.urlRequest)
                 && $0.processor == $1.processor
         }
@@ -198,7 +205,7 @@ public extension Request {
 
         /// Returns hash from the request's URL.
         var hashValue: Int {
-            return request.container.urlString?.hashValue ?? 0
+            return request._container.urlString?.hashValue ?? 0
         }
 
         /// Compares two keys for equivalence.
