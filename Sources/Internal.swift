@@ -171,10 +171,11 @@ internal final class TaskQueue {
     private func _executeTask(_ task: Task) {
         guard !task.token.isCancelling else { return } // check if still not cancelled
         executingTaskCount += 1
+        var isFinished = false
         task.execute { [weak self] in
             self?.queue.async {
-                guard !task.isFinished else { return } // finish called twice
-                task.isFinished = true
+                guard !isFinished else { return } // finish called twice
+                isFinished = true
                 self?.executingTaskCount -= 1
                 self?._executeTasksIfNecessary()
             }
@@ -184,7 +185,6 @@ internal final class TaskQueue {
     private final class Task {
         let token: CancellationToken
         let execute: (_ finish: @escaping () -> Void) -> Void
-        var isFinished: Bool = false
 
         init(token: CancellationToken, execute: @escaping (_ finish: @escaping () -> Void) -> Void) {
             self.token = token
