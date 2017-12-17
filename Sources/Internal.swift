@@ -196,7 +196,7 @@ internal final class TaskQueue {
 // MARK: - LinkedList
 
 // Basic doubly linked list.
-internal final class LinkedList<V> {
+internal final class LinkedList<T> {
     // head <-> node <-> ... <-> tail
     private(set) var head: Node?
     private(set) var tail: Node?
@@ -237,10 +237,38 @@ internal final class LinkedList<V> {
     }
 
     final class Node {
-        let value: V
+        let value: T
         fileprivate var next: Node?
         fileprivate var previous: Node?
 
-        init(value: V) { self.value = value }
+        init(value: T) { self.value = value }
+    }
+}
+
+// MARK: - Bag
+
+/// Lightweight data structure for suitable for storing small number of elements.
+internal struct Bag<T> {
+    private var head: Node?
+
+    private final class Node {
+        let value: T
+        var next: Node?
+        init(_ value: T, next: Node? = nil ) {
+            self.value = value; self.next = next
+        }
+    }
+
+    mutating func insert(_ value: T) {
+        guard let node = head else { self.head = Node(value); return }
+        self.head = Node(value, next: node)
+    }
+
+    func forEach(_ closure: (T) -> Void) {
+        var node = self.head
+        while node != nil {
+            closure(node!.value)
+            node = node?.next
+        }
     }
 }

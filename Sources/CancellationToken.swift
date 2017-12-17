@@ -17,7 +17,7 @@ public final class CancellationTokenSource {
     /// Creates a new token associated with the source.
     public var token: CancellationToken { return CancellationToken(source: self) }
 
-    private var _observers: [() -> Void]? = []
+    private var _observers: Bag<() -> Void>? = Bag<() -> Void>()
 
     /// Initializes the `CancellationTokenSource` instance.
     public init() {}
@@ -30,7 +30,7 @@ public final class CancellationTokenSource {
 
     private func _register(_ closure: @escaping () -> Void) -> Bool {
         _lock.lock(); defer { _lock.unlock() }
-        _observers?.append(closure)
+        _observers?.insert(closure)
         return _observers != nil
     }
 
@@ -41,7 +41,7 @@ public final class CancellationTokenSource {
         }
     }
 
-    private func _cancel() -> [() -> Void]? {
+    private func _cancel() -> Bag<() -> Void>? {
         _lock.lock(); defer { _lock.unlock() }
         let observers = _observers
         _observers = nil // transition to `isCancelling` state

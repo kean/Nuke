@@ -9,7 +9,7 @@ class ManagerPerformanceTests: XCTestCase {
     func testDefaultManager() {
         let view = ImageView()
 
-        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }
+        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }
         
         measure {
             for url in urls {
