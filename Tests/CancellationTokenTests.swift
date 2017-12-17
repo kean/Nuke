@@ -73,4 +73,21 @@ class CancellationTokenTests: XCTestCase {
         
         wait(10)
     }
+
+    func testCancellingOneFromAnother() {
+        let cts1 = CancellationTokenSource()
+        let cts2 = CancellationTokenSource()
+
+        expect { fulfil in
+            cts1.token.register {
+                cts2.cancel()
+            }
+            cts2.token.register {
+                fulfil()
+            }
+        }
+
+        cts1.cancel()
+        wait()
+    }
 }
