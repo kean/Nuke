@@ -15,6 +15,7 @@ public protocol Loading {
 }
 
 public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
+private typealias Completion = (Result<Image>) -> Void
 
 public extension Loading {
     /// Loads an image with the given request.
@@ -77,15 +78,19 @@ public final class Loader: Loading {
         self.taskQueue = TaskQueue(maxConcurrentTaskCount: maxConcurrentRequestCount)
     }
 
+    // MARK: Loading
+
     /// Loads an image for the given request using image loading pipeline.
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         queue.async {
             if token?.isCancelling == true { return } // Fast preflight check
-            self._loadImage(with: request, token: token, completion: completion)
+            self._loadImageDeduplicating(request, token: token, completion: completion)
         }
     }
 
-    private func _loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+    // MARK: Deduplication
+
+    private func _loadImageDeduplicating(_ request: Request, token: CancellationToken?, completion: @escaping Completion) {
         let task = _startTask(with: request)
 
         // Combine requests with the same `loadKey` into a single request.
@@ -102,71 +107,28 @@ public final class Loader: Loading {
     private func _startTask(with request: Request) -> Task {
         // Check if the task for the same request already exists.
         let key = Request.loadKey(for: request)
-        if let task = tasks[key] { return task }
+        guard let task = tasks[key] else {
+            let task = Task(request: request, key: key)
+            tasks[key] = task
 
-        let task = Task(request: request, key: key)
-        tasks[key] = task
-        // Use rate limiter to prevent trashing of the underlying systems
-        rateLimiter.execute(token: task.cts.token) { [weak self] in
-            self?._loadImage(with: task)
+            // Start the pipeline
+            var request = request // make a copy to set a custom progress handler
+            request.progress = { [weak self, weak task] in
+                if let task = task { self?._progress(completed: $0, total: $1, task: task) }
+            }
+            _loadImage(with: request, token: task.cts.token) { [weak self, weak task] in
+                if let task = task { self?._complete(task, result: $0) }
+            }
+            return task
         }
         return task
-    }
-
-    private func _loadImage(with task: Task) { // would be nice to rewrite to async/await
-        _loadData(with: task) { [weak self] in
-            switch $0 {
-            case let .success(val): self?._decode(response: val, task: task)
-            case let .failure(err): self?._complete(task, result: .failure(err))
-            }
-        }
-    }
-
-    private func _loadData(with task: Task, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        let token = task.cts.token
-        taskQueue.execute(token: token) { [weak self] finish in
-            self?.loader.loadData(with: task.request.urlRequest, token: token, progress: {
-                self?._progress(completed: $0, total: $1, task: task)
-            }, completion: {
-                finish()
-                completion($0)
-            })
-            token.register { finish() }
-        }
     }
 
     private func _progress(completed: Int64, total: Int64, task: Task) {
         queue.async {
             let handlers = task.handlers.flatMap { $0.progress }
+            guard !handlers.isEmpty else { return }
             DispatchQueue.main.async { handlers.forEach { $0(completed, total) } }
-        }
-    }
-
-    private func _decode(response: (Data, URLResponse), task: Task) {
-        queue.async {
-            self.decodingQueue.execute(token: task.cts.token) { [weak self] in
-                if let image = self?.decoder.decode(data: response.0, response: response.1) {
-                    self?._process(image: image, task: task)
-                } else {
-                    self?._complete(task, result: .failure(Error.decodingFailed))
-                }
-            }
-        }
-    }
-
-    private func _process(image: Image, task: Task) {
-        queue.async {
-            guard let processor = self.makeProcessor(image, task.request) else {
-                self._complete(task, result: .success(image)) // no need to process
-                return
-            }
-            self.processingQueue.execute(token: task.cts.token) { [weak self] in
-                if let image = processor.process(image) {
-                    self?._complete(task, result: .success(image))
-                } else {
-                    self?._complete(task, result: .failure(Error.processingFailed))
-                }
-            }
         }
     }
 
@@ -199,8 +161,7 @@ public final class Loader: Loading {
         var retainCount = 0 // number of non-cancelled handlers
 
         init(request: Request, key: AnyHashable) {
-            self.request = request
-            self.key = key
+            self.request = request; self.key = key
         }
 
         struct Handler {
@@ -208,6 +169,55 @@ public final class Loader: Loading {
             let completion: (Result<Image>) -> Void
         }
     }
+
+    // MARK: Pipeline
+
+    private func _loadImage(with request: Request, token: CancellationToken, completion: @escaping Completion) {
+        // Use rate limiter to prevent trashing of the underlying systems
+        rateLimiter.execute(token: token) { [weak self] in
+            self?._loadData(with: request, token: token, completion: completion)
+        }
+    }
+
+    // would be nice to rewrite to async/await
+    private func _loadData(with request: Request, token: CancellationToken, completion: @escaping Completion) {
+        taskQueue.execute(token: token) { [weak self] finish in
+            self?.loader.loadData(with: request.urlRequest, token: token, progress: {
+                request.progress?($0, $1)
+            }, completion: {
+                finish()
+
+                switch $0 {
+                case let .success(val): self?._decode(response: val, request: request, token: token, completion: completion)
+                case let .failure(err): completion(.failure(err))
+                }
+            })
+            token.register { finish() }
+        }
+    }
+
+    private func _decode(response: (Data, URLResponse), request: Request, token: CancellationToken, completion: @escaping Completion) {
+        decodingQueue.execute(token: token) { [weak self] in
+            guard let image = self?.decoder.decode(data: response.0, response: response.1) else {
+                completion(.failure(Error.decodingFailed)); return
+            }
+            self?._process(image: image, request: request, token: token, completion: completion)
+        }
+    }
+
+    private func _process(image: Image, request: Request, token: CancellationToken, completion: @escaping Completion) {
+        guard let processor = makeProcessor(image, request) else {
+            completion(.success(image)); return // no need to process
+        }
+        processingQueue.execute(token: token) {
+            guard let image = processor.process(image) else {
+                completion(.failure(Error.processingFailed)); return
+            }
+            completion(.success(image))
+        }
+    }
+
+    // MARK: Misc
 
     /// Error returns by `Loader` class itself. `Loader` might also return
     /// errors from underlying `DataLoading` object.

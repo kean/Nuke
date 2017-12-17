@@ -14,14 +14,13 @@ public final class CancellationTokenSource {
         return _observers == nil
     }
 
-    private var _observers: [() -> Void]? = []
-
     /// Creates a new token associated with the source.
     public var token: CancellationToken { return CancellationToken(source: self) }
 
+    private var _observers: [() -> Void]? = []
+
     /// Initializes the `CancellationTokenSource` instance.
     public init() {}
-
 
     fileprivate func register(_ closure: @escaping () -> Void) {
         if !_register(closure) {

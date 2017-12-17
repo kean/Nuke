@@ -138,12 +138,11 @@ public extension Request {
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
     public mutating func process<P: Processing>(with processor: P) {
-        if let existing = self.processor {
-            // Chain new processor and the existing one.
-            self.processor = AnyProcessor(ProcessorComposition([existing, AnyProcessor(processor)]))
-        } else {
-            self.processor = AnyProcessor(processor)
+        guard let existing = self.processor else {
+            self.processor = AnyProcessor(processor); return
         }
+        // Chain new processor and the existing one.
+        self.processor = AnyProcessor(ProcessorComposition([existing, AnyProcessor(processor)]))
     }
 
     /// Appends a processor to the request. You can append arbitrary number of

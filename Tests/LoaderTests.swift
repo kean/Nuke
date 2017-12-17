@@ -190,4 +190,32 @@ class LoaderDeduplicationTests: XCTestCase {
             XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
         }
     }
+
+    func testThatProgressIsReported() {
+        dataLoader.queue.isSuspended = true
+
+        for _ in 0..<3 {
+            var request = Request(url: defaultURL)
+            expect { fulfill in
+                var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
+                request.progress = {
+                    XCTAssertTrue(Thread.isMainThread)
+                    XCTAssertTrue(expected.first?.0 == $0)
+                    XCTAssertTrue(expected.first?.1 == $1)
+                    expected.remove(at: 0)
+                    if expected.isEmpty {
+                        fulfill()
+                    }
+                }
+            }
+            expect { fulfill in
+                loader.loadImage(with: request) { _ in
+                    fulfill()
+                }
+            }
+        }
+        dataLoader.queue.isSuspended = false
+
+        wait()
+    }
 }
