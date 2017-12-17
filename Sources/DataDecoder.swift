@@ -18,8 +18,6 @@ public protocol DataDecoding {
     func decode(data: Data, response: URLResponse) -> Image?
 }
 
-private let queue = DispatchQueue(label: "com.github.kean.Nuke.DataDecoder")
-
 /// Decodes image data.
 public struct DataDecoder: DataDecoding {
     /// Initializes the receiver.
@@ -27,32 +25,39 @@ public struct DataDecoder: DataDecoding {
 
     /// Creates an image with the given data.
     public func decode(data: Data, response: URLResponse) -> Image? {
-        // Image initializers are documented as fully-thread safe:
-        //
-        // > The immutable nature of image objects also means that they are safe
-        //   to create and use from any thread.
-        //
-        // However, there are some versions of iOS which violated this. The
-        // `UIImage` is supposably fully thread safe again starting with iOS 10.
-        //
-        // The `queue.sync` call below prevents the majority of the potential
-        // crashes that could happen on the previous versions of iOS.
-        //
-        // See also https://github.com/AFNetworking/AFNetworking/issues/2572
-        return queue.sync {
-            #if os(macOS)
-                return NSImage(data: data)
-            #else
-                #if os(iOS) || os(tvOS)
-                    let scale = UIScreen.main.scale
-                #else
-                    let scale = WKInterfaceDevice.current().screenScale
-                #endif
-                return UIImage(data: data, scale: scale)
-            #endif
-        }
+        return _decode(data)
     }
 }
+
+// Image initializers are documented as fully-thread safe:
+//
+// > The immutable nature of image objects also means that they are safe
+//   to create and use from any thread.
+//
+// However, there are some versions of iOS which violated this. The
+// `UIImage` is supposably fully thread safe again starting with iOS 10.
+//
+// The `queue.sync` call below prevents the majority of the potential
+// crashes that could happen on the previous versions of iOS.
+//
+// See also https://github.com/AFNetworking/AFNetworking/issues/2572
+private let _queue = DispatchQueue(label: "com.github.kean.Nuke.DataDecoder")
+
+private func _decode(_ data: Data) -> Image? {
+    return _queue.sync {
+        #if os(macOS)
+            return NSImage(data: data)
+        #else
+            #if os(iOS) || os(tvOS)
+                let scale = UIScreen.main.scale
+            #else
+                let scale = WKInterfaceDevice.current().screenScale
+            #endif
+            return UIImage(data: data, scale: scale)
+        #endif
+    }
+}
+
 
 /// Composes multiple data decoders.
 public final class DataDecoderComposition: DataDecoding {
