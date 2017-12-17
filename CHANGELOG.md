@@ -1,3 +1,12 @@
+## Nuke 6.0-beta2
+
+- Fix memory leak in `Loader` - regression introduced in `6.0-beta1`
+- Get rid of Thread Sanitizer warnings in `CancellationTokenSource` (false positive)
+- Improve performance of `CancellationTokenSource`
+- Improve `Cache` hits and writes performance by ~15%
+- Improve `Loader` performance
+
+
 ## Nuke 6.0-beta1
 
 > About 8 months ago I've started using Nuke in production. The project matured from being a playground for experimenting with Swift features to something that I rely on in my days work. The primary goal behind Nuke 6 is to simplify the project even further, and to get rid of the implementation details leaking into a public API.
