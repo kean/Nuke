@@ -50,6 +50,32 @@ class CancellationTokenTests: XCTestCase {
         
         XCTAssertTrue(isClosureCalled)
     }
+
+    func testMultipleClosuresRegistered() {
+        let cts = CancellationTokenSource()
+        let token = cts.token
+
+        var isClosureCalled = false
+
+        expect { fulfil in
+            token.register {
+                fulfil()
+                isClosureCalled = true
+            }
+        }
+        expect { fulfil in
+            token.register {
+                fulfil()
+                isClosureCalled = true
+            }
+        }
+
+        XCTAssertFalse(isClosureCalled)
+
+        cts.cancel()
+
+        wait()
+    }
     
     func testThreadSafety() {
         for _ in 0..<100 {
