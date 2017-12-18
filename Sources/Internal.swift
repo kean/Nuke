@@ -53,7 +53,7 @@ internal extension DispatchQueue {
 internal final class RateLimiter {
     private let bucket: TokenBucket
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.RateLimiter")
-    private var pendingItems = LinkedList<Item>() // fast add to head, remove from tail
+    private var pendingItems = LinkedList<Item>() // fast append, remove first
     private var isExecutingPendingItems = false
 
     private typealias Item = (CancellationToken, () -> Void)
@@ -71,7 +71,7 @@ internal final class RateLimiter {
         queue.sync {
             let item = Item(token, closure)
             if !pendingItems.isEmpty || !_execute(item) {
-                pendingItems.append(LinkedList<Item>.Node(value: item))
+                pendingItems.append(item)
                 _setNeedsExecutePendingItems()
             }
         }
@@ -91,7 +91,7 @@ internal final class RateLimiter {
     }
 
     private func _executePendingItems() {
-        while let node = pendingItems.tail, _execute(node.value) {
+        while let node = pendingItems.first, _execute(node.value) {
             pendingItems.remove(node)
         }
         isExecutingPendingItems = false
@@ -144,7 +144,7 @@ internal final class TaskQueue {
     // An alternative of using custom Foundation.Operation requires more code,
     // less performant and even harder to get right https://github.com/kean/Nuke/issues/141.
     private var executingTaskCount: Int = 0
-    private var pendingTasks = LinkedList<Task>() // fast add to head, remove from tail
+    private var pendingTasks = LinkedList<Task>() // fast append, remove first
     private let maxConcurrentTaskCount: Int
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Queue")
 
@@ -155,14 +155,13 @@ internal final class TaskQueue {
     internal func execute(token: CancellationToken, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
         queue.async {
             guard !token.isCancelling else { return } // fast preflight check
-            let task = Task(token: token, execute: closure)
-            self.pendingTasks.append(LinkedList.Node(value: task))
+            self.pendingTasks.append(Task(token: token, execute: closure))
             self._executeTasksIfNecessary()
         }
     }
 
     private func _executeTasksIfNecessary() {
-        while executingTaskCount < maxConcurrentTaskCount, let task = pendingTasks.tail {
+        while executingTaskCount < maxConcurrentTaskCount, let task = pendingTasks.first {
             pendingTasks.remove(task)
             _executeTask(task.value)
         }
@@ -196,54 +195,61 @@ internal final class TaskQueue {
 // MARK: - LinkedList
 
 // Basic doubly linked list.
-internal final class LinkedList<T> {
-    // head <-> node <-> ... <-> tail
-    private(set) var head: Node?
-    private(set) var tail: Node?
+internal final class LinkedList<Element> {
+    // first <-> node <-> ... <-> last
+    private(set) var last: Node?
+    private(set) var first: Node?
 
-    deinit { removeAll() }
+    deinit { removeAll() } // only available on classes
 
-    var isEmpty: Bool { return head == nil }
+    var isEmpty: Bool { return last == nil }
 
-    /// Appends node to the head.
+    /// Adds an element to the end of the list.
+    @discardableResult func append(_ element: Element) -> Node {
+        let node = Node(value: element)
+        append(node)
+        return node
+    }
+
+    /// Adds a node to the end of the list.
     func append(_ node: Node) {
-        if let currentHead = head {
-            head = node
-            currentHead.previous = node
-            node.next = currentHead
+        if let last = last {
+            last.next = node
+            node.previous = last
+            self.last = node
         } else {
-            head = node
-            tail = node
+            last = node
+            first = node
         }
     }
 
     func remove(_ node: Node) {
-        node.next?.previous = node.previous // node.previous is nil if node=head
-        node.previous?.next = node.next // node.next is nil if node=tail
-        if node === head { head = node.next }
-        if node === tail { tail = node.previous }
+        node.next?.previous = node.previous // node.previous is nil if node=first
+        node.previous?.next = node.next // node.next is nil if node=last
+        if node === last { last = node.previous }
+        if node === first { first = node.next }
         node.next = nil
         node.previous = nil
     }
 
     func removeAll() {
         // avoid recursive Nodes deallocation
-        var node = head
+        var node = first
         while let next = node?.next {
             node?.next = nil
             next.previous = nil
             node = next
         }
-        head = nil
-        tail = nil
+        last = nil
+        first = nil
     }
 
     final class Node {
-        let value: T
+        let value: Element
         fileprivate var next: Node?
         fileprivate var previous: Node?
 
-        init(value: T) { self.value = value }
+        init(value: Element) { self.value = value }
     }
 }
 
@@ -251,7 +257,7 @@ internal final class LinkedList<T> {
 
 /// Lightweight unordered data structure for storing a small number of elements.
 internal struct Bag<Element>: Sequence, IteratorProtocol {
-    private var head: Node?
+    private var first: Node?
 
     private final class Node {
         let value: Element
@@ -262,8 +268,8 @@ internal struct Bag<Element>: Sequence, IteratorProtocol {
     }
 
     mutating func insert(_ value: Element) {
-        guard let node = head else { self.head = Node(value); return }
-        self.head = Node(value, next: node)
+        guard let node = first else { self.first = Node(value); return }
+        self.first = Node(value, next: node)
     }
 
     func makeIterator() -> Bag<Element> {
@@ -271,8 +277,8 @@ internal struct Bag<Element>: Sequence, IteratorProtocol {
     }
 
     mutating func next() -> Element? {
-        let element = head?.value
-        head = head?.next
+        let element = first?.value
+        first = first?.next
         return element
     }
 }

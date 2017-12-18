@@ -93,7 +93,7 @@ public final class Cache: Caching {
 
             guard let node = map[key] else { return nil }
 
-            // bubble node up to the head
+            // bubble node up to make it last added (most recently used)
             list.remove(node)
             list.append(node)
 
@@ -104,8 +104,7 @@ public final class Cache: Caching {
             defer { lock.unlock() }
 
             if let image = newValue {
-                let value = CachedImage(image: image, cost: cost(image), key: key)
-                _add(node: LinkedList.Node(value: value))
+                _add(CachedImage(image: image, cost: cost(image), key: key))
                 _trim() // _trim is extremely fast, it's OK to call it each time
             } else {
                 guard let node = map[key] else { return }
@@ -114,13 +113,12 @@ public final class Cache: Caching {
         }
     }
 
-    private func _add(node: LinkedList<CachedImage>.Node) {
-        if let existingNode = map[node.value.key] {
+    private func _add(_ element: CachedImage) {
+        if let existingNode = map[element.key] {
             _remove(node: existingNode)
         }
-        list.append(node)
-        map[node.value.key] = node
-        totalCost += node.value.cost
+        map[element.key] = list.append(element)
+        totalCost += element.cost
     }
 
     private func _remove(node: LinkedList<CachedImage>.Node) {
@@ -175,7 +173,7 @@ public final class Cache: Caching {
     }
 
     private func _trim(while condition: () -> Bool) {
-        while condition(), let node = list.tail { // least recently used
+        while condition(), let node = list.first { // least recently used
             _remove(node: node)
         }
     }
