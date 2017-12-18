@@ -9,6 +9,8 @@ import XCTest
 class BagTests: XCTestCase {
     var bag = Bag<Int>()
 
+    // MARK: `insert(_:)`
+
     func testInsert() {
         XCTAssertEqual(Set(bag), [])
 

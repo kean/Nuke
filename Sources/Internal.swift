@@ -53,10 +53,10 @@ internal extension DispatchQueue {
 internal final class RateLimiter {
     private let bucket: TokenBucket
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.RateLimiter")
-    private var pendingItems = LinkedList<Item>() // fast append, remove first
-    private var isExecutingPendingItems = false
+    private var pending = LinkedList<Task>() // fast append, fast remove first
+    private var isExecutingPendingTasks = false
 
-    private typealias Item = (CancellationToken, () -> Void)
+    private typealias Task = (CancellationToken, () -> Void)
 
     /// Initializes the `RateLimiter` with the given configuration.
     /// - parameter rate: Maximum number of requests per second. 45 by default.
@@ -66,37 +66,36 @@ internal final class RateLimiter {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
-    internal func execute(token: CancellationToken, closure: @escaping () -> Void) {
-        guard !token.isCancelling else { return } // fast preflight check
+    internal func execute(token: CancellationToken, _ closure: @escaping () -> Void) {
         queue.sync {
-            let item = Item(token, closure)
-            if !pendingItems.isEmpty || !_execute(item) {
-                pendingItems.append(item)
-                _setNeedsExecutePendingItems()
+            let task = Task(token, closure)
+            if !pending.isEmpty || !_execute(task) {
+                pending.append(task)
+                _setNeedsExecutePendingTasks()
             }
         }
     }
 
-    private func _execute(_ item: Item) -> Bool {
-        guard !item.0.isCancelling else { return true } // no need to execute
-        return bucket.execute { item.1() }
+    private func _execute(_ task: Task) -> Bool {
+        guard !task.0.isCancelling else { return true } // no need to execute
+        return bucket.execute { task.1() }
     }
 
-    private func _setNeedsExecutePendingItems() {
-        guard !isExecutingPendingItems else { return }
-        isExecutingPendingItems = true
+    private func _setNeedsExecutePendingTasks() {
+        guard !isExecutingPendingTasks else { return }
+        isExecutingPendingTasks = true
         queue.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            self?._executePendingItems()
+            self?._executePendingTasks()
         }
     }
 
-    private func _executePendingItems() {
-        while let node = pendingItems.first, _execute(node.value) {
-            pendingItems.remove(node)
+    private func _executePendingTasks() {
+        while let node = pending.first, _execute(node.value) {
+            pending.remove(node)
         }
-        isExecutingPendingItems = false
-        if !pendingItems.isEmpty { // not all pending items were executed
-            _setNeedsExecutePendingItems()
+        isExecutingPendingTasks = false
+        if !pending.isEmpty { // not all pending items were executed
+            _setNeedsExecutePendingTasks()
         }
     }
 
@@ -144,50 +143,43 @@ internal final class TaskQueue {
     // An alternative of using custom Foundation.Operation requires more code,
     // less performant and even harder to get right https://github.com/kean/Nuke/issues/141.
     private var executingTaskCount: Int = 0
-    private var pendingTasks = LinkedList<Task>() // fast append, remove first
+    private var pendingTasks = LinkedList<Task>() // fast append, fast remove first
     private let maxConcurrentTaskCount: Int
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Queue")
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.TaskQueue")
+
+    internal typealias Work = (_ finish: @escaping () -> Void) -> Void
+    private typealias Task = (CancellationToken, Work)
 
     internal init(maxConcurrentTaskCount: Int) {
         self.maxConcurrentTaskCount = maxConcurrentTaskCount
     }
 
-    internal func execute(token: CancellationToken, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
+    internal func execute(token: CancellationToken, _ closure: @escaping Work) {
         queue.async {
             guard !token.isCancelling else { return } // fast preflight check
-            self.pendingTasks.append(Task(token: token, execute: closure))
+            self.pendingTasks.append((token, closure))
             self._executeTasksIfNecessary()
         }
     }
 
     private func _executeTasksIfNecessary() {
-        while executingTaskCount < maxConcurrentTaskCount, let task = pendingTasks.first {
-            pendingTasks.remove(task)
-            _executeTask(task.value)
+        while executingTaskCount < maxConcurrentTaskCount, let first = pendingTasks.first {
+            pendingTasks.remove(first)
+            _executeTask(first.value)
         }
     }
 
     private func _executeTask(_ task: Task) {
-        guard !task.token.isCancelling else { return } // check if still not cancelled
+        guard !task.0.isCancelling else { return } // check if still not cancelled
         executingTaskCount += 1
         var isFinished = false
-        task.execute { [weak self] in
+        task.1 { [weak self] in
             self?.queue.async {
                 guard !isFinished else { return } // finish called twice
                 isFinished = true
                 self?.executingTaskCount -= 1
                 self?._executeTasksIfNecessary()
             }
-        }
-    }
-
-    private final class Task {
-        let token: CancellationToken
-        let execute: (_ finish: @escaping () -> Void) -> Void
-
-        init(token: CancellationToken, execute: @escaping (_ finish: @escaping () -> Void) -> Void) {
-            self.token = token
-            self.execute = execute
         }
     }
 }

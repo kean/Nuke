@@ -9,6 +9,8 @@ import XCTest
 class LinkedListTests: XCTestCase {
     let list = LinkedList<Int>()
 
+    // MARK: `append(_:)`
+
     func testAppend() {
         XCTAssertNil(list.first)
         XCTAssertNil(list.last)
@@ -24,9 +26,9 @@ class LinkedListTests: XCTestCase {
         XCTAssertEqual(list.last?.value, 2)
     }
 
-    func testRemoveSingle() {
-        let list = LinkedList<Int>()
+    // MARK: `remove(_:)`
 
+    func testRemoveSingle() {
         let node = list.append(1)
 
         list.remove(node)
@@ -34,9 +36,7 @@ class LinkedListTests: XCTestCase {
         XCTAssertNil(list.last)
     }
 
-    func testRemoveFirst() {
-        let list = LinkedList<Int>()
-
+    func testRemoveFromBeggining() {
         let node = list.append(1)
         list.append(2)
         list.append(3)
@@ -46,9 +46,7 @@ class LinkedListTests: XCTestCase {
         XCTAssertEqual(list.last?.value, 3)
     }
 
-    func testRemoveLast() {
-        let list = LinkedList<Int>()
-
+    func testRemoveFromEnd() {
         list.append(1)
         list.append(2)
         let node = list.append(3)
@@ -58,9 +56,7 @@ class LinkedListTests: XCTestCase {
         XCTAssertEqual(list.last?.value, 2)
     }
 
-    func testRemoveMiddle() {
-        let list = LinkedList<Int>()
-
+    func testRemoveFromMiddle() {
         list.append(1)
         let node = list.append(2)
         list.append(3)
@@ -71,8 +67,6 @@ class LinkedListTests: XCTestCase {
     }
 
     func testRemoveAll() {
-        let list = LinkedList<Int>()
-
         list.append(1)
         list.append(2)
         list.append(3)
