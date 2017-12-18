@@ -97,7 +97,7 @@ public final class Loader: Loading {
         // The request only gets cancelled when all the underlying requests are.
         task.retainCount += 1
         let handler = Task.Handler(progress: request.progress, completion: completion)
-        task.handlers.append(handler)
+        task.handlers.insert(handler)
 
         token?.register { [weak self, weak task] in
             if let task = task { self?._cancel(task) }
@@ -157,7 +157,7 @@ public final class Loader: Loading {
         let key: AnyHashable
 
         let cts = CancellationTokenSource()
-        var handlers = [Handler]()
+        var handlers = Bag<Handler>()
         var retainCount = 0 // number of non-cancelled handlers
 
         init(request: Request, key: AnyHashable) {

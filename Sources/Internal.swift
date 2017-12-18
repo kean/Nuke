@@ -247,7 +247,7 @@ internal final class LinkedList<T> {
 
 // MARK: - Bag
 
-/// Lightweight data structure for suitable for storing small number of elements.
+/// Lightweight unordered data structure for storing a small number of elements.
 internal struct Bag<Element>: Sequence, IteratorProtocol {
     private var head: Node?
 
