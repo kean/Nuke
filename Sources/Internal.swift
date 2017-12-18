@@ -194,11 +194,11 @@ internal final class TaskQueue {
 
 // MARK: - LinkedList
 
-// Basic doubly linked list.
+/// A doubly linked list.
 internal final class LinkedList<Element> {
     // first <-> node <-> ... <-> last
-    private(set) var last: Node?
     private(set) var first: Node?
+    private(set) var last: Node?
 
     deinit { removeAll() } // only available on classes
 
@@ -256,29 +256,35 @@ internal final class LinkedList<Element> {
 // MARK: - Bag
 
 /// Lightweight unordered data structure for storing a small number of elements.
-internal struct Bag<Element>: Sequence, IteratorProtocol {
-    private var first: Node?
+internal struct Bag<Element>: Sequence {
+    private var first: Node? // use singly linked list for storage
 
-    private final class Node {
+    private final class Node { // just element and next node
         let value: Element
         var next: Node?
-        init(_ value: Element, next: Node? = nil ) {
-            self.value = value; self.next = next
-        }
+        init(_ value: Element) { self.value = value }
     }
 
     mutating func insert(_ value: Element) {
-        guard let node = first else { self.first = Node(value); return }
-        self.first = Node(value, next: node)
+        let node = Node(value)
+        node.next = first
+        first = node
     }
 
-    func makeIterator() -> Bag<Element> {
-        return self
+    // MARK: Sequence
+
+    internal struct BagIterator: IteratorProtocol {
+        private var first: Node?
+        init(_ bag: Bag) { self.first = bag.first }
+
+        mutating func next() -> Element? {
+            let element = first?.value
+            first = first?.next
+            return element
+        }
     }
 
-    mutating func next() -> Element? {
-        let element = first?.value
-        first = first?.next
-        return element
+    func makeIterator() -> BagIterator {
+        return BagIterator(self)
     }
 }
