@@ -248,27 +248,29 @@ internal final class LinkedList<T> {
 // MARK: - Bag
 
 /// Lightweight data structure for suitable for storing small number of elements.
-internal struct Bag<T> {
+internal struct Bag<Element>: Sequence, IteratorProtocol {
     private var head: Node?
 
     private final class Node {
-        let value: T
+        let value: Element
         var next: Node?
-        init(_ value: T, next: Node? = nil ) {
+        init(_ value: Element, next: Node? = nil ) {
             self.value = value; self.next = next
         }
     }
 
-    mutating func insert(_ value: T) {
+    mutating func insert(_ value: Element) {
         guard let node = head else { self.head = Node(value); return }
         self.head = Node(value, next: node)
     }
 
-    func forEach(_ closure: (T) -> Void) {
-        var node = self.head
-        while node != nil {
-            closure(node!.value)
-            node = node?.next
-        }
+    func makeIterator() -> Bag<Element> {
+        return self
+    }
+
+    mutating func next() -> Element? {
+        let element = head?.value
+        head = head?.next
+        return element
     }
 }
