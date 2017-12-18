@@ -53,7 +53,7 @@ internal extension DispatchQueue {
 internal final class RateLimiter {
     private let bucket: TokenBucket
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.RateLimiter")
-    private var pendingItems = [Item]()
+    private var pendingItems = LinkedList<Item>() // fast add to head, remove from tail
     private var isExecutingPendingItems = false
 
     private typealias Item = (CancellationToken, () -> Void)
@@ -71,7 +71,7 @@ internal final class RateLimiter {
         queue.sync {
             let item = Item(token, closure)
             if !pendingItems.isEmpty || !_execute(item) {
-                pendingItems.insert(item, at: 0)
+                pendingItems.append(LinkedList<Item>.Node(value: item))
                 _setNeedsExecutePendingItems()
             }
         }
@@ -91,8 +91,8 @@ internal final class RateLimiter {
     }
 
     private func _executePendingItems() {
-        while let item = pendingItems.last, _execute(item) {
-            pendingItems.removeLast()
+        while let node = pendingItems.tail, _execute(node.value) {
+            pendingItems.remove(node)
         }
         isExecutingPendingItems = false
         if !pendingItems.isEmpty { // not all pending items were executed
@@ -144,7 +144,7 @@ internal final class TaskQueue {
     // An alternative of using custom Foundation.Operation requires more code,
     // less performant and even harder to get right https://github.com/kean/Nuke/issues/141.
     private var executingTaskCount: Int = 0
-    private var pendingTasks = LinkedList<Task>()
+    private var pendingTasks = LinkedList<Task>() // fast add to head, remove from tail
     private let maxConcurrentTaskCount: Int
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Queue")
 
@@ -202,6 +202,8 @@ internal final class LinkedList<T> {
     private(set) var tail: Node?
 
     deinit { removeAll() }
+
+    var isEmpty: Bool { return head == nil }
 
     /// Appends node to the head.
     func append(_ node: Node) {
