@@ -19,5 +19,11 @@ class BagTests: XCTestCase {
 
         bag.insert(2)
         XCTAssertEqual(Set(bag), [1, 2])
+        
+        bag.insert(3)
+        XCTAssertEqual(Set(bag), [1, 2, 3])
+        
+        bag.insert(4)
+        XCTAssertEqual(Set(bag), [1, 2, 3, 4])
     }
 }

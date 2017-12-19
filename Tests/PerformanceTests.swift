@@ -2,8 +2,8 @@
 //
 // Copyright (c) 2017 Alexander Grebenyuk (github.com/kean).
 
-import Nuke
 import XCTest
+@testable import Nuke
 
 class ManagerPerformanceTests: XCTestCase {
     func testDefaultManager() {
@@ -89,6 +89,69 @@ class CachePerformanceTests: XCTestCase {
         }
         
         print("misses: \(misses)")
+    }
+}
+
+
+class BagPerformanceTests: XCTestCase {
+    func testTestInsertTwoInts() {
+        measure {
+            for _ in 0..<500_000 {
+                var bag = Bag<Int>()
+                bag.insert(1)
+                bag.insert(2)
+            }
+        }
+    }
+    
+    func testTestInsertThreeInts() {
+        measure {
+            for _ in 0..<500_000 {
+                var bag = Bag<Int>()
+                bag.insert(1)
+                bag.insert(2)
+                bag.insert(3)
+            }
+        }
+    }
+    
+    func testInsertLotsOfInts() {
+        measure {
+            var bag = Bag<Int>()
+            for _ in 0..<500_000 { // also makes sure that we don't stack overflow
+                bag.insert(1)
+            }
+        }
+    }
+    
+    func testTestInsertTwoClosures() {
+        measure {
+            for _ in 0..<500_000 {
+                var bag = Bag<() -> Void>()
+                bag.insert({ print(1) })
+                bag.insert({ print(2) })
+            }
+        }
+    }
+    
+    func testTestInsertThreeClosures() {
+        measure {
+            for _ in 0..<500_000 {
+                var bag = Bag<() -> Void>()
+                bag.insert({ print(1) })
+                bag.insert({ print(2) })
+                bag.insert({ print(3) })
+            }
+        }
+    }
+    
+    func testInsertLotsOfClosures() {
+        measure {
+            var bag = Bag<() -> Void>()
+            for _ in 0..<500_000 {
+                bag.insert({ print(1) })
+            }
+        }
     }
 }
 

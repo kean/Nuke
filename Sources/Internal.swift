@@ -248,30 +248,46 @@ internal final class LinkedList<Element> {
 // MARK: - Bag
 
 /// Lightweight unordered data structure for storing a small number of elements.
+/// The idea is that it doesn't allocate any space on heap during initialization
+/// and it inlines first couple of elements and only then falls back to array
+/// (`ContiguousArray`) backed storage.
+///
+/// The name `Bag` (`Multiset`) is actually taken and it means something
+/// different than what this type does. But since it's an internal type it
+/// should work for now.
 internal struct Bag<Element>: Sequence {
-    private var first: Node? // use singly linked list for storage
-
-    private final class Node { // just element and next node
-        let value: Element
-        var next: Node?
-        init(_ value: Element) { self.value = value }
-    }
+    private var first: Element? // inline first couple of elements
+    private var second: Element?
+    // ~20% faster than Array based on perf tests
+    private var remaining: ContiguousArray<Element>?
 
     mutating func insert(_ value: Element) {
-        let node = Node(value)
-        node.next = first
-        first = node
+        if first == nil { first = value }
+        else if second == nil { second = value }
+        else {
+            // created lazily
+            if remaining == nil { remaining = ContiguousArray<Element>() }
+            remaining!.append(value)
+        }
     }
 
     // MARK: Sequence
 
     internal struct BagIterator: IteratorProtocol {
-        private var first: Node?
-        init(_ bag: Bag) { self.first = bag.first }
+        private var index = 0
+        private var bag: Bag
+        init(_ bag: Bag) { self.bag = bag }
 
         mutating func next() -> Element? {
-            let element = first?.value
-            first = first?.next
+            var element: Element?
+            if index == 0 { element = bag.first }
+            else if index == 1 { element = bag.second }
+            else {
+                if let remaining = bag.remaining, index - 2 < remaining.count {
+                    element = remaining[index - 2]
+                }
+            }
+            index += 1
             return element
         }
     }
