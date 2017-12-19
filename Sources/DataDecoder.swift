@@ -60,7 +60,7 @@ private func _decode(_ data: Data) -> Image? {
 
 
 /// Composes multiple data decoders.
-public final class DataDecoderComposition: DataDecoding {
+public struct DataDecoderComposition: DataDecoding {
     public let decoders: [DataDecoding]
 
     /// Composes multiple data decoders.
