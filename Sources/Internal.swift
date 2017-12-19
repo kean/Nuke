@@ -138,14 +138,16 @@ internal final class RateLimiter {
 
 // MARK: - TaskQueue
 
-/// Limits number of maximum concurrent tasks.
+/// Limits number of maximum concurrent tasks. By default tasks are executed on
+/// the underlying concurrent dispatch queue (with default options).
 internal final class TaskQueue {
     // An alternative of using custom Foundation.Operation requires more code,
     // less performant and even harder to get right https://github.com/kean/Nuke/issues/141.
     private var executingTaskCount: Int = 0
     private var pendingTasks = LinkedList<Task>() // fast append, fast remove first
     private let maxConcurrentTaskCount: Int
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.TaskQueue")
+    private let executionQueue = DispatchQueue(label: "com.github.kean.Nuke.TaskQueue.Execution", attributes: .concurrent)
+    private let syncQueue = DispatchQueue(label: "com.github.kean.Nuke.TaskQueue.Sync")
 
     internal typealias Work = (_ finish: @escaping () -> Void) -> Void
     private typealias Task = (CancellationToken, Work)
@@ -155,7 +157,7 @@ internal final class TaskQueue {
     }
 
     internal func execute(token: CancellationToken, _ closure: @escaping Work) {
-        queue.async {
+        syncQueue.async {
             guard !token.isCancelling else { return } // fast preflight check
             self.pendingTasks.append((token, closure))
             self._executeTasksIfNecessary()
@@ -163,18 +165,20 @@ internal final class TaskQueue {
     }
 
     private func _executeTasksIfNecessary() {
-        while executingTaskCount < maxConcurrentTaskCount, let first = pendingTasks.first {
-            pendingTasks.remove(first)
-            _executeTask(first.value)
+        while executingTaskCount < maxConcurrentTaskCount, let node = pendingTasks.first {
+            pendingTasks.remove(node)
+            let task = node.value
+            if !task.0.isCancelling { // check if still not cancelled
+                executingTaskCount += 1 // only then execute
+                executionQueue.async { self._executeTask(task) }
+            }
         }
     }
 
     private func _executeTask(_ task: Task) {
-        guard !task.0.isCancelling else { return } // check if still not cancelled
-        executingTaskCount += 1
         var isFinished = false
         task.1 { [weak self] in
-            self?.queue.async {
+            self?.syncQueue.async {
                 guard !isFinished else { return } // finish called twice
                 isFinished = true
                 self?.executingTaskCount -= 1

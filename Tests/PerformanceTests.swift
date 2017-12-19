@@ -96,7 +96,7 @@ class CachePerformanceTests: XCTestCase {
 class BagPerformanceTests: XCTestCase {
     func testTestInsertTwoInts() {
         measure {
-            for _ in 0..<500_000 {
+            for _ in 0..<200_000 {
                 var bag = Bag<Int>()
                 bag.insert(1)
                 bag.insert(2)
@@ -106,7 +106,7 @@ class BagPerformanceTests: XCTestCase {
     
     func testTestInsertThreeInts() {
         measure {
-            for _ in 0..<500_000 {
+            for _ in 0..<200_000 {
                 var bag = Bag<Int>()
                 bag.insert(1)
                 bag.insert(2)
@@ -118,7 +118,7 @@ class BagPerformanceTests: XCTestCase {
     func testInsertLotsOfInts() {
         measure {
             var bag = Bag<Int>()
-            for _ in 0..<500_000 { // also makes sure that we don't stack overflow
+            for _ in 0..<200_000 { // also makes sure that we don't stack overflow
                 bag.insert(1)
             }
         }
@@ -126,7 +126,7 @@ class BagPerformanceTests: XCTestCase {
     
     func testTestInsertTwoClosures() {
         measure {
-            for _ in 0..<500_000 {
+            for _ in 0..<200_000 {
                 var bag = Bag<() -> Void>()
                 bag.insert({ print(1) })
                 bag.insert({ print(2) })
@@ -136,7 +136,7 @@ class BagPerformanceTests: XCTestCase {
     
     func testTestInsertThreeClosures() {
         measure {
-            for _ in 0..<500_000 {
+            for _ in 0..<200_000 {
                 var bag = Bag<() -> Void>()
                 bag.insert({ print(1) })
                 bag.insert({ print(2) })
@@ -148,9 +148,27 @@ class BagPerformanceTests: XCTestCase {
     func testInsertLotsOfClosures() {
         measure {
             var bag = Bag<() -> Void>()
-            for _ in 0..<500_000 {
+            for _ in 0..<200_000 {
                 bag.insert({ print(1) })
             }
+        }
+    }
+}
+
+
+class ImageProcessingPerformance: XCTestCase {
+    // helps to figure out the optimal number of concurrent operations
+    func testDecompression() {
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 2
+        measure {
+            for _ in 0..<100 {
+                queue.addOperation {
+                    let decompressor = Decompressor(targetSize: CGSize(width: 200, height: 200), contentMode: .aspectFit)
+                    let _ = decompressor.process(defaultImage)
+                }
+            }
+            queue.waitUntilAllOperationsAreFinished()
         }
     }
 }

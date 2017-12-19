@@ -55,7 +55,7 @@ public final class Loader: Loading {
     // queues limiting underlying systems
     private let taskQueue: TaskQueue
     private let decodingQueue = DispatchQueue(label: "com.github.kean.Nuke.Decoding")
-    private let processingQueue = DispatchQueue(label: "com.github.kean.Nuke.Processing")
+    private let processingQueue = TaskQueue(maxConcurrentTaskCount: 2)
     private let rateLimiter = RateLimiter()
 
     /// Returns a processor for the given image and request. Default
@@ -209,11 +209,10 @@ public final class Loader: Loading {
         guard let processor = makeProcessor(image, request) else {
             completion(.success(image)); return // no need to process
         }
-        processingQueue.execute(token: token) {
-            guard let image = processor.process(image) else {
-                completion(.failure(Error.processingFailed)); return
-            }
-            completion(.success(image))
+        processingQueue.execute(token: token) { finish in
+            let image = autoreleasepool { processor.process(image) }
+            completion(image.map(Result.success) ?? .failure(Error.processingFailed))
+            finish()
         }
     }
 

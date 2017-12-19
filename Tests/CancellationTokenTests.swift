@@ -76,6 +76,21 @@ class CancellationTokenTests: XCTestCase {
 
         wait()
     }
+
+    func testCancellingMultipleTimes() {
+        let cts = CancellationTokenSource()
+        let token = cts.token
+
+        var callsCount = 0
+        token.register {
+            callsCount += 1
+        }
+
+        cts.cancel()
+        cts.cancel()
+
+        XCTAssertEqual(callsCount, 1)
+    }
     
     func testThreadSafety() {
         for _ in 0..<100 {
