@@ -197,8 +197,9 @@ public final class Loader: Loading {
     }
 
     private func _decode(response: (Data, URLResponse), request: Request, token: CancellationToken, completion: @escaping Completion) {
+        let decode = { [decoder = self.decoder] in decoder.decode(data: response.0, response: response.1) }
         decodingQueue.execute(token: token) { [weak self] in
-            guard let image = self?.decoder.decode(data: response.0, response: response.1) else {
+            guard let image = autoreleasepool(invoking: decode) else {
                 completion(.failure(Error.decodingFailed)); return
             }
             self?._process(image: image, request: request, token: token, completion: completion)

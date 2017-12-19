@@ -81,7 +81,7 @@ private final class SessionDelegate: NSObject, URLSessionDataDelegate {
     }
 
     func register(_ handler: SessionTaskHandler, for task: URLSessionTask) {
-        queue.addOperation {
+        queue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
     }
