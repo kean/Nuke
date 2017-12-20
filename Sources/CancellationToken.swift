@@ -72,7 +72,7 @@ public struct CancellationToken {
     /// Registers the closure that will be called when the token is canceled.
     /// If this token is already cancelled, the closure will be run immediately
     /// and synchronously.
-    public func register(closure: @escaping () -> Void) { source?.register(closure) }
+    public func register(_ closure: @escaping () -> Void) { source?.register(closure) }
 
     /// Special no-op token which does nothing.
     internal static var noOp: CancellationToken { return CancellationToken(source: nil) }

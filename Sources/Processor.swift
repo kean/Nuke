@@ -23,8 +23,8 @@ public struct ProcessorComposition: Processing {
     /// which they were added. If one of the processors fails to produce
     /// an image the processing stops and `nil` is returned.
     public func process(_ input: Image) -> Image? {
-        return processors.reduce(input as Image!) { image, processor in
-            return autoreleasepool { image != nil ? processor.process(image!) : nil }
+        return processors.reduce(input) { image, processor in
+            return autoreleasepool { image.flatMap(processor.process) }
         }
     }
 

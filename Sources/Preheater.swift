@@ -46,7 +46,7 @@ public final class Preheater {
                 self?._remove(task)
                 finish()
             }
-            token.register { finish() }
+            token.register(finish)
         }
         tasks[key] = task
     }

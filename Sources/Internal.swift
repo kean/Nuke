@@ -67,15 +67,13 @@ internal final class RateLimiter {
 
     private func _execute(_ task: Task) -> Bool {
         guard !task.0.isCancelling else { return true } // no need to execute
-        return bucket.execute { task.1() }
+        return bucket.execute(task.1)
     }
 
     private func _setNeedsExecutePendingTasks() {
         guard !isExecutingPendingTasks else { return }
         isExecutingPendingTasks = true
-        queue.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            self?._executePendingTasks()
-        }
+        queue.asyncAfter(deadline: .now() + 0.05, execute: _executePendingTasks)
     }
 
     private func _executePendingTasks() {
@@ -104,7 +102,7 @@ internal final class RateLimiter {
         }
 
         /// Returns `true` if the closure was executed, `false` if dropped.
-        func execute(closure: () -> Void) -> Bool {
+        func execute(_ closure: () -> Void) -> Bool {
             refill()
             guard bucket >= 1.0 else {
                 return false // bucket is empty

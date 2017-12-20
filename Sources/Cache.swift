@@ -43,10 +43,10 @@ public final class Cache: Caching {
     private let lock = Lock()
 
     /// The maximum total cost that the cache can hold.
-    public var costLimit: Int { didSet { lock.sync { _trim() } } }
+    public var costLimit: Int { didSet { lock.sync(_trim) } }
 
     /// The maximum number of items that the cache can hold.
-    public var countLimit: Int { didSet { lock.sync { _trim() } } }
+    public var countLimit: Int { didSet { lock.sync(_trim) } }
 
     /// The total cost of items in the cache.
     public private(set) var totalCost = 0
@@ -88,8 +88,7 @@ public final class Cache: Caching {
     /// Accesses the image associated with the given key.
     public subscript(key: AnyHashable) -> Image? {
         get {
-            lock.lock()  // slightly aster than `sync()`
-            defer { lock.unlock() }
+            lock.lock(); defer { lock.unlock() } // slightly faster than `sync()`
 
             guard let node = map[key] else { return nil }
 
@@ -100,8 +99,7 @@ public final class Cache: Caching {
             return node.value.image
         }
         set {
-            lock.lock() // slightly faster than `sync()`
-            defer { lock.unlock() }
+            lock.lock(); defer { lock.unlock() } // slightly faster than `sync()`
 
             if let image = newValue {
                 _add(CachedImage(image: image, cost: cost(image), key: key))

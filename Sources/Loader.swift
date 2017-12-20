@@ -237,7 +237,7 @@ public final class Loader: Loading {
                 case let .failure(err): completion(.failure(err))
                 }
             })
-            token.register { finish() }
+            token.register(finish)
         }
     }
 
