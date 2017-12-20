@@ -28,17 +28,6 @@ internal final class Lock {
     func unlock() { pthread_mutex_unlock(mutex) }
 }
 
-// MARK: - Extensions
-
-internal extension DispatchQueue {
-    func execute(token: CancellationToken, closure: @escaping () -> Void) {
-        guard !token.isCancelling else { return } // fast preflight check
-        let work = DispatchWorkItem(block: closure)
-        async(execute: work)
-        token.register { [weak work] in work?.cancel() }
-    }
-}
-
 // MARK: - RateLimiter
 
 /// Controls the rate at which the work is executed. Uses the classic [token

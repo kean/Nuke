@@ -92,7 +92,6 @@ class CachePerformanceTests: XCTestCase {
     }
 }
 
-
 class BagPerformanceTests: XCTestCase {
     func testTestInsertTwoInts() {
         measure {
@@ -155,7 +154,6 @@ class BagPerformanceTests: XCTestCase {
     }
 }
 
-
 class ImageProcessingPerformance: XCTestCase {
     // helps to figure out the optimal number of concurrent operations
     func testDecompression() {
@@ -172,7 +170,6 @@ class ImageProcessingPerformance: XCTestCase {
         }
     }
 }
-
 
 class MockImageLoader: Loading {
     func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {

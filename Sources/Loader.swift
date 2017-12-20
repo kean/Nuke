@@ -143,7 +143,7 @@ public final class Loader: Loading {
 
     private func _cancel(_ task: Task) {
         queue.async {
-            guard self.tasks[task.key] === task else { return } // check if still registered
+            guard self.tasks[task.key] === task else { return } // still registered
             task.retainCount -= 1 // CTS makes sure cancel can't be called twice
             if task.retainCount == 0 {
                 task.cts.cancel() // cancel underlying request
@@ -156,7 +156,12 @@ public final class Loader: Loading {
         let request: Request
         let key: AnyHashable
 
+        // Default `Loader` + `DataLoader` combination takes full advantage of
+        // CTS optimizations by only registering twice.
         let cts = CancellationTokenSource()
+
+        // In majority of use cases the `handlers` count is going to stay
+        // below 2 which takes full advantage of `Bag` optimizations.
         var handlers = Bag<Handler>()
         var retainCount = 0 // number of non-cancelled handlers
 
@@ -198,7 +203,7 @@ public final class Loader: Loading {
 
     private func _decode(response: (Data, URLResponse), request: Request, token: CancellationToken, completion: @escaping Completion) {
         let decode = { [decoder = self.decoder] in decoder.decode(data: response.0, response: response.1) }
-        decodingQueue.execute(token: token) { [weak self] in
+        decodingQueue.async { [weak self] in
             guard let image = autoreleasepool(invoking: decode) else {
                 completion(.failure(Error.decodingFailed)); return
             }
