@@ -65,13 +65,16 @@ private let _lock = Lock()
 ///
 /// All `CancellationToken` methods are thread safe.
 public struct CancellationToken {
-    fileprivate let source: CancellationTokenSource
+    fileprivate let source: CancellationTokenSource? // no-op when `nil`
 
     /// Returns `true` if cancellation has been requested for this token.
-    public var isCancelling: Bool { return source.isCancelling }
+    public var isCancelling: Bool { return source?.isCancelling ?? false }
 
     /// Registers the closure that will be called when the token is canceled.
     /// If this token is already cancelled, the closure will be run immediately
     /// and synchronously.
-    public func register(closure: @escaping () -> Void) { source.register(closure) }
+    public func register(closure: @escaping () -> Void) { source?.register(closure) }
+
+    /// Special no-op token which does nothing.
+    internal static var noOp: CancellationToken { return CancellationToken(source: nil) }
 }

@@ -218,4 +218,36 @@ class LoaderDeduplicationTests: XCTestCase {
 
         wait()
     }
+
+    func testDisablingDeduplication() {
+        var options = Loader.Options()
+        options.isDeduplicationEnabled = false
+
+        let loader = Loader(loader: dataLoader, options: options)
+
+        dataLoader.queue.isSuspended = true
+
+        let request1 = Request(url: defaultURL)
+        let request2 = Request(url: defaultURL)
+        XCTAssertTrue(Request.loadKey(for: request1) == Request.loadKey(for: request2))
+
+        expect { fulfill in
+            loader.loadImage(with: request1) {
+                XCTAssertNotNil($0.value)
+                fulfill()
+            }
+        }
+
+        expect { fulfill in
+            loader.loadImage(with: request2) {
+                XCTAssertNotNil($0.value)
+                fulfill()
+            }
+        }
+        dataLoader.queue.isSuspended = false
+
+        wait { _ in
+            XCTAssertEqual(self.dataLoader.createdTaskCount, 2)
+        }
+    }
 }

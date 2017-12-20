@@ -3,7 +3,7 @@
 // Copyright (c) 2017 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-import Nuke
+@testable import Nuke
 
 class CancellationTokenTests: XCTestCase {
     func testCancellation() {
@@ -130,5 +130,15 @@ class CancellationTokenTests: XCTestCase {
 
         cts1.cancel()
         wait()
+    }
+
+    // MARK: No-op token
+
+    func testNoOpToken() {
+        let token = CancellationToken.noOp
+
+        XCTAssertFalse(token.isCancelling)
+        token.register { XCTFail() }
+        XCTAssertFalse(token.isCancelling)
     }
 }
