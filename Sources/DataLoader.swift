@@ -13,13 +13,13 @@ public protocol DataLoading {
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading {
     public let session: URLSession
-    private let validate: (Data, URLResponse) -> Error?
+    private let validate: (Data, URLResponse) -> Swift.Error?
     private let delegate = SessionDelegate()
 
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
-    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration, validate: @escaping (Data, URLResponse) -> Error? = DataLoader.validate) {
+    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration, validate: @escaping (Data, URLResponse) -> Swift.Error? = DataLoader.validate) {
         self.session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: delegate.queue)
         self.validate = validate
     }
@@ -32,10 +32,11 @@ public final class DataLoader: DataLoading {
         return conf
     }
 
-    /// Validates `HTTP` responses by checking that the status code is 2xx.
-    public static func validate(data: Data, response: URLResponse) -> Error? {
+    /// Validates `HTTP` responses by checking that the status code is 2xx. If
+    /// it's not returns `DataLoader.Error.statusCodeUnacceptable`.
+    public static func validate(data: Data, response: URLResponse) -> Swift.Error? {
         guard let response = response as? HTTPURLResponse else { return nil }
-        return (200..<300).contains(response.statusCode) ? nil : NSError(domain: NSURLErrorDomain, code: NSURLErrorBadServerResponse, userInfo: [NSLocalizedDescriptionKey: "Response status code was unacceptable: \(response.statusCode)."])
+        return (200..<300).contains(response.statusCode) ? nil : Error.statusCodeUnacceptable(response.statusCode)
     }
 
     /// Shared url cached used by a default `DataLoader`. The cache is
@@ -56,8 +57,7 @@ public final class DataLoader: DataLoading {
 
             // Check if response & data non empty
             guard let response = response, !data.isEmpty else {
-                let error = NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)
-                completion(.failure(error)); return
+                completion(.failure(Error.responseEmpty)); return
             }
 
             // Validate response
@@ -68,6 +68,21 @@ public final class DataLoader: DataLoading {
 
         token?.register { task.cancel() }
         task.resume()
+    }
+
+    /// Errors produced by `DataLoader`.
+    public enum Error: Swift.Error, CustomDebugStringConvertible {
+        /// Validation failed.
+        case statusCodeUnacceptable(Int)
+        /// Either the response or body was empty.
+        case responseEmpty
+
+        public var debugDescription: String {
+            switch self {
+            case let .statusCodeUnacceptable(code): return "Response status code was unacceptable: " + code.description // compiles faster than interpolation
+            case .responseEmpty: return "Either the response or body was empty."
+            }
+        }
     }
 }
 

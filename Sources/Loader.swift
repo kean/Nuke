@@ -266,8 +266,15 @@ public final class Loader: Loading {
 
     /// Error returns by `Loader` class itself. `Loader` might also return
     /// errors from underlying `DataLoading` object.
-    public enum Error: Swift.Error {
+    public enum Error: Swift.Error, CustomDebugStringConvertible {
         case decodingFailed
         case processingFailed
+
+        public var debugDescription: String {
+            switch self {
+            case .decodingFailed: return "Failed to create an image from the image data"
+            case .processingFailed: return "Failed to process the image"
+            }
+        }
     }
 }

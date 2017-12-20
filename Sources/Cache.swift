@@ -80,7 +80,7 @@ public final class Cache: Caching {
     /// of the phisical memory available on the device.
     public static func defaultCostLimit() -> Int {
         let physicalMemory = ProcessInfo.processInfo.physicalMemory
-        let ratio = physicalMemory <= (1024 * 1024 * 512 /* 512 Mb */) ? 0.1 : 0.2
+        let ratio = physicalMemory <= (536_870_912 /* 512 Mb */) ? 0.1 : 0.2
         let limit = physicalMemory / UInt64(1 / ratio)
         return limit > UInt64(Int.max) ? Int.max : Int(limit)
     }

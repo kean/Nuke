@@ -10,8 +10,7 @@ import Foundation
 public final class CancellationTokenSource {
     /// Returns `true` if cancellation has been requested.
     public var isCancelling: Bool {
-        _lock.lock(); defer { _lock.unlock() }
-        return _observers == nil
+        return _lock.sync { _observers == nil }
     }
 
     /// Creates a new token associated with the source.
