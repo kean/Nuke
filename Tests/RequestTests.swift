@@ -48,16 +48,16 @@ class RequestCacheKeyTests: XCTestCase {
     }
     
     func testThatRequestsWithTheSameProcessorsAreEquivalent() {
-        let request1 = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "1"))
-        let request2 = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "1"))
-        XCTAssertTrue(MockImageProcessor(ID: "1") == MockImageProcessor(ID: "1"))
+        let request1 = Request(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
+        let request2 = Request(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
+        XCTAssertTrue(MockImageProcessor(id: "1") == MockImageProcessor(id: "1"))
         XCTAssertTrue(Request.cacheKey(for: request1) == Request.cacheKey(for: request2))
     }
     
     func testThatRequestsWithDifferentProcessorsAreNotEquivalent() {
-        let request1 = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "1"))
-        let request2 = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "2"))
-        XCTAssertFalse(MockImageProcessor(ID: "1") == MockImageProcessor(ID: "2"))
+        let request1 = Request(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
+        let request2 = Request(url: defaultURL).processed(with: MockImageProcessor(id: "2"))
+        XCTAssertFalse(MockImageProcessor(id: "1") == MockImageProcessor(id: "2"))
         XCTAssertFalse(Request.cacheKey(for: request1) == Request.cacheKey(for: request2))
     }
     
@@ -89,16 +89,16 @@ class RequestLoadKeyTests: XCTestCase {
     }
     
     func testThatRequestsWithTheSameProcessorsAreEquivalent() {
-        let request1 = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "1"))
-        let request2 = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "1"))
-        XCTAssertTrue(MockImageProcessor(ID: "1") == MockImageProcessor(ID: "1"))
+        let request1 = Request(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
+        let request2 = Request(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
+        XCTAssertTrue(MockImageProcessor(id: "1") == MockImageProcessor(id: "1"))
         XCTAssertTrue(Request.loadKey(for: request1) == Request.loadKey(for: request2))
     }
     
     func testThatRequestsWithDifferentProcessorsAreNotEquivalent() {
-        let request1 = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "1"))
-        let request2 = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "2"))
-        XCTAssertFalse(MockImageProcessor(ID: "1") == MockImageProcessor(ID: "2"))
+        let request1 = Request(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
+        let request2 = Request(url: defaultURL).processed(with: MockImageProcessor(id: "2"))
+        XCTAssertFalse(MockImageProcessor(id: "1") == MockImageProcessor(id: "2"))
         XCTAssertFalse(Request.loadKey(for: request1) == Request.loadKey(for: request2))
     }
     

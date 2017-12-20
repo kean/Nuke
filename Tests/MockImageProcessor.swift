@@ -23,13 +23,13 @@ private struct AssociatedKeys {
 // MARK: - MockImageProcessor
 
 class MockImageProcessor: Processing {
-    let ID: String
-    init(ID: String) {
-        self.ID = ID
+    let id: String
+    init(id: String) {
+        self.id = id
     }
     func process(_ image: Image) -> Image? {
         var processorIDs: [String] = image.nk_test_processorIDs
-        processorIDs.append(self.ID)
+        processorIDs.append(id)
         let processedImage = Image()
         processedImage.nk_test_processorIDs = processorIDs
         return processedImage
@@ -37,7 +37,7 @@ class MockImageProcessor: Processing {
 }
 
 func ==(lhs: MockImageProcessor, rhs: MockImageProcessor) -> Bool {
-    return lhs.ID == rhs.ID
+    return lhs.id == rhs.id
 }
 
 // MARK: - MockFailingProcessor

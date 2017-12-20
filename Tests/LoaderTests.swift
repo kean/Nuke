@@ -44,6 +44,27 @@ class LoaderTests: XCTestCase {
         }
         wait()
     }
+
+    // MARK: Options
+
+    func testOverridingProcessor() {
+        var options = Loader.Options()
+        options.processor = { (_,_) in AnyProcessor(MockImageProcessor(id: "processorFromOptions")) }
+
+        let loader = Loader(loader: dataLoader, options: options)
+
+        let request = Request(url: defaultURL).processed(with: MockImageProcessor(id: "processorFromRequest"))
+
+        expect { fulfill in
+            loader.loadImage(with: request) {
+                XCTAssertNotNil($0.value)
+                XCTAssertEqual($0.value?.nk_test_processorIDs.count, 1)
+                XCTAssertEqual($0.value?.nk_test_processorIDs.first, "processorFromOptions")
+                fulfill()
+            }
+        }
+        wait()
+    }
 }
 
 

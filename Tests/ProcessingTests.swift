@@ -23,7 +23,7 @@ class ProcessingTests: XCTestCase {
     // MARK: Applying Filters
 
     func testThatImageIsProcessed() {
-        let request = Request(url: defaultURL).processed(with: MockImageProcessor(ID: "processor1"))
+        let request = Request(url: defaultURL).processed(with: MockImageProcessor(id: "processor1"))
 
         expect { fulfill in
             loader.loadImage(with: request) {
@@ -39,8 +39,8 @@ class ProcessingTests: XCTestCase {
 
     func testThatImageIsProcessedWithFilterComposition() {
         let request = Request(url: defaultURL)
-            .processed(with: MockImageProcessor(ID: "processor1"))
-            .processed(with: MockImageProcessor(ID: "processor2"))
+            .processed(with: MockImageProcessor(id: "processor1"))
+            .processed(with: MockImageProcessor(id: "processor2"))
 
         expect { fulfill in
             loader.loadImage(with: request) {

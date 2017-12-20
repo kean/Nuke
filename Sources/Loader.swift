@@ -61,12 +61,6 @@ public final class Loader: Loading {
     private let rateLimiter = RateLimiter()
     private let options: Options
 
-    /// Returns a processor for the given image and request. Default
-    /// implementation simply returns `request.processor`.
-    public var makeProcessor: (Image, Request) -> AnyProcessor? = {
-        return $1.processor
-    }
-
     /// Shared `Loading` object.
     ///
     /// Shared loader is created with `DataLoader()`.
@@ -94,6 +88,12 @@ public final class Loader: Loading {
         /// The rate limiter only comes into play when the requests are started
         /// and cancelled at a high rate (e.g. scrolling through a collection view).
         public var isRateLimiterEnabled = true
+
+        /// Returns a processor for the given image and request. By default
+        /// returns `request.processor`. Please keep in mind that you can
+        /// override the processor from the request using this option but you're
+        /// not going to override the processor used as a cache key.
+        public var processor: (Image, Request) -> AnyProcessor? = { $1.processor }
 
         /// Creates default options.
         public init() {}
@@ -252,7 +252,7 @@ public final class Loader: Loading {
     }
 
     private func _process(image: Image, request: Request, token: CancellationToken, completion: @escaping Completion) {
-        guard let processor = makeProcessor(image, request) else {
+        guard let processor = options.processor(image, request) else {
             completion(.success(image)); return // no need to process
         }
         processingQueue.execute(token: token) { finish in
