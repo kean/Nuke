@@ -35,6 +35,39 @@ class ProcessingTests: XCTestCase {
         wait()
     }
 
+    // MARK: Anonymous Processors
+
+    func testAnonymousProcessorKeys() {
+        XCTAssertEqual(
+            Request.cacheKey(for: Request(url: defaultURL).processed(key: 1, { $0 })),
+            Request.cacheKey(for: Request(url: defaultURL).processed(key: 1, { $0 }))
+        )
+
+        XCTAssertNotEqual(
+            Request.cacheKey(for: Request(url: defaultURL).processed(key: 1, { $0 })),
+            Request.cacheKey(for: Request(url: defaultURL).processed(key: 2, { $0 }))
+        )
+    }
+
+    func testAnonymousProcessorIsApplied() {
+        let request = Request(url: defaultURL).processed(key: 1) {
+            $0.nk_test_processorIDs = ["1"]
+            return $0
+        }
+        let image = request.processor?.process(UIImage())
+        XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
+    }
+
+    func testAnonymousProcessorIsApplied2() {
+        var request = Request(url: defaultURL)
+        request.process(key: 1) {
+            $0.nk_test_processorIDs = ["1"]
+            return $0
+        }
+        let image = request.processor?.process(UIImage())
+        XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
+    }
+
     // MARK: Composing Filters
 
     func testThatImageIsProcessedWithFilterComposition() {

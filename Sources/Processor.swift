@@ -55,6 +55,23 @@ public struct AnyProcessor: Processing {
     }
 }
 
+internal struct AnonymousProcessor: Processing {
+    private let _key: AnyHashable
+    private let _closure: (Image) -> Image?
+
+    init<Key: Hashable>(_ key: Key, _ closure: @escaping (Image) -> Image?) {
+        self._key = key; self._closure = closure
+    }
+
+    func process(_ image: Image) -> Image? {
+        return self._closure(image)
+    }
+
+    static func ==(lhs: AnonymousProcessor, rhs: AnonymousProcessor) -> Bool {
+        return lhs._key == rhs._key
+    }
+}
+
 #if !os(macOS)
 
     import UIKit
