@@ -94,7 +94,7 @@ internal final class RateLimiter {
 
         /// - parameter rate: Rate (tokens/second) at which bucket is refilled.
         /// - parameter burst: Bucket size (maximum number of tokens).
-        init(rate: Double = 30.0, burst: Double = 15.0) {
+        init(rate: Double, burst: Double) {
             self.rate = rate
             self.burst = burst
             self.bucket = burst

@@ -90,18 +90,18 @@ public struct Request {
     // of memorized `decompressor` when custom parameters are not needed.
 
     /// Initializes a request with the given URL.
-    /// - parameter targetSize: Size in pixels. `MaximumSize` by default.
+    /// - parameter targetSize: Size in pixels.
     /// - parameter contentMode: An option for how to resize the image
-    /// to the target size. `.aspectFill` by default.
+    /// to the target size.
     public init(url: URL, targetSize: CGSize, contentMode: Decompressor.ContentMode) {
         self = Request(url: url)
         _container.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
     }
 
     /// Initializes a request with the given request.
-    /// - parameter targetSize: Size in pixels. `MaximumSize` by default.
+    /// - parameter targetSize: Size in pixels.
     /// - parameter contentMode: An option for how to resize the image
-    /// to the target size. `.aspectFill` by default.
+    /// to the target size.
     public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: Decompressor.ContentMode) {
         self = Request(urlRequest: urlRequest)
         _container.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))

@@ -42,7 +42,7 @@ Manager.shared.loadImage(with: url, into: imageView)
 
 #### Reusing Targets
 
-`Nuke.loadImage(with:into:)` method cancels previous outstanding request associated with the target. Nuke holds a weak reference to a target, when the target is deallocated the associated request gets cancelled automatically.
+`Nuke.loadImage(with:into:)` method cancels previous outstanding request associated with the target. Nuke holds a weak reference to the target, when the target is deallocated the associated request gets cancelled automatically.
 
 ```swift
 func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -50,18 +50,6 @@ func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath:
     cell.imageView.image = nil
     Manager.shared.loadImage(with: url, into: cell.imageView)
     ...
-}
-```
-
-#### Supporting Custom Targets
-
-A `target` can be any class that implements a `Target` protocol: 
-
-```swift
-extension UIButton: Nuke.Target {
-    func handle(response: Result<Image>, isFromMemoryCache: Bool) {
-        setImage(response.value, for: .normal)
-    }
 }
 ```
 
@@ -83,22 +71,45 @@ Manager.shared.loadImage(with: request, into: view) { [weak view] response, _ in
 
 #### Customizing Requests
 
-Each request is represented by `Request` struct. A request can be created either with a `URL` or with a `URLRequest`.
+Each request is represented by a `Request` struct. A request can be created either with a `URL` or with a `URLRequest`.
 
 ```swift
 var request = Request(url: url)
 // var request = Request(urlRequest: URLRequest(url: url))
 
-// A request has a number of options that you can change:
+// Change memory cache policy:
 request.memoryCacheOptions.writeAllowed = false
+
+// Track progress:
+request.progress = { completed, total in
+    ...
+}
 
 Manager.shared.loadImage(with: request, into: imageView)
 ```
 
-
 #### Processing Images
 
-Nuke provides an infrastructure for processing images and caching them. You can specify custom image processors using `Processing` protocol which consists of a single method `process(image: Image) -> Image?`:
+Nuke can process images and cache images for you. For example, to resize the image you can simply provide the desired size when creating a `Request`:
+
+```swift
+/// Target size is in pixels.
+let request = Request(url: url, targetSize: CGSize(width: 640, height: 320), contentMode: .aspectFill)
+```
+
+It's also very easy to perform custom image transformations by providing a closure:
+
+```swift
+let request = Request(url: url).process(key: "blur") { image in
+    return ...
+}
+```
+
+> The `key` is used by cache to compare differnet processors.
+
+#### Custom Processors
+
+Custom processors can be added by implementing `Processing` protocol:
 
 ```swift
 struct GaussianBlur: Processing {
