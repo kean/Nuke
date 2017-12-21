@@ -6,7 +6,7 @@ import XCTest
 @testable import Nuke
 
 class ManagerPerformanceTests: XCTestCase {
-    func testDefaultManager() {
+    func testManagerMainThreadPerformance() {
         let view = ImageView()
 
         let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }
@@ -17,19 +17,40 @@ class ManagerPerformanceTests: XCTestCase {
             }
         }
     }
+}
 
-    func testWithoutMemoryCache() {
-        let loader = Loader(loader: DataLoader())
-        let manager = Manager(loader: loader)
-        
-        let view = ImageView()
-        
-        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }
-        
+class LoaderPerfomanceTests: XCTestCase {
+    /// A very broad test that establishes how long in general it takes to load
+    /// data, decode, and decomperss 50+ images. It's very useful to get a
+    /// broad picture about how loader options affect perofmance.
+    func testLoaderOverallPerformance() {
+        let dataLoader = MockDataLoader()
+        var options = Loader.Options()
+        // This must be off for this test, because rate limiter is optimized for
+        // the actual loading in the apps and not the syntetic tests like this.
+        options.isRateLimiterEnabled = false
+
+        options.isDeduplicationEnabled = false
+
+        // Disables processing which takes a bulk of time.
+        options.processor = { (_,_) in nil }
+
+        let loader = Loader(loader: dataLoader, options: options)
+
+        let urls = (0..<1_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
         measure {
-            for url in urls {
-                manager.loadImage(with: url, into: view)
+            expect { fulfil in
+                var finished: Int = 0
+                for url in urls {
+                    loader.loadImage(with: url, token: nil) { result in
+                        finished += 1
+                        if finished == urls.count {
+                            fulfil()
+                        }
+                    }
+                }
             }
+            wait(10)
         }
     }
 }
@@ -168,11 +189,5 @@ class ImageProcessingPerformance: XCTestCase {
             }
             queue.waitUntilAllOperationsAreFinished()
         }
-    }
-}
-
-class MockImageLoader: Loading {
-    func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
-        return
     }
 }
