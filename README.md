@@ -24,10 +24,11 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 
 - [Installation Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md)
 - [Documentation](https://github.com/kean/Nuke/blob/master/Documentation/)
-- [API Reference](http://kean.github.io/Nuke/reference/5.1.1/index.html)
+- [API Reference](http://kean.github.io/Nuke/reference/6.0/index.html)
 
 Upgrading from the previous version? Use a [migration guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations).
 
+> If you have any questions or comments about Nuke feel free to hit me up on Twitter [@a_grebenyuk](https://twitter.com/a_grebenyuk).
 
 # <a name="h_usage"></a>Usage
 
