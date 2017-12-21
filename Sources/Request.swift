@@ -4,6 +4,10 @@
 
 import Foundation
 
+#if !os(macOS)
+    import UIKit
+#endif
+
 /// Represents an image request.
 public struct Request {
     
@@ -79,14 +83,39 @@ public struct Request {
         _container.urlString = urlRequest.url?.absoluteString
     }
 
-    
+    #if !os(macOS)
+
+    // Convenience initializers with `targetSize` and `contentMode`. The reason
+    // why those are implemented as separate init methods is to take advantage
+    // of memorized `decompressor` when custom parameters are not needed.
+
+    /// Initializes a request with the given URL.
+    /// - parameter targetSize: Size in pixels. `MaximumSize` by default.
+    /// - parameter contentMode: An option for how to resize the image
+    /// to the target size. `.aspectFill` by default.
+    public init(url: URL, targetSize: CGSize, contentMode: Decompressor.ContentMode) {
+        self = Request(url: url)
+        _container.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
+    }
+
+    /// Initializes a request with the given request.
+    /// - parameter targetSize: Size in pixels. `MaximumSize` by default.
+    /// - parameter contentMode: An option for how to resize the image
+    /// to the target size. `.aspectFill` by default.
+    public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: Decompressor.ContentMode) {
+        self = Request(urlRequest: urlRequest)
+        _container.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
+    }
+
+    #endif
+
     // CoW:
 
     private var _container: Container
 
     private mutating func _mutate(_ closure: (Container) -> Void) {
         if !isKnownUniquelyReferenced(&_container) {
-            _container = _container.copy()
+            _container = Container(container: _container)
         }
         closure(_container)
     }
@@ -99,20 +128,22 @@ public struct Request {
         var processor: AnyProcessor?
         var progress: ProgressHandler?
 
+        /// Creates a resource with a default processor.
         init(resource: Resource) {
             self.resource = resource
 
             #if !os(macOS)
+            // set default processor
             self.processor = Container.decompressor
             #endif
         }
 
-        func copy() -> Container {
-            let ref = Container(resource: resource)
-            ref.urlString = urlString
-            ref.processor = processor
-            ref.progress = progress
-            return ref
+        /// Creates a copy.
+        init(container ref: Container) {
+            self.resource = ref.resource
+            self.urlString = ref.urlString
+            self.processor = ref.processor
+            self.processor = ref.processor
         }
 
         #if !os(macOS)

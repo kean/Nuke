@@ -61,7 +61,7 @@ class CachePerformanceTests: XCTestCase {
         let image = Image()
         
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
-        let requests = urls.map(Request.init)
+        let requests = urls.map { Request(url: $0) }
         
         measure {
             for request in requests {
@@ -80,7 +80,7 @@ class CachePerformanceTests: XCTestCase {
         var hits = 0
         
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
-        let requests = urls.map(Request.init)
+        let requests = urls.map { Request(url: $0) }
         
         measure {
             for request in requests {
@@ -99,7 +99,7 @@ class CachePerformanceTests: XCTestCase {
         var misses = 0
         
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
-        let requests = urls.map(Request.init)
+        let requests = urls.map { Request(url: $0) }
         
         measure {
             for request in requests {

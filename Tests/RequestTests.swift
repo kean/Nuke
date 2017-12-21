@@ -3,7 +3,7 @@
 // Copyright (c) 2017 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-import Nuke
+@testable import Nuke
 
 class RequestSemanticsTests: XCTestCase {
     func testThatStructSemanticsArePreserved() {
@@ -12,7 +12,7 @@ class RequestSemanticsTests: XCTestCase {
         
         var request = Request(url: url1)
         XCTAssertEqual(url1, request.urlRequest.url)
-        
+
         var copy = request
         copy.urlRequest = URLRequest(url: url2)
         

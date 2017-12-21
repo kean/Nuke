@@ -5,6 +5,10 @@
 import XCTest
 import Nuke
 
+#if !os(macOS)
+    import UIKit
+#endif
+
 class ProcessingTests: XCTestCase {
     var mockSessionManager: MockDataLoader!
     var loader: Loader!
@@ -54,7 +58,7 @@ class ProcessingTests: XCTestCase {
             $0.nk_test_processorIDs = ["1"]
             return $0
         }
-        let image = request.processor?.process(UIImage())
+        let image = request.processor?.process(Image())
         XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
     }
 
@@ -64,7 +68,7 @@ class ProcessingTests: XCTestCase {
             $0.nk_test_processorIDs = ["1"]
             return $0
         }
-        let image = request.processor?.process(UIImage())
+        let image = request.processor?.process(Image())
         XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
     }
 
@@ -84,4 +88,15 @@ class ProcessingTests: XCTestCase {
         }
         wait()
     }
+
+    // MARK: Resizing
+
+    #if !os(macOS)
+    func testResizingUsingRequestParameters() {
+        let request = Request(url: defaultURL, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+        let image = request.processor!.process(defaultImage)
+        XCTAssertEqual(image?.cgImage?.width, 40)
+        XCTAssertEqual(image?.cgImage?.height, 30)
+    }
+    #endif
 }
