@@ -2,7 +2,7 @@
 
 By default, Nuke uses a `Foundation.URLSession` for all the networking. Apps may have their own network layer they may wish to use instead.
 
-Nuke already has an [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) that allows you to load image data using [Alamofire.SessionManager](https://github.com/Alamofire/Alamofire).  If you want to use Nuke with Alamofire simply follow the plugin's docs.
+Nuke already has an [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) that allows you to load image data using [Alamofire.SessionManager](https://github.com/Alamofire/Alamofire). If you want to use Nuke with Alamofire simply follow the plugin's docs.
 
 If you'd like to use some other networking library or use your own custom code all you need to do is implement `Nuke.DataLoading` protocol which consists of a single method:
 
@@ -10,13 +10,14 @@ If you'd like to use some other networking library or use your own custom code a
 /// Loads data.
 public protocol DataLoading {
     /// Loads data with the given request.
-    func loadData(with request: Request,
+    func loadData(with request: URLRequest,
                   token: CancellationToken?,
+                  progress: ProgressHandler?,
                   completion: @escaping (Result<(Data, URLResponse)>) -> Void)
 }
 ```
 
-You can use [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) as a starting point. Here's its slightly simplified implementation:
+You can use [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) as a starting point. Here how it's actual implementation:
 
 ```swift
 import Alamofire
@@ -31,18 +32,20 @@ class AlamofireDataLoader: Nuke.DataLoading {
 
     // MARK: Nuke.DataLoading
 
-    func loadData(with request: Nuke.Request, token: CancellationToken?, completion: @escaping (Nuke.Result<(Data, URLResponse)>) -> Void) {
+    /// Loads data using Alamofire.SessionManager.
+    public func loadData(with request: URLRequest, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Nuke.Result<(Data, URLResponse)>) -> Void) {
         // Alamofire.SessionManager automatically starts requests as soon as they are created (see `startRequestsImmediately`)
-        let task = self.manager.request(request.urlRequest).response(completionHandler: { (response) in
-            if let data = response.data, let response: URLResponse = response.response {
-                completion(.success((data, response)))
-            } else {
-                completion(.failure(response.error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
-            }
-        })
-        token?.register {
-            task.cancel() // gets called when the token gets cancelled
-        }
+        let task = manager.request(request)
+            .validate()
+            .downloadProgress(closure: { progress?($0.completedUnitCount, $0.totalUnitCount) })
+            .response(completionHandler: { (response) in
+                if let data = response.data, let response: URLResponse = response.response {
+                    completion(.success((data, response)))
+                } else {
+                    completion(.failure(response.error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
+                }
+            })
+        token?.register { task.cancel() }
     }
 }
 ```

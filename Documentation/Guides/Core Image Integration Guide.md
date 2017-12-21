@@ -16,9 +16,9 @@ let sharedCIContext = CIContext(options: [kCIContextPriorityRequestLow: true])
 
 `kCIContextPriorityRequestLow` option is a new addition in iOS 8:
 
-> If this value is true, use of the Core Image context from a background thread takes lower priority than GPU usage from the main thread, allowing your app to perform Core Image rendering without disturbing the frame rate of UI animations.
+> If this value is true, use of the Core Image context from a background thread takes a lower priority than GPU usage from the main thread, allowing your app to perform Core Image rendering without disturbing the frame rate of UI animations.
 
-Also new in iOS 7 is support for [background renders](http://asciiwwdc.com/2014/sessions/514). All background renders automatically use the slower Core Image CPU rendering path. There is no need to manually switch between GPU and CPU rendering paths when application enters background.
+Also new in iOS 7 is support for [background renders](http://asciiwwdc.com/2014/sessions/514). All background renders automatically use the slower Core Image CPU rendering path. There is no need to manually switch between GPU and CPU rendering paths when the application enters background.
 
 ### Applying Filters
 
@@ -90,7 +90,7 @@ struct GaussianBlur: Processing {
 
 # Performance Considerations
 
-- Chaining multiple `CIFilter` objects is much more efficient then using `ProcessorComposition` to combine multiple instances of `CoreImageFilter` class.
+- Chaining multiple `CIFilter` objects is much more efficient than using `ProcessorComposition` to combine multiple instances of `CoreImageFilter` class.
 - Don’t create a `CIContext` object every time you render.
 
 # References
