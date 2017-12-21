@@ -253,13 +253,10 @@ internal struct Bag<Element>: Sequence {
     private var remaining: ContiguousArray<Element>?
 
     mutating func insert(_ value: Element) {
-        if first == nil { first = value }
-        else if second == nil { second = value }
-        else {
-            // created lazily
-            if remaining == nil { remaining = ContiguousArray<Element>() }
-            remaining!.append(value)
-        }
+        guard first != nil else { first = value; return } // inline first
+        guard second != nil else { second = value; return } // inline second
+        if remaining == nil { remaining = ContiguousArray<Element>() } // create lazily
+        remaining!.append(value)
     }
 
     // MARK: Sequence
@@ -270,16 +267,11 @@ internal struct Bag<Element>: Sequence {
         init(_ bag: Bag) { self.bag = bag }
 
         mutating func next() -> Element? {
-            var element: Element?
-            if index == 0 { element = bag.first }
-            else if index == 1 { element = bag.second }
-            else {
-                if let remaining = bag.remaining, index - 2 < remaining.count {
-                    element = remaining[index - 2]
-                }
-            }
-            index += 1
-            return element
+            defer { index += 1 }
+            if index == 0 { return bag.first }
+            if index == 1 { return bag.second }
+            guard let remaining = bag.remaining, index - 2 < remaining.endIndex else { return nil }
+            return remaining[index - 2]
         }
     }
 
