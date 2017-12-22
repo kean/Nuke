@@ -13,7 +13,8 @@ Nuke is now Swift 4 only. It's simpler, smaller (~1000 lines of code), and faste
 
 ### Improvements
 
-- Improve performance of `CancellationTokenSource`, `Loader`, `TaskQueue`
+- Improve performance of [`CancellationTokenSource`](https://kean.github.io/post/cancellation-token), `Loader`, `TaskQueue`
+- Improve `Manager` performance by reusing contexts objects between requests
 - Improve `Cache` by ~30% for most operations (hits, misses, writes)
 - `Request` now stores all of the parameters in the underlying reference typed container (it used to store just reference typed ones). The `Request` struct now only has a single property with a reference to an underlying container.
 - Parallelize image processing for up to 2x performance boost in certain scenarios. Might increase memory usage. The default maximum number of concurrent tasks is 2 and can be configured using `Loader.Options`.

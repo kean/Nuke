@@ -53,10 +53,7 @@ class ManagerTests: XCTestCase {
     func testThatPreviousTaskIsCancelledWhenNewOneIsCreated() {
         expect { fulfill in
             manager.loadImage(with: Request(url: URL(string: "http://test.com/1")!), into: view, handler: { result, isFromMemoryCache in
-                // we don't expect this to be called
-                if case .success = result {
-                    fulfill()
-                }
+                XCTFail()
             })
             
             manager.loadImage(with: Request(url: URL(string: "http://test.com/2")!), into: view, handler: { result, isFromMemoryCache in
@@ -65,6 +62,32 @@ class ManagerTests: XCTestCase {
                 }
             })
         }
+        wait()
+    }
+
+    func testThatRequestIsCancelledWhenTargetIsDeallocated() {
+        loader.queue.isSuspended = true
+
+        var target: ImageView! = ImageView()
+
+        manager.loadImage(with: defaultURL, into: target)
+
+        _ = expectNotification(MockImageLoader.DidCancelTask, object: loader)
+        target = nil // deallocate target
+        wait()
+    }
+
+    func testThatRequestIsCancelledWhenTargetIsDeallocatedWithHandler() {
+        loader.queue.isSuspended = true
+
+        var target: ImageView! = ImageView()
+
+        manager.loadImage(with: defaultURL, into: target) { (_,_) in
+            XCTFail()
+        }
+
+        _ = expectNotification(MockImageLoader.DidCancelTask, object: loader)
+        target = nil // deallocate target
         wait()
     }
 }

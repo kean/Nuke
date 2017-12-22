@@ -51,8 +51,9 @@ public final class Manager: Loading {
     public func loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler) {
         assert(Thread.isMainThread)
 
-        // Cancel outstanding request if any
-        cancelRequest(for: target)
+        let context = getContext(for: target)
+        context.cts?.cancel() // cancel outstanding request if any
+        context.cts = nil
 
         // Quick synchronous memory cache lookup
         if let image = cachedImage(for: request) {
@@ -60,27 +61,24 @@ public final class Manager: Loading {
             return
         }
 
-        // Create context and associate it with a target
+        // Create CTS and associate it with a context
         let cts = CancellationTokenSource()
-        let context = Context(cts)
-        Manager.setContext(context, for: target)
+        context.cts = cts
 
         // Start the request
-        _loadImage(with: request, token: cts.token) { [weak context, weak target] in
-            guard let context = context, let target = target else { return }
-            guard Manager.getContext(for: target) === context else { return }
+        _loadImage(with: request, token: cts.token) { [weak context] in
+            guard let context = context, context.cts === cts else { return } // check if still registered
             handler($0, false)
-            context.cts = nil // Avoid redundant cancellations on deinit
+            context.cts = nil // avoid redundant cancellations on deinit
         }
     }
 
     /// Cancels an outstanding request associated with the target.
     public func cancelRequest(for target: AnyObject) {
         assert(Thread.isMainThread)
-        if let context = Manager.getContext(for: target) {
-            context.cts?.cancel()
-            Manager.setContext(nil, for: target)
-        }
+        let context = getContext(for: target)
+        context.cts?.cancel() // cancel outstanding request if any
+        context.cts = nil // unregister request
     }
 
     // MARK: Loading Images w/o Targets
@@ -125,20 +123,20 @@ public final class Manager: Loading {
 
     private static var contextAK = "Manager.Context.AssociatedKey"
 
-    // Associated objects is a simplest way to bind Context and Target lifetimes
-    // The implementation might change in the future.
-    private static func getContext(for target: AnyObject) -> Context? {
-        return objc_getAssociatedObject(target, &contextAK) as? Context
+    // Lazily create context for a given target and associate it with a target.
+    private func getContext(for target: AnyObject) -> Context {
+        // Associated objects is a simplest way to bind Context and Target lifetimes
+        // The implementation might change in the future.
+        if let ctx = objc_getAssociatedObject(target, &Manager.contextAK) as? Context { return ctx }
+        let ctx = Context()
+        objc_setAssociatedObject(target, &Manager.contextAK, ctx, .OBJC_ASSOCIATION_RETAIN)
+        return ctx
     }
 
-    private static func setContext(_ context: Context?, for target: AnyObject) {
-        objc_setAssociatedObject(target, &contextAK, context, .OBJC_ASSOCIATION_RETAIN)
-    }
-
+    // Context is reused for multiple requests which makes sense, because in
+    // most cases image views are also going to be reused (e.g. in a table view)
     private final class Context {
-        var cts: CancellationTokenSource?
-
-        init(_ cts: CancellationTokenSource) { self.cts = cts }
+        var cts: CancellationTokenSource? // also used to identify requests
 
         // Automatically cancel the request when target deallocates.
         deinit { cts?.cancel() }
