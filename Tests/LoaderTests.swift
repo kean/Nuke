@@ -134,7 +134,7 @@ class LoaderDeduplicationTests: XCTestCase {
 
         let request1 = Request(url: defaultURL)
         let request2 = Request(url: defaultURL)
-        XCTAssertTrue(Request.loadKey(for: request1) == Request.loadKey(for: request2))
+        XCTAssertEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
             loader.loadImage(with: request1) {
@@ -160,7 +160,7 @@ class LoaderDeduplicationTests: XCTestCase {
     func testThatNonEquivalentRequestsAreNotDeduplicated() {
         let request1 = Request(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
         let request2 = Request(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
-        XCTAssertFalse(Request.loadKey(for: request1) == Request.loadKey(for: request2))
+        XCTAssertNotEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
             loader.loadImage(with: request1) {
@@ -250,7 +250,7 @@ class LoaderDeduplicationTests: XCTestCase {
 
         let request1 = Request(url: defaultURL)
         let request2 = Request(url: defaultURL)
-        XCTAssertTrue(Request.loadKey(for: request1) == Request.loadKey(for: request2))
+        XCTAssertEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
             loader.loadImage(with: request1) {

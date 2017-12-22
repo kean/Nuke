@@ -51,20 +51,24 @@ public struct Request {
         set { _mutate { $0.memoryCacheOptions = newValue } }
     }
 
-    /// Returns a key that compares requests with regards to loading images.
-    ///
-    /// If `nil` default key is used. See `Request.loadKey(for:)` for more info.
-    public var loadKey: AnyHashable? {
-        get { return _ref.loadKey }
-        set { _mutate { $0.loadKey = newValue } }
-    }
-
     /// Returns a key that compares requests with regards to caching images.
     ///
-    /// If `nil` default key is used. See `Request.cacheKey(for:)` for more info.
-    public var cacheKey: AnyHashable? {
-        get { return _ref.cacheKey }
+    /// The default key considers two requests equivalent it they have the same
+    /// `URLRequests` and the same processors. `URLRequests` are compared by
+    /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
+    public var cacheKey: AnyHashable {
+        get { return _ref.cacheKey ?? AnyHashable(CacheKey(request: self)) }
         set { _mutate { $0.cacheKey = newValue } }
+    }
+
+    /// Returns a key that compares requests with regards to loading images.
+    ///
+    /// The default key considers two requests equivalent it they have the same
+    /// `URLRequests` and the same processors. `URLRequests` are compared
+    /// just by their `URLs`.
+    public var loadKey: AnyHashable {
+        get { return _ref.loadKey ?? AnyHashable(LoadKey(request: self)) }
+        set { _mutate { $0.loadKey = newValue } }
     }
 
     /// The closure that is executed periodically on the main thread to report
@@ -139,8 +143,8 @@ public struct Request {
         var urlString: String? // memoized absoluteString
         var processor: AnyProcessor?
         var memoryCacheOptions = MemoryCacheOptions()
-        var loadKey: AnyHashable?
         var cacheKey: AnyHashable?
+        var loadKey: AnyHashable?
         var progress: ProgressHandler?
         var userInfo: Any?
 
@@ -160,8 +164,8 @@ public struct Request {
             self.urlString = ref.urlString
             self.processor = ref.processor
             self.memoryCacheOptions = ref.memoryCacheOptions
-            self.loadKey = ref.loadKey
             self.cacheKey = ref.cacheKey
+            self.loadKey = ref.loadKey
             self.progress = ref.progress
             self.userInfo = ref.userInfo
         }
@@ -218,26 +222,6 @@ public extension Request {
 }
 
 public extension Request {
-    /// Returns a key which compares requests with regards to caching images.
-    /// Returns `cacheKey` if not `nil`. Returns default key otherwise.
-    ///
-    /// The default key considers two requests equivalent it they have the same
-    /// `URLRequests` and the same processors. `URLRequests` are compared
-    /// just by their `URLs`.
-    public static func cacheKey(for request: Request) -> AnyHashable {
-        return request.cacheKey ?? AnyHashable(CacheKey(request: request))
-    }
-
-    /// Returns a key which compares requests with regards to loading images.
-    /// Returns `loadKey` if not `nil`. Returns default key otherwise.
-    ///
-    /// The default key considers two requests equivalent it they have the same
-    /// `URLRequests` and the same processors. `URLRequests` are compared by
-    /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
-    public static func loadKey(for request: Request) -> AnyHashable {
-        return request.loadKey ?? AnyHashable(LoadKey(request: request))
-    }
-
     private struct CacheKey: Hashable {
         let request: Request
 

@@ -31,6 +31,7 @@ Nuke is now Swift 4 only. It's simpler, smaller (~1000 lines of code), and faste
 ### Removed APIs
 
 - Remove global `loadImage(...)` functions https://github.com/kean/Nuke/issues/142
+- Remove static `Request.loadKey(for:)` and `Request.cacheKey(for:)` functions. The keys are now simply returned in `Request`'s `loadKey` and `cacheKey` properties which are also no longer optional now.
 - Remove `Deduplicator` class, make this functionality part of `Loader`. This has a number of benefits: reduced API surface, improves performance by reducing number of queue switching, enables new features like progress reporting.
 - Remove `Scheduler`, `AsyncScheduler`, `Loader.Schedulers`, `DispatchQueueScheduler`, `OperationQueueScheduler`. This whole infrastructure was way too excessive.
 - Make `RateLimiter` private.

@@ -20,8 +20,8 @@ public protocol Caching: class {
 public extension Caching {
     /// Accesses the image associated with the given request.
     public subscript(request: Request) -> Image? {
-        get { return self[Request.cacheKey(for: request)] }
-        set { self[Request.cacheKey(for: request)] = newValue }
+        get { return self[request.cacheKey] }
+        set { self[request.cacheKey] = newValue }
     }
 }
 

@@ -43,13 +43,13 @@ class ProcessingTests: XCTestCase {
 
     func testAnonymousProcessorKeys() {
         XCTAssertEqual(
-            Request.cacheKey(for: Request(url: defaultURL).processed(key: 1, { $0 })),
-            Request.cacheKey(for: Request(url: defaultURL).processed(key: 1, { $0 }))
+            Request(url: defaultURL).processed(key: 1, { $0 }).cacheKey,
+            Request(url: defaultURL).processed(key: 1, { $0 }).cacheKey
         )
 
         XCTAssertNotEqual(
-            Request.cacheKey(for: Request(url: defaultURL).processed(key: 1, { $0 })),
-            Request.cacheKey(for: Request(url: defaultURL).processed(key: 2, { $0 }))
+            Request(url: defaultURL).processed(key: 1, { $0 }).cacheKey,
+            Request(url: defaultURL).processed(key: 2, { $0 }).cacheKey
         )
     }
 

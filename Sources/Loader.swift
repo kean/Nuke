@@ -142,7 +142,7 @@ public final class Loader: Loading {
 
     private func _startTask(with request: Request) -> DeduplicatedTask {
         // Check if the task for the same request already exists.
-        let key = Request.loadKey(for: request)
+        let key = request.loadKey
         guard let task = tasks[key] else {
             let task = DeduplicatedTask(request: request, key: key)
             tasks[key] = task
