@@ -175,19 +175,16 @@ class BagPerformanceTests: XCTestCase {
     }
 }
 
-class ImageProcessingPerformance: XCTestCase {
-    // helps to figure out the optimal number of concurrent operations
-    func testDecompression() {
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = 2
+class RequestPerformanceTests: XCTestCase {
+    func testStoringRequestInCollections() {
+        let urls = (0..<200_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
+        let requests = urls.map { Request(url: $0) }
+
         measure {
-            for _ in 0..<100 {
-                queue.addOperation {
-                    let decompressor = Decompressor(targetSize: CGSize(width: 200, height: 200), contentMode: .aspectFit)
-                    let _ = decompressor.process(defaultImage)
-                }
+            var array = [Request]()
+            for request in requests {
+                array.append(request)
             }
-            queue.waitUntilAllOperationsAreFinished()
         }
     }
 }

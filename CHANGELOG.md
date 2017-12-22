@@ -15,6 +15,7 @@ Nuke is now Swift 4 only. It's simpler, smaller (~1000 lines of code), and faste
 
 - Improve performance of `CancellationTokenSource`, `Loader`, `TaskQueue`
 - Improve `Cache` hits and writes performance by ~15%
+- `Request` now stores all of the parameters in the underlying reference typed container (it used to store just reference typed ones). The `Request` struct now only has a single property with a reference to an underlying container.
 - Parallelize image processing for up to 2x performance boost in certain scenarios. Might increase memory usage. The default maximum number of concurrent tasks is 2 and can be configured using `Loader.Options`.
 - `Loader` now always call completion on the main thread.
 - Move `URLResponse` validation from `DataDecoder` to `DataLoader`

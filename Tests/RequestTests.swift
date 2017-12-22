@@ -19,6 +19,27 @@ class RequestSemanticsTests: XCTestCase {
         XCTAssertEqual(url2, copy.urlRequest.url)
         XCTAssertEqual(url1, request.urlRequest.url)
     }
+
+    func testCopyOnWrite() {
+        var request = Request(url: URL(string: "http://test.com/1.png")!)
+        request.memoryCacheOptions.readAllowed = false
+        request.loadKey = "1"
+        request.cacheKey = "2"
+        request.userInfo = "3"
+        request.progress = { (_,_) in }
+        request.processor = AnyProcessor(MockImageProcessor(id: "4"))
+
+        var copy = request
+        // Requsts makes a copy at this point.
+        copy.urlRequest = URLRequest(url: URL(string: "http://test.com/2.png")!)
+
+        XCTAssertEqual(copy.memoryCacheOptions.readAllowed, false)
+        XCTAssertEqual(copy.loadKey, "1")
+        XCTAssertEqual(copy.cacheKey, "2")
+        XCTAssertEqual(copy.userInfo as? String, "3")
+        XCTAssertNotNil(copy.progress)
+        XCTAssertEqual(copy.processor, AnyProcessor(MockImageProcessor(id: "4")))
+    }
 }
 
 class RequestCacheKeyTests: XCTestCase {

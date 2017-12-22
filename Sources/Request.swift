@@ -15,7 +15,7 @@ public struct Request {
 
     /// The `URLRequest` used for loading an image.
     public var urlRequest: URLRequest {
-        get { return _container.resource.urlRequest }
+        get { return _ref.resource.urlRequest }
         set {
             _mutate {
                 $0.resource = Resource.urlRequest(newValue)
@@ -30,7 +30,7 @@ public struct Request {
     /// improve drawing performance as it allows a bitmap representation to be
     /// created in a background rather than on the main thread.
     public var processor: AnyProcessor? {
-        get { return _container.processor }
+        get { return _ref.processor }
         set { _mutate { $0.processor = newValue } }
     }
 
@@ -46,41 +46,53 @@ public struct Request {
     }
 
     /// `MemoryCacheOptions()` (read allowed, write allowed) by default.
-    public var memoryCacheOptions = MemoryCacheOptions()
+    public var memoryCacheOptions: MemoryCacheOptions {
+        get { return _ref.memoryCacheOptions }
+        set { _mutate { $0.memoryCacheOptions = newValue } }
+    }
 
     /// Returns a key that compares requests with regards to loading images.
     ///
     /// If `nil` default key is used. See `Request.loadKey(for:)` for more info.
-    public var loadKey: AnyHashable?
+    public var loadKey: AnyHashable? {
+        get { return _ref.loadKey }
+        set { _mutate { $0.loadKey = newValue } }
+    }
 
     /// Returns a key that compares requests with regards to caching images.
     ///
     /// If `nil` default key is used. See `Request.cacheKey(for:)` for more info.
-    public var cacheKey: AnyHashable?
+    public var cacheKey: AnyHashable? {
+        get { return _ref.cacheKey }
+        set { _mutate { $0.cacheKey = newValue } }
+    }
 
     /// The closure that is executed periodically on the main thread to report
     /// the progress of the request. `nil` by default.
     public var progress: ProgressHandler? {
-        get { return _container.progress }
+        get { return _ref.progress }
         set { _mutate { $0.progress = newValue }}
     }
 
     /// Custom info passed alongside the request.
-    public var userInfo: Any?
+    public var userInfo: Any? {
+        get { return _ref.userInfo }
+        set { _mutate { $0.userInfo = newValue }}
+    }
 
 
     // MARK: Initializers
 
     /// Initializes a request with the given URL.
     public init(url: URL) {
-        _container = Container(resource: Resource.url(url))
-        _container.urlString = url.absoluteString
+        _ref = Container(resource: Resource.url(url))
+        _ref.urlString = url.absoluteString
     }
 
     /// Initializes a request with the given request.
     public init(urlRequest: URLRequest) {
-        _container = Container(resource: Resource.urlRequest(urlRequest))
-        _container.urlString = urlRequest.url?.absoluteString
+        _ref = Container(resource: Resource.urlRequest(urlRequest))
+        _ref.urlString = urlRequest.url?.absoluteString
     }
 
     #if !os(macOS)
@@ -95,7 +107,7 @@ public struct Request {
     /// to the target size.
     public init(url: URL, targetSize: CGSize, contentMode: Decompressor.ContentMode) {
         self = Request(url: url)
-        _container.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
+        _ref.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
     }
 
     /// Initializes a request with the given request.
@@ -104,20 +116,20 @@ public struct Request {
     /// to the target size.
     public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: Decompressor.ContentMode) {
         self = Request(urlRequest: urlRequest)
-        _container.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
+        _ref.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
     }
 
     #endif
 
     // CoW:
 
-    private var _container: Container
+    private var _ref: Container
 
     private mutating func _mutate(_ closure: (Container) -> Void) {
-        if !isKnownUniquelyReferenced(&_container) {
-            _container = Container(container: _container)
+        if !isKnownUniquelyReferenced(&_ref) {
+            _ref = Container(container: _ref)
         }
-        closure(_container)
+        closure(_ref)
     }
 
     /// Just like many Swift built-in types, `Request` uses CoW approach to
@@ -126,7 +138,11 @@ public struct Request {
         var resource: Resource
         var urlString: String? // memoized absoluteString
         var processor: AnyProcessor?
+        var memoryCacheOptions = MemoryCacheOptions()
+        var loadKey: AnyHashable?
+        var cacheKey: AnyHashable?
         var progress: ProgressHandler?
+        var userInfo: Any?
 
         /// Creates a resource with a default processor.
         init(resource: Resource) {
@@ -143,7 +159,11 @@ public struct Request {
             self.resource = ref.resource
             self.urlString = ref.urlString
             self.processor = ref.processor
-            self.processor = ref.processor
+            self.memoryCacheOptions = ref.memoryCacheOptions
+            self.loadKey = ref.loadKey
+            self.cacheKey = ref.cacheKey
+            self.progress = ref.progress
+            self.userInfo = ref.userInfo
         }
 
         #if !os(macOS)
@@ -210,7 +230,7 @@ public extension Request {
     
     private static func makeCacheKey(_ request: Request) -> Key {
         return Key(request: request) {
-            $0._container.urlString == $1._container.urlString && $0.processor == $1.processor
+            $0._ref.urlString == $1._ref.urlString && $0.processor == $1.processor
         }
     }
 
@@ -229,7 +249,7 @@ public extension Request {
             return a.cachePolicy == b.cachePolicy && a.allowsCellularAccess == b.allowsCellularAccess
         }
         return Key(request: request) {
-            $0._container.urlString == $1._container.urlString
+            $0._ref.urlString == $1._ref.urlString
                 && isEqual($0.urlRequest, $1.urlRequest)
                 && $0.processor == $1.processor
         }
@@ -247,7 +267,7 @@ public extension Request {
 
         /// Returns hash from the request's URL.
         var hashValue: Int {
-            return request._container.urlString?.hashValue ?? 0
+            return request._ref.urlString?.hashValue ?? 0
         }
 
         /// Compares two keys for equivalence.
