@@ -1,8 +1,12 @@
 ## Nuke 6.0
 
-> About 8 months ago I've started using Nuke in production. The project matured from being a playground for experimenting with Swift features to something that I rely on in my day's work. The primary goal behind Nuke 6 is to simplify the project even further, address some of the common issues, and get rid of the implementation details leaking into a public API.
+> About 8 months ago I finally started using Nuke in production. The project has matured from a playground for experimenting with Swift features to something that I rely on in my day's job.
 
-Nuke is now Swift 4 only. It's simpler, smaller (~1000 lines of code), and faster. It features progress reporting and a couple of new convenient APIs that simplify common use cases. A lot of work has been done to improve Nuke's performance and make it more efficient at common tasks.
+There are three main areas of improvements in Nuke 6:
+
+- Performance. Nuke 6 is fast! The primary `loadImage(with:into:)` method is now **1.5x** faster thanks to performance improvements of [`CancellationToken`](https://kean.github.io/post/cancellation-token), `Manager`, `Request` and `Cache` types. And it's not just main thread performance, many of the background operations were also optimized.
+- API refinements. Some common operations that were surprisingly hard to do are not super easy. And there are no more implementation details leaking into a public API (e.g. classes like `Deduplicator`).
+- Fixes some inconveniences like Thread Sanitizer warnings (false positives!). Improved compile time. Better documentation.
 
 ### New APIs
 
@@ -33,7 +37,7 @@ Nuke is now Swift 4 only. It's simpler, smaller (~1000 lines of code), and faste
 
 - Remove global `loadImage(...)` functions https://github.com/kean/Nuke/issues/142
 - Remove static `Request.loadKey(for:)` and `Request.cacheKey(for:)` functions. The keys are now simply returned in `Request`'s `loadKey` and `cacheKey` properties which are also no longer optional now.
-- Remove `Deduplicator` class, make this functionality part of `Loader`. This has a number of benefits: reduced API surface, improves performance by reducing number of queue switching, enables new features like progress reporting.
+- Remove `Deduplicator` class, make this functionality part of `Loader`. This has a number of benefits: reduced API surface, improves performance by reducing the number of queue switching, enables new features like progress reporting.
 - Remove `Scheduler`, `AsyncScheduler`, `Loader.Schedulers`, `DispatchQueueScheduler`, `OperationQueueScheduler`. This whole infrastructure was way too excessive.
 - Make `RateLimiter` private.
 - `DataLoader` now works with `URLRequest`, not `Request`
