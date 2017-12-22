@@ -54,8 +54,8 @@ public struct Request {
     /// Returns a key that compares requests with regards to caching images.
     ///
     /// The default key considers two requests equivalent it they have the same
-    /// `URLRequests` and the same processors. `URLRequests` are compared by
-    /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
+    /// `URLRequests` and the same processors. `URLRequests` are compared
+    /// just by their `URLs`.
     public var cacheKey: AnyHashable {
         get { return _ref.cacheKey ?? AnyHashable(CacheKey(request: self)) }
         set { _mutate { $0.cacheKey = newValue } }
@@ -64,8 +64,8 @@ public struct Request {
     /// Returns a key that compares requests with regards to loading images.
     ///
     /// The default key considers two requests equivalent it they have the same
-    /// `URLRequests` and the same processors. `URLRequests` are compared
-    /// just by their `URLs`.
+    /// `URLRequests` and the same processors. `URLRequests` are compared by
+    /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
     public var loadKey: AnyHashable {
         get { return _ref.loadKey ?? AnyHashable(LoadKey(request: self)) }
         set { _mutate { $0.loadKey = newValue } }
@@ -91,6 +91,8 @@ public struct Request {
     public init(url: URL) {
         _ref = Container(resource: Resource.url(url))
         _ref._urlString = url.absoluteString
+        // creating `.absoluteString` takes 50% of time of Request creation,
+        // it's still faster than using URLs as cache keys
     }
 
     /// Initializes a request with the given request.

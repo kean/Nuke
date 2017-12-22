@@ -15,6 +15,9 @@ import Foundation
 public protocol Caching: class {
     /// Accesses the image associated with the given key.
     subscript(key: AnyHashable) -> Image? { get set }
+
+    // unfortunately there is a lot of extra work happening here because key
+    // types are not statically defined, might be worth rethinking cache
 }
 
 public extension Caching {
