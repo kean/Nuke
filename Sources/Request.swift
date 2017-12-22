@@ -225,13 +225,7 @@ public extension Request {
     /// `URLRequests` and the same processors. `URLRequests` are compared
     /// just by their `URLs`.
     public static func cacheKey(for request: Request) -> AnyHashable {
-        return request.cacheKey ?? AnyHashable(makeCacheKey(request))
-    }
-    
-    private static func makeCacheKey(_ request: Request) -> Key {
-        return Key(request: request) {
-            $0._ref.urlString == $1._ref.urlString && $0.processor == $1.processor
-        }
+        return request.cacheKey ?? AnyHashable(CacheKey(request: request))
     }
 
     /// Returns a key which compares requests with regards to loading images.
@@ -241,38 +235,35 @@ public extension Request {
     /// `URLRequests` and the same processors. `URLRequests` are compared by
     /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
     public static func loadKey(for request: Request) -> AnyHashable {
-        return request.loadKey ?? AnyHashable(makeLoadKey(request))
-    }
-    
-    private static func makeLoadKey(_ request: Request) -> Key {
-        func isEqual(_ a: URLRequest, _ b: URLRequest) -> Bool {
-            return a.cachePolicy == b.cachePolicy && a.allowsCellularAccess == b.allowsCellularAccess
-        }
-        return Key(request: request) {
-            $0._ref.urlString == $1._ref.urlString
-                && isEqual($0.urlRequest, $1.urlRequest)
-                && $0.processor == $1.processor
-        }
+        return request.loadKey ?? AnyHashable(LoadKey(request: request))
     }
 
-    /// Compares two requests for equivalence using an `equator` closure.
-    private class Key: Hashable {
+    private struct CacheKey: Hashable {
         let request: Request
-        let equator: (Request, Request) -> Bool
 
-        init(request: Request, equator: @escaping (Request, Request) -> Bool) {
-            self.request = request
-            self.equator = equator
+        var hashValue: Int { return request._ref.urlString?.hashValue ?? 0 }
+
+        static func ==(lhs: CacheKey, rhs: CacheKey) -> Bool {
+            let lhs = lhs.request, rhs = rhs.request
+            return lhs._ref.urlString == rhs._ref.urlString
+                && lhs.processor == rhs.processor
         }
+    }
 
-        /// Returns hash from the request's URL.
-        var hashValue: Int {
-            return request._ref.urlString?.hashValue ?? 0
-        }
+    private struct LoadKey: Hashable {
+        let request: Request
 
-        /// Compares two keys for equivalence.
-        static func ==(lhs: Key, rhs: Key) -> Bool {
-            return lhs.equator(lhs.request, rhs.request)
+        var hashValue: Int { return request._ref.urlString?.hashValue ?? 0 }
+
+        static func ==(lhs: LoadKey, rhs: LoadKey) -> Bool {
+            func isEqual(_ a: URLRequest, _ b: URLRequest) -> Bool {
+                return a.cachePolicy == b.cachePolicy
+                    && a.allowsCellularAccess == b.allowsCellularAccess
+            }
+            let lhs = lhs.request, rhs = rhs.request
+            return lhs._ref.urlString == rhs._ref.urlString
+                && isEqual(lhs.urlRequest, rhs.urlRequest)
+                && lhs.processor == rhs.processor
         }
     }
 }
