@@ -121,7 +121,7 @@ Manager.shared.loadImage(with: url) {
 }
 ```
 
-If you'd like to cancel the requests use a [cancellation token](https://kean.github.io/post/cancellation-token):
+If you'd like to cancel the requests, use a [cancellation token](https://kean.github.io/post/cancellation-token):
 
 ```swift
 let cts = CancellationTokenSource()
@@ -136,14 +136,13 @@ cts.cancel()
 
 [RxNuke](https://github.com/kean/RxNuke) adds [RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke and enables many common use cases:
 
-- Going From Low to High Resolution
-- Loading the First Available Image
-- Showing Stale Image While Validating It
-- Load Multiple Images, Display All at Once
-- Auto Retry
-- Tracking Activities
+- Going from low to high resolution
+- Loading the first available image
+- Showing stale image while validating it
+- Load multiple images, display all at once
+- Auto retry on failures
 
-And [many more...](https://github.com/kean/RxNuke#use-cases)
+And [more...](https://github.com/kean/RxNuke#use-cases)
 
 
 #### Using Memory Cache
@@ -162,7 +161,7 @@ let image = Cache.shared[request]
 
 #### Preheating Images
 
-[Preheating](https://kean.github.io/post/image-preheating) (prefetching) means loading images ahead of time in anticipation of its use. Nuke provides a `Preheater` class that does just that:
+[Preheating](https://kean.github.io/post/image-preheating) (prefetching) means loading images ahead of time in anticipation of their use. Nuke provides a `Preheater` class that does just that:
 
 ```swift
 let preheater = Preheater(manager: Manager.shared)
@@ -177,7 +176,7 @@ preheater.stopPreheating(for: requests)
 
 You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`. With iOS 10.0 you might want to use new [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) provided by iOS.
 
-> See [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
+> Check out [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
 
 
 # Extensions<a name="h_plugins"></a>
@@ -193,7 +192,7 @@ You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) 
 
 # Design<a name="h_design"></a>
 
-Nuke is designed to support [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection). It provides a set of protocols which can be used to customize image loading pipeline:
+Nuke is designed to support [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection). It provides a set of protocols, which can be used to customize image loading pipeline:
 
 |Protocol|Description|
 |--------|-----------|
@@ -205,11 +204,11 @@ Nuke is designed to support [dependency injection](https://en.wikipedia.org/wiki
 
 ### Data Loading and Caching
 
-A built-in `DataLoader` class implements `DataLoading` protocol and uses [`Foundation.URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) to load image data. The data is cached on disk using a [`Foundation.URLCache`](https://developer.apple.com/reference/foundation/urlcache) instance which by default is initialized with a memory capacity of 0 MB (Nuke stores images in memory, not image data) and a disk capacity of 150 MB.
+A built-in `DataLoader` class implements `DataLoading` protocol and uses [`Foundation.URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) to load image data. The data is cached on disk using a [`Foundation.URLCache`](https://developer.apple.com/reference/foundation/urlcache) instance, which by default is initialized with a memory capacity of 0 MB (Nuke stores images in memory, not image data) and a disk capacity of 150 MB.
 
 > See [Image Caching Guide](https://kean.github.io/post/image-caching) to learn more about image caching
 
-> See [Third Party Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries) guide to learn about how to use a custom data loader or cache
+> See [Third Party Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries) guide to learn how to use a custom data loader or cache
 
 Most developers either implement their own networking layer or use a third-party framework. Nuke supports both of those workflows. You can integrate your custom networking layer by implementing `DataLoading` protocol.
 
@@ -217,7 +216,7 @@ Most developers either implement their own networking layer or use a third-party
 
 ### Memory Cache
 
-Nuke provides a fast in-memory cache (`Cache`) which stores processed images ready to be displayed. `Cache` uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. It has a limit which prevents it from using more than ~20% of available RAM. As a good citizen `Cache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
+Nuke provides a fast in-memory cache (`Cache`) which stores processed images ready to be displayed. `Cache` uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. It has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `Cache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
 
 # Requirements<a name="h_requirements"></a>
 
