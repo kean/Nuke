@@ -19,7 +19,7 @@ public struct Request {
         set {
             _mutate {
                 $0.resource = Resource.urlRequest(newValue)
-                $0.urlString = newValue.url?.absoluteString
+                $0._urlString = newValue.url?.absoluteString
             }
         }
     }
@@ -90,13 +90,13 @@ public struct Request {
     /// Initializes a request with the given URL.
     public init(url: URL) {
         _ref = Container(resource: Resource.url(url))
-        _ref.urlString = url.absoluteString
+        _ref._urlString = url.absoluteString
     }
 
     /// Initializes a request with the given request.
     public init(urlRequest: URLRequest) {
         _ref = Container(resource: Resource.urlRequest(urlRequest))
-        _ref.urlString = urlRequest.url?.absoluteString
+        _ref._urlString = urlRequest.url?.absoluteString
     }
 
     #if !os(macOS)
@@ -140,8 +140,11 @@ public struct Request {
     /// avoid memberwise retain/releases when `Request is passed around.
     private class Container {
         var resource: Resource
-        var urlString: String? // memoized absoluteString
-        var processor: AnyProcessor?
+        var _urlString: String? // memoized absoluteString
+        var processor: AnyProcessor? {
+            didSet { _isUsingDefaultProcessor = false }
+        }
+        private var _isUsingDefaultProcessor = true
         var memoryCacheOptions = MemoryCacheOptions()
         var cacheKey: AnyHashable?
         var loadKey: AnyHashable?
@@ -161,8 +164,9 @@ public struct Request {
         /// Creates a copy.
         init(container ref: Container) {
             self.resource = ref.resource
-            self.urlString = ref.urlString
+            self._urlString = ref._urlString
             self.processor = ref.processor
+            self._isUsingDefaultProcessor = ref._isUsingDefaultProcessor // order is important here
             self.memoryCacheOptions = ref.memoryCacheOptions
             self.cacheKey = ref.cacheKey
             self.loadKey = ref.loadKey
@@ -173,6 +177,10 @@ public struct Request {
         #if !os(macOS)
         private static let decompressor = AnyProcessor(Decompressor())
         #endif
+
+        func isEqualProcessor(to ref: Container) -> Bool {
+            return (_isUsingDefaultProcessor && ref._isUsingDefaultProcessor) || processor == ref.processor
+        }
     }
 
     /// Resource representation (either URL or URLRequest).
@@ -225,19 +233,19 @@ public extension Request {
     private struct CacheKey: Hashable {
         let request: Request
 
-        var hashValue: Int { return request._ref.urlString?.hashValue ?? 0 }
+        var hashValue: Int { return request._ref._urlString?.hashValue ?? 0 }
 
         static func ==(lhs: CacheKey, rhs: CacheKey) -> Bool {
             let lhs = lhs.request, rhs = rhs.request
-            return lhs._ref.urlString == rhs._ref.urlString
-                && lhs.processor == rhs.processor
+            return lhs._ref._urlString == rhs._ref._urlString
+                && lhs._ref.isEqualProcessor(to: rhs._ref)
         }
     }
 
     private struct LoadKey: Hashable {
         let request: Request
 
-        var hashValue: Int { return request._ref.urlString?.hashValue ?? 0 }
+        var hashValue: Int { return request._ref._urlString?.hashValue ?? 0 }
 
         static func ==(lhs: LoadKey, rhs: LoadKey) -> Bool {
             func isEqual(_ a: URLRequest, _ b: URLRequest) -> Bool {
@@ -245,9 +253,9 @@ public extension Request {
                     && a.allowsCellularAccess == b.allowsCellularAccess
             }
             let lhs = lhs.request, rhs = rhs.request
-            return lhs._ref.urlString == rhs._ref.urlString
+            return lhs._ref._urlString == rhs._ref._urlString
                 && isEqual(lhs.urlRequest, rhs.urlRequest)
-                && lhs.processor == rhs.processor
+                && lhs._ref.isEqualProcessor(to: rhs._ref)
         }
     }
 }
