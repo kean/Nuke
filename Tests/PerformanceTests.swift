@@ -113,68 +113,6 @@ class CachePerformanceTests: XCTestCase {
     }
 }
 
-class BagPerformanceTests: XCTestCase {
-    func testTestInsertTwoInts() {
-        measure {
-            for _ in 0..<200_000 {
-                var bag = Bag<Int>()
-                bag.insert(1)
-                bag.insert(2)
-            }
-        }
-    }
-    
-    func testTestInsertThreeInts() {
-        measure {
-            for _ in 0..<200_000 {
-                var bag = Bag<Int>()
-                bag.insert(1)
-                bag.insert(2)
-                bag.insert(3)
-            }
-        }
-    }
-    
-    func testInsertLotsOfInts() {
-        measure {
-            var bag = Bag<Int>()
-            for _ in 0..<200_000 { // also makes sure that we don't stack overflow
-                bag.insert(1)
-            }
-        }
-    }
-    
-    func testTestInsertTwoClosures() {
-        measure {
-            for _ in 0..<200_000 {
-                var bag = Bag<() -> Void>()
-                bag.insert({ print(1) })
-                bag.insert({ print(2) })
-            }
-        }
-    }
-    
-    func testTestInsertThreeClosures() {
-        measure {
-            for _ in 0..<200_000 {
-                var bag = Bag<() -> Void>()
-                bag.insert({ print(1) })
-                bag.insert({ print(2) })
-                bag.insert({ print(3) })
-            }
-        }
-    }
-    
-    func testInsertLotsOfClosures() {
-        measure {
-            var bag = Bag<() -> Void>()
-            for _ in 0..<200_000 {
-                bag.insert({ print(1) })
-            }
-        }
-    }
-}
-
 class RequestPerformanceTests: XCTestCase {
     func testStoringRequestInCollections() {
         let urls = (0..<200_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }

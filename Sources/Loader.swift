@@ -133,7 +133,7 @@ public final class Loader: Loading {
         // The request only gets cancelled when all the underlying requests are.
         task.retainCount += 1
         let handler = DeduplicatedTask.Handler(progress: request.progress, completion: completion)
-        task.handlers.insert(handler)
+        task.handlers.append(handler)
 
         token?.register { [weak self, weak task] in
             if let task = task { self?._cancel(task) }
@@ -196,9 +196,7 @@ public final class Loader: Loading {
         // CTS optimizations by only registering twice.
         let cts = CancellationTokenSource()
 
-        // In majority of use cases the `handlers` count is going to stay
-        // below 2 which takes full advantage of `Bag` optimizations.
-        var handlers = Bag<Handler>()
+        var handlers = ContiguousArray<Handler>()
         var retainCount = 0 // number of non-cancelled handlers
 
         init(request: Request, key: AnyHashable) {
