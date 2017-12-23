@@ -98,11 +98,11 @@ Nuke can process and cache loaded images for you. For example, to resize the ima
 let request = Request(url: url, targetSize: CGSize(width: 640, height: 320), contentMode: .aspectFill)
 ```
 
-It's also easy to perform custom image transformations by providing a closure:
+It's also easy to perform custom image transformations by providing a closure. For example, here's how you can use [Toucan](https://github.com/gavinbunney/Toucan) to create a circular avatar:
 
 ```swift
-let request = Request(url: url).process(key: "blur") { image in
-    ...
+let request = Request(url: url).process(key: "circularAvatar") {
+    Toucan(image: $0).maskWithEllipse().image
 }
 ```
 
@@ -187,7 +187,6 @@ You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) 
 |[**Alamofire**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks|
 |[**Gifu**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
 |[**FLAnimatedImage**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
-|[**Toucan**](https://github.com/kean/Nuke-Toucan-Plugin)|**(Deprecated)** [Toucan](https://github.com/gavinbunney/Toucan) offers a simple API for processing images|
 
 
 # Design<a name="h_design"></a>
