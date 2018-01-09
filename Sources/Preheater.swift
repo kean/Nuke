@@ -15,7 +15,7 @@ import Foundation
 public final class Preheater {
     private let manager: Manager
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
-    private let preheatQueue: TaskQueue
+    private let preheatQueue = OperationQueue()
     private var tasks = [AnyHashable: Task]()
 
     /// Initializes the `Preheater` instance.
@@ -23,7 +23,7 @@ public final class Preheater {
     /// - parameter `maxConcurrentRequestCount`: 2 by default.
     public init(manager: Manager = Manager.shared, maxConcurrentRequestCount: Int = 2) {
         self.manager = manager
-        self.preheatQueue = TaskQueue(maxConcurrentTaskCount: maxConcurrentRequestCount)
+        self.preheatQueue.maxConcurrentOperationCount = maxConcurrentRequestCount
     }
 
     /// Preheats images for the given requests.

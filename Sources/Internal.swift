@@ -123,55 +123,52 @@ internal final class RateLimiter {
     }
 }
 
-// MARK: - TaskQueue
+// MARK: - Operation
 
-/// Limits number of maximum concurrent tasks. By default tasks are executed on
-/// the underlying concurrent dispatch queue (with default options).
-internal final class TaskQueue {
-    // An alternative of using custom Foundation.Operation requires more code,
-    // less performant and even harder to get right https://github.com/kean/Nuke/issues/141.
-    private var executingTaskCount: Int = 0
-    private var pendingTasks = LinkedList<Task>() // fast append, fast remove first
-    private let maxConcurrentTaskCount: Int
-    private let executionQueue = DispatchQueue(label: "com.github.kean.Nuke.TaskQueue.Execution", attributes: .concurrent)
-    private let syncQueue = DispatchQueue(label: "com.github.kean.Nuke.TaskQueue.Sync")
+internal extension OperationQueue {
+    internal func execute(token: CancellationToken, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
+        guard !token.isCancelling else { return }
+        let operation = Operation(starter: closure)
+        addOperation(operation)
+        token.register { [weak operation] in operation?.cancel() }
+    }
+}
 
-    internal typealias Work = (_ finish: @escaping () -> Void) -> Void
-    private typealias Task = (CancellationToken, Work)
+internal final class Operation: Foundation.Operation {
+    enum State { case executing, finished }
 
-    internal init(maxConcurrentTaskCount: Int) {
-        self.maxConcurrentTaskCount = maxConcurrentTaskCount
+    // `queue` here is basically to make TSan happy. In reality the calls to
+    // `_setState` are guaranteed to never run concurrently in different ways.
+    private var _state: State?
+    private func _setState(_ newState: State) {
+        willChangeValue(forKey: "isExecuting")
+        if newState == .finished { willChangeValue(forKey: "isFinished") }
+        queue.sync(flags: .barrier) { _state = newState }
+        didChangeValue(forKey: "isExecuting")
+        if newState == .finished { didChangeValue(forKey: "isFinished") }
     }
 
-    internal func execute(token: CancellationToken, _ closure: @escaping Work) {
-        syncQueue.async {
-            guard !token.isCancelling else { return } // fast preflight check
-            self.pendingTasks.append((token, closure))
-            self._executeTasksIfNecessary()
-        }
+    override var isExecuting: Bool { return queue.sync { _state == .executing } }
+    override var isFinished: Bool { return queue.sync { _state == .finished } }
+
+    typealias Starter = (_ fulfill: @escaping () -> Void) -> Void
+    private let starter: Starter
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Operation", attributes: .concurrent)
+
+    init(starter: @escaping Starter) { self.starter = starter }
+
+    override func start() {
+        guard !isCancelled else { _setState(.finished); return }
+        _setState(.executing)
+        starter { [weak self] in DispatchQueue.main.async { self?._finish() } }
     }
 
-    private func _executeTasksIfNecessary() {
-        while executingTaskCount < maxConcurrentTaskCount, let node = pendingTasks.first {
-            pendingTasks.remove(node)
-            let task = node.value
-            if !task.0.isCancelling { // check if still not cancelled
-                executingTaskCount += 1 // only then execute
-                executionQueue.async { self._executeTask(task) }
-            }
-        }
-    }
-
-    private func _executeTask(_ task: Task) {
-        var isFinished = false
-        task.1 { [weak self] in
-            self?.syncQueue.async {
-                guard !isFinished else { return } // finish called twice
-                isFinished = true
-                self?.executingTaskCount -= 1
-                self?._executeTasksIfNecessary()
-            }
-        }
+    // Calls to _finish() are syncrhonized on the main thread. This way we
+    // guarantee that `starter` doesn't finish operation more than once.
+    // Other paths are also guaranteed to be safe.
+    private func _finish() {
+        guard _state != .finished else { return }
+        _setState(.finished)
     }
 }
 

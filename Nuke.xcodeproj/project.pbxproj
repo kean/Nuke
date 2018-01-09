@@ -89,9 +89,6 @@
 		0C69FA4F1D4E222D00DA9982 /* PreheaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD195291D4348AC00E011BB /* PreheaterTests.swift */; };
 		0C69FA501D4E222E00DA9982 /* PreheaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD195291D4348AC00E011BB /* PreheaterTests.swift */; };
 		0C6CF0CD1DAF789C007B8C0E /* XCTestCaseExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068E1BCA888800089D7F /* XCTestCaseExtensions.swift */; };
-		0C7101D61FC70860000CE3C9 /* TaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7101D51FC70860000CE3C9 /* TaskQueueTests.swift */; };
-		0C7101D71FC70860000CE3C9 /* TaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7101D51FC70860000CE3C9 /* TaskQueueTests.swift */; };
-		0C7101D81FC70860000CE3C9 /* TaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7101D51FC70860000CE3C9 /* TaskQueueTests.swift */; };
 		0C7150091FC9724C00B880AC /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7150081FC9724C00B880AC /* Internal.swift */; };
 		0C71500A1FC9724F00B880AC /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7150081FC9724C00B880AC /* Internal.swift */; };
 		0C71500B1FC9725000B880AC /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7150081FC9724C00B880AC /* Internal.swift */; };
@@ -223,7 +220,6 @@
 		0C4B6A341E36630E00E86B21 /* Nuke 5 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 5 Migration Guide.md"; sourceTree = "<group>"; };
 		0C5D81871D46A385000ECCB6 /* ThreadSafetyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThreadSafetyTests.swift; sourceTree = "<group>"; };
 		0C66879A1E41EF2F00CEBFAE /* Third Party Libraries.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Third Party Libraries.md"; sourceTree = "<group>"; };
-		0C7101D51FC70860000CE3C9 /* TaskQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskQueueTests.swift; sourceTree = "<group>"; };
 		0C7150081FC9724C00B880AC /* Internal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Internal.swift; sourceTree = "<group>"; };
 		0C778CFC1D89634B00361A1F /* Nuke.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0C7C06771BCA882A00089D7F /* Nuke iOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke iOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -386,7 +382,6 @@
 				0C1E623A1D6FA0FB00AD5CF5 /* CancellationTokenTests.swift */,
 				0C7E86141DA59F12002EAD8D /* RateLimiterTests.swift */,
 				0C4AF1E91FE8551D002F86CB /* LinkedListTest.swift */,
-				0C7101D51FC70860000CE3C9 /* TaskQueueTests.swift */,
 				0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */,
 				0C8D7BD11D9DBF1600D12EB7 /* Host */,
 				0C7C069B1BCA889000089D7F /* Extensions */,
@@ -912,7 +907,6 @@
 				0C1ECA511D52811D009063A9 /* ManagerTests.swift in Sources */,
 				0C1ECA461D52667B009063A9 /* ProcessingTests.swift in Sources */,
 				0C5D81891D46A385000ECCB6 /* ThreadSafetyTests.swift in Sources */,
-				0C7101D71FC70860000CE3C9 /* TaskQueueTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -939,7 +933,6 @@
 				0C1ECA501D52811D009063A9 /* ManagerTests.swift in Sources */,
 				0C1ECA451D52667B009063A9 /* ProcessingTests.swift in Sources */,
 				0CE3992D1D4697CE00A87D47 /* LoaderTests.swift in Sources */,
-				0C7101D61FC70860000CE3C9 /* TaskQueueTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1028,7 +1021,6 @@
 				0C1ECA521D52811D009063A9 /* ManagerTests.swift in Sources */,
 				0C1ECA471D52667B009063A9 /* ProcessingTests.swift in Sources */,
 				0C5D818A1D46A385000ECCB6 /* ThreadSafetyTests.swift in Sources */,
-				0C7101D81FC70860000CE3C9 /* TaskQueueTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

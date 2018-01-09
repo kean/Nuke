@@ -55,9 +55,9 @@ public final class Loader: Loading {
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
 
     // queues limiting underlying systems
-    private let dataLoadingQueue: TaskQueue
+    private let dataLoadingQueue = OperationQueue()
     private let decodingQueue = DispatchQueue(label: "com.github.kean.Nuke.Decoding")
-    private let processingQueue: TaskQueue
+    private let processingQueue = OperationQueue()
     private let rateLimiter = RateLimiter()
     private let options: Options
 
@@ -105,8 +105,8 @@ public final class Loader: Loading {
     public init(loader: DataLoading, decoder: DataDecoding = DataDecoder(), options: Options = Options()) {
         self.loader = loader
         self.decoder = decoder
-        self.dataLoadingQueue = TaskQueue(maxConcurrentTaskCount: options.maxConcurrentDataLoadingTaskCount)
-        self.processingQueue = TaskQueue(maxConcurrentTaskCount: options.maxConcurrentImageProcessingTaskCount)
+        self.dataLoadingQueue.maxConcurrentOperationCount = options.maxConcurrentDataLoadingTaskCount
+        self.processingQueue.maxConcurrentOperationCount = options.maxConcurrentImageProcessingTaskCount
         self.options = options
     }
 
