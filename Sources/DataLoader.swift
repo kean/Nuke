@@ -39,12 +39,25 @@ public final class DataLoader: DataLoading {
         return (200..<300).contains(response.statusCode) ? nil : Error.statusCodeUnacceptable(response.statusCode)
     }
 
+#if os(macOS)
+    private static let cachePath: String = {
+        let cachePaths = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true)
+        if let cachePath = cachePaths.first, let identifier = Bundle.main.bundleIdentifier {
+            return cachePath.appending("/" + identifier)
+        }
+
+        return ""
+    }()
+#else
+    private static let cachePath = "com.github.kean.Nuke.Cache"
+#endif
+
     /// Shared url cached used by a default `DataLoader`. The cache is
     /// initialized with 0 MB memory capacity and 150 MB disk capacity.
     public static let sharedUrlCache = URLCache(
         memoryCapacity: 0,
         diskCapacity: 150 * 1024 * 1024, // 150 MB
-        diskPath: "com.github.kean.Nuke.Cache"
+        diskPath: cachePath
     )
 
     /// Loads data with the given request.
