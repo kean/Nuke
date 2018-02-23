@@ -249,13 +249,13 @@ public extension Request {
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
     public mutating func process<Key: Hashable>(key: Key, _ closure: @escaping (Image) -> Image?) {
-        process(with: AnonymousProcessor(key, closure))
+        process(with: AnonymousProcessor<Key>(key, closure))
     }
 
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
     public func processed<Key: Hashable>(key: Key, _ closure: @escaping (Image) -> Image?) -> Request {
-        return processed(with: AnonymousProcessor(key, closure))
+        return processed(with: AnonymousProcessor<Key>(key, closure))
     }
 }
 

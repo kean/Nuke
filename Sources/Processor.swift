@@ -55,11 +55,11 @@ public struct AnyProcessor: Processing {
     }
 }
 
-internal struct AnonymousProcessor: Processing {
-    private let _key: AnyHashable
+internal struct AnonymousProcessor<Key: Hashable>: Processing {
+    private let _key: Key
     private let _closure: (Image) -> Image?
 
-    init<Key: Hashable>(_ key: Key, _ closure: @escaping (Image) -> Image?) {
+    init(_ key: Key, _ closure: @escaping (Image) -> Image?) {
         self._key = key; self._closure = closure
     }
 
