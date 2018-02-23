@@ -129,6 +129,9 @@ public final class Loader: Loading {
         let handler = Task.Handler(request: request, completion: completion)
         task.handlers.insert(handler)
 
+        // Update data operation priority (in case it was already started).
+        task.dataOperation?.queuePriority = _priority(for: task.handlers).queuePriority
+
         token?.register { [weak self, weak task, weak handler] in
             guard let task = task, let handler = handler else { return }
             self?._cancel(task, handler: handler)
@@ -136,21 +139,18 @@ public final class Loader: Loading {
     }
 
     private func _startTask(with request: Request) -> Task {
+        // Check if task for the given key already exists.
+        //
         // This part is more clever than I would like. The reason why we need a
-        // key even when deduplication is disables is to have a way to retain
-        // a task buy storing it in `tasks` dictionary.
+        // key even when deduplication is disabled is to have a way to retain
+        // a task by storing it in `tasks` dictionary.
         let key = options.isDeduplicationEnabled ? request.loadKey : UUID()
-
-        guard let task = tasks[key] else {
-            let task = Task(request: request, key: key)
-
-            // Retain task, no matter whether deduplication is enabled or not.
-            tasks[key] = task
-
-            // Start the pipeline
-            _loadImage(with: task)
+        if let task = tasks[key] {
             return task
         }
+        let task = Task(request: request, key: key)
+        tasks[key] = task
+        _loadImage(for: task) // Start the pipeline
         return task
     }
 
@@ -181,7 +181,6 @@ public final class Loader: Loading {
             if task.handlers.isEmpty {
                 task.cts.cancel() // Cancel underlying request
                 if self.tasks[task.key] === task {
-                    // Don't allow new requests to be registered with a task
                     self.tasks[task.key] = nil
                 }
             }
@@ -191,42 +190,50 @@ public final class Loader: Loading {
     // MARK: Pipeline
 
     // This is where we actually load the images.
-    private func _loadImage(with task: Task) {
+    private func _loadImage(for task: Task) {
         // Use rate limiter to prevent trashing of the underlying systems
         if options.isRateLimiterEnabled {
             rateLimiter.execute(token: task.cts.token) { [weak self, weak task] in
                 guard let task = task else { return }
-                self?._loadData(with: task)
+                self?._loadData(for: task)
             }
         } else { // Start loading immediately.
-            _loadData(with: task)
+            _loadData(for: task)
         }
     }
 
     // Use the underlying data loader to load image data.
-    private func _loadData(with task: Task) {
+    private func _loadData(for task: Task) {
         let token = task.cts.token
+        let request = task.request.urlRequest
+
+        guard !token.isCancelling else { return } // Preflight check
 
         // Wrap data request in an operation to limit maximum number of
         // concurrent data tasks.
-        dataLoadingQueue.execute(token: token) { [weak self, weak task] finish in
-            guard let task = task else {
-                finish(); return // Finish immediately, task no longer registered.
-            }
+        let operation = Operation(starter: { [weak self, weak task] finish in
             self?.loader.loadData(
-                with: task.request.urlRequest,
+                with: request,
                 token: token,
-                progress: { [weak task] in
+                progress: {
                     guard let task = task else { return }
                     self?._updateProgress(completed: $0, total: $1, task: task)
                 },
-                completion: { [weak task] in
+                completion: {
                     finish()
                     guard let task = task else { return }
                     self?._didReceiveData($0, task: task)
                 }
             )
-            token.register(finish)
+            token.register(finish) // Make sure we always `finish` the operation.
+        })
+
+        // Synchronize access to `task.handlers`.
+        queue.async {
+            operation.queuePriority = _priority(for: task.handlers).queuePriority
+            self.dataLoadingQueue.addOperation(operation)
+            token.register(operation.cancel)
+            task.dataOperation = operation
         }
     }
 
@@ -269,12 +276,13 @@ public final class Loader: Loading {
 
     // MARK: Task
 
-    private final class Task {
+    fileprivate final class Task {
         /// The original request with which the task was created.
         let request: Request
         let key: AnyHashable
         let cts = CancellationTokenSource()
         var handlers = Set<Handler>()
+        weak var dataOperation: Operation?
 
         init(request: Request, key: AnyHashable) {
             self.request = request; self.key = key
@@ -313,4 +321,8 @@ public final class Loader: Loading {
             }
         }
     }
+}
+
+private func _priority(for handlers: Set<Loader.Task.Handler>) -> Request.Priority {
+    return handlers.map { $0.request.priority }.max() ?? .normal
 }

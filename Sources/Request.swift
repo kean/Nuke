@@ -51,6 +51,32 @@ public struct Request {
         set { _mutate { $0.memoryCacheOptions = newValue } }
     }
 
+    /// The execution priority of the request.
+    public enum Priority: Int, Comparable {
+        case veryLow = 0, low, normal, high, veryHigh
+
+        internal var queuePriority: Operation.QueuePriority {
+            switch self {
+            case .veryLow: return .veryLow
+            case .low: return .low
+            case .normal: return .normal
+            case .high: return .high
+            case .veryHigh: return .veryHigh
+            }
+        }
+
+        public static func <(lhs: Priority, rhs: Priority) -> Bool {
+            return lhs.rawValue < rhs.rawValue
+        }
+    }
+
+    /// The relative priority of the operation. This value is used to influence
+    /// the order in which requests are executed. `.normal` by default.
+    public var priority: Priority {
+        get { return _ref.priority }
+        set { _mutate { $0.priority = newValue }}
+    }
+
     /// Returns a key that compares requests with regards to caching images.
     ///
     /// The default key considers two requests equivalent it they have the same
@@ -148,6 +174,7 @@ public struct Request {
         }
         private var _isUsingDefaultProcessor = true
         var memoryCacheOptions = MemoryCacheOptions()
+        var priority: Request.Priority = .normal
         var cacheKey: AnyHashable?
         var loadKey: AnyHashable?
         var progress: ProgressHandler?
@@ -170,6 +197,7 @@ public struct Request {
             self.processor = ref.processor
             self._isUsingDefaultProcessor = ref._isUsingDefaultProcessor // order is important here
             self.memoryCacheOptions = ref.memoryCacheOptions
+            self.priority = ref.priority
             self.cacheKey = ref.cacheKey
             self.loadKey = ref.loadKey
             self.progress = ref.progress

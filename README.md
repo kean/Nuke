@@ -86,6 +86,9 @@ request.progress = { completed, total in
     ...
 }
 
+// Update the request priority:
+request.priority = .high
+
 Manager.shared.loadImage(with: request, into: imageView)
 ```
 
@@ -166,8 +169,13 @@ let image = Cache.shared[request]
 ```swift
 let preheater = Preheater(manager: Manager.shared)
 
+let requests = urls.map {
+    var request = Request(url: $0)
+    request.priority = .low
+    return request
+}
+
 // User enters the screen:
-let requests = [Request(url: url1), Request(url: url2), ...]
 preheater.startPreheating(for: requests)
 
 // User leaves the screen:

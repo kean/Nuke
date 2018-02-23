@@ -5,7 +5,9 @@
 import XCTest
 @testable import Nuke
 
-class RequestSemanticsTests: XCTestCase {
+class RequestTests: XCTestCase {
+    // MARK: CoW
+
     func testThatStructSemanticsArePreserved() {
         let url1 =  URL(string: "http://test.com/1.png")!
         let url2 = URL(string: "http://test.com/2.png")!
@@ -39,6 +41,15 @@ class RequestSemanticsTests: XCTestCase {
         XCTAssertEqual(copy.userInfo as? String, "3")
         XCTAssertNotNil(copy.progress)
         XCTAssertEqual(copy.processor, AnyProcessor(MockImageProcessor(id: "4")))
+    }
+
+    // MARK: Misc
+
+    // Just to make sure that comparison works as expected.
+    func testPriorityComparison() {
+        XCTAssertTrue(Request.Priority.veryLow < Request.Priority.veryHigh)
+        XCTAssertTrue(Request.Priority.low < Request.Priority.normal)
+        XCTAssertTrue(Request.Priority.normal == Request.Priority.normal)
     }
 }
 

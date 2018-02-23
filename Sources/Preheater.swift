@@ -41,13 +41,17 @@ public final class Preheater {
 
         let task = Task(request: request, key: key)
         let token = task.cts.token
-        preheatQueue.execute(token: token) { [weak self] finish in
+
+        let operation = Operation(starter: { [weak self] finish in
             self?.manager.loadImage(with: request, token: token) { _ in
                 self?._remove(task)
                 finish()
             }
             token.register(finish)
-        }
+        })
+        preheatQueue.addOperation(operation)
+        token.register(operation.cancel)
+
         tasks[key] = task
     }
 

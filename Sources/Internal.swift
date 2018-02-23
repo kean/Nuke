@@ -125,15 +125,6 @@ internal final class RateLimiter {
 
 // MARK: - Operation
 
-internal extension OperationQueue {
-    internal func execute(token: CancellationToken, closure: @escaping (_ finish: @escaping () -> Void) -> Void) {
-        guard !token.isCancelling else { return }
-        let operation = Operation(starter: closure)
-        addOperation(operation)
-        token.register { [weak operation] in operation?.cancel() }
-    }
-}
-
 internal final class Operation: Foundation.Operation {
     enum State { case executing, finished }
 
