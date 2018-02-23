@@ -1,10 +1,6 @@
+// The MIT License (MIT)
 //
-//  AppDelegate.swift
-//  Nuke iOS Tests Host
-//
-//  Created by Alexander Grebenyuk on 30/09/16.
-//  Copyright © 2017 Alexander Grebenyuk. All rights reserved.
-//
+// Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
 
@@ -17,4 +13,3 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
 }
-
