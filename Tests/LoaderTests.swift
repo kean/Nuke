@@ -188,13 +188,9 @@ class LoaderDeduplicationTests: XCTestCase {
         // to call completion handler for cancelled requests.
         let cts = CancellationTokenSource()
 
-        // We expect completion to get called, since it going to be "retained" by
-        // other request.
-        expect { fulfill in
-            loader.loadImage(with: Request(url: defaultURL), token: cts.token) {
-                XCTAssertNotNil($0.value)
-                fulfill()
-            }
+        // We don't expect completion to be called.
+        loader.loadImage(with: Request(url: defaultURL), token: cts.token) { _ in
+            XCTFail()
         }
 
         expect { fulfill in // This work we don't cancel

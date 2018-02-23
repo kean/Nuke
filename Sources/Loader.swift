@@ -49,12 +49,12 @@ public extension Loading {
 public final class Loader: Loading {
     private let loader: DataLoading
     private let decoder: DataDecoding
-    private var tasks = [AnyHashable: DeduplicatedTask]()
+    private var tasks = [AnyHashable: Task]()
 
-    // synchronization queue
+    // Synchronization queue
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
 
-    // queues limiting underlying systems
+    // Queues limiting underlying systems
     private let dataLoadingQueue = OperationQueue()
     private let decodingQueue = DispatchQueue(label: "com.github.kean.Nuke.Decoding")
     private let processingQueue = OperationQueue()
@@ -116,151 +116,189 @@ public final class Loader: Loading {
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         queue.async {
             if token?.isCancelling == true { return } // Fast preflight check
-            if self.options.isDeduplicationEnabled {
-                self._loadImageDeduplicating(request, token: token, completion: completion)
-            } else {
-                self._loadImage(with: request, token: token ?? .noOp, completion: completion)
-            }
+            self._loadImage(request, token: token, completion: completion)
         }
     }
 
-    // MARK: Deduplication
+    // MARK: Managing Tasks
 
-    private func _loadImageDeduplicating(_ request: Request, token: CancellationToken?, completion: @escaping Completion) {
+    private func _loadImage(_ request: Request, token: CancellationToken?, completion: @escaping Completion) {
         let task = _startTask(with: request)
 
-        // Combine requests with the same `loadKey` into a single request.
-        // The request only gets cancelled when all the underlying requests are.
-        task.retainCount += 1
-        let handler = DeduplicatedTask.Handler(progress: request.progress, completion: completion)
-        task.handlers.append(handler)
+        // Register handler with a task.
+        let handler = Task.Handler(request: request, completion: completion)
+        task.handlers.insert(handler)
 
-        token?.register { [weak self, weak task] in
-            if let task = task { self?._cancel(task) }
+        token?.register { [weak self, weak task, weak handler] in
+            guard let task = task, let handler = handler else { return }
+            self?._cancel(task, handler: handler)
         }
     }
 
-    private func _startTask(with request: Request) -> DeduplicatedTask {
-        // Check if the task for the same request already exists.
-        let key = request.loadKey
+    private func _startTask(with request: Request) -> Task {
+        // This part is more clever than I would like. The reason why we need a
+        // key even when deduplication is disables is to have a way to retain
+        // a task buy storing it in `tasks` dictionary.
+        let key = options.isDeduplicationEnabled ? request.loadKey : UUID()
+
         guard let task = tasks[key] else {
-            let task = DeduplicatedTask(request: request, key: key)
+            let task = Task(request: request, key: key)
+
+            // Retain task, no matter whether deduplication is enabled or not.
             tasks[key] = task
 
             // Start the pipeline
-            var request = request // make a copy to set a custom progress handler
-            request.progress = { [weak self, weak task] in
-                if let task = task { self?._progress(completed: $0, total: $1, task: task) }
-            }
-            _loadImage(with: request, token: task.cts.token) { [weak self, weak task] in
-                if let task = task { self?._complete(task, result: $0) }
-            }
+            _loadImage(with: task)
             return task
         }
         return task
     }
 
-    private func _progress(completed: Int64, total: Int64, task: DeduplicatedTask) {
+    // Report progress to all registered handlers.
+    private func _updateProgress(completed: Int64, total: Int64, task: Task) {
         queue.async {
-            let handlers = task.handlers.flatMap { $0.progress }
+            let handlers = task.handlers.flatMap { $0.request.progress }
             guard !handlers.isEmpty else { return }
             DispatchQueue.main.async { handlers.forEach { $0(completed, total) } }
         }
     }
 
-    private func _complete(_ task: DeduplicatedTask, result: Result<Image>) {
+    // Report completion to all registered handlers.
+    private func _complete(_ task: Task, result: Result<Image>) {
         queue.async {
-            guard self.tasks[task.key] === task else { return } // still registered
-            let handlers = task.handlers // always non-empty at this point, no need to check
+            let handlers = task.handlers // Always non-empty at this point, no need to check
             DispatchQueue.main.async { handlers.forEach { $0.completion(result) } }
-            self.tasks[task.key] = nil
-        }
-    }
-
-    private func _cancel(_ task: DeduplicatedTask) {
-        queue.async {
-            guard self.tasks[task.key] === task else { return } // still registered
-            task.retainCount -= 1 // CTS makes sure cancel can't be called twice
-            if task.retainCount == 0 {
-                task.cts.cancel() // cancel underlying request
+            if self.tasks[task.key] === task {
                 self.tasks[task.key] = nil
             }
         }
     }
 
-    private final class DeduplicatedTask {
-        let request: Request
-        let key: AnyHashable
-
-        // Default `Loader` + `DataLoader` combination takes full advantage of
-        // CTS optimizations by only registering twice.
-        let cts = CancellationTokenSource()
-
-        var handlers = ContiguousArray<Handler>()
-        var retainCount = 0 // number of non-cancelled handlers
-
-        init(request: Request, key: AnyHashable) {
-            self.request = request; self.key = key
-        }
-
-        struct Handler {
-            let progress: ProgressHandler?
-            let completion: (Result<Image>) -> Void
+    // Cancel the task in case all handlers were removed.
+    private func _cancel(_ task: Task, handler: Task.Handler) {
+        queue.async {
+            task.handlers.remove(handler)
+            if task.handlers.isEmpty {
+                task.cts.cancel() // Cancel underlying request
+                if self.tasks[task.key] === task {
+                    // Don't allow new requests to be registered with a task
+                    self.tasks[task.key] = nil
+                }
+            }
         }
     }
 
     // MARK: Pipeline
 
-    private func _loadImage(with request: Request, token: CancellationToken, completion: @escaping Completion) {
+    // This is where we actually load the images.
+    private func _loadImage(with task: Task) {
         // Use rate limiter to prevent trashing of the underlying systems
         if options.isRateLimiterEnabled {
-            rateLimiter.execute(token: token) { [weak self] in
-                self?._loadData(with: request, token: token, completion: completion)
+            rateLimiter.execute(token: task.cts.token) { [weak self, weak task] in
+                guard let task = task else { return }
+                self?._loadData(with: task)
             }
-        } else { // load directly
-            _loadData(with: request, token: token, completion: completion)
+        } else { // Start loading immediately.
+            _loadData(with: task)
         }
     }
 
-    // would be nice to rewrite to async/await
-    private func _loadData(with request: Request, token: CancellationToken, completion: @escaping Completion) {
-        dataLoadingQueue.execute(token: token) { [weak self] finish in
-            self?.loader.loadData(with: request.urlRequest, token: token, progress: {
-                request.progress?($0, $1)
-            }, completion: {
-                finish()
+    // Use the underlying data loader to load image data.
+    private func _loadData(with task: Task) {
+        let token = task.cts.token
 
-                switch $0 {
-                case let .success(val): self?._decode(response: val, request: request, token: token, completion: completion)
-                case let .failure(err): completion(.failure(err))
+        // Wrap data request in an operation to limit maximum number of
+        // concurrent data tasks.
+        dataLoadingQueue.execute(token: token) { [weak self, weak task] finish in
+            guard let task = task else {
+                finish(); return // Finish immediately, task no longer registered.
+            }
+            self?.loader.loadData(
+                with: task.request.urlRequest,
+                token: token,
+                progress: { [weak task] in
+                    guard let task = task else { return }
+                    self?._updateProgress(completed: $0, total: $1, task: task)
+                },
+                completion: { [weak task] in
+                    finish()
+                    guard let task = task else { return }
+                    self?._didReceiveData($0, task: task)
                 }
-            })
+            )
             token.register(finish)
         }
     }
 
-    private func _decode(response: (Data, URLResponse), request: Request, token: CancellationToken, completion: @escaping Completion) {
-        let decode = { [decoder = self.decoder] in decoder.decode(data: response.0, response: response.1) }
-        decodingQueue.async { [weak self] in
+    private func _didReceiveData(_ result: Result<(Data, URLResponse)>, task: Task) {
+        switch result {
+        case let .success(val): _decode(response: val, task: task)
+        case let .failure(err): _complete(task, result: .failure(err))
+        }
+    }
+
+    private func _decode(response: (Data, URLResponse), task: Task) {
+        let decode = { [decoder = self.decoder] in
+            decoder.decode(data: response.0, response: response.1)
+        }
+        decodingQueue.async { [weak self, weak task] in
+            guard let task = task else { return }
             guard let image = autoreleasepool(invoking: decode) else {
-                completion(.failure(Error.decodingFailed)); return
+                self?._complete(task, result: .failure(Error.decodingFailed))
+                return
             }
-            self?._process(image: image, request: request, token: token, completion: completion)
+            self?._process(image: image, task: task)
         }
     }
 
-    private func _process(image: Image, request: Request, token: CancellationToken, completion: @escaping Completion) {
-        guard let processor = options.processor(image, request) else {
-            completion(.success(image)); return // no need to process
+    private func _process(image: Image, task: Task) {
+        // Check if processing is required, complete immediatelly if not.
+        guard let processor = options.processor(image, task.request) else {
+            _complete(task, result: .success(image))
+            return
         }
-        processingQueue.execute(token: token) { finish in
+        let operation = BlockOperation { [weak self, weak task] in
+            guard let task = task else { return }
             let image = autoreleasepool { processor.process(image) }
-            completion(image.map(Result.success) ?? .failure(Error.processingFailed))
-            finish()
+            let result = image.map(Result.success) ?? .failure(Error.processingFailed)
+            self?._complete(task, result: result)
+        }
+        task.cts.token.register(operation.cancel)
+        processingQueue.addOperation(operation)
+    }
+
+    // MARK: Task
+
+    private final class Task {
+        /// The original request with which the task was created.
+        let request: Request
+        let key: AnyHashable
+        let cts = CancellationTokenSource()
+        var handlers = Set<Handler>()
+
+        init(request: Request, key: AnyHashable) {
+            self.request = request; self.key = key
+        }
+
+        final class Handler: Hashable {
+            let request: Request
+            let completion: Completion
+
+            init(request: Request, completion: @escaping Completion) {
+                self.request = request; self.completion = completion
+            }
+
+            static func ==(lhs: Handler, rhs: Handler) -> Bool {
+                return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+            }
+
+            var hashValue: Int {
+                return ObjectIdentifier(self).hashValue
+            }
         }
     }
 
-    // MARK: Misc
+    // MARK: Errors
 
     /// Error returns by `Loader` class itself. `Loader` might also return
     /// errors from underlying `DataLoading` object.
