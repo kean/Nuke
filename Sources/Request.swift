@@ -263,7 +263,9 @@ public extension Request {
     private struct CacheKey: Hashable {
         let request: Request
 
-        var hashValue: Int { return request._ref._urlString?.hashValue ?? 0 }
+        var hashValue: Int {
+            return request._ref._urlString?.hashValue ?? 0
+        }
 
         static func ==(lhs: CacheKey, rhs: CacheKey) -> Bool {
             let lhs = lhs.request, rhs = rhs.request
@@ -275,7 +277,9 @@ public extension Request {
     private struct LoadKey: Hashable {
         let request: Request
 
-        var hashValue: Int { return request._ref._urlString?.hashValue ?? 0 }
+        var hashValue: Int {
+            return request._ref._urlString?.hashValue ?? 0
+        }
 
         static func ==(lhs: LoadKey, rhs: LoadKey) -> Bool {
             func isEqual(_ a: URLRequest, _ b: URLRequest) -> Bool {

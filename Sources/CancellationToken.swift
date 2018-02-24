@@ -14,7 +14,9 @@ public final class CancellationTokenSource {
     }
 
     /// Creates a new token associated with the source.
-    public var token: CancellationToken { return CancellationToken(source: self) }
+    public var token: CancellationToken {
+        return CancellationToken(source: self)
+    }
 
     private var _observers: ContiguousArray<() -> Void>? = []
 
@@ -67,13 +69,19 @@ public struct CancellationToken {
     fileprivate let source: CancellationTokenSource? // no-op when `nil`
 
     /// Returns `true` if cancellation has been requested for this token.
-    public var isCancelling: Bool { return source?.isCancelling ?? false }
+    public var isCancelling: Bool {
+        return source?.isCancelling ?? false
+    }
 
     /// Registers the closure that will be called when the token is canceled.
     /// If this token is already cancelled, the closure will be run immediately
     /// and synchronously.
-    public func register(_ closure: @escaping () -> Void) { source?.register(closure) }
+    public func register(_ closure: @escaping () -> Void) {
+        source?.register(closure)
+    }
 
     /// Special no-op token which does nothing.
-    internal static var noOp: CancellationToken { return CancellationToken(source: nil) }
+    internal static var noOp: CancellationToken {
+        return CancellationToken(source: nil)
+    }
 }

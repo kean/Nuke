@@ -9,7 +9,9 @@ import Foundation
 internal final class Lock {
     var mutex = UnsafeMutablePointer<pthread_mutex_t>.allocate(capacity: 1)
 
-    init() { pthread_mutex_init(mutex, nil) }
+    init() {
+        pthread_mutex_init(mutex, nil)
+    }
 
     deinit {
         pthread_mutex_destroy(mutex)
@@ -23,9 +25,13 @@ internal final class Lock {
         return closure()
     }
 
-    func lock() { pthread_mutex_lock(mutex) }
+    func lock() {
+        pthread_mutex_lock(mutex)
+    }
 
-    func unlock() { pthread_mutex_unlock(mutex) }
+    func unlock() {
+        pthread_mutex_unlock(mutex)
+    }
 }
 
 // MARK: - RateLimiter
@@ -66,7 +72,9 @@ internal final class RateLimiter {
     }
 
     private func _execute(_ task: Task) -> Bool {
-        guard !task.0.isCancelling else { return true } // no need to execute
+        guard !task.0.isCancelling else {
+            return true // No need to execute
+        }
         return bucket.execute(task.1)
     }
 
@@ -81,7 +89,7 @@ internal final class RateLimiter {
             pending.remove(node)
         }
         isExecutingPendingTasks = false
-        if !pending.isEmpty { // not all pending items were executed
+        if !pending.isEmpty { // Not all pending items were executed
             _setNeedsExecutePendingTasks()
         }
     }
@@ -133,25 +141,42 @@ internal final class Operation: Foundation.Operation {
     private var _state: State?
     private func _setState(_ newState: State) {
         willChangeValue(forKey: "isExecuting")
-        if newState == .finished { willChangeValue(forKey: "isFinished") }
-        queue.sync(flags: .barrier) { _state = newState }
+        if newState == .finished {
+            willChangeValue(forKey: "isFinished")
+        }
+        queue.sync(flags: .barrier) {
+            _state = newState
+        }
         didChangeValue(forKey: "isExecuting")
-        if newState == .finished { didChangeValue(forKey: "isFinished") }
+        if newState == .finished {
+            didChangeValue(forKey: "isFinished")
+        }
     }
 
-    override var isExecuting: Bool { return queue.sync { _state == .executing } }
-    override var isFinished: Bool { return queue.sync { _state == .finished } }
+    override var isExecuting: Bool {
+        return queue.sync { _state == .executing }
+    }
+    override var isFinished: Bool {
+        return queue.sync { _state == .finished }
+    }
 
     typealias Starter = (_ fulfill: @escaping () -> Void) -> Void
     private let starter: Starter
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Operation", attributes: .concurrent)
 
-    init(starter: @escaping Starter) { self.starter = starter }
+    init(starter: @escaping Starter) {
+        self.starter = starter
+    }
 
     override func start() {
-        guard !isCancelled else { _setState(.finished); return }
+        guard !isCancelled else {
+            _setState(.finished)
+            return
+        }
         _setState(.executing)
-        starter { [weak self] in DispatchQueue.main.async { self?._finish() } }
+        starter { [weak self] in
+            DispatchQueue.main.async { self?._finish() }
+        }
     }
 
     // Calls to _finish() are syncrhonized on the main thread. This way we
@@ -171,9 +196,13 @@ internal final class LinkedList<Element> {
     private(set) var first: Node?
     private(set) var last: Node?
 
-    deinit { removeAll() } // only available on classes
+    deinit {
+        removeAll()
+    }
 
-    var isEmpty: Bool { return last == nil }
+    var isEmpty: Bool {
+        return last == nil
+    }
 
     /// Adds an element to the end of the list.
     @discardableResult func append(_ element: Element) -> Node {
@@ -197,8 +226,12 @@ internal final class LinkedList<Element> {
     func remove(_ node: Node) {
         node.next?.previous = node.previous // node.previous is nil if node=first
         node.previous?.next = node.next // node.next is nil if node=last
-        if node === last { last = node.previous }
-        if node === first { first = node.next }
+        if node === last {
+            last = node.previous
+        }
+        if node === first {
+            first = node.next
+        }
         node.next = nil
         node.previous = nil
     }
@@ -220,6 +253,8 @@ internal final class LinkedList<Element> {
         fileprivate var next: Node?
         fileprivate var previous: Node?
 
-        init(value: Element) { self.value = value }
+        init(value: Element) {
+            self.value = value
+        }
     }
 }

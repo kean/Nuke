@@ -46,16 +46,22 @@ public final class Cache: Caching {
     private let lock = Lock()
 
     /// The maximum total cost that the cache can hold.
-    public var costLimit: Int { didSet { lock.sync(_trim) } }
+    public var costLimit: Int {
+        didSet { lock.sync(_trim) }
+    }
 
     /// The maximum number of items that the cache can hold.
-    public var countLimit: Int { didSet { lock.sync(_trim) } }
+    public var countLimit: Int {
+        didSet { lock.sync(_trim) }
+    }
 
     /// The total cost of items in the cache.
     public private(set) var totalCost = 0
 
     /// The total number of items in the cache.
-    public var totalCount: Int { return map.count }
+    public var totalCount: Int {
+        return map.count
+    }
 
     /// Shared `Cache` instance.
     public static let shared = Cache()
@@ -93,7 +99,9 @@ public final class Cache: Caching {
         get {
             lock.lock(); defer { lock.unlock() } // slightly faster than `sync()`
 
-            guard let node = map[key] else { return nil }
+            guard let node = map[key] else {
+                return nil
+            }
 
             // bubble node up to make it last added (most recently used)
             list.remove(node)
@@ -108,8 +116,9 @@ public final class Cache: Caching {
                 _add(CachedImage(image: image, cost: cost(image), key: key))
                 _trim() // _trim is extremely fast, it's OK to call it each time
             } else {
-                guard let node = map[key] else { return }
-                _remove(node: node)
+                if let node = map[key] {
+                    _remove(node: node)
+                }
             }
         }
     }
@@ -187,7 +196,9 @@ public final class Cache: Caching {
             // bytesPerRow * height gives a rough estimation of how much memory
             // image uses in bytes. In practice this algorithm combined with a 
             // concervative default cost limit works OK.
-            guard let cgImage = $0.cgImage else { return 1 }
+            guard let cgImage = $0.cgImage else {
+                return 1
+            }
             return cgImage.bytesPerRow * cgImage.height
         #endif
     }

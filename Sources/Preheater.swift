@@ -32,7 +32,9 @@ public final class Preheater {
     /// for the given requests. At any time afterward, you can create tasks
     /// for individual images with equivalent requests.
     public func startPreheating(with requests: [Request]) {
-        queue.async { requests.forEach(self._startPreheating) }
+        queue.async {
+            requests.forEach(self._startPreheating)
+        }
     }
 
     private func _startPreheating(with request: Request) {
@@ -65,7 +67,9 @@ public final class Preheater {
     /// Stops preheating images for the given requests and cancels outstanding
     /// requests.
     public func stopPreheating(with requests: [Request]) {
-        queue.async { requests.forEach(self._stopPreheating) }
+        queue.async {
+            requests.forEach(self._stopPreheating)
+        }
     }
 
     private func _stopPreheating(with request: Request) {

@@ -8,9 +8,8 @@ import Foundation
 public protocol Loading {
     /// Loads an image with the given request.
     ///
-    /// Loader doesn't make guarantees on which thread the completion
-    /// closure is called and whether it gets called or not after
-    /// the operation gets cancelled.
+    /// Loader doesn't make guarantees on which thread the completion closure is
+    /// called and whether it gets called when the operation is cancelled.
     func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void)
 }
 
@@ -35,7 +34,7 @@ public extension Loading {
 /// in the `Request`.
 ///
 /// Loader combines the requests with the same `loadKey` into a single request.
-/// The request only gets cancelled when all the registered requests are.
+/// The request only gets cancelled when all the registered handlers are.
 ///
 /// `Loader` limits the number of concurrent requests (the default maximum limit
 /// is 6). It also rate limits the requests to prevent `Loader` from trashing
@@ -43,7 +42,7 @@ public extension Loading {
 /// when the requests are started and cancelled at a high rate (e.g. fast
 /// scrolling through a collection view).
 ///
-/// Most of the `Loader` features can be configured using `Loader.Options`.
+/// `Loader` features can be configured using `Loader.Options`.
 ///
 /// `Loader` is thread-safe.
 public final class Loader: Loading {
@@ -120,8 +119,6 @@ public final class Loader: Loading {
         }
     }
 
-    // MARK: Managing Tasks
-
     private func _loadImage(_ request: Request, token: CancellationToken?, completion: @escaping Completion) {
         let task = _startTask(with: request)
 
@@ -137,6 +134,8 @@ public final class Loader: Loading {
             self?._cancel(task, handler: handler)
         }
     }
+
+    // MARK: Managing Tasks
 
     private func _startTask(with request: Request) -> Task {
         // Check if task for the given key already exists.
@@ -178,8 +177,9 @@ public final class Loader: Loading {
     private func _cancel(_ task: Task, handler: Task.Handler) {
         queue.async {
             task.handlers.remove(handler)
+            // Cancel the task when there are no handlers remaining.
             if task.handlers.isEmpty {
-                task.cts.cancel() // Cancel underlying request
+                task.cts.cancel()
                 if self.tasks[task.key] === task {
                     self.tasks[task.key] = nil
                 }
@@ -188,8 +188,9 @@ public final class Loader: Loading {
     }
 
     // MARK: Pipeline
+    //
+    // This is where the images actually get loaded.
 
-    // This is where we actually load the images.
     private func _loadImage(for task: Task) {
         // Use rate limiter to prevent trashing of the underlying systems
         if options.isRateLimiterEnabled {
@@ -202,7 +203,6 @@ public final class Loader: Loading {
         }
     }
 
-    // Use the underlying data loader to load image data.
     private func _loadData(for task: Task) {
         let token = task.cts.token
         let request = task.request.urlRequest
@@ -225,7 +225,7 @@ public final class Loader: Loading {
                     self?._didReceiveData($0, task: task)
                 }
             )
-            token.register(finish) // Make sure we always `finish` the operation.
+            token.register(finish) // Make sure we always finish the operation.
         })
 
         // Synchronize access to `task.handlers`.

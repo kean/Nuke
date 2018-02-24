@@ -66,15 +66,20 @@ public final class DataLoader: DataLoading {
         let validate = self.validate
         let handler = SessionTaskHandler(progress: progress) { (data, response, error) in
             // Check if request failed with error
-            if let error = error { completion(.failure(error)); return }
-
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
             // Check if response & data non empty
             guard let response = response, !data.isEmpty else {
-                completion(.failure(Error.responseEmpty)); return
+                completion(.failure(Error.responseEmpty))
+                return
             }
-
             // Validate response
-            if let error = validate(data, response) { completion(.failure(error)); return }
+            if let error = validate(data, response) {
+                completion(.failure(error))
+                return
+            }
             completion(.success((data, response)))
         }
         delegate.register(handler, for: task)
