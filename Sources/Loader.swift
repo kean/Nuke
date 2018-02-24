@@ -156,7 +156,11 @@ public final class Loader: Loading {
     // Report progress to all registered handlers.
     private func _updateProgress(completed: Int64, total: Int64, task: Task) {
         queue.async {
+            #if swift(>=4.1)
+            let handlers = task.handlers.compactMap { $0.request.progress }
+            #else
             let handlers = task.handlers.flatMap { $0.request.progress }
+            #endif
             guard !handlers.isEmpty else { return }
             DispatchQueue.main.async { handlers.forEach { $0(completed, total) } }
         }
