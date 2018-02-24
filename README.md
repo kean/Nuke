@@ -14,10 +14,10 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 - Load images into image views or other targets
 - Two [cache layers](https://kean.github.io/post/image-caching), fast LRU memory cache
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) extensions
-- [Freedom to use](#h_design) networking, caching libraries of your choice
+- [Can be used](#h_design) with networking, caching libraries of your choice
 - [RxSwift](https://github.com/ReactiveX/RxSwift) extensions provided by [RxNuke](https://github.com/kean/RxNuke)
-- Automated [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
-- Small (~1000 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
+- Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
+- Small (~1200 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
 
 
 # <a name="h_getting_started"></a>Quick Start
@@ -34,7 +34,7 @@ Upgrading from the previous version? Use a [migration guide](https://github.com/
 
 #### Loading Images into Targets
 
-You can load an image into an image view with a single line of code. Nuke will automatically load image data, decompress it in the background, cache the image, and display it.
+You can load an image into an image view with a single line of code. Nuke will automatically load image data, decompress it in the background, cache the image and display it.
 
 ```swift
 Manager.shared.loadImage(with: url, into: imageView)
@@ -43,7 +43,7 @@ Manager.shared.loadImage(with: url, into: imageView)
 
 #### Reusing Targets
 
-`Nuke.loadImage(with:into:)` method cancels previous outstanding request for a target. Nuke holds a weak reference to the target, when the target is deallocated the request is cancelled.
+`Nuke.loadImage(with:into:)` method cancels previous outstanding request for a target. Nuke holds a weak reference to the target, when the target is deallocated the request is cancelled automatically.
 
 ```swift
 func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -57,7 +57,7 @@ func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath:
 
 #### Providing Custom Handlers
 
-Nuke has a flexible `loadImage(with:into:handler:)` method which lets you handle the response any way you want. You can use it to implement custom transitions, show loading indicators, and more.
+Nuke has a flexible `loadImage(with:into:handler:)` method which lets you handle the response any way you'd like. You can use it to implement custom transitions, show loading indicators, and more.
 
 ```swift
 indicator.startAnimating()
@@ -91,6 +91,14 @@ request.priority = .high
 
 Manager.shared.loadImage(with: request, into: imageView)
 ```
+
+
+#### Deduplicating Requests
+
+By default Nuke combines the requests with the same `loadKey` into a single task. The task's priority is set to the highest priority of registered requests and gets updated when requests are added or removed to the task. The task only gets cancelled when all the registered requests are.
+
+> Deduplication can be disabled using `Loader.Options`.
+
 
 #### Processing Images
 
