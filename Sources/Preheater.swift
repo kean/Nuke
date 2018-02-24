@@ -52,7 +52,7 @@ public final class Preheater {
             token.register(finish)
         })
         preheatQueue.addOperation(operation)
-        token.register(operation.cancel)
+        token.register { [weak operation] in operation?.cancel() }
 
         tasks[key] = task
     }

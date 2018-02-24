@@ -84,7 +84,7 @@ public final class DataLoader: DataLoading {
         }
         delegate.register(handler, for: task)
 
-        token?.register { task.cancel() }
+        token?.register { [weak task] in task?.cancel() }
         task.resume()
     }
 

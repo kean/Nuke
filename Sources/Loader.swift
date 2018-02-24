@@ -232,7 +232,7 @@ public final class Loader: Loading {
         queue.async {
             operation.queuePriority = _priority(for: task.handlers).queuePriority
             self.dataLoadingQueue.addOperation(operation)
-            token.register(operation.cancel)
+            token.register { [weak operation] in operation?.cancel() }
             task.dataOperation = operation
         }
     }
@@ -270,7 +270,7 @@ public final class Loader: Loading {
             let result = image.map(Result.success) ?? .failure(Error.processingFailed)
             self?._complete(task, result: result)
         }
-        task.cts.token.register(operation.cancel)
+        task.cts.token.register { [weak operation] in operation?.cancel() }
         processingQueue.addOperation(operation)
     }
 
