@@ -1,3 +1,21 @@
+## Nuke 6.1
+
+### Features
+
+- Add `Request.Priority` with 5 available options ranging from `.veryLow` to `.veryHigh`. One of the use cases of `Request.Priority` is to lower the priority of preheating requests. In case requests get deduplicated the task's priority is set to the highest priority of registered requests and gets updated when requests are added or removed from the task.
+
+### Improvements
+
+- Fix warnings on Xcode 9.3 beta 3
+- `Loader` implementation changed a bit, it is less clever now and is able to accommodate new features like request priorities
+- Minor changes in style guide to make codebase more readable
+- Switch to native `NSLock`, there doesn't seem to be any performance wins anymore when using `pthread_mutex` directly
+
+### Fixes
+
+- #146 fix disk cache path for macOS, thanks to @willdahlberg
+
+
 ## Nuke 6.0
 
 > About 8 months ago I finally started using Nuke in production. The project has matured from a playground for experimenting with Swift features to something that I rely on in my day's job.
@@ -8,7 +26,7 @@ There are three main areas of improvements in Nuke 6:
 - API refinements. Some common operations that were surprisingly hard to do are not super easy. And there are no more implementation details leaking into a public API (e.g. classes like `Deduplicator`).
 - Fixes some inconveniences like Thread Sanitizer warnings (false positives!). Improved compile time. Better documentation.
 
-### New APIs
+### Features
 
 - Implements progress reporting https://github.com/kean/Nuke/issues/81
 - Scaling images is now super easy with new convenience `Request` initialisers (`Request.init(url:targetSize:contentMode:` and `Request.init(urlRequest:targetSize:contentMode:`)

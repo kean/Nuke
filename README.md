@@ -211,7 +211,6 @@ Nuke is designed to support [dependency injection](https://en.wikipedia.org/wiki
 
 |Protocol|Description|
 |--------|-----------|
-|`Loading`|Loads images|
 |`DataLoading`|Downloads data|
 |`DataDecoding`|Converts data into image objects|
 |`Processing`|Image transformations|
