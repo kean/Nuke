@@ -43,7 +43,7 @@ public final class Cache: Caching {
 
     private var map = [AnyHashable: LinkedList<CachedImage>.Node]()
     private let list = LinkedList<CachedImage>()
-    private let lock = Lock()
+    private let lock = NSLock()
 
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int {

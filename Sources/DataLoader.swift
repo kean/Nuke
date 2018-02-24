@@ -105,7 +105,7 @@ public final class DataLoader: DataLoading {
 }
 
 private final class SessionDelegate: NSObject, URLSessionDataDelegate {
-    private let lock = Lock()
+    private let lock = NSLock()
     let queue = OperationQueue()
     private var handlers = [URLSessionTask: SessionTaskHandler]()
 

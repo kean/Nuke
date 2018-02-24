@@ -53,7 +53,7 @@ public final class CancellationTokenSource {
 // We use the same lock across different tokens because the design of CTS
 // prevents potential issues. For example, closures registered with a token
 // are never executed inside a lock.
-private let _lock = Lock()
+private let _lock = NSLock()
 
 /// Enables cooperative cancellation of operations.
 ///
