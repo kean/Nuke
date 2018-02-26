@@ -59,3 +59,10 @@ extension Manager: Loading {
         return loader.cachedImage(for: request)
     }
 }
+
+extension Preheater {
+    @available(*, deprecated, message: "This initializer is deprecated, use `Preheater.init(loader:maxConcurrentRequestCount:) instead.")
+    public convenience init(manager: Manager = Manager.shared, maxConcurrentRequestCount: Int = 2) {
+        self.init(loader: manager.loader, maxConcurrentRequestCount: maxConcurrentRequestCount)
+    }
+}
