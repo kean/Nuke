@@ -59,29 +59,3 @@ extension Manager: Loading {
         return loader.cachedImage(for: request)
     }
 }
-
-@available(*, deprecated, message: "loadImage(with:into:) is deprecated. Use Manager.shared.loadImage(with:into:) instead.")
-public func loadImage(with url: URL, into target: Target) {
-    Manager.shared.loadImage(with: url, into: target)
-}
-
-@available(*, deprecated, message: "loadImage(with:into:) is deprecated. Use Manager.shared.loadImage(with:into:) instead.")
-public func loadImage(with request: Request, into target: Target) {
-    Manager.shared.loadImage(with: request, into: target)
-}
-
-@available(*, deprecated, message: "loadImage(with:into:handler:) is deprecated. Use Manager.shared.loadImage(with:into:handler:) instead.")
-public func loadImage(with url: URL, into target: AnyObject, handler: @escaping Manager.Handler) {
-    Manager.shared.loadImage(with: url, into: target, handler: handler)
-}
-
-@available(*, deprecated, message: "loadImage(with:into:handler:) is deprecated. Use Manager.shared.loadImage(with:into:handler:) instead.")
-public func loadImage(with request: Request, into target: AnyObject, handler: @escaping Manager.Handler) {
-    Manager.shared.loadImage(with: request, into: target, handler: handler)
-}
-
-/// Cancels an outstanding request associated with the target.
-@available(*, deprecated, message: "cancelRequest(for:) is deprecated. Use Manager.shared.cancelRequest(for:) instead.")
-public func cancelRequest(for target: AnyObject) {
-    Manager.shared.cancelRequest(for: target)
-}
