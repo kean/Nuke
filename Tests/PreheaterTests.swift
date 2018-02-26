@@ -14,8 +14,7 @@ class PreheaterTests: XCTestCase {
         super.setUp()
 
         loader = MockImageLoader()
-        manager = Manager(loader: loader)
-        preheater = Preheater(manager: manager)
+        preheater = Preheater(loader: loader)
     }
     
     // MARK: Starting and Stoping Preheating

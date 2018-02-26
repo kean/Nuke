@@ -33,6 +33,33 @@ public enum Result<T> {
 
 // MARK: - Deprecated
 
+extension Manager {
+    @available(*, deprecated, message: "Manager no longer manages cache, it's only responsibility is loading images into targets.")
+    convenience init(loader: Loading, cache: Caching? = nil) {
+        self.init(loader: loader)
+    }
+}
+
+@available(*, deprecated, message: "Manager no longer implements Loading protocol. Use Loader.loadImage(with:into:) instead.")
+extension Manager: Loading {
+    // MARK: Loading Images w/o Targets
+
+    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  loadImage(with:token:completion:) is deprecated. Use Loader methods instead")
+    public func loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
+        loader.loadImage(with: request, token: token, completion: completion)
+    }
+
+    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  loadImage(with:token:completion:) is deprecated. Use Loader methods instead")
+    public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
+
+    }
+
+    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  cachedImage(for:) is deprecated. Use Loader methods instead")
+    public func cachedImage(for request: Request) -> Image? {
+        return loader.cachedImage(for: request)
+    }
+}
+
 @available(*, deprecated, message: "loadImage(with:into:) is deprecated. Use Manager.shared.loadImage(with:into:) instead.")
 public func loadImage(with url: URL, into target: Target) {
     Manager.shared.loadImage(with: url, into: target)

@@ -301,7 +301,7 @@ class CacheIntegrationTests: XCTestCase {
 
         mockCache = MockCache()
         mockDataLoader = MockDataLoader()
-        manager = Manager(loader: Loader(loader: mockDataLoader), cache: mockCache)
+        manager = Manager(loader: Loader(loader: mockDataLoader, cache: mockCache))
     }
 
     func testThatCacheWorks() {

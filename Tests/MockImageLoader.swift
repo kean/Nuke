@@ -31,10 +31,12 @@ class MockImageLoader: Loading {
         createdTaskCount += 1
         
         let operation = BlockOperation() {
-            if let result = self.results[request.urlRequest.url!] {
-                completion(result)
-            } else {
-                completion(.success(image))
+            DispatchQueue.main.async {
+                if let result = self.results[request.urlRequest.url!] {
+                    completion(result)
+                } else {
+                    completion(.success(image))
+                }
             }
         }
         queue.addOperation(operation)
@@ -45,5 +47,9 @@ class MockImageLoader: Loading {
                 NotificationCenter.default.post(name: MockImageLoader.DidCancelTask, object: self)
             }
         }
+    }
+
+    func cachedImage(for request: Request) -> Image? {
+        return nil
     }
 }

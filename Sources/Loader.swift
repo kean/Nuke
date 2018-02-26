@@ -11,6 +11,9 @@ public protocol Loading {
     /// Loader doesn't make guarantees on which thread the completion closure is
     /// called and whether it gets called when the operation is cancelled.
     func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void)
+
+    /// Gives laoder a change to return image from memory cache.
+    func cachedImage(for request: Request) -> Image?
 }
 
 public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
@@ -48,6 +51,7 @@ public extension Loading {
 public final class Loader: Loading {
     private let loader: DataLoading
     private let decoder: DataDecoding
+    public let cache: Caching?
     private var tasks = [AnyHashable: Task]()
 
     // Synchronization queue
@@ -62,8 +66,8 @@ public final class Loader: Loading {
 
     /// Shared `Loading` object.
     ///
-    /// Shared loader is created with `DataLoader()`.
-    public static let shared: Loading = Loader(loader: DataLoader())
+    /// Shared loader is created with `DataLoader()` and `Cache.shared`.
+    public static let shared = Loader(loader: DataLoader(), cache: Cache.shared)
 
     /// Some nitty-gritty options which can be used to customize loader.
     public struct Options {
@@ -101,9 +105,10 @@ public final class Loader: Loading {
     /// Initializes `Loader` instance with the given loader, decoder.
     /// - parameter decoder: `DataDecoder()` by default.
     /// - parameter options: Options which can be used to customize loader.
-    public init(loader: DataLoading, decoder: DataDecoding = DataDecoder(), options: Options = Options()) {
+    public init(loader: DataLoading, decoder: DataDecoding = DataDecoder(), cache: Caching? = nil, options: Options = Options()) {
         self.loader = loader
         self.decoder = decoder
+        self.cache = cache
         self.dataLoadingQueue.maxConcurrentOperationCount = options.maxConcurrentDataLoadingTaskCount
         self.processingQueue.maxConcurrentOperationCount = options.maxConcurrentImageProcessingTaskCount
         self.options = options
@@ -115,7 +120,17 @@ public final class Loader: Loading {
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
         queue.async {
             if token?.isCancelling == true { return } // Fast preflight check
-            self._loadImage(request, token: token, completion: completion)
+            if let image = self.cachedImage(for: request) {
+                DispatchQueue.main.async { completion(.success(image)) }
+            } else {
+                // Image not in cache - load an image.
+                self._loadImage(request, token: token) { result in
+                    if let image = result.value {
+                        self.store(image: image, for: request)
+                    }
+                    DispatchQueue.main.async { completion(result) }
+                }
+            }
         }
     }
 
@@ -170,7 +185,7 @@ public final class Loader: Loading {
     private func _complete(_ task: Task, result: Result<Image>) {
         queue.async {
             let handlers = task.handlers // Always non-empty at this point, no need to check
-            DispatchQueue.main.async { handlers.forEach { $0.completion(result) } }
+            handlers.forEach { $0.completion(result) }
             if self.tasks[task.key] === task {
                 self.tasks[task.key] = nil
             }
@@ -276,6 +291,18 @@ public final class Loader: Loading {
         }
         task.cts.token.register { [weak operation] in operation?.cancel() }
         processingQueue.addOperation(operation)
+    }
+
+    // MARK: Memory Cache Helpers
+
+    public func cachedImage(for request: Request) -> Image? {
+        guard request.memoryCacheOptions.readAllowed else { return nil }
+        return cache?[request]
+    }
+
+    public func store(image: Image, for request: Request) {
+        guard request.memoryCacheOptions.writeAllowed else { return }
+        cache?[request] = image
     }
 
     // MARK: Task

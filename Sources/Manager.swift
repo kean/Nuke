@@ -5,20 +5,17 @@
 import Foundation
 
 /// Loads images into the given targets.
-public final class Manager: Loading {
+public final class Manager {
     public let loader: Loading
-    public let cache: Caching?
 
     /// Shared `Manager` instance.
     ///
-    /// Shared manager is created with `Loader.shared` and `Cache.shared`.
-    public static let shared = Manager(loader: Loader.shared, cache: Cache.shared)
+    /// Shared manager is created with `Loader.shared`.
+    public static let shared = Manager(loader: Loader.shared)
 
-    /// Initializes the `Manager` with the image loader and the memory cache.
-    /// - parameter cache: `nil` by default.
-    public init(loader: Loading, cache: Caching? = nil) {
+    /// Initializes the `Manager` with an image loader.
+    public init(loader: Loading) {
         self.loader = loader
-        self.cache = cache
     }
 
     // MARK: Loading Images into Targets
@@ -56,7 +53,7 @@ public final class Manager: Loading {
         context.cts = nil
 
         // Quick synchronous memory cache lookup
-        if let image = cachedImage(for: request) {
+        if let image = loader.cachedImage(for: request) {
             handler(.success(image), true)
             return
         }
@@ -66,7 +63,8 @@ public final class Manager: Loading {
         context.cts = cts
 
         // Start the request
-        _loadImage(with: request, token: cts.token) { [weak context] in
+        // Manager assumes that Loader calls completion on the main thread.
+        loader.loadImage(with: request, token: cts.token) { [weak context] in
             guard let context = context, context.cts === cts else { return } // check if still registered
             handler($0, false)
             context.cts = nil // avoid redundant cancellations on deinit
@@ -79,44 +77,6 @@ public final class Manager: Loading {
         let context = getContext(for: target)
         context.cts?.cancel() // cancel outstanding request if any
         context.cts = nil // unregister request
-    }
-
-    // MARK: Loading Images w/o Targets
-
-    /// Loads an image with a given request by using manager's cache and loader.
-    ///
-    /// - parameter completion: Gets called asynchronously on the main thread.
-    /// If the request is cancelled the completion closure isn't guaranteed to
-    /// be called.
-    public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
-        // Check if image is in memory cache
-        if let image = cachedImage(for: request) {
-            DispatchQueue.main.async { completion(.success(image)) }
-        } else {
-            _loadImage(with: request, token: token, completion: completion)
-        }
-    }
-
-    private func _loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-        // Use underlying loader to load an image and then store it in cache
-        loader.loadImage(with: request, token: token) { [weak self] result in
-            if let image = result.value { // save in cache
-                self?.store(image: image, for: request)
-            }
-            DispatchQueue.main.async { completion(result) }
-        }
-    }
-
-    // MARK: Memory Cache Helpers
-
-    private func cachedImage(for request: Request) -> Image? {
-        guard request.memoryCacheOptions.readAllowed else { return nil }
-        return cache?[request]
-    }
-
-    private func store(image: Image, for request: Request) {
-        guard request.memoryCacheOptions.writeAllowed else { return }
-        cache?[request] = image
     }
 
     // MARK: Managing Context
