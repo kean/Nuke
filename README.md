@@ -19,6 +19,7 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 - Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
 - Small (~1200 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
 
+> [Nuke 7](https://github.com/kean/Nuke/tree/nuke7) is in development. If you'd like to contribute or have some suggestions or feature requests please open an issue, a pull request or send me a message on [Twitter](https://twitter.com/a_grebenyuk).
 
 # <a name="h_getting_started"></a>Quick Start
 
@@ -27,8 +28,6 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 - [API Reference](http://kean.github.io/Nuke/reference/6.0/index.html)
 
 Upgrading from the previous version? Use a [migration guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations).
-
-> If you have any questions or comments about Nuke feel free to hit me up on Twitter [@a_grebenyuk](https://twitter.com/a_grebenyuk).
 
 # <a name="h_usage"></a>Usage
 
