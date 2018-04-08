@@ -166,9 +166,9 @@ public extension Manager {
     }
 }
 
-/// Represents an arbitrary target for image loading.
+/// Represents a target for image loading.
 public protocol Target: class {
-    /// Callback that gets called when the request gets completed.
+    /// Callback that gets called when the request is completed.
     func handle(response: Result<Image>, isFromMemoryCache: Bool)
 }
 

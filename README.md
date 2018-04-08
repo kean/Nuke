@@ -13,50 +13,70 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 
 - Load images into image views or other targets
 - Two [cache layers](https://kean.github.io/post/image-caching), fast LRU memory cache
-- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) extensions
-- [Can be used](#h_design) with networking, caching libraries of your choice
-- [RxSwift](https://github.com/ReactiveX/RxSwift) extensions provided by [RxNuke](https://github.com/kean/RxNuke)
-- Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) library
-- Small (~1200 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
+- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) integrations
+- Can be used with networking, caching libraries [of your choice](#h_design)
+- [RxNuke](https://github.com/kean/RxNuke) with RxSwift extensions
+- Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) (*deprecated in iOS 10*)
+- Small (under 1200 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
 
-> [Nuke 7](https://github.com/kean/Nuke/tree/nuke7) is in development. If you'd like to contribute or have some suggestions or feature requests please open an issue, a pull request or send me a message on [Twitter](https://twitter.com/a_grebenyuk).
+> [Nuke 7](https://github.com/kean/Nuke/tree/nuke7) is in development. If you'd like to contribute or have some suggestions or feature requests please open an issue, a pull request or contact me on [Twitter](https://twitter.com/a_grebenyuk).
 
 # <a name="h_getting_started"></a>Quick Start
 
-- [Installation Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md)
-- [Documentation](https://github.com/kean/Nuke/blob/master/Documentation/)
-- [API Reference](http://kean.github.io/Nuke/reference/6.0/index.html)
+> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Migrations).
 
-Upgrading from the previous version? Use a [migration guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations).
+This README has five sections:
+
+- Complete [**Usage Guide**](#h_usage) - best place to start
+- Detailed [**Image Pipeline**](#h_design) description
+- Section dedicated to [**Performance**](h_performance)
+- List of available [**Extensions**](#h_plugins)
+- List of [**Requirements**](#h_requirements)
+
+More information is available in [**Documentation**](https://github.com/kean/Nuke/blob/master/Documentation/) directory and a full [**API Reference**](http://kean.github.io/Nuke/reference/6.0/index.html). When you are ready to install Nuke you can follow an [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md) - all major package managers are supported.
 
 # <a name="h_usage"></a>Usage
 
 #### Loading Images into Targets
 
-You can load an image into an image view with a single line of code. Nuke will automatically load image data, decompress it in the background, cache the image and display it.
+You can load an image into an image view with a single line of code:
 
 ```swift
 Manager.shared.loadImage(with: url, into: imageView)
 ```
 
+Nuke will automatically load image data, decompress it in the background, store image in memory cache and display it.
 
-#### Reusing Targets
+> To learn more about the image pipeline [see the next section](#h_design).
 
-`Nuke.loadImage(with:into:)` method cancels previous outstanding request for a target. Nuke holds a weak reference to the target, when the target is deallocated the request is cancelled automatically.
+`Manager` keeps track of each *target*. When you request an image for a target any previous outstanding requests get cancelled. The same happens automatically when the target is deallocated.
 
 ```swift
 func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     ...
+    // Prepare image view for reuse.
     cell.imageView.image = nil
+
+    // Previous requests for the image view get cancelled.
     Manager.shared.loadImage(with: url, into: cell.imageView)
     ...
 }
 ```
 
+#### Targets
 
-#### Providing Custom Handlers
+What can be a *target*? Anything that implements `Target` protocol:
 
-Nuke has a flexible `loadImage(with:into:handler:)` method which lets you handle the response any way you'd like. You can use it to implement custom transitions, show loading indicators, and more.
+```swift
+public protocol Target: class {
+    /// Callback that gets called when the request is completed.
+    func handle(response: Result<Image>, isFromMemoryCache: Bool)
+}
+```
+
+Nuke extends `UIImageView` (`NSImageView` on macOS) to adopt `Target` protocol. You can do the same for you own classes.
+
+Protocols are great, but sometimes you might want something a bit more flexible. Fortunately, there is a `loadImage(with:into:handler:)` method which works with arbitrary objects as targets:
 
 ```swift
 indicator.startAnimating()
@@ -65,9 +85,6 @@ Manager.shared.loadImage(with: request, into: view) { [weak view] response, _ in
     indicator.stopAnimating()
 }
 ```
-
-> The target in this method is declared as `AnyObject` with which the requests get associated. 
-
 
 #### Customizing Requests
 
@@ -91,43 +108,34 @@ request.priority = .high
 Manager.shared.loadImage(with: request, into: imageView)
 ```
 
-
-#### Deduplicating Requests
-
-By default Nuke combines the requests with the same `loadKey` into a single task. The task's priority is set to the highest priority of registered requests and gets updated when requests are added or removed to the task. The task only gets cancelled when all the registered requests are.
-
-> Deduplication can be disabled using `Loader.Options`.
-
-
 #### Processing Images
 
-Nuke can process and cache loaded images for you. For example, to resize the image you can simply provide the desired size when creating a `Request`:
+Nuke can process images for you. The first option is to resize the image using a `Request`:
 
 ```swift
 /// Target size is in pixels.
-let request = Request(url: url, targetSize: CGSize(width: 640, height: 320), contentMode: .aspectFill)
+Request(url: url, targetSize: CGSize(width: 640, height: 320), contentMode: .aspectFill)
 ```
 
-It's also easy to perform custom image transformations by providing a closure. For example, here's how you can use [Toucan](https://github.com/gavinbunney/Toucan) to create a circular avatar:
+To perform a custom tranformation use a `processed(key:closure:)` method. Her's how to create a circular avatar using [Toucan](https://github.com/gavinbunney/Toucan):
 
 ```swift
-let request = Request(url: url).process(key: "circularAvatar") {
+Request(url: url).process(key: "circularAvatar") {
     Toucan(image: $0).maskWithEllipse().image
 }
 ```
 
-Another way to process images is by implementing custom processors which conform to `Processing` protocol. Each processor should be `Equatable` which helps Nuke store processed images in a memory cache.
+All of those APIs are built on top of `Processing` protocol. If you'd like to you can implement your own processors that adopt it. Keep in mind that `Processing` also requires `Equatable` conformance which helps Nuke identify images in memory cache.
 
 > See [Core Image Integration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md) for more info about using Core Image with Nuke
 
-
 #### Loading Images w/o Targets
 
-You can also use `Manager` to load images directly without a target.
+You can also use `Manager` to load images directly without a target:
 
 ```swift
 Manager.shared.loadImage(with: url) {
-    print("image \($0.value)")
+    // Handle response
 }
 ```
 
@@ -136,38 +144,46 @@ If you'd like to cancel the requests, use a [cancellation token](https://kean.gi
 ```swift
 let cts = CancellationTokenSource()
 Manager.shared.loadImage(with: url, token: cts.token) {
-    print("image \($0.value)")
+    // Handle response
 }
 cts.cancel()
 ```
 
+#### Using Memory and Disk Cache
 
-#### Using RxNuke
+Default Nuke's `Manager` has two cache layers.
 
-[RxNuke](https://github.com/kean/RxNuke) adds [RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke and enables many common use cases:
-
-- Going from low to high resolution
-- Loading the first available image
-- Showing stale image while validating it
-- Load multiple images, display all at once
-- Auto retry on failures
-
-And [more...](https://github.com/kean/RxNuke#use-cases)
-
-
-#### Using Memory Cache
-
-You can get a direct access to the default memory cache used by Nuke:
+First, there is a memory cache for storing processed images ready for display. You can get a direct access to this cache:
 
 ```swift
+// Configure cache
 Cache.shared.costLimit = 1024 * 1024 * 100 // 100 MB
 Cache.shared.countLimit = 100
 
+// Read and write images
 let request = Request(url: url)
 Cache.shared[request] = image
 let image = Cache.shared[request]
+
+// Clear cache
+Cache.shared.removeAll()
 ```
 
+To store unprocessed image data Nuke uses a `URLCache` instance:
+
+```swift
+// Configure cache
+DataLoader.sharedUrlCache.diskCapacity = 100
+DataLoader.sharedUrlCache.memoryCapacity = 0
+
+// Read and write responses
+let request = Request(url: url)
+let _ = DataLoader.sharedUrlCache.cachedResponse(for: request.urlRequest)
+DataLoader.sharedUrlCache.removeCachedResponse(for: request.urlRequest)
+
+// Clear cache
+DataLoader.sharedUrlCache.removeAllCachedResponses()
+```
 
 #### Preheating Images
 
@@ -189,31 +205,52 @@ preheater.startPreheating(for: requests)
 preheater.stopPreheating(for: requests)
 ```
 
-You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`. With iOS 10.0 you might want to use new [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) provided by iOS.
+You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`. On iOS 10.0 you might want to use new [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) provided by iOS instead.
 
 > Check out [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
 
+#### Using RxNuke
 
-# Extensions<a name="h_plugins"></a>
+[RxNuke](https://github.com/kean/RxNuke) adds [RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke and enables many common use cases:
 
-|Name|Description|
-|--|--|
-|[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples of common use cases solved by Rx|
-|[**Alamofire**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks|
-|[**Gifu**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
-|[**FLAnimatedImage**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
+- [Going from low to high resolution](https://github.com/kean/RxNuke#going-from-low-to-high-resolution)
+- [Loading the first available image](https://github.com/kean/RxNuke#loading-the-first-available-image)
+- [Showing stale image while validating it](https://github.com/kean/RxNuke#showing-stale-image-while-validating-it)
+- [Load multiple images, display all at once](https://github.com/kean/RxNuke#load-multiple-images-display-all-at-once)
+- [Auto retry on failures](https://github.com/kean/RxNuke#auto-retry)
+- And [more...](https://github.com/kean/RxNuke#use-cases)
 
+Here's an example of how easy it is to load go flow log to high resolution:
 
-# Design<a name="h_design"></a>
+```swift
+Observable.concat(loader.loadImage(with: lowResUrl).orEmpty,
+                  loader.loadImage(with: highResUtl).orEmpty)
+    .subscribe(onNext: { imageView.image = $0 })
+    .disposed(by: disposeBag)
+```
 
-Nuke is designed to support [dependency injection](https://en.wikipedia.org/wiki/Dependency_injection). It provides a set of protocols, which can be used to customize image loading pipeline:
+# Image Pipeline<a name="h_design"></a>
+
+Nuke's image pipeline consists of roughly five stages which can be customized using the following protocols:
 
 |Protocol|Description|
 |--------|-----------|
-|`DataLoading`|Downloads data|
-|`DataDecoding`|Converts data into image objects|
-|`Processing`|Image transformations|
-|`Caching`|Stores images into memory cache|
+|`DataLoading`|Download (or return cached) image data|
+|`DataDecoding`|Convert data into image objects|
+|`Processing`|Apply image transformations|
+|`Caching`|Store image into memory cache|
+
+All those types come together the way you expect:
+
+1. `Manager` checks if the image is in memory cache (`Caching`). If not it asks `Loader` to load it.
+2. `Loader` uses underlying data loader (`DataLoading`) to fetch (or return cached) image data.
+3. When the image data is loaded `Loader` decodes (`DataDecoding`) creating an image object.
+4. The image is then processed (`Processing`) and returned to `Manager`.
+5. `Manager` stores the processed image in the memory cache (`Caching`).
+
+> There are some upcoming changes to this pipeline in Nuke 7.
+
+Nuke is fully asynchronous (non-blocking). Each stage is executed on a separate queue tailored specifically for it. Let's dive into each of those stages.
 
 ### Data Loading and Caching
 
@@ -229,7 +266,47 @@ Most developers either implement their own networking layer or use a third-party
 
 ### Memory Cache
 
-Nuke provides a fast in-memory cache (`Cache`) which stores processed images ready to be displayed. `Cache` uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. It has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `Cache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
+A processed images which are ready to be displayed are stored in a fast in-memory cache (`Cache`). It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `Cache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
+
+### Deduplicating Requests
+
+By default `Loader` combines the requests with the same `loadKey` into a single task. The task's priority is set to the highest priority of registered requests and gets updated when requests are added or removed to the task. The task only gets cancelled when all the registered requests are.
+
+> Deduplication can be disabled using `Loader.Options`.
+
+# Performance<a name="h_performance"></a>
+
+[Performance](https://github.com/kean/Image-Frameworks-Benchmark) is one of the key differentiating factors of Nuke. There are three major components of its performance:
+
+### Main-Thread Performance
+
+The framework has been tuned to do as little on the main thread as possible. In fact, it's [at least 2.3x faster](https://github.com/kean/Image-Frameworks-Benchmark) than the fastest competitor. There are a number of optimizations that together achieve that:
+
+- `Request` is a struct which is backed by reference typed storage which reduces ARC overhead.
+- The number of allocations made for each request was reduced to the minimum, what can be reused is reused.
+- The moment that the work can be moved to the background thread it is.
+
+### Robustness Under Stress
+
+A common use case is to dynamically start and cancel requests for a collection view full of images when scrolling at a high speed. There are a number of components that ensure robustness in those scenarios:
+
+- `Loader` schedules each stage of the image pipeline on a dedicated queue. Each queue limits the number of concurrent tasks. This way we never do too much work at the same time, and each stage doesn't block the other. For example, if the image doesn't require processing, it doesn't go through processing queue.
+- `Loader` rate limits the requests to prevent trashing of underlying systems (e.g. `URLSession`). The rate limiter only comes into play when the requests are started and cancelled at a high rate (e.g. scrolling through a collection view). It doesn't affect normal workloads.
+
+### Memory Usage
+
+- Nuke frees memory the moment it's no longer needed. It achieves that by not holding to objects which are no longer needed (e.g. frees image data the moment image is processed - e.g. resized to smaller size). It also uses `autoreleasepool` in few places.
+- Memory cache uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. It has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `Cache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
+
+# Extensions<a name="h_plugins"></a>
+
+|Name|Description|
+|--|--|
+|[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples of common use cases solved by Rx|
+|[**Alamofire**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks|
+|[**Gifu**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
+|[**FLAnimatedImage**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
+
 
 # Requirements<a name="h_requirements"></a>
 
