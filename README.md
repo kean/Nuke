@@ -276,26 +276,22 @@ By default `Loader` combines the requests with the same `loadKey` into a single 
 
 # Performance<a name="h_performance"></a>
 
-[Performance](https://github.com/kean/Image-Frameworks-Benchmark) is one of the key differentiating factors of Nuke. There are three major components of its performance:
+Performance is one of the key differentiating factors for Nuke. There are three key components of its performance:
 
 ### Main-Thread Performance
 
-The framework has been tuned to do as little on the main thread as possible. In fact, it's [at least 2.3x faster](https://github.com/kean/Image-Frameworks-Benchmark) than the fastest competitor. There are a number of optimizations that together achieve that:
-
-- `Request` is a struct which is backed by reference typed storage which reduces ARC overhead.
-- The number of allocations made for each request was reduced to the minimum, what can be reused is reused.
-- The moment that the work can be moved to the background thread it is.
+The framework has been tuned to do very little work on the main thread. In fact, it's [at least 2.3x faster](https://github.com/kean/Image-Frameworks-Benchmark) than its fastest competitor. There are a number of optimizations techniques that were used to achieve that including: reducing number of allocations, reducing dynamic dispatch, backing some structs by reference typed storage to reduce ARC overhead, etc.
 
 ### Robustness Under Stress
 
-A common use case is to dynamically start and cancel requests for a collection view full of images when scrolling at a high speed. There are a number of components that ensure robustness in those scenarios:
+A common use case is to dynamically start and cancel requests for a collection view full of images when scrolling at a high speed. There are a number of components that ensure robustness in those kinds of scenarios:
 
-- `Loader` schedules each stage of the image pipeline on a dedicated queue. Each queue limits the number of concurrent tasks. This way we never do too much work at the same time, and each stage doesn't block the other. For example, if the image doesn't require processing, it doesn't go through processing queue.
-- `Loader` rate limits the requests to prevent trashing of underlying systems (e.g. `URLSession`). The rate limiter only comes into play when the requests are started and cancelled at a high rate (e.g. scrolling through a collection view). It doesn't affect normal workloads.
+- `Loader` schedules each stage of the image pipeline on a dedicated queue. Each queue limits the number of concurrent tasks. This way we don't use too much system resources at any given moment and each stage doesn't block the other. For example, if the image doesn't require processing, it doesn't go through the processing queue.
+- Under stress `Loader` will rate limit the requests to prevent trashing of the underlying systems (e.g. `URLSession`).
 
 ### Memory Usage
 
-- Nuke frees memory the moment it's no longer needed. It achieves that by not holding to objects which are no longer needed (e.g. frees image data the moment image is processed - e.g. resized to smaller size). It also uses `autoreleasepool` in few places.
+- Nuke tries to free memory as early as possible.
 - Memory cache uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. It has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `Cache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
 
 # Extensions<a name="h_plugins"></a>
