@@ -1,3 +1,8 @@
+## Nuke 6.1.1
+
+- Lower macOS deployment target to 10.10. #156.
+- Improve README: add detailed *Image Pipeline* section, *Performance* section, rewrite *Usage* guide
+
 ## Nuke 6.1
 
 ### Features

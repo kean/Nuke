@@ -33,7 +33,7 @@ This README has five sections:
 - List of available [**Extensions**](#h_plugins)
 - List of [**Requirements**](#h_requirements)
 
-More information is available in [**Documentation**](https://github.com/kean/Nuke/blob/master/Documentation/) directory and a full [**API Reference**](http://kean.github.io/Nuke/reference/6.0/index.html). When you are ready to install Nuke you can follow an [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md) - all major package managers are supported.
+More information is available in [**Documentation**](https://github.com/kean/Nuke/blob/master/Documentation/) directory and a full [**API Reference**](http://kean.github.io/Nuke/reference/6.1.1/index.html). When you are ready to install Nuke you can follow an [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md) - all major package managers are supported.
 
 # <a name="h_usage"></a>Usage
 
@@ -306,7 +306,7 @@ A common use case is to dynamically start and cancel requests for a collection v
 
 # Requirements<a name="h_requirements"></a>
 
-- iOS 9.0 / watchOS 2.0 / macOS 10.11 / tvOS 9.0
+- iOS 9.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0
 - Xcode 9
 - Swift 4
 
