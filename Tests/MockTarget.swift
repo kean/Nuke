@@ -6,7 +6,7 @@ import Foundation
 import Nuke
 
 class MockTarget: Target {
-    var handler: Manager.Handler?
+    var handler: ((Result<Image>, _ isFromMemoryCache: Bool) -> Void)?
     
     func handle(response: Result<Image>, isFromMemoryCache: Bool) {
         handler?(response, isFromMemoryCache)

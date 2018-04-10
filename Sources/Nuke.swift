@@ -14,6 +14,148 @@ import Foundation
     public typealias Image = UIImage
 #endif
 
+// MARK: - Loading Images
+
+/// Loads an image into the given target. See the corresponding
+/// `loadImage(with:into)` method that takes `Request` for more info.
+public func loadImage(with url: URL, pipeline: ImagePipeline = ImagePipeline.shared, into target: Target) {
+    loadImage(with: Request(url: url), pipeline: pipeline, into: target)
+}
+
+/// Loads an image into the given target. Cancels previous outstanding request
+/// associated with the target.
+///
+/// If the image is stored in the memory cache, the image is displayed
+/// immediately. The image is loaded using the `loader` object otherwise.
+///
+/// `Manager` keeps a weak reference to the target. If the target deallocates
+/// the associated request automatically gets cancelled.
+public func loadImage(with request: Request, pipeline: ImagePipeline = ImagePipeline.shared, into target: Target) {
+    loadImage(with: request, pipeline: pipeline, into: target) { [weak target] in
+        target?.handle(response: $0, isFromMemoryCache: $1)
+    }
+}
+
+/// Loads an image and calls the given `handler`. The method itself
+/// **doesn't do** anything when the image is loaded - you have full
+/// control over how to display it, etc.
+///
+/// The handler only gets called if the request is still associated with the
+/// `target` by the time it's completed. The handler gets called immediately
+/// if the image was stored in the memory cache.
+///
+/// See `loadImage(with:into:)` method for more info.
+public func loadImage(with url: URL, pipeline: ImagePipeline = ImagePipeline.shared, into target: AnyObject, handler: @escaping (Result<Image>, _ isFromMemoryCache: Bool) -> Void) {
+    loadImage(with: Request(url: url), pipeline: pipeline, into: target, handler: handler)
+}
+
+/// Loads an image and calls the given `handler`. The method itself
+/// **doesn't do** anything when the image is loaded - you have full
+/// control over how to display it, etc.
+///
+/// The handler only gets called if the request is still associated with the
+/// `target` by the time it's completed. The handler gets called immediately
+/// if the image was stored in the memory cache.
+///
+/// See `loadImage(with:into:)` method for more info.
+public func loadImage(with request: Request, pipeline: ImagePipeline = ImagePipeline.shared, into target: AnyObject, handler: @escaping (Result<Image>, _ isFromMemoryCache: Bool) -> Void) {
+    assert(Thread.isMainThread)
+
+    let context = getContext(for: target)
+    context.cts?.cancel() // cancel outstanding request if any
+    context.cts = nil
+
+    // Quick synchronous memory cache lookup
+    if let image = pipeline.cachedImage(for: request) {
+        handler(.success(image), true)
+        return
+    }
+
+    // Create CTS and associate it with a context
+    let cts = CancellationTokenSource()
+    context.cts = cts
+
+    // Start the request
+    // Manager assumes that Loader calls completion on the main thread.
+    pipeline.loadImage(with: request, token: cts.token) { [weak context] in
+        guard let context = context, context.cts === cts else { return } // check if still registered
+        handler($0, false)
+        context.cts = nil // avoid redundant cancellations on deinit
+    }
+}
+
+/// Cancels an outstanding request associated with the target.
+public func cancelRequest(for target: AnyObject) {
+    assert(Thread.isMainThread)
+    let context = getContext(for: target)
+    context.cts?.cancel() // cancel outstanding request if any
+    context.cts = nil // unregister request
+}
+
+// MARK: - Managing Context
+
+// Lazily create context for a given target and associate it with a target.
+private func getContext(for target: AnyObject) -> Context {
+    // Associated objects is a simplest way to bind Context and Target lifetimes
+    // The implementation might change in the future.
+    if let ctx = objc_getAssociatedObject(target, &Context.contextAK) as? Context {
+        return ctx
+    }
+    let ctx = Context()
+    objc_setAssociatedObject(target, &Context.contextAK, ctx, .OBJC_ASSOCIATION_RETAIN)
+    return ctx
+}
+
+// Context is reused for multiple requests which makes sense, because in
+// most cases image views are also going to be reused (e.g. in a table view)
+private final class Context {
+    var cts: CancellationTokenSource? // also used to identify requests
+
+    // Automatically cancel the request when target deallocates.
+    deinit { cts?.cancel() }
+
+    static var contextAK = "Context.AssociatedKey"
+}
+
+// MARK: - Target
+
+/// Represents a target for image loading.
+public protocol Target: class {
+    /// Callback that gets called when the request is completed.
+    func handle(response: Result<Image>, isFromMemoryCache: Bool)
+}
+
+#if os(macOS)
+import Cocoa
+/// Alias for `NSImageView`
+public typealias ImageView = NSImageView
+#elseif os(iOS) || os(tvOS)
+import UIKit
+/// Alias for `UIImageView`
+public typealias ImageView = UIImageView
+#endif
+
+#if os(macOS) || os(iOS) || os(tvOS)
+/// Default implementation of `Target` protocol for `ImageView`.
+extension ImageView: Target {
+    /// Displays an image on success. Runs `opacity` transition if
+    /// the response was not from the memory cache.
+    public func handle(response: Result<Image>, isFromMemoryCache: Bool) {
+        guard let image = response.value else { return }
+        self.image = image
+        if !isFromMemoryCache {
+            let animation = CABasicAnimation(keyPath: "opacity")
+            animation.duration = 0.25
+            animation.fromValue = 0
+            animation.toValue = 1
+            let layer: CALayer? = self.layer // Make compiler happy on macOS
+            layer?.add(animation, forKey: "imageTransition")
+        }
+    }
+}
+#endif
+
+// MARK: - Result
 
 /// An enum representing either a success with a result value, or a failure.
 public enum Result<T> {
@@ -29,39 +171,3 @@ public enum Result<T> {
         if case let .failure(err) = self { return err } else { return nil }
     }
 }
-
-
-// MARK: - Deprecated
-
-//extension Manager {
-//    @available(*, deprecated, message: "Manager no longer manages cache, it's only responsibility is loading images into targets.")
-//    convenience init(loader: ImagePipelineProtocol, cache: Caching? = nil) {
-//        self.init(loader: loader)
-//    }
-//}
-//
-//extension Manager {
-//    // MARK: Loading Images w/o Targets
-//
-//    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  loadImage(with:token:completion:) is deprecated. Use Loader methods instead")
-//    public func loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-//        pipeline.loadImage(with: request, token: token, completion: completion)
-//    }
-//
-//    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  loadImage(with:token:completion:) is deprecated. Use Loader methods instead")
-//    public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-//        pipeline.loadImage(with: url, token: token, completion: completion)
-//    }
-//
-//    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  cachedImage(for:) is deprecated. Use Loader methods instead")
-//    public func cachedImage(for request: Request) -> Image? {
-//        return pipeline.cachedImage(for: request)
-//    }
-//}
-//
-//extension Preheater {
-//    @available(*, deprecated, message: "This initializer is deprecated, use `Preheater.init(loader:maxConcurrentRequestCount:) instead.")
-//    public convenience init(manager: Manager = Manager.shared, maxConcurrentRequestCount: Int = 2) {
-//        self.init(pipeline: manager.pipeline, maxConcurrentRequestCount: maxConcurrentRequestCount)
-//    }
-//}

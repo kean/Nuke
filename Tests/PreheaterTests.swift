@@ -7,7 +7,6 @@ import Nuke
 
 class PreheaterTests: XCTestCase {
     var pipeline: MockImagePipeline!
-    var manager: Manager!
     var preheater: Preheater!
 
     override func setUp() {

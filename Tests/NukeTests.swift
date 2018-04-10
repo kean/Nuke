@@ -5,22 +5,20 @@
 import XCTest
 import Nuke
 
-class ManagerTests: XCTestCase {
+class NukeTests: XCTestCase {
     var view: ImageView!
     var pipeline: MockImagePipeline!
-    var manager: Manager!
 
     override func setUp() {
         super.setUp()
 
         view = ImageView()
         pipeline = MockImagePipeline()
-        manager = Manager(pipeline: pipeline)
     }
 
     func testThatImageIsLoaded() {
         expect { fulfill in
-            manager.loadImage(with: Request(url: defaultURL), into: view) {
+            Nuke.loadImage(with: Request(url: defaultURL), pipeline: pipeline, into: view) {
                 XCTAssertTrue(Thread.isMainThread)
                 if case .success(_) = $0 {
                     fulfill()
@@ -45,18 +43,18 @@ class ManagerTests: XCTestCase {
                 target.handler = nil
             }
 
-            manager.loadImage(with: defaultURL, into: target)
+            Nuke.loadImage(with: defaultURL, pipeline: pipeline, into: target)
         }
         wait()
     }
 
     func testThatPreviousTaskIsCancelledWhenNewOneIsCreated() {
         expect { fulfill in
-            manager.loadImage(with: Request(url: URL(string: "http://test.com/1")!), into: view, handler: { result, isFromMemoryCache in
+            Nuke.loadImage(with: Request(url: URL(string: "http://test.com/1")!), pipeline: pipeline, into: view, handler: { result, isFromMemoryCache in
                 XCTFail()
             })
 
-            manager.loadImage(with: Request(url: URL(string: "http://test.com/2")!), into: view, handler: { result, isFromMemoryCache in
+            Nuke.loadImage(with: Request(url: URL(string: "http://test.com/2")!), pipeline: pipeline, into: view, handler: { result, isFromMemoryCache in
                 if case .success = result {
                     fulfill()
                 }
@@ -70,7 +68,7 @@ class ManagerTests: XCTestCase {
 
         var target: ImageView! = ImageView()
 
-        manager.loadImage(with: defaultURL, into: target)
+        Nuke.loadImage(with: defaultURL, pipeline: pipeline, into: target)
 
         _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
         target = nil // deallocate target
@@ -82,7 +80,7 @@ class ManagerTests: XCTestCase {
 
         var target: ImageView! = ImageView()
 
-        manager.loadImage(with: defaultURL, into: target) { (_,_) in
+        Nuke.loadImage(with: defaultURL, pipeline: pipeline, into: target) { (_,_) in
             XCTFail()
         }
 
