@@ -39,7 +39,7 @@ public /* final */ class ImagePipeline {
     private let rateLimiter = RateLimiter()
 
     /// Shared image pipeline.
-    public static let shared = ImagePipeline()
+    public static var shared = ImagePipeline()
 
     /// Some nitty-gritty options which can be used to customize loader.
     public struct Configuration {
