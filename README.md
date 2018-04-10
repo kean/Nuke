@@ -42,14 +42,14 @@ More information is available in [**Documentation**](https://github.com/kean/Nuk
 You can load an image into an image view with a single line of code:
 
 ```swift
-Manager.shared.loadImage(with: url, into: imageView)
+Nuke.loadImage(with: url, into: imageView)
 ```
 
 Nuke will automatically load image data, decompress it in the background, store image in memory cache and display it.
 
 > To learn more about the image pipeline [see the next section](#h_design).
 
-`Manager` keeps track of each *target*. When you request an image for a target any previous outstanding requests get cancelled. The same happens automatically when the target is deallocated.
+Nuke keeps track of each *target*. When you request an image for a target any previous outstanding requests get cancelled. The same happens automatically when the target is deallocated.
 
 ```swift
 func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -58,7 +58,7 @@ func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath:
     cell.imageView.image = nil
 
     // Previous requests for the image view get cancelled.
-    Manager.shared.loadImage(with: url, into: cell.imageView)
+    Nuke.loadImage(with: url, into: cell.imageView)
     ...
 }
 ```
@@ -80,7 +80,7 @@ Protocols are great, but sometimes you might want something a bit more flexible.
 
 ```swift
 indicator.startAnimating()
-Manager.shared.loadImage(with: request, into: view) { [weak view] response, _ in
+Nuke.loadImage(with: request, into: view) { [weak view] response, _ in
     view?.image = response.value
     indicator.stopAnimating()
 }
@@ -105,7 +105,7 @@ request.progress = { completed, total in
 // Update the request priority:
 request.priority = .high
 
-Manager.shared.loadImage(with: request, into: imageView)
+Nuke.loadImage(with: request, into: imageView)
 ```
 
 #### Processing Images
@@ -131,10 +131,10 @@ All of those APIs are built on top of `Processing` protocol. If you'd like to yo
 
 #### Loading Images w/o Targets
 
-You can also use `Manager` to load images directly without a target:
+You can also use `ImagePipeline` to load images directly without a target:
 
 ```swift
-Manager.shared.loadImage(with: url) {
+ImagePipeline.shared.loadImage(with: url) {
     // Handle response
 }
 ```
@@ -143,7 +143,7 @@ If you'd like to cancel the requests, use a [cancellation token](https://kean.gi
 
 ```swift
 let cts = CancellationTokenSource()
-Manager.shared.loadImage(with: url, token: cts.token) {
+ImagePipeline.shared.loadImage(with: url, token: cts.token) {
     // Handle response
 }
 cts.cancel()
@@ -151,7 +151,7 @@ cts.cancel()
 
 #### Using Memory and Disk Cache
 
-Default Nuke's `Manager` has two cache layers.
+Default Nuke's `ImagePipeline` has two cache layers.
 
 First, there is a memory cache for storing processed images ready for display. You can get a direct access to this cache:
 
@@ -190,7 +190,7 @@ DataLoader.sharedUrlCache.removeAllCachedResponses()
 [Preheating](https://kean.github.io/post/image-preheating) (prefetching) means loading images ahead of time in anticipation of their use. Nuke provides a `Preheater` class that does just that:
 
 ```swift
-let preheater = Preheater(manager: Manager.shared)
+let preheater = Preheater(pipeline: ImagePipeline.shared)
 
 let requests = urls.map {
     var request = Request(url: $0)
@@ -242,11 +242,11 @@ Nuke's image pipeline consists of roughly five stages which can be customized us
 
 All those types come together the way you expect:
 
-1. `Manager` checks if the image is in memory cache (`Caching`). If not it asks `Loader` to load it.
-2. `Loader` uses underlying data loader (`DataLoading`) to fetch (or return cached) image data.
-3. When the image data is loaded `Loader` decodes (`DataDecoding`) creating an image object.
-4. The image is then processed (`Processing`) and returned to `Manager`.
-5. `Manager` stores the processed image in the memory cache (`Caching`).
+1. `ImagePipeline` checks if the image is in memory cache (`Caching`). Returns immediately if finds it.
+2. `ImagePipeline` uses underlying data loader (`DataLoading`) to fetch (or return cached) image data.
+3. When the image data is loaded it gets decoded (`DataDecoding`) creating an image object.
+4. The image is then processed (`Processing`).
+5. `ImagePipeline` stores the processed image in the memory cache (`Caching`).
 
 > There are some upcoming changes to this pipeline in Nuke 7.
 
