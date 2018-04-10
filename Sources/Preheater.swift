@@ -13,7 +13,7 @@ import Foundation
 ///
 /// All `Preheater` methods are thread-safe.
 public final class Preheater {
-    private let loader: Loading
+    private let pipeline: ImagePipeline
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
     private let preheatQueue = OperationQueue()
     private var tasks = [AnyHashable: Task]()
@@ -21,8 +21,8 @@ public final class Preheater {
     /// Initializes the `Preheater` instance.
     /// - parameter manager: `Loader.shared` by default.
     /// - parameter `maxConcurrentRequestCount`: 2 by default.
-    public init(loader: Loading = Loader.shared, maxConcurrentRequestCount: Int = 2) {
-        self.loader = loader
+    public init(pipeline: ImagePipeline = ImagePipeline.shared, maxConcurrentRequestCount: Int = 2) {
+        self.pipeline = pipeline
         self.preheatQueue.maxConcurrentOperationCount = maxConcurrentRequestCount
     }
 
@@ -45,7 +45,7 @@ public final class Preheater {
         let token = task.cts.token
 
         let operation = Operation(starter: { [weak self] finish in
-            self?.loader.loadImage(with: request, token: token) { _ in
+            self?.pipeline.loadImage(with: request, token: token) { _ in
                 self?._remove(task)
                 finish()
             }

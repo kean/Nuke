@@ -6,58 +6,58 @@ import XCTest
 import Nuke
 
 class PreheaterTests: XCTestCase {
-    var loader: MockImageLoader!
+    var pipeline: MockImagePipeline!
     var manager: Manager!
     var preheater: Preheater!
 
     override func setUp() {
         super.setUp()
 
-        loader = MockImageLoader()
-        preheater = Preheater(loader: loader)
+        pipeline = MockImagePipeline()
+        preheater = Preheater(pipeline: pipeline)
     }
     
     // MARK: Starting and Stoping Preheating
 
     func testThatPreheatingRequestsAreStopped() {
-        loader.queue.isSuspended = true
+        pipeline.queue.isSuspended = true
 
         let request = Request(url: defaultURL)
-        _ = expectNotification(MockImageLoader.DidStartTask, object: loader)
+        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
         preheater.startPreheating(with: [request])
         wait()
 
-        _ = expectNotification(MockImageLoader.DidCancelTask, object: loader)
+        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
         preheater.stopPreheating(with: [request])
         wait()
     }
 
     func testThatEquaivalentRequestsAreStoppedWithSingleStopCall() {
-        loader.queue.isSuspended = true
+        pipeline.queue.isSuspended = true
 
         let request = Request(url: defaultURL)
-        _ = expectNotification(MockImageLoader.DidStartTask, object: loader)
+        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
         preheater.startPreheating(with: [request, request])
         preheater.startPreheating(with: [request])
         wait()
 
-        _ = expectNotification(MockImageLoader.DidCancelTask, object: loader)
+        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
         preheater.stopPreheating(with: [request])
 
         wait { _ in
-            XCTAssertEqual(self.loader.createdTaskCount, 1, "")
+            XCTAssertEqual(self.pipeline.createdTaskCount, 1, "")
         }
     }
 
     func testThatAllPreheatingRequestsAreStopped() {
-        loader.queue.isSuspended = true
+        pipeline.queue.isSuspended = true
 
         let request = Request(url: defaultURL)
-        _ = expectNotification(MockImageLoader.DidStartTask, object: loader)
+        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
         preheater.startPreheating(with: [request])
         wait()
 
-        _ = expectNotification(MockImageLoader.DidCancelTask, object: loader)
+        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
         preheater.stopPreheating()
         wait()
     }

@@ -4,54 +4,29 @@
 
 import Foundation
 
-/// Loads images.
-public protocol Loading {
-    /// Loads an image with the given request.
-    ///
-    /// Loader doesn't make guarantees on which thread the completion closure is
-    /// called and whether it gets called when the operation is cancelled.
-    func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void)
-
-    /// Gives laoder a change to return image from memory cache.
-    func cachedImage(for request: Request) -> Image?
-}
-
 public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
 private typealias Completion = (Result<Image>) -> Void
 
-public extension Loading {
-    /// Loads an image with the given request.
-    public func loadImage(with request: Request, completion: @escaping (Result<Image>) -> Void) {
-        loadImage(with: request, token: nil, completion: completion)
-    }
-
-    /// Loads an image with the given url.
-    public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-        loadImage(with: Request(url: url), token: token, completion: completion)
-    }
-}
-
-/// `Loader` implements an image loading pipeline. It loads image data using
+/// `ImagePipeline` implements an image loading pipeline. It loads image data using
 /// data loader (`DataLoading`), then creates an image using `DataDecoding`
 /// object, and transforms the image using processors (`Processing`) provided
 /// in the `Request`.
 ///
-/// Loader combines the requests with the same `loadKey` into a single request.
+/// Pipeline combines the requests with the same `loadKey` into a single request.
 /// The request only gets cancelled when all the registered handlers are.
 ///
-/// `Loader` limits the number of concurrent requests (the default maximum limit
+/// `ImagePipeline` limits the number of concurrent requests (the default maximum limit
 /// is 6). It also rate limits the requests to prevent `Loader` from trashing
 /// underlying systems (e.g. `URLSession`). The rate limiter only comes into play
 /// when the requests are started and cancelled at a high rate (e.g. fast
 /// scrolling through a collection view).
 ///
-/// `Loader` features can be configured using `Loader.Options`.
+/// `ImagePipeline` features can be configured using `Loader.Options`.
 ///
-/// `Loader` is thread-safe.
-public final class Loader: Loading {
-    private let loader: DataLoading
-    private let decoder: DataDecoding
-    public let cache: Caching?
+/// `ImagePipeline` is thread-safe.
+public /* final */ class ImagePipeline {
+    public let configuration: Configuration
+
     private var tasks = [AnyHashable: Task]()
 
     // Synchronization queue
@@ -62,15 +37,21 @@ public final class Loader: Loading {
     private let decodingQueue = DispatchQueue(label: "com.github.kean.Nuke.Decoding")
     private let processingQueue = OperationQueue()
     private let rateLimiter = RateLimiter()
-    private let options: Options
 
-    /// Shared `Loading` object.
-    ///
-    /// Shared loader is created with `DataLoader()` and `Cache.shared`.
-    public static let shared = Loader(loader: DataLoader(), cache: Cache.shared)
+    /// Shared image pipeline.
+    public static let shared = ImagePipeline()
 
     /// Some nitty-gritty options which can be used to customize loader.
-    public struct Options {
+    public struct Configuration {
+        /// Data loader using by the pipeline.
+        public var dataLoader: DataLoading
+
+        /// Data decoder used by the pipeline.
+        public var dataDecoder: DataDecoding
+
+        /// Image cache used by the pipeline.
+        public var imageCache: Caching?
+
         /// The maximum number of concurrent data loading tasks. `6` by default.
         public var maxConcurrentDataLoadingTaskCount: Int = 6
 
@@ -98,26 +79,35 @@ public final class Loader: Loading {
         /// not going to override the processor used as a cache key.
         public var processor: (Image, Request) -> AnyProcessor? = { $1.processor }
 
-        /// Creates default options.
-        public init() {}
+        /// Creates default configuration.
+        /// - parameter dataLoader: `DataLoader()` by default.
+        /// - parameter dataDecoder: `DataDecoder()` by default.
+        /// - parameter imageCache: `Cache.shared` by default.
+        /// - parameter options: Options which can be used to customize loader.
+        public init(dataLoader: DataLoading = DataLoader(), dataDecoder: DataDecoding = DataDecoder(), imageCache: Caching? = nil) {
+            self.dataLoader = dataLoader
+            self.dataDecoder = dataDecoder
+            self.imageCache = imageCache
+        }
     }
 
     /// Initializes `Loader` instance with the given loader, decoder.
-    /// - parameter decoder: `DataDecoder()` by default.
-    /// - parameter options: Options which can be used to customize loader.
-    public init(loader: DataLoading, decoder: DataDecoding = DataDecoder(), cache: Caching? = nil, options: Options = Options()) {
-        self.loader = loader
-        self.decoder = decoder
-        self.cache = cache
-        self.dataLoadingQueue.maxConcurrentOperationCount = options.maxConcurrentDataLoadingTaskCount
-        self.processingQueue.maxConcurrentOperationCount = options.maxConcurrentImageProcessingTaskCount
-        self.options = options
+    /// - parameter configuration: `Configuration()` by default.
+    public init(configuration: Configuration = Configuration()) {
+        self.configuration = configuration
+        self.dataLoadingQueue.maxConcurrentOperationCount = configuration.maxConcurrentDataLoadingTaskCount
+        self.processingQueue.maxConcurrentOperationCount = configuration.maxConcurrentImageProcessingTaskCount
     }
 
     // MARK: Loading
 
+    /// Loads an image with the given url.
+    public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
+        loadImage(with: Request(url: url), token: token, completion: completion)
+    }
+
     /// Loads an image for the given request using image loading pipeline.
-    public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+    public func loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
         queue.async {
             if token?.isCancelling == true { return } // Fast preflight check
             if let image = self.cachedImage(for: request) {
@@ -158,7 +148,7 @@ public final class Loader: Loading {
         // This part is more clever than I would like. The reason why we need a
         // key even when deduplication is disabled is to have a way to retain
         // a task by storing it in `tasks` dictionary.
-        let key = options.isDeduplicationEnabled ? request.loadKey : UUID()
+        let key = configuration.isDeduplicationEnabled ? request.loadKey : UUID()
         if let task = tasks[key] {
             return task
         }
@@ -212,7 +202,7 @@ public final class Loader: Loading {
 
     private func _loadImage(for task: Task) {
         // Use rate limiter to prevent trashing of the underlying systems
-        if options.isRateLimiterEnabled {
+        if configuration.isRateLimiterEnabled {
             rateLimiter.execute(token: task.cts.token) { [weak self, weak task] in
                 guard let task = task else { return }
                 self?._loadData(for: task)
@@ -231,7 +221,7 @@ public final class Loader: Loading {
         // Wrap data request in an operation to limit maximum number of
         // concurrent data tasks.
         let operation = Operation(starter: { [weak self, weak task] finish in
-            self?.loader.loadData(
+            self?.configuration.dataLoader.loadData(
                 with: request,
                 token: token,
                 progress: {
@@ -264,7 +254,7 @@ public final class Loader: Loading {
     }
 
     private func _decode(response: (Data, URLResponse), task: Task) {
-        let decode = { [decoder = self.decoder] in
+        let decode = { [decoder = self.configuration.dataDecoder] in
             decoder.decode(data: response.0, response: response.1)
         }
         decodingQueue.async { [weak self, weak task] in
@@ -279,7 +269,7 @@ public final class Loader: Loading {
 
     private func _process(image: Image, task: Task) {
         // Check if processing is required, complete immediatelly if not.
-        guard let processor = options.processor(image, task.request) else {
+        guard let processor = configuration.processor(image, task.request) else {
             _complete(task, result: .success(image))
             return
         }
@@ -297,12 +287,12 @@ public final class Loader: Loading {
 
     public func cachedImage(for request: Request) -> Image? {
         guard request.memoryCacheOptions.readAllowed else { return nil }
-        return cache?[request]
+        return configuration.imageCache?[request]
     }
 
     public func store(image: Image, for request: Request) {
         guard request.memoryCacheOptions.writeAllowed else { return }
-        cache?[request] = image
+        configuration.imageCache?[request] = image
     }
 
     // MARK: Task
@@ -354,6 +344,6 @@ public final class Loader: Loading {
     }
 }
 
-private func _priority(for handlers: Set<Loader.Task.Handler>) -> Request.Priority {
+private func _priority(for handlers: Set<ImagePipeline.Task.Handler>) -> Request.Priority {
     return handlers.map { $0.request.priority }.max() ?? .normal
 }

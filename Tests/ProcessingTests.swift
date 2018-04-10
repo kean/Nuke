@@ -10,14 +10,16 @@ import Nuke
 #endif
 
 class ProcessingTests: XCTestCase {
-    var mockSessionManager: MockDataLoader!
-    var loader: Loader!
+    var mockDataLoader: MockDataLoader!
+    var pipeline: ImagePipeline!
 
     override func setUp() {
         super.setUp()
 
-        mockSessionManager = MockDataLoader()
-        loader = Loader(loader: mockSessionManager)
+        mockDataLoader = MockDataLoader()
+        pipeline = ImagePipeline {
+            $0.dataLoader = mockDataLoader
+        }
     }
 
     override func tearDown() {
@@ -30,7 +32,7 @@ class ProcessingTests: XCTestCase {
         let request = Request(url: defaultURL).processed(with: MockImageProcessor(id: "processor1"))
 
         expect { fulfill in
-            loader.loadImage(with: request) {
+            pipeline.loadImage(with: request) {
                 guard let image = $0.value else { XCTFail(); return }
                 XCTAssertEqual(image.nk_test_processorIDs, ["processor1"])
                 fulfill()
@@ -80,7 +82,7 @@ class ProcessingTests: XCTestCase {
             .processed(with: MockImageProcessor(id: "processor2"))
 
         expect { fulfill in
-            loader.loadImage(with: request) {
+            pipeline.loadImage(with: request) {
                 guard let image = $0.value else { XCTFail(); return }
                 XCTAssertEqual(image.nk_test_processorIDs, ["processor1", "processor2"])
                 fulfill()

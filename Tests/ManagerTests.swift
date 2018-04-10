@@ -7,15 +7,15 @@ import Nuke
 
 class ManagerTests: XCTestCase {
     var view: ImageView!
-    var loader: MockImageLoader!
+    var pipeline: MockImagePipeline!
     var manager: Manager!
 
     override func setUp() {
         super.setUp()
 
         view = ImageView()
-        loader = MockImageLoader()
-        manager = Manager(loader: loader)
+        pipeline = MockImagePipeline()
+        manager = Manager(pipeline: pipeline)
     }
 
     func testThatImageIsLoaded() {
@@ -66,19 +66,19 @@ class ManagerTests: XCTestCase {
     }
 
     func testThatRequestIsCancelledWhenTargetIsDeallocated() {
-        loader.queue.isSuspended = true
+        pipeline.queue.isSuspended = true
 
         var target: ImageView! = ImageView()
 
         manager.loadImage(with: defaultURL, into: target)
 
-        _ = expectNotification(MockImageLoader.DidCancelTask, object: loader)
+        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
         target = nil // deallocate target
         wait()
     }
 
     func testThatRequestIsCancelledWhenTargetIsDeallocatedWithHandler() {
-        loader.queue.isSuspended = true
+        pipeline.queue.isSuspended = true
 
         var target: ImageView! = ImageView()
 
@@ -86,7 +86,7 @@ class ManagerTests: XCTestCase {
             XCTFail()
         }
 
-        _ = expectNotification(MockImageLoader.DidCancelTask, object: loader)
+        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
         target = nil // deallocate target
         wait()
     }

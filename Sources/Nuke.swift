@@ -33,36 +33,35 @@ public enum Result<T> {
 
 // MARK: - Deprecated
 
-extension Manager {
-    @available(*, deprecated, message: "Manager no longer manages cache, it's only responsibility is loading images into targets.")
-    convenience init(loader: Loading, cache: Caching? = nil) {
-        self.init(loader: loader)
-    }
-}
-
-@available(*, deprecated, message: "Manager no longer implements Loading protocol. Use Loader.loadImage(with:into:) instead.")
-extension Manager: Loading {
-    // MARK: Loading Images w/o Targets
-
-    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  loadImage(with:token:completion:) is deprecated. Use Loader methods instead")
-    public func loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-        loader.loadImage(with: request, token: token, completion: completion)
-    }
-
-    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  loadImage(with:token:completion:) is deprecated. Use Loader methods instead")
-    public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-
-    }
-
-    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  cachedImage(for:) is deprecated. Use Loader methods instead")
-    public func cachedImage(for request: Request) -> Image? {
-        return loader.cachedImage(for: request)
-    }
-}
-
-extension Preheater {
-    @available(*, deprecated, message: "This initializer is deprecated, use `Preheater.init(loader:maxConcurrentRequestCount:) instead.")
-    public convenience init(manager: Manager = Manager.shared, maxConcurrentRequestCount: Int = 2) {
-        self.init(loader: manager.loader, maxConcurrentRequestCount: maxConcurrentRequestCount)
-    }
-}
+//extension Manager {
+//    @available(*, deprecated, message: "Manager no longer manages cache, it's only responsibility is loading images into targets.")
+//    convenience init(loader: ImagePipelineProtocol, cache: Caching? = nil) {
+//        self.init(loader: loader)
+//    }
+//}
+//
+//extension Manager {
+//    // MARK: Loading Images w/o Targets
+//
+//    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  loadImage(with:token:completion:) is deprecated. Use Loader methods instead")
+//    public func loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
+//        pipeline.loadImage(with: request, token: token, completion: completion)
+//    }
+//
+//    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  loadImage(with:token:completion:) is deprecated. Use Loader methods instead")
+//    public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
+//        pipeline.loadImage(with: url, token: token, completion: completion)
+//    }
+//
+//    @available(*, deprecated, message: "Manager no longer implements Loading protocol.  cachedImage(for:) is deprecated. Use Loader methods instead")
+//    public func cachedImage(for request: Request) -> Image? {
+//        return pipeline.cachedImage(for: request)
+//    }
+//}
+//
+//extension Preheater {
+//    @available(*, deprecated, message: "This initializer is deprecated, use `Preheater.init(loader:maxConcurrentRequestCount:) instead.")
+//    public convenience init(manager: Manager = Manager.shared, maxConcurrentRequestCount: Int = 2) {
+//        self.init(pipeline: manager.pipeline, maxConcurrentRequestCount: maxConcurrentRequestCount)
+//    }
+//}

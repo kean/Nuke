@@ -6,16 +6,15 @@ import Foundation
 
 /// Loads images into the given targets.
 public final class Manager {
-    public let loader: Loading
+    internal let pipeline: ImagePipeline // FIXME: change to private when deprecated methods are removed
 
     /// Shared `Manager` instance.
-    ///
-    /// Shared manager is created with `Loader.shared`.
-    public static let shared = Manager(loader: Loader.shared)
+    public static let shared = Manager()
 
-    /// Initializes the `Manager` with an image loader.
-    public init(loader: Loading) {
-        self.loader = loader
+    /// Initializes the `Manager` with an image pipeline.
+    /// - parameter pipeline: Image pipeline, `ImagePipeline.shared` by default.
+    public init(pipeline: ImagePipeline = ImagePipeline.shared) {
+        self.pipeline = pipeline
     }
 
     // MARK: Loading Images into Targets
@@ -53,7 +52,7 @@ public final class Manager {
         context.cts = nil
 
         // Quick synchronous memory cache lookup
-        if let image = loader.cachedImage(for: request) {
+        if let image = pipeline.cachedImage(for: request) {
             handler(.success(image), true)
             return
         }
@@ -64,7 +63,7 @@ public final class Manager {
 
         // Start the request
         // Manager assumes that Loader calls completion on the main thread.
-        loader.loadImage(with: request, token: cts.token) { [weak context] in
+        pipeline.loadImage(with: request, token: cts.token) { [weak context] in
             guard let context = context, context.cts === cts else { return } // check if still registered
             handler($0, false)
             context.cts = nil // avoid redundant cancellations on deinit

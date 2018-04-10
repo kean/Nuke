@@ -6,7 +6,7 @@ import Nuke
 import XCTest
 
 extension XCTestCase {
-    func runThreadSafetyTests(for loader: Loading) {
+    func runThreadSafetyTests(for pipeline: ImagePipeline) {
         for _ in 0..<500 {
             expect { fulfill in
                 DispatchQueue.global().async {
@@ -14,7 +14,7 @@ extension XCTestCase {
                     let shouldCancel = rnd(3) == 0
                     
                     let cts = CancellationTokenSource()
-                    loader.loadImage(with: request, token: cts.token) { _ in
+                    pipeline.loadImage(with: request, token: cts.token) { _ in
                         if shouldCancel {
                             // do nothing, we don't expect completion on cancel
                         } else {

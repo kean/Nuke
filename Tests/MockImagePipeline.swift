@@ -3,16 +3,16 @@
 // Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import Nuke
+@testable import Nuke
 
 private let image: Image = {
-    let bundle = Bundle(for: MockImageLoader.self)
+    let bundle = Bundle(for: MockImagePipeline.self)
     let URL = bundle.url(forResource: "Image", withExtension: "jpg")
     let data = try! Data(contentsOf: URL!)
     return Nuke.DataDecoder().decode(data: data, response: URLResponse())!
 }()
 
-class MockImageLoader: Loading {
+class MockImagePipeline: ImagePipeline {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidCancelTask")
     
@@ -25,8 +25,8 @@ class MockImageLoader: Loading {
     var results = [URL: Result<Image>]()
     var ignoreCancellation = false
 
-    func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
-        NotificationCenter.default.post(name: MockImageLoader.DidStartTask, object: self)
+    override func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+        NotificationCenter.default.post(name: MockImagePipeline.DidStartTask, object: self)
         
         createdTaskCount += 1
         
@@ -44,12 +44,12 @@ class MockImageLoader: Loading {
         if !ignoreCancellation {
             token?.register {
                 operation.cancel()
-                NotificationCenter.default.post(name: MockImageLoader.DidCancelTask, object: self)
+                NotificationCenter.default.post(name: MockImagePipeline.DidCancelTask, object: self)
             }
         }
     }
 
-    func cachedImage(for request: Request) -> Image? {
+    override func cachedImage(for request: Request) -> Image? {
         return nil
     }
 }

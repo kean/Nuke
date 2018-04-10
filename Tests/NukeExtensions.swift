@@ -12,3 +12,11 @@ extension Nuke.Request {
         return request
     }
 }
+
+extension Nuke.ImagePipeline {
+    convenience init(_ configure: (inout ImagePipeline.Configuration) -> Void) {
+        var configuration = ImagePipeline.Configuration()
+        configure(&configuration)
+        self.init(configuration: configuration)
+    }
+}

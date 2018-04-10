@@ -5,19 +5,21 @@
 import XCTest
 import Nuke
 
-class LoaderTests: XCTestCase {
+class ImagePipelineTests: XCTestCase {
     var dataLoader: MockDataLoader!
-    var loader: Loader!
+    var imagePipeline: ImagePipeline!
     
     override func setUp() {
         super.setUp()
         
         dataLoader = MockDataLoader()
-        loader = Loader(loader: dataLoader)
+        imagePipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+        }
     }
     
     func testThreadSafety() {
-        runThreadSafetyTests(for: loader)
+        runThreadSafetyTests(for: imagePipeline)
     }
 
     // MARK: Progress
@@ -37,7 +39,7 @@ class LoaderTests: XCTestCase {
             }
         }
         expect { fulfill in
-            loader.loadImage(with: request) { _ in
+            imagePipeline.loadImage(with: request) { _ in
                 fulfill()
             }
         }
@@ -47,10 +49,12 @@ class LoaderTests: XCTestCase {
     // MARK: Options
 
     func testOverridingProcessor() {
-        var options = Loader.Options()
-        options.processor = { (_,_) in AnyProcessor(MockImageProcessor(id: "processorFromOptions")) }
-
-        let loader = Loader(loader: dataLoader, options: options)
+        let loader = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.processor = { (_,_) in
+                AnyProcessor(MockImageProcessor(id: "processorFromOptions"))
+            }
+        }
 
         let request = Request(url: defaultURL).processed(with: MockImageProcessor(id: "processorFromRequest"))
 
@@ -66,16 +70,18 @@ class LoaderTests: XCTestCase {
     }
 }
 
-class LoaderErrorHandlingTests: XCTestCase {
+class ImagePipelineErrorHandlingTests: XCTestCase {
     func testThatLoadingFailedErrorIsReturned() {
         let dataLoader = MockDataLoader()
-        let loader = Loader(loader: dataLoader)
+        let imagePipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+        }
 
         let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
         dataLoader.results[defaultURL] = .failure(expectedError)
 
         expect { fulfill in
-            loader.loadImage(with: Request(url: defaultURL)) {
+            imagePipeline.loadImage(with: Request(url: defaultURL)) {
                 guard let error = $0.error else { XCTFail(); return }
                 XCTAssertNotNil(error)
                 XCTAssertEqual((error as NSError).code, expectedError.code)
@@ -87,12 +93,15 @@ class LoaderErrorHandlingTests: XCTestCase {
     }
 
     func testThatDecodingFailedErrorIsReturned() {
-        let loader = Loader(loader: MockDataLoader(), decoder: MockFailingDecoder())
+        let imagePipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+            $0.dataDecoder = MockFailingDecoder()
+        }
 
         expect { fulfill in
-            loader.loadImage(with: Request(url: defaultURL)) {
+            imagePipeline.loadImage(with: Request(url: defaultURL)) {
                 guard let error = $0.error else { XCTFail(); return }
-                XCTAssertTrue((error as! Loader.Error) == Loader.Error.decodingFailed)
+                XCTAssertTrue((error as! ImagePipeline.Error) == ImagePipeline.Error.decodingFailed)
                 fulfill()
             }
         }
@@ -100,14 +109,16 @@ class LoaderErrorHandlingTests: XCTestCase {
     }
 
     func testThatProcessingFailedErrorIsReturned() {
-        let loader = Loader(loader: MockDataLoader())
+        let loader = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+        }
 
         let request = Request(url: defaultURL).processed(with: MockFailingProcessor())
 
         expect { fulfill in
             loader.loadImage(with: request) {
                 guard let error = $0.error else { XCTFail(); return }
-                XCTAssertTrue((error as! Loader.Error) == Loader.Error.processingFailed)
+                XCTAssertTrue((error as! ImagePipeline.Error) == ImagePipeline.Error.processingFailed)
                 fulfill()
             }
         }
@@ -115,15 +126,17 @@ class LoaderErrorHandlingTests: XCTestCase {
     }
 }
 
-class LoaderDeduplicationTests: XCTestCase {
+class ImagePipelineDeduplicationTests: XCTestCase {
     var dataLoader: MockDataLoader!
-    var loader: Loader!
+    var imagePipeline: ImagePipeline!
 
     override func setUp() {
         super.setUp()
 
         dataLoader = MockDataLoader()
-        loader = Loader(loader: dataLoader)
+        imagePipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+        }
     }
 
     func testThatEquivalentRequestsAreDeduplicated() {
@@ -134,14 +147,14 @@ class LoaderDeduplicationTests: XCTestCase {
         XCTAssertEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
-            loader.loadImage(with: request1) {
+            imagePipeline.loadImage(with: request1) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
         }
 
         expect { fulfill in
-            loader.loadImage(with: request2) {
+            imagePipeline.loadImage(with: request2) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
@@ -160,19 +173,18 @@ class LoaderDeduplicationTests: XCTestCase {
         XCTAssertNotEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
-            loader.loadImage(with: request1) {
+            imagePipeline.loadImage(with: request1) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
         }
 
         expect { fulfill in
-            loader.loadImage(with: request2) {
+            imagePipeline.loadImage(with: request2) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
         }
-
         wait { _ in
             XCTAssertEqual(self.dataLoader.createdTaskCount, 2)
         }
@@ -186,12 +198,12 @@ class LoaderDeduplicationTests: XCTestCase {
         let cts = CancellationTokenSource()
 
         // We don't expect completion to be called.
-        loader.loadImage(with: Request(url: defaultURL), token: cts.token) { _ in
+        imagePipeline.loadImage(with: Request(url: defaultURL), token: cts.token) { _ in
             XCTFail()
         }
 
         expect { fulfill in // This work we don't cancel
-            loader.loadImage(with: Request(url: defaultURL), token: nil) {
+            imagePipeline.loadImage(with: Request(url: defaultURL), token: nil) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
@@ -223,7 +235,7 @@ class LoaderDeduplicationTests: XCTestCase {
                 }
             }
             expect { fulfill in
-                loader.loadImage(with: request) { _ in
+                imagePipeline.loadImage(with: request) { _ in
                     fulfill()
                 }
             }
@@ -234,10 +246,10 @@ class LoaderDeduplicationTests: XCTestCase {
     }
 
     func testDisablingDeduplication() {
-        var options = Loader.Options()
-        options.isDeduplicationEnabled = false
-
-        let loader = Loader(loader: dataLoader, options: options)
+        let imagePipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.isDeduplicationEnabled = false
+        }
 
         dataLoader.queue.isSuspended = true
 
@@ -246,14 +258,14 @@ class LoaderDeduplicationTests: XCTestCase {
         XCTAssertEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
-            loader.loadImage(with: request1) {
+            imagePipeline.loadImage(with: request1) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
         }
 
         expect { fulfill in
-            loader.loadImage(with: request2) {
+            imagePipeline.loadImage(with: request2) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
@@ -269,14 +281,17 @@ class LoaderDeduplicationTests: XCTestCase {
 class LoaderMemoryCacheTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var cache: MockCache!
-    var loader: Loader!
+    var loader: ImagePipeline!
 
     override func setUp() {
         super.setUp()
 
         dataLoader = MockDataLoader()
         cache = MockCache()
-        loader = Loader(loader: dataLoader, cache: cache)
+        loader = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = cache
+        }
     }
 
     func testThatImageIsLoaded() {

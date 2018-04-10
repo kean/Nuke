@@ -19,23 +19,25 @@ class ManagerPerformanceTests: XCTestCase {
     }
 }
 
-class LoaderPerfomanceTests: XCTestCase {
+class ImagePipelinePerfomanceTests: XCTestCase {
     /// A very broad test that establishes how long in general it takes to load
     /// data, decode, and decomperss 50+ images. It's very useful to get a
     /// broad picture about how loader options affect perofmance.
     func testLoaderOverallPerformance() {
         let dataLoader = MockDataLoader()
-        var options = Loader.Options()
-        // This must be off for this test, because rate limiter is optimized for
-        // the actual loading in the apps and not the syntetic tests like this.
-        options.isRateLimiterEnabled = false
 
-        options.isDeduplicationEnabled = false
+        let loader = ImagePipeline {
+            $0.dataLoader = dataLoader
 
-        // Disables processing which takes a bulk of time.
-        options.processor = { (_,_) in nil }
+            // This must be off for this test, because rate limiter is optimized for
+            // the actual loading in the apps and not the syntetic tests like this.
+            $0.isRateLimiterEnabled = false
 
-        let loader = Loader(loader: dataLoader, options: options)
+            $0.isDeduplicationEnabled = false
+
+            // Disables processing which takes a bulk of time.
+            $0.processor = { (_,_) in nil }
+        }
 
         let urls = (0..<1_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
         measure {

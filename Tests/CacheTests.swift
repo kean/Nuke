@@ -301,7 +301,11 @@ class CacheIntegrationTests: XCTestCase {
 
         mockCache = MockCache()
         mockDataLoader = MockDataLoader()
-        manager = Manager(loader: Loader(loader: mockDataLoader, cache: mockCache))
+        let pipeline = ImagePipeline {
+            $0.dataLoader = mockDataLoader
+            $0.imageCache = mockCache
+        }
+        manager = Manager(pipeline: pipeline)
     }
 
     func testThatCacheWorks() {
