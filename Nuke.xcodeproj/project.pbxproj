@@ -42,6 +42,10 @@
 		0C0FD61D1CA47FE1002A78FB /* Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */; };
 		0C0FD61E1CA47FE1002A78FB /* Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */; };
 		0C0FD61F1CA47FE1002A78FB /* Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */; };
+		0C128B31207EA50A00E7A298 /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C128B30207EA50A00E7A298 /* Deprecated.swift */; };
+		0C128B32207EA50F00E7A298 /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C128B30207EA50A00E7A298 /* Deprecated.swift */; };
+		0C128B33207EA50F00E7A298 /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C128B30207EA50A00E7A298 /* Deprecated.swift */; };
+		0C128B34207EA50F00E7A298 /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C128B30207EA50A00E7A298 /* Deprecated.swift */; };
 		0C1E620B1D6F817700AD5CF5 /* RequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E620A1D6F817700AD5CF5 /* RequestTests.swift */; };
 		0C1E620C1D6F817700AD5CF5 /* RequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E620A1D6F817700AD5CF5 /* RequestTests.swift */; };
 		0C1E620D1D6F817700AD5CF5 /* RequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E620A1D6F817700AD5CF5 /* RequestTests.swift */; };
@@ -204,6 +208,7 @@
 		0C0FD5D81CA47FE1002A78FB /* Processor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Processor.swift; sourceTree = "<group>"; };
 		0C0FD5D91CA47FE1002A78FB /* Request.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Request.swift; sourceTree = "<group>"; };
 		0C0FD5DF1CA47FE1002A78FB /* Nuke.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Nuke.swift; sourceTree = "<group>"; };
+		0C128B30207EA50A00E7A298 /* Deprecated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deprecated.swift; sourceTree = "<group>"; };
 		0C1E620A1D6F817700AD5CF5 /* RequestTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RequestTests.swift; sourceTree = "<group>"; };
 		0C1E623A1D6FA0FB00AD5CF5 /* CancellationTokenTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CancellationTokenTests.swift; sourceTree = "<group>"; };
 		0C1E623E1D70246900AD5CF5 /* MockTarget.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockTarget.swift; sourceTree = "<group>"; };
@@ -349,6 +354,7 @@
 				0CF4DE7C1D412A9E00170289 /* Preheater.swift */,
 				0C34BF661D4D15B6006B8A57 /* CancellationToken.swift */,
 				0C7150081FC9724C00B880AC /* Internal.swift */,
+				0C128B30207EA50A00E7A298 /* Deprecated.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -851,6 +857,7 @@
 				0C0FD5E61CA47FE1002A78FB /* DataDecoder.swift in Sources */,
 				0C0FD5EE1CA47FE1002A78FB /* ImagePipeline.swift in Sources */,
 				0C0FD5E21CA47FE1002A78FB /* DataLoader.swift in Sources */,
+				0C128B33207EA50F00E7A298 /* Deprecated.swift in Sources */,
 				0C0FD61E1CA47FE1002A78FB /* Nuke.swift in Sources */,
 				0CF4DE7F1D412A9E00170289 /* Preheater.swift in Sources */,
 				0C0FD6061CA47FE1002A78FB /* Request.swift in Sources */,
@@ -868,6 +875,7 @@
 				0C0FD5E51CA47FE1002A78FB /* DataDecoder.swift in Sources */,
 				0C0FD5ED1CA47FE1002A78FB /* ImagePipeline.swift in Sources */,
 				0C34BF681D4D15B6006B8A57 /* CancellationToken.swift in Sources */,
+				0C128B32207EA50F00E7A298 /* Deprecated.swift in Sources */,
 				0C0FD5E11CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61D1CA47FE1002A78FB /* Nuke.swift in Sources */,
 				0C0FD6051CA47FE1002A78FB /* Request.swift in Sources */,
@@ -963,6 +971,7 @@
 				0C0FD5E41CA47FE1002A78FB /* DataDecoder.swift in Sources */,
 				0C0FD5EC1CA47FE1002A78FB /* ImagePipeline.swift in Sources */,
 				0C34BF671D4D15B6006B8A57 /* CancellationToken.swift in Sources */,
+				0C128B31207EA50A00E7A298 /* Deprecated.swift in Sources */,
 				0C0FD5E01CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61C1CA47FE1002A78FB /* Nuke.swift in Sources */,
 				0C0FD6041CA47FE1002A78FB /* Request.swift in Sources */,
@@ -980,6 +989,7 @@
 				0C0FD5E71CA47FE1002A78FB /* DataDecoder.swift in Sources */,
 				0C0FD5EF1CA47FE1002A78FB /* ImagePipeline.swift in Sources */,
 				0C34BF6A1D4D15B6006B8A57 /* CancellationToken.swift in Sources */,
+				0C128B34207EA50F00E7A298 /* Deprecated.swift in Sources */,
 				0C0FD5E31CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C0FD61F1CA47FE1002A78FB /* Nuke.swift in Sources */,
 				0C0FD6071CA47FE1002A78FB /* Request.swift in Sources */,

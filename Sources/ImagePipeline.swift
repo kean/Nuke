@@ -99,6 +99,12 @@ public /* final */ class ImagePipeline {
         self.processingQueue.maxConcurrentOperationCount = configuration.maxConcurrentImageProcessingTaskCount
     }
 
+    public convenience init(_ configure: (inout ImagePipeline.Configuration) -> Void) {
+        var configuration = ImagePipeline.Configuration()
+        configure(&configuration)
+        self.init(configuration: configuration)
+    }
+
     // MARK: Loading
 
     /// Loads an image with the given url.
