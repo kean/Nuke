@@ -50,7 +50,7 @@ class ImagePipelineTests: XCTestCase {
     // MARK: Options
 
     func testOverridingProcessor() {
-        let loader = ImagePipeline {
+        let imagePipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.processor = { (_,_) in
                 AnyProcessor(MockImageProcessor(id: "processorFromOptions"))
@@ -60,7 +60,7 @@ class ImagePipelineTests: XCTestCase {
         let request = Request(url: defaultURL).processed(with: MockImageProcessor(id: "processorFromRequest"))
 
         expect { fulfill in
-            loader.loadImage(with: request) {
+            imagePipeline.loadImage(with: request) {
                 XCTAssertNotNil($0.value)
                 XCTAssertEqual($0.value?.nk_test_processorIDs.count, 1)
                 XCTAssertEqual($0.value?.nk_test_processorIDs.first, "processorFromOptions")
