@@ -15,8 +15,6 @@ public /* final */ class ImageTask {
     }
 }
 
-private let _lock = NSLock()
-
 // MARK: - ImagePipeline
 
 public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
