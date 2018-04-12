@@ -4,6 +4,21 @@
 
 import Foundation
 
+// MARK: - ImageTask
+
+public /* final */ class ImageTask {
+    // There might be even more performant solution
+    fileprivate var cts = CancellationTokenSource()
+
+    public func cancel() {
+        cts.cancel()
+    }
+}
+
+private let _lock = NSLock()
+
+// MARK: - ImagePipeline
+
 public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
 private typealias Completion = (Result<Image>) -> Void
 
@@ -108,19 +123,21 @@ public /* final */ class ImagePipeline {
     // MARK: Loading
 
     /// Loads an image with the given url.
-    public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-        loadImage(with: Request(url: url), token: token, completion: completion)
+    @discardableResult public func loadImage(with url: URL, completion: @escaping (Result<Image>) -> Void) -> ImageTask {
+        return loadImage(with: Request(url: url), completion: completion)
     }
 
     /// Loads an image for the given request using image loading pipeline.
-    public func loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
+    @discardableResult public func loadImage(with request: Request, completion: @escaping (Result<Image>) -> Void) -> ImageTask {
+        let task = ImageTask()
         queue.async {
-            if token?.isCancelling == true { return } // Fast preflight check
+            guard !task.cts.isCancelling else { return } // Fast preflight check
+
             if let image = self.cachedImage(for: request) {
                 DispatchQueue.main.async { completion(.success(image)) }
             } else {
                 // Image not in cache - load an image.
-                self._loadImage(request, token: token) { result in
+                self._loadImage(request, task: task) { result in
                     if let image = result.value {
                         self.store(image: image, for: request)
                     }
@@ -128,9 +145,10 @@ public /* final */ class ImagePipeline {
                 }
             }
         }
+        return task
     }
-
-    private func _loadImage(_ request: Request, token: CancellationToken?, completion: @escaping Completion) {
+    
+    private func _loadImage(_ request: Request, task imageTask: ImageTask, completion: @escaping Completion) {
         let task = _startTask(with: request)
 
         // Register handler with a task.
@@ -140,7 +158,7 @@ public /* final */ class ImagePipeline {
         // Update data operation priority (in case it was already started).
         task.dataOperation?.queuePriority = _priority(for: task.handlers).queuePriority
 
-        token?.register { [weak self, weak task, weak handler] in
+        imageTask.cts.token.register { [weak self, weak task, weak handler] in
             guard let task = task, let handler = handler else { return }
             self?._cancel(task, handler: handler)
         }
@@ -233,12 +251,12 @@ public /* final */ class ImagePipeline {
                 progress: {
                     guard let task = task else { return }
                     self?._updateProgress(completed: $0, total: $1, task: task)
-                },
+            },
                 completion: {
                     finish()
                     guard let task = task else { return }
                     self?._didReceiveData($0, task: task)
-                }
+            }
             )
             token.register(finish) // Make sure we always finish the operation.
         })

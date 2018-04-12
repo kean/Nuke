@@ -195,21 +195,20 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // We test it using Manager because Loader is not required
         // to call completion handler for cancelled requests.
-        let cts = CancellationTokenSource()
 
         // We don't expect completion to be called.
-        imagePipeline.loadImage(with: Request(url: defaultURL), token: cts.token) { _ in
+        let task = imagePipeline.loadImage(with: Request(url: defaultURL)) { _ in
             XCTFail()
         }
 
         expect { fulfill in // This work we don't cancel
-            imagePipeline.loadImage(with: Request(url: defaultURL), token: nil) {
+            imagePipeline.loadImage(with: Request(url: defaultURL)) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
         }
 
-        cts.cancel()
+        task.cancel()
         self.dataLoader.queue.isSuspended = false
 
         wait { _ in
@@ -354,7 +353,7 @@ class LoaderMemoryCacheTests: XCTestCase {
     func _testCompletionDispatch() {
         var isCompleted = false
         expect { fulfill in
-            loader.loadImage(with: Request(url: defaultURL), token: nil) { _ in
+            loader.loadImage(with: Request(url: defaultURL)) { _ in
                 XCTAssert(Thread.isMainThread)
                 isCompleted = true
                 fulfill()
@@ -369,7 +368,7 @@ class LoaderMemoryCacheTests: XCTestCase {
 
     func waitLoadedImage(with request: Nuke.Request) {
         expect { fulfill in
-            loader.loadImage(with: request, token: nil) {
+            loader.loadImage(with: request) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }

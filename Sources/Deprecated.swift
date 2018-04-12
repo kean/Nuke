@@ -52,12 +52,13 @@ public final class Manager {
 
     @available(*, deprecated, message: "Manager no longer implements Loading protocol.  loadImage(with:token:completion:) is deprecated. Use Loader methods instead")
     public func loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-        pipeline.loadImage(with: request, token: token, completion: completion)
+        let task = pipeline.loadImage(with: request, completion: completion)
+        token?.register { task.cancel() }
     }
 
     @available(*, deprecated, message: "Manager no longer implements Loading protocol.  loadImage(with:token:completion:) is deprecated. Use Loader methods instead")
     public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-        pipeline.loadImage(with: url, token: token, completion: completion)
+        self.loadImage(with: Request(url: url), token: token, completion: completion)
     }
 
     @available(*, deprecated, message: "Manager no longer implements Loading protocol.  cachedImage(for:) is deprecated. Use Loader methods instead")
@@ -121,7 +122,8 @@ public final class Loader: Loading {
 
     @available(*, deprecated, message: "Loader is deprecated, please use ImagePipeline instead")
     public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
-        pipeline.loadImage(with: request, token: token, completion: completion)
+        let task = pipeline.loadImage(with: request, completion: completion)
+        token?.register { task.cancel() }
     }
 
     public typealias Error = ImagePipeline.Error

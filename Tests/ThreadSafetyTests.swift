@@ -12,9 +12,8 @@ extension XCTestCase {
                 DispatchQueue.global().async {
                     let request = Request(url: URL(string: "\(defaultURL)/\(rnd(10))")!)
                     let shouldCancel = rnd(3) == 0
-                    
-                    let cts = CancellationTokenSource()
-                    pipeline.loadImage(with: request, token: cts.token) { _ in
+
+                    let task = pipeline.loadImage(with: request) { _ in
                         if shouldCancel {
                             // do nothing, we don't expect completion on cancel
                         } else {
@@ -23,7 +22,7 @@ extension XCTestCase {
                     }
                     
                     if shouldCancel {
-                        cts.cancel()
+                        task.cancel()
                         fulfill()
                     }
                 }

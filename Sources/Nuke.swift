@@ -62,8 +62,8 @@ public func loadImage(with request: Request, pipeline: ImagePipeline = ImagePipe
     assert(Thread.isMainThread)
 
     let context = getContext(for: target)
-    context.cts?.cancel() // cancel outstanding request if any
-    context.cts = nil
+    context.task?.cancel() // cancel outstanding request if any
+    context.task = nil
 
     // Quick synchronous memory cache lookup
     if let image = pipeline.cachedImage(for: request) {
@@ -71,16 +71,17 @@ public func loadImage(with request: Request, pipeline: ImagePipeline = ImagePipe
         return
     }
 
-    // Create CTS and associate it with a context
-    let cts = CancellationTokenSource()
-    context.cts = cts
+    // Create ID to check whether the active request hasn't changed while downloading
+    context.taskId += 1
+    let taskId = context.taskId
 
     // Start the request
     // Manager assumes that Loader calls completion on the main thread.
-    pipeline.loadImage(with: request, token: cts.token) { [weak context] in
-        guard let context = context, context.cts === cts else { return } // check if still registered
+    context.task = pipeline.loadImage(with: request) { [weak context] in
+        // Check if still registered
+        guard let context = context, context.taskId == taskId else { return }
         handler($0, false)
-        context.cts = nil // avoid redundant cancellations on deinit
+        context.task = nil // avoid redundant cancellations on deinit
     }
 }
 
@@ -88,8 +89,8 @@ public func loadImage(with request: Request, pipeline: ImagePipeline = ImagePipe
 public func cancelRequest(for target: AnyObject) {
     assert(Thread.isMainThread)
     let context = getContext(for: target)
-    context.cts?.cancel() // cancel outstanding request if any
-    context.cts = nil // unregister request
+    context.task?.cancel() // cancel outstanding request if any
+    context.task = nil // unregister request
 }
 
 // MARK: - Managing Context
@@ -109,10 +110,11 @@ private func getContext(for target: AnyObject) -> Context {
 // Context is reused for multiple requests which makes sense, because in
 // most cases image views are also going to be reused (e.g. in a table view)
 private final class Context {
-    var cts: CancellationTokenSource? // also used to identify requests
+    var task: ImageTask? // also used to identify requests
+    var taskId: Int = 0
 
     // Automatically cancel the request when target deallocates.
-    deinit { cts?.cancel() }
+    deinit { task?.cancel() }
 
     static var contextAK = "Context.AssociatedKey"
 }
