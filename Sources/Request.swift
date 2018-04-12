@@ -5,12 +5,12 @@
 import Foundation
 
 #if !os(macOS)
-    import UIKit
+import UIKit
 #endif
 
 /// Represents an image request.
 public struct Request {
-    
+
     // MARK: Parameters of the Request
 
     /// The `URLRequest` used for loading an image.
@@ -30,8 +30,16 @@ public struct Request {
     /// improve drawing performance as it allows a bitmap representation to be
     /// created in a background rather than on the main thread.
     public var processor: AnyProcessor? {
-        get { return _ref.processor }
-        set { _mutate { $0.processor = newValue } }
+        get {
+            // Default processor on macOS is nil, on other platforms is Decompressor
+            #if !os(macOS)
+            guard let custom = _ref._customProcessor else { return Container.decompressor }
+            #else
+            guard let custom = _ref._customProcessor else { return nil}
+            #endif
+            return custom
+        }
+        set { _mutate { $0._customProcessor = .some(newValue) } }
     }
 
     /// The policy to use when reading or writing images to the memory cache.
@@ -139,7 +147,7 @@ public struct Request {
     /// to the target size.
     public init(url: URL, targetSize: CGSize, contentMode: Decompressor.ContentMode) {
         self = Request(url: url)
-        _ref.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
+        _ref._customProcessor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
     }
 
     /// Initializes a request with the given request.
@@ -148,7 +156,7 @@ public struct Request {
     /// to the target size.
     public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: Decompressor.ContentMode) {
         self = Request(urlRequest: urlRequest)
-        _ref.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
+        _ref._customProcessor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
     }
 
     #endif
@@ -169,10 +177,14 @@ public struct Request {
     private class Container {
         var resource: Resource
         var _urlString: String? // memoized absoluteString
-        var processor: AnyProcessor? {
-            didSet { _isUsingDefaultProcessor = false }
-        }
-        private var _isUsingDefaultProcessor = true
+        // There are three cases:
+        // 1) Default value (custom processor not set)
+        // 2) Custom processor (.none)
+        // 3) Custom processor (.some)
+        // First case gives us a performance boost -> we don't need to store
+        // default processor in a container, we can just use static version
+        // when we need it.
+        var _customProcessor: AnyProcessor??
         var memoryCacheOptions = MemoryCacheOptions()
         var priority: Request.Priority = .normal
         var cacheKey: AnyHashable?
@@ -183,19 +195,13 @@ public struct Request {
         /// Creates a resource with a default processor.
         init(resource: Resource) {
             self.resource = resource
-
-            #if !os(macOS)
-            // set default processor
-            self.processor = Container.decompressor
-            #endif
         }
 
         /// Creates a copy.
         init(container ref: Container) {
             self.resource = ref.resource
             self._urlString = ref._urlString
-            self.processor = ref.processor
-            self._isUsingDefaultProcessor = ref._isUsingDefaultProcessor // order is important here
+            self._customProcessor = ref._customProcessor
             self.memoryCacheOptions = ref.memoryCacheOptions
             self.priority = ref.priority
             self.cacheKey = ref.cacheKey
@@ -205,12 +211,8 @@ public struct Request {
         }
 
         #if !os(macOS)
-        private static let decompressor = AnyProcessor(Decompressor())
+        fileprivate static let decompressor = AnyProcessor(Decompressor())
         #endif
-
-        func isEqualProcessor(to ref: Container) -> Bool {
-            return (_isUsingDefaultProcessor && ref._isUsingDefaultProcessor) || processor == ref.processor
-        }
     }
 
     /// Resource representation (either URL or URLRequest).
@@ -270,7 +272,7 @@ public extension Request {
         static func ==(lhs: CacheKey, rhs: CacheKey) -> Bool {
             let lhs = lhs.request, rhs = rhs.request
             return lhs._ref._urlString == rhs._ref._urlString
-                && lhs._ref.isEqualProcessor(to: rhs._ref)
+                && lhs._ref._customProcessor == rhs._ref._customProcessor
         }
     }
 
@@ -289,7 +291,7 @@ public extension Request {
             let lhs = lhs.request, rhs = rhs.request
             return lhs._ref._urlString == rhs._ref._urlString
                 && isEqual(lhs.urlRequest, rhs.urlRequest)
-                && lhs._ref.isEqualProcessor(to: rhs._ref)
+                && lhs._ref._customProcessor == rhs._ref._customProcessor
         }
     }
 }
