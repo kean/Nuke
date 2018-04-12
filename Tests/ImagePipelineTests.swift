@@ -15,6 +15,7 @@ class ImagePipelineTests: XCTestCase {
         dataLoader = MockDataLoader()
         imagePipeline = ImagePipeline {
             $0.dataLoader = dataLoader
+            $0.imageCache = nil
         }
     }
     
@@ -75,6 +76,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         let dataLoader = MockDataLoader()
         let imagePipeline = ImagePipeline {
             $0.dataLoader = dataLoader
+            $0.imageCache = nil
         }
 
         let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
@@ -96,6 +98,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         let imagePipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
             $0.dataDecoder = MockFailingDecoder()
+            $0.imageCache = nil
         }
 
         expect { fulfill in
@@ -136,6 +139,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         dataLoader = MockDataLoader()
         imagePipeline = ImagePipeline {
             $0.dataLoader = dataLoader
+            $0.imageCache = nil
         }
     }
 

@@ -99,7 +99,7 @@ public /* final */ class ImagePipeline {
         /// - parameter dataDecoder: `DataDecoder()` by default.
         /// - parameter imageCache: `Cache.shared` by default.
         /// - parameter options: Options which can be used to customize loader.
-        public init(dataLoader: DataLoading = DataLoader(), dataDecoder: DataDecoding = DataDecoder(), imageCache: Caching? = nil) {
+        public init(dataLoader: DataLoading = DataLoader(), dataDecoder: DataDecoding = DataDecoder(), imageCache: Caching? = Cache.shared) {
             self.dataLoader = dataLoader
             self.dataDecoder = dataDecoder
             self.imageCache = imageCache
