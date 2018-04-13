@@ -13,7 +13,7 @@ class ManagerPerformanceTests: XCTestCase {
         
         measure {
             for url in urls {
-                Manager.shared.loadImage(with: url, into: view)
+                Nuke.loadImage(with: url, into: view)
             }
         }
     }
@@ -44,7 +44,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             expect { fulfil in
                 var finished: Int = 0
                 for url in urls {
-                    loader.loadImage(with: url, token: nil) { result in
+                    loader.loadImage(with: url) { result in
                         finished += 1
                         if finished == urls.count {
                             fulfil()
@@ -59,11 +59,11 @@ class ImagePipelinePerfomanceTests: XCTestCase {
 
 class CachePerformanceTests: XCTestCase {
     func testCacheWrite() {
-        let cache = Cache()
+        let cache = ImageCache()
         let image = Image()
         
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
-        let requests = urls.map { Request(url: $0) }
+        let requests = urls.map { ImageRequest(url: $0) }
         
         measure {
             for request in requests {
@@ -73,16 +73,16 @@ class CachePerformanceTests: XCTestCase {
     }
     
     func testCacheHit() {
-        let cache = Cache()
+        let cache = ImageCache()
         
         for i in 0..<200 {
-            cache[Request(url: URL(string: "http://test.com/\(i)")!)] = Image()
+            cache[ImageRequest(url: URL(string: "http://test.com/\(i)")!)] = Image()
         }
         
         var hits = 0
         
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
-        let requests = urls.map { Request(url: $0) }
+        let requests = urls.map { ImageRequest(url: $0) }
         
         measure {
             for request in requests {
@@ -96,12 +96,12 @@ class CachePerformanceTests: XCTestCase {
     }
     
     func testCacheMiss() {
-        let cache = Cache()
+        let cache = ImageCache()
         
         var misses = 0
         
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
-        let requests = urls.map { Request(url: $0) }
+        let requests = urls.map { ImageRequest(url: $0) }
         
         measure {
             for request in requests {
@@ -118,10 +118,10 @@ class CachePerformanceTests: XCTestCase {
 class RequestPerformanceTests: XCTestCase {
     func testStoringRequestInCollections() {
         let urls = (0..<200_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
-        let requests = urls.map { Request(url: $0) }
+        let requests = urls.map { ImageRequest(url: $0) }
 
         measure {
-            var array = [Request]()
+            var array = [ImageRequest]()
             for request in requests {
                 array.append(request)
             }

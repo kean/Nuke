@@ -22,7 +22,7 @@ private struct AssociatedKeys {
 
 // MARK: - MockImageProcessor
 
-class MockImageProcessor: Processing {
+class MockImageProcessor: ImageProcessing {
     let id: String
     init(id: String) {
         self.id = id
@@ -42,7 +42,7 @@ func ==(lhs: MockImageProcessor, rhs: MockImageProcessor) -> Bool {
 
 // MARK: - MockFailingProcessor
 
-class MockFailingProcessor: Nuke.Processing {
+class MockFailingProcessor: Nuke.ImageProcessing {
     func process(_ image: Image) -> Image? {
         return nil
     }

@@ -12,7 +12,7 @@ import Foundation
 /// In-memory image cache.
 ///
 /// The implementation must be thread safe.
-public protocol Caching: class {
+public protocol ImageCaching: class {
     /// Accesses the image associated with the given key.
     subscript(key: AnyHashable) -> Image? { get set }
 
@@ -20,9 +20,9 @@ public protocol Caching: class {
     // types are not statically defined, might be worth rethinking cache
 }
 
-public extension Caching {
+public extension ImageCaching {
     /// Accesses the image associated with the given request.
-    public subscript(request: Request) -> Image? {
+    public subscript(request: ImageRequest) -> Image? {
         get { return self[request.cacheKey] }
         set { self[request.cacheKey] = newValue }
     }
@@ -38,7 +38,7 @@ public extension Caching {
 /// `Cache` automatically removes all stored elements when it received a
 /// memory warning. It also automatically removes *most* of cached elements
 /// when the app enters background.
-public final class Cache: Caching {
+public final class ImageCache: ImageCaching {
     // We don't use `NSCache` because it's not LRU
 
     private var map = [AnyHashable: LinkedList<CachedImage>.Node]()
@@ -64,13 +64,13 @@ public final class Cache: Caching {
     }
 
     /// Shared `Cache` instance.
-    public static let shared = Cache()
+    public static let shared = ImageCache()
 
     /// Initializes `Cache`.
     /// - parameter costLimit: Default value representes a number of bytes and is
     /// calculated based on the amount of the phisical memory available on the device.
     /// - parameter countLimit: `Int.max` by default.
-    public init(costLimit: Int = Cache.defaultCostLimit(), countLimit: Int = Int.max) {
+    public init(costLimit: Int = ImageCache.defaultCostLimit(), countLimit: Int = Int.max) {
         self.costLimit = costLimit
         self.countLimit = countLimit
         #if os(iOS) || os(tvOS)

@@ -5,15 +5,15 @@
 import XCTest
 import Nuke
 
-class PreheaterTests: XCTestCase {
+class ImagePreheaterTests: XCTestCase {
     var pipeline: MockImagePipeline!
-    var preheater: Preheater!
+    var preheater: ImagePreheater!
 
     override func setUp() {
         super.setUp()
 
         pipeline = MockImagePipeline()
-        preheater = Preheater(pipeline: pipeline)
+        preheater = ImagePreheater(pipeline: pipeline)
     }
     
     // MARK: Starting and Stoping Preheating
@@ -21,7 +21,7 @@ class PreheaterTests: XCTestCase {
     func testThatPreheatingRequestsAreStopped() {
         pipeline.queue.isSuspended = true
 
-        let request = Request(url: defaultURL)
+        let request = ImageRequest(url: defaultURL)
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
         preheater.startPreheating(with: [request])
         wait()
@@ -34,7 +34,7 @@ class PreheaterTests: XCTestCase {
     func testThatEquaivalentRequestsAreStoppedWithSingleStopCall() {
         pipeline.queue.isSuspended = true
 
-        let request = Request(url: defaultURL)
+        let request = ImageRequest(url: defaultURL)
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
         preheater.startPreheating(with: [request, request])
         preheater.startPreheating(with: [request])
@@ -51,7 +51,7 @@ class PreheaterTests: XCTestCase {
     func testThatAllPreheatingRequestsAreStopped() {
         pipeline.queue.isSuspended = true
 
-        let request = Request(url: defaultURL)
+        let request = ImageRequest(url: defaultURL)
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
         preheater.startPreheating(with: [request])
         wait()
@@ -64,9 +64,9 @@ class PreheaterTests: XCTestCase {
     // MARK: Thread Safety
     
     func testPreheatingThreadSafety() {
-        func makeRequests() -> [Request] {
+        func makeRequests() -> [ImageRequest] {
             return (0...rnd(30)).map { _ in
-                return Request(url: URL(string: "http://\(rnd(15))")!)
+                return ImageRequest(url: URL(string: "http://\(rnd(15))")!)
             }
         }
         for _ in 0...1000 {

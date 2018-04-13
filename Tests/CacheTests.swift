@@ -6,12 +6,12 @@ import XCTest
 import Nuke
 
 class CacheTests: XCTestCase {
-    var cache: Nuke.Cache!
+    var cache: Nuke.ImageCache!
 
     override func setUp() {
         super.setUp()
 
-        cache = Cache()
+        cache = ImageCache()
     }
 
     // MARK: Count
@@ -200,7 +200,7 @@ class CacheTests: XCTestCase {
 
     #if os(iOS) || os(tvOS)
     func testThatImagesAreRemovedOnMemoryWarnings() {
-        let request = Request(url: defaultURL)
+        let request = ImageRequest(url: defaultURL)
         cache[request] = Image()
         XCTAssertNotNil(cache[request])
 
@@ -245,7 +245,7 @@ class CacheTests: XCTestCase {
     // MARK: Thread Safety
 
     func testThreadSafety() {
-        let cache = Cache()
+        let cache = ImageCache()
 
         func rnd_cost() -> Int {
             return (2 + rnd(20)) * 1024 * 1024
@@ -308,7 +308,7 @@ class CacheIntegrationTests: XCTestCase {
     }
 
     func testThatCacheWorks() {
-        let request = Request(url: defaultURL)
+        let request = ImageRequest(url: defaultURL)
 
         XCTAssertEqual(mockCache.images.count, 0)
         XCTAssertNil(mockCache[request])
@@ -338,7 +338,7 @@ class CacheIntegrationTests: XCTestCase {
     }
     
     func testThatStoreResponseMethodWorks() {
-        let request = Request(url: defaultURL)
+        let request = ImageRequest(url: defaultURL)
         
         XCTAssertEqual(mockCache.images.count, 0)
         XCTAssertNil(mockCache[request])
@@ -351,7 +351,7 @@ class CacheIntegrationTests: XCTestCase {
     }
     
     func testThatRemoveResponseMethodWorks() {
-        let request = Request(url: defaultURL)
+        let request = ImageRequest(url: defaultURL)
         
         XCTAssertEqual(mockCache.images.count, 0)
         XCTAssertNil(mockCache[request])
@@ -368,7 +368,7 @@ class CacheIntegrationTests: XCTestCase {
     }
     
     func testThatCacheStorageCanBeDisabled() {
-        var request = Request(url: defaultURL)
+        var request = ImageRequest(url: defaultURL)
         XCTAssertTrue(request.memoryCacheOptions.writeAllowed)
         request.memoryCacheOptions.writeAllowed = false // Test default value
         

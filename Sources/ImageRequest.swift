@@ -9,7 +9,7 @@ import UIKit
 #endif
 
 /// Represents an image request.
-public struct Request {
+public struct ImageRequest {
 
     // MARK: Parameters of the Request
 
@@ -29,7 +29,7 @@ public struct Request {
     /// Decompressing compressed image formats (such as JPEG) can significantly
     /// improve drawing performance as it allows a bitmap representation to be
     /// created in a background rather than on the main thread.
-    public var processor: AnyProcessor? {
+    public var processor: AnyImageProcessor? {
         get {
             // Default processor on macOS is nil, on other platforms is Decompressor
             #if !os(macOS)
@@ -145,18 +145,18 @@ public struct Request {
     /// - parameter targetSize: Size in pixels.
     /// - parameter contentMode: An option for how to resize the image
     /// to the target size.
-    public init(url: URL, targetSize: CGSize, contentMode: Decompressor.ContentMode) {
-        self = Request(url: url)
-        _ref._customProcessor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
+    public init(url: URL, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) {
+        self = ImageRequest(url: url)
+        _ref._customProcessor = AnyImageProcessor(ImageDecompressor(targetSize: targetSize, contentMode: contentMode))
     }
 
     /// Initializes a request with the given request.
     /// - parameter targetSize: Size in pixels.
     /// - parameter contentMode: An option for how to resize the image
     /// to the target size.
-    public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: Decompressor.ContentMode) {
-        self = Request(urlRequest: urlRequest)
-        _ref._customProcessor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: contentMode))
+    public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) {
+        self = ImageRequest(urlRequest: urlRequest)
+        _ref._customProcessor = AnyImageProcessor(ImageDecompressor(targetSize: targetSize, contentMode: contentMode))
     }
 
     #endif
@@ -184,9 +184,9 @@ public struct Request {
         // First case gives us a performance boost -> we don't need to store
         // default processor in a container, we can just use static version
         // when we need it.
-        var _customProcessor: AnyProcessor??
+        var _customProcessor: AnyImageProcessor??
         var memoryCacheOptions = MemoryCacheOptions()
-        var priority: Request.Priority = .normal
+        var priority: ImageRequest.Priority = .normal
         var cacheKey: AnyHashable?
         var loadKey: AnyHashable?
         var progress: ProgressHandler?
@@ -211,7 +211,7 @@ public struct Request {
         }
 
         #if !os(macOS)
-        fileprivate static let decompressor = AnyProcessor(Decompressor())
+        fileprivate static let decompressor = AnyImageProcessor(ImageDecompressor())
         #endif
     }
 
@@ -229,20 +229,20 @@ public struct Request {
     }
 }
 
-public extension Request {
+public extension ImageRequest {
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    public mutating func process<P: Processing>(with processor: P) {
+    public mutating func process<P: ImageProcessing>(with processor: P) {
         guard let existing = self.processor else {
-            self.processor = AnyProcessor(processor); return
+            self.processor = AnyImageProcessor(processor); return
         }
         // Chain new processor and the existing one.
-        self.processor = AnyProcessor(ProcessorComposition([existing, AnyProcessor(processor)]))
+        self.processor = AnyImageProcessor(ImageProcessorComposition([existing, AnyImageProcessor(processor)]))
     }
 
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    public func processed<P: Processing>(with processor: P) -> Request {
+    public func processed<P: ImageProcessing>(with processor: P) -> ImageRequest {
         var request = self
         request.process(with: processor)
         return request
@@ -251,19 +251,19 @@ public extension Request {
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
     public mutating func process<Key: Hashable>(key: Key, _ closure: @escaping (Image) -> Image?) {
-        process(with: AnonymousProcessor<Key>(key, closure))
+        process(with: AnonymousImageProcessor<Key>(key, closure))
     }
 
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    public func processed<Key: Hashable>(key: Key, _ closure: @escaping (Image) -> Image?) -> Request {
-        return processed(with: AnonymousProcessor<Key>(key, closure))
+    public func processed<Key: Hashable>(key: Key, _ closure: @escaping (Image) -> Image?) -> ImageRequest {
+        return processed(with: AnonymousImageProcessor<Key>(key, closure))
     }
 }
 
-public extension Request {
+public extension ImageRequest {
     private struct CacheKey: Hashable {
-        let request: Request
+        let request: ImageRequest
 
         var hashValue: Int {
             return request._ref._urlString?.hashValue ?? 0
@@ -277,7 +277,7 @@ public extension Request {
     }
 
     private struct LoadKey: Hashable {
-        let request: Request
+        let request: ImageRequest
 
         var hashValue: Int {
             return request._ref._urlString?.hashValue ?? 0

@@ -12,7 +12,7 @@ import Foundation
 /// When preheating is no longer necessary call `stopPreheating(with:)` method.
 ///
 /// All `Preheater` methods are thread-safe.
-public final class Preheater {
+public final class ImagePreheater {
     private let pipeline: ImagePipeline
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
     private let preheatQueue = OperationQueue()
@@ -31,15 +31,20 @@ public final class Preheater {
     /// When you call this method, `Preheater` starts to load and cache images
     /// for the given requests. At any time afterward, you can create tasks
     /// for individual images with equivalent requests.
-    public func startPreheating(with requests: [Request]) {
+    public func startPreheating(with requests: [ImageRequest]) {
         queue.async {
             requests.forEach(self._startPreheating)
         }
     }
 
-    private func _startPreheating(with request: Request) {
+    private func _startPreheating(with request: ImageRequest) {
         let key = request.loadKey
-        guard tasks[key] == nil else { return } // already exists
+
+        // Check if we we've already started preheating.
+        guard tasks[key] == nil else { return }
+
+        // Check if the image is already in memory cache.
+        guard pipeline.cachedImage(for: request) == nil else { return }
 
         let task = Task(request: request, key: key)
         let token = task.cts.token
@@ -69,13 +74,13 @@ public final class Preheater {
 
     /// Stops preheating images for the given requests and cancels outstanding
     /// requests.
-    public func stopPreheating(with requests: [Request]) {
+    public func stopPreheating(with requests: [ImageRequest]) {
         queue.async {
             requests.forEach(self._stopPreheating)
         }
     }
 
-    private func _stopPreheating(with request: Request) {
+    private func _stopPreheating(with request: ImageRequest) {
         if let task = tasks[request.loadKey] {
             tasks[task.key] = nil
             task.cts.cancel()
@@ -92,10 +97,10 @@ public final class Preheater {
 
     private final class Task {
         let key: AnyHashable
-        let request: Request
+        let request: ImageRequest
         let cts = CancellationTokenSource()
 
-        init(request: Request, key: AnyHashable) {
+        init(request: ImageRequest, key: AnyHashable) {
             self.request = request
             self.key = key
         }

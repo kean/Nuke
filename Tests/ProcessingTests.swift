@@ -29,7 +29,7 @@ class ProcessingTests: XCTestCase {
     // MARK: Applying Filters
 
     func testThatImageIsProcessed() {
-        let request = Request(url: defaultURL).processed(with: MockImageProcessor(id: "processor1"))
+        let request = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "processor1"))
 
         expect { fulfill in
             pipeline.loadImage(with: request) {
@@ -45,18 +45,18 @@ class ProcessingTests: XCTestCase {
 
     func testAnonymousProcessorKeys() {
         XCTAssertEqual(
-            Request(url: defaultURL).processed(key: 1, { $0 }).cacheKey,
-            Request(url: defaultURL).processed(key: 1, { $0 }).cacheKey
+            ImageRequest(url: defaultURL).processed(key: 1, { $0 }).cacheKey,
+            ImageRequest(url: defaultURL).processed(key: 1, { $0 }).cacheKey
         )
 
         XCTAssertNotEqual(
-            Request(url: defaultURL).processed(key: 1, { $0 }).cacheKey,
-            Request(url: defaultURL).processed(key: 2, { $0 }).cacheKey
+            ImageRequest(url: defaultURL).processed(key: 1, { $0 }).cacheKey,
+            ImageRequest(url: defaultURL).processed(key: 2, { $0 }).cacheKey
         )
     }
 
     func testAnonymousProcessorIsApplied() {
-        let request = Request(url: defaultURL).processed(key: 1) {
+        let request = ImageRequest(url: defaultURL).processed(key: 1) {
             $0.nk_test_processorIDs = ["1"]
             return $0
         }
@@ -65,7 +65,7 @@ class ProcessingTests: XCTestCase {
     }
 
     func testAnonymousProcessorIsApplied2() {
-        var request = Request(url: defaultURL)
+        var request = ImageRequest(url: defaultURL)
         request.process(key: 1) {
             $0.nk_test_processorIDs = ["1"]
             return $0
@@ -77,7 +77,7 @@ class ProcessingTests: XCTestCase {
     // MARK: Composing Filters
 
     func testThatImageIsProcessedWithFilterComposition() {
-        let request = Request(url: defaultURL)
+        let request = ImageRequest(url: defaultURL)
             .processed(with: MockImageProcessor(id: "processor1"))
             .processed(with: MockImageProcessor(id: "processor2"))
 
@@ -95,7 +95,7 @@ class ProcessingTests: XCTestCase {
 
     #if !os(macOS)
     func testResizingUsingRequestParameters() {
-        let request = Request(url: defaultURL, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+        let request = ImageRequest(url: defaultURL, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
         let image = request.processor!.process(defaultImage)
         XCTAssertEqual(image?.cgImage?.width, 40)
         XCTAssertEqual(image?.cgImage?.height, 30)

@@ -18,7 +18,7 @@ class NukeTests: XCTestCase {
 
     func testThatImageIsLoaded() {
         expect { fulfill in
-            Nuke.loadImage(with: Request(url: defaultURL), pipeline: pipeline, into: view) {
+            Nuke.loadImage(with: ImageRequest(url: defaultURL), pipeline: pipeline, into: view) {
                 XCTAssertTrue(Thread.isMainThread)
                 if case .success(_) = $0 {
                     fulfill()
@@ -50,11 +50,11 @@ class NukeTests: XCTestCase {
 
     func testThatPreviousTaskIsCancelledWhenNewOneIsCreated() {
         expect { fulfill in
-            Nuke.loadImage(with: Request(url: URL(string: "http://test.com/1")!), pipeline: pipeline, into: view, handler: { result, isFromMemoryCache in
+            Nuke.loadImage(with: ImageRequest(url: URL(string: "http://test.com/1")!), pipeline: pipeline, into: view, handler: { result, isFromMemoryCache in
                 XCTFail()
             })
 
-            Nuke.loadImage(with: Request(url: URL(string: "http://test.com/2")!), pipeline: pipeline, into: view, handler: { result, isFromMemoryCache in
+            Nuke.loadImage(with: ImageRequest(url: URL(string: "http://test.com/2")!), pipeline: pipeline, into: view, handler: { result, isFromMemoryCache in
                 if case .success = result {
                     fulfill()
                 }

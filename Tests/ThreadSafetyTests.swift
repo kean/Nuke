@@ -10,7 +10,7 @@ extension XCTestCase {
         for _ in 0..<500 {
             expect { fulfill in
                 DispatchQueue.global().async {
-                    let request = Request(url: URL(string: "\(defaultURL)/\(rnd(10))")!)
+                    let request = ImageRequest(url: URL(string: "\(defaultURL)/\(rnd(10))")!)
                     let shouldCancel = rnd(3) == 0
 
                     let task = pipeline.loadImage(with: request) { _ in

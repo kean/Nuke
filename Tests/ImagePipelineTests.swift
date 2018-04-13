@@ -26,7 +26,7 @@ class ImagePipelineTests: XCTestCase {
     // MARK: Progress
 
     func testThatProgressIsReported() {
-        var request = Request(url: defaultURL)
+        var request = ImageRequest(url: defaultURL)
         expect { fulfill in
             var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
             request.progress = {
@@ -53,11 +53,11 @@ class ImagePipelineTests: XCTestCase {
         let imagePipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.processor = { (_,_) in
-                AnyProcessor(MockImageProcessor(id: "processorFromOptions"))
+                AnyImageProcessor(MockImageProcessor(id: "processorFromOptions"))
             }
         }
 
-        let request = Request(url: defaultURL).processed(with: MockImageProcessor(id: "processorFromRequest"))
+        let request = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "processorFromRequest"))
 
         expect { fulfill in
             imagePipeline.loadImage(with: request) {
@@ -83,7 +83,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         dataLoader.results[defaultURL] = .failure(expectedError)
 
         expect { fulfill in
-            imagePipeline.loadImage(with: Request(url: defaultURL)) {
+            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) {
                 guard let error = $0.error else { XCTFail(); return }
                 XCTAssertNotNil(error)
                 XCTAssertEqual((error as NSError).code, expectedError.code)
@@ -102,7 +102,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         }
 
         expect { fulfill in
-            imagePipeline.loadImage(with: Request(url: defaultURL)) {
+            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) {
                 guard let error = $0.error else { XCTFail(); return }
                 XCTAssertTrue((error as! ImagePipeline.Error) == ImagePipeline.Error.decodingFailed)
                 fulfill()
@@ -116,7 +116,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
             $0.dataLoader = MockDataLoader()
         }
 
-        let request = Request(url: defaultURL).processed(with: MockFailingProcessor())
+        let request = ImageRequest(url: defaultURL).processed(with: MockFailingProcessor())
 
         expect { fulfill in
             loader.loadImage(with: request) {
@@ -146,8 +146,8 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     func testThatEquivalentRequestsAreDeduplicated() {
         dataLoader.queue.isSuspended = true
 
-        let request1 = Request(url: defaultURL)
-        let request2 = Request(url: defaultURL)
+        let request1 = ImageRequest(url: defaultURL)
+        let request2 = ImageRequest(url: defaultURL)
         XCTAssertEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
@@ -172,8 +172,8 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     }
 
     func testThatNonEquivalentRequestsAreNotDeduplicated() {
-        let request1 = Request(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
-        let request2 = Request(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
+        let request1 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
+        let request2 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
         XCTAssertNotEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
@@ -201,12 +201,12 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         // to call completion handler for cancelled requests.
 
         // We don't expect completion to be called.
-        let task = imagePipeline.loadImage(with: Request(url: defaultURL)) { _ in
+        let task = imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { _ in
             XCTFail()
         }
 
         expect { fulfill in // This work we don't cancel
-            imagePipeline.loadImage(with: Request(url: defaultURL)) {
+            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) {
                 XCTAssertNotNil($0.value)
                 fulfill()
             }
@@ -224,7 +224,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         dataLoader.queue.isSuspended = true
 
         for _ in 0..<3 {
-            var request = Request(url: defaultURL)
+            var request = ImageRequest(url: defaultURL)
             expect { fulfill in
                 var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
                 request.progress = {
@@ -256,8 +256,8 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         dataLoader.queue.isSuspended = true
 
-        let request1 = Request(url: defaultURL)
-        let request2 = Request(url: defaultURL)
+        let request1 = ImageRequest(url: defaultURL)
+        let request2 = ImageRequest(url: defaultURL)
         XCTAssertEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
@@ -298,49 +298,49 @@ class LoaderMemoryCacheTests: XCTestCase {
     }
 
     func testThatImageIsLoaded() {
-        waitLoadedImage(with: Request(url: defaultURL))
+        waitLoadedImage(with: ImageRequest(url: defaultURL))
     }
 
     // MARK: Caching
 
     func testCacheWrite() {
-        waitLoadedImage(with: Request(url: defaultURL))
+        waitLoadedImage(with: ImageRequest(url: defaultURL))
 
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertNotNil(self.cache[Request(url: defaultURL)])
+        XCTAssertNotNil(self.cache[ImageRequest(url: defaultURL)])
     }
 
     func testCacheRead() {
-        cache[Request(url: defaultURL)] = defaultImage
+        cache[ImageRequest(url: defaultURL)] = defaultImage
 
-        waitLoadedImage(with: Request(url: defaultURL))
+        waitLoadedImage(with: ImageRequest(url: defaultURL))
 
         XCTAssertEqual(dataLoader.createdTaskCount, 0)
-        XCTAssertNotNil(self.cache[Request(url: defaultURL)])
+        XCTAssertNotNil(self.cache[ImageRequest(url: defaultURL)])
     }
 
     func testCacheWriteDisabled() {
-        let request = Request(url: defaultURL).mutated {
+        let request = ImageRequest(url: defaultURL).mutated {
             $0.memoryCacheOptions.writeAllowed = false
         }
 
         waitLoadedImage(with: request)
 
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertNil(self.cache[Request(url: defaultURL)])
+        XCTAssertNil(self.cache[ImageRequest(url: defaultURL)])
     }
 
     func testCacheReadDisabled() {
-        cache[Request(url: defaultURL)] = defaultImage
+        cache[ImageRequest(url: defaultURL)] = defaultImage
 
-        let request = Request(url: defaultURL).mutated {
+        let request = ImageRequest(url: defaultURL).mutated {
             $0.memoryCacheOptions.readAllowed = false
         }
 
         waitLoadedImage(with: request)
 
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertNotNil(self.cache[Request(url: defaultURL)])
+        XCTAssertNotNil(self.cache[ImageRequest(url: defaultURL)])
     }
 
     // MARK: Completion Behavior
@@ -350,14 +350,14 @@ class LoaderMemoryCacheTests: XCTestCase {
     }
 
     func testCompletionDispatchWhenImageCached() {
-        cache[Request(url: defaultURL)] = defaultImage
+        cache[ImageRequest(url: defaultURL)] = defaultImage
         _testCompletionDispatch()
     }
 
     func _testCompletionDispatch() {
         var isCompleted = false
         expect { fulfill in
-            loader.loadImage(with: Request(url: defaultURL)) { _ in
+            loader.loadImage(with: ImageRequest(url: defaultURL)) { _ in
                 XCTAssert(Thread.isMainThread)
                 isCompleted = true
                 fulfill()
@@ -370,7 +370,7 @@ class LoaderMemoryCacheTests: XCTestCase {
 
     // MARK: Helpers
 
-    func waitLoadedImage(with request: Nuke.Request) {
+    func waitLoadedImage(with request: Nuke.ImageRequest) {
         expect { fulfill in
             loader.loadImage(with: request) {
                 XCTAssertNotNil($0.value)

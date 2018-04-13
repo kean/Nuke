@@ -12,14 +12,6 @@ private let image: Image = {
     return Nuke.DataDecoder().decode(data: data, response: URLResponse())!
 }()
 
-class MockImageTask: ImageTask {
-    fileprivate var _cancel: () -> Void = {}
-
-    override func cancel() {
-        _cancel()
-    }
-}
-
 class MockImagePipeline: ImagePipeline {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidCancelTask")
@@ -33,8 +25,8 @@ class MockImagePipeline: ImagePipeline {
     var results = [URL: Result<Image>]()
     var ignoreCancellation = false
 
-    override func loadImage(with request: Request, completion: @escaping (Result<Image>) -> Void) -> ImageTask {
-        let task = MockImageTask()
+    override func loadImage(with request: ImageRequest, completion: @escaping (Result<Image>) -> Void) -> Task {
+        let task = _Task()
 
         NotificationCenter.default.post(name: MockImagePipeline.DidStartTask, object: self)
         
@@ -61,7 +53,15 @@ class MockImagePipeline: ImagePipeline {
         return task
     }
 
-    override func cachedImage(for request: Request) -> Image? {
+    override func cachedImage(for request: ImageRequest) -> Image? {
         return nil
+    }
+
+    private class _Task: Task {
+        fileprivate var _cancel: () -> Void = {}
+
+        override func cancel() {
+            _cancel()
+        }
     }
 }

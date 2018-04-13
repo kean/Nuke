@@ -328,7 +328,7 @@ Nuke now has an [official website](http://kean.github.io/Nuke/)!
 - Improved error reporting (codes are now stored in enum, more codes were added, error is now created with a failure reason)
 
 #### UI Extensions Changes
-- Move `nk_imageTask(_:didFinishWithResponse:options)` method to `ImageLoadingView` protocol, that's really where it belongs to
+- Move `nk_ImageTask(_:didFinishWithResponse:options)` method to `ImageLoadingView` protocol, that's really where it belongs to
 - Add `handler` property to `ImageViewLoadingOptions` that allows you to completely override display/animate logic in `ImageLoadingView`
 - Remove `nk_prepareForReuse` method from `ImageLoadingView` extensions (useless)
 - Remove `placeholder` from `ImageViewLoadingOptions`, move it to a separate argument which is only available on `ImageDisplayingView`s

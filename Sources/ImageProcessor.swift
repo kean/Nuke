@@ -5,17 +5,17 @@
 import Foundation
 
 /// Performs image processing.
-public protocol Processing: Equatable {
+public protocol ImageProcessing: Equatable {
     /// Returns processed image.
     func process(_ image: Image) -> Image?
 }
 
 /// Composes multiple processors.
-public struct ProcessorComposition: Processing {
-    private let processors: [AnyProcessor]
+public struct ImageProcessorComposition: ImageProcessing {
+    private let processors: [AnyImageProcessor]
 
     /// Composes multiple processors.
-    public init(_ processors: [AnyProcessor]) {
+    public init(_ processors: [AnyImageProcessor]) {
         self.processors = processors
     }
 
@@ -29,18 +29,18 @@ public struct ProcessorComposition: Processing {
     }
 
     /// Returns true if the underlying processors are pairwise-equivalent.
-    public static func ==(lhs: ProcessorComposition, rhs: ProcessorComposition) -> Bool {
+    public static func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
         return lhs.processors == rhs.processors
     }
 }
 
 /// Type-erased image processor.
-public struct AnyProcessor: Processing {
+public struct AnyImageProcessor: ImageProcessing {
     private let _process: (Image) -> Image?
     private let _processor: Any
-    private let _equals: (AnyProcessor) -> Bool
+    private let _equals: (AnyImageProcessor) -> Bool
 
-    public init<P: Processing>(_ processor: P) {
+    public init<P: ImageProcessing>(_ processor: P) {
         self._process = { processor.process($0) }
         self._processor = processor
         self._equals = { ($0._processor as? P) == processor }
@@ -50,12 +50,12 @@ public struct AnyProcessor: Processing {
         return self._process(image)
     }
 
-    public static func ==(lhs: AnyProcessor, rhs: AnyProcessor) -> Bool {
+    public static func ==(lhs: AnyImageProcessor, rhs: AnyImageProcessor) -> Bool {
         return lhs._equals(rhs)
     }
 }
 
-internal struct AnonymousProcessor<Key: Hashable>: Processing {
+internal struct AnonymousImageProcessor<Key: Hashable>: ImageProcessing {
     private let _key: Key
     private let _closure: (Image) -> Image?
 
@@ -67,7 +67,7 @@ internal struct AnonymousProcessor<Key: Hashable>: Processing {
         return self._closure(image)
     }
 
-    static func ==(lhs: AnonymousProcessor, rhs: AnonymousProcessor) -> Bool {
+    static func ==(lhs: AnonymousImageProcessor, rhs: AnonymousImageProcessor) -> Bool {
         return lhs._key == rhs._key
     }
 }
@@ -82,7 +82,7 @@ internal struct AnonymousProcessor<Key: Hashable>: Processing {
     /// Decompressing compressed image formats (such as JPEG) can significantly
     /// improve drawing performance as it allows a bitmap representation to be
     /// created in a background rather than on the main thread.
-    public struct Decompressor: Processing {
+    public struct ImageDecompressor: ImageProcessing {
 
         /// An option for how to resize the image.
         public enum ContentMode {
@@ -115,7 +115,7 @@ internal struct AnonymousProcessor<Key: Hashable>: Processing {
         }
 
         /// Returns true if both have the same `targetSize` and `contentMode`.
-        public static func ==(lhs: Decompressor, rhs: Decompressor) -> Bool {
+        public static func ==(lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
             return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
         }
 
@@ -130,7 +130,7 @@ internal struct AnonymousProcessor<Key: Hashable>: Processing {
         #endif
     }
 
-    private func decompress(_ image: UIImage, targetSize: CGSize, contentMode: Decompressor.ContentMode) -> UIImage {
+    private func decompress(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) -> UIImage {
         guard let cgImage = image.cgImage else { return image }
         let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
         let scaleHor = targetSize.width / bitmapSize.width

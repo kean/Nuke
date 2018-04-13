@@ -5,7 +5,7 @@
 import Foundation
 import Nuke
 
-class MockCache: Caching {
+class MockCache: ImageCaching {
     let queue = DispatchQueue(label: "com.github.Nuke.MockCache")
     var enabled = true
     var images = [AnyHashable: Image]()
