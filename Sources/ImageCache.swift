@@ -39,28 +39,28 @@ public extension ImageCaching {
 /// memory warning. It also automatically removes *most* of cached elements
 /// when the app enters background.
 public final class ImageCache: ImageCaching {
-    // We don't use `NSCache` because it's not LRU
-
-    private var map = [AnyHashable: LinkedList<CachedImage>.Node]()
-    private let list = LinkedList<CachedImage>()
-    private let lock = NSLock()
+    private let cache: _Cache<AnyHashable, Image>
 
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int {
-        didSet { lock.sync(_trim) }
+        get { return cache.costLimit }
+        set { cache.costLimit = newValue }
     }
 
     /// The maximum number of items that the cache can hold.
     public var countLimit: Int {
-        didSet { lock.sync(_trim) }
+        get { return cache.countLimit }
+        set { cache.countLimit = newValue }
     }
 
     /// The total cost of items in the cache.
-    public private(set) var totalCost = 0
+    public var totalCost: Int {
+        return cache.totalCost
+    }
 
     /// The total number of items in the cache.
     public var totalCount: Int {
-        return map.count
+        return cache.totalCount
     }
 
     /// Shared `Cache` instance.
@@ -71,18 +71,7 @@ public final class ImageCache: ImageCaching {
     /// calculated based on the amount of the phisical memory available on the device.
     /// - parameter countLimit: `Int.max` by default.
     public init(costLimit: Int = ImageCache.defaultCostLimit(), countLimit: Int = Int.max) {
-        self.costLimit = costLimit
-        self.countLimit = countLimit
-        #if os(iOS) || os(tvOS)
-            NotificationCenter.default.addObserver(self, selector: #selector(removeAll), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
-            NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: .UIApplicationDidEnterBackground, object: nil)
-        #endif
-    }
-
-    deinit {
-        #if os(iOS) || os(tvOS)
-            NotificationCenter.default.removeObserver(self)
-        #endif
+        cache = _Cache(costLimit: costLimit, countLimit: countLimit)
     }
 
     /// Returns a recommended cost limit which is computed based on the amount
@@ -96,34 +85,114 @@ public final class ImageCache: ImageCaching {
 
     /// Accesses the image associated with the given key.
     public subscript(key: AnyHashable) -> Image? {
-        get {
-            lock.lock(); defer { lock.unlock() } // slightly faster than `sync()`
-
-            guard let node = map[key] else {
-                return nil
-            }
-
-            // bubble node up to make it last added (most recently used)
-            list.remove(node)
-            list.append(node)
-
-            return node.value.image
-        }
+        get { return cache.value(forKey: key) }
         set {
-            lock.lock(); defer { lock.unlock() } // slightly faster than `sync()`
-
-            if let image = newValue {
-                _add(CachedImage(image: image, cost: cost(image), key: key))
-                _trim() // _trim is extremely fast, it's OK to call it each time
-            } else {
-                if let node = map[key] {
-                    _remove(node: node)
-                }
+            guard let newValue = newValue else {
+                cache.removeValue(forKey: key)
+                return
             }
+            cache.set(newValue, forKey: key)
         }
     }
 
-    private func _add(_ element: CachedImage) {
+    /// Removes all cached images.
+    public func removeAll() {
+        cache.removeAll()
+    }
+    /// Removes least recently used items from the cache until the total cost
+    /// of the remaining items is less than the given cost limit.
+    public func trim(toCost limit: Int) {
+        cache.trim(toCost: limit)
+    }
+
+    /// Removes least recently used items from the cache until the total count
+    /// of the remaining items is less than the given count limit.
+    public func trim(toCount limit: Int) {
+        cache.trim(toCount: limit)
+    }
+
+    /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
+    public var cost: (Image) -> Int = {
+        #if os(macOS)
+            return 1
+        #else
+            // bytesPerRow * height gives a rough estimation of how much memory
+            // image uses in bytes. In practice this algorithm combined with a 
+            // concervative default cost limit works OK.
+            guard let cgImage = $0.cgImage else {
+                return 1
+            }
+            return cgImage.bytesPerRow * cgImage.height
+        #endif
+    }
+}
+
+internal final class _Cache<Key: Hashable, Value> {
+    // We don't use `NSCache` because it's not LRU
+
+    private var map = [Key: LinkedList<_CachedValue>.Node]()
+    private let list = LinkedList<_CachedValue>()
+    private let lock = NSLock()
+
+    internal var costLimit: Int {
+        didSet { lock.sync(_trim) }
+    }
+
+    internal var countLimit: Int {
+        didSet { lock.sync(_trim) }
+    }
+
+    internal private(set) var totalCost = 0
+
+    internal var totalCount: Int {
+        return map.count
+    }
+
+    internal init(costLimit: Int, countLimit: Int) {
+        self.costLimit = costLimit
+        self.countLimit = countLimit
+        #if os(iOS) || os(tvOS)
+        NotificationCenter.default.addObserver(self, selector: #selector(removeAll), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: .UIApplicationDidEnterBackground, object: nil)
+        #endif
+    }
+
+    deinit {
+        #if os(iOS) || os(tvOS)
+        NotificationCenter.default.removeObserver(self)
+        #endif
+    }
+
+    internal func value(forKey key: Key) -> Value? {
+        lock.lock(); defer { lock.unlock() }
+
+        guard let node = map[key] else {
+            return nil
+        }
+
+        // bubble node up to make it last added (most recently used)
+        list.remove(node)
+        list.append(node)
+
+        return node.value.value
+    }
+
+    internal func set(_ value: Value, forKey key: Key, cost: Int = 0) {
+        lock.lock(); defer { lock.unlock() }
+
+        _add(_CachedValue(value: value, cost: cost, key: key))
+        _trim() // _trim is extremely fast, it's OK to call it each time
+    }
+
+    @discardableResult internal func removeValue(forKey key: Key) -> Value? {
+        lock.lock(); defer { lock.unlock() }
+
+        guard let node = map[key] else { return nil }
+        _remove(node: node)
+        return node.value.value
+    }
+
+    private func _add(_ element: _CachedValue) {
         if let existingNode = map[element.key] {
             _remove(node: existingNode)
         }
@@ -131,14 +200,13 @@ public final class ImageCache: ImageCaching {
         totalCost += element.cost
     }
 
-    private func _remove(node: LinkedList<CachedImage>.Node) {
+    private func _remove(node: LinkedList<_CachedValue>.Node) {
         list.remove(node)
         map[node.value.key] = nil
         totalCost -= node.value.cost
     }
 
-    /// Removes all cached images.
-    @objc public dynamic func removeAll() {
+    @objc internal dynamic func removeAll() {
         lock.sync {
             map.removeAll()
             list.removeAll()
@@ -162,9 +230,7 @@ public final class ImageCache: ImageCaching {
         }
     }
 
-    /// Removes least recently used items from the cache until the total cost
-    /// of the remaining items is less than the given cost limit.
-    public func trim(toCost limit: Int) {
+    internal func trim(toCost limit: Int) {
         lock.sync { _trim(toCost: limit) }
     }
 
@@ -172,9 +238,7 @@ public final class ImageCache: ImageCaching {
         _trim(while: { totalCost > limit })
     }
 
-    /// Removes least recently used items from the cache until the total count
-    /// of the remaining items is less than the given count limit.
-    public func trim(toCount limit: Int) {
+    internal func trim(toCount limit: Int) {
         lock.sync { _trim(toCount: limit) }
     }
 
@@ -188,24 +252,9 @@ public final class ImageCache: ImageCaching {
         }
     }
 
-    /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
-    public var cost: (Image) -> Int = {
-        #if os(macOS)
-            return 1
-        #else
-            // bytesPerRow * height gives a rough estimation of how much memory
-            // image uses in bytes. In practice this algorithm combined with a 
-            // concervative default cost limit works OK.
-            guard let cgImage = $0.cgImage else {
-                return 1
-            }
-            return cgImage.bytesPerRow * cgImage.height
-        #endif
+    private struct _CachedValue {
+        let value: Value
+        let cost: Int
+        let key: Key
     }
-}
-
-private struct CachedImage {
-    let image: Image
-    let cost: Int
-    let key: AnyHashable
 }

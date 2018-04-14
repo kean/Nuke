@@ -17,7 +17,8 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 - Can be used with networking, caching libraries [of your choice](#h_design)
 - [RxNuke](https://github.com/kean/RxNuke) with RxSwift extensions
 - Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) (*deprecated in iOS 10*)
-- Small (under 1200 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
+- Small (under 1300 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
+- Resumable downloads, request deduplication, rate limitting  and more
 
 > [Nuke 7](https://github.com/kean/Nuke/tree/nuke7) is in development. If you'd like to contribute or have some suggestions or feature requests please open an issue, a pull request or contact me on [Twitter](https://twitter.com/a_grebenyuk).
 
@@ -267,6 +268,12 @@ Most developers either implement their own networking layer or use a third-party
 ### Memory Cache
 
 A processed images which are ready to be displayed are stored in a fast in-memory cache (`Cache`). It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `Cache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
+
+### Resumable Downloads
+
+If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. The resumable downloads are enabled by default.
+
+> By default resumable data is stored in an efficient memory cache. Future versions might include more customization.
 
 ### Deduplicating Requests
 

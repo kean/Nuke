@@ -89,4 +89,3 @@ let demoPhotosURLs = [
     URL(string: "\(host)/1567433/9782131/54872b30-57a3-11e5-8903-db1f81ea1abb.jpg")!,
     URL(string: "\(host)/1567433/9782132/548a3b9a-57a3-11e5-8228-8ee523e7809e.jpg")!
 ]
-
