@@ -20,7 +20,7 @@ public extension ImageTaskDelegate {
 /// - important: Make sure that you access Task properties only from the
 /// delegate queue.
 public /* final */ class ImageTask: Hashable {
-    public let request: ImageRequest
+    private(set) public var request: ImageRequest
 
     public var completedUnitCount: Int64 = 0
     public var totalUnitCount: Int64 = 0
@@ -30,8 +30,9 @@ public /* final */ class ImageTask: Hashable {
     public typealias Completion = (Result<Image>) -> Void
 
     fileprivate weak private(set) var pipeline: ImagePipeline?
-    fileprivate var cts = CancellationTokenSource()
+    fileprivate weak var session: ImagePipeline.Session?
     fileprivate var isExecuting = false
+    fileprivate var isCancelled = false
 
     public init(request: ImageRequest, pipeline: ImagePipeline) {
         self.request = request
@@ -43,7 +44,12 @@ public /* final */ class ImageTask: Hashable {
     }
 
     public func cancel() {
-        cts.cancel()
+        pipeline?._imageTaskCancelled(self)
+    }
+
+    public func setPriority(_ priority: ImageRequest.Priority) {
+        request.priority = priority
+        pipeline?._imageTask(self, didUpdatePriority: priority)
     }
 
     public static func ==(lhs: ImageTask, rhs: ImageTask) -> Bool {
@@ -164,6 +170,8 @@ public /* final */ class ImagePipeline {
         return task
     }
 
+    // MARK: Managing Image Tasks
+
     public func imageTask(with url: URL) -> ImageTask {
         return ImageTask(request: ImageRequest(url: url), pipeline: self)
     }
@@ -174,7 +182,7 @@ public /* final */ class ImagePipeline {
 
     fileprivate func _resume(_ task: ImageTask, completion: ImageTask.Completion? = nil) {
         queue.async {
-            guard !task.isExecuting && !task.cts.isCancelling else { return } // Fast preflight check
+            guard !task.isExecuting && !task.isCancelled else { return } // Fast preflight check
             task.isExecuting = true
             self._startLoadingImage(for: task, completion: completion)
         }
@@ -190,17 +198,35 @@ public /* final */ class ImagePipeline {
         }
 
         let session = _startSession(with: task.request)
+        task.session = session
 
         // Register handler with a session.
-        let managedTask = Session.ManagedTask(task: task, completion: completion)
-        session.tasks.insert(managedTask)
+        session.tasks[task] = Session.ImageTaskContext(completion: completion)
 
         // Update data operation priority (in case it was already started).
         session.dataOperation?.queuePriority = session.priority.queuePriority
+    }
 
-        task.cts.token.register { [weak self, weak session, weak managedTask] in
-            guard let session = session, let managedTask = managedTask else { return }
-            self?._cancelSession(session, handler: managedTask)
+    fileprivate func _imageTask(_ task: ImageTask, didUpdatePriority: ImageRequest.Priority) {
+        queue.async {
+            guard let session = task.session else { return }
+            session.dataOperation?.queuePriority = session.priority.queuePriority
+        }
+    }
+
+    // Cancel the session in case all handlers were removed.
+    fileprivate func _imageTaskCancelled(_ task: ImageTask) {
+        queue.async {
+            guard !task.isCancelled else { return }
+            task.isCancelled = true
+
+            guard let session = task.session else { return } // exeuting == true
+            session.tasks[task] = nil
+            // Cancel the session when there are no remaining tasks.
+            if session.tasks.isEmpty {
+                session.cts.cancel()
+                self._removeSession(session)
+            }
         }
     }
 
@@ -227,7 +253,7 @@ public /* final */ class ImagePipeline {
         queue.async {
             let tasks = session.tasks
             DispatchQueue.main.async {
-                for task in tasks.map({ $0.task }) {
+                for task in tasks.keys {
                     task.completedUnitCount = completed
                     task.totalUnitCount = total
                     task.delegate?.imageTask(task, didUpdateCompletedUnitCount: completed, totalUnitCount: total)
@@ -244,24 +270,12 @@ public /* final */ class ImagePipeline {
             }
             let tasks = session.tasks
             DispatchQueue.main.async {
-                for task in tasks {
-                    task.completion?(result)
-                    task.task.delegate?.imageTask(task.task, didFinishWithResult: result)
+                for (task, context) in tasks {
+                    context.completion?(result)
+                    task.delegate?.imageTask(task, didFinishWithResult: result)
                 }
             }
             self._removeSession(session)
-        }
-    }
-
-    // Cancel the session in case all handlers were removed.
-    private func _cancelSession(_ session: Session, handler: Session.ManagedTask) {
-        queue.async {
-            session.tasks.remove(handler)
-            // Cancel the session when there are no handlers remaining.
-            if session.tasks.isEmpty {
-                session.cts.cancel()
-                self._removeSession(session)
-            }
         }
     }
 
@@ -380,37 +394,26 @@ public /* final */ class ImagePipeline {
 
     /// A image loading session. During a lifetime of a session handlers can
     /// subscribe and unsubscribe to it.
-    private final class Session {
+    fileprivate final class Session {
         /// The original request with which the session was created.
         let request: ImageRequest
         let key: AnyHashable // loading key
         let cts = CancellationTokenSource()
-        var tasks = Set<ManagedTask>()
+        // Associate context with a task but without a direct strong reference
+        // between the two
+        var tasks: [ImageTask: ImageTaskContext] = [:]
         weak var dataOperation: Operation?
+
+        struct ImageTaskContext {
+            let completion: ImageTask.Completion?
+        }
 
         init(request: ImageRequest, key: AnyHashable) {
             self.request = request; self.key = key
         }
 
-        final class ManagedTask: Hashable {
-            let task: ImageTask
-            let completion: ImageTask.Completion?
-
-            init(task: ImageTask, completion: ImageTask.Completion?) {
-                self.task = task; self.completion = completion
-            }
-
-            static func ==(lhs: ManagedTask, rhs: ManagedTask) -> Bool {
-                return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
-            }
-
-            var hashValue: Int {
-                return ObjectIdentifier(self).hashValue
-            }
-        }
-
         var priority: ImageRequest.Priority {
-            return tasks.map { $0.task.request.priority }.max() ?? .normal
+            return tasks.keys.map { $0.request.priority }.max() ?? .normal
         }
     }
 

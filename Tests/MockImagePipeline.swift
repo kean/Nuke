@@ -43,6 +43,12 @@ class MockImagePipeline: ImagePipeline {
     var results = [URL: Result<Image>]()
     var ignoreCancellation = false
 
+    override init(configuration: ImagePipeline.Configuration = ImagePipeline.Configuration()) {
+        var conf = configuration
+        conf.imageCache = nil // Disabla caching
+        super.init(configuration: conf)
+    }
+
     override func loadImage(with request: ImageRequest, completion: @escaping ImageTask.Completion) -> ImageTask {
         let task = _imageTask(with: request, completion)
         task.resume()
