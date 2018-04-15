@@ -81,8 +81,4 @@ class MockImagePipeline: ImagePipeline {
 
         return task
     }
-
-    override func cachedImage(for request: ImageRequest) -> Image? {
-        return nil
-    }
 }

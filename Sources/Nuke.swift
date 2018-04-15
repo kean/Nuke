@@ -44,7 +44,8 @@ public func loadImage(with request: ImageRequest, pipeline: ImagePipeline = Imag
     context.task = nil
 
     // Quick synchronous memory cache lookup
-    if let image = pipeline.cachedImage(for: request) {
+    if request.memoryCacheOptions.readAllowed,
+        let image = pipeline.configuration.imageCache?[request] {
         target.handle(response: .success(image), isFromMemoryCache: true)
         return
     }

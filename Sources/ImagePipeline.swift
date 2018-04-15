@@ -181,7 +181,7 @@ public /* final */ class ImagePipeline {
     }
     
     private func _startLoadingImage(for task: ImageTask, completion: ImageTask.Completion?) {
-        if let image = cachedImage(for: task.request) {
+        if let image = _cachedImage(for: task.request) {
             DispatchQueue.main.async {
                 completion?(.success(image))
                 task.delegate?.imageTask(task, didFinishWithResult: .success(image))
@@ -240,7 +240,7 @@ public /* final */ class ImagePipeline {
     private func _completeSession(_ session: Session, result: Result<Image>) {
         queue.async {
             if let image = result.value {
-                self.store(image: image, for: session.request)
+                self._store(image: image, for: session.request)
             }
             let tasks = session.tasks
             DispatchQueue.main.async {
@@ -366,12 +366,12 @@ public /* final */ class ImagePipeline {
 
     // MARK: Memory Cache Helpers
 
-    public func cachedImage(for request: ImageRequest) -> Image? {
+    private func _cachedImage(for request: ImageRequest) -> Image? {
         guard request.memoryCacheOptions.readAllowed else { return nil }
         return configuration.imageCache?[request]
     }
 
-    public func store(image: Image, for request: ImageRequest) {
+    private func _store(image: Image, for request: ImageRequest) {
         guard request.memoryCacheOptions.writeAllowed else { return }
         configuration.imageCache?[request] = image
     }

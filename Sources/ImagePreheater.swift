@@ -44,7 +44,7 @@ public final class ImagePreheater {
         guard tasks[key] == nil else { return }
 
         // Check if the image is already in memory cache.
-        guard pipeline.cachedImage(for: request) == nil else { return }
+        guard pipeline.configuration.imageCache?[request] == nil else { return }
 
         let task = Task(request: request, key: key)
         let token = task.cts.token
