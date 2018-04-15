@@ -5,7 +5,7 @@
 
 ### Avoiding Decompression on the Main Thread
 
-By default each `Request` comes with a `Decompressor` which forces compressed image data to be drawn into a bitmap. This happens in a background to [avoid decompression sickness](https://www.cocoanetics.com/2011/10/avoiding-image-decompression-sickness/) on the main thread.
+By default each `ImageRequest` comes with a `ImageDecompressor` which forces compressed image data to be drawn into a bitmap. This happens in a background to [avoid decompression sickness](https://www.cocoanetics.com/2011/10/avoiding-image-decompression-sickness/) on the main thread.
 
 
 ### Avoiding High Memory Usage
@@ -15,12 +15,10 @@ Displaying images takes a lot of memory. Here's a couple of tips to reduce memor
 - The loaded images should ideally be the same size as the image views (taking retina into account). If the loaded images have a resolution which is higher than necessary make sure to resize them. Nuke has a built-in way to resize images:
 
 ```swift
-var request = Request(url: url)
-let targetSize = Decompressor.targetSize(for: view)
-request.processor = AnyProcessor(Decompressor(targetSize: targetSize, contentMode: .aspectFill))
+ImageRequest(url: url, targetSize: ImageDecompressor.targetSize(for: view), contentMode: .aspectFill)
 ```
 
-- Reduce the `costLimit` and/or `countLimit` of `Cache.shared`. In most cases having a single global memory cache is what you want. However Nuke also allows you to have multiple memory caches (for e.g. one cache per screen). To do that create a separate `Nuke.Manager` instance per screen, each should be initialized with its own cache.
+- Reduce the `costLimit` and/or `countLimit` of `ImageCache.shared`. In most cases having a single global memory cache is what you want.
 
 
 ### Avoiding Excessive Cancellations

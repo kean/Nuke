@@ -68,7 +68,7 @@ Here's an example of a blur filter that implements Nuke's `Processing` protocol 
 
 ```swift
 /// Blurs image using CIGaussianBlur filter.
-struct GaussianBlur: Processing { 
+struct GaussianBlur: ImageProcessing { 
     private let radius: Int
 
     /// Initializes the receiver with a blur radius.
