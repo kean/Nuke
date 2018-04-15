@@ -19,14 +19,13 @@ public extension ImageTaskDelegate {
 
 /// - important: Make sure that you access Task properties only from the
 /// delegate queue.
-public /* final */ class ImageTask {
+public /* final */ class ImageTask: Hashable {
     public let request: ImageRequest
 
     public var completedUnitCount: Int64 = 0
     public var totalUnitCount: Int64 = 0
 
     public weak var delegate: ImageTaskDelegate?
-    public fileprivate(set) var progress = Progress()
 
     public typealias Completion = (Result<Image>) -> Void
 
@@ -45,6 +44,14 @@ public /* final */ class ImageTask {
 
     public func cancel() {
         cts.cancel()
+    }
+
+    public static func ==(lhs: ImageTask, rhs: ImageTask) -> Bool {
+        return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+    }
+
+    public var hashValue: Int {
+        return ObjectIdentifier(self).hashValue
     }
 }
 
