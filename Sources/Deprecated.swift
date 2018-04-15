@@ -189,8 +189,10 @@ public typealias ProcessorComposition = ImageProcessorComposition
 @available(*, deprecated, message: "Please use `AnyImageProcessor` instead")
 public typealias AnyProcessor = AnyImageProcessor
 
+#if !os(macOS)
 @available(*, deprecated, message: "Please use `ImageDecompressor` instead")
 public typealias Decompressor = ImageDecompressor
+#endif
 
 @available(*, deprecated, message: "Please use `ImagePreheater` instead")
 public typealias Preheater = ImagePreheater
