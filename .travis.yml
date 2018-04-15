@@ -10,20 +10,20 @@ env:
   - WATCHOS_SCHEME="Nuke watchOS"
 
   matrix:
-  - DESTINATION="OS=11.0,name=iPhone X"
+  - DESTINATION="OS=11.3,name=iPhone X"
     SCHEME="$IOS_SCHEME"     RUN_TESTS="YES"
   - DESTINATION="OS=10.3.1,name=iPhone 7 Plus"
     SCHEME="$IOS_SCHEME"     RUN_TESTS="YES"
-  - DESTINATION="OS=9.0,name=iPhone 5"
+  - DESTINATION="OS=9.3,name=iPhone 5"
     SCHEME="$IOS_SCHEME"     RUN_TESTS="YES"
 
-  - DESTINATION="OS=10.0,name=Apple TV 1080p"
+  - DESTINATION="OS=11.3,name=Apple TV 4K"
     SCHEME="$TVOS_SCHEME"    RUN_TESTS="YES"
 
   - DESTINATION="arch=x86_64"
     SCHEME="$MACOS_SCHEME"   RUN_TESTS="YES"
 
-  - DESTINATION="OS=4.0,name=Apple Watch - 42mm"
+  - DESTINATION="OS=4.3,name=Apple Watch - 42mm"
     SCHEME="$WATCHOS_SCHEME" RUN_TESTS="NO"
   - DESTINATION="OS=3.2,name=Apple Watch - 42mm"
     SCHEME="$WATCHOS_SCHEME" RUN_TESTS="NO"

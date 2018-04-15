@@ -8,7 +8,7 @@ import Foundation
 
 public protocol ImageTaskDelegate: class {
     func imageTask(_ task: ImageTask, didFinishWithResult result: Result<Image>)
-    func imageTask(_ task: ImageTask, didUpdateCompletedUnitCount: Int64, totalUnitCount: Int64)
+    func imageTask(_ task: ImageTask, didUpdateCompletedUnitCount completed: Int64, totalUnitCount total: Int64)
 }
 
 public extension ImageTaskDelegate {

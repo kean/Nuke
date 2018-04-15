@@ -7,11 +7,12 @@
 <a href="https://travis-ci.org/kean/Nuke"><img src="https://img.shields.io/travis/kean/Nuke/master.svg"></a>
 </p>
 
-A powerful **image loading** and **caching** framework which allows for hassle-free image loading in your app. It features high-level convenience APIs which are easy to adopt and progressively discloses more advanced features.
+A powerful **image loading** and **caching** framework which allows for hassle-free image loading in your app. Simple tasks like loading images into image view are made simple, while more advanced features are disclosed progressively.
+
+Nuke [takes performance seriously](#h_performance). It employs techniques across all key performance areas including asynchronous design, resumable downloads, request deduplication, prefetching, rate limiting, CoW structs, LRU cache, and many more.
 
 # <a name="h_features"></a>Features
 
-- Load images into image views and other targets
 - Two [cache layers](https://kean.github.io/post/image-caching), fast LRU memory cache
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) integrations
 - [RxNuke](https://github.com/kean/RxNuke) with RxSwift extensions
@@ -19,7 +20,7 @@ A powerful **image loading** and **caching** framework which allows for hassle-f
 - Small (under 1300 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
 - Resumable downloads, request deduplication, rate limiting and more
 
-> [Nuke 7](https://github.com/kean/Nuke/tree/nuke7) is in active development, first beta is already available. It's an early version, the documentation hasn't been updated fully and there are still some upcoming changes. If you'd like to contribute or have some suggestions or feature requests please open an issue, a pull request or contact me on [Twitter](https://twitter.com/a_grebenyuk).
+> [Nuke 7](https://github.com/kean/Nuke/tree/nuke7) is in active development, first beta is already available. It's an early version, the documentation hasn't been fully updated yet and there are still some upcoming changes. If you'd like to contribute or have some suggestions or feature requests please open an issue, a pull request or contact me on [Twitter](https://twitter.com/a_grebenyuk).
 
 # <a name="h_getting_started"></a>Quick Start
 
@@ -137,7 +138,7 @@ task.resume()
 
 Tasks can be used to track download progress, cancel the requests, and dynamically udpdate download priority.
 
-### Configuring Image Pipeline
+#### Configuring Image Pipeline
 
 `ImagePipeline` is initialized with a `Configuration` which makes it fully customizable:
 
@@ -271,7 +272,7 @@ Most developers either implement their own networking layer or use a third-party
 
 Processed images which are ready to be displayed are stored in a fast in-memory cache (`ImageCache`). It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `ImageCache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
 
-### Resumable Downloads
+### Resumable Downloads (Beta)
 
 If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. The resumable downloads are enabled by default.
 
@@ -285,7 +286,7 @@ By default `ImagePipeline` combines the requests with the same `loadKey` into a 
 
 # Performance<a name="h_performance"></a>
 
-Performance is one of the key differentiating factors for Nuke. There are three key components of its performance:
+Performance is one of the key differentiating factors for Nuke. There are four key components of its performance:
 
 ### Main-Thread Performance
 
@@ -302,6 +303,34 @@ A common use case is to dynamically start and cancel requests for a collection v
 
 - Nuke tries to free memory as early as possible.
 - Memory cache uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. It has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `ImageCache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
+
+### Performance Metrics (Beta)
+
+Nuke captures detailed metrics on each image task:
+
+```swift
+(lldb) p task.metrics
+(Nuke.ImageTask.Metrics) $R2 = {
+  taskId = 9
+  timeCreated = 545513853.67615998
+  timeResumed = 545513853.67778301
+  timeCompleted = 545513860.90999401
+  session = 0x00007b1c00011100 {
+    sessionId = 9
+    timeDataLoadingStarted = 545513853.67789805
+    timeDataLoadingFinished = 545513853.74310505
+    timeDecodingFinished = 545513860.90150297
+    timeProcessingFinished = 545513860.90990996
+    urlResponse = 0x00007b0800066960 {
+      ObjectiveC.NSObject = {}
+    }
+    downloadedDataCount = 35049
+  }
+  wasSubscibedToExistingTask = false
+  isMemoryCacheHit = false
+  wasCancelled = false
+}
+```
 
 # Extensions<a name="h_plugins"></a>
 
