@@ -16,8 +16,8 @@ private class _MockImageTask: ImageTask {
     fileprivate var _resume: () -> Void = {}
     fileprivate var _cancel: () -> Void = {}
 
-    override init(request: ImageRequest, pipeline: ImagePipeline) {
-        super.init(request: request, pipeline: pipeline)
+    init(request: ImageRequest, pipeline: ImagePipeline) {
+        super.init(taskId: 0, request: request, pipeline: pipeline)
     }
 
     override func resume() {

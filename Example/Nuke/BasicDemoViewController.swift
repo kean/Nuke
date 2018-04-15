@@ -11,7 +11,7 @@ private let cellReuseID = "reuseID"
 class BasicDemoViewController: UICollectionViewController {
     var photos: [URL]!
     
-    var manager = Nuke.Manager.shared
+    var pipeline = Nuke.ImagePipeline.shared
     var itemsPerRow = 4
     
     override func viewDidLoad() {
@@ -55,14 +55,13 @@ class BasicDemoViewController: UICollectionViewController {
         imageView.image = nil
 
         let request = makeRequest(with: photos[indexPath.row])
+        Nuke.loadImage(with: request, pipeline: pipeline, into: imageView)
 
-        manager.loadImage(with: request, into: imageView)
-        
         return cell
     }
     
-    func makeRequest(with url: URL) -> Request {
-        return Request(url: url)
+    func makeRequest(with url: URL) -> ImageRequest {
+        return ImageRequest(url: url)
     }
 
     func imageViewForCell(_ cell: UICollectionViewCell) -> UIImageView {

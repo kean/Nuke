@@ -23,7 +23,9 @@ final class CustomCacheDemoViewController: BasicDemoViewController {
 
         // Create Manager which would utilize our data loader as a part of its
         // image loading pipeline
-        manager = Manager(loader: Nuke.Loader(loader: dataLoader), cache: Nuke.Cache.shared)
+        pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+        }
     }
 }
 
