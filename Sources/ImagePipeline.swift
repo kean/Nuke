@@ -98,7 +98,7 @@ public /* final */ class ImagePipeline {
         /// Data decoder used by the pipeline.
         public var dataDecoder: DataDecoding
 
-        public var dataDecodingQueue = OperationQueue()
+        fileprivate var dataDecodingQueue = OperationQueue()
 
         /// Image cache used by the pipeline.
         public var imageCache: ImageCaching?
@@ -338,7 +338,7 @@ public /* final */ class ImagePipeline {
         let decode = { [decoder = self.configuration.dataDecoder] in
             decoder.decode(data: response.0, response: response.1)
         }
-        configuration.dataLoadingQueue.addOperation { [weak self, weak session] in
+        configuration.dataDecodingQueue.addOperation { [weak self, weak session] in
             guard let session = session else { return }
             guard let image = autoreleasepool(invoking: decode) else {
                 self?._completeSession(session, result: .failure(Error.decodingFailed))
