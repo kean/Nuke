@@ -105,19 +105,11 @@ public struct ImageRequest {
         set { _mutate { $0.loadKey = newValue } }
     }
 
-    /// The closure that is executed periodically on the main thread to report
-    /// the progress of the request. `nil` by default.
-    public var progress: ProgressHandler? {
-        get { return _ref.progress }
-        set { _mutate { $0.progress = newValue }}
-    }
-
     /// Custom info passed alongside the request.
     public var userInfo: Any? {
         get { return _ref.userInfo }
         set { _mutate { $0.userInfo = newValue }}
     }
-
 
     // MARK: Initializers
 
@@ -189,7 +181,6 @@ public struct ImageRequest {
         var priority: ImageRequest.Priority = .normal
         var cacheKey: AnyHashable?
         var loadKey: AnyHashable?
-        var progress: ProgressHandler?
         var userInfo: Any?
 
         /// Creates a resource with a default processor.
@@ -206,7 +197,6 @@ public struct ImageRequest {
             self.priority = ref.priority
             self.cacheKey = ref.cacheKey
             self.loadKey = ref.loadKey
-            self.progress = ref.progress
             self.userInfo = ref.userInfo
         }
 

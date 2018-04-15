@@ -28,7 +28,6 @@ class RequestTests: XCTestCase {
         request.loadKey = "1"
         request.cacheKey = "2"
         request.userInfo = "3"
-        request.progress = { (_,_) in }
         request.processor = AnyImageProcessor(MockImageProcessor(id: "4"))
 
         var copy = request
@@ -39,7 +38,6 @@ class RequestTests: XCTestCase {
         XCTAssertEqual(copy.loadKey, "1")
         XCTAssertEqual(copy.cacheKey, "2")
         XCTAssertEqual(copy.userInfo as? String, "3")
-        XCTAssertNotNil(copy.progress)
         XCTAssertEqual(copy.processor, AnyImageProcessor(MockImageProcessor(id: "4")))
     }
 

@@ -4,6 +4,52 @@
 
 import Foundation
 
+// MARK: - ImageTask
+
+public protocol ImageTaskDelegate: class {
+    func imageTask(_ task: ImageTask, didFinishWithResult result: Result<Image>)
+    func imageTask(_ task: ImageTask, didUpdateCompletedUnitCount: Int64, totalUnitCount: Int64)
+}
+
+public extension ImageTaskDelegate {
+    func imageTask(_ task: ImageTask, didUpdateCompletedUnitCount completed: Int64, totalUnitCount total: Int64) {
+        return
+    }
+}
+
+/// - important: Make sure that you access Task properties only from the
+/// delegate queue.
+public /* final */ class ImageTask {
+    public let request: ImageRequest
+
+    public var completedUnitCount: Int64 = 0
+    public var totalUnitCount: Int64 = 0
+
+    public weak var delegate: ImageTaskDelegate?
+    public fileprivate(set) var progress = Progress()
+
+    public typealias Completion = (Result<Image>) -> Void
+
+    fileprivate weak private(set) var pipeline: ImagePipeline?
+    fileprivate var cts = CancellationTokenSource()
+    fileprivate var isExecuting = false
+
+    public init(request: ImageRequest, pipeline: ImagePipeline) {
+        self.request = request
+        self.pipeline = pipeline
+    }
+
+    public func resume() {
+        pipeline?._resume(self)
+    }
+
+    public func cancel() {
+        cts.cancel()
+    }
+}
+
+// MARK: - ImagePipeline
+
 /// `ImagePipeline` implements an image loading pipeline. It loads image data using
 /// data loader (`DataLoading`), then creates an image using `DataDecoding`
 /// object, and transforms the image using processors (`Processing`) provided
@@ -24,11 +70,11 @@ import Foundation
 public /* final */ class ImagePipeline {
     public let configuration: Configuration
 
-    // Image loading sessions. One or more tasks can be handled by the same session.
-    private var sessions = [AnyHashable: Session]()
-
     // Synchornized access to sessions.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Loader")
+
+    // Image loading sessions. One or more tasks can be handled by the same session.
+    private var sessions = [AnyHashable: Session]()
 
     private let rateLimiter = RateLimiter()
 
@@ -99,56 +145,55 @@ public /* final */ class ImagePipeline {
 
     // MARK: Loading Images
 
-    public /* final */ class Task {
-        // There might be a more performant solution
-        fileprivate var cts = CancellationTokenSource()
-
-        public typealias Completion = (Result<Image>) -> Void
-
-        public func cancel() {
-            cts.cancel()
-        }
-    }
-
     /// Loads an image with the given url.
-    @discardableResult public func loadImage(with url: URL, completion: @escaping Task.Completion) -> Task {
+    @discardableResult public func loadImage(with url: URL, completion: @escaping ImageTask.Completion) -> ImageTask {
         return loadImage(with: ImageRequest(url: url), completion: completion)
     }
 
     /// Loads an image for the given request using image loading pipeline.
-    @discardableResult public func loadImage(with request: ImageRequest, completion: @escaping Task.Completion) -> Task {
-        let task = Task()
-        queue.async {
-            guard !task.cts.isCancelling else { return } // Fast preflight check
-
-            if let image = self.cachedImage(for: request) {
-                DispatchQueue.main.async { completion(.success(image)) }
-            } else {
-                // Image not in cache - load an image.
-                self._loadImage(request, task: task) { result in
-                    if let image = result.value {
-                        self.store(image: image, for: request)
-                    }
-                    DispatchQueue.main.async { completion(result) }
-                }
-            }
-        }
+    @discardableResult public func loadImage(with request: ImageRequest, completion: @escaping ImageTask.Completion) -> ImageTask {
+        let task = imageTask(with: request)
+        _resume(task, completion: completion)
         return task
     }
+
+    public func imageTask(with url: URL) -> ImageTask {
+        return ImageTask(request: ImageRequest(url: url), pipeline: self)
+    }
+
+    public func imageTask(with request: ImageRequest) -> ImageTask {
+        return ImageTask(request: request, pipeline: self)
+    }
+
+    fileprivate func _resume(_ task: ImageTask, completion: ImageTask.Completion? = nil) {
+        queue.async {
+            guard !task.isExecuting && !task.cts.isCancelling else { return } // Fast preflight check
+            task.isExecuting = true
+            self._startLoadingImage(for: task, completion: completion)
+        }
+    }
     
-    private func _loadImage(_ request: ImageRequest, task: Task, completion: @escaping Task.Completion) {
-        let session = _startSession(with: request)
+    private func _startLoadingImage(for task: ImageTask, completion: ImageTask.Completion?) {
+        if let image = cachedImage(for: task.request) {
+            DispatchQueue.main.async {
+                completion?(.success(image))
+                task.delegate?.imageTask(task, didFinishWithResult: .success(image))
+            }
+            return
+        }
+
+        let session = _startSession(with: task.request)
 
         // Register handler with a session.
-        let handler = Session.Handler(request: request, completion: completion)
-        session.handlers.insert(handler)
+        let managedTask = Session.ManagedTask(task: task, completion: completion)
+        session.tasks.insert(managedTask)
 
         // Update data operation priority (in case it was already started).
         session.dataOperation?.queuePriority = session.priority.queuePriority
 
-        task.cts.token.register { [weak self, weak session, weak handler] in
-            guard let session = session, let handler = handler else { return }
-            self?._cancelSession(session, handler: handler)
+        task.cts.token.register { [weak self, weak session, weak managedTask] in
+            guard let session = session, let managedTask = managedTask else { return }
+            self?._cancelSession(session, handler: managedTask)
         }
     }
 
@@ -173,31 +218,40 @@ public /* final */ class ImagePipeline {
     // Report progress to all registered handlers.
     private func _updateSessionProgress(completed: Int64, total: Int64, session: Session) {
         queue.async {
-            #if swift(>=4.1)
-            let handlers = session.handlers.compactMap { $0.request.progress }
-            #else
-            let handlers = session.handlers.flatMap { $0.request.progress }
-            #endif
-            guard !handlers.isEmpty else { return }
-            DispatchQueue.main.async { handlers.forEach { $0(completed, total) } }
+            let tasks = session.tasks
+            DispatchQueue.main.async {
+                for task in tasks.map({ $0.task }) {
+                    task.completedUnitCount = completed
+                    task.totalUnitCount = total
+                    task.delegate?.imageTask(task, didUpdateCompletedUnitCount: completed, totalUnitCount: total)
+                }
+            }
         }
     }
 
     // Report completion to all registered handlers.
     private func _completeSession(_ session: Session, result: Result<Image>) {
         queue.async {
-            let handlers = session.handlers // Always non-empty at this point, no need to check
-            handlers.forEach { $0.completion(result) }
+            if let image = result.value {
+                self.store(image: image, for: session.request)
+            }
+            let tasks = session.tasks
+            DispatchQueue.main.async {
+                for task in tasks {
+                    task.completion?(result)
+                    task.task.delegate?.imageTask(task.task, didFinishWithResult: result)
+                }
+            }
             self._removeSession(session)
         }
     }
 
     // Cancel the session in case all handlers were removed.
-    private func _cancelSession(_ session: Session, handler: Session.Handler) {
+    private func _cancelSession(_ session: Session, handler: Session.ManagedTask) {
         queue.async {
-            session.handlers.remove(handler)
+            session.tasks.remove(handler)
             // Cancel the session when there are no handlers remaining.
-            if session.handlers.isEmpty {
+            if session.tasks.isEmpty {
                 session.cts.cancel()
                 self._removeSession(session)
             }
@@ -210,7 +264,7 @@ public /* final */ class ImagePipeline {
             // By removing a session we get rid of all the stuff that is no longer
             // needed after completing associated tasks. This includes completion
             // and progress closures, individual requests, etc. The user may still
-            // hold a reference to `ImagePipeline.Task` at this point, but it doesn't
+            // hold a reference to `ImageTask` at this point, but it doesn't
             // store almost anythng.
             sessions[session.key] = nil
         }
@@ -324,22 +378,22 @@ public /* final */ class ImagePipeline {
         let request: ImageRequest
         let key: AnyHashable // loading key
         let cts = CancellationTokenSource()
-        var handlers = Set<Handler>()
+        var tasks = Set<ManagedTask>()
         weak var dataOperation: Operation?
 
         init(request: ImageRequest, key: AnyHashable) {
             self.request = request; self.key = key
         }
 
-        final class Handler: Hashable {
-            let request: ImageRequest
-            let completion: Task.Completion
+        final class ManagedTask: Hashable {
+            let task: ImageTask
+            let completion: ImageTask.Completion?
 
-            init(request: ImageRequest, completion: @escaping Task.Completion) {
-                self.request = request; self.completion = completion
+            init(task: ImageTask, completion: ImageTask.Completion?) {
+                self.task = task; self.completion = completion
             }
 
-            static func ==(lhs: Handler, rhs: Handler) -> Bool {
+            static func ==(lhs: ManagedTask, rhs: ManagedTask) -> Bool {
                 return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
             }
 
@@ -349,7 +403,7 @@ public /* final */ class ImagePipeline {
         }
 
         var priority: ImageRequest.Priority {
-            return handlers.map { $0.request.priority }.max() ?? .normal
+            return tasks.map { $0.task.request.priority }.max() ?? .normal
         }
     }
 

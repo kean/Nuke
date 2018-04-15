@@ -2,105 +2,106 @@ import Foundation
 
 // MARK: - Manager
 
-@available(*, deprecated, message: "Please use Nuke `Nuke.loadImage(with:into:)` functions instead. To load images w/o targets please use `ImagePipeline`")
+@available(*, deprecated, message: "Renamed to `ImageTarget")
+public typealias Target = ImageTarget
+
+@available(*, deprecated, message: "Please use Nuke `Nuke.loadImage(with:into:)` functions instead. To load images w/o targets please use `ImagePipeline` directly.")
 public final class Manager: Loading {
     public let loader: Loading
     public let cache: Caching?
 
-    public static let shared: Nuke.Manager = Nuke.Manager(loader: Loader.shared, cache: ImageCache.shared)
-
-    fileprivate let pipeline: _LoadingImagePipleline
+    public static let shared = Manager(loader: Loader.shared, cache: Cache.shared)
 
     public init(loader: Loading, cache: Caching? = nil) {
-        self.loader = loader
-        self.cache = cache
-        self.pipeline = _LoadingImagePipleline(loader: loader, cache: cache)
-    }
-
-    public func loadImage(with url: URL, into target: Target) {
-        Nuke.loadImage(with: url, pipeline: pipeline, into: target)
+        self.loader = loader; self.cache = cache
     }
 
     public func loadImage(with request: Request, into target: Target) {
-        Nuke.loadImage(with: request, pipeline: pipeline, into: target)
+        loadImage(with: request, into: target) { [weak target] in
+            target?.handle(response: $0, isFromMemoryCache: $1)
+        }
     }
 
     public typealias Handler = (Result<Image>, _ isFromMemoryCache: Bool) -> Void
 
     public func loadImage(with request: Request, into target: AnyObject, handler: @escaping Handler) {
-        Nuke.loadImage(with: request, pipeline: pipeline, into: target, handler: handler)
-    }
+        assert(Thread.isMainThread)
 
-    public func loadImage(with url: URL, into target: AnyObject, handler: @escaping Handler) {
-        Nuke.loadImage(with: url, pipeline: pipeline, into: target, handler: handler)
+        let context = getContext(for: target)
+        context.cts?.cancel()
+        context.cts = nil
+
+        if let image = cachedImage(for: request) {
+            handler(.success(image), true)
+            return
+        }
+
+        let cts = CancellationTokenSource()
+        context.cts = cts
+
+        _loadImage(with: request, token: cts.token) { [weak context] in
+            guard let context = context, context.cts === cts else { return }
+            handler($0, false)
+            context.cts = nil
+        }
     }
 
     public func cancelRequest(for target: AnyObject) {
-        Nuke.cancelRequest(for: target)
+        assert(Thread.isMainThread)
+        let context = getContext(for: target)
+        context.cts?.cancel()
+        context.cts = nil
     }
 
-    public func loadImage(with url: URL, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-        self.loadImage(with: ImageRequest(url: url), token: token, completion: completion)
-    }
-
-    public func loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
-        let task = pipeline.loadImage(with: request, completion: completion)
-        token?.register { task.cancel() }
-    }
-}
-
-// MARK: - _LoadingImagePipleline
-
-// this types allow us to use deprecated `Loading` protocol with new global
-// Nuke.loadImage(with:into:) functions.
-
-@available(*, deprecated, message: "For private use (silences warnings)")
-private final class _LoadingImagePipleline: ImagePipeline {
-    private let loader: Loading
-    private let cache: Caching?
-
-    init(loader: Loading, cache: Caching?) {
-        self.loader = loader
-        self.cache = cache
-    }
-
-    override func loadImage(with request: ImageRequest, completion: @escaping (Result<Image>) -> Void) -> Task {
-        let cts = CancellationTokenSource()
-        let task = _Task(cts: cts)
-
-        if let image = self.cachedImage(for: request) {
+    public func loadImage(with request: Request, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
+        if let image = cachedImage(for: request) {
             DispatchQueue.main.async { completion(.success(image)) }
         } else {
-            self.loader.loadImage(with: request, token: cts.token) { result in
-                if let image = result.value {
-                    self.store(image: image, for: request)
-                }
-                DispatchQueue.main.async { completion(result) }
-            }
+            _loadImage(with: request, token: token, completion: completion)
         }
-        return task
     }
 
-    override func cachedImage(for request: ImageRequest) -> Image? {
+    private func _loadImage(with request: Request, token: CancellationToken? = nil, completion: @escaping (Result<Image>) -> Void) {
+        loader.loadImage(with: request, token: token) { [weak self] result in
+            if let image = result.value {
+                self?.store(image: image, for: request)
+            }
+            DispatchQueue.main.async { completion(result) }
+        }
+    }
+
+    private func cachedImage(for request: Request) -> Image? {
         guard request.memoryCacheOptions.readAllowed else { return nil }
         return cache?[request]
     }
 
-    override func store(image: Image, for request: ImageRequest) {
+    private func store(image: Image, for request: Request) {
         guard request.memoryCacheOptions.writeAllowed else { return }
         cache?[request] = image
     }
 
-    @available(*, deprecated, message: "For private use (silences warnings)")
-    private final class _Task: Task {
-        let cts: CancellationTokenSource
-        init(cts: CancellationTokenSource) {
-            self.cts = cts
-        }
+    private static var contextAK = "Manager.Context.AssociatedKey"
 
-        override func cancel() {
-            cts.cancel()
+    private func getContext(for target: AnyObject) -> Context {
+        if let ctx = objc_getAssociatedObject(target, &Manager.contextAK) as? Context {
+            return ctx
         }
+        let ctx = Context()
+        objc_setAssociatedObject(target, &Manager.contextAK, ctx, .OBJC_ASSOCIATION_RETAIN)
+        return ctx
+    }
+
+    private final class Context {
+        var cts: CancellationTokenSource?
+        deinit { cts?.cancel() }
+    }
+
+    public func loadImage(with url: URL, into target: Target) {
+        loadImage(with: Request(url: url), into: target)
+    }
+
+    public func loadImage(with url: URL, into target: AnyObject, handler: @escaping Handler) {
+        loadImage(with: Request(url: url), into: target, handler: handler)
     }
 }
 
@@ -160,12 +161,13 @@ public final class Loader: Loading {
     public typealias Error = ImagePipeline.Error
 }
 
-// MARK: - Preheater
+// MARK: - ImageRequest
 
-extension ImagePreheater {
-    @available(*, deprecated, message: "Please use init(pipeline:maxConcurrentRequestCount: instead")
-    public convenience init(manager: Manager, maxConcurrentRequestCount: Int = 2) {
-        self.init(pipeline: manager.pipeline, maxConcurrentRequestCount: maxConcurrentRequestCount)
+public extension ImageRequest {
+    @available(*, deprecated, message: "Please use `ImageTask` delegate instead. Settings this property will have no effect.`")
+    public var progress: ProgressHandler? {
+        get { return nil }
+        set { }
     }
 }
 

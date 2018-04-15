@@ -91,7 +91,7 @@ public final class ImageCache: ImageCaching {
                 cache.removeValue(forKey: key)
                 return
             }
-            cache.set(newValue, forKey: key)
+            cache.set(newValue, forKey: key, cost: self.cost(newValue))
         }
     }
 

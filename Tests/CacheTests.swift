@@ -290,11 +290,11 @@ class CacheTests: XCTestCase {
     }
 }
 
-
 class CacheIntegrationTests: XCTestCase {
     var mockCache: MockCache!
     var mockDataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
+    var target: MockTarget!
     
     override func setUp() {
         super.setUp()
@@ -305,6 +305,7 @@ class CacheIntegrationTests: XCTestCase {
             $0.dataLoader = mockDataLoader
             $0.imageCache = mockCache
         }
+        target = MockTarget()
     }
 
     func testThatCacheWorks() {
@@ -314,10 +315,11 @@ class CacheIntegrationTests: XCTestCase {
         XCTAssertNil(mockCache[request])
 
         expect { fulfill in
-            Nuke.loadImage(with: request, pipeline: pipeline, into: self, handler: { result, _ in
+            target.handler = { result, _ in
                 XCTAssertNotNil(result.value)
                 fulfill()
-            })
+            }
+            Nuke.loadImage(with: request, pipeline: pipeline, into: target)
         }
         wait()
 
@@ -326,10 +328,11 @@ class CacheIntegrationTests: XCTestCase {
         mockDataLoader.queue.isSuspended = true
 
         expect { fulfill in
-            Nuke.loadImage(with: request, pipeline: pipeline, into: self, handler: { result, _ in
+            target.handler = { result, _ in
                 XCTAssertNotNil(result.value)
                 fulfill()
-            })
+            }
+            Nuke.loadImage(with: request, pipeline: pipeline, into: target)
         }
         wait()
 
@@ -376,10 +379,11 @@ class CacheIntegrationTests: XCTestCase {
         XCTAssertNil(mockCache[request])
         
         expect { fulfill in
-            Nuke.loadImage(with: request, pipeline: pipeline, into: self, handler: { result, _ in
+            target.handler = { result, _ in
                 XCTAssertNotNil(result.value)
                 fulfill()
-            })
+            }
+            Nuke.loadImage(with: request, pipeline: pipeline, into: target)
         }
         wait()
         

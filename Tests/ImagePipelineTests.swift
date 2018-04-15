@@ -26,23 +26,26 @@ class ImagePipelineTests: XCTestCase {
     // MARK: Progress
 
     func testThatProgressIsReported() {
-        var request = ImageRequest(url: defaultURL)
+        let request = ImageRequest(url: defaultURL)
+        let delegate = MockImageTaskDelegate()
         expect { fulfill in
             var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
-            request.progress = {
+            delegate._progress = {
                 XCTAssertTrue(Thread.isMainThread)
                 XCTAssertTrue(expected.first?.0 == $0)
                 XCTAssertTrue(expected.first?.1 == $1)
                 expected.remove(at: 0)
                 if expected.isEmpty {
                     fulfill()
+                    _ = delegate // retain delegate
                 }
             }
         }
         expect { fulfill in
-            imagePipeline.loadImage(with: request) { _ in
-                fulfill()
-            }
+            let task = imagePipeline.imageTask(with: request)
+            task.delegate = delegate
+            delegate._completion = { _ in fulfill() }
+            task.resume()
         }
         wait()
     }
@@ -52,7 +55,7 @@ class ImagePipelineTests: XCTestCase {
     func testOverridingProcessor() {
         let imagePipeline = ImagePipeline {
             $0.dataLoader = dataLoader
-            $0.processor = { (_,_) in
+            $0.imageProcessor = { (_,_) in
                 AnyImageProcessor(MockImageProcessor(id: "processorFromOptions"))
             }
         }
@@ -224,23 +227,26 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         dataLoader.queue.isSuspended = true
 
         for _ in 0..<3 {
-            var request = ImageRequest(url: defaultURL)
+            let request = ImageRequest(url: defaultURL)
+            let delegate = MockImageTaskDelegate()
             expect { fulfill in
                 var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
-                request.progress = {
+                delegate._progress = {
                     XCTAssertTrue(Thread.isMainThread)
                     XCTAssertTrue(expected.first?.0 == $0)
                     XCTAssertTrue(expected.first?.1 == $1)
                     expected.remove(at: 0)
                     if expected.isEmpty {
                         fulfill()
+                        _ = delegate // retain
                     }
                 }
             }
             expect { fulfill in
-                imagePipeline.loadImage(with: request) { _ in
-                    fulfill()
-                }
+                let task = imagePipeline.imageTask(with: request)
+                delegate._completion = { _ in fulfill() }
+                task.delegate = delegate
+                task.resume()
             }
         }
         dataLoader.queue.isSuspended = false

@@ -14,11 +14,17 @@ import Foundation
     public typealias Image = UIImage
 #endif
 
-// MARK: - Loading Images
+// MARK: - ImageTarget
+
+/// Represents a target for image loading.
+public protocol ImageTarget: class {
+    /// Callback that gets called when the request is completed.
+    func handle(response: Result<Image>, isFromMemoryCache: Bool)
+}
 
 /// Loads an image into the given target. See the corresponding
 /// `loadImage(with:into)` method that takes `Request` for more info.
-public func loadImage(with url: URL, pipeline: ImagePipeline = ImagePipeline.shared, into target: Target) {
+public func loadImage(with url: URL, pipeline: ImagePipeline = ImagePipeline.shared, into target: ImageTarget) {
     loadImage(with: ImageRequest(url: url), pipeline: pipeline, into: target)
 }
 
@@ -30,35 +36,7 @@ public func loadImage(with url: URL, pipeline: ImagePipeline = ImagePipeline.sha
 ///
 /// `Manager` keeps a weak reference to the target. If the target deallocates
 /// the associated request automatically gets cancelled.
-public func loadImage(with request: ImageRequest, pipeline: ImagePipeline = ImagePipeline.shared, into target: Target) {
-    loadImage(with: request, pipeline: pipeline, into: target) { [weak target] in
-        target?.handle(response: $0, isFromMemoryCache: $1)
-    }
-}
-
-/// Loads an image and calls the given `handler`. The method itself
-/// **doesn't do** anything when the image is loaded - you have full
-/// control over how to display it, etc.
-///
-/// The handler only gets called if the request is still associated with the
-/// `target` by the time it's completed. The handler gets called immediately
-/// if the image was stored in the memory cache.
-///
-/// See `loadImage(with:into:)` method for more info.
-public func loadImage(with url: URL, pipeline: ImagePipeline = ImagePipeline.shared, into target: AnyObject, handler: @escaping (Result<Image>, _ isFromMemoryCache: Bool) -> Void) {
-    loadImage(with: ImageRequest(url: url), pipeline: pipeline, into: target, handler: handler)
-}
-
-/// Loads an image and calls the given `handler`. The method itself
-/// **doesn't do** anything when the image is loaded - you have full
-/// control over how to display it, etc.
-///
-/// The handler only gets called if the request is still associated with the
-/// `target` by the time it's completed. The handler gets called immediately
-/// if the image was stored in the memory cache.
-///
-/// See `loadImage(with:into:)` method for more info.
-public func loadImage(with request: ImageRequest, pipeline: ImagePipeline = ImagePipeline.shared, into target: AnyObject, handler: @escaping (Result<Image>, _ isFromMemoryCache: Bool) -> Void) {
+public func loadImage(with request: ImageRequest, pipeline: ImagePipeline = ImagePipeline.shared, into target: ImageTarget) {
     assert(Thread.isMainThread)
 
     let context = getContext(for: target)
@@ -67,26 +45,25 @@ public func loadImage(with request: ImageRequest, pipeline: ImagePipeline = Imag
 
     // Quick synchronous memory cache lookup
     if let image = pipeline.cachedImage(for: request) {
-        handler(.success(image), true)
+        target.handle(response: .success(image), isFromMemoryCache: true)
         return
     }
 
-    // Create ID to check whether the active request hasn't changed while downloading
-    context.taskId += 1
-    let taskId = context.taskId
-
     // Start the request
     // Manager assumes that Loader calls completion on the main thread.
-    context.task = pipeline.loadImage(with: request) { [weak context] in
-        // Check if still registered
-        guard let context = context, context.taskId == taskId else { return }
-        handler($0, false)
-        context.task = nil // avoid redundant cancellations on deinit
-    }
+    let task = pipeline.imageTask(with: request)
+    task.delegate = context
+    context.task = task
+    context.target = target
+    task.resume()
 }
 
 /// Cancels an outstanding request associated with the target.
-public func cancelRequest(for target: AnyObject) {
+public func cancelRequest(for target: ImageTarget) {
+    _cancelRequest(for: target)
+}
+
+private func _cancelRequest(for target: AnyObject) {
     assert(Thread.isMainThread)
     let context = getContext(for: target)
     context.task?.cancel() // cancel outstanding request if any
@@ -109,22 +86,23 @@ private func getContext(for target: AnyObject) -> Context {
 
 // Context is reused for multiple requests which makes sense, because in
 // most cases image views are also going to be reused (e.g. in a table view)
-private final class Context {
-    var task: ImagePipeline.Task? // also used to identify requests
-    var taskId: Int = 0
+private final class Context: ImageTaskDelegate {
+    var task: ImageTask? // also used to identify requests
+    var taskId: Int = 0 // deprecated
+
+    weak var target: ImageTarget?
 
     // Automatically cancel the request when target deallocates.
     deinit { task?.cancel() }
 
     static var contextAK = "Context.AssociatedKey"
-}
 
-// MARK: - Target
-
-/// Represents a target for image loading.
-public protocol Target: class {
-    /// Callback that gets called when the request is completed.
-    func handle(response: Result<Image>, isFromMemoryCache: Bool)
+    func imageTask(_ task: ImageTask, didFinishWithResult result: Result<Image>) {
+        guard task === task else { return }
+        target?.handle(response: result, isFromMemoryCache: false)
+        self.target = nil
+        self.task = nil // avoid redundant cancellations on deinit
+    }
 }
 
 #if os(macOS)
@@ -138,8 +116,8 @@ public typealias ImageView = UIImageView
 #endif
 
 #if os(macOS) || os(iOS) || os(tvOS)
-/// Default implementation of `Target` protocol for `ImageView`.
-extension ImageView: Target {
+/// Default implementation of `ImageTarget` protocol for `ImageView`.
+extension ImageView: ImageTarget {
     /// Displays an image on success. Runs `opacity` transition if
     /// the response was not from the memory cache.
     public func handle(response: Result<Image>, isFromMemoryCache: Bool) {
@@ -158,8 +136,6 @@ extension ImageView: Target {
 #endif
 
 // MARK: - Misc
-
-public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
 
 /// An enum representing either a success with a result value, or a failure.
 public enum Result<T> {

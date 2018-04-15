@@ -4,6 +4,8 @@
 
 import Foundation
 
+public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
+
 /// Loads data.
 public protocol DataLoading {
     /// Loads data with the given request.
