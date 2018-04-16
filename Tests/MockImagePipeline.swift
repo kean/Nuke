@@ -13,15 +13,10 @@ private let image: Image = {
 }()
 
 private class _MockImageTask: ImageTask {
-    fileprivate var _resume: () -> Void = {}
     fileprivate var _cancel: () -> Void = {}
 
     init(request: ImageRequest, pipeline: ImagePipeline) {
         super.init(taskId: 0, request: request, pipeline: pipeline)
-    }
-
-    override func resume() {
-        _resume()
     }
 
     override func cancel() {
@@ -50,38 +45,24 @@ class MockImagePipeline: ImagePipeline {
     }
 
     override func loadImage(with request: ImageRequest, completion: @escaping ImageTask.Completion) -> ImageTask {
-        let task = _imageTask(with: request, completion)
-        task.resume()
-        return task
-    }
-
-    override func imageTask(with request: ImageRequest) -> ImageTask {
-        return _imageTask(with: request)
-    }
-
-    private func _imageTask(with request: ImageRequest, _ completion: ImageTask.Completion? = nil) -> ImageTask {
         let task = _MockImageTask(request: request, pipeline: self)
 
         NotificationCenter.default.post(name: MockImagePipeline.DidStartTask, object: self)
 
         createdTaskCount += 1
 
-        task._resume = {
-            let operation = BlockOperation() {
-                DispatchQueue.main.async {
-                    let result = self.results[request.urlRequest.url!] ?? .success(image)
-
-                    task.delegate?.imageTask(task, didFinishWithResult: result)
-                    completion?(result)
-                }
+        let operation = BlockOperation() {
+            DispatchQueue.main.async {
+                let result = self.results[request.urlRequest.url!] ?? .success(image)
+                completion(result)
             }
-            self.queue.addOperation(operation)
+        }
+        self.queue.addOperation(operation)
 
-            if !self.ignoreCancellation {
-                task._cancel = {
-                    operation.cancel()
-                    NotificationCenter.default.post(name: MockImagePipeline.DidCancelTask, object: self)
-                }
+        if !self.ignoreCancellation {
+            task._cancel = {
+                operation.cancel()
+                NotificationCenter.default.post(name: MockImagePipeline.DidCancelTask, object: self)
             }
         }
 

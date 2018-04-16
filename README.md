@@ -120,17 +120,13 @@ All of those APIs are built on top of `ImageProcessing` protocol. If you'd like 
 You can use `ImagePipeline` to load images directly without a target. `ImagePipeline` offers a convenience closure-based API for loading images:
 
 ```swift
-ImagePipeline.shared.loadImage(with: url) { result in
+let task = ImagePipeline.shared.loadImage(with: url) { result in
     // Handle response
 }
-```
 
-There is also a more advanced delegate-based API available:
-
-```swift
-let task = ImagePipeline.shared.imageTask(with: request)
-task.delegate = self // See `ImageTaskDelegate` for more info.
-task.resume()
+task.progress = {
+    print("progress updated")
+}
 
 // task.cancel()
 // task.setPriority(.high)

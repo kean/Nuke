@@ -6,17 +6,6 @@ import Foundation
 
 // MARK: - ImageTask
 
-public protocol ImageTaskDelegate: class {
-    func imageTask(_ task: ImageTask, didFinishWithResult result: Result<Image>)
-    func imageTask(_ task: ImageTask, didUpdateCompletedUnitCount completed: Int64, totalUnitCount total: Int64)
-}
-
-public extension ImageTaskDelegate {
-    func imageTask(_ task: ImageTask, didUpdateCompletedUnitCount completed: Int64, totalUnitCount total: Int64) {
-        return
-    }
-}
-
 /// - important: Make sure that you access Task properties only from the
 /// delegate queue.
 public /* final */ class ImageTask: Hashable {
@@ -26,7 +15,7 @@ public /* final */ class ImageTask: Hashable {
     public var completedUnitCount: Int64 = 0
     public var totalUnitCount: Int64 = 0
 
-    public weak var delegate: ImageTaskDelegate?
+    public var progress: ProgressHandler?
 
     public typealias Completion = (Result<Image>) -> Void
 
@@ -41,11 +30,7 @@ public /* final */ class ImageTask: Hashable {
         self.taskId = taskId
         self.request = request
         self.pipeline = pipeline
-        self.metrics = Metrics(taskId: taskId, timeCreated: _now())
-    }
-
-    public func resume() {
-        pipeline?._resume(self)
+        self.metrics = Metrics(taskId: taskId, timeStarted: _now())
     }
 
     public func cancel() {
@@ -173,37 +158,18 @@ public /* final */ class ImagePipeline {
 
     /// Loads an image for the given request using image loading pipeline.
     @discardableResult public func loadImage(with request: ImageRequest, completion: @escaping ImageTask.Completion) -> ImageTask {
-        let task = imageTask(with: request)
-        _resume(task, completion: completion)
+        let task = ImageTask(taskId: Int(OSAtomicIncrement32(&nextTaskId)), request: request, pipeline: self)
+        queue.async {
+            guard !task.isCancelled else { return } // Fast preflight check
+            self._startLoadingImage(for: task, completion: completion)
+        }
         return task
     }
 
-    // MARK: Managing Image Tasks
-
-    public func imageTask(with url: URL) -> ImageTask {
-        return imageTask(with: ImageRequest(url: url))
-    }
-
-    public func imageTask(with request: ImageRequest) -> ImageTask {
-        return ImageTask(taskId: Int(OSAtomicIncrement32(&nextTaskId)), request: request, pipeline: self)
-    }
-
-    fileprivate func _resume(_ task: ImageTask, completion: ImageTask.Completion? = nil) {
-        queue.async {
-            guard !task.isExecuting && !task.isCancelled else { return } // Fast preflight check
-            task.isExecuting = true
-            task.metrics.timeResumed = _now()
-            self._startLoadingImage(for: task, completion: completion)
-        }
-    }
-    
-    private func _startLoadingImage(for task: ImageTask, completion: ImageTask.Completion?) {
+    private func _startLoadingImage(for task: ImageTask, completion: @escaping ImageTask.Completion) {
         if let image = _cachedImage(for: task.request) {
             task.metrics.isMemoryCacheHit = true
-            DispatchQueue.main.async {
-                completion?(.success(image))
-                task.delegate?.imageTask(task, didFinishWithResult: .success(image))
-            }
+            DispatchQueue.main.async { completion(.success(image)) }
             return
         }
 
@@ -272,7 +238,7 @@ public /* final */ class ImagePipeline {
             for task in tasks.keys {
                 task.completedUnitCount = completed
                 task.totalUnitCount = total
-                task.delegate?.imageTask(task, didUpdateCompletedUnitCount: completed, totalUnitCount: total)
+                task.progress?(completed, total)
             }
         }
     }
@@ -285,9 +251,8 @@ public /* final */ class ImagePipeline {
         let tasks = session.tasks
         tasks.keys.forEach { $0.metrics.timeCompleted = _now() }
         DispatchQueue.main.async {
-            for (task, context) in tasks {
-                context.completion?(result)
-                task.delegate?.imageTask(task, didFinishWithResult: result)
+            for (_, context) in tasks {
+                context.completion(result)
             }
         }
         _removeSession(session)
@@ -437,7 +402,7 @@ public /* final */ class ImagePipeline {
         let metrics: ImageTask.Metrics.SessionMetrics
 
         struct ImageTaskContext {
-            let completion: ImageTask.Completion?
+            let completion: ImageTask.Completion
         }
 
         init(sessionId: Int, request: ImageRequest, key: AnyHashable) {
@@ -481,8 +446,7 @@ extension ImageTask {
         // MARK: - Timings
 
         public let taskId: Int
-        public let timeCreated: TimeInterval
-        public fileprivate(set) var timeResumed: TimeInterval?
+        public let timeStarted: TimeInterval
         public fileprivate(set) var timeCompleted: TimeInterval? // failed or completed
 
         // Download session metrics. One more more tasks can share the same
@@ -504,12 +468,12 @@ extension ImageTask {
         public fileprivate(set) var session: SessionMetrics?
 
         public var totalDuration: TimeInterval? {
-            guard let timeResumed = timeResumed else { return nil }
-            return (timeCompleted ?? timeResumed) - timeResumed
+            guard let timeCompleted = timeCompleted else { return nil }
+            return timeCompleted - timeStarted
         }
 
-        init(taskId: Int, timeCreated: TimeInterval) {
-            self.taskId = taskId; self.timeCreated = timeCreated
+        init(taskId: Int, timeStarted: TimeInterval) {
+            self.taskId = taskId; self.timeStarted = timeStarted
         }
 
         // MARK: - Properties

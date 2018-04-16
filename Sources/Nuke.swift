@@ -50,13 +50,17 @@ public func loadImage(with request: ImageRequest, pipeline: ImagePipeline = Imag
         return
     }
 
+    // Make sure that cell reuse is handled correctly.
+    context.taskId += 1
+    let taskId = context.taskId
+
     // Start the request
     // Manager assumes that Loader calls completion on the main thread.
-    let task = pipeline.imageTask(with: request)
-    task.delegate = context
-    context.task = task
-    context.target = target
-    task.resume()
+    context.task = pipeline.loadImage(with: request) { [weak context, weak target] in
+        guard let context = context, context.taskId == taskId else { return }
+        target?.handle(response: $0, isFromMemoryCache: false)
+        context.task = nil
+    }
 }
 
 /// Cancels an outstanding request associated with the target.
@@ -87,23 +91,14 @@ private func getContext(for target: AnyObject) -> Context {
 
 // Context is reused for multiple requests which makes sense, because in
 // most cases image views are also going to be reused (e.g. in a table view)
-private final class Context: ImageTaskDelegate {
-    var task: ImageTask? // also used to identify requests
-    var taskId: Int = 0 // deprecated
-
-    weak var target: ImageTarget?
+private final class Context {
+    var task: ImageTask?
+    var taskId: Int = 0
 
     // Automatically cancel the request when target deallocates.
     deinit { task?.cancel() }
 
     static var contextAK = "Context.AssociatedKey"
-
-    func imageTask(_ task: ImageTask, didFinishWithResult result: Result<Image>) {
-        guard task === task else { return }
-        target?.handle(response: result, isFromMemoryCache: false)
-        self.target = nil
-        self.task = nil // avoid redundant cancellations on deinit
-    }
 }
 
 #if os(macOS)

@@ -30,7 +30,7 @@ class MockDataLoader: DataLoading {
         let operation = BlockOperation() {
             progress?(10, 20)
             progress?(20, 20)
-
+            
             if let result = self.results[request.url!] {
                 completion(result)
             } else {

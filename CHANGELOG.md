@@ -1,3 +1,75 @@
+## Nuke 7.0-beta1
+
+Nuke 7 is the next major milestone continuing the trend started in Nuke 6 which makes the framework more pragmatic and mature. Nuke 7 is more ergonomic, fast, and more powerful. 
+
+Nuke `7.0-beta1` is an early released (compared to `6.0-beta1`). There are still some major changes coming in next betas. To make migration easier Nuke 7 is almost fully source compatible with Nuke 6, but many APIs were deprecated and will be removed soon.
+
+There are four major new features in Nuke 7:
+
+### Resumable Downloads (Beta)
+
+If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. The resumable downloads are enabled by default.
+
+> By default resumable data is stored in an efficient memory cache. Future versions might include more customization.
+
+In many use cases reusable downloads are a massive improvement. Next betas will feature more customization options for resumable downloads (e.g. customizable resumable data storage).
+
+### Image Pipelines (Beta)
+
+The previous  `Manager` + `Loading` architecture (terrible naming, responsibilities are often confused) was replaced with a  new unified  `ImagePipeline` class. There is also a new `ImageTask` class which feels the gap where user or pipeline needed to communicate between each other after the request was started.
+
+`ImagePipeline` and `ImageTask` have a bunch of new features:
+- In `ImagePipeline.Configuration` you can now provider custom queues (`OperationQueue`) for data loading, decoding and processing (each stage). This way you have more access to queuing (e.g. you can change `qualityOfService`, suspend queues) etc and you can also use the same queue across different pipelines.
+- There are two APIs: convenience ones with blocks (`loadImage(with:completion:)`) and new one `imageTask(with:)` which returns new `ImageTask` class which gives you access to more advanced features. To start a task call `resume()` method, to cancel the task call `cancel()`.
+- Dynamically change priority of executing tasks.
+- Set a custom shared `ImagePipeline`.
+
+### Progressive Image Decoding (WIP)
+
+This feature is still in development and might be coming in one of the next beta.
+
+### Performance Metrics (Beta)
+
+Nuke captures detailed metrics on each image task:
+
+```swift
+(lldb) p task.metrics
+(Nuke.ImageTask.Metrics) $R2 = {
+  taskId = 9
+  timeCreated = 545513853.67615998
+  timeResumed = 545513853.67778301
+  timeCompleted = 545513860.90999401
+  session = 0x00007b1c00011100 {
+    sessionId = 9
+    timeDataLoadingStarted = 545513853.67789805
+    timeDataLoadingFinished = 545513853.74310505
+    timeDecodingFinished = 545513860.90150297
+    timeProcessingFinished = 545513860.90990996
+    urlResponse = 0x00007b0800066960 {
+      ObjectiveC.NSObject = {}
+    }
+    downloadedDataCount = 35049
+  }
+  wasSubscibedToExistingTask = false
+  isMemoryCacheHit = false
+  wasCancelled = false
+}
+```
+
+### Improvements
+
+- Improve main-thread performance by another 20%.
+- `ImagePreheater` now checks `ImageCache` synchronously before creating tasks which makes it more efficient.
+
+### Removed
+
+- Users were confused by separate set of `loadImage(with:into:handler:)` methods so they were removed. There were adding very little convenience for a lot of mental overhead.  It's fairly easy to reimplement them the way you want
+
+### Reworked
+
+- Prefix all classes with *Image* starting with a new ImagePipeline. This makes code more readable. It felt awkward to use types like ‘Request’ in your project. ‘Request’ is an integral part of ‘Nuke’, but you are only using it in your project once or twice.
+
+
 ## Nuke 6.1.1
 
 - Lower macOS deployment target to 10.10. #156.
