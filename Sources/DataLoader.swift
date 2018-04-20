@@ -179,38 +179,3 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     }
 }
 
-// Used to support resumable downloads.
-private struct ResumableData {
-    let data: [Data]
-    let lastModified: String
-
-    // Can only support partial downloads if `Accept-Ranges` is "bytes" and
-    // `Last-Modified` is present.
-    init?(response: URLResponse?, data: [Data]) {
-        guard
-            !data.isEmpty,
-            let response = response as? HTTPURLResponse,
-            response.statusCode == 200 /* OK */ || response.statusCode == 206 /* Partial Content */,
-            let lastModified = response.allHeaderFields["Last-Modified"] as? String,
-            let acceptRanges = response.allHeaderFields["Accept-Ranges"] as? String,
-            acceptRanges.lowercased() == "bytes"
-            else { return nil }
-
-        // NOTE: https://developer.apple.com/documentation/foundation/httpurlresponse/1417930-allheaderfields
-        // HTTP headers are case insensitive. To simplify your code, certain
-        // header field names are canonicalized into their standard form.
-        // For example, if the server sends a content-length header,
-        // it is automatically adjusted to be Content-Length.
-
-        self.data = data; self.lastModified = lastModified
-    }
-
-    func resumed(request: URLRequest) -> URLRequest {
-        var request = request
-        var headers = request.allHTTPHeaderFields ?? [:]
-        headers["Range"] = "bytes=%tu-\(data.count)"
-        headers["If-Range"] = lastModified
-        request.allHTTPHeaderFields = headers
-        return request
-    }
-}

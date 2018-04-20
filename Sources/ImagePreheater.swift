@@ -98,7 +98,7 @@ public final class ImagePreheater {
     private final class Task {
         let key: AnyHashable
         let request: ImageRequest
-        let cts = CancellationTokenSource()
+        let cts = _CancellationTokenSource()
 
         init(request: ImageRequest, key: AnyHashable) {
             self.request = request

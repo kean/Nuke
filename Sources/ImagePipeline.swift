@@ -488,7 +488,7 @@ public /* final */ class ImagePipeline {
         /// The original request with which the session was created.
         let request: ImageRequest
         let key: AnyHashable // loading key
-        let cts = CancellationTokenSource()
+        let cts = _CancellationTokenSource()
 
         // Registered tasks.
         var tasks = Set<ImageTask>()

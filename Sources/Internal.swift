@@ -30,7 +30,7 @@ internal final class RateLimiter {
     private var pending = LinkedList<Task>() // fast append, fast remove first
     private var isExecutingPendingTasks = false
 
-    private typealias Task = (CancellationToken, () -> Void)
+    private typealias Task = (_CancellationToken, () -> Void)
 
     /// Initializes the `RateLimiter` with the given configuration.
     /// - parameter queue: Queue on which to execute pending tasks.
@@ -42,7 +42,7 @@ internal final class RateLimiter {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
-    internal func execute(token: CancellationToken, _ closure: @escaping () -> Void) {
+    internal func execute(token: _CancellationToken, _ closure: @escaping () -> Void) {
         let task = Task(token, closure)
         if !pending.isEmpty || !_execute(task) {
             pending.append(task)
@@ -276,6 +276,128 @@ internal final class DataBuffer {
             buffer.append(chunk)
         }
         return buffer
+    }
+}
+
+// MARK: - CancellationToken
+
+/// Manages cancellation tokens and signals them when cancellation is requested.
+///
+/// All `CancellationTokenSource` methods are thread safe.
+internal final class _CancellationTokenSource {
+    /// Returns `true` if cancellation has been requested.
+    internal var isCancelling: Bool {
+        return _lock.sync { _observers == nil }
+    }
+
+    /// Creates a new token associated with the source.
+    internal var token: _CancellationToken {
+        return _CancellationToken(source: self)
+    }
+
+    private var _observers: ContiguousArray<() -> Void>? = []
+
+    /// Initializes the `CancellationTokenSource` instance.
+    internal init() {}
+
+    fileprivate func register(_ closure: @escaping () -> Void) {
+        if !_register(closure) {
+            closure()
+        }
+    }
+
+    private func _register(_ closure: @escaping () -> Void) -> Bool {
+        _lock.lock(); defer { _lock.unlock() }
+        _observers?.append(closure)
+        return _observers != nil
+    }
+
+    /// Communicates a request for cancellation to the managed tokens.
+    internal func cancel() {
+        if let observers = _cancel() {
+            observers.forEach { $0() }
+        }
+    }
+
+    private func _cancel() -> ContiguousArray<() -> Void>? {
+        _lock.lock(); defer { _lock.unlock() }
+        let observers = _observers
+        _observers = nil // transition to `isCancelling` state
+        return observers
+    }
+}
+
+// We use the same lock across different tokens because the design of CTS
+// prevents potential issues. For example, closures registered with a token
+// are never executed inside a lock.
+private let _lock = NSLock()
+
+/// Enables cooperative cancellation of operations.
+///
+/// You create a cancellation token by instantiating a `CancellationTokenSource`
+/// object and calling its `token` property. You then pass the token to any
+/// number of threads, tasks, or operations that should receive notice of
+/// cancellation. When the owning object calls `cancel()`, the `isCancelling`
+/// property on every copy of the cancellation token is set to `true`.
+/// The registered objects can respond in whatever manner is appropriate.
+///
+/// All `CancellationToken` methods are thread safe.
+internal struct _CancellationToken {
+    fileprivate let source: _CancellationTokenSource? // no-op when `nil`
+
+    /// Returns `true` if cancellation has been requested for this token.
+    internal var isCancelling: Bool {
+        return source?.isCancelling ?? false
+    }
+
+    /// Registers the closure that will be called when the token is canceled.
+    /// If this token is already cancelled, the closure will be run immediately
+    /// and synchronously.
+    internal func register(_ closure: @escaping () -> Void) {
+        source?.register(closure)
+    }
+
+    /// Special no-op token which does nothing.
+    internal static var noOp: _CancellationToken {
+        return _CancellationToken(source: nil)
+    }
+}
+
+// MARK: - ResumableData
+
+// Used to support resumable downloads.
+internal struct ResumableData {
+    let data: [Data]
+    let lastModified: String
+
+    // Can only support partial downloads if `Accept-Ranges` is "bytes" and
+    // `Last-Modified` is present.
+    init?(response: URLResponse?, data: [Data]) {
+        guard
+            !data.isEmpty,
+            let response = response as? HTTPURLResponse,
+            response.statusCode == 200 /* OK */ || response.statusCode == 206 /* Partial Content */,
+            let lastModified = response.allHeaderFields["Last-Modified"] as? String,
+            let acceptRanges = response.allHeaderFields["Accept-Ranges"] as? String,
+            acceptRanges.lowercased() == "bytes"
+            else { return nil }
+
+        // NOTE: https://developer.apple.com/documentation/foundation/httpurlresponse/1417930-allheaderfields
+        // HTTP headers are case insensitive. To simplify your code, certain
+        // header field names are canonicalized into their standard form.
+        // For example, if the server sends a content-length header,
+        // it is automatically adjusted to be Content-Length.
+
+        self.data = data; self.lastModified = lastModified
+    }
+
+    func resumed(request: URLRequest) -> URLRequest {
+        var request = request
+        var headers = request.allHTTPHeaderFields ?? [:]
+        headers["Range"] = "bytes=%tu-\(data.count)"
+        headers["If-Range"] = lastModified
+        request.allHTTPHeaderFields = headers
+        return request
     }
 }
 
