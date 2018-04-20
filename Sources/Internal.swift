@@ -243,42 +243,6 @@ internal final class LinkedList<Element> {
     }
 }
 
-// MARK: - DataBuffer
-
-/// Buffer optimized for non-progressive requests. We keep chunks separately as
-/// the arreive. Those same chunks are stored as resumable data in `DataLoader`.
-/// We combine the chunks once when all data is loaded.
-/// P.S. Might be doing something stupid here, need to profile - in theory it
-/// all checks out.
-internal final class DataBuffer {
-    private let isProgressive: Bool
-    private lazy var chunks = [Data]()
-    private lazy var buffer = Data()
-
-    init(isProgressive: Bool) {
-        self.isProgressive = isProgressive
-    }
-
-    func append(_ data: Data) {
-        isProgressive ? buffer.append(data) : chunks.append(data)
-    }
-
-    var data: Data {
-        if isProgressive {
-            return self.buffer
-        }
-        if chunks.count == 1 { // Micro optimization when image from cache / small
-            return chunks[0]
-        }
-        let count = chunks.reduce(0, { $0 + $1.count })
-        var buffer = Data(capacity: count)
-        for chunk in chunks {
-            buffer.append(chunk)
-        }
-        return buffer
-    }
-}
-
 // MARK: - CancellationToken
 
 /// Manages cancellation tokens and signals them when cancellation is requested.
@@ -367,12 +331,12 @@ internal struct _CancellationToken {
 
 // Used to support resumable downloads.
 internal struct ResumableData {
-    let data: [Data]
+    let data: Data
     let lastModified: String
 
     // Can only support partial downloads if `Accept-Ranges` is "bytes" and
     // `Last-Modified` is present.
-    init?(response: URLResponse?, data: [Data]) {
+    init?(response: URLResponse?, data: Data) {
         guard
             !data.isEmpty,
             let response = response as? HTTPURLResponse,
@@ -391,13 +355,17 @@ internal struct ResumableData {
         self.data = data; self.lastModified = lastModified
     }
 
-    func resumed(request: URLRequest) -> URLRequest {
-        var request = request
+    func resume(request: inout URLRequest) {
         var headers = request.allHTTPHeaderFields ?? [:]
-        headers["Range"] = "bytes=%tu-\(data.count)"
+        headers["Range"] = "bytes=\(data.count)-"
         headers["If-Range"] = lastModified
         request.allHTTPHeaderFields = headers
-        return request
+    }
+
+    // Check if the server decided to resume the response.
+    static func isResumedResponse(_ response: URLResponse) -> Bool {
+        // "206 Partial Content" (server accepted "If-Range")
+        return (response as? HTTPURLResponse)?.statusCode == 206
     }
 }
 

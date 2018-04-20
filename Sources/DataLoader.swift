@@ -101,7 +101,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     let queue = OperationQueue()
 
     private var handlers = [URLSessionTask: _Handler]()
-    private var resumableDataCache = _Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100)
 
     override init() {
         self.queue.maxConcurrentOperationCount = 1
@@ -109,19 +108,11 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
 
     /// Loads data with the given request.
     func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> DataLoadingTask {
-        // Read and remove resumable data from cache (we're going to insert it
-        // back in cache if the request fails again).
-        let resumableData = request.url.flatMap {
-            resumableDataCache.removeValue(forKey: $0.absoluteString)
-        }
-        let request = resumableData?.resumed(request: request) ?? request
         let task = session.dataTask(with: request)
-        let handler = _Handler(data: resumableData?.data, didReceiveData: didReceiveData, completion: completion)
-
+        let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
         queue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
-
         task.resume()
         return task
     }
@@ -129,32 +120,22 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     // MARK: URLSessionDelegate
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
-        guard let handler = handlers[dataTask] else { completionHandler(.cancel); return }
+        guard let handler = handlers[dataTask] else {
+            completionHandler(.cancel)
+            return
+        }
         // Validate response as soon as we receive it can cancel the request if necessary
         if let error = validate(response) {
             handler.completion(error)
             completionHandler(.cancel)
             return
         }
-        for data in handler.data { // Send all resumable data (if any) to the consumer
-            handler.didReceiveData(data, response)
-        }
         completionHandler(.allow)
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        guard let handler = handlers[task] else { return }
+        guard let handler = handlers[task] else {return }
         handlers[task] = nil
-
-        if error != nil {
-            // Try to save resumable data in case the task was cancelled
-            // (`URLError.cancelled`) or failed to complete with other error.
-            if let resumableData = ResumableData(response: task.response, data: handler.data),
-                let url = task.originalRequest?.url  {
-                resumableDataCache.set(resumableData, forKey: url.absoluteString, cost: handler.data.count)
-            }
-        }
-
         handler.completion(error)
     }
 
@@ -162,17 +143,15 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         guard let handler = handlers[dataTask], let response = dataTask.response else { return }
-        handler.data.append(data)
+        // We don't store data anywhere, just send it to the pipeline.
         handler.didReceiveData(data, response)
     }
 
     private final class _Handler {
-        var data: [Data]
         let didReceiveData: (Data, URLResponse) -> Void
         let completion: (Error?) -> Void
 
-        init(data: [Data]?, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) {
-            self.data = data ?? [Data]()
+        init(didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) {
             self.didReceiveData = didReceiveData
             self.completion = completion
         }

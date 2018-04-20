@@ -76,10 +76,11 @@ public /* final */ class ImageTask: Hashable {
 public /* final */ class ImagePipeline {
     public let configuration: Configuration
 
-    // Synchornized access to sessions.
+    // This is a queue on which we access the sessions.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline")
 
-    private let decodingQueue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline.DecodingQueue")
+    // On this queue we access data buffers and perform decoding.
+    private let dataQueue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline.DecodingQueue")
 
     // Image loading sessions. One or more tasks can be handled by the same session.
     private var sessions = [AnyHashable: Session]()
@@ -88,6 +89,10 @@ public /* final */ class ImagePipeline {
     private var nextSessionId: Int32 = 0
 
     private let rateLimiter: RateLimiter
+
+    /// Shared between multiple pipelines. In the future version we might feature
+    /// more customization options.
+    private static var resumableDataCache = _Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100)
 
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
@@ -213,12 +218,13 @@ public /* final */ class ImagePipeline {
             task.metrics.wasCancelled = true
             task.metrics.timeCompleted = _now()
 
-            guard let session = task.session else { return } // exeuting == true
+            guard let session = task.session else { return } // executing == true
             session.tasks.remove(task)
             // Cancel the session when there are no remaining tasks.
             if session.tasks.isEmpty {
-                session.cts.cancel()
+                self._tryToSaveResumableData(for: session)
                 self._removeSession(session)
+                session.cts.cancel()
             }
         }
     }
@@ -273,32 +279,13 @@ public /* final */ class ImagePipeline {
 
     private func _loadData(for session: Session) {
         let token = session.cts.token
-        let request = session.request.urlRequest
-
         guard !token.isCancelling else { return } // Preflight check
 
         // Wrap data request in an operation to limit maximum number of
         // concurrent data tasks.
         let operation = Operation(starter: { [weak self, weak session] finish in
-            let task = self?.configuration.dataLoader.loadData(
-                with: request,
-                didReceiveData: { (data, response) in
-                    self?.queue.async {
-                        guard let session = session else { return }
-                        self?._session(session, didReceiveData: data, response: response)
-                    }
-                },
-                completion: { (error) in
-                    finish() // Important! Mark Operation as finished.
-                    self?.queue.async {
-                        guard let session = session else { return }
-                        self?._session(session, didFinishLoadingDataWithError: error)
-                    }
-            })
-            token.register {
-                task?.cancel()
-                finish() // Make sure we always finish the operation.
-            }
+            guard let session = session else { finish(); return }
+            self?._actuallyLoadData(for: session, finish: finish)
         })
 
         operation.queuePriority = session.priority.queuePriority
@@ -310,9 +297,55 @@ public /* final */ class ImagePipeline {
         session.dataOperation = operation
     }
 
+    // This methods gets called inside data loading operation (Operation).
+    private func _actuallyLoadData(for session: Session, finish: @escaping () -> Void) {
+        var urlRequest = session.request.urlRequest
+
+        // Read and remove resumable data from cache (we're going to insert it
+        // back in cache if the request fails again).
+        if let url = urlRequest.url?.absoluteString,
+            let resumableData = ImagePipeline.resumableDataCache.removeValue(forKey: url) {
+            // Update headers to add "Range" and "If-Range" headers
+            resumableData.resume(request: &urlRequest)
+            // Save resumable data so that when we receive the first response
+            // we can use it (in case resumable data wasn't stale).
+            session.resumableData = resumableData
+        }
+
+        let task = configuration.dataLoader.loadData(
+            with: urlRequest,
+            didReceiveData: { [weak self, weak session] (data, response) in
+                self?.queue.async {
+                    guard let session = session else { return }
+                    self?._session(session, didReceiveData: data, response: response)
+                }
+            },
+            completion: { [weak self, weak session] (error) in
+                finish() // Important! Mark Operation as finished.
+                self?.queue.async {
+                    guard let session = session else { return }
+                    self?._session(session, didFinishLoadingDataWithError: error)
+                }
+        })
+        session.cts.token.register {
+            task.cancel()
+            finish() // Make sure we always finish the operation.
+        }
+    }
+
     private func _session(_ session: Session, didReceiveData data: Data, response: URLResponse) {
+        // This is the first response that we've received.
+        if session.urlResponse == nil, let resumableData = session.resumableData {
+            if ResumableData.isResumedResponse(response) {
+                session.data = resumableData.data
+                session.downloadedDataCount = resumableData.data.count
+            }
+            session.resumableData = nil // Get rid of resumable data anyway
+        }
+
         let downloadedDataCount = session.downloadedDataCount + data.count
         session.downloadedDataCount = downloadedDataCount
+        session.urlResponse = response
 
         // Save boring metrics
         session.metrics.downloadedDataCount = downloadedDataCount
@@ -332,17 +365,17 @@ public /* final */ class ImagePipeline {
 
         // Create a decoding session (if none) which consists of a data buffer
         // and an image decoder. We access both exclusively on `decodingQueue`.
-        if session.decoding == nil {
+        if session.decoder == nil {
             let context = ImageDecodingContext(request: session.request, urlResponse: response, data: data)
-            session.decoding = (configuration.imageDecoder(context), DataBuffer(isProgressive: isProgerssive))
+            session.decoder = configuration.imageDecoder(context)
         }
-        let (decoder, buffer) = session.decoding!
+        let decoder = session.decoder!
 
-        decodingQueue.async { [weak self, weak session] in
+        dataQueue.async { [weak self, weak session] in
             guard let session = session else { return }
 
             // Append data (we always do it)
-            buffer.append(data)
+            session.data.append(data)
 
             // Check if progressive decoding is enabled (disabled by default)
             guard isProgerssive else { return }
@@ -354,7 +387,7 @@ public /* final */ class ImagePipeline {
             guard data.count < response.expectedContentLength else { return }
 
             // Produce partial image
-            guard let image = decoder.decode(data: buffer.data, isFinal: false) else { return }
+            guard let image = decoder.decode(data: session.data, isFinal: false) else { return }
             let scanNumber: Int? = (decoder as? ImageDecoder)?.numberOfScans // Need a public way to implement this.
             self?.queue.async {
                 self?._session(session, didDecodePartialImage: image, scanNumber: scanNumber)
@@ -365,17 +398,40 @@ public /* final */ class ImagePipeline {
     private func _session(_ session: Session, didFinishLoadingDataWithError error: Swift.Error?) {
         session.metrics.timeDataLoadingFinished = _now()
 
-        guard error == nil, session.downloadedDataCount > 0, let (decoder, buffer) = session.decoding else {
+        guard error == nil else {
+            _tryToSaveResumableData(for: session)
+
             _session(session, completedWith: .failure(error ?? Error.decodingFailed))
             return
         }
 
-        decodingQueue.async { [weak self, weak session] in
+        // A few checks, which we should never encounter those cases in practice
+        guard session.downloadedDataCount > 0, let decoder = session.decoder else {
+            _session(session, completedWith: .failure(error ?? Error.decodingFailed))
+            return
+        }
+
+        dataQueue.async { [weak self, weak session] in
             guard let session = session else { return }
             // Produce final image
-            let image = autoreleasepool { decoder.decode(data: buffer.data, isFinal: true) }
+            let image = autoreleasepool {
+                decoder.decode(data: session.data, isFinal: true)
+            }
+            session.data.removeAll() // We no longer need the data.
             self?.queue.async {
                 self?._session(session, didDecodeImage: image)
+            }
+        }
+    }
+
+    private func _tryToSaveResumableData(for session: Session) {
+        // Try to save resumable data in case the task was cancelled
+        // (`URLError.cancelled`) or failed to complete with other error.
+        if let response = session.urlResponse, session.downloadedDataCount > 0, let url = session.request.urlRequest.url {
+            dataQueue.async { // We can only access data buffer on this queue
+                if let resumableData = ResumableData(response: response, data: session.data) {
+                    ImagePipeline.resumableDataCache.set(resumableData, forKey: url.absoluteString, cost: session.data.count)
+                }
             }
         }
     }
@@ -407,7 +463,7 @@ public /* final */ class ImagePipeline {
     }
 
     private func _session(_ session: Session, didDecodeImage image: Image?) {
-        session.decoding = nil // Decoding session completed, free resources
+        session.decoder = nil // Decoding session completed, no longer need decoder.
         session.metrics.timeDecodingFinished = _now()
 
         guard let image = image else {
@@ -483,21 +539,27 @@ public /* final */ class ImagePipeline {
     /// subscribe to and unsubscribe from it.
     fileprivate final class Session {
         let sessionId: Int
-        var isCompleted: Bool = false
+        var isCompleted: Bool = false // there is probably a way to remote this
 
         /// The original request with which the session was created.
         let request: ImageRequest
         let key: AnyHashable // loading key
         let cts = _CancellationTokenSource()
 
-        // Registered tasks.
+        // Registered image tasks.
         var tasks = Set<ImageTask>()
 
+        // Data loading session.
         weak var dataOperation: Foundation.Operation?
         var downloadedDataCount: Int = 0
+        var urlResponse: URLResponse?
+        var resumableData: ResumableData?
+        lazy var data = Data() // Can only be access to dataQueue!
 
-        var decoding: (ImageDecoding, DataBuffer)?
+        // Decoding session.
+        var decoder: ImageDecoding?
 
+        // Progressive decoding.
         var processingPartialOperation: Foundation.Operation?
 
         // Metrics that we collect during the lifetime of a session.
