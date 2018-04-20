@@ -136,6 +136,9 @@ public /* final */ class ImagePipeline {
         /// `false` by default.
         public var isProgressiveDecodingEnabled = false
 
+        /// `true` by default.
+        public var isResumableDataEnabled = true
+
         /// Creates default configuration.
         /// - parameter dataLoader: `DataLoader()` by default.
         /// - parameter imageCache: `Cache.shared` by default.
@@ -303,7 +306,8 @@ public /* final */ class ImagePipeline {
 
         // Read and remove resumable data from cache (we're going to insert it
         // back in cache if the request fails again).
-        if let url = urlRequest.url?.absoluteString,
+        if configuration.isResumableDataEnabled,
+            let url = urlRequest.url?.absoluteString,
             let resumableData = ImagePipeline.resumableDataCache.removeValue(forKey: url) {
             // Update headers to add "Range" and "If-Range" headers
             resumableData.resume(request: &urlRequest)
@@ -427,7 +431,10 @@ public /* final */ class ImagePipeline {
     private func _tryToSaveResumableData(for session: Session) {
         // Try to save resumable data in case the task was cancelled
         // (`URLError.cancelled`) or failed to complete with other error.
-        if let response = session.urlResponse, session.downloadedDataCount > 0, let url = session.request.urlRequest.url {
+        if configuration.isResumableDataEnabled,
+            let response = session.urlResponse,
+            session.downloadedDataCount > 0, // Just in case
+            let url = session.request.urlRequest.url {
             dataQueue.async { // We can only access data buffer on this queue
                 if let resumableData = ResumableData(response: response, data: session.data) {
                     ImagePipeline.resumableDataCache.set(resumableData, forKey: url.absoluteString, cost: session.data.count)
