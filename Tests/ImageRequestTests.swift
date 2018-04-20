@@ -5,7 +5,8 @@
 import XCTest
 @testable import Nuke
 
-class RequestTests: XCTestCase {
+class ImageRequestTests: XCTestCase {
+
     // MARK: CoW
 
     func testThatStructSemanticsArePreserved() {
@@ -51,7 +52,7 @@ class RequestTests: XCTestCase {
     }
 }
 
-class RequestCacheKeyTests: XCTestCase {
+class ImageRequestCacheKeyTests: XCTestCase {
     func testDefaults() {
         let request = ImageRequest(url: defaultURL)
         XCTAssertEqual(request.cacheKey, request.cacheKey) // equal to itself
@@ -96,7 +97,7 @@ class RequestCacheKeyTests: XCTestCase {
     }
 }
 
-class RequestLoadKeyTests: XCTestCase {
+class ImageRequestLoadKeyTests: XCTestCase {
     func testDefaults() {
         let request = ImageRequest(url: defaultURL)
         XCTAssertEqual(request.loadKey, request.loadKey)

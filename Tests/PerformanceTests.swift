@@ -36,10 +36,10 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             $0.isDeduplicationEnabled = false
 
             // Disables processing which takes a bulk of time.
-            $0.processor = { (_,_) in nil }
+            $0.imageProcessor = { (_,_,_) in nil }
         }
 
-        let urls = (0..<1_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
+        let urls = (0...1_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
         measure {
             expect { fulfil in
                 var finished: Int = 0

@@ -5,11 +5,14 @@
 import Foundation
 import Nuke
 
-private let data: Data = {
-    let bundle = Bundle(for: MockDataLoader.self)
-    let URL = bundle.url(forResource: "Image", withExtension: "jpg")
-    return try! Data(contentsOf: URL!)
-}()
+private let data: Data = Test.data(name: "fixture", extension: "jpeg")
+
+private final class MockDataTask: DataLoadingTask {
+    var _cancel: () -> Void = { }
+    func cancel() {
+        _cancel()
+    }
+}
 
 class MockDataLoader: DataLoading {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
@@ -19,28 +22,37 @@ class MockDataLoader: DataLoading {
     var results = [URL: Result<(Data, URLResponse)>]()
     let queue = OperationQueue()
 
-    func loadData(with request: URLRequest, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> DataLoadingTask {
+        let task = MockDataTask()
+
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
-        token?.register {
-            NotificationCenter.default.post(name: MockDataLoader.DidCancelTask, object: self)
-        }
-        
+
         createdTaskCount += 1
 
         let operation = BlockOperation() {
-            progress?(10, 20)
-            progress?(20, 20)
-            
             if let result = self.results[request.url!] {
-                completion(result)
+                switch result {
+                case let .success(val):
+                    let data = val.0
+                    assert(!data.isEmpty)
+                    didReceiveData(data.prefix(data.count / 2), val.1)
+                    didReceiveData(data.suffix(data.count / 2), val.1)
+                    completion(nil)
+                case let .failure(err):
+                    completion(err)
+                }
             } else {
-                completion(.success((data, URLResponse())))
+                didReceiveData(data, URLResponse())
+                completion(nil)
             }
         }
         queue.addOperation(operation)
 
-        token?.register {
+        task._cancel = {
+            NotificationCenter.default.post(name: MockDataLoader.DidCancelTask, object: self)
             operation.cancel()
         }
+
+        return task
     }
 }

@@ -14,8 +14,6 @@ import Foundation
     public typealias Image = UIImage
 #endif
 
-// MARK: - ImageTarget
-
 /// Represents a target for image loading.
 public protocol ImageTarget: class {
     /// Callback that gets called when the request is completed.
@@ -24,8 +22,8 @@ public protocol ImageTarget: class {
 
 /// Loads an image into the given target. See the corresponding
 /// `loadImage(with:into)` method that takes `Request` for more info.
-public func loadImage(with url: URL, pipeline: ImagePipeline = ImagePipeline.shared, into target: ImageTarget) {
-    loadImage(with: ImageRequest(url: url), pipeline: pipeline, into: target)
+@discardableResult public func loadImage(with url: URL, pipeline: ImagePipeline = ImagePipeline.shared, into target: ImageTarget) -> ImageTask? {
+    return loadImage(with: ImageRequest(url: url), pipeline: pipeline, into: target)
 }
 
 /// Loads an image into the given target. Cancels previous outstanding request
@@ -36,7 +34,7 @@ public func loadImage(with url: URL, pipeline: ImagePipeline = ImagePipeline.sha
 ///
 /// `Manager` keeps a weak reference to the target. If the target deallocates
 /// the associated request automatically gets cancelled.
-public func loadImage(with request: ImageRequest, pipeline: ImagePipeline = ImagePipeline.shared, into target: ImageTarget) {
+@discardableResult public func loadImage(with request: ImageRequest, pipeline: ImagePipeline = ImagePipeline.shared, into target: ImageTarget) -> ImageTask? {
     assert(Thread.isMainThread)
 
     let context = getContext(for: target)
@@ -47,7 +45,7 @@ public func loadImage(with request: ImageRequest, pipeline: ImagePipeline = Imag
     if request.memoryCacheOptions.readAllowed,
         let image = pipeline.configuration.imageCache?[request] {
         target.handle(response: .success(image), isFromMemoryCache: true)
-        return
+        return nil
     }
 
     // Make sure that cell reuse is handled correctly.
@@ -61,6 +59,7 @@ public func loadImage(with request: ImageRequest, pipeline: ImagePipeline = Imag
         target?.handle(response: $0, isFromMemoryCache: false)
         context.task = nil
     }
+    return context.task
 }
 
 /// Cancels an outstanding request associated with the target.

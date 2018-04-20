@@ -28,6 +28,10 @@ class ImagePipelineTests: XCTestCase {
     func testThatProgressIsReported() {
         let request = ImageRequest(url: defaultURL)
 
+        dataLoader.results[defaultURL] = .success(
+            (Data(count: 20), URLResponse(url: defaultURL, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
         let expectTaskFinished = makeExpectation()
         let expectProgressFinished = makeExpectation()
 
@@ -36,7 +40,7 @@ class ImagePipelineTests: XCTestCase {
         }
 
         var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
-        task.progress = {
+        task.progressHandler = {
             XCTAssertTrue(Thread.isMainThread)
             XCTAssertTrue(expected.first?.0 == $0)
             XCTAssertTrue(expected.first?.1 == $1)
@@ -54,7 +58,7 @@ class ImagePipelineTests: XCTestCase {
     func testOverridingProcessor() {
         let imagePipeline = ImagePipeline {
             $0.dataLoader = dataLoader
-            $0.imageProcessor = { (_,_) in
+            $0.imageProcessor = { _ in
                 AnyImageProcessor(MockImageProcessor(id: "processorFromOptions"))
             }
         }
@@ -99,7 +103,9 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
     func testThatDecodingFailedErrorIsReturned() {
         let imagePipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
-            $0.dataDecoder = MockFailingDecoder()
+            $0.imageDecoder = { _ in
+                return MockFailingDecoder()
+            }
             $0.imageCache = nil
         }
 
@@ -223,6 +229,9 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     }
 
     func testThatProgressIsReported() {
+        dataLoader.results[defaultURL] = .success(
+            (Data(count: 20), URLResponse(url: defaultURL, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
         dataLoader.queue.isSuspended = true
 
         for _ in 0..<3 {
@@ -236,7 +245,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
             }
             
             var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
-            task.progress = {
+            task.progressHandler = {
                 XCTAssertTrue(Thread.isMainThread)
                 XCTAssertTrue(expected.first?.0 == $0)
                 XCTAssertTrue(expected.first?.1 == $1)
@@ -286,14 +295,14 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
 class LoaderMemoryCacheTests: XCTestCase {
     var dataLoader: MockDataLoader!
-    var cache: MockCache!
+    var cache: MockImageCache!
     var loader: ImagePipeline!
 
     override func setUp() {
         super.setUp()
 
         dataLoader = MockDataLoader()
-        cache = MockCache()
+        cache = MockImageCache()
         loader = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = cache

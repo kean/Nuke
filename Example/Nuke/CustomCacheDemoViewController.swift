@@ -1,11 +1,10 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
-import Foundation
+import UIKit
 import Nuke
 import DFCache
-
 
 final class CustomCacheDemoViewController: BasicDemoViewController {
     override func viewDidLoad() {
@@ -29,7 +28,6 @@ final class CustomCacheDemoViewController: BasicDemoViewController {
     }
 }
 
-
 protocol DataCaching {
     func cachedResponse(for request: URLRequest) -> CachedURLResponse?
     func storeResponse(_ response: CachedURLResponse, for request: URLRequest)
@@ -40,31 +38,71 @@ final class CachingDataLoader: DataLoading {
     private let cache: DataCaching
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.CachingDataLoader")
 
+    private final class _Task: DataLoadingTask {
+        weak var loader: CachingDataLoader?
+        var data = [Data]()
+        var response: URLResponse?
+        var isCancelled = false
+        weak var dataLoadingTask: DataLoadingTask?
+
+        func cancel() {
+            loader?._cancel(self)
+        }
+    }
+
     public init(loader: DataLoading, cache: DataCaching) {
         self.loader = loader
         self.cache = cache
     }
 
-    func loadData(with request: URLRequest, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
+    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> DataLoadingTask {
+        let task = _Task()
+        task.loader = self
+
         queue.async { [weak self] in
-            if token?.isCancelling == true {
-                return
-            }
+            guard !task.isCancelled else { return }
+
             if let response = self?.cache.cachedResponse(for: request) {
-                completion(.success((response.data, response.response)))
+                didReceiveData(response.data, response.response)
+                completion(nil)
             } else {
-                self?.loader.loadData(with: request, token: token, progress: progress) {
-                    $0.value.map { self?.store($0, for: request) }
-                    completion($0)
-                }
+                task.dataLoadingTask = self?.loader.loadData(
+                    with: request,
+                    didReceiveData: { (data, response) in
+                        self?.queue.async {
+                            task.data.append(data) // store received data
+                            task.response = response
+                            didReceiveData(data, response) // proxy call
+                        }
+                }, completion: { (error) in
+                    self?.queue.async {
+                        if error == nil {
+                            self?._storeResponse(for: task, request: request)
+                        }
+                        completion(error) // proxy call
+                    }
+                })
             }
+        }
+
+        return task
+    }
+
+    private func _cancel(_ task: _Task) {
+        queue.async {
+            guard !task.isCancelled else { return }
+            task.isCancelled = true
+            task.dataLoadingTask?.cancel()
+            task.dataLoadingTask = nil
         }
     }
 
-    private func store(_ val: (Data, URLResponse), for request: URLRequest) {
-        queue.async { [weak self] in
-            self?.cache.storeResponse(CachedURLResponse(response: val.1, data: val.0), for: request)
-        }
+    private func _storeResponse(for task: _Task, request: URLRequest) {
+        guard let response = task.response, !task.data.isEmpty else { return }
+        var buffer = Data()
+        task.data.forEach { buffer.append($0) }
+        task.data.removeAll()
+        cache.storeResponse(CachedURLResponse(response: response, data: buffer), for: request)
     }
 }
 

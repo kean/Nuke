@@ -4,27 +4,35 @@
 
 import Foundation
 
-public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
-
-/// Loads data.
-public protocol DataLoading {
-    /// Loads data with the given request.
-    func loadData(with request: URLRequest, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void)
+public protocol DataLoadingTask: class {
+    func cancel()
 }
+
+public protocol DataLoading {
+    /// - parameter didReceiveData: Can be called multiple times if streaming
+    /// is supported.
+    /// - parameter completion: Must be called once after all (or none in case
+    /// of an error) `didReceiveData` closures have been called.
+    func loadData(with request: URLRequest,
+                  didReceiveData: @escaping (Data, URLResponse) -> Void,
+                  completion: @escaping (Error?) -> Void) -> DataLoadingTask
+}
+
+extension URLSessionTask: DataLoadingTask {}
 
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading {
     public let session: URLSession
-    private let validate: (Data, URLResponse) -> Swift.Error?
-    private let controller = SessionController()
-    private var resumableDataCache = _Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100)
+    private let _impl: _DataLoader
 
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
-    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration, validate: @escaping (Data, URLResponse) -> Swift.Error? = DataLoader.validate) {
-        self.session = URLSession(configuration: configuration, delegate: controller, delegateQueue: controller.queue)
-        self.validate = validate
+    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration, validate: @escaping (URLResponse) -> Swift.Error? = DataLoader.validate) {
+        self._impl = _DataLoader()
+        self.session = URLSession(configuration: configuration, delegate: _impl, delegateQueue: _impl.queue)
+        self._impl.session = self.session
+        self._impl.validate = validate
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
@@ -37,7 +45,7 @@ public final class DataLoader: DataLoading {
 
     /// Validates `HTTP` responses by checking that the status code is 2xx. If
     /// it's not returns `DataLoader.Error.statusCodeUnacceptable`.
-    public static func validate(data: Data, response: URLResponse) -> Swift.Error? {
+    public static func validate(response: URLResponse) -> Swift.Error? {
         guard let response = response as? HTTPURLResponse else { return nil }
         return (200..<300).contains(response.statusCode) ? nil : Error.statusCodeUnacceptable(response.statusCode)
     }
@@ -63,48 +71,8 @@ public final class DataLoader: DataLoading {
         diskPath: cachePath
     )
 
-    /// Loads data with the given request.
-    public func loadData(with request: URLRequest, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Result<(Data, URLResponse)>) -> Void) {
-        // Needs to cleanup this code.
-
-        let resumableData = request.url.flatMap {
-            resumableDataCache.removeValue(forKey: $0.absoluteString)
-        }
-        let request = resumableData?.resumed(request: request) ?? request
-        let task = session.dataTask(with: request)
-
-        let validate = self.validate
-        let handler = SessionTaskHandler(progress: progress) { [weak self] (data, response, error) in
-            // Try to save resumable data in case the task was cancelled
-            // (`URLError.cancelled`) or failed to complete with other error.
-            if error != nil,
-                let resumableData = ResumableData(response: task.response, data: data),
-                let url = task.originalRequest?.url  {
-                self?.resumableDataCache.set(resumableData, forKey: url.absoluteString, cost: data.count)
-            }
-            // Check if request failed with error
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
-            // Check if response & data non empty
-            guard let response = response, !data.isEmpty else {
-                completion(.failure(Error.responseEmpty))
-                return
-            }
-            // Validate response
-            if let error = validate(data, response) {
-                completion(.failure(error))
-                return
-            }
-            completion(.success((data, response)))
-        }
-        handler.data = resumableData?.data ?? Data()
-
-        controller.register(handler, for: task)
-
-        token?.register { [weak task] in task?.cancel() }
-        task.resume()
+    public func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Swift.Error?) -> Void) -> DataLoadingTask {
+        return _impl.loadData(with: request, didReceiveData: didReceiveData, completion: completion)
     }
 
     /// Errors produced by `DataLoader`.
@@ -112,6 +80,7 @@ public final class DataLoader: DataLoading {
         /// Validation failed.
         case statusCodeUnacceptable(Int)
         /// Either the response or body was empty.
+        @available(*, deprecated, message: "This error case is not used any more")
         case responseEmpty
 
         public var debugDescription: String {
@@ -123,57 +92,101 @@ public final class DataLoader: DataLoading {
     }
 }
 
-private final class SessionController: NSObject, URLSessionDataDelegate {
-    private let lock = NSLock()
+// Actual data loader implementation. We hide NSObject inheritance, hide
+// URLSessionDataDelegate conformance, and break retain cycle between URLSession
+// and URLSessionDataDelegate.
+private final class _DataLoader: NSObject, URLSessionDataDelegate {
+    weak var session: URLSession! // This is safe.
+    var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
     let queue = OperationQueue()
-    private var handlers = [URLSessionTask: SessionTaskHandler]()
+
+    private var handlers = [URLSessionTask: _Handler]()
+    private var resumableDataCache = _Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100)
 
     override init() {
-        queue.maxConcurrentOperationCount = 1
+        self.queue.maxConcurrentOperationCount = 1
     }
 
-    func register(_ handler: SessionTaskHandler, for task: URLSessionTask) {
+    /// Loads data with the given request.
+    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> DataLoadingTask {
+        // Read and remove resumable data from cache (we're going to insert it
+        // back in cache if the request fails again).
+        let resumableData = request.url.flatMap {
+            resumableDataCache.removeValue(forKey: $0.absoluteString)
+        }
+        let request = resumableData?.resumed(request: request) ?? request
+        let task = session.dataTask(with: request)
+        let handler = _Handler(data: resumableData?.data, didReceiveData: didReceiveData, completion: completion)
+
         queue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
+
+        task.resume()
+        return task
     }
 
     // MARK: URLSessionDelegate
 
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+        guard let handler = handlers[dataTask] else { completionHandler(.cancel); return }
+        // Validate response as soon as we receive it can cancel the request if necessary
+        if let error = validate(response) {
+            handler.completion(error)
+            completionHandler(.cancel)
+            return
+        }
+        for data in handler.data { // Send all resumable data (if any) to the consumer
+            handler.didReceiveData(data, response)
+        }
+        completionHandler(.allow)
+    }
+
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         guard let handler = handlers[task] else { return }
-        handler.completion(handler.data, task.response, error)
         handlers[task] = nil
+
+        if error != nil {
+            // Try to save resumable data in case the task was cancelled
+            // (`URLError.cancelled`) or failed to complete with other error.
+            if let resumableData = ResumableData(response: task.response, data: handler.data),
+                let url = task.originalRequest?.url  {
+                resumableDataCache.set(resumableData, forKey: url.absoluteString, cost: handler.data.count)
+            }
+        }
+
+        handler.completion(error)
     }
 
     // MARK: URLSessionDataDelegate
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        guard let handler = handlers[dataTask] else { return }
+        guard let handler = handlers[dataTask], let response = dataTask.response else { return }
         handler.data.append(data)
-        handler.progress?(dataTask.countOfBytesReceived, dataTask.countOfBytesExpectedToReceive)
+        handler.didReceiveData(data, response)
     }
-}
 
-private final class SessionTaskHandler {
-    var data = Data()
-    let progress: ProgressHandler?
-    let completion: (Data, URLResponse?, Error?) -> Void
+    private final class _Handler {
+        var data: [Data]
+        let didReceiveData: (Data, URLResponse) -> Void
+        let completion: (Error?) -> Void
 
-    init(progress: ProgressHandler?, completion: @escaping (Data, URLResponse?, Error?) -> Void) {
-        self.progress = progress
-        self.completion = completion
+        init(data: [Data]?, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) {
+            self.data = data ?? [Data]()
+            self.didReceiveData = didReceiveData
+            self.completion = completion
+        }
     }
 }
 
 // Used to support resumable downloads.
 private struct ResumableData {
-    let data: Data
+    let data: [Data]
     let lastModified: String
 
     // Can only support partial downloads if `Accept-Ranges` is "bytes" and
     // `Last-Modified` is present.
-    init?(response: URLResponse?, data: Data) {
+    init?(response: URLResponse?, data: [Data]) {
         guard
             !data.isEmpty,
             let response = response as? HTTPURLResponse,

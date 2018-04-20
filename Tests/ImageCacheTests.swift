@@ -5,7 +5,7 @@
 import XCTest
 import Nuke
 
-class CacheTests: XCTestCase {
+class ImageCacheTests: XCTestCase {
     var cache: Nuke.ImageCache!
 
     override func setUp() {
@@ -291,7 +291,7 @@ class CacheTests: XCTestCase {
 }
 
 class CacheIntegrationTests: XCTestCase {
-    var mockCache: MockCache!
+    var mockCache: MockImageCache!
     var mockDataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
     var target: MockTarget!
@@ -299,7 +299,7 @@ class CacheIntegrationTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        mockCache = MockCache()
+        mockCache = MockImageCache()
         mockDataLoader = MockDataLoader()
         pipeline = ImagePipeline {
             $0.dataLoader = mockDataLoader

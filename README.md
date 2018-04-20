@@ -17,7 +17,8 @@ Nuke [takes performance seriously](#h_performance). It employs techniques across
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) integrations
 - [RxNuke](https://github.com/kean/RxNuke) with RxSwift extensions
 - Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) (*deprecated in iOS 10*)
-- Small (under 1300 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
+- Small (under 1500 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
+- Progressive image loading (Progressive JPEG) 
 - Resumable downloads, request deduplication, rate limiting and more
 
 > [Nuke 7](https://github.com/kean/Nuke/tree/nuke7) is in active development, first beta is already available. It's an early version, the documentation hasn't been fully updated yet and there are still some upcoming changes. If you'd like to contribute or have some suggestions or feature requests please open an issue, a pull request or contact me on [Twitter](https://twitter.com/a_grebenyuk).
@@ -209,6 +210,32 @@ preheater.stopPreheating(for: requests)
 You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`. On iOS 10.0 you might want to use new [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) provided by iOS instead.
 
 > Check out [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
+
+#### Enabling Progressive Decoding
+
+You need a pipeline with progressive decoding enabled:
+
+```swift
+let pipeline = ImagePipeline {
+    $0.isProgressiveDecodingEnabled = true
+}
+```
+
+And that's it, you can start observing images as they are produced by the pipeline:
+
+```swift
+let imageView = UIImageView()
+let task = pipeline.loadImage(with: url) {
+    imageView.image = $0.value
+}
+task.progressiveImageHandler = {
+    imageView.image = $0
+}
+```
+
+The progressive decoding only kicks in when Nuke determines that the image data does contain a progressive JPEG. The decoder intelligently scans the data and only produces a new image when it receives a full new scan (progressive JPEGs normally have around 10 scans).
+
+> See "Progressive Decoding" demo to see progressive JPEG in practice. You can also uncomment the code that blurs the first few scans of the image which makes them look a bit nicer.
 
 #### Using RxNuke
 

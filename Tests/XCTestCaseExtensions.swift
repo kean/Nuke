@@ -6,6 +6,10 @@ import XCTest
 import Foundation
 
 extension XCTestCase {
+    func test(_ name: String, _ closure: @escaping () -> Void) {
+        closure()
+    }
+
     func expect(_ block: (_ fulfill: @escaping () -> Void) -> Void) {
         let expectation = makeExpectation()
         block({ expectation.fulfill() })

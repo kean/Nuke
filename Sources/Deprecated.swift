@@ -143,7 +143,9 @@ public final class Loader: Loading {
     public init(loader: DataLoading, decoder: DataDecoding = DataDecoder(), options: Options = Options()) {
         self.pipeline = ImagePipeline {
             $0.dataLoader = loader
-            $0.dataDecoder = decoder
+            $0.imageDecoder = {
+                return _DataDecoderAdapter(decoder: decoder, response: $0.urlResponse)
+            }
             $0.imageCache = nil
             $0.maxConcurrentDataLoadingTaskCount = options.maxConcurrentDataLoadingTaskCount
             $0.maxConcurrentImageProcessingTaskCount = options.maxConcurrentImageProcessingTaskCount
@@ -199,6 +201,10 @@ public typealias Decompressor = ImageDecompressor
 @available(*, deprecated, message: "Please use `ImagePreheater` instead")
 public typealias Preheater = ImagePreheater
 
+@available(*, deprecated, message: "Please use `ImageTask.Progress` instead")
+public typealias ProgressHandler = ImageTask.ProgressHandler
+
+
 // MARK: - Deprecated ImagePipeline.Configuration Options
 
 public extension ImagePipeline.Configuration {
@@ -222,7 +228,62 @@ public extension ImagePipeline.Configuration {
 
     @available(*, deprecated, message: "Please set `imageProcessor` instead`")
     public var processor: (Image, ImageRequest) -> AnyImageProcessor? {
-        get { return imageProcessor }
-        set { imageProcessor = newValue }
+        get { return { self.imageProcessor(ImageProcessingContext(image: $0, request: $1, isFinal: true, scanNumber: nil)) } }
+        set { imageProcessor = { newValue($0.image, $0.request) } }
+    }
+}
+
+// MARK: - DataDecoding
+
+@available(*, deprecated, message: "Please use `ImageDecoding` instead`")
+public protocol DataDecoding {
+    /// Decodes image data.
+    func decode(data: Data, response: URLResponse) -> Image?
+}
+
+@available(*, deprecated, message: "Please use `ImageDecoder` instead`")
+public struct DataDecoder: DataDecoding {
+    /// Initializes the receiver.
+    public init() {}
+
+    /// Creates an image with the given data.
+    public func decode(data: Data, response: URLResponse) -> Image? {
+        return _decode(data)
+    }
+}
+
+@available(*, deprecated, message: "Please use new `ImageDecoderRegistry` or `IamgePipeline.Configuration.imageDecoder` instead to dynamically decide which decoder to use.")
+public struct DataDecoderComposition: DataDecoding {
+    public let decoders: [DataDecoding]
+
+    /// Composes multiple data decoders.
+    public init(decoders: [DataDecoding]) {
+        self.decoders = decoders
+    }
+
+    /// Decoders are applied in order in which they are present in the decoders
+    /// array. The decoding stops when one of the decoders produces an image.
+    public func decode(data: Data, response: URLResponse) -> Image? {
+        for decoder in decoders {
+            if let image = decoder.decode(data: data, response: response) {
+                return image
+            }
+        }
+        return nil
+    }
+}
+
+@available(*, deprecated, message: "Please use `ImageDecoding` infrastructure instead.")
+internal final class _DataDecoderAdapter: ImageDecoding {
+    private let response: URLResponse
+    private let decoder: DataDecoding
+
+    init(decoder: DataDecoding, response: URLResponse) {
+        self.decoder = decoder
+        self.response = response
+    }
+
+    func decode(data: Data, isFinal: Bool) -> Image? {
+        return decoder.decode(data: data, response: response)
     }
 }

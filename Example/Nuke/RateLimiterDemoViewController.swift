@@ -1,10 +1,9 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
-import Foundation
+import UIKit
 import Nuke
-
 
 private let cellReuseID = "reuseID"
 
@@ -12,7 +11,7 @@ final class RateLimiterDemoViewController: UICollectionViewController {
     var photos: [URL]!
     
     var manager = Nuke.Manager.shared
-    var itemsPerRow = 8
+    var itemsPerRow = 6
     
     override func viewDidLoad() {
         super.viewDidLoad()

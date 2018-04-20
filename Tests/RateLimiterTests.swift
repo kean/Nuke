@@ -5,13 +5,12 @@
 import XCTest
 @testable import Nuke
 
-
 class RateLimiterTests: XCTestCase {
  
     // MARK: Thread Safety
     
     func testThreadSafety() {
-        let limiter = RateLimiter(rate: 10000, burst: 1000)
+        let limiter = RateLimiter(queue: DispatchQueue(label: "RateLimiterTests.testThreadSafety"), rate: 10000, burst: 1000)
         
         // can't figure out how to put closures that accept 
         // escaping closures as parameters directly in the array

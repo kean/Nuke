@@ -5,13 +5,6 @@
 import Foundation
 @testable import Nuke
 
-private let image: Image = {
-    let bundle = Bundle(for: MockImagePipeline.self)
-    let URL = bundle.url(forResource: "Image", withExtension: "jpg")
-    let data = try! Data(contentsOf: URL!)
-    return Nuke.DataDecoder().decode(data: data, response: URLResponse())!
-}()
-
 private class _MockImageTask: ImageTask {
     fileprivate var _cancel: () -> Void = {}
 
@@ -23,7 +16,6 @@ private class _MockImageTask: ImageTask {
         _cancel()
     }
 }
-
 
 class MockImagePipeline: ImagePipeline {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidStartTask")
@@ -53,7 +45,7 @@ class MockImagePipeline: ImagePipeline {
 
         let operation = BlockOperation() {
             DispatchQueue.main.async {
-                let result = self.results[request.urlRequest.url!] ?? .success(image)
+                let result = self.results[request.urlRequest.url!] ?? .success(defaultImage)
                 completion(result)
             }
         }

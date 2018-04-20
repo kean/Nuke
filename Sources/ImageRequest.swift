@@ -104,7 +104,7 @@ public struct ImageRequest {
         get { return _ref.loadKey ?? AnyHashable(LoadKey(request: self)) }
         set { _mutate { $0.loadKey = newValue } }
     }
-
+    
     /// Custom info passed alongside the request.
     public var userInfo: Any? {
         get { return _ref.userInfo }

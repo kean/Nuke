@@ -5,7 +5,6 @@
 import XCTest
 @testable import Nuke
 
-
 class LinkedListTests: XCTestCase {
     let list = LinkedList<Int>()
 

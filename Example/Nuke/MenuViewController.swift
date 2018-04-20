@@ -1,10 +1,9 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2016 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
 import Nuke
-
 
 fileprivate struct MenuItem {
     typealias Action = ((MenuItem) -> Void)
@@ -36,6 +35,8 @@ final class MenuViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        UIApplication.shared.keyWindow?.tintColor = UIColor(red: 0.992, green: 0.243, blue: 0.416, alpha: 1.00)
+
         if #available(iOS 11.0, *) {
             navigationController?.navigationBar.prefersLargeTitles = true
             navigationItem.largeTitleDisplayMode = .automatic
@@ -44,29 +45,51 @@ final class MenuViewController: UITableViewController {
         sections.append(MenuSection(title: "Examples", items: {
             var items = [MenuItem]()
             
-            items.append(MenuItem(title: "Basic", subtitle: "Zero config") { [weak self] in
-                let controller = BasicDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-                controller.title = $0.title
-                self?.push(controller)
-            })
+            items.append(MenuItem(
+                title: "Basic",
+                subtitle: "Zero config",
+                action: { [weak self] in
+                    let controller = BasicDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
             
-            items.append(MenuItem(title: "Custom Cache", subtitle: "Uses DFCache for on-disk caching") { [weak self] in
-                let controller = CustomCacheDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-                controller.title = $0.title
-                self?.push(controller)
-            })
-        
-            items.append(MenuItem(title: "Preheating", subtitle: "Uses Preheat library") { [weak self] in
-                let controller = PreheatingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-                controller.title = $0.title
-                self?.push(controller)
-            })
+            items.append(MenuItem(
+                title: "Custom Cache",
+                subtitle: "Uses DFCache for on-disk caching",
+                action: { [weak self] in
+                    let controller = CustomCacheDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
+
+            items.append(MenuItem(
+                title: "Preheating",
+                subtitle: "Uses Preheat library",
+                action: { [weak self] in
+                    let controller = PreheatingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
             
-            items.append(MenuItem(title: "Rate Limiter", subtitle: "Infinite scroll, highlights rate limiter performance") { [weak self] in
-                let controller = RateLimiterDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-                controller.title = $0.title
-                self?.push(controller)
-            })
+            items.append(MenuItem(
+                title: "Rate Limiter",
+                subtitle: "Infinite scroll, highlights rate limiter performance",
+                action: { [weak self] in
+                    let controller = RateLimiterDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
+
+            items.append(MenuItem(
+                title: "Progressive Decoding",
+                subtitle: "Progressive and baseline JPEG",
+                action: { [weak self] _ in
+                    let controller = ProgressiveDecodingDemoViewController()
+                    controller.title = "Progressive JPEG"
+                    self?.push(controller)
+            }))
+
             return items
         }()))
     }

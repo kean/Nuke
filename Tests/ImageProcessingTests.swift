@@ -9,7 +9,7 @@ import Nuke
     import UIKit
 #endif
 
-class ProcessingTests: XCTestCase {
+class ImageProcessingTests: XCTestCase {
     var mockDataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
 
