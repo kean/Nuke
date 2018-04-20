@@ -91,11 +91,13 @@ private func getContext(for target: AnyObject) -> Context {
 // Context is reused for multiple requests which makes sense, because in
 // most cases image views are also going to be reused (e.g. in a table view)
 private final class Context {
-    var task: ImageTask?
+    weak var task: ImageTask?
     var taskId: Int = 0
 
     // Automatically cancel the request when target deallocates.
-    deinit { task?.cancel() }
+    deinit {
+        task?.cancel()
+    }
 
     static var contextAK = "Context.AssociatedKey"
 }

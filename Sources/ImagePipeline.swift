@@ -10,11 +10,12 @@ import Foundation
 /// delegate queue.
 public /* final */ class ImageTask: Hashable {
     public let taskId: Int
-    private(set) public var request: ImageRequest
+    public private(set) var request: ImageRequest
 
-    public var completedUnitCount: Int64 = 0
-    public var totalUnitCount: Int64 = 0
+    public fileprivate(set) var completedUnitCount: Int64 = 0
+    public fileprivate(set) var totalUnitCount: Int64 = 0
 
+    public var completion: Completion?
     public var progressHandler: ProgressHandler?
     public var progressiveImageHandler: ProgressiveImageHandler?
 
@@ -22,11 +23,10 @@ public /* final */ class ImageTask: Hashable {
     public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
     public typealias ProgressiveImageHandler = (_ image: Image) -> Void
 
-    fileprivate(set) public var metrics: Metrics
+    public fileprivate(set) var metrics: Metrics
 
     fileprivate weak private(set) var pipeline: ImagePipeline?
     fileprivate weak var session: ImagePipeline.Session?
-    fileprivate var isExecuting = false
     fileprivate var isCancelled = false
 
     public init(taskId: Int, request: ImageRequest, pipeline: ImagePipeline) {
@@ -167,17 +167,20 @@ public /* final */ class ImagePipeline {
     /// Loads an image for the given request using image loading pipeline.
     @discardableResult public func loadImage(with request: ImageRequest, completion: @escaping ImageTask.Completion) -> ImageTask {
         let task = ImageTask(taskId: Int(OSAtomicIncrement32(&nextTaskId)), request: request, pipeline: self)
+        task.completion = completion
         queue.async {
             guard !task.isCancelled else { return } // Fast preflight check
-            self._startLoadingImage(for: task, completion: completion)
+            self._startLoadingImage(for: task)
         }
         return task
     }
 
-    private func _startLoadingImage(for task: ImageTask, completion: @escaping ImageTask.Completion) {
+    private func _startLoadingImage(for task: ImageTask) {
         if let image = _cachedImage(for: task.request) {
             task.metrics.isMemoryCacheHit = true
-            DispatchQueue.main.async { completion(.success(image)) }
+            DispatchQueue.main.async {
+                task.completion?(.success(image))
+            }
             return
         }
 
@@ -188,7 +191,7 @@ public /* final */ class ImagePipeline {
         task.metrics.wasSubscibedToExistingTask = !session.tasks.isEmpty
 
         // Register handler with a session.
-        session.tasks[task] = Session.ImageTaskContext(completion: completion)
+        session.tasks.insert(task)
 
         // Update data operation priority (in case it was already started).
         session.dataOperation?.queuePriority = session.priority.queuePriority
@@ -211,7 +214,7 @@ public /* final */ class ImagePipeline {
             task.metrics.timeCompleted = _now()
 
             guard let session = task.session else { return } // exeuting == true
-            session.tasks[task] = nil
+            session.tasks.remove(task)
             // Cancel the session when there are no remaining tasks.
             if session.tasks.isEmpty {
                 session.cts.cancel()
@@ -319,7 +322,7 @@ public /* final */ class ImagePipeline {
         let (completed, total) = (Int64(downloadedDataCount), response.expectedContentLength)
         let tasks = session.tasks
         DispatchQueue.main.async {
-            for task in tasks.keys { // We access tasks only on main thread
+            for task in tasks { // We access tasks only on main thread
                 (task.completedUnitCount, task.totalUnitCount) = (completed, total)
                 task.progressHandler?(completed, total)
             }
@@ -435,7 +438,7 @@ public /* final */ class ImagePipeline {
     private func _session(_ session: Session, didProducePartialImage image: Image) {
         // Check if we haven't completed the session yet by producing a final image.
         guard !session.isCompleted else { return }
-        let tasks = session.tasks.keys
+        let tasks = session.tasks
         DispatchQueue.main.async {
             for task in tasks {
                 task.progressiveImageHandler?(image)
@@ -453,10 +456,10 @@ public /* final */ class ImagePipeline {
         session.processingPartialOperation?.cancel()
 
         let tasks = session.tasks
-        tasks.keys.forEach { $0.metrics.timeCompleted = _now() }
+        tasks.forEach { $0.metrics.timeCompleted = _now() }
         DispatchQueue.main.async {
-            for (_, context) in tasks {
-                context.completion(result)
+            for task in tasks {
+                task.completion?(result)
             }
         }
         _removeSession(session)
@@ -487,9 +490,8 @@ public /* final */ class ImagePipeline {
         let key: AnyHashable // loading key
         let cts = CancellationTokenSource()
 
-        // Associate context with a task but without a direct strong reference
-        // between the two
-        var tasks: [ImageTask: ImageTaskContext] = [:]
+        // Registered tasks.
+        var tasks = Set<ImageTask>()
 
         weak var dataOperation: Foundation.Operation?
         var downloadedDataCount: Int = 0
@@ -501,10 +503,6 @@ public /* final */ class ImagePipeline {
         // Metrics that we collect during the lifetime of a session.
         let metrics: ImageTask.Metrics.SessionMetrics
 
-        struct ImageTaskContext {
-            let completion: ImageTask.Completion
-        }
-
         init(sessionId: Int, request: ImageRequest, key: AnyHashable) {
             self.sessionId = sessionId
             self.request = request
@@ -513,7 +511,7 @@ public /* final */ class ImagePipeline {
         }
 
         var priority: ImageRequest.Priority {
-            return tasks.keys.map { $0.request.priority }.max() ?? .normal
+            return tasks.map { $0.request.priority }.max() ?? .normal
         }
     }
 

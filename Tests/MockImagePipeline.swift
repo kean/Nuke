@@ -46,6 +46,7 @@ class MockImagePipeline: ImagePipeline {
         let operation = BlockOperation() {
             DispatchQueue.main.async {
                 let result = self.results[request.urlRequest.url!] ?? .success(defaultImage)
+                _ = task // Retain task until it's finished (matches ImagePipeline behavior)
                 completion(result)
             }
         }
