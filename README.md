@@ -295,9 +295,9 @@ Most developers either implement their own networking layer or use a third-party
 
 Processed images which are ready to be displayed are stored in a fast in-memory cache (`ImageCache`). It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `ImageCache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
 
-### Resumable Downloads (Beta)
+### Resumable Downloads
 
-If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. The resumable downloads are enabled by default.
+If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. Supports both validators (`ETag`, `Last-Modified`). The resumable downloads are enabled by default.
 
 > By default resumable data is stored in an efficient memory cache. Future versions might include more customization.
 

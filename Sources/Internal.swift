@@ -329,22 +329,23 @@ internal struct _CancellationToken {
 
 // MARK: - ResumableData
 
-// Used to support resumable downloads.
+/// Resumable data support. For more info see:
+/// - https://developer.apple.com/library/content/qa/qa1761/_index.html
+/// - https://developer.mozilla.org/en-US/docs/Web/HTTP/Conditional_requests
 internal struct ResumableData {
     let data: Data
-    let lastModified: String
+    let validator: String // Either Last-Modified or ETag
 
-    // Can only support partial downloads if `Accept-Ranges` is "bytes" and
-    // `Last-Modified` is present.
     init?(response: URLResponse?, data: Data) {
-        guard
-            !data.isEmpty,
+        // Check if "Accept-Ranges" is present and the response is valid.
+        guard !data.isEmpty,
             let response = response as? HTTPURLResponse,
-            response.statusCode == 200 /* OK */ || response.statusCode == 206 /* Partial Content */,
-            let lastModified = response.allHeaderFields["Last-Modified"] as? String,
+            response.statusCode == 200 /* OK */ || response.statusCode == 206, /* Partial Content */
             let acceptRanges = response.allHeaderFields["Accept-Ranges"] as? String,
-            acceptRanges.lowercased() == "bytes"
-            else { return nil }
+            acceptRanges.lowercased() == "bytes",
+            let validator = ResumableData._validator(from: response) else {
+                return nil
+        }
 
         // NOTE: https://developer.apple.com/documentation/foundation/httpurlresponse/1417930-allheaderfields
         // HTTP headers are case insensitive. To simplify your code, certain
@@ -352,13 +353,29 @@ internal struct ResumableData {
         // For example, if the server sends a content-length header,
         // it is automatically adjusted to be Content-Length.
 
-        self.data = data; self.lastModified = lastModified
+        self.data = data; self.validator = validator
+    }
+
+    private static func _validator(from response: HTTPURLResponse) -> String? {
+        if let entityTag = response.allHeaderFields["ETag"] as? String {
+            return entityTag // Prefer ETag
+        }
+        // There seems to be a bug with ETag where HTTPURLResponse would canonicalize
+        // it to Etag instead of ETag
+        // https://bugs.swift.org/browse/SR-2429
+        if let entityTag = response.allHeaderFields["Etag"] as? String {
+            return entityTag // Prefer ETag
+        }
+        if let lastModified = response.allHeaderFields["Last-Modified"] as? String {
+            return lastModified
+        }
+        return nil
     }
 
     func resume(request: inout URLRequest) {
         var headers = request.allHTTPHeaderFields ?? [:]
         headers["Range"] = "bytes=\(data.count)-"
-        headers["If-Range"] = lastModified
+        headers["If-Range"] = validator
         request.allHTTPHeaderFields = headers
     }
 

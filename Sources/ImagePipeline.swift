@@ -404,7 +404,6 @@ public /* final */ class ImagePipeline {
 
         guard error == nil else {
             _tryToSaveResumableData(for: session)
-
             _session(session, completedWith: .failure(error ?? Error.decodingFailed))
             return
         }
