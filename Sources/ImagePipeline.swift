@@ -33,7 +33,7 @@ public /* final */ class ImageTask: Hashable {
         self.taskId = taskId
         self.request = request
         self.pipeline = pipeline
-        self.metrics = Metrics(taskId: taskId, timeStarted: _now())
+        self.metrics = Metrics(taskId: taskId, startDate: Date())
     }
 
     public func cancel() {
@@ -214,7 +214,7 @@ public /* final */ class ImagePipeline {
             task.isCancelled = true
 
             task.metrics.wasCancelled = true
-            task.metrics.timeCompleted = _now()
+            task.metrics.endDate = Date()
 
             guard let session = task.session else { return } // executing == true
             session.tasks.remove(task)
@@ -225,7 +225,7 @@ public /* final */ class ImagePipeline {
                 session.cts.cancel()
 
                 session.metrics.wasCancelled = true
-                session.metrics.timeCompleted = _now()
+                session.metrics.endDate = Date()
             }
         }
     }
@@ -281,13 +281,13 @@ public /* final */ class ImagePipeline {
     private func _loadData(for session: Session) {
         guard !session.token.isCancelling else { return } // Preflight check
 
-        session.metrics.timeDataLoadingEnqueued = _now()
-
         // Wrap data request in an operation to limit maximum number of
         // concurrent data tasks.
         let operation = Operation(starter: { [weak self, weak session] finish in
             guard let session = session else { finish(); return }
-            self?._actuallyLoadData(for: session, finish: finish)
+            self?.queue.async {
+                self?._actuallyLoadData(for: session, finish: finish)
+            }
         })
 
         operation.queuePriority = session.priority.queuePriority
@@ -299,7 +299,7 @@ public /* final */ class ImagePipeline {
 
     // This methods gets called inside data loading operation (Operation).
     private func _actuallyLoadData(for session: Session, finish: @escaping () -> Void) {
-        session.metrics.timeDataLoadingStarted = _now()
+        session.metrics.dataLoadingStartDate = Date()
 
         var urlRequest = session.request.urlRequest
 
@@ -312,6 +312,10 @@ public /* final */ class ImagePipeline {
             // Save resumable data so that we could use it later (we need to
             // verify that server returns "206 Partial Content" before using it.
             session.resumableData = resumableData
+
+            // Collect metrics
+            session.metrics.wasResumed = true
+            session.metrics.resumedDataCount = resumableData.data.count
         }
 
         let task = configuration.dataLoader.loadData(
@@ -342,10 +346,7 @@ public /* final */ class ImagePipeline {
             if let resumableData = session.resumableData {
                 if ResumableData.isResumedResponse(response) {
                     session.data = resumableData.data
-
-                    // Collect metrics
-                    session.metrics.wasResumed = true
-                    session.metrics.resumedDataCount = resumableData.data.count
+                    session.metrics.serverConfirmedResume = true
                 }
                 session.resumableData = nil // Get rid of resumable data anyway
             }
@@ -411,7 +412,7 @@ public /* final */ class ImagePipeline {
     }
 
     private func _session(_ session: Session, didFinishLoadingDataWithError error: Swift.Error?) {
-        session.metrics.timeDataLoadingFinished = _now()
+        session.metrics.dataLoadingEndDate = Date()
 
         guard error == nil else {
             _tryToSaveResumableData(for: session)
@@ -429,16 +430,15 @@ public /* final */ class ImagePipeline {
         session.data.removeAll() // We no longer need the data stored in session.
 
         let metrics = session.metrics
-        metrics.timeDecodingEnqueued = _now()
 
         decodingQueue.async { [weak self, weak session] in
             guard let session = session else { return }
-            metrics.timeDecodingStarted = _now()
+            metrics.decodingStartDate = Date()
             // Produce final image
             let image = autoreleasepool {
                 decoder.decode(data: data, isFinal: true)
             }
-            metrics.timeDecodingFinished = _now()
+            metrics.decodingEndDate = Date()
             self?.queue.async {
                 self?._session(session, didDecodeImage: image)
             }
@@ -483,7 +483,7 @@ public /* final */ class ImagePipeline {
 
     private func _session(_ session: Session, didDecodeImage image: Image?) {
         session.decoder = nil // Decoding session completed, no longer need decoder.
-        session.metrics.timeDecodingFinished = _now()
+        session.metrics.decodingEndDate = Date()
 
         guard let image = image else {
             _session(session, completedWith: .failure(Error.decodingFailed))
@@ -498,16 +498,15 @@ public /* final */ class ImagePipeline {
         }
 
         let metrics = session.metrics
-        metrics.timeProcessingEnqueued = _now()
 
         let operation = BlockOperation { [weak self, weak session] in
             guard let session = session else { return }
-            metrics.timeProcessingStarted = _now()
+            metrics.processingStartDate = Date()
             let image = autoreleasepool { processor.process(image) }
             let result = image.map(Result.success) ?? .failure(Error.processingFailed)
-            metrics.timeProcessingFinished = _now()
+            metrics.processingEndDate = Date()
             self?.queue.async {
-                session.metrics.timeProcessingFinished = _now()
+                session.metrics.processingEndDate = Date()
                 self?._session(session, completedWith: result)
             }
         }
@@ -531,13 +530,13 @@ public /* final */ class ImagePipeline {
             _store(image: image, for: session.request)
         }
         session.isCompleted = true
-        session.metrics.timeCompleted = _now()
+        session.metrics.endDate = Date()
 
         // Cancel any outstanding parital processing.
         session.processingPartialOperation?.cancel()
 
         let tasks = session.tasks
-        tasks.forEach { $0.metrics.timeCompleted = _now() }
+        tasks.forEach { $0.metrics.endDate = Date() }
         DispatchQueue.main.async {
             for task in tasks {
                 task.completion?(result)
@@ -622,23 +621,79 @@ public /* final */ class ImagePipeline {
 // MARK - Metrics
 
 extension ImageTask {
-    public struct Metrics {
-
-        // Timings
-
+    public final class Metrics: CustomDebugStringConvertible {
         public let taskId: Int
-        public let timeStarted: TimeInterval
-        public fileprivate(set) var timeCompleted: TimeInterval? // failed or completed
+        public fileprivate(set) var wasCancelled: Bool = false
+        public fileprivate(set) var session: SessionMetrics?
+
+        public let startDate: Date
+        public fileprivate(set) var endDate: Date? // failed or completed
+        public var totalDuration: TimeInterval? {
+            guard let endDate = endDate else { return nil }
+            return endDate.timeIntervalSince(startDate)
+        }
+
+        /// Returns `true` is the task wasn't the one that initiated image loading.
+        public fileprivate(set) var wasSubscibedToExistingSession: Bool = false
+        public fileprivate(set) var isMemoryCacheHit: Bool = false
+
+        init(taskId: Int, startDate: Date) {
+            self.taskId = taskId; self.startDate = startDate
+        }
+
+        public var debugDescription: String {
+            var printer = Printer()
+            printer.section(title: "Task Information") {
+                $0.value("Task ID", taskId)
+                $0.value("Total Duration", Printer.duration(totalDuration))
+                $0.value("Was Cancelled", wasCancelled)
+                $0.value("Is Memory Cache Hit", isMemoryCacheHit)
+                $0.value("Was Subscibed To Existing Image Loading Session", wasSubscibedToExistingSession)
+            }
+            printer.section(title: "Timeline") {
+                $0.timeline("Start Date", startDate)
+                $0.timeline("End Date", endDate)
+            }
+            printer.section(title: "Image Loading Session (Shared)") {
+                $0.string(session.map({ $0.debugDescription }) ?? "nil")
+            }
+            return printer.output()
+        }
 
         // Download session metrics. One more more tasks can share the same
         // session metrics.
-        public final class SessionMetrics {
+        public final class SessionMetrics: CustomDebugStringConvertible {
             /// - important: Data loading might start prior to `timeResumed` if the task gets
             /// coalesced with another task.
             public let sessionId: Int
+            public fileprivate(set) var wasCancelled: Bool = false
+            public fileprivate(set) var urlResponse: URLResponse?
 
-            public fileprivate(set) var wasResumed: Bool = false
+            // MARK: - Timeline
+
+            public let startDate = Date()
+
+            public fileprivate(set) var dataLoadingStartDate: Date?
+            public fileprivate(set) var dataLoadingEndDate: Date?
+
+            public fileprivate(set) var decodingStartDate: Date?
+            public fileprivate(set) var decodingEndDate: Date?
+
+            public fileprivate(set) var processingStartDate: Date?
+            public fileprivate(set) var processingEndDate: Date?
+
+            public fileprivate(set) var endDate: Date? // failed or completed
+
+            public var totalDuration: TimeInterval? {
+                guard let endDate = endDate else { return nil }
+                return endDate.timeIntervalSince(startDate)
+            }
+
+            // MARK: - Resumable Data
+
+            public fileprivate(set) var wasResumed: Bool?
             public fileprivate(set) var resumedDataCount: Int?
+            public fileprivate(set) var serverConfirmedResume: Bool?
 
             public fileprivate(set) var downloadedDataCount: Int?
             public var totalDownloadedDataCount: Int? {
@@ -646,51 +701,34 @@ extension ImageTask {
                 return downloaded + (resumedDataCount ?? 0)
             }
 
-            public let timeStarted: TimeInterval = _now()
-
-            public fileprivate(set) var timeDataLoadingEnqueued: TimeInterval?
-            public fileprivate(set) var timeDataLoadingStarted: TimeInterval?
-            public fileprivate(set) var timeDataLoadingFinished: TimeInterval?
-
-            public fileprivate(set) var timeDecodingEnqueued: TimeInterval?
-            public fileprivate(set) var timeDecodingStarted: TimeInterval?
-            public fileprivate(set) var timeDecodingFinished: TimeInterval?
-
-            public fileprivate(set) var timeProcessingEnqueued: TimeInterval?
-            public fileprivate(set) var timeProcessingStarted: TimeInterval?
-            public fileprivate(set) var timeProcessingFinished: TimeInterval?
-
-            public fileprivate(set) var timeCompleted: TimeInterval? // failed or completed
-
-            public var totalDuration: TimeInterval? {
-                guard let timeCompleted = timeCompleted else { return nil }
-                return timeCompleted - timeStarted
-            }
-
-            public fileprivate(set) var wasCancelled: Bool = false
-
-            public fileprivate(set) var urlResponse: URLResponse?
-
             init(sessionId: Int) { self.sessionId = sessionId }
+
+            public var debugDescription: String {
+                var printer = Printer()
+                printer.section(title: "Session Information") {
+                    $0.value("Session ID", sessionId)
+                    $0.value("Total Duration", Printer.duration(totalDuration))
+                    $0.value("Was Cancelled", wasCancelled)
+                    $0.value("URL Response", urlResponse)
+                }
+                printer.section(title: "Timeline") {
+                    $0.timeline("Start Date", startDate)
+                    $0.timeline("Data Loading Start Date", dataLoadingStartDate)
+                    $0.timeline("Data Loading End Date", dataLoadingEndDate)
+                    $0.timeline("Decoding Start Date", decodingStartDate)
+                    $0.timeline("Decoding End Date", decodingEndDate)
+                    $0.timeline("Processing Start Date", processingStartDate)
+                    $0.timeline("Processing End Date", processingEndDate)
+                    $0.timeline("End Date", endDate)
+                }
+                printer.section(title: "Resumable Data") {
+                    $0.value("Was Resumed", wasResumed)
+                    $0.value("Resumable Data Count", resumedDataCount)
+                    $0.value("Server Confirmed Resume", serverConfirmedResume)
+                }
+                return printer.output()
+            }
         }
-
-        public fileprivate(set) var session: SessionMetrics?
-
-        public var totalDuration: TimeInterval? {
-            guard let timeCompleted = timeCompleted else { return nil }
-            return timeCompleted - timeStarted
-        }
-
-        init(taskId: Int, timeStarted: TimeInterval) {
-            self.taskId = taskId; self.timeStarted = timeStarted
-        }
-
-        // Properties
-
-        /// Returns `true` is the task wasn't the one that initiated image loading.
-        public fileprivate(set) var wasSubscibedToExistingSession: Bool = false
-        public fileprivate(set) var isMemoryCacheHit: Bool = false
-        public fileprivate(set) var wasCancelled: Bool = false
     }
 }
 

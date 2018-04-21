@@ -402,8 +402,71 @@ internal struct ResumableData {
     }
 }
 
-// MARK: - Misc
+// MARK: - Printer
 
-func _now() -> TimeInterval {
-    return CFAbsoluteTimeGetCurrent()
+/// Helper type for printing nice debug descriptions.
+internal struct Printer {
+    private(set) internal var _out = String()
+
+    private let timelineFormatter: DateFormatter
+
+    init(_ string: String = "") {
+        self._out = string
+
+        timelineFormatter = DateFormatter()
+        timelineFormatter.dateFormat = "HH:mm:ss.SSS"
+    }
+
+    func output(indent: Int = 0) -> String {
+        return _out.components(separatedBy: .newlines)
+            .map { $0.isEmpty ? "" : String(repeating: " ", count: indent) + $0 }
+            .joined(separator: "\n")
+    }
+
+    mutating func string(_ str: String) {
+        _out.append(str)
+    }
+
+    mutating private func line(_ str: String) {
+        _out.append(str)
+        _out.append("\n")
+    }
+
+    mutating func value(_ key: String, _ value: CustomStringConvertible?) {
+        let val = value.map { String(describing: $0) }
+        line(key + " - " + (val ?? "nil"))
+    }
+
+    /// For producting nicely formatted timelines like this:
+    ///
+    /// 11:45:52.737 - Data Loading Start Date
+    /// 11:45:52.739 - Data Loading End Date
+    /// nil          - Decoding Start Date
+    mutating func timeline(_ key: String, _ date: Date?) {
+        let value = date.map { timelineFormatter.string(from: $0) }
+        self.value((value ?? "nil         "), key) // Swtich key with value
+    }
+
+    mutating func section(title: String, _ closure: (inout Printer) -> Void) {
+        _out.append(contentsOf: title)
+        _out.append(" - {\n")
+        var printer = Printer()
+        closure(&printer)
+        _out.append(printer.output(indent: 4))
+        _out.append("}\n")
+    }
+
+    static func duration(_ duration: TimeInterval?) -> String? {
+        guard let duration = duration else { return nil }
+
+        let m: Int = Int(duration) / 60
+        let s: Int = Int(duration) % 60
+        let ms: Int = Int(duration * 1000) % 1000
+
+        var output = String()
+        if m > 0 { output.append("\(m):") }
+        if s > 0 { output.append(output.isEmpty ? "\(s)." : String(format: "%02d.", s)) }
+        if ms > 0 { output.append(String(format: "%03d", ms)) }
+        return output
+    }
 }
