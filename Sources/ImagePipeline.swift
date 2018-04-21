@@ -357,7 +357,6 @@ public /* final */ class ImagePipeline {
         session.urlResponse = response
 
         // Collect metrics
-        session.metrics.urlResponse = response
         session.metrics.downloadedDataCount = ((session.metrics.downloadedDataCount ?? 0) + chunk.count)
 
         // Update tasks' progress and call progress closures if any
@@ -648,13 +647,13 @@ extension ImageTask {
                 $0.value("Total Duration", Printer.duration(totalDuration))
                 $0.value("Was Cancelled", wasCancelled)
                 $0.value("Is Memory Cache Hit", isMemoryCacheHit)
-                $0.value("Was Subscibed To Existing Image Loading Session", wasSubscibedToExistingSession)
+                $0.value("Was Subscribed To Existing Image Loading Session", wasSubscibedToExistingSession)
             }
             printer.section(title: "Timeline") {
                 $0.timeline("Start Date", startDate)
                 $0.timeline("End Date", endDate)
             }
-            printer.section(title: "Image Loading Session (Shared)") {
+            printer.section(title: "Image Loading Session") {
                 $0.string(session.map({ $0.debugDescription }) ?? "nil")
             }
             return printer.output()
@@ -667,7 +666,6 @@ extension ImageTask {
             /// coalesced with another task.
             public let sessionId: Int
             public fileprivate(set) var wasCancelled: Bool = false
-            public fileprivate(set) var urlResponse: URLResponse?
 
             // MARK: - Timeline
 
@@ -709,7 +707,6 @@ extension ImageTask {
                     $0.value("Session ID", sessionId)
                     $0.value("Total Duration", Printer.duration(totalDuration))
                     $0.value("Was Cancelled", wasCancelled)
-                    $0.value("URL Response", urlResponse)
                 }
                 printer.section(title: "Timeline") {
                     $0.timeline("Start Date", startDate)

@@ -465,7 +465,7 @@ internal struct Printer {
 
         var output = String()
         if m > 0 { output.append("\(m):") }
-        if s > 0 { output.append(output.isEmpty ? "\(s)." : String(format: "%02d.", s)) }
+        output.append(output.isEmpty ? "\(s)." : String(format: "%02d.", s))
         if ms > 0 { output.append(String(format: "%03d", ms)) }
         return output
     }

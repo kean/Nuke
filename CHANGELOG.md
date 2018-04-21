@@ -1,3 +1,100 @@
+## Nuke 7.0-beta2
+
+### Progressive Image Loading (Beta)
+
+You need a pipeline with progressive decoding enabled:
+
+```swift
+let pipeline = ImagePipeline {
+    $0.isProgressiveDecodingEnabled = true
+}
+```
+
+And that's it, you can start observing images as they are produced by the pipeline:
+
+```swift
+let imageView = UIImageView()
+let task = pipeline.loadImage(with: url) {
+    imageView.image = $0.value
+}
+task.progressiveImageHandler = {
+    imageView.image = $0
+}
+```
+
+The progressive decoding only kicks in when Nuke determines that the image data does contain a progressive JPEG. The decoder intelligently scans the data and only produces a new image when it receives a full new scan (progressive JPEGs normally have around 10 scans).
+
+> See "Progressive Decoding" demo to see progressive JPEG in practice. You can also uncomment the code that blurs the first few scans of the image which makes them look a bit nicer.
+
+### Resumable Data (Beta)
+
+- Mov resumable data implementation to the pipeline which means it will automatically start working with Alamofire plugin and other custom loaders
+- Fix an issue with `206 Partial Content` handling
+- Add a test suite
+- Add `ImagePipeline.Configuration.isResumableDataEnabled flag` (enabled by default)
+- Add support for `ETag` (beta1 only had support for `Last-Modified`).
+
+### Performance Metrics (Beta)
+
+- Extend a number of metrics introduced in Nuke 7.0-beta1
+- Nicer debug output:
+
+```swift
+(lldb) po task.metrics
+
+Task Information - {
+    Task ID - 5
+    Total Duration - 0.363
+    Was Cancelled - false
+    Is Memory Cache Hit - false
+    Was Subscribed To Existing Image Loading Session - false
+}
+Timeline - {
+    12:42:06.559 - Start Date
+    12:42:06.923 - End Date
+}
+Image Loading Session - {
+    Session Information - {
+        Session ID - 5
+        Total Duration - 0.357
+        Was Cancelled - false
+    }
+    Timeline - {
+        12:42:06.566 - Start Date
+        12:42:06.570 - Data Loading Start Date
+        12:42:06.904 - Data Loading End Date
+        12:42:06.909 - Decoding Start Date
+        12:42:06.912 - Decoding End Date
+        12:42:06.913 - Processing Start Date
+        12:42:06.922 - Processing End Date
+        12:42:06.923 - End Date
+    }
+    Resumable Data - {
+        Was Resumed - nil
+        Resumable Data Count - nil
+        Server Confirmed Resume - nil
+    }
+}
+```
+
+### Additions
+
+- `Nuke.loadImage(with:into:)` now returns a task (discardable)
+- Add `ImageDecoderRegistry` to configure decoders globally
+- Add `ImageDecodingContext` to provide as much information as needed to select a decoder
+
+### Improvements
+
+- Smarter `RateLimiter` which no longer attempt to execute pending tasks when the bucket isn't full resulting in idle dispatching of blocks. I've used a CountedSet to see how well it works in practice and it's perfect. Nice small win.
+- `RateLimiter` now uses the same sync queue as the `ImagePipeline` reducing a number of dispatched blocks
+
+### Deprecations
+
+- `DataDecoding`, `DataDecoder`, `DataDecoderComposition` - replaced by a new image decoding infrastructure (`ImageDecoding`, `ImageDecoder`, `ImageDecodingRegistry` etc)
+- `CancellationToken`, `CancellationTokenSource` - continued to be used internally, if you want to use those types in your own project consider copying them
+- `typealias ProgerssHandler` is not nested in `ImageTask` (`ImageTask.ProgressHandler`)
+
+
 ## Nuke 7.0-beta1
 
 Nuke 7 is the next major milestone continuing the trend started in Nuke 6 which makes the framework more pragmatic and mature. Nuke 7 is more ergonomic, fast, and more powerful. 

@@ -211,7 +211,7 @@ You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) 
 
 > Check out [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
 
-#### Enabling Progressive Decoding
+#### Enabling Progressive Decoding (Beta)
 
 You need a pipeline with progressive decoding enabled:
 
@@ -295,7 +295,7 @@ Most developers either implement their own networking layer or use a third-party
 
 Processed images which are ready to be displayed are stored in a fast in-memory cache (`ImageCache`). It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `ImageCache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
 
-### Resumable Downloads
+### Resumable Downloads (Beta)
 
 If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. Supports both validators (`ETag`, `Last-Modified`). The resumable downloads are enabled by default.
 
@@ -332,26 +332,40 @@ A common use case is to dynamically start and cancel requests for a collection v
 Nuke captures detailed metrics on each image task:
 
 ```swift
-(lldb) p task.metrics
-(Nuke.ImageTask.Metrics) $R2 = {
-  taskId = 9
-  timeCreated = 545513853.67615998
-  timeResumed = 545513853.67778301
-  timeCompleted = 545513860.90999401
-  session = 0x00007b1c00011100 {
-    sessionId = 9
-    timeDataLoadingStarted = 545513853.67789805
-    timeDataLoadingFinished = 545513853.74310505
-    timeDecodingFinished = 545513860.90150297
-    timeProcessingFinished = 545513860.90990996
-    urlResponse = 0x00007b0800066960 {
-      ObjectiveC.NSObject = {}
+(lldb) po task.metrics
+
+Task Information - {
+    Task ID - 5
+    Total Duration - 0.363
+    Was Cancelled - false
+    Is Memory Cache Hit - false
+    Was Subscribed To Existing Image Loading Session - false
+}
+Timeline - {
+    12:42:06.559 - Start Date
+    12:42:06.923 - End Date
+}
+Image Loading Session - {
+    Session Information - {
+        Session ID - 5
+        Total Duration - 0.357
+        Was Cancelled - false
     }
-    downloadedDataCount = 35049
-  }
-  wasSubscibedToExistingTask = false
-  isMemoryCacheHit = false
-  wasCancelled = false
+    Timeline - {
+        12:42:06.566 - Start Date
+        12:42:06.570 - Data Loading Start Date
+        12:42:06.904 - Data Loading End Date
+        12:42:06.909 - Decoding Start Date
+        12:42:06.912 - Decoding End Date
+        12:42:06.913 - Processing Start Date
+        12:42:06.922 - Processing End Date
+        12:42:06.923 - End Date
+    }
+    Resumable Data - {
+        Was Resumed - nil
+        Resumable Data Count - nil
+        Server Confirmed Resume - nil
+    }
 }
 ```
 
