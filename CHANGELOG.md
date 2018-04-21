@@ -42,24 +42,24 @@ The progressive decoding only kicks in when Nuke determines that the image data 
 ```swift
 (lldb) po task.metrics
 
-Task Information - {
+Task Information {
     Task ID - 5
     Total Duration - 0.363
     Was Cancelled - false
     Is Memory Cache Hit - false
     Was Subscribed To Existing Image Loading Session - false
 }
-Timeline - {
+Timeline {
     12:42:06.559 - Start Date
     12:42:06.923 - End Date
 }
-Image Loading Session - {
+Image Loading Session {
     Session Information - {
         Session ID - 5
         Total Duration - 0.357
         Was Cancelled - false
     }
-    Timeline - {
+    Timeline {
         12:42:06.566 - Start Date
         12:42:06.570 - Data Loading Start Date
         12:42:06.904 - Data Loading End Date
@@ -69,7 +69,7 @@ Image Loading Session - {
         12:42:06.922 - Processing End Date
         12:42:06.923 - End Date
     }
-    Resumable Data - {
+    Resumable Data {
         Was Resumed - nil
         Resumable Data Count - nil
         Server Confirmed Resume - nil

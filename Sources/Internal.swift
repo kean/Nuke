@@ -449,7 +449,7 @@ internal struct Printer {
 
     mutating func section(title: String, _ closure: (inout Printer) -> Void) {
         _out.append(contentsOf: title)
-        _out.append(" - {\n")
+        _out.append(" {\n")
         var printer = Printer()
         closure(&printer)
         _out.append(printer.output(indent: 4))
