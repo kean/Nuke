@@ -79,8 +79,7 @@ public /* final */ class ImagePipeline {
     // This is a queue on which we access the sessions.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline")
 
-    // On this queue we access data buffers and perform decoding.
-    private let dataQueue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline.DecodingQueue")
+    private let decodingQueue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline.DecodingQueue")
 
     // Image loading sessions. One or more tasks can be handled by the same session.
     private var sessions = [AnyHashable: Session]()
@@ -332,28 +331,28 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func _session(_ session: Session, didReceiveData data: Data, response: URLResponse) {
-        // Check if this is the first response we've received.
+    private func _session(_ session: Session, didReceiveData chunk: Data, response: URLResponse) {
+        // Check if this is the first response.
         if session.urlResponse == nil {
-            session.urlResponse = response
-            session.metrics.urlResponse = response
-
             // See if the server confirmed that we can use the resumable data.
             if let resumableData = session.resumableData {
                 if ResumableData.isResumedResponse(response) {
                     session.data = resumableData.data
-                    session.downloadedDataCount = resumableData.data.count
                 }
                 session.resumableData = nil // Get rid of resumable data anyway
             }
         }
 
-        let downloadedDataCount = session.downloadedDataCount + data.count
-        session.downloadedDataCount = downloadedDataCount
-        session.metrics.downloadedDataCount = downloadedDataCount
+        // Append data and save response
+        session.data.append(chunk)
+        session.urlResponse = response
+
+        // Update metrics
+        session.metrics.urlResponse = response
+        session.metrics.downloadedDataCount = session.data.count
 
         // Update tasks' progress and call progress closures if any
-        let (completed, total) = (Int64(downloadedDataCount), response.expectedContentLength)
+        let (completed, total) = (Int64(session.data.count), response.expectedContentLength)
         let tasks = session.tasks
         DispatchQueue.main.async {
             for task in tasks { // We access tasks only on main thread
@@ -362,33 +361,28 @@ public /* final */ class ImagePipeline {
             }
         }
 
-        let isProgressive = configuration.isProgressiveDecodingEnabled
-
-        // Create a decoding session (if none) which consists of a data buffer
-        // and an image decoder. We access both exclusively on `decodingQueue`.
+        // Create a decoder.
         if session.decoder == nil {
-            let context = ImageDecodingContext(request: session.request, urlResponse: response, data: data)
+            let context = ImageDecodingContext(request: session.request, urlResponse: response, data: session.data)
             session.decoder = configuration.imageDecoder(context)
         }
         let decoder = session.decoder!
 
-        dataQueue.async { [weak self, weak session] in
+        // Check if progressive decoding is enabled (disabled by default)
+        guard configuration.isProgressiveDecodingEnabled else { return }
+
+        // Check if we haven't loaded an entire image yet. We give decoder
+        // an opportunity to decide whether to decode this chunk or not.
+        // In case `expectedContentLength` is undetermined (e.g. 0) we
+        // don't allow progressive decoding.
+        guard session.data.count < response.expectedContentLength else { return }
+
+        let data = session.data
+        decodingQueue.async { [weak self, weak session] in
             guard let session = session else { return }
 
-            // Append data (we always do it)
-            session.data.append(data)
-
-            // Check if progressive decoding is enabled (disabled by default)
-            guard isProgressive else { return }
-
-            // Check if we haven't loaded an entire image yet. We give decoder
-            // an opportunity to decide whether to decode this chunk or not.
-            // In case `expectedContentLength` is undetermined (e.g. 0) we
-            // don't allow progressive decoding.
-            guard data.count < response.expectedContentLength else { return }
-
             // Produce partial image
-            guard let image = decoder.decode(data: session.data, isFinal: false) else { return }
+            guard let image = decoder.decode(data: data, isFinal: false) else { return }
             let scanNumber: Int? = (decoder as? ImageDecoder)?.numberOfScans // Need a public way to implement this.
             self?.queue.async {
                 self?._session(session, didDecodePartialImage: image, scanNumber: scanNumber)
@@ -406,18 +400,19 @@ public /* final */ class ImagePipeline {
         }
 
         // A few checks, which we should never encounter those cases in practice
-        guard session.downloadedDataCount > 0, let decoder = session.decoder else {
+        guard !session.data.isEmpty, let decoder = session.decoder else {
             _session(session, completedWith: .failure(error ?? Error.decodingFailed))
             return
         }
 
-        dataQueue.async { [weak self, weak session] in
+        let data = session.data
+        session.data.removeAll() // We no longer need the data stored in session.
+        decodingQueue.async { [weak self, weak session] in
             guard let session = session else { return }
             // Produce final image
             let image = autoreleasepool {
-                decoder.decode(data: session.data, isFinal: true)
+                decoder.decode(data: data, isFinal: true)
             }
-            session.data.removeAll() // We no longer need the data.
             self?.queue.async {
                 self?._session(session, didDecodeImage: image)
             }
@@ -428,12 +423,9 @@ public /* final */ class ImagePipeline {
         // Try to save resumable data in case the task was cancelled
         // (`URLError.cancelled`) or failed to complete with other error.
         if configuration.isResumableDataEnabled,
-            let response = session.urlResponse, session.downloadedDataCount > 0 {
-            dataQueue.async { // We can only access data buffer on this queue
-                if let resumableData = ResumableData(response: response, data: session.data) {
-                    ResumableData.storeResumableData(resumableData, for: session.request.urlRequest)
-                }
-            }
+            let response = session.urlResponse, !session.data.isEmpty,
+            let resumableData = ResumableData(response: response, data: session.data) {
+            ResumableData.storeResumableData(resumableData, for: session.request.urlRequest)
         }
     }
 
@@ -552,10 +544,9 @@ public /* final */ class ImagePipeline {
 
         // Data loading session.
         weak var dataOperation: Foundation.Operation?
-        var downloadedDataCount: Int = 0
         var urlResponse: URLResponse?
         var resumableData: ResumableData?
-        lazy var data = Data() // Can only be access to dataQueue!
+        lazy var data = Data()
 
         // Decoding session.
         var decoder: ImageDecoding?
