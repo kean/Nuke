@@ -361,22 +361,20 @@ public /* final */ class ImagePipeline {
             }
         }
 
-        // Create a decoder.
-        if session.decoder == nil {
-            let context = ImageDecodingContext(request: session.request, urlResponse: response, data: session.data)
-            session.decoder = configuration.imageDecoder(context)
-        }
-        let decoder = session.decoder!
-
         // Check if progressive decoding is enabled (disabled by default)
-        guard configuration.isProgressiveDecodingEnabled else { return }
+        if configuration.isProgressiveDecodingEnabled {
+            // Check if we haven't loaded an entire image yet. We give decoder
+            // an opportunity to decide whether to decode this chunk or not.
+            // In case `expectedContentLength` is undetermined (e.g. 0) we
+            // don't allow progressive decoding.
+            guard session.data.count < response.expectedContentLength else { return }
 
-        // Check if we haven't loaded an entire image yet. We give decoder
-        // an opportunity to decide whether to decode this chunk or not.
-        // In case `expectedContentLength` is undetermined (e.g. 0) we
-        // don't allow progressive decoding.
-        guard session.data.count < response.expectedContentLength else { return }
+            _decodePartialImage(for: session)
+        }
+    }
 
+    private func _decodePartialImage(for session: Session) {
+        guard let decoder = _decoder(for: session) else { return }
         let data = session.data
         decodingQueue.async { [weak self, weak session] in
             guard let session = session else { return }
@@ -390,6 +388,20 @@ public /* final */ class ImagePipeline {
         }
     }
 
+    // Lazily creates a decoder if necessary.
+    private func _decoder(for session: Session) -> ImageDecoding? {
+        // Return existing one.
+        if let decoder = session.decoder { return decoder }
+
+        // Basic sanity checks.
+        guard let response = session.urlResponse, !session.data.isEmpty else { return nil }
+
+        let context = ImageDecodingContext(request: session.request, urlResponse: response, data: session.data)
+        let decoder = configuration.imageDecoder(context)
+        session.decoder = decoder
+        return decoder
+    }
+
     private func _session(_ session: Session, didFinishLoadingDataWithError error: Swift.Error?) {
         session.metrics.timeDataLoadingFinished = _now()
 
@@ -399,8 +411,8 @@ public /* final */ class ImagePipeline {
             return
         }
 
-        // A few checks, which we should never encounter those cases in practice
-        guard !session.data.isEmpty, let decoder = session.decoder else {
+        // Basic sanity checks.
+        guard !session.data.isEmpty, let decoder = _decoder(for: session) else {
             _session(session, completedWith: .failure(error ?? Error.decodingFailed))
             return
         }
