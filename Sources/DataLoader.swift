@@ -134,7 +134,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        guard let handler = handlers[task] else {return }
+        guard let handler = handlers[task] else { return }
         handlers[task] = nil
         handler.completion(error)
     }

@@ -37,12 +37,12 @@ internal final class RateLimiter {
     /// - parameter rate: Maximum number of requests per second. 80 by default.
     /// - parameter burst: Maximum number of requests which can be executed without
     /// any delays when "bucket is full". 25 by default.
-    internal init(queue: DispatchQueue, rate: Int = 80, burst: Int = 25) {
+    init(queue: DispatchQueue, rate: Int = 80, burst: Int = 25) {
         self.queue = queue
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
-    internal func execute(token: _CancellationToken, _ closure: @escaping () -> Void) {
+    func execute(token: _CancellationToken, _ closure: @escaping () -> Void) {
         let task = Task(token, closure)
         if !pending.isEmpty || !_execute(task) {
             pending.append(task)
@@ -250,19 +250,19 @@ internal final class LinkedList<Element> {
 /// All `CancellationTokenSource` methods are thread safe.
 internal final class _CancellationTokenSource {
     /// Returns `true` if cancellation has been requested.
-    internal var isCancelling: Bool {
+    var isCancelling: Bool {
         return _lock.sync { _observers == nil }
     }
 
     /// Creates a new token associated with the source.
-    internal var token: _CancellationToken {
+    var token: _CancellationToken {
         return _CancellationToken(source: self)
     }
 
     private var _observers: ContiguousArray<() -> Void>? = []
 
     /// Initializes the `CancellationTokenSource` instance.
-    internal init() {}
+    init() {}
 
     fileprivate func register(_ closure: @escaping () -> Void) {
         if !_register(closure) {
@@ -277,7 +277,7 @@ internal final class _CancellationTokenSource {
     }
 
     /// Communicates a request for cancellation to the managed tokens.
-    internal func cancel() {
+    func cancel() {
         if let observers = _cancel() {
             observers.forEach { $0() }
         }
@@ -310,19 +310,19 @@ internal struct _CancellationToken {
     fileprivate let source: _CancellationTokenSource? // no-op when `nil`
 
     /// Returns `true` if cancellation has been requested for this token.
-    internal var isCancelling: Bool {
+    var isCancelling: Bool {
         return source?.isCancelling ?? false
     }
 
     /// Registers the closure that will be called when the token is canceled.
     /// If this token is already cancelled, the closure will be run immediately
     /// and synchronously.
-    internal func register(_ closure: @escaping () -> Void) {
+    func register(_ closure: @escaping () -> Void) {
         source?.register(closure)
     }
 
     /// Special no-op token which does nothing.
-    internal static var noOp: _CancellationToken {
+    static var noOp: _CancellationToken {
         return _CancellationToken(source: nil)
     }
 }
@@ -331,7 +331,6 @@ internal struct _CancellationToken {
 
 /// Resumable data support. For more info see:
 /// - https://developer.apple.com/library/content/qa/qa1761/_index.html
-/// - https://developer.mozilla.org/en-US/docs/Web/HTTP/Conditional_requests
 internal struct ResumableData {
     let data: Data
     let validator: String // Either Last-Modified or ETag
@@ -374,6 +373,7 @@ internal struct ResumableData {
 
     func resume(request: inout URLRequest) {
         var headers = request.allHTTPHeaderFields ?? [:]
+        // "bytes=1000-" means bytes from 1000 up to the end (inclusive)
         headers["Range"] = "bytes=\(data.count)-"
         headers["If-Range"] = validator
         request.allHTTPHeaderFields = headers
@@ -384,10 +384,26 @@ internal struct ResumableData {
         // "206 Partial Content" (server accepted "If-Range")
         return (response as? HTTPURLResponse)?.statusCode == 206
     }
+
+    // MARK: Storing Resumable Data
+
+    /// Shared between multiple pipelines. Thread safe. In the future version we
+    /// might feature more customization options.
+    static var _cache = _Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100) // internal only for testing purposes
+
+    static func removeResumableData(for request: URLRequest) -> ResumableData? {
+        guard let url = request.url?.absoluteString else { return nil }
+        return _cache.removeValue(forKey: url)
+    }
+
+    static func storeResumableData(_ data: ResumableData, for request: URLRequest) {
+        guard let url = request.url?.absoluteString else { return }
+        _cache.set(data, forKey: url, cost: data.data.count)
+    }
 }
 
 // MARK: - Misc
 
-internal func _now() -> TimeInterval {
+func _now() -> TimeInterval {
     return CFAbsoluteTimeGetCurrent()
 }

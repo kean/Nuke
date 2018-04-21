@@ -8,7 +8,7 @@ import XCTest
 private let _data = Data(count: 1000)
 
 private func _makeResponse(statusCode: Int = 200, headers: [String: String]? = nil) -> HTTPURLResponse {
-    return HTTPURLResponse(url: defaultURL, statusCode: statusCode, httpVersion: "HTTP/1.1", headerFields: headers)!
+    return HTTPURLResponse(url: defaultURL, statusCode: statusCode, httpVersion: "HTTP/1.2", headerFields: headers)!
 }
 
 class ResumableDataCreationTests: XCTestCase {
@@ -125,6 +125,18 @@ class ResumableDataCreationTests: XCTestCase {
 }
 
 class ResumableDataResumingTests: XCTestCase {
+    private var dataLoader: _MockResumableDataLoader!
+    private var pipeline: ImagePipeline!
+
+    override func setUp() {
+        dataLoader = _MockResumableDataLoader()
+        ResumableData._cache.removeAll()
+        pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+    }
+
     func testResumingRequst() {
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
@@ -147,4 +159,93 @@ class ResumableDataResumingTests: XCTestCase {
 
         XCTAssertFalse(ResumableData.isResumedResponse(_makeResponse(statusCode: 404)))
     }
+
+    // Make sure that ResumableData works correctly in integration with ImagePipeline
+    func testIntegrationRangeSupported() {
+        expect { fulfil in
+            let _ = pipeline.loadImage(with: defaultURL) { result in
+                XCTAssertNotNil(result.error)
+                fulfil()
+            }
+        }
+        wait()
+
+        expect { fulfil in
+            let task = pipeline.loadImage(with: defaultURL) { _ in }
+
+            task.completion = { [unowned task, unowned self] in
+                XCTAssertNotNil($0.value)
+                XCTAssertEqual(task.metrics.session!.downloadedDataCount, self.dataLoader.data.count)
+                XCTAssertEqual(task.completedUnitCount, Int64(self.dataLoader.data.count))
+                fulfil()
+            }
+        }
+        wait()
+    }
 }
+
+private class _MockResumableDataLoader: DataLoading {
+    private let queue = DispatchQueue(label: "_MockResumableDataLoader")
+
+    let data: Data = Test.data(name: "fixture", extension: "jpeg")
+    let eTag: String = "img_01"
+
+    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> DataLoadingTask {
+        let headers = request.allHTTPHeaderFields
+
+        // Check if the client already has some resumable data available.
+        if let range = headers?["Range"], let validator = headers?["If-Range"] {
+            let offset = _groups(regex: "bytes=(\\d*)-", in: range)[0]
+            XCTAssertNotNil(offset)
+
+            XCTAssertEqual(validator, eTag)
+            guard validator == eTag else { // Expected ETag
+                XCTFail()
+                return _Task()
+            }
+
+            // Ideally the server must also respond with  "Content-Range" and
+            // "Content-Length" but we don't use those fields
+
+            let response = HTTPURLResponse(url: request.url!, statusCode: 206, httpVersion: "HTTP/1.2", headerFields: [:])!
+            // Send remaining data in chunks
+            var chunks = Array(_createChunks(for: data[Int(offset)!...], size: data.count / 10))
+
+            // Send half of chunks away.
+            while let chunk = chunks.first {
+                chunks.removeFirst()
+                queue.async {
+                    didReceiveData(chunk, response)
+                }
+            }
+            queue.async {
+                completion(nil)
+            }
+        } else {
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: "HTTP/1.2", headerFields: [
+                "Accept-Ranges": "bytes",
+                "ETag": eTag
+                ])!
+
+            var chunks = Array(_createChunks(for: data, size: data.count / 10))
+            chunks.removeLast(chunks.count / 2)
+
+            while let chunk = chunks.first {
+                chunks.removeFirst()
+                queue.async {
+                    didReceiveData(chunk, response)
+                }
+            }
+            queue.async {
+                completion(NSError(domain: NSURLErrorDomain, code: URLError.networkConnectionLost.rawValue, userInfo: [:]))
+            }
+        }
+
+        return _Task()
+    }
+
+    private class _Task: DataLoadingTask {
+        func cancel() { }
+    }
+}
+

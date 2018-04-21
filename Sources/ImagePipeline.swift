@@ -90,10 +90,6 @@ public /* final */ class ImagePipeline {
 
     private let rateLimiter: RateLimiter
 
-    /// Shared between multiple pipelines. In the future version we might feature
-    /// more customization options.
-    private static var resumableDataCache = _Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100)
-
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
 
@@ -305,14 +301,13 @@ public /* final */ class ImagePipeline {
         var urlRequest = session.request.urlRequest
 
         // Read and remove resumable data from cache (we're going to insert it
-        // back in cache if the request fails again).
+        // back in the cache if the request fails to complete again).
         if configuration.isResumableDataEnabled,
-            let url = urlRequest.url?.absoluteString,
-            let resumableData = ImagePipeline.resumableDataCache.removeValue(forKey: url) {
+            let resumableData = ResumableData.removeResumableData(for: urlRequest) {
             // Update headers to add "Range" and "If-Range" headers
             resumableData.resume(request: &urlRequest)
-            // Save resumable data so that when we receive the first response
-            // we can use it (in case resumable data wasn't stale).
+            // Save resumable data so that we could use it later (we need to
+            // verify that server returns "206 Partial Content" before using it.
             session.resumableData = resumableData
         }
 
@@ -338,22 +333,24 @@ public /* final */ class ImagePipeline {
     }
 
     private func _session(_ session: Session, didReceiveData data: Data, response: URLResponse) {
-        // This is the first response that we've received.
-        if session.urlResponse == nil, let resumableData = session.resumableData {
-            if ResumableData.isResumedResponse(response) {
-                session.data = resumableData.data
-                session.downloadedDataCount = resumableData.data.count
+        // Check if this is the first response we've received.
+        if session.urlResponse == nil {
+            session.urlResponse = response
+            session.metrics.urlResponse = response
+
+            // See if the server confirmed that we can use the resumable data.
+            if let resumableData = session.resumableData {
+                if ResumableData.isResumedResponse(response) {
+                    session.data = resumableData.data
+                    session.downloadedDataCount = resumableData.data.count
+                }
+                session.resumableData = nil // Get rid of resumable data anyway
             }
-            session.resumableData = nil // Get rid of resumable data anyway
         }
 
         let downloadedDataCount = session.downloadedDataCount + data.count
         session.downloadedDataCount = downloadedDataCount
-        session.urlResponse = response
-
-        // Save boring metrics
         session.metrics.downloadedDataCount = downloadedDataCount
-        session.metrics.urlResponse = response
 
         // Update tasks' progress and call progress closures if any
         let (completed, total) = (Int64(downloadedDataCount), response.expectedContentLength)
@@ -365,7 +362,7 @@ public /* final */ class ImagePipeline {
             }
         }
 
-        let isProgerssive = configuration.isProgressiveDecodingEnabled
+        let isProgressive = configuration.isProgressiveDecodingEnabled
 
         // Create a decoding session (if none) which consists of a data buffer
         // and an image decoder. We access both exclusively on `decodingQueue`.
@@ -382,7 +379,7 @@ public /* final */ class ImagePipeline {
             session.data.append(data)
 
             // Check if progressive decoding is enabled (disabled by default)
-            guard isProgerssive else { return }
+            guard isProgressive else { return }
 
             // Check if we haven't loaded an entire image yet. We give decoder
             // an opportunity to decide whether to decode this chunk or not.
@@ -431,12 +428,10 @@ public /* final */ class ImagePipeline {
         // Try to save resumable data in case the task was cancelled
         // (`URLError.cancelled`) or failed to complete with other error.
         if configuration.isResumableDataEnabled,
-            let response = session.urlResponse,
-            session.downloadedDataCount > 0, // Just in case
-            let url = session.request.urlRequest.url {
+            let response = session.urlResponse, session.downloadedDataCount > 0 {
             dataQueue.async { // We can only access data buffer on this queue
                 if let resumableData = ResumableData(response: response, data: session.data) {
-                    ImagePipeline.resumableDataCache.set(resumableData, forKey: url.absoluteString, cost: session.data.count)
+                    ResumableData.storeResumableData(resumableData, for: session.request.urlRequest)
                 }
             }
         }

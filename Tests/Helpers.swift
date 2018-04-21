@@ -25,3 +25,30 @@ enum Test {
 }
 
 extension String: Error {}
+
+func _groups(regex: String, in text: String) -> [String] {
+    do {
+        let regex = try NSRegularExpression(pattern: regex)
+        let results = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+        return results.map {
+            String(text[Range($0.range(at: 1), in: text)!])
+        }
+    } catch let error {
+        print("invalid regex: \(error.localizedDescription)")
+        return []
+    }
+}
+
+// Supports subranges as well.
+func _createChunks(for data: Data, size: Int) -> [Data] {
+    var chunks = [Data]()
+    let endIndex = data.endIndex
+    var offset = data.startIndex
+    while offset < endIndex {
+        let chunkSize = offset + size > endIndex ? endIndex - offset : size
+        let chunk = data[(offset)..<(offset + chunkSize)]
+        offset += chunkSize
+        chunks.append(chunk)
+    }
+    return chunks
+}
