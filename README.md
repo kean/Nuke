@@ -7,9 +7,7 @@
 <a href="https://travis-ci.org/kean/Nuke"><img src="https://img.shields.io/travis/kean/Nuke/master.svg"></a>
 </p>
 
-A powerful **image loading** and **caching** framework which allows for hassle-free image loading in your app. Simple tasks like loading images into image view are made simple, while more advanced features are disclosed progressively.
-
-Nuke [takes performance seriously](#h_performance). It employs techniques across all key performance areas including asynchronous design, resumable downloads, request deduplication, prefetching, rate limiting, CoW structs, LRU cache, and many more.
+A powerful **image loading** and **caching** system which takes care of image loading and displaying for you. It makes simple tasks like loading images into image view extremely simple, while also supporting and progressively disclosing more advanced features for more demanding apps.
 
 # <a name="h_features"></a>Features
 
