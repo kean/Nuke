@@ -175,8 +175,13 @@ class ResumableDataResumingTests: XCTestCase {
 
             task.completion = { [unowned task, unowned self] in
                 XCTAssertNotNil($0.value)
-                XCTAssertEqual(task.metrics.session!.downloadedDataCount, self.dataLoader.data.count)
                 XCTAssertEqual(task.completedUnitCount, Int64(self.dataLoader.data.count))
+
+                // Test that the metrics are collected correctly.
+                XCTAssertEqual(task.metrics.session!.wasResumed, true)
+                XCTAssertTrue(task.metrics.session!.resumedDataCount! > 0)
+                XCTAssertEqual(task.metrics.session!.totalDownloadedDataCount, self.dataLoader.data.count)
+
                 fulfil()
             }
         }

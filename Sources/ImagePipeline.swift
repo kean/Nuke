@@ -191,7 +191,7 @@ public /* final */ class ImagePipeline {
         task.session = session
 
         task.metrics.session = session.metrics
-        task.metrics.wasSubscibedToExistingTask = !session.tasks.isEmpty
+        task.metrics.wasSubscibedToExistingSession = !session.tasks.isEmpty
 
         // Register handler with a session.
         session.tasks.insert(task)
@@ -223,6 +223,9 @@ public /* final */ class ImagePipeline {
                 self._tryToSaveResumableData(for: session)
                 self._removeSession(session)
                 session.cts.cancel()
+
+                session.metrics.wasCancelled = true
+                session.metrics.timeCompleted = _now()
             }
         }
     }
@@ -276,8 +279,9 @@ public /* final */ class ImagePipeline {
     }
 
     private func _loadData(for session: Session) {
-        let token = session.cts.token
-        guard !token.isCancelling else { return } // Preflight check
+        guard !session.token.isCancelling else { return } // Preflight check
+
+        session.metrics.timeDataLoadingEnqueued = _now()
 
         // Wrap data request in an operation to limit maximum number of
         // concurrent data tasks.
@@ -288,15 +292,15 @@ public /* final */ class ImagePipeline {
 
         operation.queuePriority = session.priority.queuePriority
         self.configuration.dataLoadingQueue.addOperation(operation)
-        token.register { [weak operation] in operation?.cancel() }
+        session.token.register { [weak operation] in operation?.cancel() }
 
-        // FIXME: This is not an accurate metric
-        session.metrics.timeDataLoadingStarted = _now()
         session.dataOperation = operation
     }
 
     // This methods gets called inside data loading operation (Operation).
     private func _actuallyLoadData(for session: Session, finish: @escaping () -> Void) {
+        session.metrics.timeDataLoadingStarted = _now()
+
         var urlRequest = session.request.urlRequest
 
         // Read and remove resumable data from cache (we're going to insert it
@@ -325,7 +329,7 @@ public /* final */ class ImagePipeline {
                     self?._session(session, didFinishLoadingDataWithError: error)
                 }
         })
-        session.cts.token.register {
+        session.token.register {
             task.cancel()
             finish() // Make sure we always finish the operation.
         }
@@ -338,6 +342,10 @@ public /* final */ class ImagePipeline {
             if let resumableData = session.resumableData {
                 if ResumableData.isResumedResponse(response) {
                     session.data = resumableData.data
+
+                    // Collect metrics
+                    session.metrics.wasResumed = true
+                    session.metrics.resumedDataCount = resumableData.data.count
                 }
                 session.resumableData = nil // Get rid of resumable data anyway
             }
@@ -347,9 +355,9 @@ public /* final */ class ImagePipeline {
         session.data.append(chunk)
         session.urlResponse = response
 
-        // Update metrics
+        // Collect metrics
         session.metrics.urlResponse = response
-        session.metrics.downloadedDataCount = session.data.count
+        session.metrics.downloadedDataCount = ((session.metrics.downloadedDataCount ?? 0) + chunk.count)
 
         // Update tasks' progress and call progress closures if any
         let (completed, total) = (Int64(session.data.count), response.expectedContentLength)
@@ -419,12 +427,18 @@ public /* final */ class ImagePipeline {
 
         let data = session.data
         session.data.removeAll() // We no longer need the data stored in session.
+
+        let metrics = session.metrics
+        metrics.timeDecodingEnqueued = _now()
+
         decodingQueue.async { [weak self, weak session] in
             guard let session = session else { return }
+            metrics.timeDecodingStarted = _now()
             // Produce final image
             let image = autoreleasepool {
                 decoder.decode(data: data, isFinal: true)
             }
+            metrics.timeDecodingFinished = _now()
             self?.queue.async {
                 self?._session(session, didDecodeImage: image)
             }
@@ -483,10 +497,15 @@ public /* final */ class ImagePipeline {
             return
         }
 
+        let metrics = session.metrics
+        metrics.timeProcessingEnqueued = _now()
+
         let operation = BlockOperation { [weak self, weak session] in
             guard let session = session else { return }
+            metrics.timeProcessingStarted = _now()
             let image = autoreleasepool { processor.process(image) }
             let result = image.map(Result.success) ?? .failure(Error.processingFailed)
+            metrics.timeProcessingFinished = _now()
             self?.queue.async {
                 session.metrics.timeProcessingFinished = _now()
                 self?._session(session, completedWith: result)
@@ -512,6 +531,7 @@ public /* final */ class ImagePipeline {
             _store(image: image, for: session.request)
         }
         session.isCompleted = true
+        session.metrics.timeCompleted = _now()
 
         // Cancel any outstanding parital processing.
         session.processingPartialOperation?.cancel()
@@ -550,6 +570,7 @@ public /* final */ class ImagePipeline {
         let request: ImageRequest
         let key: AnyHashable // loading key
         let cts = _CancellationTokenSource()
+        var token: _CancellationToken { return cts.token }
 
         // Registered image tasks.
         var tasks = Set<ImageTask>()
@@ -615,12 +636,40 @@ extension ImageTask {
             /// - important: Data loading might start prior to `timeResumed` if the task gets
             /// coalesced with another task.
             public let sessionId: Int
+
+            public fileprivate(set) var wasResumed: Bool = false
+            public fileprivate(set) var resumedDataCount: Int?
+
+            public fileprivate(set) var downloadedDataCount: Int?
+            public var totalDownloadedDataCount: Int? {
+                guard let downloaded = self.downloadedDataCount else { return nil }
+                return downloaded + (resumedDataCount ?? 0)
+            }
+
+            public let timeStarted: TimeInterval = _now()
+
+            public fileprivate(set) var timeDataLoadingEnqueued: TimeInterval?
             public fileprivate(set) var timeDataLoadingStarted: TimeInterval?
             public fileprivate(set) var timeDataLoadingFinished: TimeInterval?
+
+            public fileprivate(set) var timeDecodingEnqueued: TimeInterval?
+            public fileprivate(set) var timeDecodingStarted: TimeInterval?
             public fileprivate(set) var timeDecodingFinished: TimeInterval?
+
+            public fileprivate(set) var timeProcessingEnqueued: TimeInterval?
+            public fileprivate(set) var timeProcessingStarted: TimeInterval?
             public fileprivate(set) var timeProcessingFinished: TimeInterval?
+
+            public fileprivate(set) var timeCompleted: TimeInterval? // failed or completed
+
+            public var totalDuration: TimeInterval? {
+                guard let timeCompleted = timeCompleted else { return nil }
+                return timeCompleted - timeStarted
+            }
+
+            public fileprivate(set) var wasCancelled: Bool = false
+
             public fileprivate(set) var urlResponse: URLResponse?
-            public fileprivate(set) var downloadedDataCount: Int?
 
             init(sessionId: Int) { self.sessionId = sessionId }
         }
@@ -639,7 +688,7 @@ extension ImageTask {
         // Properties
 
         /// Returns `true` is the task wasn't the one that initiated image loading.
-        public fileprivate(set) var wasSubscibedToExistingTask: Bool = false
+        public fileprivate(set) var wasSubscibedToExistingSession: Bool = false
         public fileprivate(set) var isMemoryCacheHit: Bool = false
         public fileprivate(set) var wasCancelled: Bool = false
     }
