@@ -7,7 +7,7 @@
 <a href="https://travis-ci.org/kean/Nuke"><img src="https://img.shields.io/travis/kean/Nuke/master.svg"></a>
 </p>
 
-A powerful **image loading** and **caching** system which takes care of image loading and displaying for you. It makes simple tasks like loading images into image view extremely simple, while also supporting and progressively disclosing more advanced features for more demanding apps.
+A powerful **image loading** and **caching** system. It makes simple tasks like loading images into image view extremely simple, while also supporting and progressively disclosing more advanced features for more demanding apps.
 
 # <a name="h_features"></a>Features
 
@@ -211,7 +211,7 @@ You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) 
 
 #### Enabling Progressive Decoding (Beta)
 
-You need a pipeline with progressive decoding enabled:
+To use progressive image loading you need a pipeline with progressive decoding enabled:
 
 ```swift
 let pipeline = ImagePipeline {
@@ -231,7 +231,7 @@ task.progressiveImageHandler = {
 }
 ```
 
-The progressive decoding only kicks in when Nuke determines that the image data does contain a progressive JPEG. The decoder intelligently scans the data and only produces a new image when it receives a full new scan (progressive JPEGs normally have around 10 scans).
+The progressive decoding only kicks in when Nuke determines that the image data does contain a progressive JPEG. The decoder scans the data and only produces a new image when it receives a full new scan (progressive JPEGs normally have around 10 scans).
 
 > See "Progressive Decoding" demo to see progressive JPEG in practice. You can also uncomment the code that blurs the first few scans of the image which makes them look a bit nicer.
 
@@ -263,7 +263,7 @@ Nuke's image pipeline consists of roughly five stages which can be customized us
 |Protocol|Description|
 |--------|-----------|
 |`DataLoading`|Download (or return cached) image data|
-|`DataDecoding`|Convert data into image objects|
+|`ImageDecoding`|Convert data into image objects|
 |`ImageProcessing`|Apply image transformations|
 |`ImageCaching`|Store image into memory cache|
 
@@ -271,7 +271,7 @@ All those types come together the way you expect:
 
 1. `ImagePipeline` checks if the image is in memory cache (`ImageCaching`). Returns immediately if finds it.
 2. `ImagePipeline` uses underlying data loader (`DataLoading`) to fetch (or return cached) image data.
-3. When the image data is loaded it gets decoded (`DataDecoding`) creating an image object.
+3. When the image data is loaded it gets decoded (`ImageDecoding`) creating an image object.
 4. The image is then processed (`ImageProcessing`).
 5. `ImagePipeline` stores the processed image in the memory cache (`ImageCaching`).
 
@@ -327,7 +327,9 @@ A common use case is to dynamically start and cancel requests for a collection v
 
 ### Performance Metrics (Beta)
 
-Nuke captures detailed metrics on each image task:
+Nuke collects detailed performance metrics during the exution of an image task.  
+
+![timeline](https://user-images.githubusercontent.com/1567433/39093168-5da939c4-461b-11e8-9471-47107ea1ad78.png)
 
 ```swift
 (lldb) po task.metrics
