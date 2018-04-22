@@ -179,11 +179,12 @@ public /* final */ class ImagePipeline {
     }
 
     private func _startLoadingImage(for task: ImageTask) {
-        if let image = _cachedImage(for: task.request) {
-            task.metrics.isMemoryCacheHit = true
+        if task.request.memoryCacheOptions.readAllowed,
+            let image = configuration.imageCache?[task.request] {
             DispatchQueue.main.async {
                 task.completion?(.success(image))
             }
+            task.metrics.isMemoryCacheHit = true
             return
         }
 
@@ -525,8 +526,10 @@ public /* final */ class ImagePipeline {
     }
 
     private func _session(_ session: Session, completedWith result: Result<Image>) {
-        if let image = result.value {
-            _store(image: image, for: session.request)
+        // Save image in cache if at least one registered task allowed it.
+        if let image = result.value, let cache = configuration.imageCache,
+            session.tasks.contains(where: { $0.request.memoryCacheOptions.writeAllowed }) {
+            cache[session.request] = image
         }
         session.isCompleted = true
         session.metrics.endDate = Date()
@@ -542,18 +545,6 @@ public /* final */ class ImagePipeline {
             }
         }
         _removeSession(session)
-    }
-
-    // MARK: Memory Cache Helpers
-
-    private func _cachedImage(for request: ImageRequest) -> Image? {
-        guard request.memoryCacheOptions.readAllowed else { return nil }
-        return configuration.imageCache?[request]
-    }
-
-    private func _store(image: Image, for request: ImageRequest) {
-        guard request.memoryCacheOptions.writeAllowed else { return }
-        configuration.imageCache?[request] = image
     }
 
     // MARK: Session

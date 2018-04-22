@@ -16,8 +16,8 @@ A powerful **image loading** and **caching** system which takes care of image lo
 - [RxNuke](https://github.com/kean/RxNuke) with RxSwift extensions
 - Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) (*deprecated in iOS 10*)
 - Small (under 1500 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
-- Progressive image loading (Progressive JPEG) 
-- Resumable downloads, request deduplication, rate limiting and more
+- Progressive image loading (progressive JPEG) 
+- Resumable downloads, request deduplication, prioritization, rate limiting and more
 
 > [Nuke 7](https://github.com/kean/Nuke/tree/nuke7) is in active development, first beta is already available. It's an early version, the documentation hasn't been fully updated yet and there are still some upcoming changes. If you'd like to contribute or have some suggestions or feature requests please open an issue, a pull request or contact me on [Twitter](https://twitter.com/a_grebenyuk).
 
@@ -85,7 +85,7 @@ var request = ImageRequest(url: url)
 // var request = ImageRequest(urlRequest: URLRequest(url: url))
 
 // Change memory cache policy:
-request.memoryCacheOptions.writeAllowed = false
+request.memoryCacheOptions.isWriteAllowed = false
 
 // Update the request priority:
 request.priority = .high
