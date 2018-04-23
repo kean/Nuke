@@ -7,7 +7,7 @@
 <a href="https://travis-ci.org/kean/Nuke"><img src="https://img.shields.io/travis/kean/Nuke/master.svg"></a>
 </p>
 
-A powerful **image loading** and **caching** system. It makes simple tasks like loading images into image view extremely simple, while also supporting and progressively disclosing more advanced features for more demanding apps.
+A powerful **image loading** and **caching** system. It makes simple tasks like loading images into image views extremely simple, while also supporting and progressively disclosing more advanced features for more demanding apps.
 
 # <a name="h_features"></a>Features
 
