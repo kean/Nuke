@@ -244,7 +244,7 @@ internal class DataCache {
 
     // MARK: Temporary
 
-    func data(for key: Key, _ completion: @escaping (Data?) -> Void) -> Cancellable {
+    @discardableResult func data(for key: Key, _ completion: @escaping (Data?) -> Void) -> Cancellable {
         let work = DispatchWorkItem { [weak self] in
             completion(self?[key])
         }

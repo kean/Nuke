@@ -171,16 +171,23 @@ class ResumableDataResumingTests: XCTestCase {
         wait()
 
         expect { fulfil in
+            pipeline.didFinishCollectingMetrics = { _, metrics in
+                // Test that the metrics are collected correctly.
+                XCTAssertEqual(metrics.session!.wasResumed, true)
+                XCTAssertTrue(metrics.session!.resumedDataCount! > 0)
+                XCTAssertEqual(metrics.session!.totalDownloadedDataCount, self.dataLoader.data.count)
+                fulfil()
+            }
+        }
+
+        expect { fulfil in
             let task = pipeline.loadImage(with: defaultURL) { _ in }
 
             task.completion = { [unowned task, unowned self] in
                 XCTAssertNotNil($0.value)
                 XCTAssertEqual(task.completedUnitCount, Int64(self.dataLoader.data.count))
 
-                // Test that the metrics are collected correctly.
-                XCTAssertEqual(task.metrics.session!.wasResumed, true)
-                XCTAssertTrue(task.metrics.session!.resumedDataCount! > 0)
-                XCTAssertEqual(task.metrics.session!.totalDownloadedDataCount, self.dataLoader.data.count)
+
 
                 fulfil()
             }

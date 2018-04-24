@@ -207,6 +207,17 @@ class CacheTests: XCTestCase {
 
         let cache2 = try! DataCache(path: cache.path)
         cache2._keyEncoder = cache._keyEncoder
+
+        // DataCache guarantees that async data call will be executed after
+        // index is oaded, this is not true for synchronous methods.
+        expect { fulfil in
+            _ = cache2.data(for: "key") {
+                XCTAssertEqual($0, self.cache["key"])
+                fulfil()
+            }
+        }
+        wait()
+
         XCTAssertEqual(cache2["key"], cache["key"])
         XCTAssertEqual(cache2.totalSize, cache.totalSize)
         XCTAssertEqual(cache2.totalAllocatedSize, cache.totalAllocatedSize)

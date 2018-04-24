@@ -23,7 +23,7 @@ public /* final */ class ImageTask: Hashable {
     public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
     public typealias ProgressiveImageHandler = (_ image: Image) -> Void
 
-    public fileprivate(set) var metrics: Metrics
+    fileprivate var metrics: Metrics
 
     fileprivate weak private(set) var pipeline: ImagePipeline?
     fileprivate weak var session: ImagePipeline.Session?
@@ -91,6 +91,9 @@ public /* final */ class ImagePipeline {
 
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
+
+    /// The closure that gets called each time the task is completed (or cancelled). Gets called on the main thread.
+    public var didFinishCollectingMetrics: ((ImageTask, ImageTask.Metrics) -> Void)?
 
     public struct Configuration {
         /// Data loader using by the pipeline.
@@ -237,17 +240,21 @@ public /* final */ class ImagePipeline {
             task.metrics.wasCancelled = true
             task.metrics.endDate = Date()
 
-            guard let session = task.session else { return } // executing == true
-            session.tasks.remove(task)
-            // Cancel the session when there are no remaining tasks.
-            if session.tasks.isEmpty {
-                self._tryToSaveResumableData(for: session)
-                self._removeSession(session)
-                session.cts.cancel()
+            if let session = task.session { // executing == true
+                session.tasks.remove(task)
+                // Cancel the session when there are no remaining tasks.
+                if session.tasks.isEmpty {
+                    self._tryToSaveResumableData(for: session)
+                    self._removeSession(session)
+                    session.cts.cancel()
 
-                session.metrics.wasCancelled = true
-                session.metrics.endDate = Date()
+                    session.metrics.wasCancelled = true
+                    session.metrics.endDate = Date()
+                }
             }
+
+            guard let didFinishTask = self.didFinishCollectingMetrics else { return }
+            DispatchQueue.main.async { didFinishTask(task, task.metrics) }
         }
     }
 
@@ -592,6 +599,7 @@ public /* final */ class ImagePipeline {
         DispatchQueue.main.async {
             for task in tasks {
                 task.completion?(result)
+                self.didFinishCollectingMetrics?(task, task.metrics)
             }
         }
         _removeSession(session)
@@ -685,14 +693,10 @@ extension ImageTask {
             var printer = Printer()
             printer.section(title: "Task Information") {
                 $0.value("Task ID", taskId)
-                $0.value("Total Duration", Printer.duration(totalDuration))
+                $0.timeline("Duration", startDate, endDate, isReversed: false)
                 $0.value("Was Cancelled", wasCancelled)
                 $0.value("Is Memory Cache Hit", isMemoryCacheHit)
                 $0.value("Was Subscribed To Existing Image Loading Session", wasSubscibedToExistingSession)
-            }
-            printer.section(title: "Timeline") {
-                $0.timeline("Start Date", startDate)
-                $0.timeline("End Date", endDate)
             }
             printer.section(title: "Image Loading Session") {
                 $0.string(session.map({ $0.debugDescription }) ?? "nil")
@@ -753,16 +757,12 @@ extension ImageTask {
                     $0.value("Was Cancelled", wasCancelled)
                 }
                 printer.section(title: "Timeline") {
-                    $0.timeline("Start Date", startDate)
-                    $0.timeline("Check Disk Cache Start", checkDiskCacheStartDate)
-                    $0.timeline("Check Disk Cache End", checkDiskCacheEndDate)
-                    $0.timeline("Load Data Start", loadDataStartDate)
-                    $0.timeline("Load Data End", loadDataEndDate)
-                    $0.timeline("Decode Start", decodeStartDate)
-                    $0.timeline("Decode End", decodeEndDate)
-                    $0.timeline("Process Start", processStartDate)
-                    $0.timeline("Process End", processEndDate)
-                    $0.timeline("End Date", endDate)
+                    $0.timeline("Total", startDate, endDate)
+                    $0.line(String(repeating: "-", count: 36))
+                    $0.timeline("Check Disk Cache", checkDiskCacheStartDate, checkDiskCacheEndDate)
+                    $0.timeline("Load Data", loadDataStartDate, loadDataEndDate)
+                    $0.timeline("Decode", decodeStartDate, decodeEndDate)
+                    $0.timeline("Process", processStartDate, processEndDate)
                 }
                 printer.section(title: "Resumable Data") {
                     $0.value("Was Resumed", wasResumed)

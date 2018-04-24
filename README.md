@@ -15,7 +15,6 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) integrations
 - [RxNuke](https://github.com/kean/RxNuke) with RxSwift extensions
 - Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) (*deprecated in iOS 10*)
-- Small (under 1500 lines), [fast](https://github.com/kean/Image-Frameworks-Benchmark) and reliable
 - Progressive image loading (progressive JPEG) 
 - Resumable downloads, request deduplication, prioritization, rate limiting and more
 
@@ -348,47 +347,43 @@ A common use case is to dynamically start and cancel requests for a collection v
 
 ### Performance Metrics (Beta)
 
-Nuke collects detailed performance metrics during the exution of an image task.  
+Nuke collects detailed performance metrics during the exution of an image task:
+
+```swift
+ImagePipeline.shared.didFinishCollectingMetrics = { task, metrics in
+    print(metrics)
+}
+```
 
 ![timeline](https://user-images.githubusercontent.com/1567433/39193766-8dfd81b2-47dc-11e8-86b3-f3f69dc73d3a.png)
 
-```swift
-(lldb) po task.metrics
+```
+(lldb) po metrics
 
 Task Information {
-    Task ID - 5
-    Total Duration - 0.363
+    Task ID - 1
+    Duration - 22:35:16.123 – 22:35:16.475 (0.352s)
     Was Cancelled - false
     Is Memory Cache Hit - false
-    Was Subscribed To Existing Image Loading Session - false
+    Was Subscribed To Existing Session - false
+}
+Session Information {
+    Session ID - 1
+    Total Duration - 0.351s
+    Was Cancelled - false
 }
 Timeline {
-    12:42:06.559 - Start Date
-    12:42:06.923 - End Date
+    22:35:16.124 – 22:35:16.475 (0.351s) - Total
+    ------------------------------------
+    nil – nil (nil)                      - Check Disk Cache
+    22:35:16.131 – 22:35:16.410 (0.278s) - Load Data
+    22:35:16.410 – 22:35:16.468 (0.057s) - Decode
+    22:35:16.469 – 22:35:16.474 (0.005s) - Process
 }
-Image Loading Session {
-    Session Information {
-        Session ID - 5
-        Total Duration - 0.357
-        Was Cancelled - false
-    }
-    Timeline {
-        12:42:06.566 - Start Date
-        nil          - Disk Cache Lookup Start Date
-        nil          - Disk Cache Lookup End Date
-        12:42:06.570 - Data Loading Start Date
-        12:42:06.904 - Data Loading End Date
-        12:42:06.909 - Decoding Start Date
-        12:42:06.912 - Decoding End Date
-        12:42:06.913 - Processing Start Date
-        12:42:06.922 - Processing End Date
-        12:42:06.923 - End Date
-    }
-    Resumable Data {
-        Was Resumed - nil
-        Resumable Data Count - nil
-        Server Confirmed Resume - nil
-    }
+Resumable Data {
+    Was Resumed - nil
+    Resumable Data Count - nil
+    Server Confirmed Resume - nil
 }
 ```
 

@@ -7,20 +7,20 @@ import Nuke
 
 class ImagePipelineTests: XCTestCase {
     var dataLoader: MockDataLoader!
-    var imagePipeline: ImagePipeline!
+    var pipeline: ImagePipeline!
     
     override func setUp() {
         super.setUp()
         
         dataLoader = MockDataLoader()
-        imagePipeline = ImagePipeline {
+        pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
         }
     }
     
     func testThreadSafety() {
-        runThreadSafetyTests(for: imagePipeline)
+        runThreadSafetyTests(for: pipeline)
     }
 
     // MARK: Progress
@@ -35,7 +35,7 @@ class ImagePipelineTests: XCTestCase {
         let expectTaskFinished = makeExpectation()
         let expectProgressFinished = makeExpectation()
 
-        let task = imagePipeline.loadImage(with: request) {
+        let task = pipeline.loadImage(with: request) {
             _ in expectTaskFinished.fulfill()
         }
 
@@ -56,7 +56,7 @@ class ImagePipelineTests: XCTestCase {
     // MARK: Options
 
     func testOverridingProcessor() {
-        let imagePipeline = ImagePipeline {
+        let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageProcessor = { _ in
                 AnyImageProcessor(MockImageProcessor(id: "processorFromOptions"))
@@ -66,12 +66,57 @@ class ImagePipelineTests: XCTestCase {
         let request = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "processorFromRequest"))
 
         expect { fulfill in
-            imagePipeline.loadImage(with: request) {
+            pipeline.loadImage(with: request) {
                 XCTAssertNotNil($0.value)
                 XCTAssertEqual($0.value?.nk_test_processorIDs.count, 1)
                 XCTAssertEqual($0.value?.nk_test_processorIDs.first, "processorFromOptions")
                 fulfill()
             }
+        }
+        wait()
+    }
+
+    // MARK: Metrics Collection
+
+    func testThatMetricsAreCollectedWhenTaskCompleted() {
+        expect { fulfill in
+            pipeline.didFinishCollectingMetrics = { task, metrics in
+                XCTAssertEqual(task.taskId, metrics.taskId)
+                XCTAssertNotNil(metrics.endDate)
+                XCTAssertNotNil(metrics.session)
+                XCTAssertNotNil(metrics.session?.endDate)
+                fulfill()
+            }
+        }
+
+        expect { fulfill in
+            pipeline.loadImage(with: defaultURL) {
+                XCTAssertNotNil($0.value)
+                fulfill()
+            }
+        }
+        wait()
+    }
+
+    func testThatMetricsAreCollectedWhenTaskCancelled() {
+        expect { fulfill in
+            pipeline.didFinishCollectingMetrics = { task, metrics in
+                XCTAssertEqual(task.taskId, metrics.taskId)
+                XCTAssertTrue(metrics.wasCancelled)
+                XCTAssertNotNil(metrics.endDate)
+                XCTAssertNotNil(metrics.session)
+                XCTAssertNotNil(metrics.session?.endDate)
+                fulfill()
+            }
+        }
+
+        dataLoader.queue.isSuspended = true
+
+        let task = pipeline.loadImage(with: defaultURL) { _ in
+            XCTFail()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(10)) {
+            task.cancel()
         }
         wait()
     }
@@ -293,7 +338,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     }
 }
 
-class LoaderMemoryCacheTests: XCTestCase {
+class ImagePipelineMemoryCacheTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var cache: MockImageCache!
     var loader: ImagePipeline!

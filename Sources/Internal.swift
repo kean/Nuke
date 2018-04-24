@@ -427,7 +427,7 @@ internal struct Printer {
         _out.append(str)
     }
 
-    mutating private func line(_ str: String) {
+    mutating func line(_ str: String) {
         _out.append(str)
         _out.append("\n")
     }
@@ -447,6 +447,16 @@ internal struct Printer {
         self.value((value ?? "nil         "), key) // Swtich key with value
     }
 
+    mutating func timeline(_ key: String, _ start: Date?, _ end: Date?, isReversed: Bool = true) {
+        let duration = _duration(from: start, to: end)
+        let value = "\(_string(from: start)) – \(_string(from: end)) (\(duration))"
+        if isReversed {
+            self.value(value.padding(toLength: 36, withPad: " ", startingAt: 0), key)
+        } else {
+            self.value(key, value)
+        }
+    }
+
     mutating func section(title: String, _ closure: (inout Printer) -> Void) {
         _out.append(contentsOf: title)
         _out.append(" {\n")
@@ -454,6 +464,18 @@ internal struct Printer {
         closure(&printer)
         _out.append(printer.output(indent: 4))
         _out.append("}\n")
+    }
+
+    // MARK: Formatters
+
+    private func _string(from date: Date?) -> String {
+        return date.map { timelineFormatter.string(from: $0) } ?? "nil"
+    }
+
+    private func _duration(from: Date?, to: Date?) -> String {
+        guard let from = from else { return "nil" }
+        guard let to = to else { return "unknown" }
+        return Printer.duration(to.timeIntervalSince(from)) ?? "nil"
     }
 
     static func duration(_ duration: TimeInterval?) -> String? {
@@ -466,7 +488,7 @@ internal struct Printer {
         var output = String()
         if m > 0 { output.append("\(m):") }
         output.append(output.isEmpty ? "\(s)." : String(format: "%02d.", s))
-        if ms > 0 { output.append(String(format: "%03d", ms)) }
+        output.append(String(format: "%03ds", ms))
         return output
     }
 }
