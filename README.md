@@ -11,7 +11,7 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
 
 # <a name="h_features"></a>Features
 
-- Two [cache layers](https://kean.github.io/post/image-caching), fast LRU memory cache
+- Two [cache layers](https://kean.github.io/post/image-caching), fast custom LRU disk and memory caches
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) integrations
 - [RxNuke](https://github.com/kean/RxNuke) with RxSwift extensions
 - Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) (*deprecated in iOS 10*)
@@ -133,6 +133,8 @@ task.progress = {
 
 Tasks can be used to track download progress, cancel the requests, and dynamically udpdate download priority.
 
+# Advanced Usage
+
 #### Configuring Image Pipeline
 
 `ImagePipeline` is initialized with a `Configuration` which makes it fully customizable:
@@ -149,7 +151,7 @@ let pipeline = ImagePipeline {
 ImagePipeline.shared = pipeline
 ```
 
-#### Using Memory and Disk Cache
+#### Using Memory Cache
 
 Default Nuke's `ImagePipeline` has two cache layers.
 
@@ -169,6 +171,8 @@ let image = ImageCache.shared[request]
 ImageCache.shared.removeAll()
 ```
 
+#### Using Native Disk Cache
+
 To store unprocessed image data Nuke uses a `URLCache` instance:
 
 ```swift
@@ -184,6 +188,23 @@ DataLoader.sharedUrlCache.removeCachedResponse(for: request.urlRequest)
 // Clear cache
 DataLoader.sharedUrlCache.removeAllCachedResponses()
 ```
+
+#### Using Custom Disk Cache (Experimental)
+
+Nuke 7 features a new custom LRU disk cache which can be used for fast and reliable *aggressive* (no validation) data caching. The new cache lookups are up to 2x faster than `URLCache` lookups. You can enable it using pipeline's configuration:
+
+```swift
+$0.enableExperimentalAggressiveDiskCaching(keyEncoder: {
+    guard let data = $0.cString(using: .utf8) else { return nil }
+    return _nuke_sha1(data, UInt32(data.count))
+})
+```
+
+When enabling disk cache you must provide a `keyEncoder` function which takes image request's url as a parameter and produces a key which can be used as a valid filename. The [demo project uses sha1](https://gist.github.com/kean/f5e1975e01d5e0c8024bc35556665d7b) to generate those keys.
+
+The public API for disk cache and the API for using custom disk caches is going to be available the future versions.
+
+> Existing API already allows you to use custom disk cache [by implementing `DataLoading` protocol](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries), but this is not the most straighforward option.
 
 #### Preheating Images
 
@@ -329,7 +350,7 @@ A common use case is to dynamically start and cancel requests for a collection v
 
 Nuke collects detailed performance metrics during the exution of an image task.  
 
-![timeline](https://user-images.githubusercontent.com/1567433/39093168-5da939c4-461b-11e8-9471-47107ea1ad78.png)
+![timeline](https://user-images.githubusercontent.com/1567433/39193766-8dfd81b2-47dc-11e8-86b3-f3f69dc73d3a.png)
 
 ```swift
 (lldb) po task.metrics
@@ -353,6 +374,8 @@ Image Loading Session {
     }
     Timeline {
         12:42:06.566 - Start Date
+        nil          - Disk Cache Lookup Start Date
+        nil          - Disk Cache Lookup End Date
         12:42:06.570 - Data Loading Start Date
         12:42:06.904 - Data Loading End Date
         12:42:06.909 - Decoding Start Date

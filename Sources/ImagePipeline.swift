@@ -134,6 +134,26 @@ public /* final */ class ImagePipeline {
         /// `true` by default.
         public var isResumableDataEnabled = true
 
+        /// Enables experimental disk cache. The created disk cache is shared.
+        /// If you call this function multiple times the shared cache is going to use
+        /// the initial count and size limits. The public API for disk cache is
+        /// going to be available in the future versions when it goes out of beta.
+        /// - parameter countLimit: The maximum number of items. `1000` by default.
+        /// - parameter sizeLimit: Size limit in bytes. `100 Mb` by default.
+        public mutating func enableExperimentalAggressiveDiskCaching(countLimit: Int = 1000, sizeLimit: Int = 1024 * 1024 * 100, keyEncoder: @escaping (String) -> String?) {
+            if DataCache.shared == nil {
+                let cache = try? DataCache(
+                    name: "com.github.kean.Nuke.DataCache",
+                    algorithm: CacheAlgorithmLRU(countLimit: countLimit, sizeLimit: sizeLimit)
+                )
+                cache?._keyEncoder = keyEncoder
+                DataCache.shared = cache
+            }
+            self.dataCache = DataCache.shared
+        }
+
+        var dataCache: DataCache?
+
         /// Creates default configuration.
         /// - parameter dataLoader: `DataLoader()` by default.
         /// - parameter imageCache: `Cache.shared` by default.
@@ -272,11 +292,34 @@ public /* final */ class ImagePipeline {
             // executed asynchronously also on this same queue.
             rateLimiter.execute(token: session.cts.token) { [weak self, weak session] in
                 guard let session = session else { return }
-                self?._loadData(for: session)
+                self?._checkDiskCache(for: session)
             }
         } else { // Start loading immediately.
-            _loadData(for: session)
+            _checkDiskCache(for: session)
         }
+    }
+
+    private func _checkDiskCache(for session: Session) {
+        guard let cache = configuration.dataCache, let key = session.request.urlString else {
+            _loadData(for: session) // Skip disk cache lookup, load data
+            return
+        }
+
+        session.metrics.checkDiskCacheStartDate = Date()
+
+        // Disk cache lookup (Experimenal)
+        let task = cache.data(for: key) { [weak self, weak session] data in
+            guard let session = session else { return }
+            session.metrics.checkDiskCacheEndDate = Date()
+            self?.queue.async {
+                if let data = data {
+                    self?._decodeFinalImage(for: session, data: data)
+                } else {
+                    self?._loadData(for: session)
+                }
+            }
+        }
+        session.token.register { task.cancel() }
     }
 
     private func _loadData(for session: Session) {
@@ -300,7 +343,7 @@ public /* final */ class ImagePipeline {
 
     // This methods gets called inside data loading operation (Operation).
     private func _actuallyLoadData(for session: Session, finish: @escaping () -> Void) {
-        session.metrics.dataLoadingStartDate = Date()
+        session.metrics.loadDataStartDate = Date()
 
         var urlRequest = session.request.urlRequest
 
@@ -378,13 +421,27 @@ public /* final */ class ImagePipeline {
             // don't allow progressive decoding.
             guard session.data.count < response.expectedContentLength else { return }
 
-            _decodePartialImage(for: session)
+            _decodePartialImage(for: session, data: session.data)
         }
     }
 
-    private func _decodePartialImage(for session: Session) {
-        guard let decoder = _decoder(for: session) else { return }
+    private func _session(_ session: Session, didFinishLoadingDataWithError error: Swift.Error?) {
+        session.metrics.loadDataEndDate = Date()
+
+        guard error == nil else {
+            _tryToSaveResumableData(for: session)
+            _session(session, completedWith: .failure(error ?? Error.decodingFailed))
+            return
+        }
+
         let data = session.data
+        session.data.removeAll() // We no longer need the data stored in session.
+
+        _decodeFinalImage(for: session, data: data)
+    }
+
+    private func _decodePartialImage(for session: Session, data: Data) {
+        guard let decoder = _decoder(for: session, data: data) else { return }
         decodingQueue.async { [weak self, weak session] in
             guard let session = session else { return }
 
@@ -397,52 +454,40 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    // Lazily creates a decoder if necessary.
-    private func _decoder(for session: Session) -> ImageDecoding? {
-        // Return existing one.
-        if let decoder = session.decoder { return decoder }
-
-        // Basic sanity checks.
-        guard let response = session.urlResponse, !session.data.isEmpty else { return nil }
-
-        let context = ImageDecodingContext(request: session.request, urlResponse: response, data: session.data)
-        let decoder = configuration.imageDecoder(context)
-        session.decoder = decoder
-        return decoder
-    }
-
-    private func _session(_ session: Session, didFinishLoadingDataWithError error: Swift.Error?) {
-        session.metrics.dataLoadingEndDate = Date()
-
-        guard error == nil else {
-            _tryToSaveResumableData(for: session)
-            _session(session, completedWith: .failure(error ?? Error.decodingFailed))
+    private func _decodeFinalImage(for session: Session, data: Data) {
+        // Basic sanity checks, should never happen in practice.
+        guard !data.isEmpty, let decoder = _decoder(for: session, data: data) else {
+            _session(session, completedWith: .failure(Error.decodingFailed))
             return
         }
-
-        // Basic sanity checks.
-        guard !session.data.isEmpty, let decoder = _decoder(for: session) else {
-            _session(session, completedWith: .failure(error ?? Error.decodingFailed))
-            return
-        }
-
-        let data = session.data
-        session.data.removeAll() // We no longer need the data stored in session.
 
         let metrics = session.metrics
-
         decodingQueue.async { [weak self, weak session] in
             guard let session = session else { return }
-            metrics.decodingStartDate = Date()
+            metrics.decodeStartDate = Date()
             // Produce final image
             let image = autoreleasepool {
                 decoder.decode(data: data, isFinal: true)
             }
-            metrics.decodingEndDate = Date()
+            metrics.decodeEndDate = Date()
             self?.queue.async {
-                self?._session(session, didDecodeImage: image)
+                self?._session(session, didDecodeImage: image, data: data)
             }
         }
+    }
+
+    // Lazily creates a decoder if necessary.
+    private func _decoder(for session: Session, data: Data) -> ImageDecoding? {
+        // Return existing one.
+        if let decoder = session.decoder { return decoder }
+
+        // Basic sanity checks.
+        guard !data.isEmpty else { return nil }
+
+        let context = ImageDecodingContext(request: session.request, urlResponse: session.urlResponse, data: data)
+        let decoder = configuration.imageDecoder(context)
+        session.decoder = decoder
+        return decoder
     }
 
     private func _tryToSaveResumableData(for session: Session) {
@@ -481,13 +526,18 @@ public /* final */ class ImagePipeline {
         configuration.imageProcessingQueue.addOperation(operation)
     }
 
-    private func _session(_ session: Session, didDecodeImage image: Image?) {
+    private func _session(_ session: Session, didDecodeImage image: Image?, data: Data) {
         session.decoder = nil // Decoding session completed, no longer need decoder.
-        session.metrics.decodingEndDate = Date()
+        session.metrics.decodeEndDate = Date()
 
         guard let image = image else {
             _session(session, completedWith: .failure(Error.decodingFailed))
             return
+        }
+
+        // Store data in data cache (in case it's enabled))
+        if !data.isEmpty, let dataCache = configuration.dataCache, let key = session.request.urlString {
+            dataCache[key] = data
         }
 
         // Check if processing is required, complete immediatelly if not.
@@ -501,12 +551,12 @@ public /* final */ class ImagePipeline {
 
         let operation = BlockOperation { [weak self, weak session] in
             guard let session = session else { return }
-            metrics.processingStartDate = Date()
+            metrics.processStartDate = Date()
             let image = autoreleasepool { processor.process(image) }
             let result = image.map(Result.success) ?? .failure(Error.processingFailed)
-            metrics.processingEndDate = Date()
+            metrics.processEndDate = Date()
             self?.queue.async {
-                session.metrics.processingEndDate = Date()
+                session.metrics.processEndDate = Date()
                 self?._session(session, completedWith: result)
             }
         }
@@ -662,14 +712,17 @@ extension ImageTask {
 
             public let startDate = Date()
 
-            public fileprivate(set) var dataLoadingStartDate: Date?
-            public fileprivate(set) var dataLoadingEndDate: Date?
+            public fileprivate(set) var checkDiskCacheStartDate: Date?
+            public fileprivate(set) var checkDiskCacheEndDate: Date?
 
-            public fileprivate(set) var decodingStartDate: Date?
-            public fileprivate(set) var decodingEndDate: Date?
+            public fileprivate(set) var loadDataStartDate: Date?
+            public fileprivate(set) var loadDataEndDate: Date?
 
-            public fileprivate(set) var processingStartDate: Date?
-            public fileprivate(set) var processingEndDate: Date?
+            public fileprivate(set) var decodeStartDate: Date?
+            public fileprivate(set) var decodeEndDate: Date?
+
+            public fileprivate(set) var processStartDate: Date?
+            public fileprivate(set) var processEndDate: Date?
 
             public fileprivate(set) var endDate: Date? // failed or completed
 
@@ -701,12 +754,14 @@ extension ImageTask {
                 }
                 printer.section(title: "Timeline") {
                     $0.timeline("Start Date", startDate)
-                    $0.timeline("Data Loading Start Date", dataLoadingStartDate)
-                    $0.timeline("Data Loading End Date", dataLoadingEndDate)
-                    $0.timeline("Decoding Start Date", decodingStartDate)
-                    $0.timeline("Decoding End Date", decodingEndDate)
-                    $0.timeline("Processing Start Date", processingStartDate)
-                    $0.timeline("Processing End Date", processingEndDate)
+                    $0.timeline("Check Disk Cache Start", checkDiskCacheStartDate)
+                    $0.timeline("Check Disk Cache End", checkDiskCacheEndDate)
+                    $0.timeline("Load Data Start", loadDataStartDate)
+                    $0.timeline("Load Data End", loadDataEndDate)
+                    $0.timeline("Decode Start", decodeStartDate)
+                    $0.timeline("Decode End", decodeEndDate)
+                    $0.timeline("Process Start", processStartDate)
+                    $0.timeline("Process End", processEndDate)
                     $0.timeline("End Date", endDate)
                 }
                 printer.section(title: "Resumable Data") {
@@ -725,7 +780,7 @@ extension ImageTask {
 /// Image decoding context used when selecting which decoder to use.
 public struct ImageDecodingContext {
     public let request: ImageRequest
-    public let urlResponse: URLResponse
+    internal let urlResponse: URLResponse?
     public let data: Data
 }
 

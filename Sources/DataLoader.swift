@@ -4,7 +4,7 @@
 
 import Foundation
 
-public protocol DataLoadingTask: class {
+public protocol Cancellable: class {
     func cancel()
 }
 
@@ -15,10 +15,10 @@ public protocol DataLoading {
     /// of an error) `didReceiveData` closures have been called.
     func loadData(with request: URLRequest,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
-                  completion: @escaping (Error?) -> Void) -> DataLoadingTask
+                  completion: @escaping (Error?) -> Void) -> Cancellable
 }
 
-extension URLSessionTask: DataLoadingTask {}
+extension URLSessionTask: Cancellable {}
 
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading {
@@ -71,7 +71,7 @@ public final class DataLoader: DataLoading {
         diskPath: cachePath
     )
 
-    public func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Swift.Error?) -> Void) -> DataLoadingTask {
+    public func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
         return _impl.loadData(with: request, didReceiveData: didReceiveData, completion: completion)
     }
 
@@ -107,7 +107,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     }
 
     /// Loads data with the given request.
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> DataLoadingTask {
+    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = session.dataTask(with: request)
         let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
         queue.addOperation { // `URLSession` is configured to use this same queue

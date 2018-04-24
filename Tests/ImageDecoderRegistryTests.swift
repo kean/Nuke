@@ -16,7 +16,6 @@ final class ImageDecoderRegistryTests: XCTestCase {
         let register = ImageDecoderRegistry()
 
         register.register { context in
-            XCTAssertEqual(context.urlResponse.url, defaultURL)
             return MockImageDecoder(name: "A")
         }
 
@@ -51,7 +50,7 @@ final class ImageDecoderRegistryTests: XCTestCase {
 private func _mockImageDecodingContext() -> ImageDecodingContext {
     return ImageDecodingContext(
         request: ImageRequest(url: defaultURL),
-        urlResponse: URLResponse(url: defaultURL, mimeType: "jpeg", expectedContentLength: 10000, textEncodingName: nil),
+        urlResponse: nil,
         data: Test.data(name: "fixture", extension: "jpeg")
     )
 }

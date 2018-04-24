@@ -13,6 +13,10 @@ public struct ImageRequest {
 
     // MARK: Parameters of the Request
 
+    internal var urlString: String? {
+        return _ref._urlString
+    }
+
     /// The `URLRequest` used for loading an image.
     public var urlRequest: URLRequest {
         get { return _ref.resource.urlRequest }

@@ -7,7 +7,7 @@ import Nuke
 
 private let data: Data = Test.data(name: "fixture", extension: "jpeg")
 
-private final class MockDataTask: DataLoadingTask {
+private final class MockDataTask: Cancellable {
     var _cancel: () -> Void = { }
     func cancel() {
         _cancel()
@@ -22,7 +22,7 @@ class MockDataLoader: DataLoading {
     var results = [URL: Result<(Data, URLResponse)>]()
     let queue = OperationQueue()
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> DataLoadingTask {
+    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = MockDataTask()
 
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)

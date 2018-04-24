@@ -82,12 +82,12 @@ final class CachingDataLoader: DataLoading {
     private let cache: DataCaching
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.CachingDataLoader")
 
-    private final class _Task: DataLoadingTask {
+    private final class _Task: Cancellable {
         weak var loader: CachingDataLoader?
         var data = [Data]()
         var response: URLResponse?
         var isCancelled = false
-        weak var dataLoadingTask: DataLoadingTask?
+        weak var dataLoadingTask: Cancellable?
 
         func cancel() {
             loader?._cancel(self)
@@ -99,7 +99,7 @@ final class CachingDataLoader: DataLoading {
         self.cache = cache
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> DataLoadingTask {
+    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = _Task()
         task.loader = self
 

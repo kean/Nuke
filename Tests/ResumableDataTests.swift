@@ -195,7 +195,7 @@ private class _MockResumableDataLoader: DataLoading {
     let data: Data = Test.data(name: "fixture", extension: "jpeg")
     let eTag: String = "img_01"
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> DataLoadingTask {
+    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
         let headers = request.allHTTPHeaderFields
 
         // Check if the client already has some resumable data available.
@@ -249,7 +249,7 @@ private class _MockResumableDataLoader: DataLoading {
         return _Task()
     }
 
-    private class _Task: DataLoadingTask {
+    private class _Task: Cancellable {
         func cancel() { }
     }
 }

@@ -162,11 +162,11 @@ private final class ProgressiveImageView: UIView {
 }
 
 private final class _MockDataLoader: DataLoading {
-    private final class _MockTask: DataLoadingTask {
+    private final class _MockTask: Cancellable {
         func cancel() { }
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> DataLoadingTask {
+    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
         let data = _data(for: request)
         let chunks = _createChunks(for: data, size: 10240)
         let response = URLResponse(url: request.url!, mimeType: "image/jpeg", expectedContentLength: data.count, textEncodingName: nil)

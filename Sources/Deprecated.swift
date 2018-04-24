@@ -144,7 +144,10 @@ public final class Loader: Loading {
         self.pipeline = ImagePipeline {
             $0.dataLoader = loader
             $0.imageDecoder = {
-                return _DataDecoderAdapter(decoder: decoder, response: $0.urlResponse)
+                // empty URL response path never going to be executed because
+                // it's only possible with a new DataCaching infrastructure
+                // which can only be used with ImagePipeline and ImageDecoding
+                return _DataDecoderAdapter(decoder: decoder, response: $0.urlResponse ?? URLResponse())
             }
             $0.imageCache = nil
             $0.maxConcurrentDataLoadingTaskCount = options.maxConcurrentDataLoadingTaskCount

@@ -42,7 +42,7 @@ final class MenuViewController: UITableViewController {
             navigationItem.largeTitleDisplayMode = .automatic
         }
 
-        sections.append(MenuSection(title: "Examples", items: {
+        sections.append(MenuSection(title: "Basic", items: {
             var items = [MenuItem]()
             
             items.append(MenuItem(
@@ -53,12 +53,12 @@ final class MenuViewController: UITableViewController {
                     controller.title = $0.title
                     self?.push(controller)
             }))
-            
+
             items.append(MenuItem(
-                title: "Custom Cache",
-                subtitle: "Uses DFCache for on-disk caching",
+                title: "Disk Cache (Experimental)",
+                subtitle: "Enables aggressive disk caching",
                 action: { [weak self] in
-                    let controller = CustomCacheDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    let controller = DataCachingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
                     controller.title = $0.title
                     self?.push(controller)
             }))
@@ -71,7 +71,22 @@ final class MenuViewController: UITableViewController {
                     controller.title = $0.title
                     self?.push(controller)
             }))
-            
+
+            return items
+        }()))
+
+        sections.append(MenuSection(title: "Advanced", items: {
+            var items = [MenuItem]()
+
+            items.append(MenuItem(
+                title: "Progressive Decoding",
+                subtitle: "Progressive and baseline JPEG",
+                action: { [weak self] _ in
+                    let controller = ProgressiveDecodingDemoViewController()
+                    controller.title = "Progressive JPEG"
+                    self?.push(controller)
+            }))
+
             items.append(MenuItem(
                 title: "Rate Limiter",
                 subtitle: "Infinite scroll, highlights rate limiter performance",
@@ -82,11 +97,11 @@ final class MenuViewController: UITableViewController {
             }))
 
             items.append(MenuItem(
-                title: "Progressive Decoding",
-                subtitle: "Progressive and baseline JPEG",
-                action: { [weak self] _ in
-                    let controller = ProgressiveDecodingDemoViewController()
-                    controller.title = "Progressive JPEG"
+                title: "Custom Cache",
+                subtitle: "Uses DFCache for on-disk caching",
+                action: { [weak self] in
+                    let controller = CustomCacheDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
                     self?.push(controller)
             }))
 
