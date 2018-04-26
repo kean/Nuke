@@ -39,28 +39,35 @@ public extension ImageCaching {
 /// memory warning. It also automatically removes *most* of cached elements
 /// when the app enters background.
 public final class ImageCache: ImageCaching {
-    private let cache: _Cache<AnyHashable, Image>
+    private let _impl: _Cache<AnyHashable, Image>
 
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int {
-        get { return cache.costLimit }
-        set { cache.costLimit = newValue }
+        get { return _impl.costLimit }
+        set { _impl.costLimit = newValue }
     }
 
     /// The maximum number of items that the cache can hold.
     public var countLimit: Int {
-        get { return cache.countLimit }
-        set { cache.countLimit = newValue }
+        get { return _impl.countLimit }
+        set { _impl.countLimit = newValue }
+    }
+
+    /// Default TTL (time to live) for each entry. Can be used to make sure that
+    /// the entries get validated at some point. `0` (never expire) by default.
+    public var ttl: TimeInterval {
+        get { return _impl.ttl }
+        set { _impl.ttl = newValue }
     }
 
     /// The total cost of items in the cache.
     public var totalCost: Int {
-        return cache.totalCost
+        return _impl.totalCost
     }
 
     /// The total number of items in the cache.
     public var totalCount: Int {
-        return cache.totalCount
+        return _impl.totalCount
     }
 
     /// Shared `Cache` instance.
@@ -71,7 +78,7 @@ public final class ImageCache: ImageCaching {
     /// calculated based on the amount of the phisical memory available on the device.
     /// - parameter countLimit: `Int.max` by default.
     public init(costLimit: Int = ImageCache.defaultCostLimit(), countLimit: Int = Int.max) {
-        cache = _Cache(costLimit: costLimit, countLimit: countLimit)
+        _impl = _Cache(costLimit: costLimit, countLimit: countLimit)
     }
 
     /// Returns a recommended cost limit which is computed based on the amount
@@ -85,30 +92,30 @@ public final class ImageCache: ImageCaching {
 
     /// Accesses the image associated with the given key.
     public subscript(key: AnyHashable) -> Image? {
-        get { return cache.value(forKey: key) }
+        get { return _impl.value(forKey: key) }
         set {
             guard let newValue = newValue else {
-                cache.removeValue(forKey: key)
+                _impl.removeValue(forKey: key)
                 return
             }
-            cache.set(newValue, forKey: key, cost: self.cost(newValue))
+            _impl.set(newValue, forKey: key, cost: self.cost(newValue))
         }
     }
 
     /// Removes all cached images.
     public func removeAll() {
-        cache.removeAll()
+        _impl.removeAll()
     }
     /// Removes least recently used items from the cache until the total cost
     /// of the remaining items is less than the given cost limit.
     public func trim(toCost limit: Int) {
-        cache.trim(toCost: limit)
+        _impl.trim(toCost: limit)
     }
 
     /// Removes least recently used items from the cache until the total count
     /// of the remaining items is less than the given count limit.
     public func trim(toCount limit: Int) {
-        cache.trim(toCount: limit)
+        _impl.trim(toCount: limit)
     }
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
@@ -130,8 +137,8 @@ public final class ImageCache: ImageCaching {
 internal final class _Cache<Key: Hashable, Value> {
     // We don't use `NSCache` because it's not LRU
 
-    private var map = [Key: LinkedList<_CachedValue>.Node]()
-    private let list = LinkedList<_CachedValue>()
+    private var map = [Key: LinkedList<Entry>.Node]()
+    private let list = LinkedList<Entry>()
     private let lock = NSLock()
 
     internal var costLimit: Int {
@@ -143,6 +150,7 @@ internal final class _Cache<Key: Hashable, Value> {
     }
 
     internal private(set) var totalCost = 0
+    internal var ttl: TimeInterval = 0
 
     internal var totalCount: Int {
         return map.count
@@ -170,6 +178,11 @@ internal final class _Cache<Key: Hashable, Value> {
             return nil
         }
 
+        guard !node.value.isExpired else {
+            _remove(node: node)
+            return nil
+        }
+
         // bubble node up to make it last added (most recently used)
         list.remove(node)
         list.append(node)
@@ -177,10 +190,13 @@ internal final class _Cache<Key: Hashable, Value> {
         return node.value.value
     }
 
-    internal func set(_ value: Value, forKey key: Key, cost: Int = 0) {
+    internal func set(_ value: Value, forKey key: Key, cost: Int = 0, ttl: TimeInterval? = nil) {
         lock.lock(); defer { lock.unlock() }
 
-        _add(_CachedValue(value: value, cost: cost, key: key))
+        let ttl = ttl ?? self.ttl
+        let expiration = ttl == 0 ? nil : (Date() + ttl)
+        let entry = Entry(value: value, key: key, cost: cost, expiration: expiration)
+        _add(entry)
         _trim() // _trim is extremely fast, it's OK to call it each time
     }
 
@@ -192,7 +208,7 @@ internal final class _Cache<Key: Hashable, Value> {
         return node.value.value
     }
 
-    private func _add(_ element: _CachedValue) {
+    private func _add(_ element: Entry) {
         if let existingNode = map[element.key] {
             _remove(node: existingNode)
         }
@@ -200,7 +216,7 @@ internal final class _Cache<Key: Hashable, Value> {
         totalCost += element.cost
     }
 
-    private func _remove(node: LinkedList<_CachedValue>.Node) {
+    private func _remove(node: LinkedList<Entry>.Node) {
         list.remove(node)
         map[node.value.key] = nil
         totalCost -= node.value.cost
@@ -252,9 +268,14 @@ internal final class _Cache<Key: Hashable, Value> {
         }
     }
 
-    private struct _CachedValue {
+    private struct Entry {
         let value: Value
-        let cost: Int
         let key: Key
+        let cost: Int
+        let expiration: Date?
+        var isExpired: Bool {
+            guard let expiration = expiration else { return false }
+            return expiration.timeIntervalSinceNow < 0
+        }
     }
 }

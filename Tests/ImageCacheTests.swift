@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-import Nuke
+@testable import Nuke
 
 class ImageCacheTests: XCTestCase {
     var cache: Nuke.ImageCache!
@@ -389,5 +389,36 @@ class CacheIntegrationTests: XCTestCase {
         
         XCTAssertEqual(mockCache.images.count, 0)
         XCTAssertNil(mockCache[request])
+    }
+}
+
+class _CacheTests: XCTestCase {
+    let cache = _Cache<Int, Int>(costLimit: 1000, countLimit: 1000)
+
+    // MARK: TTL
+
+    func testTTL() {
+        cache.set(1, forKey: 1, cost: 1, ttl: 0.05)  // 50 ms
+        XCTAssertNotNil(cache.value(forKey: 1))
+
+        usleep(55 * 1000)
+        XCTAssertNil(cache.value(forKey: 1))
+    }
+
+    func testDefaultTTLIsUsed() {
+        cache.ttl = 0.05// 50 ms
+        cache.set(1, forKey: 1, cost: 1)
+        XCTAssertNotNil(cache.value(forKey: 1))
+
+        usleep(55 * 1000)
+        XCTAssertNil(cache.value(forKey: 1))
+    }
+
+    func testDefaultToNonExpiringEntries() {
+        cache.set(1, forKey: 1, cost: 1)
+        XCTAssertNotNil(cache.value(forKey: 1))
+
+        usleep(55 * 1000)
+        XCTAssertNotNil(cache.value(forKey: 1))
     }
 }

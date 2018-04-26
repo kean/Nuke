@@ -23,8 +23,9 @@ class RateLimiterTests: XCTestCase {
         ops.append(Op() { fulfill in
             let cts = _CancellationTokenSource()
             limiter.execute(token: cts.token) {
-                sleep(UInt32(Double(rnd(10)) / 100.0))
-                fulfill()
+                DispatchQueue.global().async {
+                    fulfill()
+                }
             }
         })
         
@@ -32,7 +33,7 @@ class RateLimiterTests: XCTestCase {
             // cancel after executing
             let cts = _CancellationTokenSource()
             limiter.execute(token: cts.token) {
-                sleep(UInt32(Double(rnd(10)) / 100.0))
+                return
             }
             cts.cancel()
             fulfill() // we don't except fulfil
@@ -43,7 +44,6 @@ class RateLimiterTests: XCTestCase {
             let cts = _CancellationTokenSource()
             cts.cancel()
             limiter.execute(token: cts.token) {
-                sleep(UInt32(Double(rnd(10)) / 100.0))
                 XCTFail() // must not be executed
             }
             fulfill()
@@ -56,7 +56,7 @@ class RateLimiterTests: XCTestCase {
                 // RateLimiter is not designed (unlike user-facing classes) to
                 // handle unlimited pressure from the outside, thus we limit
                 // the number of concurrent ops
-                queue.maxConcurrentOperationCount = 50
+                queue.maxConcurrentOperationCount = 40
                 
                 queue.addOperation {
                     ops.randomItem().closure(fulfill)
