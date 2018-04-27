@@ -34,17 +34,14 @@ public /* final */ class ImageTask: Hashable {
 
     fileprivate weak private(set) var pipeline: ImagePipeline?
     fileprivate weak var session: ImagePipeline.Session?
-    fileprivate var isCancelled = false
+
+    fileprivate var cts = _CancellationSource()
 
     public init(taskId: Int, request: ImageRequest, pipeline: ImagePipeline) {
         self.taskId = taskId
         self.request = request
         self.pipeline = pipeline
         self.metrics = Metrics(taskId: taskId, startDate: Date())
-    }
-
-    public func cancel() {
-        pipeline?._imageTaskCancelled(self)
     }
 
     public func setPriority(_ priority: ImageRequest.Priority) {
@@ -59,7 +56,15 @@ public /* final */ class ImageTask: Hashable {
     public var hashValue: Int {
         return ObjectIdentifier(self).hashValue
     }
+
+    // MARK: Managing Cancellation
+
+    public func cancel() {
+        cts.cancel()
+    }
 }
+
+private let _lock = NSLock()
 
 // MARK: - ImageResponse
 
@@ -215,13 +220,20 @@ public /* final */ class ImagePipeline {
         let task = ImageTask(taskId: Int(OSAtomicIncrement32(&nextTaskId)), request: request, pipeline: self)
         task.completion = completion
         queue.async {
-            guard !task.isCancelled else { return } // Fast preflight check
             self._startLoadingImage(for: task)
         }
         return task
     }
 
     private func _startLoadingImage(for task: ImageTask) {
+        // Fast preflight check.
+        guard !task.cts.isCancelling else {
+            task.metrics.wasCancelled = true
+            task.metrics.endDate = Date()
+            return
+        }
+
+        // Read memory cache.
         if task.request.memoryCacheOptions.readAllowed,
             let response = configuration.imageCache?.cachedResponse(for: task.request) {
             DispatchQueue.main.async {
@@ -231,6 +243,7 @@ public /* final */ class ImagePipeline {
             return
         }
 
+        // Create a new image loading session or register with an existing one.
         let session = _createSession(with: task.request)
         task.session = session
 
@@ -242,6 +255,11 @@ public /* final */ class ImagePipeline {
 
         // Update data operation priority (in case it was already started).
         session.dataOperation?.queuePriority = session.priority.queuePriority
+
+        task.cts.register { [weak self, weak task] in
+            guard let task = task else { return }
+            self?._imageTaskCancelled(task)
+        }
     }
 
     fileprivate func _imageTask(_ task: ImageTask, didUpdatePriority: ImageRequest.Priority) {
@@ -254,9 +272,6 @@ public /* final */ class ImagePipeline {
     // Cancel the session in case all handlers were removed.
     fileprivate func _imageTaskCancelled(_ task: ImageTask) {
         queue.async {
-            guard !task.isCancelled else { return }
-            task.isCancelled = true
-
             task.metrics.wasCancelled = true
             task.metrics.endDate = Date()
 

@@ -243,7 +243,7 @@ internal final class LinkedList<Element> {
     }
 }
 
-// MARK: - CancellationToken
+// MARK: - CancellationTokenSource
 
 /// Manages cancellation tokens and signals them when cancellation is requested.
 ///
@@ -324,6 +324,48 @@ internal struct _CancellationToken {
     /// Special no-op token which does nothing.
     static var noOp: _CancellationToken {
         return _CancellationToken(source: nil)
+    }
+}
+
+// MARK: - CancellationSource
+
+/// Lightweight variant of _CancellationTokenSource with a single handler
+/// and struct instead of a class.
+internal struct _CancellationSource {
+    /// Returns `true` if cancellation has been requested.
+    var isCancelling: Bool {
+        return _lock.sync { _isCancelling }
+    }
+
+    private var _isCancelling: Bool = false
+    private var _observer: (() -> Void)?
+
+    mutating func register(_ closure: @escaping () -> Void) {
+        if !_register(closure) {
+            closure()
+        }
+    }
+
+    private mutating func _register(_ closure: @escaping () -> Void) -> Bool {
+        _lock.lock(); defer { _lock.unlock() }
+        guard !_isCancelling else { return false }
+        _observer = closure
+        return true
+    }
+
+    /// Communicates a request for cancellation to the managed tokens.
+    mutating func cancel() {
+        if let observer = _cancel() {
+            observer()
+        }
+    }
+
+    private mutating func _cancel() -> (() -> Void)? {
+        _lock.lock(); defer { _lock.unlock() }
+        guard !_isCancelling else { return nil }
+        _isCancelling = true
+        defer { _observer = nil }
+        return _observer
     }
 }
 
