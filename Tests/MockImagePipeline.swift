@@ -8,8 +8,8 @@ import Foundation
 private class _MockImageTask: ImageTask {
     fileprivate var _cancel: () -> Void = {}
 
-    init(request: ImageRequest, pipeline: ImagePipeline) {
-        super.init(taskId: 0, request: request, pipeline: pipeline)
+    init(request: ImageRequest) {
+        super.init(taskId: 0, request: request)
     }
 
     override func cancel() {
@@ -37,7 +37,7 @@ class MockImagePipeline: ImagePipeline {
     }
 
     override func loadImage(with request: ImageRequest, completion: @escaping ImageTask.Completion) -> ImageTask {
-        let task = _MockImageTask(request: request, pipeline: self)
+        let task = _MockImageTask(request: request)
 
         NotificationCenter.default.post(name: MockImagePipeline.DidStartTask, object: self)
 

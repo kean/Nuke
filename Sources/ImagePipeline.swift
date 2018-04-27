@@ -32,21 +32,20 @@ public /* final */ class ImageTask: Hashable {
 
     fileprivate var metrics: Metrics
 
-    fileprivate weak private(set) var pipeline: ImagePipeline?
+    fileprivate var priorityObserver: ((ImageRequest.Priority) -> Void)?
     fileprivate weak var session: ImagePipeline.Session?
 
     fileprivate var cts = _CancellationSource()
 
-    public init(taskId: Int, request: ImageRequest, pipeline: ImagePipeline) {
+    public init(taskId: Int, request: ImageRequest) {
         self.taskId = taskId
         self.request = request
-        self.pipeline = pipeline
         self.metrics = Metrics(taskId: taskId, startDate: Date())
     }
 
     public func setPriority(_ priority: ImageRequest.Priority) {
         request.priority = priority
-        pipeline?._imageTask(self, didUpdatePriority: priority)
+        priorityObserver?(priority)
     }
 
     public static func ==(lhs: ImageTask, rhs: ImageTask) -> Bool {
@@ -217,7 +216,7 @@ public /* final */ class ImagePipeline {
 
     /// Loads an image for the given request using image loading pipeline.
     @discardableResult public func loadImage(with request: ImageRequest, completion: @escaping ImageTask.Completion) -> ImageTask {
-        let task = ImageTask(taskId: Int(OSAtomicIncrement32(&nextTaskId)), request: request, pipeline: self)
+        let task = ImageTask(taskId: Int(OSAtomicIncrement32(&nextTaskId)), request: request)
         task.completion = completion
         queue.async {
             self._startLoadingImage(for: task)
@@ -256,9 +255,15 @@ public /* final */ class ImagePipeline {
         // Update data operation priority (in case it was already started).
         session.dataOperation?.queuePriority = session.priority.queuePriority
 
+        // Register cancellation and priority observers.
         task.cts.register { [weak self, weak task] in
             guard let task = task else { return }
             self?._imageTaskCancelled(task)
+        }
+
+        task.priorityObserver = { [weak self, weak task] in
+            guard let task = task else { return }
+            self?._imageTask(task, didUpdatePriority: $0)
         }
     }
 
