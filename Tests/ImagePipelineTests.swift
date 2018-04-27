@@ -25,7 +25,7 @@ class ImagePipelineTests: XCTestCase {
 
     // MARK: Progress
 
-    func testThatProgressIsReported() {
+    func testThatProgressClosureIsCalled() {
         let request = ImageRequest(url: defaultURL)
 
         dataLoader.results[defaultURL] = .success(
@@ -48,6 +48,40 @@ class ImagePipelineTests: XCTestCase {
             if expected.isEmpty {
                 expectProgressFinished.fulfill()
             }
+        }
+
+        wait()
+    }
+
+    func testThatProgressObjectIsUpdated() {
+        let request = ImageRequest(url: defaultURL)
+
+        dataLoader.results[defaultURL] = .success(
+            (Data(count: 20), URLResponse(url: defaultURL, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        let expectTaskFinished = makeExpectation()
+
+        let task = pipeline.loadImage(with: request) { _,_ in
+            expectTaskFinished.fulfill()
+        }
+
+        let progress = task.progress
+
+        var expectedTotal: [Int64] = [20]
+        self.keyValueObservingExpectation(for: progress, keyPath: "totalUnitCount") { (object, _) -> Bool in
+            XCTAssertTrue(Thread.isMainThread)
+            XCTAssertEqual(expectedTotal.first, progress.totalUnitCount)
+            expectedTotal.removeFirst()
+            return expectedTotal.isEmpty
+        }
+
+        var expectedCompleted: [Int64] = [10, 20]
+        self.keyValueObservingExpectation(for: progress, keyPath: "completedUnitCount") { (object,  _) -> Bool in
+            XCTAssertTrue(Thread.isMainThread)
+            XCTAssertEqual(expectedCompleted.first, progress.completedUnitCount)
+            expectedCompleted.removeFirst()
+            return expectedCompleted.isEmpty
         }
 
         wait()

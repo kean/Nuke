@@ -19,6 +19,13 @@ public /* final */ class ImageTask: Hashable {
     public var progressHandler: ProgressHandler?
     public var progressiveImageHandler: ProgressiveImageHandler?
 
+    /// Returns progress object for the task. The object is created lazily.
+    public var progress: Progress {
+        if _progress == nil { _progress = Progress() }
+        return _progress!
+    }
+    fileprivate private(set) var _progress: Progress?
+
     public typealias Completion = (_ response: ImageResponse?, _ error: Swift.Error?) -> Void
     public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
     public typealias ProgressiveImageHandler = (_ image: Image) -> Void
@@ -430,6 +437,8 @@ public /* final */ class ImagePipeline {
             for task in tasks { // We access tasks only on main thread
                 (task.completedUnitCount, task.totalUnitCount) = (completed, total)
                 task.progressHandler?(completed, total)
+                task._progress?.completedUnitCount = completed
+                task._progress?.totalUnitCount = total
             }
         }
 
