@@ -2,12 +2,39 @@ import Foundation
 
 // MARK: - Manager
 
+#if os(macOS)
+import Cocoa
+#elseif os(iOS) || os(tvOS)
+import UIKit
+#endif
+
 /// Represents a target for image loading.
 @available(*, deprecated, message: "Please use `ImageTarget` instead")
 public protocol Target: class {
     /// Callback that gets called when the request is completed.
     func handle(response: Result<Image>, isFromMemoryCache: Bool)
 }
+
+#if os(macOS) || os(iOS) || os(tvOS)
+@available(*, deprecated, message: "Please use `ImageTarget` instead")
+extension ImageView: Target {
+    /// Displays an image on success. Runs `opacity` transition if
+    /// the response was not from the memory cache.
+    public func handle(response: Result<Image>, isFromMemoryCache: Bool) {
+        guard let image = response.value else { return }
+        self.image = image
+        if !isFromMemoryCache {
+            let animation = CABasicAnimation(keyPath: "opacity")
+            animation.duration = 0.25
+            animation.fromValue = 0
+            animation.toValue = 1
+            let layer: CALayer? = self.layer // Make compiler happy on macOS
+            layer?.add(animation, forKey: "imageTransition")
+        }
+    }
+}
+#endif
+
 
 @available(*, deprecated, message: "Please use Nuke `Nuke.loadImage(with:into:)` functions instead. To load images w/o targets please use `ImagePipeline` directly.")
 public final class Manager: Loading {
