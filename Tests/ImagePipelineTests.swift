@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-import Nuke
+@testable import Nuke
 
 class ImagePipelineTests: XCTestCase {
     var dataLoader: MockDataLoader!
@@ -35,8 +35,8 @@ class ImagePipelineTests: XCTestCase {
         let expectTaskFinished = makeExpectation()
         let expectProgressFinished = makeExpectation()
 
-        let task = pipeline.loadImage(with: request) {
-            _ in expectTaskFinished.fulfill()
+        let task = pipeline.loadImage(with: request) { _,_ in
+            expectTaskFinished.fulfill()
         }
 
         var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
@@ -66,10 +66,10 @@ class ImagePipelineTests: XCTestCase {
         let request = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "processorFromRequest"))
 
         expect { fulfill in
-            pipeline.loadImage(with: request) {
-                XCTAssertNotNil($0.value)
-                XCTAssertEqual($0.value?.nk_test_processorIDs.count, 1)
-                XCTAssertEqual($0.value?.nk_test_processorIDs.first, "processorFromOptions")
+            pipeline.loadImage(with: request) { response, _ in
+                XCTAssertNotNil(response)
+                XCTAssertEqual(response?.image.nk_test_processorIDs.count, 1)
+                XCTAssertEqual(response?.image.nk_test_processorIDs.first, "processorFromOptions")
                 fulfill()
             }
         }
@@ -90,8 +90,8 @@ class ImagePipelineTests: XCTestCase {
         }
 
         expect { fulfill in
-            pipeline.loadImage(with: defaultURL) {
-                XCTAssertNotNil($0.value)
+            pipeline.loadImage(with: defaultURL) { response, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
         }
@@ -112,7 +112,7 @@ class ImagePipelineTests: XCTestCase {
 
         dataLoader.queue.isSuspended = true
 
-        let task = pipeline.loadImage(with: defaultURL) { _ in
+        let task = pipeline.loadImage(with: defaultURL) { _,_ in
             XCTFail()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(10)) {
@@ -134,8 +134,8 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         dataLoader.results[defaultURL] = .failure(expectedError)
 
         expect { fulfill in
-            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) {
-                guard let error = $0.error else { XCTFail(); return }
+            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { _, error in
+                guard let error = error else { XCTFail(); return }
                 XCTAssertNotNil(error)
                 XCTAssertEqual((error as NSError).code, expectedError.code)
                 XCTAssertEqual((error as NSError).domain, expectedError.domain)
@@ -155,8 +155,8 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         }
 
         expect { fulfill in
-            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) {
-                guard let error = $0.error else { XCTFail(); return }
+            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { _, error in
+                guard let error = error else { XCTFail(); return }
                 XCTAssertTrue((error as! ImagePipeline.Error) == ImagePipeline.Error.decodingFailed)
                 fulfill()
             }
@@ -172,8 +172,8 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         let request = ImageRequest(url: defaultURL).processed(with: MockFailingProcessor())
 
         expect { fulfill in
-            loader.loadImage(with: request) {
-                guard let error = $0.error else { XCTFail(); return }
+            loader.loadImage(with: request) { _, error in
+                guard let error = error else { XCTFail(); return }
                 XCTAssertTrue((error as! ImagePipeline.Error) == ImagePipeline.Error.processingFailed)
                 fulfill()
             }
@@ -204,15 +204,15 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         XCTAssertEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
-            imagePipeline.loadImage(with: request1) {
-                XCTAssertNotNil($0.value)
+            imagePipeline.loadImage(with: request1) { response, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
         }
 
         expect { fulfill in
-            imagePipeline.loadImage(with: request2) {
-                XCTAssertNotNil($0.value)
+            imagePipeline.loadImage(with: request2) { response, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
         }
@@ -230,15 +230,15 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         XCTAssertNotEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
-            imagePipeline.loadImage(with: request1) {
-                XCTAssertNotNil($0.value)
+            imagePipeline.loadImage(with: request1) { response, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
         }
 
         expect { fulfill in
-            imagePipeline.loadImage(with: request2) {
-                XCTAssertNotNil($0.value)
+            imagePipeline.loadImage(with: request2) { response, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
         }
@@ -254,13 +254,13 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         // to call completion handler for cancelled requests.
 
         // We don't expect completion to be called.
-        let task = imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { _ in
+        let task = imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { _,_ in
             XCTFail()
         }
 
         expect { fulfill in // This work we don't cancel
-            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) {
-                XCTAssertNotNil($0.value)
+            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { response, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
         }
@@ -285,8 +285,8 @@ class ImagePipelineDeduplicationTests: XCTestCase {
             let expectTaskFinished = makeExpectation()
             let expectProgressFinished = makeExpectation()
 
-            let task = imagePipeline.loadImage(with: request) {
-                _ in expectTaskFinished.fulfill()
+            let task = imagePipeline.loadImage(with: request) { _,_ in
+                expectTaskFinished.fulfill()
             }
             
             var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
@@ -318,15 +318,15 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         XCTAssertEqual(request1.loadKey, request2.loadKey)
 
         expect { fulfill in
-            imagePipeline.loadImage(with: request1) {
-                XCTAssertNotNil($0.value)
+            imagePipeline.loadImage(with: request1) { response, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
         }
 
         expect { fulfill in
-            imagePipeline.loadImage(with: request2) {
-                XCTAssertNotNil($0.value)
+            imagePipeline.loadImage(with: request2) { response, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
         }
@@ -414,7 +414,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
     func _testCompletionDispatch() {
         var isCompleted = false
         expect { fulfill in
-            loader.loadImage(with: ImageRequest(url: defaultURL)) { _ in
+            loader.loadImage(with: ImageRequest(url: defaultURL)) { _,_ in
                 XCTAssert(Thread.isMainThread)
                 isCompleted = true
                 fulfill()
@@ -429,8 +429,8 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func waitLoadedImage(with request: Nuke.ImageRequest) {
         expect { fulfill in
-            loader.loadImage(with: request) {
-                XCTAssertNotNil($0.value)
+            loader.loadImage(with: request) { response, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
         }

@@ -163,8 +163,8 @@ class ResumableDataResumingTests: XCTestCase {
     // Make sure that ResumableData works correctly in integration with ImagePipeline
     func testIntegrationRangeSupported() {
         expect { fulfil in
-            let _ = pipeline.loadImage(with: defaultURL) { result in
-                XCTAssertNotNil(result.error)
+            let _ = pipeline.loadImage(with: defaultURL) { _, error in
+                XCTAssertNotNil(error)
                 fulfil()
             }
         }
@@ -181,10 +181,10 @@ class ResumableDataResumingTests: XCTestCase {
         }
 
         expect { fulfil in
-            let task = pipeline.loadImage(with: defaultURL) { _ in }
+            let task = pipeline.loadImage(with: defaultURL) { _,_ in }
 
-            task.completion = { [unowned task, unowned self] in
-                XCTAssertNotNil($0.value)
+            task.completion = { [unowned task, unowned self] response, _ in
+                XCTAssertNotNil(response)
                 XCTAssertEqual(task.completedUnitCount, Int64(self.dataLoader.data.count))
 
 

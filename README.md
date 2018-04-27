@@ -69,7 +69,7 @@ What can be a *target*? Anything that implements `ImageTarget` protocol:
 ```swift
 public protocol ImageTarget: class {
     /// Callback that gets called when the request is completed.
-    func handle(response: Result<Image>, isFromMemoryCache: Bool)
+    func handle(response: ImageResponse?, error: Error?, isFromMemoryCache: Bool)
 }
 ```
 
@@ -118,7 +118,7 @@ All of those APIs are built on top of `ImageProcessing` protocol. If you'd like 
 You can use `ImagePipeline` to load images directly without a target. `ImagePipeline` offers a convenience closure-based API for loading images:
 
 ```swift
-let task = ImagePipeline.shared.loadImage(with: url) { result in
+let task = ImagePipeline.shared.loadImage(with: url) { response, error in
     // Handle response
 }
 
@@ -213,7 +213,7 @@ The public API for disk cache and the API for using custom disk caches is going 
 let preheater = ImagePreheater(pipeline: ImagePipeline.shared)
 
 let requests = urls.map {
-    var request = Request(url: $0)
+    var request = ImageRequest(url: $0)
     request.priority = .low
     return request
 }

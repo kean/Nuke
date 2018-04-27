@@ -27,7 +27,7 @@ class MockImagePipeline: ImagePipeline {
         queue.maxConcurrentOperationCount = 1
         return queue
     }()
-    var results = [URL: Result<Image>]()
+//    var results = [URL: Result<Image>]()
     var ignoreCancellation = false
 
     override init(configuration: ImagePipeline.Configuration = ImagePipeline.Configuration()) {
@@ -45,9 +45,8 @@ class MockImagePipeline: ImagePipeline {
 
         let operation = BlockOperation() {
             DispatchQueue.main.async {
-                let result = self.results[request.urlRequest.url!] ?? .success(defaultImage)
                 _ = task // Retain task until it's finished (matches ImagePipeline behavior)
-                completion(result)
+                completion(ImageResponse(image: defaultImage, urlResponse: nil), nil)
             }
         }
         self.queue.addOperation(operation)

@@ -2,8 +2,12 @@ import Foundation
 
 // MARK: - Manager
 
-@available(*, deprecated, message: "Renamed to `ImageTarget")
-public typealias Target = ImageTarget
+/// Represents a target for image loading.
+@available(*, deprecated, message: "Please use `ImageTarget` instead")
+public protocol Target: class {
+    /// Callback that gets called when the request is completed.
+    func handle(response: Result<Image>, isFromMemoryCache: Bool)
+}
 
 @available(*, deprecated, message: "Please use Nuke `Nuke.loadImage(with:into:)` functions instead. To load images w/o targets please use `ImagePipeline` directly.")
 public final class Manager: Loading {
@@ -159,7 +163,15 @@ public final class Loader: Loading {
     }
 
     public func loadImage(with request: ImageRequest, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void) {
-        let task = pipeline.loadImage(with: request, completion: completion)
+        let task = pipeline.loadImage(with: request) { response, error in
+            if let response = response {
+                completion(.success(response.image))
+            } else {
+                completion(.failure(error ?? ImagePipeline.Error.decodingFailed))
+                // we pass `ImagePipeline.Error.decodingFailed` to make this
+                //  compile, in reality pipeline always returns an error.
+            }
+        }
         token?.register { task.cancel() }
     }
 
@@ -377,3 +389,20 @@ public struct CancellationToken {
     }
 }
 
+// MARK: - Result
+
+/// An enum representing either a success with a result value, or a failure.
+@available(*, deprecated, message: "If you still need to use Cancellation Tokens please consider adding them into your project.")
+public enum Result<T> {
+    case success(T), failure(Error)
+
+    /// Returns a `value` if the result is success.
+    public var value: T? {
+        if case let .success(val) = self { return val } else { return nil }
+    }
+
+    /// Returns an `error` if the result is failure.
+    public var error: Error? {
+        if case let .failure(err) = self { return err } else { return nil }
+    }
+}

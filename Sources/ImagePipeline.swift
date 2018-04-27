@@ -19,7 +19,7 @@ public /* final */ class ImageTask: Hashable {
     public var progressHandler: ProgressHandler?
     public var progressiveImageHandler: ProgressiveImageHandler?
 
-    public typealias Completion = (_ result: Result<Image>) -> Void
+    public typealias Completion = (_ response: ImageResponse?, _ error: Swift.Error?) -> Void
     public typealias ProgressHandler = (_ completed: Int64, _ total: Int64) -> Void
     public typealias ProgressiveImageHandler = (_ image: Image) -> Void
 
@@ -52,6 +52,15 @@ public /* final */ class ImageTask: Hashable {
     public var hashValue: Int {
         return ObjectIdentifier(self).hashValue
     }
+}
+
+// MARK: - ImageResponse
+
+public struct ImageResponse {
+    public let image: Image
+    public let urlResponse: URLResponse?
+    // the response is only nil when new disk cache is enabled (it only stores
+    // data for now, but this might change in the future).
 }
 
 // MARK: - ImagePipeline
@@ -205,7 +214,8 @@ public /* final */ class ImagePipeline {
         if task.request.memoryCacheOptions.readAllowed,
             let image = configuration.imageCache?[task.request] {
             DispatchQueue.main.async {
-                task.completion?(.success(image))
+                // FIXME: Add URLResponse
+                task.completion?(ImageResponse(image: image, urlResponse: nil), nil)
             }
             task.metrics.isMemoryCacheHit = true
             return
@@ -560,7 +570,7 @@ public /* final */ class ImagePipeline {
             guard let session = session else { return }
             metrics.processStartDate = Date()
             let image = autoreleasepool { processor.process(image) }
-            let result = image.map(Result.success) ?? .failure(Error.processingFailed)
+            let result = image.map(_Result.success) ?? .failure(Error.processingFailed)
             metrics.processEndDate = Date()
             self?.queue.async {
                 session.metrics.processEndDate = Date()
@@ -582,7 +592,7 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func _session(_ session: Session, completedWith result: Result<Image>) {
+    private func _session(_ session: Session, completedWith result: _Result<Image>) {
         // Save image in cache if at least one registered task allowed it.
         if let image = result.value, let cache = configuration.imageCache,
             session.tasks.contains(where: { $0.request.memoryCacheOptions.writeAllowed }) {
@@ -594,11 +604,15 @@ public /* final */ class ImagePipeline {
         // Cancel any outstanding parital processing.
         session.processingPartialOperation?.cancel()
 
+        let response = result.value.map {
+            ImageResponse(image: $0, urlResponse: session.urlResponse)
+        }
+
         let tasks = session.tasks
         tasks.forEach { $0.metrics.endDate = Date() }
         DispatchQueue.main.async {
             for task in tasks {
-                task.completion?(result)
+                task.completion?(response, result.error)
                 self.didFinishCollectingMetrics?(task, task.metrics)
             }
         }

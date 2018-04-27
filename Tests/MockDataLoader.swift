@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import Nuke
+@testable import Nuke
 
 private let data: Data = Test.data(name: "fixture", extension: "jpeg")
 
@@ -19,7 +19,7 @@ class MockDataLoader: DataLoading {
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
     
     var createdTaskCount = 0
-    var results = [URL: Result<(Data, URLResponse)>]()
+    var results = [URL: _Result<(Data, URLResponse)>]()
     let queue = OperationQueue()
 
     func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {

@@ -50,7 +50,7 @@ public final class ImagePreheater {
         let token = task.cts.token
 
         let operation = Operation(starter: { [weak self] finish in
-            let task = self?.pipeline.loadImage(with: request) { _ in
+            let task = self?.pipeline.loadImage(with: request) { _,_  in
                 self?._remove(task)
                 finish()
             }

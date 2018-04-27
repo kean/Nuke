@@ -32,8 +32,8 @@ class ImageProcessingTests: XCTestCase {
         let request = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "processor1"))
 
         expect { fulfill in
-            pipeline.loadImage(with: request) {
-                guard let image = $0.value else { XCTFail(); return }
+            pipeline.loadImage(with: request) { response, _ in
+                guard let image = response?.image else { XCTFail(); return }
                 XCTAssertEqual(image.nk_test_processorIDs, ["processor1"])
                 fulfill()
             }
@@ -82,8 +82,8 @@ class ImageProcessingTests: XCTestCase {
             .processed(with: MockImageProcessor(id: "processor2"))
 
         expect { fulfill in
-            pipeline.loadImage(with: request) {
-                guard let image = $0.value else { XCTFail(); return }
+            pipeline.loadImage(with: request) { response, _ in
+                guard let image = response?.image else { XCTFail(); return }
                 XCTAssertEqual(image.nk_test_processorIDs, ["processor1", "processor2"])
                 fulfill()
             }

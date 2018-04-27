@@ -315,8 +315,8 @@ class CacheIntegrationTests: XCTestCase {
         XCTAssertNil(mockCache[request])
 
         expect { fulfill in
-            target.handler = { result, _ in
-                XCTAssertNotNil(result.value)
+            target.handler = { response, _, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
             Nuke.loadImage(with: request, pipeline: pipeline, into: target)
@@ -328,8 +328,8 @@ class CacheIntegrationTests: XCTestCase {
         mockDataLoader.queue.isSuspended = true
 
         expect { fulfill in
-            target.handler = { result, _ in
-                XCTAssertNotNil(result.value)
+            target.handler = { response, _, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
             Nuke.loadImage(with: request, pipeline: pipeline, into: target)
@@ -379,8 +379,8 @@ class CacheIntegrationTests: XCTestCase {
         XCTAssertNil(mockCache[request])
         
         expect { fulfill in
-            target.handler = { result, _ in
-                XCTAssertNotNil(result.value)
+            target.handler = { response, _, _ in
+                XCTAssertNotNil(response)
                 fulfill()
             }
             Nuke.loadImage(with: request, pipeline: pipeline, into: target)

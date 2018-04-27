@@ -18,12 +18,11 @@ class ImageTargetTests: XCTestCase {
 
     func testThatImageIsLoaded() {
         expect { fulfill in
-            target.handler = {
+            target.handler = { response, _, isFromMemoryCache in
                 XCTAssertTrue(Thread.isMainThread)
-                if case .success(_) = $0 {
-                    fulfill()
-                }
-                XCTAssertFalse($1)
+                XCTAssertNotNil(response)
+                XCTAssertFalse(isFromMemoryCache)
+                fulfill()
             }
             Nuke.loadImage(with: ImageRequest(url: defaultURL), pipeline: pipeline, into: target)
         }
@@ -32,12 +31,11 @@ class ImageTargetTests: XCTestCase {
 
     func testThatImageLoadedIntoTarget() {
         expect { fulfill in
-            target.handler = { resolution, isFromMemoryCache in
+            target.handler = { response, _, isFromMemoryCache in
                 XCTAssertTrue(Thread.isMainThread)
-                if case .success(_) = resolution {
-                    fulfill()
-                }
+                XCTAssertNotNil(response)
                 XCTAssertFalse(isFromMemoryCache)
+                fulfill()
 
                 // capture target in a closure
                 self.target.handler = nil

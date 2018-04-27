@@ -17,7 +17,7 @@ import Foundation
 /// Represents a target for image loading.
 public protocol ImageTarget: class {
     /// Callback that gets called when the request is completed.
-    func handle(response: Result<Image>, isFromMemoryCache: Bool)
+    func handle(response: ImageResponse?, error: Swift.Error?, isFromMemoryCache: Bool)
 }
 
 /// Loads an image into the given target. See the corresponding
@@ -44,7 +44,8 @@ public protocol ImageTarget: class {
     // Quick synchronous memory cache lookup
     if request.memoryCacheOptions.readAllowed,
         let image = pipeline.configuration.imageCache?[request] {
-        target.handle(response: .success(image), isFromMemoryCache: true)
+        // FIXME: Add URLResponse
+        target.handle(response: ImageResponse(image: image, urlResponse: nil), error: nil, isFromMemoryCache: true)
         return nil
     }
 
@@ -56,7 +57,7 @@ public protocol ImageTarget: class {
     // Manager assumes that Loader calls completion on the main thread.
     context.task = pipeline.loadImage(with: request) { [weak context, weak target] in
         guard let context = context, context.taskId == taskId else { return }
-        target?.handle(response: $0, isFromMemoryCache: false)
+        target?.handle(response: $0, error: $1, isFromMemoryCache: false)
         context.task = nil
     }
     return context.task
@@ -117,8 +118,8 @@ public typealias ImageView = UIImageView
 extension ImageView: ImageTarget {
     /// Displays an image on success. Runs `opacity` transition if
     /// the response was not from the memory cache.
-    public func handle(response: Result<Image>, isFromMemoryCache: Bool) {
-        guard let image = response.value else { return }
+    public func handle(response: ImageResponse?, error: Error?, isFromMemoryCache: Bool) {
+        guard let image = response?.image else { return }
         self.image = image
         if !isFromMemoryCache {
             let animation = CABasicAnimation(keyPath: "opacity")
@@ -131,20 +132,3 @@ extension ImageView: ImageTarget {
     }
 }
 #endif
-
-// MARK: - Misc
-
-/// An enum representing either a success with a result value, or a failure.
-public enum Result<T> {
-    case success(T), failure(Error)
-
-    /// Returns a `value` if the result is success.
-    public var value: T? {
-        if case let .success(val) = self { return val } else { return nil }
-    }
-
-    /// Returns an `error` if the result is failure.
-    public var error: Error? {
-        if case let .failure(err) = self { return err } else { return nil }
-    }
-}

@@ -13,7 +13,7 @@ extension XCTestCase {
                     let request = ImageRequest(url: URL(string: "\(defaultURL)/\(rnd(30))")!)
                     let shouldCancel = rnd(3) == 0
 
-                    let task = pipeline.loadImage(with: request) { _ in
+                    let task = pipeline.loadImage(with: request) { _,_ in
                         if shouldCancel {
                             // do nothing, we don't expect completion on cancel
                         } else {
