@@ -13,19 +13,11 @@ import Foundation
 ///
 /// The implementation must be thread safe.
 public protocol ImageCaching: class {
-    /// Accesses the image associated with the given key.
-    subscript(key: AnyHashable) -> Image? { get set }
+    /// Returns the `ImageResponse` stored in the cache with the given request.
+    func cachedResponse(for request: ImageRequest) -> ImageResponse?
 
-    // unfortunately there is a lot of extra work happening here because key
-    // types are not statically defined, might be worth rethinking cache
-}
-
-public extension ImageCaching {
-    /// Accesses the image associated with the given request.
-    public subscript(request: ImageRequest) -> Image? {
-        get { return self[request.cacheKey] }
-        set { self[request.cacheKey] = newValue }
-    }
+    /// Stores the given `ImageResponse` in the cache using the given request.
+    func storeResponse(_ response: ImageResponse, for request: ImageRequest)
 }
 
 /// Memory cache with LRU cleanup policy (least recently used are removed first).
@@ -39,7 +31,7 @@ public extension ImageCaching {
 /// memory warning. It also automatically removes *most* of cached elements
 /// when the app enters background.
 public final class ImageCache: ImageCaching {
-    private let _impl: _Cache<AnyHashable, Image>
+    private let _impl: _Cache<AnyHashable, ImageResponse>
 
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int {
@@ -90,16 +82,19 @@ public final class ImageCache: ImageCaching {
         return limit > UInt64(Int.max) ? Int.max : Int(limit)
     }
 
-    /// Accesses the image associated with the given key.
-    public subscript(key: AnyHashable) -> Image? {
-        get { return _impl.value(forKey: key) }
-        set {
-            guard let newValue = newValue else {
-                _impl.removeValue(forKey: key)
-                return
-            }
-            _impl.set(newValue, forKey: key, cost: self.cost(newValue))
-        }
+    /// Returns the `ImageResponse` stored in the cache with the given request.
+    public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
+        return _impl.value(forKey: request.cacheKey)
+    }
+
+    /// Stores the given `ImageResponse` in the cache using the given request.
+    public func storeResponse(_ response: ImageResponse, for request: ImageRequest) {
+        _impl.set(response, forKey: request.cacheKey, cost: self.cost(response.image))
+    }
+
+    /// Removes response stored with the given request.
+    public func removeResponse(for request: ImageRequest) {
+        _impl.removeValue(forKey: request.cacheKey)
     }
 
     /// Removes all cached images.
@@ -141,22 +136,22 @@ internal final class _Cache<Key: Hashable, Value> {
     private let list = LinkedList<Entry>()
     private let lock = NSLock()
 
-    internal var costLimit: Int {
+    var costLimit: Int {
         didSet { lock.sync(_trim) }
     }
 
-    internal var countLimit: Int {
+    var countLimit: Int {
         didSet { lock.sync(_trim) }
     }
 
-    internal private(set) var totalCost = 0
-    internal var ttl: TimeInterval = 0
+    private(set) var totalCost = 0
+    var ttl: TimeInterval = 0
 
-    internal var totalCount: Int {
+    var totalCount: Int {
         return map.count
     }
 
-    internal init(costLimit: Int, countLimit: Int) {
+    init(costLimit: Int, countLimit: Int) {
         self.costLimit = costLimit
         self.countLimit = countLimit
         #if os(iOS) || os(tvOS)
@@ -171,7 +166,18 @@ internal final class _Cache<Key: Hashable, Value> {
         #endif
     }
 
-    internal func value(forKey key: Key) -> Value? {
+    subscript(key: Key) -> Value? {
+        get { return value(forKey: key) }
+        set {
+            if let newValue = newValue {
+                set(newValue, forKey: key)
+            } else {
+                removeValue(forKey: key)
+            }
+        }
+    }
+
+    func value(forKey key: Key) -> Value? {
         lock.lock(); defer { lock.unlock() }
 
         guard let node = map[key] else {
@@ -190,7 +196,7 @@ internal final class _Cache<Key: Hashable, Value> {
         return node.value.value
     }
 
-    internal func set(_ value: Value, forKey key: Key, cost: Int = 0, ttl: TimeInterval? = nil) {
+    func set(_ value: Value, forKey key: Key, cost: Int = 0, ttl: TimeInterval? = nil) {
         lock.lock(); defer { lock.unlock() }
 
         let ttl = ttl ?? self.ttl
@@ -200,7 +206,7 @@ internal final class _Cache<Key: Hashable, Value> {
         _trim() // _trim is extremely fast, it's OK to call it each time
     }
 
-    @discardableResult internal func removeValue(forKey key: Key) -> Value? {
+    @discardableResult func removeValue(forKey key: Key) -> Value? {
         lock.lock(); defer { lock.unlock() }
 
         guard let node = map[key] else { return nil }
@@ -222,7 +228,7 @@ internal final class _Cache<Key: Hashable, Value> {
         totalCost -= node.value.cost
     }
 
-    @objc internal dynamic func removeAll() {
+    @objc dynamic func removeAll() {
         lock.sync {
             map.removeAll()
             list.removeAll()
@@ -246,7 +252,7 @@ internal final class _Cache<Key: Hashable, Value> {
         }
     }
 
-    internal func trim(toCost limit: Int) {
+    func trim(toCost limit: Int) {
         lock.sync { _trim(toCost: limit) }
     }
 
@@ -254,7 +260,7 @@ internal final class _Cache<Key: Hashable, Value> {
         _trim(while: { totalCost > limit })
     }
 
-    internal func trim(toCount limit: Int) {
+    func trim(toCount limit: Int) {
         lock.sync { _trim(toCount: limit) }
     }
 

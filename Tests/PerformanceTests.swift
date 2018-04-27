@@ -44,7 +44,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             expect { fulfil in
                 var finished: Int = 0
                 for url in urls {
-                    loader.loadImage(with: url) { result in
+                    loader.loadImage(with: url) { _,_ in
                         finished += 1
                         if finished == urls.count {
                             fulfil()
@@ -60,23 +60,24 @@ class ImagePipelinePerfomanceTests: XCTestCase {
 class ImageCachePerformanceTests: XCTestCase {
     func testCacheWrite() {
         let cache = ImageCache()
-        let image = Image()
+        let response = ImageResponse(image: Image(), urlResponse: nil)
         
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
         let requests = urls.map { ImageRequest(url: $0) }
         
         measure {
             for request in requests {
-                cache[request] = image
+                cache.storeResponse(response, for: request)
             }
         }
     }
     
     func testCacheHit() {
         let cache = ImageCache()
+        let response = ImageResponse(image: Image(), urlResponse: nil)
         
         for i in 0..<200 {
-            cache[ImageRequest(url: URL(string: "http://test.com/\(i)")!)] = Image()
+            cache.storeResponse(response, for: ImageRequest(url: URL(string: "http://test.com/\(i)")!))
         }
         
         var hits = 0
@@ -86,7 +87,7 @@ class ImageCachePerformanceTests: XCTestCase {
         
         measure {
             for request in requests {
-                if cache[request] != nil {
+                if cache.cachedResponse(for: request) != nil {
                     hits += 1
                 }
             }
@@ -105,7 +106,7 @@ class ImageCachePerformanceTests: XCTestCase {
         
         measure {
             for request in requests {
-                if cache[request] == nil {
+                if cache.cachedResponse(for: request) == nil {
                     misses += 1
                 }
             }

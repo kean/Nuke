@@ -43,9 +43,9 @@ public protocol ImageTarget: class {
 
     // Quick synchronous memory cache lookup
     if request.memoryCacheOptions.readAllowed,
-        let image = pipeline.configuration.imageCache?[request] {
-        // FIXME: Add URLResponse
-        target.handle(response: ImageResponse(image: image, urlResponse: nil), error: nil, isFromMemoryCache: true)
+        let imageCache = pipeline.configuration.imageCache,
+        let response = imageCache.cachedResponse(for: request) {
+        target.handle(response: response, error: nil, isFromMemoryCache: true)
         return nil
     }
 

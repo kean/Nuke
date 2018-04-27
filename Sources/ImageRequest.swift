@@ -255,7 +255,7 @@ public extension ImageRequest {
     }
 }
 
-public extension ImageRequest {
+private extension ImageRequest {
     private struct CacheKey: Hashable {
         let request: ImageRequest
 

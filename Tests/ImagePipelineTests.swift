@@ -361,19 +361,19 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
     // MARK: Caching
 
     func testCacheWrite() {
-        waitLoadedImage(with: ImageRequest(url: defaultURL))
+        waitLoadedImage(with: Test.request)
 
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertNotNil(self.cache[ImageRequest(url: defaultURL)])
+        XCTAssertNotNil(cache.cachedResponse(for: Test.request))
     }
 
     func testCacheRead() {
-        cache[ImageRequest(url: defaultURL)] = defaultImage
+        cache.storeResponse(ImageResponse(image: defaultImage, urlResponse: nil), for: Test.request)
 
-        waitLoadedImage(with: ImageRequest(url: defaultURL))
+        waitLoadedImage(with: Test.request)
 
         XCTAssertEqual(dataLoader.createdTaskCount, 0)
-        XCTAssertNotNil(self.cache[ImageRequest(url: defaultURL)])
+        XCTAssertNotNil(cache.cachedResponse(for: Test.request))
     }
 
     func testCacheWriteDisabled() {
@@ -384,11 +384,11 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
         waitLoadedImage(with: request)
 
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertNil(self.cache[ImageRequest(url: defaultURL)])
+        XCTAssertNil(cache.cachedResponse(for: Test.request))
     }
 
     func testCacheReadDisabled() {
-        cache[ImageRequest(url: defaultURL)] = defaultImage
+        cache.storeResponse(ImageResponse(image: defaultImage, urlResponse: nil), for: Test.request)
 
         let request = ImageRequest(url: defaultURL).mutated {
             $0.memoryCacheOptions.readAllowed = false
@@ -397,7 +397,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
         waitLoadedImage(with: request)
 
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertNotNil(self.cache[ImageRequest(url: defaultURL)])
+        XCTAssertNotNil(cache.cachedResponse(for: Test.request))
     }
 
     // MARK: Completion Behavior
@@ -407,7 +407,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
     }
 
     func testCompletionDispatchWhenImageCached() {
-        cache[ImageRequest(url: defaultURL)] = defaultImage
+        cache.storeResponse(ImageResponse(image: defaultImage, urlResponse: nil), for: Test.request)
         _testCompletionDispatch()
     }
 

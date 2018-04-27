@@ -56,11 +56,15 @@ public /* final */ class ImageTask: Hashable {
 
 // MARK: - ImageResponse
 
-public struct ImageResponse {
+public final class ImageResponse {
     public let image: Image
     public let urlResponse: URLResponse?
     // the response is only nil when new disk cache is enabled (it only stores
     // data for now, but this might change in the future).
+
+    public init(image: Image, urlResponse: URLResponse?) {
+        self.image = image; self.urlResponse = urlResponse
+    }
 }
 
 // MARK: - ImagePipeline
@@ -212,10 +216,9 @@ public /* final */ class ImagePipeline {
 
     private func _startLoadingImage(for task: ImageTask) {
         if task.request.memoryCacheOptions.readAllowed,
-            let image = configuration.imageCache?[task.request] {
+            let response = configuration.imageCache?.cachedResponse(for: task.request) {
             DispatchQueue.main.async {
-                // FIXME: Add URLResponse
-                task.completion?(ImageResponse(image: image, urlResponse: nil), nil)
+                task.completion?(response, nil)
             }
             task.metrics.isMemoryCacheHit = true
             return
@@ -593,20 +596,20 @@ public /* final */ class ImagePipeline {
     }
 
     private func _session(_ session: Session, completedWith result: _Result<Image>) {
+        let response = result.value.map {
+            ImageResponse(image: $0, urlResponse: session.urlResponse)
+        }
+
         // Save image in cache if at least one registered task allowed it.
-        if let image = result.value, let cache = configuration.imageCache,
+        if let response = response, let imageCache = configuration.imageCache,
             session.tasks.contains(where: { $0.request.memoryCacheOptions.writeAllowed }) {
-            cache[session.request] = image
+            imageCache.storeResponse(response, for: session.request)
         }
         session.isCompleted = true
         session.metrics.endDate = Date()
 
         // Cancel any outstanding parital processing.
         session.processingPartialOperation?.cancel()
-
-        let response = result.value.map {
-            ImageResponse(image: $0, urlResponse: session.urlResponse)
-        }
 
         let tasks = session.tasks
         tasks.forEach { $0.metrics.endDate = Date() }

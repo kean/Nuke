@@ -22,6 +22,20 @@ enum Test {
         let URL = bundle.url(forResource: name, withExtension: ext)
         return try! Data(contentsOf: URL!)
     }
+
+    static let request = ImageRequest(
+        url: defaultURL
+    )
+
+    static let response = ImageResponse(
+        image: defaultImage,
+        urlResponse: HTTPURLResponse(
+            url: defaultURL,
+            mimeType: "jpeg",
+            expectedContentLength: 22_789,
+            textEncodingName: nil
+        )
+    )
 }
 
 extension String: Error {}

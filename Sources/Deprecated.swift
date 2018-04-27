@@ -188,16 +188,107 @@ public extension ImageRequest {
     }
 }
 
+// MARK: - Caching
+
+@available(*, deprecated, message: "Please use `ImageCaching` instead")
+public protocol Caching: class {
+    subscript(key: AnyHashable) -> Image? { get set }
+}
+
+@available(*, deprecated, message: "Please use `ImageCaching` instead")
+public extension Caching {
+    /// Accesses the image associated with the given request.
+    public subscript(request: ImageRequest) -> Image? {
+        get { return self[request.cacheKey] }
+        set { self[request.cacheKey] = newValue }
+    }
+}
+
+@available(*, deprecated, message: "Please use `ImageCache` instead")
+public final class Cache: Caching, ImageCaching {
+    private let _impl: _Cache<AnyHashable, Image>
+
+    public var costLimit: Int {
+        get { return _impl.costLimit }
+        set { _impl.costLimit = newValue }
+    }
+
+    public var countLimit: Int {
+        get { return _impl.countLimit }
+        set { _impl.countLimit = newValue }
+    }
+
+    public var totalCost: Int { return _impl.totalCost }
+    public var totalCount: Int { return _impl.totalCount }
+
+    public static let shared = Cache()
+
+    public init(costLimit: Int = Cache.defaultCostLimit(), countLimit: Int = Int.max) {
+        _impl = _Cache(costLimit: costLimit, countLimit: countLimit)
+    }
+
+    public static func defaultCostLimit() -> Int {
+        let physicalMemory = ProcessInfo.processInfo.physicalMemory
+        let ratio = physicalMemory <= (536_870_912 /* 512 Mb */) ? 0.1 : 0.2
+        let limit = physicalMemory / UInt64(1 / ratio)
+        return limit > UInt64(Int.max) ? Int.max : Int(limit)
+    }
+
+    // MARK: ImageCaching
+
+    public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
+        guard let image = self[request.cacheKey] else { return nil }
+        return ImageResponse(image: image, urlResponse: nil) // we don't have urlResponse
+    }
+
+    public func storeResponse(_ response: ImageResponse, for request: ImageRequest) {
+        self[request.cacheKey] = response.image
+    }
+
+    // MARK: Caching
+
+    public subscript(key: AnyHashable) -> Image? {
+        get { return _impl.value(forKey: key) }
+        set {
+            guard let newValue = newValue else {
+                _impl.removeValue(forKey: key)
+                return
+            }
+            _impl.set(newValue, forKey: key, cost: self.cost(newValue))
+        }
+    }
+
+    public func removeAll() {
+        _impl.removeAll()
+    }
+
+    public func trim(toCost limit: Int) {
+        _impl.trim(toCost: limit)
+    }
+
+    public func trim(toCount limit: Int) {
+        _impl.trim(toCount: limit)
+    }
+
+    public var cost: (Image) -> Int = {
+        #if os(macOS)
+        return 1
+        #else
+        // bytesPerRow * height gives a rough estimation of how much memory
+        // image uses in bytes. In practice this algorithm combined with a
+        // concervative default cost limit works OK.
+        guard let cgImage = $0.cgImage else {
+            return 1
+        }
+        return cgImage.bytesPerRow * cgImage.height
+        #endif
+    }
+}
+
 // MARK: - Renaming
 
 @available(*, deprecated, message: "Please use `ImageRequest` instead")
 public typealias Request = ImageRequest
-
-@available(*, deprecated, message: "Please use `ImageCache` instead")
-public typealias Cache = ImageCache
-
-@available(*, deprecated, message: "Please use `ImageCaching` instead")
-public typealias Caching = ImageCaching
 
 @available(*, deprecated, message: "Please use `ImageProcessing` instead")
 public typealias Processing = ImageProcessing
