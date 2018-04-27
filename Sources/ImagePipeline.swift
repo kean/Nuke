@@ -279,7 +279,7 @@ public /* final */ class ImagePipeline {
         // This part is more clever than I would like. The reason why we need a
         // key even when deduplication is disabled is to have a way to retain
         // a session by storing it in `sessions` dictionary.
-        let key = configuration.isDeduplicationEnabled ? request.loadKey : UUID()
+        let key = configuration.isDeduplicationEnabled ? AnyHashable(ImageRequest.LoadKey(request: request)) : UUID()
         if let session = sessions[key] {
             return session
         }
@@ -686,7 +686,7 @@ public /* final */ class ImagePipeline {
 // MARK - Metrics
 
 extension ImageTask {
-    public final class Metrics: CustomDebugStringConvertible {
+    public struct Metrics: CustomDebugStringConvertible {
         public let taskId: Int
         public fileprivate(set) var wasCancelled: Bool = false
         public fileprivate(set) var session: SessionMetrics?

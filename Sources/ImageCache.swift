@@ -31,7 +31,7 @@ public protocol ImageCaching: class {
 /// memory warning. It also automatically removes *most* of cached elements
 /// when the app enters background.
 public final class ImageCache: ImageCaching {
-    private let _impl: _Cache<AnyHashable, ImageResponse>
+    private let _impl: _Cache<ImageRequest.CacheKey, ImageResponse>
 
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int {
@@ -84,17 +84,17 @@ public final class ImageCache: ImageCaching {
 
     /// Returns the `ImageResponse` stored in the cache with the given request.
     public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
-        return _impl.value(forKey: request.cacheKey)
+        return _impl.value(forKey: ImageRequest.CacheKey(request: request))
     }
 
     /// Stores the given `ImageResponse` in the cache using the given request.
     public func storeResponse(_ response: ImageResponse, for request: ImageRequest) {
-        _impl.set(response, forKey: request.cacheKey, cost: self.cost(response.image))
+        _impl.set(response, forKey: ImageRequest.CacheKey(request: request), cost: self.cost(response.image))
     }
 
     /// Removes response stored with the given request.
     public func removeResponse(for request: ImageRequest) {
-        _impl.removeValue(forKey: request.cacheKey)
+        _impl.removeValue(forKey: ImageRequest.CacheKey(request: request))
     }
 
     /// Removes all cached images.

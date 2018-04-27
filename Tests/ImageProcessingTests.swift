@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-import Nuke
+@testable import Nuke
 
 #if !os(macOS)
     import UIKit
@@ -45,13 +45,21 @@ class ImageProcessingTests: XCTestCase {
 
     func testAnonymousProcessorKeys() {
         XCTAssertEqual(
-            ImageRequest(url: defaultURL).processed(key: 1, { $0 }).cacheKey,
-            ImageRequest(url: defaultURL).processed(key: 1, { $0 }).cacheKey
+            ImageRequest.CacheKey(request:
+                ImageRequest(url: defaultURL).processed(key: 1, { $0 })
+            ),
+            ImageRequest.CacheKey(request:
+                ImageRequest(url: defaultURL).processed(key: 1, { $0 })
+            )
         )
 
         XCTAssertNotEqual(
-            ImageRequest(url: defaultURL).processed(key: 1, { $0 }).cacheKey,
-            ImageRequest(url: defaultURL).processed(key: 2, { $0 }).cacheKey
+            ImageRequest.CacheKey(request:
+                ImageRequest(url: defaultURL).processed(key: 1, { $0 })
+            ),
+            ImageRequest.CacheKey(request:
+                ImageRequest(url: defaultURL).processed(key: 2, { $0 })
+            )
         )
     }
 

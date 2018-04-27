@@ -199,8 +199,8 @@ public protocol Caching: class {
 public extension Caching {
     /// Accesses the image associated with the given request.
     public subscript(request: ImageRequest) -> Image? {
-        get { return self[request.cacheKey] }
-        set { self[request.cacheKey] = newValue }
+        get { return self[AnyHashable(ImageRequest.CacheKey(request: request))] }
+        set { self[AnyHashable(ImageRequest.CacheKey(request: request))] = newValue }
     }
 }
 
@@ -237,12 +237,12 @@ public final class Cache: Caching, ImageCaching {
     // MARK: ImageCaching
 
     public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
-        guard let image = self[request.cacheKey] else { return nil }
+        guard let image = self[ImageRequest.CacheKey(request: request)] else { return nil }
         return ImageResponse(image: image, urlResponse: nil) // we don't have urlResponse
     }
 
     public func storeResponse(_ response: ImageResponse, for request: ImageRequest) {
-        self[request.cacheKey] = response.image
+        self[ImageRequest.CacheKey(request: request)] = response.image
     }
 
     // MARK: Caching

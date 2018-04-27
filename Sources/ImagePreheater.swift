@@ -16,7 +16,7 @@ public final class ImagePreheater {
     private let pipeline: ImagePipeline
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
     private let preheatQueue = OperationQueue()
-    private var tasks = [AnyHashable: Task]()
+    private var tasks = [ImageRequest.LoadKey: Task]()
 
     /// Initializes the `Preheater` instance.
     /// - parameter manager: `Loader.shared` by default.
@@ -38,7 +38,7 @@ public final class ImagePreheater {
     }
 
     private func _startPreheating(with request: ImageRequest) {
-        let key = request.loadKey
+        let key = ImageRequest.LoadKey(request: request)
 
         // Check if we we've already started preheating.
         guard tasks[key] == nil else { return }
@@ -83,7 +83,7 @@ public final class ImagePreheater {
     }
 
     private func _stopPreheating(with request: ImageRequest) {
-        if let task = tasks[request.loadKey] {
+        if let task = tasks[ImageRequest.LoadKey(request: request)] {
             tasks[task.key] = nil
             task.cts.cancel()
         }
@@ -98,11 +98,11 @@ public final class ImagePreheater {
     }
 
     private final class Task {
-        let key: AnyHashable
+        let key: ImageRequest.LoadKey
         let request: ImageRequest
         let cts = _CancellationTokenSource()
 
-        init(request: ImageRequest, key: AnyHashable) {
+        init(request: ImageRequest, key: ImageRequest.LoadKey) {
             self.request = request
             self.key = key
         }

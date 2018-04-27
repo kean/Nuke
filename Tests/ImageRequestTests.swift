@@ -55,83 +55,83 @@ class ImageRequestTests: XCTestCase {
 class ImageRequestCacheKeyTests: XCTestCase {
     func testDefaults() {
         let request = ImageRequest(url: defaultURL)
-        XCTAssertEqual(request.cacheKey, request.cacheKey) // equal to itself
+        XCTAssertEqual(ImageRequest.CacheKey(request: request), ImageRequest.CacheKey(request: request)) // equal to itself
     }
     
     func testThatRequestsWithTheSameURLsAreEquivalent() {
         let request1 = ImageRequest(url: defaultURL)
         let request2 = ImageRequest(url: defaultURL)
-        XCTAssertEqual(request1.cacheKey, request2.cacheKey)
+        XCTAssertEqual(ImageRequest.CacheKey(request: request1), ImageRequest.CacheKey(request: request2))
     }
     
     func testThatRequestsWithDefaultURLRequestAndURLAreEquivalent() {
         let request1 = ImageRequest(url: defaultURL)
         let request2 = ImageRequest(urlRequest: URLRequest(url: defaultURL))
-        XCTAssertEqual(request1.cacheKey, request2.cacheKey)
+        XCTAssertEqual(ImageRequest.CacheKey(request: request1), ImageRequest.CacheKey(request: request2))
     }
     
     func testThatRequestsWithDifferentURLsAreNotEquivalent() {
         let request1 = ImageRequest(url: URL(string: "http://test.com/1.png")!)
         let request2 = ImageRequest(url: URL(string: "http://test.com/2.png")!)
-        XCTAssertNotEqual(request1.cacheKey, request2.cacheKey)
+        XCTAssertNotEqual(ImageRequest.CacheKey(request: request1), ImageRequest.CacheKey(request: request2))
     }
     
     func testThatRequestsWithTheSameProcessorsAreEquivalent() {
         let request1 = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
         let request2 = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
         XCTAssertEqual(MockImageProcessor(id: "1"), MockImageProcessor(id: "1"))
-        XCTAssertEqual(request1.cacheKey, request2.cacheKey)
+        XCTAssertEqual(ImageRequest.CacheKey(request: request1), ImageRequest.CacheKey(request: request2))
     }
     
     func testThatRequestsWithDifferentProcessorsAreNotEquivalent() {
         let request1 = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
         let request2 = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "2"))
         XCTAssertNotEqual(MockImageProcessor(id: "1"), MockImageProcessor(id: "2"))
-        XCTAssertNotEqual(request1.cacheKey, request2.cacheKey)
+        XCTAssertNotEqual(ImageRequest.CacheKey(request: request1), ImageRequest.CacheKey(request: request2))
     }
     
     func testThatURLRequestParametersAreIgnored() {
         let request1 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 50))
         let request2 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
-        XCTAssertEqual(request1.cacheKey, request2.cacheKey)
+        XCTAssertEqual(ImageRequest.CacheKey(request: request1), ImageRequest.CacheKey(request: request2))
     }
 }
 
 class ImageRequestLoadKeyTests: XCTestCase {
     func testDefaults() {
         let request = ImageRequest(url: defaultURL)
-        XCTAssertEqual(request.loadKey, request.loadKey)
+        XCTAssertEqual(ImageRequest.LoadKey(request: request), ImageRequest.LoadKey(request: request))
     }
     
     func testThatRequestsWithTheSameURLsAreEquivalent() {
         let request1 = ImageRequest(url: defaultURL)
         let request2 = ImageRequest(url: defaultURL)
-        XCTAssertEqual(request1.loadKey, request2.loadKey)
+        XCTAssertEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
     }
     
     func testThatRequestsWithDifferentURLsAreNotEquivalent() {
         let request1 = ImageRequest(url: URL(string: "http://test.com/1.png")!)
         let request2 = ImageRequest(url: URL(string: "http://test.com/2.png")!)
-        XCTAssertNotEqual(request1.loadKey, request2.loadKey)
+        XCTAssertNotEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
     }
     
     func testThatRequestsWithTheSameProcessorsAreEquivalent() {
         let request1 = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
         let request2 = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
         XCTAssertEqual(MockImageProcessor(id: "1"), MockImageProcessor(id: "1"))
-        XCTAssertEqual(request1.loadKey, request2.loadKey)
+        XCTAssertEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
     }
     
     func testThatRequestsWithDifferentProcessorsAreNotEquivalent() {
         let request1 = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
         let request2 = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "2"))
         XCTAssertNotEqual(MockImageProcessor(id: "1"), MockImageProcessor(id: "2"))
-        XCTAssertNotEqual(request1.loadKey, request2.loadKey)
+        XCTAssertNotEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
     }
     
     func testThatRequestWithDifferentURLRequestParametersAreNotEquivalent() {
         let request1 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 50))
         let request2 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
-        XCTAssertNotEqual(request1.loadKey, request2.loadKey)
+        XCTAssertNotEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
     }
 }

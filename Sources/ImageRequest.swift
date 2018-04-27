@@ -39,7 +39,7 @@ public struct ImageRequest {
             #if !os(macOS)
             guard let custom = _ref._customProcessor else { return Container.decompressor }
             #else
-            guard let custom = _ref._customProcessor else { return nil}
+            guard let custom = _ref._customProcessor else { return nil }
             #endif
             return custom
         }
@@ -94,8 +94,8 @@ public struct ImageRequest {
     /// The default key considers two requests equivalent it they have the same
     /// `URLRequests` and the same processors. `URLRequests` are compared
     /// just by their `URLs`.
-    public var cacheKey: AnyHashable {
-        get { return _ref.cacheKey ?? AnyHashable(CacheKey(request: self)) }
+    public var cacheKey: AnyHashable? {
+        get { return _ref.cacheKey }
         set { _mutate { $0.cacheKey = newValue } }
     }
 
@@ -104,8 +104,8 @@ public struct ImageRequest {
     /// The default key considers two requests equivalent it they have the same
     /// `URLRequests` and the same processors. `URLRequests` are compared by
     /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
-    public var loadKey: AnyHashable {
-        get { return _ref.loadKey ?? AnyHashable(LoadKey(request: self)) }
+    public var loadKey: AnyHashable? {
+        get { return _ref.loadKey }
         set { _mutate { $0.loadKey = newValue } }
     }
     
@@ -255,8 +255,8 @@ public extension ImageRequest {
     }
 }
 
-private extension ImageRequest {
-    private struct CacheKey: Hashable {
+internal extension ImageRequest {
+    struct CacheKey: Hashable {
         let request: ImageRequest
 
         var hashValue: Int {
@@ -265,12 +265,15 @@ private extension ImageRequest {
 
         static func ==(lhs: CacheKey, rhs: CacheKey) -> Bool {
             let lhs = lhs.request, rhs = rhs.request
+            if let lhsCustomKey = lhs._ref.cacheKey, let rhsCustomKey = rhs._ref.cacheKey {
+                return lhsCustomKey == rhsCustomKey
+            }
             return lhs._ref._urlString == rhs._ref._urlString
                 && lhs._ref._customProcessor == rhs._ref._customProcessor
         }
     }
 
-    private struct LoadKey: Hashable {
+    struct LoadKey: Hashable {
         let request: ImageRequest
 
         var hashValue: Int {
@@ -283,6 +286,9 @@ private extension ImageRequest {
                     && a.allowsCellularAccess == b.allowsCellularAccess
             }
             let lhs = lhs.request, rhs = rhs.request
+            if let lhsCustomKey = lhs._ref.loadKey, let rhsCustomKey = rhs._ref.loadKey {
+                return lhsCustomKey == rhsCustomKey
+            }
             return lhs._ref._urlString == rhs._ref._urlString
                 && isEqual(lhs.urlRequest, rhs.urlRequest)
                 && lhs._ref._customProcessor == rhs._ref._customProcessor

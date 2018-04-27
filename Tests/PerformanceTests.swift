@@ -5,8 +5,10 @@
 import XCTest
 @testable import Nuke
 
-class ManagerPerformanceTests: XCTestCase {
-    func testManagerMainThreadPerformance() {
+class ImageTargetPerformanceTests: XCTestCase {
+    // This is the primary use case that we are optimizing for - loading images
+    // into target, the API that majoriy of the apps are going to use.
+    func testImageTargetMainThreadPerformance() {
         let view = ImageView()
 
         let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }

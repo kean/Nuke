@@ -201,7 +201,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         let request1 = ImageRequest(url: defaultURL)
         let request2 = ImageRequest(url: defaultURL)
-        XCTAssertEqual(request1.loadKey, request2.loadKey)
+        XCTAssertEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
 
         expect { fulfill in
             imagePipeline.loadImage(with: request1) { response, _ in
@@ -227,7 +227,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     func testThatNonEquivalentRequestsAreNotDeduplicated() {
         let request1 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
         let request2 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
-        XCTAssertNotEqual(request1.loadKey, request2.loadKey)
+        XCTAssertNotEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
 
         expect { fulfill in
             imagePipeline.loadImage(with: request1) { response, _ in
