@@ -5,21 +5,6 @@
 import XCTest
 @testable import Nuke
 
-extension ImageCache {
-    subscript(request: ImageRequest) -> Image? {
-        get {
-            return cachedResponse(for: request)?.image
-        }
-        set {
-            if let newValue = newValue {
-                storeResponse(ImageResponse(image: newValue, urlResponse: nil), for: request)
-            } else {
-                removeResponse(for: request)
-            }
-        }
-    }
-}
-
 private func _request(index: Int) -> ImageRequest {
     return ImageRequest(url: URL(string: "http://example.com/img\(index)")!)
 }

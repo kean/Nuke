@@ -272,6 +272,10 @@ public final class Cache: Caching, ImageCaching {
         self[ImageRequest.CacheKey(request: request)] = response.image
     }
 
+    public func removeResponse(for request: ImageRequest) {
+        self[ImageRequest.CacheKey(request: request)] = nil
+    }
+
     // MARK: Caching
 
     public subscript(key: AnyHashable) -> Image? {

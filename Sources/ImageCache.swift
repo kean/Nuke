@@ -18,6 +18,26 @@ public protocol ImageCaching: class {
 
     /// Stores the given `ImageResponse` in the cache using the given request.
     func storeResponse(_ response: ImageResponse, for request: ImageRequest)
+
+    /// Remove the response for the given request.
+    func removeResponse(for request: ImageRequest)
+}
+
+/// Convenience subscript.
+public extension ImageCaching {
+    /// Accesses the image associated with the given request.
+    public subscript(request: ImageRequest) -> Image? {
+        get {
+            return cachedResponse(for: request)?.image
+        }
+        set {
+            if let newValue = newValue {
+                storeResponse(ImageResponse(image: newValue, urlResponse: nil), for: request)
+            } else {
+                removeResponse(for: request)
+            }
+        }
+    }
 }
 
 /// Memory cache with LRU cleanup policy (least recently used are removed first).
