@@ -7,18 +7,14 @@
 <a href="https://travis-ci.org/kean/Nuke"><img src="https://img.shields.io/travis/kean/Nuke/master.svg"></a>
 </p>
 
-A powerful **image loading** and **caching** system. It makes simple tasks like loading images into image views extremely simple, while also supporting and progressively disclosing more advanced features for more demanding apps.
+A powerful **image loading** and **caching** system. It makes simple tasks like loading images into views extremely simple, while also supporting more advanced features for more demanding apps.
 
-# <a name="h_features"></a>Features
-
-- Two [cache layers](https://kean.github.io/post/image-caching), fast custom LRU disk and memory caches
+- Two [cache layers](https://kean.github.io/post/image-caching), fast LRU disk and memory caches
+- Progressive image loading (progressive JPEG) 
+- Resumable downloads, request deduplication, prioritization, rate limiting and more
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) integrations
 - [RxNuke](https://github.com/kean/RxNuke) with RxSwift extensions
 - Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) (*deprecated in iOS 10*)
-- Progressive image loading (progressive JPEG) 
-- Resumable downloads, request deduplication, prioritization, rate limiting and more
-
-> [Nuke 7](https://github.com/kean/Nuke/tree/nuke7) is in active development, first beta is already available. It's an early version, the documentation hasn't been fully updated yet and there are still some upcoming changes. If you'd like to contribute or have some suggestions or feature requests please open an issue, a pull request or contact me on [Twitter](https://twitter.com/a_grebenyuk).
 
 # <a name="h_getting_started"></a>Quick Start
 
@@ -26,7 +22,7 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
 
 This README has five sections:
 
-- Complete [**Usage Guide**](#h_usage) - best place to start
+- Complete [**Usage Guide**](#h_usage), best place to start
 - Detailed [**Image Pipeline**](#h_design) description
 - Section dedicated to [**Performance**](h_performance)
 - List of available [**Extensions**](#h_plugins)
@@ -46,9 +42,9 @@ Nuke.loadImage(with: url, into: imageView)
 
 Nuke will automatically load image data, decompress it in the background, store image in memory cache and display it.
 
-> To learn more about the image pipeline [see the next section](#h_design).
+> To learn more about the image pipeline [see the dedicated section](#h_design).
 
-Nuke keeps track of each *target*. When you request an image for a target any previous outstanding requests get cancelled. The same happens automatically when the target is deallocated.
+Nuke keeps track of each *target*. When you request an image for a target a previous outstanding request gets cancelled. The same happens automatically when the target is deallocated.
 
 ```swift
 func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -61,8 +57,6 @@ func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath:
     ...
 }
 ```
-
-#### Targets
 
 What can be a *target*? Anything that implements `ImageTarget` protocol:
 
