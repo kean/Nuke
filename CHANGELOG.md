@@ -131,7 +131,7 @@ Nuke captures detailed metrics on each image task:
 
 ```swift
 (lldb) p task.metrics
-(Nuke.ImageTask.Metrics) $R2 = {
+(Nuke.ImageTaskMetrics) $R2 = {
   taskId = 9
   timeCreated = 545513853.67615998
   timeResumed = 545513853.67778301
