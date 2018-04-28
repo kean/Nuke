@@ -81,8 +81,8 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
 
         self.task?.cancel()
 
-        let task = pipeline.loadImage(with: url) {
-            imageView.imageView.image = $0.value
+        let task = pipeline.loadImage(with: url) { response, _ in
+            imageView.imageView.image = response?.image
         }
 
         task.progressHandler = {

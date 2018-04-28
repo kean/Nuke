@@ -58,7 +58,7 @@ class BasicDemoViewController: UICollectionViewController {
         imageView.image = nil
 
         let request = makeRequest(with: photos[indexPath.row])
-        Nuke.loadImage(with: request, pipeline: pipeline, into: imageView)
+        Nuke.loadImage(with: request, options: ImageLoadingOptions(pipeline: pipeline), into: imageView)
 
         return cell
     }
