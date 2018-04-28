@@ -1,3 +1,55 @@
+## Nuke 7.0-beta3
+
+This is the final beta version. The release version is going to be available next week.
+
+### Aggressive Disk Cache (Beta)
+
+Add a completely new custom LRU disk cache which can be used for fast and reliable *aggressive* (no validation) data caching. The new cache lookups are up to 2x faster than `URLCache` lookups. You can enable it using pipeline's configuration:
+
+```swift
+$0.enableExperimentalAggressiveDiskCaching(keyEncoder: {
+    guard let data = $0.cString(using: .utf8) else { return nil }
+    return _nuke_sha1(data, UInt32(data.count))
+})
+```
+
+When enabling disk cache you must provide a `keyEncoder` function which takes image request's url as a parameter and produces a key which can be used as a valid filename. The [demo project uses sha1](https://gist.github.com/kean/f5e1975e01d5e0c8024bc35556665d7b) to generate those keys.
+
+The public API for disk cache and the API for using custom disk caches is going to be available the future versions.
+
+> Existing API already allows you to use custom disk cache [by implementing `DataLoading` protocol](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries), but this is not the most straightforward option.
+
+### Memory Cache Improvements
+
+- New `ImageCaching` protocol for memory cache with methods like `func storeResponse(_ response: ImageRespone, for request: ImageRequest)` (it use to be just `subscript[key: AnyHashable] -> Image?`. You can do much more intelligent things in your cache implementations now (e.g. make decisions on when to evict image based on HTTP headers). Plus there is more room for optimization (get rid of AnyHashable overhead).
+- Improve cache write/hit/miss performance by 30% by getting rid of AnyHashable overhead. `ImageRequest` `cacheKey` and `loadKey` are now optional. If you use them, Nuke is going to use them instead of built-in internal `ImageRequest.CacheKey` and `ImageRequest.LoadKey`.
+- Add `TTL` support in `ImageCache`
+
+### Image Loading Options
+
+Nuke finally has all of the basic convenience options that you would expect from an image loading framework:
+
+```swift
+Nuke.loadImage(
+    with: url,
+    options: ImageLoadingOptions(
+        placeholder: UIImage(named: "placeholder"),
+        transition: .crossDissolve(0.33)
+    ),
+    into: imageView
+)
+```
+
+### Other Changes
+
+- Performance improvements in performance metrics, they are virtually free now
+- Performance improvements in `ImageTask` cancellation.
+- Add progress to `ImageTask`. Progress object is created lazily (it's creation is relatively expensive)
+- Deprecate `Result` type. It was only used in a single completion handler so it didn't really justify its existence. More imporantly, in case of image loading you're really just interested in whether the image was loaded or not. The error is there mostly for diagnostics. We also no longer pollute users' project with yet another `Result` implementation.
+- `ImageTask.Completion` now gives you `ImageResponse` (image + URLResponse) instead of just plain image.
+- More generic `Cancellable` protocol instead of `DataLoadingTask`
+
+
 ## Nuke 7.0-beta2
 
 ### Progressive Image Loading (Beta)
