@@ -10,10 +10,10 @@
 A powerful **image loading** and **caching** system. It makes simple tasks like loading images into views extremely simple, while also supporting more advanced features for more demanding apps.
 
 - Two [cache layers](https://kean.github.io/post/image-caching), fast LRU disk and memory caches
-- Progressive image loading (progressive JPEG) 
+- Progressive image loading (progressive JPEG and soon also WebP)
 - Resumable downloads, request deduplication, prioritization, rate limiting and more
-- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) integrations
-- [RxNuke](https://github.com/kean/RxNuke) with RxSwift extensions
+- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [WebP](https://github.com/ryokosuge/Nuke-WebP-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) extensions
+- [RxNuke](https://github.com/kean/RxNuke) - [RxSwift](https://github.com/ReactiveX/RxSwift) extensions
 - Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) (*deprecated in iOS 10*)
 
 # <a name="h_getting_started"></a>Quick Start
@@ -28,14 +28,14 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
 - [**Advanced Usage Guide**](#advanced-usage)
   - [Memory Cache](#memory-cache), [HTTP Disk Cache](#http-disk-cache), [Aggressive Disk Cache (Beta)](#aggressive-disk-cache--beta-)
   - [Preheat Images](#preheat-images)
-  - [Progressive Decoding (Beta)](#enable-progressive-decoding--beta-)
+  - [Progressive Decoding (Beta)](#enable-progressive-decoding--beta-), [WebP](#webp)
   - [RxNuke](#rxnuke)
 - Detailed [**Image Pipeline**](#h_design) description
-- Section dedicated to [**Performance**](h_performance)
-- List of available [**Extensions**](#h_plugins)
-- List of [**Requirements**](#h_requirements)
+- Entire section dedicated to [**Performance**](#h_performance)
+- List of [**Extensions**](#h_plugins), both official and built by the community
+- [**Requirements**](#h_requirements)
 
-More information is available in [**Documentation**](https://github.com/kean/Nuke/blob/master/Documentation/) directory and a full [**API Reference**](http://kean.github.io/Nuke/reference/6.1.1/index.html). When you are ready to install Nuke you can follow an [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md) - all major package managers are supported.
+More information is available in [**Documentation**](https://github.com/kean/Nuke/blob/master/Documentation/) directory and a full [**API Reference**](https://kean.github.io/Nuke/reference/7.0-rc1/index.html). When you are ready to install Nuke you can follow an [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md) - all major package managers are supported.
 
 # <a name="h_usage"></a>Usage
 
@@ -263,6 +263,10 @@ The progressive decoding only kicks in when Nuke determines that the image data 
 
 > See "Progressive Decoding" demo to see progressive JPEG in practice. You can also uncomment the code that blurs the first few scans of the image which makes them look a bit nicer.
 
+#### WebP
+
+WebP support is provided by [Nuke WebP Plugin](https://github.com/ryokosuge/Nuke-WebP-Plugin) built by [Ryo Kosuge](https://github.com/ryokosuge). Please follow the intructions from the repo to install it.
+
 #### RxNuke
 
 [RxNuke](https://github.com/kean/RxNuke) adds [RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke and enables many common use cases:
@@ -399,10 +403,13 @@ Resumable Data {
 
 # Extensions<a name="h_plugins"></a>
 
+There are a variety extensions available for Nuke some of which are built by the community.
+
 |Name|Description|
 |--|--|
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples of common use cases solved by Rx|
 |[**Alamofire**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks|
+|[**WebP**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **[Community]** [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
 |[**Gifu**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
 |[**FLAnimatedImage**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
 

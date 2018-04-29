@@ -3,7 +3,7 @@
 - [Installation Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md)
 - [Usage Guide](https://github.com/kean/Nuke#usage)
 - [Third Party Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md)
-- [Latest API Reference](http://kean.github.io/Nuke/reference/6.1.1/index.html)
+- [Latest API Reference](https://kean.github.io/Nuke/reference/7.0-rc1/index.html)
 
 ## Guides
 
