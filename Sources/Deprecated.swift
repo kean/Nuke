@@ -180,7 +180,10 @@ public final class Loader: Loading {
                 // which can only be used with ImagePipeline and ImageDecoding
                 return _DataDecoderAdapter(decoder: decoder, response: $0.urlResponse ?? URLResponse())
             }
+            // In the previous Manager-Loader infrastructure Loader didn't have
+            // a memory cache.
             $0.imageCache = nil
+            
             $0.maxConcurrentDataLoadingTaskCount = options.maxConcurrentDataLoadingTaskCount
             $0.maxConcurrentImageProcessingTaskCount = options.maxConcurrentImageProcessingTaskCount
             $0.isDeduplicationEnabled = options.isDeduplicationEnabled
@@ -232,7 +235,7 @@ public extension Caching {
 }
 
 @available(*, deprecated, message: "Please use `ImageCache` instead")
-public final class Cache: Caching, ImageCaching {
+public final class Cache: Caching {
     private let _impl: _Cache<AnyHashable, Image>
 
     public var costLimit: Int {
