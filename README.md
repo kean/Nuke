@@ -56,10 +56,8 @@ Nuke keeps track of each image view. When you request a new image for a view the
 ```swift
 func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     ...
-    // Prepare image view for reuse.
-    cell.imageView.image = nil
-
-    // Previous requests for the image view get cancelled.
+    // Previous request for the image view gets cancelled. The view is
+    // automatically prepared for reuse (image set to `nil`).
     Nuke.loadImage(with: url, into: cell.imageView)
     ...
 }
@@ -81,7 +79,7 @@ There is a very common scenario where the placeholder (or the failure image) nee
 ```swift
 var options = ImageViewOptions()
 options.placeholder = UIImage(named: "placeholder")
-options.failureImage = UIImage(named:: "failure_image")
+options.failureImage = UIImage(named: "failure_image")
 options.contentModes = ImageViewOptions.ContentModes(
     success: .scaleAspectFill,
     failure: .center,

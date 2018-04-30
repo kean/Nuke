@@ -47,12 +47,22 @@ public typealias ImageView = UIImageView
 @discardableResult public func loadImage(with request: ImageRequest, into view: ImageView, completion: ((ImageResponse?, Error?, Bool) -> Void)? = nil) -> ImageTask? {
     assert(Thread.isMainThread)
 
-    let context = getContext(for: view)
+    let context = Context.context(for: view)
     context.task?.cancel() // cancel outstanding request if any
     context.task = nil
 
     // Make a copy of options.
     let options = context.options
+
+    // Prepare for reuse.
+    if options.isPrepareForReuseEnabled { // enabled by default
+        view.image = nil
+        #if os(macOS)
+        view.layer?.removeAllAnimations()
+        #else
+        view.layer.removeAllAnimations()
+        #endif
+    }
 
     // Quick synchronous memory cache lookup
     if request.memoryCacheOptions.readAllowed,
@@ -63,6 +73,7 @@ public typealias ImageView = UIImageView
         return nil
     }
 
+    // Display a placeholder.
     if let placeholder = options.placeholder {
         view.image = placeholder
         #if !os(macOS)
@@ -149,7 +160,7 @@ private extension ImageView {
 /// Cancels an outstanding request associated with the view.
 public func cancelRequest(for view: ImageView) {
     assert(Thread.isMainThread)
-    let context = getContext(for: view)
+    let context = Context.context(for: view)
     context.task?.cancel() // cancel outstanding request if any
     context.task = nil // unregister request
 }
@@ -170,6 +181,11 @@ public struct ImageViewOptions {
     /// The image transition animation performed when displaying a failure image
     /// `.none` by default.
     public var failureImageTransition: Transition = .none
+
+    /// If true, every time you request a new image for a view, the view will be
+    /// automatically prepared for reuse: image will be set to `nil`, and animations
+    /// will be removed. `true` by default.
+    public var isPrepareForReuseEnabled = true
 
     /// The pipeline to be used. `ImagePipeline.shared` by default.
     public var pipeline: ImagePipeline = ImagePipeline.shared
@@ -204,8 +220,8 @@ public struct ImageViewOptions {
 
 public extension ImageView {
     public var options: ImageViewOptions {
-        get { return getContext(for: self).options }
-        set { getContext(for: self).options = newValue }
+        get { return Context.context(for: self).options }
+        set { Context.context(for: self).options = newValue }
     }
 }
 
@@ -228,16 +244,16 @@ private final class Context {
     }
 
     static var contextAK = "Context.AssociatedKey"
-}
 
-// Lazily create a context for a given view and associate it with a view.
-private func getContext(for view: ImageView) -> Context {
-    if let ctx = objc_getAssociatedObject(view, &Context.contextAK) as? Context {
+    // Lazily create a context for a given view and associate it with a view.
+    static func context(for view: ImageView) -> Context {
+        if let ctx = objc_getAssociatedObject(view, &Context.contextAK) as? Context {
+            return ctx
+        }
+        let ctx = Context()
+        objc_setAssociatedObject(view, &Context.contextAK, ctx, .OBJC_ASSOCIATION_RETAIN)
         return ctx
     }
-    let ctx = Context()
-    objc_setAssociatedObject(view, &Context.contextAK, ctx, .OBJC_ASSOCIATION_RETAIN)
-    return ctx
 }
 
 #endif
@@ -246,8 +262,11 @@ private func getContext(for view: ImageView) -> Context {
 
 private extension ImageView {
     private func _add(animation: CAAnimation) {
-        let layer: CALayer? = self.layer // Make compiler happy on macOS
+        #if os(macOS)
         layer?.add(animation, forKey: "imageTransition")
+        #else
+        layer.add(animation, forKey: "imageTransition")
+        #endif
     }
 
     func _animateOpacity(from: CGFloat, to: CGFloat, duration: TimeInterval) {
@@ -268,11 +287,11 @@ private extension ImageView {
 
     #if !os(macOS)
     /// Performs cross-dissolve animation alonside transition to a new content
-    /// mode. This isn't natively supported features and it requires a second
+    /// mode. This isn't natively supported feature and it requires a second
     /// image view. There might be better ways to implement it.
     func _animateCrossDissolveTransitioningToContentMode(contentMode: UIViewContentMode, from: Image?, to: Image?, duration: TimeInterval) {
         // Lazily create a transition view.
-        let transitionView = getContext(for: self).transitionImageView
+        let transitionView = Context.context(for: self).transitionImageView
 
         // Create a transition view which mimics current view's contents.
         transitionView.image = self.image

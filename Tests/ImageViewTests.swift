@@ -25,6 +25,21 @@ class ImageViewTests: XCTestCase {
         imageView.options.pipeline = pipeline
     }
 
+    // MARK: - Prepare For Reuse
+
+    func testThatImageIsPreparedForReuse() {
+        imageView.image = Test.image
+        Nuke.loadImage(with: Test.request, into: imageView)
+        XCTAssertNil(imageView.image)
+    }
+
+    func testThatPrepareForReuseCanBeDisabled() {
+        imageView.options.isPrepareForReuseEnabled = false
+        imageView.image = Test.image
+        Nuke.loadImage(with: Test.request, into: imageView)
+        XCTAssertEqual(imageView.image, Test.image)
+    }
+
     // MARK: - Memory Cache
 
     func testThatImageIsReadSyncrhonouslyFromMemoryCache() {

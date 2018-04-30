@@ -55,10 +55,8 @@ class BasicDemoViewController: UICollectionViewController {
         cell.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
         
         let imageView = imageViewForCell(cell)
-        imageView.image = nil
-
         let request = makeRequest(with: photos[indexPath.row])
-        Nuke.loadImage(with: request, options: ImageLoadingOptions(pipeline: pipeline), into: imageView)
+        Nuke.loadImage(with: request, into: imageView)
 
         return cell
     }
@@ -75,6 +73,8 @@ class BasicDemoViewController: UICollectionViewController {
             imageView.tag = 15
             imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
+            imageView.options.pipeline = self.pipeline
+            imageView.options.transition = .opacity(0.25)
             cell.addSubview(imageView!)
         }
         return imageView!
