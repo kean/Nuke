@@ -67,20 +67,32 @@ func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath:
 
 #### Placeholders, Transitions and More
 
-`loadImage(with:options:into:)` has an `options` argument which you can use to custorize and way image is loaded and displayed in an image view. You can provide a placeholder and select one of built-in transitions or provide a custom one:
+Nuke extends image view with an `options` property (`ImageViewOptions`) which can be used to customize and way image is loaded and displayed in an image view. You can provide a placeholder and select one of built-in transitions or provide a custom one.
 
 ```swift
-Nuke.loadImage(
-    with: url,
-    options: ImageLoadingOptions(
-        placeholder: UIImage(named: "placeholder"),
-        transition: .crossDissolve(0.33)
-    ),
-    into: imageView
-)
+imageView.options.placeholder = UIImage(named: "placeholder")
+imageView.options.transition = .crossDissolve(0.33)
+
+Nuke.loadImage(with: url, into: imageView)
 ```
 
-There are more options available. For example, you can add a custom completion handler or select a custom image pipeline.
+There is a very common scenario where the placeholder (or the failure image) needs to be displayed with a content mode different from the one used for the loaded image.  `ImageViewOptions` to do precisely that:
+
+```swift
+var options = ImageViewOptions()
+options.placeholder = UIImage(named: "placeholder")
+options.failureImage = UIImage(named:: "failure_image")
+options.contentModes = ImageViewOptions.ContentModes(
+    success: .scaleAspectFill,
+    failure: .center,
+    placeholder: .center
+)
+imageView.options = options
+
+Nuke.loadImage(with: url, into: imageView)
+```
+
+Nuke will load an image and apply correct content modes when switching between images.
 
 #### Image Requests
 

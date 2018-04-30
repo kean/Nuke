@@ -11,8 +11,79 @@ private func _makeResponse(statusCode: Int = 200, headers: [String: String]? = n
     return HTTPURLResponse(url: defaultURL, statusCode: statusCode, httpVersion: "HTTP/1.2", headerFields: headers)!
 }
 
-class ResumableDataCreationTests: XCTestCase {
-    // MARK: Positive Tests
+class ImagePipelineResumableDataTests: XCTestCase {
+    private var dataLoader: _MockResumableDataLoader!
+    private var pipeline: ImagePipeline!
+
+    override func setUp() {
+        dataLoader = _MockResumableDataLoader()
+        ResumableData._cache.removeAll()
+        pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+    }
+
+    // Make sure that ResumableData works correctly in integration with ImagePipeline
+    func testRangeSupported() {
+        expect { fulfil in
+            let _ = pipeline.loadImage(with: defaultURL) { _, error in
+                XCTAssertNotNil(error)
+                fulfil()
+            }
+        }
+        wait()
+
+        expect { fulfil in
+            pipeline.didFinishCollectingMetrics = { _, metrics in
+                // Test that the metrics are collected correctly.
+                XCTAssertEqual(metrics.session!.wasResumed, true)
+                XCTAssertTrue(metrics.session!.resumedDataCount! > 0)
+                XCTAssertEqual(metrics.session!.totalDownloadedDataCount, self.dataLoader.data.count)
+                fulfil()
+            }
+        }
+
+        expect { fulfil in
+            let task = pipeline.loadImage(with: defaultURL) { _,_ in }
+
+            task.completion = { [unowned task, unowned self] response, _ in
+                XCTAssertNotNil(response)
+                XCTAssertEqual(task.completedUnitCount, Int64(self.dataLoader.data.count))
+                fulfil()
+            }
+        }
+        wait()
+    }
+}
+
+// Test ResumableData directly to make sure it makes the right decisions based
+// on HTTP flows.
+class ResumableDataTests: XCTestCase {
+    func testResumingRequst() {
+        let response = _makeResponse(headers: [
+            "Accept-Ranges": "bytes",
+            "ETag": "1234"]
+        )
+        let data = ResumableData(response: response, data: _data)!
+        var request = URLRequest(url: defaultURL)
+        data.resume(request: &request)
+
+        // Check that we've set both required "range" filed
+        XCTAssertEqual(request.allHTTPHeaderFields?["Range"], "bytes=1000-")
+        XCTAssertEqual(request.allHTTPHeaderFields?["If-Range"], "1234")
+    }
+
+    func testCheckingResumedResponse() {
+        XCTAssertTrue(ResumableData.isResumedResponse(_makeResponse(statusCode: 206)))
+
+        // Need to load new data
+        XCTAssertFalse(ResumableData.isResumedResponse(_makeResponse(statusCode: 200)))
+
+        XCTAssertFalse(ResumableData.isResumedResponse(_makeResponse(statusCode: 404)))
+    }
+
+    // MARK: - Creation (Positive)
 
     func testCreateWithETag() {
         let response = _makeResponse(headers: [
@@ -72,7 +143,7 @@ class ResumableDataCreationTests: XCTestCase {
         XCTAssertEqual(data?.validator, "1234")
     }
 
-    // MARK: Negative Tests
+    // MARK: - Creation (Negative)
 
     func testCreateWithEmptyData() {
         let response = _makeResponse(headers: [
@@ -121,78 +192,6 @@ class ResumableDataCreationTests: XCTestCase {
         )
         let data = ResumableData(response: response, data: _data)
         XCTAssertNil(data)
-    }
-}
-
-class ResumableDataResumingTests: XCTestCase {
-    private var dataLoader: _MockResumableDataLoader!
-    private var pipeline: ImagePipeline!
-
-    override func setUp() {
-        dataLoader = _MockResumableDataLoader()
-        ResumableData._cache.removeAll()
-        pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-        }
-    }
-
-    func testResumingRequst() {
-        let response = _makeResponse(headers: [
-            "Accept-Ranges": "bytes",
-            "ETag": "1234"]
-        )
-        let data = ResumableData(response: response, data: _data)!
-        var request = URLRequest(url: defaultURL)
-        data.resume(request: &request)
-
-        // Check that we've set both required "range" filed
-        XCTAssertEqual(request.allHTTPHeaderFields?["Range"], "bytes=1000-")
-        XCTAssertEqual(request.allHTTPHeaderFields?["If-Range"], "1234")
-    }
-
-    func testCheckingResumedResponse() {
-        XCTAssertTrue(ResumableData.isResumedResponse(_makeResponse(statusCode: 206)))
-
-        // Need to load new data
-        XCTAssertFalse(ResumableData.isResumedResponse(_makeResponse(statusCode: 200)))
-
-        XCTAssertFalse(ResumableData.isResumedResponse(_makeResponse(statusCode: 404)))
-    }
-
-    // Make sure that ResumableData works correctly in integration with ImagePipeline
-    func testIntegrationRangeSupported() {
-        expect { fulfil in
-            let _ = pipeline.loadImage(with: defaultURL) { _, error in
-                XCTAssertNotNil(error)
-                fulfil()
-            }
-        }
-        wait()
-
-        expect { fulfil in
-            pipeline.didFinishCollectingMetrics = { _, metrics in
-                // Test that the metrics are collected correctly.
-                XCTAssertEqual(metrics.session!.wasResumed, true)
-                XCTAssertTrue(metrics.session!.resumedDataCount! > 0)
-                XCTAssertEqual(metrics.session!.totalDownloadedDataCount, self.dataLoader.data.count)
-                fulfil()
-            }
-        }
-
-        expect { fulfil in
-            let task = pipeline.loadImage(with: defaultURL) { _,_ in }
-
-            task.completion = { [unowned task, unowned self] response, _ in
-                XCTAssertNotNil(response)
-                XCTAssertEqual(task.completedUnitCount, Int64(self.dataLoader.data.count))
-
-
-
-                fulfil()
-            }
-        }
-        wait()
     }
 }
 
@@ -260,4 +259,3 @@ private class _MockResumableDataLoader: DataLoading {
         func cancel() { }
     }
 }
-

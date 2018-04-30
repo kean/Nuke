@@ -8,8 +8,7 @@ import XCTest
 let blob = "123".data(using: .utf8)
 let otherBlob = "456".data(using: .utf8)
 
-class CacheTests: XCTestCase {
-
+class DataCacheTests: XCTestCase {
     var cache: DataCache!
 
     override func setUp() {
@@ -311,7 +310,7 @@ class CacheTests: XCTestCase {
     }
 }
 
-class AlgorithmTests: XCTestCase {
+class DataCacheAlgorithmTests: XCTestCase {
     func testThatLeastRecentlyItemsAreRemovedFirst() {
         let now = Date()
 

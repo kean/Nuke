@@ -63,8 +63,6 @@ public /* final */ class ImageTask: Hashable {
     }
 }
 
-private let _lock = NSLock()
-
 // MARK: - ImageResponse
 
 public final class ImageResponse {
@@ -614,8 +612,9 @@ public /* final */ class ImagePipeline {
     }
 
     private func _session(_ session: Session, didProducePartialImage image: Image) {
-        // Check if we haven't completed the session yet by producing a final image.
-        guard !session.isCompleted else { return }
+        // Check if we haven't completed the session yet by producing a final image
+        // or cancelling the task.
+        guard sessions[session.key] === session else { return }
         let tasks = session.tasks
         DispatchQueue.main.async {
             for task in tasks {
@@ -634,7 +633,6 @@ public /* final */ class ImagePipeline {
             session.tasks.contains(where: { $0.request.memoryCacheOptions.writeAllowed }) {
             imageCache.storeResponse(response, for: session.request)
         }
-        session.isCompleted = true
         session.metrics.endDate = Date()
 
         // Cancel any outstanding parital processing.
@@ -657,7 +655,6 @@ public /* final */ class ImagePipeline {
     /// subscribe to and unsubscribe from it.
     fileprivate final class Session {
         let sessionId: Int
-        var isCompleted: Bool = false // there is probably a way to remote this
 
         /// The original request with which the session was created.
         let request: ImageRequest

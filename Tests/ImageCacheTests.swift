@@ -21,6 +21,21 @@ class ImageCacheTests: XCTestCase {
         cache = ImageCache()
     }
 
+    // MARK: Basics
+
+    func testThatStoreResponseMethodWorks() {
+        let request = ImageRequest(url: defaultURL)
+
+        XCTAssertEqual(cache.totalCount, 0)
+        XCTAssertNil(cache.cachedResponse(for: request))
+
+        cache.storeResponse(Test.response, for: request)
+
+        XCTAssertEqual(cache.totalCount, 1)
+        let image = cache.cachedResponse(for: request)
+        XCTAssertNotNil(image)
+    }
+
     // MARK: Count
 
     func testThatTotalCountChanges() {
@@ -294,107 +309,7 @@ class ImageCacheTests: XCTestCase {
     }
 }
 
-class ImageCacheIntegrationTests: XCTestCase {
-    var mockCache: MockImageCache!
-    var mockDataLoader: MockDataLoader!
-    var pipeline: ImagePipeline!
-    var target: ImageView!
-
-    override func setUp() {
-        super.setUp()
-
-        mockCache = MockImageCache()
-        mockDataLoader = MockDataLoader()
-        pipeline = ImagePipeline {
-            $0.dataLoader = mockDataLoader
-            $0.imageCache = mockCache
-        }
-        target = ImageView()
-    }
-
-    func testThatCacheWorks() {
-        let request = ImageRequest(url: defaultURL)
-
-        XCTAssertEqual(mockCache.images.count, 0)
-        XCTAssertNil(mockCache.cachedResponse(for: request))
-
-        expect { fulfill in
-            Nuke.loadImage(
-                with: request,
-                options: ImageLoadingOptions(
-                    pipeline: pipeline,
-                    completion: { response, _, _ in
-                        XCTAssertNotNil(response)
-                        fulfill()
-                }),
-                into: target
-            )
-        }
-        wait()
-
-        // Suspend queue to make sure that the next request can
-        // come only from cache.
-        mockDataLoader.queue.isSuspended = true
-
-        expect { fulfill in
-            Nuke.loadImage(
-                with: request,
-                options: ImageLoadingOptions(
-                    pipeline: pipeline,
-                    completion: { response, _, _ in
-                        XCTAssertNotNil(response)
-                        fulfill()
-                }),
-                into: target
-            )
-        }
-        wait()
-
-        XCTAssertEqual(mockCache.images.count, 1)
-        XCTAssertNotNil(mockCache.cachedResponse(for: request))
-    }
-
-    func testThatStoreResponseMethodWorks() {
-        let request = ImageRequest(url: defaultURL)
-        
-        XCTAssertEqual(mockCache.images.count, 0)
-        XCTAssertNil(mockCache.cachedResponse(for: request))
-
-        mockCache.storeResponse(Test.response, for: request)
-        
-        XCTAssertEqual(mockCache.images.count, 1)
-        let image = mockCache.cachedResponse(for: request)
-        XCTAssertNotNil(image)
-    }
-
-    func testThatCacheStorageCanBeDisabled() {
-        var request = ImageRequest(url: defaultURL)
-        XCTAssertTrue(request.memoryCacheOptions.writeAllowed)
-        request.memoryCacheOptions.writeAllowed = false // Test default value
-
-        XCTAssertEqual(mockCache.images.count, 0)
-        XCTAssertNil(mockCache.cachedResponse(for: request))
-
-        expect { fulfill in
-            Nuke.loadImage(
-                with: request,
-                options: ImageLoadingOptions(
-                    pipeline: pipeline,
-                    completion: { response, _, _ in
-                        XCTAssertNotNil(response)
-                        fulfill()
-                }),
-                into: target
-            )
-        }
-        wait()
-
-        XCTAssertEqual(mockCache.images.count, 0)
-        XCTAssertNil(mockCache.cachedResponse(for: request))
-    }
-}
-
-class _CacheTTLTests: XCTestCase {
+class InternalCacheTTLTests: XCTestCase {
     let cache = _Cache<Int, Int>(costLimit: 1000, countLimit: 1000)
 
     // MARK: TTL

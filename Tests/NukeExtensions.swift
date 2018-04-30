@@ -5,7 +5,7 @@
 import Foundation
 import Nuke
 
-extension Nuke.ImageRequest {
+extension ImageRequest {
     func mutated(_ closure: (inout ImageRequest) -> Void) -> ImageRequest {
         var request = self
         closure(&request)

@@ -6,8 +6,7 @@ import XCTest
 @testable import Nuke
 
 class ImageRequestTests: XCTestCase {
-
-    // MARK: CoW
+    // MARK: - CoW
 
     func testThatStructSemanticsArePreserved() {
         let url1 =  URL(string: "http://test.com/1.png")!
@@ -30,6 +29,7 @@ class ImageRequestTests: XCTestCase {
         request.cacheKey = "2"
         request.userInfo = "3"
         request.processor = AnyImageProcessor(MockImageProcessor(id: "4"))
+        request.priority = .high
 
         var copy = request
         // Requsts makes a copy at this point.
@@ -40,9 +40,10 @@ class ImageRequestTests: XCTestCase {
         XCTAssertEqual(copy.cacheKey, "2")
         XCTAssertEqual(copy.userInfo as? String, "3")
         XCTAssertEqual(copy.processor, AnyImageProcessor(MockImageProcessor(id: "4")))
+        XCTAssertEqual(copy.priority, .high)
     }
 
-    // MARK: Misc
+    // MARK: - Misc
 
     // Just to make sure that comparison works as expected.
     func testPriorityComparison() {

@@ -23,7 +23,7 @@ class ImagePipelineTests: XCTestCase {
         runThreadSafetyTests(for: pipeline)
     }
 
-    // MARK: Progress
+    // MARK: - Progress
 
     func testThatProgressClosureIsCalled() {
         let request = ImageRequest(url: defaultURL)
@@ -87,7 +87,7 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
-    // MARK: Options
+    // MARK: - Configuration
 
     func testOverridingProcessor() {
         let pipeline = ImagePipeline {
@@ -110,7 +110,7 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
-    // MARK: Metrics Collection
+    // MARK: - Metrics Collection
 
     func testThatMetricsAreCollectedWhenTaskCompleted() {
         expect { fulfill in
@@ -151,66 +151,6 @@ class ImagePipelineTests: XCTestCase {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(10)) {
             task.cancel()
-        }
-        wait()
-    }
-}
-
-class ImagePipelineErrorHandlingTests: XCTestCase {
-    func testThatLoadingFailedErrorIsReturned() {
-        let dataLoader = MockDataLoader()
-        let imagePipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-        }
-
-        let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
-        dataLoader.results[defaultURL] = .failure(expectedError)
-
-        expect { fulfill in
-            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { _, error in
-                guard let error = error else { XCTFail(); return }
-                XCTAssertNotNil(error)
-                XCTAssertEqual((error as NSError).code, expectedError.code)
-                XCTAssertEqual((error as NSError).domain, expectedError.domain)
-                fulfill()
-            }
-        }
-        wait()
-    }
-
-    func testThatDecodingFailedErrorIsReturned() {
-        let imagePipeline = ImagePipeline {
-            $0.dataLoader = MockDataLoader()
-            $0.imageDecoder = { _ in
-                return MockFailingDecoder()
-            }
-            $0.imageCache = nil
-        }
-
-        expect { fulfill in
-            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { _, error in
-                guard let error = error else { XCTFail(); return }
-                XCTAssertTrue((error as! ImagePipeline.Error) == ImagePipeline.Error.decodingFailed)
-                fulfill()
-            }
-        }
-        wait()
-    }
-
-    func testThatProcessingFailedErrorIsReturned() {
-        let loader = ImagePipeline {
-            $0.dataLoader = MockDataLoader()
-        }
-
-        let request = ImageRequest(url: defaultURL).processed(with: MockFailingProcessor())
-
-        expect { fulfill in
-            loader.loadImage(with: request) { _, error in
-                guard let error = error else { XCTFail(); return }
-                XCTAssertTrue((error as! ImagePipeline.Error) == ImagePipeline.Error.processingFailed)
-                fulfill()
-            }
         }
         wait()
     }
@@ -372,6 +312,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     }
 }
 
+/// Test how well image pipeline interacts with memory cache.
 class ImagePipelineMemoryCacheTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var cache: MockImageCache!
@@ -465,6 +406,66 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
         expect { fulfill in
             loader.loadImage(with: request) { response, _ in
                 XCTAssertNotNil(response)
+                fulfill()
+            }
+        }
+        wait()
+    }
+}
+
+class ImagePipelineErrorHandlingTests: XCTestCase {
+    func testThatLoadingFailedErrorIsReturned() {
+        let dataLoader = MockDataLoader()
+        let imagePipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+
+        let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
+        dataLoader.results[defaultURL] = .failure(expectedError)
+
+        expect { fulfill in
+            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { _, error in
+                guard let error = error else { XCTFail(); return }
+                XCTAssertNotNil(error)
+                XCTAssertEqual((error as NSError).code, expectedError.code)
+                XCTAssertEqual((error as NSError).domain, expectedError.domain)
+                fulfill()
+            }
+        }
+        wait()
+    }
+
+    func testThatDecodingFailedErrorIsReturned() {
+        let imagePipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+            $0.imageDecoder = { _ in
+                return MockFailingDecoder()
+            }
+            $0.imageCache = nil
+        }
+
+        expect { fulfill in
+            imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { _, error in
+                guard let error = error else { XCTFail(); return }
+                XCTAssertTrue((error as! ImagePipeline.Error) == ImagePipeline.Error.decodingFailed)
+                fulfill()
+            }
+        }
+        wait()
+    }
+
+    func testThatProcessingFailedErrorIsReturned() {
+        let loader = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+        }
+
+        let request = ImageRequest(url: defaultURL).processed(with: MockFailingProcessor())
+
+        expect { fulfill in
+            loader.loadImage(with: request) { _, error in
+                guard let error = error else { XCTFail(); return }
+                XCTAssertTrue((error as! ImagePipeline.Error) == ImagePipeline.Error.processingFailed)
                 fulfill()
             }
         }

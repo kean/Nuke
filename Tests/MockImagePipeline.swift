@@ -27,8 +27,12 @@ class MockImagePipeline: ImagePipeline {
         queue.maxConcurrentOperationCount = 1
         return queue
     }()
-//    var results = [URL: Result<Image>]()
-    var ignoreCancellation = false
+
+    var perform: (_ task: ImageTask) -> Void = { task in
+        DispatchQueue.main.async {
+            task.completion?(Test.response, nil)
+        }
+    }
 
     override init(configuration: ImagePipeline.Configuration = ImagePipeline.Configuration()) {
         var conf = configuration
@@ -38,24 +42,20 @@ class MockImagePipeline: ImagePipeline {
 
     override func loadImage(with request: ImageRequest, completion: @escaping ImageTask.Completion) -> ImageTask {
         let task = _MockImageTask(request: request)
+        task.completion = completion
 
         NotificationCenter.default.post(name: MockImagePipeline.DidStartTask, object: self)
-
+        
         createdTaskCount += 1
-
-        let operation = BlockOperation() {
-            DispatchQueue.main.async {
-                _ = task // Retain task until it's finished (matches ImagePipeline behavior)
-                completion(ImageResponse(image: defaultImage, urlResponse: nil), nil)
-            }
+        
+        let operation = BlockOperation() { [weak self] in
+            self?.perform(task)
         }
         self.queue.addOperation(operation)
-
-        if !self.ignoreCancellation {
-            task._cancel = {
-                operation.cancel()
-                NotificationCenter.default.post(name: MockImagePipeline.DidCancelTask, object: self)
-            }
+        
+        task._cancel = {
+            operation.cancel()
+            NotificationCenter.default.post(name: MockImagePipeline.DidCancelTask, object: self)
         }
 
         return task

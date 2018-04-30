@@ -5,10 +5,10 @@
 import XCTest
 @testable import Nuke
 
-class ImageTargetPerformanceTests: XCTestCase {
+class ImageViewPerformanceTests: XCTestCase {
     // This is the primary use case that we are optimizing for - loading images
     // into target, the API that majoriy of the apps are going to use.
-    func testImageTargetMainThreadPerformance() {
+    func testImageViewMainThreadPerformance() {
         let view = ImageView()
 
         let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }
@@ -16,6 +16,35 @@ class ImageTargetPerformanceTests: XCTestCase {
         measure {
             for url in urls {
                 Nuke.loadImage(with: url, into: view)
+            }
+        }
+    }
+
+    func testSettingsOptionsPerformance() {
+        let view = ImageView()
+
+        measure {
+            for _ in (0..<100_000) {
+                view.options.pipeline = ImagePipeline.shared
+                view.options.placeholder = Image()
+                view.options.transition = .crossDissolve(0.33)
+            }
+        }
+    }
+
+    func testSettingsOptionsPerformanceAllAtOnce() {
+        let view = ImageView()
+
+        measure {
+            for _ in (0..<100_000) {
+                // This is a preferred way to set options which is much faster.
+                // In practice, the options would be set once when view is created
+                // for the first time, so any option should be OK.
+                var options = ImageViewOptions()
+                options.pipeline = ImagePipeline.shared
+                options.placeholder = Image()
+                options.transition = .crossDissolve(0.33)
+                view.options = options
             }
         }
     }
