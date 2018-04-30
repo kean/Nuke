@@ -256,8 +256,6 @@ private final class Context {
     }
 }
 
-#endif
-
 // MARK: - Animations
 
 private extension ImageView {
@@ -316,3 +314,5 @@ private extension ImageView {
     }
     #endif
 }
+
+#endif
