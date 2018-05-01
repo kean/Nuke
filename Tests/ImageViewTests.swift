@@ -7,7 +7,7 @@ import XCTest
 
 class ImageViewTests: XCTestCase {
     var mockCache: MockImageCache!
-    var mockDataLoader: MockDataLoader!
+    var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
     var imageView: ImageView!
 
@@ -15,14 +15,22 @@ class ImageViewTests: XCTestCase {
         super.setUp()
 
         mockCache = MockImageCache()
-        mockDataLoader = MockDataLoader()
+        dataLoader = MockDataLoader()
         pipeline = ImagePipeline {
-            $0.dataLoader = mockDataLoader
+            $0.dataLoader = dataLoader
             $0.imageCache = mockCache
         }
 
         imageView = ImageView()
         imageView.options.pipeline = pipeline
+    }
+
+    // MARK: - Managing Tasks
+
+    func testThatTaskIsReturned() {
+        let task = Nuke.loadImage(with: Test.request, into: imageView)
+        XCTAssertNotNil(task)
+        XCTAssertEqual(task?.request.urlRequest, Test.request.urlRequest)
     }
 
     // MARK: - Prepare For Reuse
@@ -63,6 +71,8 @@ class ImageViewTests: XCTestCase {
         XCTAssertNil(imageView.image) // Image will load asynchronously
     }
 
+    // MARK: - Completion and Progress Closurres
+
     func testThatCompletionIsCalledWhenImageIsReturnedFromMemoryCache() {
         mockCache[Test.request] = Test.image
 
@@ -70,10 +80,9 @@ class ImageViewTests: XCTestCase {
         Nuke.loadImage(
             with: Test.request,
             into: imageView,
-            completion: { response, _, isFromMemoryCache in
+            completion: { response, _ in
                 XCTAssertTrue(Thread.isMainThread)
                 XCTAssertNotNil(response)
-                XCTAssertTrue(isFromMemoryCache)
                 didCallCompletion = true
         })
 
@@ -87,16 +96,43 @@ class ImageViewTests: XCTestCase {
             Nuke.loadImage(
                 with: Test.request,
                 into: imageView,
-                completion: { response, _, isFromMemoryCache in
+                completion: { response, _ in
                     XCTAssertTrue(Thread.isMainThread)
                     XCTAssertNotNil(response)
-                    XCTAssertFalse(isFromMemoryCache)
                     didCallCompletion = true
                     fulfil()
             })
         }
 
         XCTAssertFalse(didCallCompletion)
+        wait()
+    }
+
+    func testThatProgressHandlerIsCalled() {
+        dataLoader.results[defaultURL] = .success(
+            (Data(count: 20), URLResponse(url: defaultURL, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        let expectTaskFinished = makeExpectation()
+        let expectProgressFinished = makeExpectation()
+
+        var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
+        Nuke.loadImage(
+            with: Test.request,
+            into: imageView,
+            progress: { _, completed, total in
+                XCTAssertTrue(Thread.isMainThread)
+                XCTAssertTrue(expected.first?.0 == completed)
+                XCTAssertTrue(expected.first?.1 == total)
+                expected.remove(at: 0)
+                if expected.isEmpty {
+                    expectProgressFinished.fulfill()
+                }
+        },
+            completion: { _,_ in
+                expectTaskFinished.fulfill()
+        })
+
         wait()
     }
 
@@ -115,7 +151,7 @@ class ImageViewTests: XCTestCase {
         Nuke.loadImage(
             with: Test.request,
             into: imageView,
-            completion: { _, _, _ in
+            completion: { _, _ in
                 expectCompletion.fulfill()
         })
 
@@ -136,7 +172,7 @@ class ImageViewTests: XCTestCase {
     // MARK: - Failure Image
 
     func testThatFailureImageIsDisplayed() {
-        mockDataLoader.results[Test.url] = .failure(
+        dataLoader.results[Test.url] = .failure(
             NSError(domain: "t", code: 42, userInfo: nil)
         )
 
@@ -147,11 +183,10 @@ class ImageViewTests: XCTestCase {
             Nuke.loadImage(
                 with: Test.request,
                 into: imageView,
-                completion: { response, error, isFromMemoryCache in
+                completion: { response, error in
                     XCTAssertTrue(Thread.isMainThread)
                     XCTAssertNotNil(error)
                     XCTAssertNil(response)
-                    XCTAssertFalse(isFromMemoryCache)
                     fulfil()
             })
         }
@@ -161,7 +196,7 @@ class ImageViewTests: XCTestCase {
     }
 
     func testThatFailureImageTransitionIsUsed() {
-        mockDataLoader.results[Test.url] = .failure(
+        dataLoader.results[Test.url] = .failure(
             NSError(domain: "t", code: 42, userInfo: nil)
         )
 
@@ -180,7 +215,7 @@ class ImageViewTests: XCTestCase {
         Nuke.loadImage(
             with: Test.request,
             into: imageView,
-            completion: { _, _, _ in
+            completion: { _, _ in
                 expectCompletion.fulfill()
         })
         
@@ -196,6 +231,7 @@ class ImageViewTests: XCTestCase {
     func testThatPlaceholderAndSuccessContentModeIsApplied() {
         imageView.options.contentModes = ImageViewOptions.ContentModes(
             success: .scaleAspectFill, // default is .scaleToFill
+            failure: .center,
             placeholder: .center
         )
         imageView.options.placeholder = Image()
@@ -204,7 +240,7 @@ class ImageViewTests: XCTestCase {
         Nuke.loadImage(
             with: Test.request,
             into: imageView,
-            completion: { _, _, _ in
+            completion: { _, _ in
                 expectCompletion.fulfill()
         })
 
@@ -217,7 +253,9 @@ class ImageViewTests: XCTestCase {
 
     func testThatSuccessContentModeIsAppliedWhenReturnedFromMemoryCache() {
         imageView.options.contentModes = ImageViewOptions.ContentModes(
-            success: .scaleAspectFill
+            success: .scaleAspectFill,
+            failure: .center,
+            placeholder: .center
         )
 
         mockCache[Test.request] = Test.image
@@ -228,18 +266,20 @@ class ImageViewTests: XCTestCase {
 
     func testThatFailureContentModeIsApplied() {
         imageView.options.contentModes = ImageViewOptions.ContentModes(
-            failure: .center // default is .scaleToFill
+            success: .scaleAspectFill,
+            failure: .center,
+            placeholder: .center
         )
         imageView.options.failureImage = Image()
 
-        mockDataLoader.results[Test.url] = .failure(
+        dataLoader.results[Test.url] = .failure(
             NSError(domain: "t", code: 42, userInfo: nil)
         )
         let expectCompletion = self.expectation(description: "")
         Nuke.loadImage(
             with: Test.request,
             into: imageView,
-            completion: { _, _, _ in
+            completion: { _, _ in
                 expectCompletion.fulfill()
         })
 
@@ -249,87 +289,31 @@ class ImageViewTests: XCTestCase {
     }
 
     #endif
-}
-
-class ImageViewTaskManagementTests: XCTestCase {
-    var pipeline: MockImagePipeline!
-    var imageView: ImageView!
-
-    override func setUp() {
-        super.setUp()
-
-        pipeline = MockImagePipeline()
-
-        imageView = ImageView()
-        imageView.options.pipeline = pipeline
-    }
-
-    // MARK: - Managing Tasks
-
-    func testThatTaskIsReturned() {
-        let task = Nuke.loadImage(with: Test.request, into: imageView)
-        XCTAssertNotNil(task)
-        XCTAssertEqual(task?.request.urlRequest, Test.request.urlRequest)
-    }
-
-    func testThatFirstTaskNoLongerObserved() {
-        let url1 = defaultURL.appendingPathComponent("01")
-        let url2 = defaultURL.appendingPathComponent("02")
-
-        pipeline.perform = { task in
-            if task.request.urlRequest.url == url1 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(300)) {
-                    task.completion?(Test.response, nil)
-                }
-            }
-            if task.request.urlRequest.url == url2 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
-                    task.completion?(Test.response, nil)
-                }
-            }
-        }
-
-        Nuke.loadImage(
-            with: url1,
-            into: imageView,
-            completion: { _, _, _ in
-                XCTFail() // The first requests is ignored
-        })
-
-        expect { fulfil in
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
-                Nuke.loadImage(
-                    with: url2,
-                    into: self.imageView,
-                    completion: { response, _, isFromMemoryCache in
-                        XCTAssertNotNil(response)
-                        fulfil()
-                })
-            }
-        }
-
-        wait()
-    }
 
     // MARK: - Cancellation
 
     func testThatOutstandingRequestIsCancelledAutomatically() {
-        pipeline.queue.isSuspended = true
+        dataLoader.queue.isSuspended = true
 
-        Nuke.loadImage(with: defaultURL, into: imageView)
-        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
+        _ = expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
+        Nuke.loadImage(with: Test.url, into: imageView)
+        wait()
+
+        _ = expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
         Nuke.cancelRequest(for: imageView)
 
         wait()
     }
 
     func testThatOutstandingRequestIsCancelledWhenNewRequestStarted() {
-        pipeline.queue.isSuspended = true
+        dataLoader.queue.isSuspended = true
 
-        Nuke.loadImage(with: defaultURL, into: imageView)
-        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
-        Nuke.loadImage(with: defaultURL, into: imageView)
+        _ = expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
+        Nuke.loadImage(with: Test.url, into: imageView)
+        wait()
 
+        _ = expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
+        Nuke.loadImage(with: Test.url, into: imageView)
         wait()
     }
 
@@ -340,11 +324,13 @@ class ImageViewTaskManagementTests: XCTestCase {
             var imageView: ImageView! = ImageView()
             imageView.options.pipeline = pipeline
 
-            pipeline.queue.isSuspended = true
+            dataLoader.queue.isSuspended = true
 
-            Nuke.loadImage(with: defaultURL, into: imageView)
+            _ = expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
+            Nuke.loadImage(with: Test.url, into: imageView)
+            wait()
 
-            _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
+            _ = expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
 
             imageView = nil // deallocate target
         }

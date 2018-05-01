@@ -45,11 +45,8 @@ class ImagePipelineResumableDataTests: XCTestCase {
         }
 
         expect { fulfil in
-            let task = pipeline.loadImage(with: defaultURL) { _,_ in }
-
-            task.completion = { [unowned task, unowned self] response, _ in
+            pipeline.loadImage(with: defaultURL) { response, _ in
                 XCTAssertNotNil(response)
-                XCTAssertEqual(task.completedUnitCount, Int64(self.dataLoader.data.count))
                 fulfil()
             }
         }

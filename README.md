@@ -49,7 +49,7 @@ Nuke.loadImage(with: url, into: imageView)
 
 Nuke will automatically load image data, decompress it in the background, store image in memory cache and display it.
 
-> To learn more about the image pipeline works [see the dedicated section](#h_design).
+> To learn more about the image pipeline [see the dedicated section](#h_design).
 
 Nuke keeps track of each image view. When you request a new image for a view the previous outstanding request gets cancelled. The same happens automatically when the view is deallocated.
 
@@ -65,7 +65,7 @@ func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath:
 
 #### Placeholders, Transitions and More
 
-Nuke extends image view with an `options` property (`ImageViewOptions`) which can be used to customize and way image is loaded and displayed in an image view. You can provide a placeholder and select one of built-in transitions or provide a custom one.
+Nuke extends image view with an `options` property (`ImageViewOptions`) which can be used to customize the way images are loaded and displayed. You can provide a placeholder, select one of the built-in transitions or provide a custom one:
 
 ```swift
 imageView.options.placeholder = UIImage(named: "placeholder")
@@ -74,7 +74,7 @@ imageView.options.transition = .crossDissolve(0.33)
 Nuke.loadImage(with: url, into: imageView)
 ```
 
-There is a very common scenario where the placeholder (or the failure image) needs to be displayed with a content mode different from the one used for the loaded image.  `ImageViewOptions` to do precisely that:
+There is also a very common scenario when the placeholder (or the failure image) needs to be displayed with a content mode different from the one used for the loaded image. `ImageViewOptions` supports precisely that:
 
 ```swift
 var options = ImageViewOptions()
@@ -90,7 +90,7 @@ imageView.options = options
 Nuke.loadImage(with: url, into: imageView)
 ```
 
-Nuke will load an image and apply correct content modes when switching between images.
+Nuke will load an image and apply the correct content modes when switching between images.
 
 #### Image Requests
 
@@ -135,13 +135,15 @@ All of those APIs are built on top of `ImageProcessing` protocol. If you'd like 
 You can use `ImagePipeline` to load images directly without a view. `ImagePipeline` offers a convenience closure-based API for loading images:
 
 ```swift
-let task = ImagePipeline.shared.loadImage(with: url) { response, error in
-    // Handle response
-}
-
-task.progress = {
-    print("progress updated")
-}
+let task = ImagePipeline.shared.loadImage(
+    with: url,
+    progress: { _, completed, total in
+        print("progress updated")
+    },
+    completion: { response, error in
+        print("task completed")
+    }
+)
 
 // task.cancel()
 // task.setPriority(.high)
@@ -257,16 +259,21 @@ let pipeline = ImagePipeline {
 }
 ```
 
-And that's it, you can start observing images as they are produced by the pipeline:
+And that's it, you can start observing images as they are produced by the pipeline. The progress handler also works as a progressive image handler:
 
 ```swift
 let imageView = UIImageView()
-let task = pipeline.loadImage(with: url) {
-    imageView.image = $0.value
-}
-task.progressiveImageHandler = {
-    imageView.image = $0
-}
+let task = ImagePipeline.shared.loadImage(
+    with: url,
+    progress: { image, _, _ in
+        guard let image = image else { return }
+        imageView.image = image
+    },
+    completion: { response, _ in
+        guard let image = response?.image else { return }
+        imageView.image = image
+    }
+)
 ```
 
 The progressive decoding only kicks in when Nuke determines that the image data does contain a progressive JPEG. The decoder scans the data and only produces a new image when it receives a full new scan (progressive JPEGs normally have around 10 scans).

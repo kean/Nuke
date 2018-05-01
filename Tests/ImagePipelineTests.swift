@@ -35,20 +35,21 @@ class ImagePipelineTests: XCTestCase {
         let expectTaskFinished = makeExpectation()
         let expectProgressFinished = makeExpectation()
 
-        let task = pipeline.loadImage(with: request) { _,_ in
-            expectTaskFinished.fulfill()
-        }
-
         var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
-        task.progressHandler = {
-            XCTAssertTrue(Thread.isMainThread)
-            XCTAssertTrue(expected.first?.0 == $0)
-            XCTAssertTrue(expected.first?.1 == $1)
-            expected.remove(at: 0)
-            if expected.isEmpty {
-                expectProgressFinished.fulfill()
-            }
-        }
+        pipeline.loadImage(
+            with: request,
+            progress: { _, completed, total in
+                XCTAssertTrue(Thread.isMainThread)
+                XCTAssertTrue(expected.first?.0 == completed)
+                XCTAssertTrue(expected.first?.1 == total)
+                expected.remove(at: 0)
+                if expected.isEmpty {
+                    expectProgressFinished.fulfill()
+                }
+        },
+            completion: { _,_ in
+                expectTaskFinished.fulfill()
+        })
 
         wait()
     }
@@ -259,20 +260,21 @@ class ImagePipelineDeduplicationTests: XCTestCase {
             let expectTaskFinished = makeExpectation()
             let expectProgressFinished = makeExpectation()
 
-            let task = imagePipeline.loadImage(with: request) { _,_ in
-                expectTaskFinished.fulfill()
-            }
-            
             var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
-            task.progressHandler = {
-                XCTAssertTrue(Thread.isMainThread)
-                XCTAssertTrue(expected.first?.0 == $0)
-                XCTAssertTrue(expected.first?.1 == $1)
-                expected.remove(at: 0)
-                if expected.isEmpty {
-                    expectProgressFinished.fulfill()
-                }
-            }
+            imagePipeline.loadImage(
+                with: request,
+                progress: { _, completed, total in
+                    XCTAssertTrue(Thread.isMainThread)
+                    XCTAssertTrue(expected.first?.0 == completed)
+                    XCTAssertTrue(expected.first?.1 == total)
+                    expected.remove(at: 0)
+                    if expected.isEmpty {
+                        expectProgressFinished.fulfill()
+                    }
+            },
+                completion: { _,_ in
+                    expectTaskFinished.fulfill()
+            })
         }
         dataLoader.queue.isSuspended = false
 

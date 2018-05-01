@@ -770,11 +770,13 @@
 					};
 					0C8D7BCF1D9DBF1600D12EB7 = {
 						CreatedOnToolsVersion = 8.0;
+						DevelopmentTeam = NR8DLKJ7E6;
 						LastSwiftMigration = 0900;
 						ProvisioningStyle = Automatic;
 					};
 					0C8D7BE71D9DC02B00D12EB7 = {
 						CreatedOnToolsVersion = 8.0;
+						DevelopmentTeam = NR8DLKJ7E6;
 						LastSwiftMigration = 0930;
 						ProvisioningStyle = Automatic;
 						TestTargetID = 0C8D7BCF1D9DBF1600D12EB7;
@@ -1301,7 +1303,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_SUSPICIOUS_MOVES = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = NR8DLKJ7E6;
 				INFOPLIST_FILE = "$(SRCROOT)/Tests/Host/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -1321,7 +1323,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_SUSPICIOUS_MOVES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = NR8DLKJ7E6;
 				INFOPLIST_FILE = "$(SRCROOT)/Tests/Host/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -1342,7 +1344,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_SUSPICIOUS_MOVES = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = NR8DLKJ7E6;
 				INFOPLIST_FILE = Tests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
@@ -1366,7 +1368,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_SUSPICIOUS_MOVES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = NR8DLKJ7E6;
 				INFOPLIST_FILE = Tests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";

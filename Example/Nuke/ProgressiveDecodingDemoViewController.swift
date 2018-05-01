@@ -17,32 +17,33 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
         $0.isDeduplicationEnabled = false
         $0.isProgressiveDecodingEnabled = true
 
-        $0.imageProcessor = { _ in
+        $0.imageProcessor = {
 
-            // Uncomment to enable progressive blur:
+            // CoreImage is too slow on simulator.
+            #if targetEnvironment(simulator)
+            return nil
+            #else
+            guard !$0.isFinal else {
+                return nil // No processing.
+            }
 
-//            guard !$0.isFinal else {
-//                return nil // No processing.
-//            }
-//
-//            guard let scanNumber = $0.scanNumber else {
-//                return nil
-//            }
-//
-//            // Blur partial images.
-//            if scanNumber < 5 {
-//                // Progressively reduce blur as we load more scans.
-//                let radius = max(2, 14 - scanNumber * 4)
-//                let blur = GaussianBlur(radius: radius)
-//                return AnyImageProcessor(blur)
-//            }
+            guard let scanNumber = $0.scanNumber else {
+                return nil
+            }
+
+            // Blur partial images.
+            if scanNumber < 5 {
+                // Progressively reduce blur as we load more scans.
+                let radius = max(2, 14 - scanNumber * 4)
+                let blur = GaussianBlur(radius: radius)
+                return AnyImageProcessor(blur)
+            }
 
             // Scans 5+ are already good enough not to blur them.
             return nil
+            #endif
         }
     }
-
-    private var task: ImageTask?
 
     private let segmentedControl = UISegmentedControl(items: ["Progressive", "Baseline"])
 
@@ -67,48 +68,31 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
 
         view.viewWithTag(12)?.removeFromSuperview()
 
-        let imageView = ProgressiveImageView()
-        imageView.tag = 12
+        let container = ProgressiveImageView()
+        container.tag = 12
 
-        view.addSubview(imageView)
+        view.addSubview(container)
 
-        imageView.translatesAutoresizingMaskIntoConstraints = false
+        container.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate(
-            [imageView.topAnchor.constraint(equalTo: view.topAnchor),
-             imageView.leftAnchor.constraint(equalTo: view.leftAnchor),
-             imageView.rightAnchor.constraint(equalTo: view.rightAnchor)]
+            [container.topAnchor.constraint(equalTo: view.topAnchor),
+             container.leftAnchor.constraint(equalTo: view.leftAnchor),
+             container.rightAnchor.constraint(equalTo: view.rightAnchor)]
         )
 
-        self.task?.cancel()
+        let imageView = container.imageView
 
-        let task = pipeline.loadImage(with: url) { response, _ in
-            imageView.imageView.image = response?.image
-        }
+        // Use our custom pipeline with progressive decoding enabled and
+        // _MockDataLoader which returns data on predifined intervals.
+        imageView.options.pipeline = pipeline
+        imageView.options.transition = .crossDissolve(0.25)
 
-        task.progressHandler = {
-            let text = NSMutableAttributedString(string: "")
-            text.append(NSAttributedString(
-                string: "Downloaded: ",
-                attributes: [.font: UIFont.boldSystemFont(ofSize: 18)]
-            ))
-            let completed = ByteCountFormatter.string(fromByteCount: $0, countStyle: .binary)
-            let total = ByteCountFormatter.string(fromByteCount: $1, countStyle: .binary)
-            text.append(NSAttributedString(
-                string: "\(completed) / \(total)",
-                attributes: [.font: UIFont.monospacedDigitSystemFont(ofSize: 17, weight: .regular)]
-            ))
-            imageView.labelProgress.attributedText = text
-        }
-
-        task.progressiveImageHandler = { image in
-            UIView.transition(with: imageView,
-                              duration: 0.25,
-                              options: .transitionCrossDissolve,
-                              animations: { imageView.imageView.image = image },
-                              completion: nil)
-        }
-
-        self.task = task
+        Nuke.loadImage(
+            with: url,
+            into: imageView,
+            progress: { _, completed, total in
+                container.updateProgress(completed: completed, total: total)
+        })
     }
 
     @objc func _segmentedControlValueChanged(_ segmentedControl: UISegmentedControl) {
@@ -159,6 +143,21 @@ private final class ProgressiveImageView: UIView {
 
         imageView.widthAnchor.constraint(equalTo: imageView.heightAnchor, multiplier: 4.0 / 3.0).isActive = true
     }
+
+    func updateProgress(completed: Int64, total: Int64) {
+        let text = NSMutableAttributedString(string: "")
+        text.append(NSAttributedString(
+            string: "Downloaded: ",
+            attributes: [.font: UIFont.boldSystemFont(ofSize: 18)]
+        ))
+        let completed = ByteCountFormatter.string(fromByteCount: completed, countStyle: .binary)
+        let total = ByteCountFormatter.string(fromByteCount: total, countStyle: .binary)
+        text.append(NSAttributedString(
+            string: "\(completed) / \(total)",
+            attributes: [.font: UIFont.monospacedDigitSystemFont(ofSize: 17, weight: .regular)]
+        ))
+        labelProgress.attributedText = text
+    }
 }
 
 private final class _MockDataLoader: DataLoading {
@@ -183,7 +182,7 @@ private final class _MockDataLoader: DataLoading {
         }
         let (x, xs) = (data[0], Array(data.dropFirst()))
         didReceiveData(x)
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(75)) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) { [weak self] in
             self?._sendData(xs, didReceiveData: didReceiveData, completion: completion)
         }
     }

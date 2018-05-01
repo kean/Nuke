@@ -5,7 +5,10 @@
 import Foundation
 @testable import Nuke
 
-private class _MockImageTask: ImageTask {
+class _MockImageTask: ImageTask {
+    var _progress: ImageTask.ProgressHandler?
+    var _completion: ImageTask.Completion?
+
     fileprivate var _cancel: () -> Void = {}
 
     init(request: ImageRequest) {
@@ -28,9 +31,9 @@ class MockImagePipeline: ImagePipeline {
         return queue
     }()
 
-    var perform: (_ task: ImageTask) -> Void = { task in
+    var perform: (_ task: _MockImageTask) -> Void = { task in
         DispatchQueue.main.async {
-            task.completion?(Test.response, nil)
+            task._completion?(Test.response, nil)
         }
     }
 
@@ -40,9 +43,10 @@ class MockImagePipeline: ImagePipeline {
         super.init(configuration: conf)
     }
 
-    override func loadImage(with request: ImageRequest, completion: @escaping ImageTask.Completion) -> ImageTask {
+    override func loadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
         let task = _MockImageTask(request: request)
-        task.completion = completion
+        task._progress = progress
+        task._completion = completion
 
         NotificationCenter.default.post(name: MockImagePipeline.DidStartTask, object: self)
         
