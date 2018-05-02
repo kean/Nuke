@@ -74,7 +74,7 @@ class BasicDemoViewController: UICollectionViewController {
             imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
             imageView.options.pipeline = self.pipeline
-            imageView.options.transition = .opacity(0.25)
+            imageView.options.transition = .fadeIn(duration: 0.25)
             cell.addSubview(imageView!)
         }
         return imageView!

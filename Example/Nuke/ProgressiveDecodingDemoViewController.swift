@@ -85,7 +85,7 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
         // Use our custom pipeline with progressive decoding enabled and
         // _MockDataLoader which returns data on predifined intervals.
         imageView.options.pipeline = pipeline
-        imageView.options.transition = .crossDissolve(0.25)
+        imageView.options.transition = .fadeIn(duration: 0.25)
 
         Nuke.loadImage(
             with: url,

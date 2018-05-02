@@ -69,7 +69,7 @@ Nuke extends image view with an `options` property (`ImageViewOptions`) which ca
 
 ```swift
 imageView.options.placeholder = UIImage(named: "placeholder")
-imageView.options.transition = .crossDissolve(0.33)
+imageView.options.transition = .fadeIn(0.33)
 
 Nuke.loadImage(with: url, into: imageView)
 ```

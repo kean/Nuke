@@ -140,7 +140,7 @@ class ImageViewTests: XCTestCase {
 
     func testThatCustomTransitioIsPerformed() {
         let expectTransition = self.expectation(description: "")
-        imageView.options.transition = .custom({ (view, image, _) in
+        imageView.options.transition = .custom({ (view, image) in
             XCTAssertNil(view.image) // Image isn't displayed automatically.
             XCTAssertEqual(view, self.imageView)
             view.image = image
@@ -204,7 +204,7 @@ class ImageViewTests: XCTestCase {
         imageView.options.failureImage = failureImage
 
         let expectTransition = self.expectation(description: "")
-        imageView.options.failureImageTransition = .custom({ (view, image, _) in
+        imageView.options.failureImageTransition = .custom({ (view, image) in
             XCTAssertEqual(view, self.imageView)
             XCTAssertEqual(image, failureImage)
             view.image = image
