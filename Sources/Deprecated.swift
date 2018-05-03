@@ -213,12 +213,12 @@ public final class Loader: Loading {
             // In the previous Manager-Loader infrastructure Loader didn't have
             // a memory cache.
             $0.imageCache = nil
-            
-            $0.maxConcurrentDataLoadingTaskCount = options.maxConcurrentDataLoadingTaskCount
-            $0.maxConcurrentImageProcessingTaskCount = options.maxConcurrentImageProcessingTaskCount
+
+            $0.dataLoadingQueue.maxConcurrentOperationCount = options.maxConcurrentDataLoadingTaskCount
+            $0.imageProcessingQueue.maxConcurrentOperationCount = options.maxConcurrentImageProcessingTaskCount
             $0.isDeduplicationEnabled = options.isDeduplicationEnabled
             $0.isRateLimiterEnabled = options.isRateLimiterEnabled
-            $0.processor = options.processor
+            $0.imageProcessor = options.processor
         }
     }
 
@@ -373,35 +373,6 @@ public typealias Preheater = ImagePreheater
 
 @available(*, deprecated, message: "Please use `ImageTask.Progress` instead")
 public typealias ProgressHandler = ImageTask.ProgressHandler
-
-
-// MARK: - Deprecated ImagePipeline.Configuration Options
-
-public extension ImagePipeline.Configuration {
-/// The maximum number of concurrent data loading tasks. `6` by default.
-    @available(*, deprecated, message: "Please set `maxConcurrentOperationCount` directly on `dataLoadingQueue`")
-    public var maxConcurrentDataLoadingTaskCount: Int {
-        get { return dataLoadingQueue.maxConcurrentOperationCount }
-        set { dataLoadingQueue.maxConcurrentOperationCount = newValue }
-    }
-
-    /// The maximum number of concurrent image processing tasks. `2` by default.
-    ///
-    /// Parallelizing image processing might result in a performance boost
-    /// in a certain scenarios, however it's not going to be noticable in most
-    /// cases. Might increase memory usage.
-    @available(*, deprecated, message: "Please set `maxConcurrentOperationCount` directly on `imageProcessingQueue`")
-    public var maxConcurrentImageProcessingTaskCount: Int {
-        get { return imageProcessingQueue.maxConcurrentOperationCount }
-        set { imageProcessingQueue.maxConcurrentOperationCount = newValue }
-    }
-
-    @available(*, deprecated, message: "Please set `imageProcessor` instead`")
-    public var processor: (Image, ImageRequest) -> AnyImageProcessor? {
-        get { return { self.imageProcessor(ImageProcessingContext(image: $0, request: $1, isFinal: true, scanNumber: nil)) } }
-        set { imageProcessor = { newValue($0.image, $0.request) } }
-    }
-}
 
 // MARK: - DataDecoding
 

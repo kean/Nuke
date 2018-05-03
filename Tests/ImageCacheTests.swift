@@ -94,11 +94,11 @@ class ImageCacheTests: XCTestCase {
     #if !os(macOS)
 
     func testDefaultImageCost() {
-        XCTAssertEqual(cache.cost(defaultImage), 1228800)
+        XCTAssertEqual(cache.cost(for: defaultImage), 1228800)
     }
 
     func testThatTotalCostChanges() {
-        let imageCost = cache.cost(defaultImage)
+        let imageCost = cache.cost(for: defaultImage)
 
         XCTAssertEqual(cache.totalCost, 0)
         cache[request1] = defaultImage
@@ -112,7 +112,7 @@ class ImageCacheTests: XCTestCase {
     }
 
     func testThatItemsAreRemoveImmediatelyWhenCostLimitIsReached() {
-        let cost = cache.cost(defaultImage)
+        let cost = cache.cost(for: defaultImage)
         cache.costLimit = Int(Double(cost) * 1.5)
 
         cache[request1] = defaultImage
@@ -133,7 +133,7 @@ class ImageCacheTests: XCTestCase {
         XCTAssertNotNil(cache[request1])
         XCTAssertNotNil(cache[request2])
 
-        let cost = cache.cost(defaultImage)
+        let cost = cache.cost(for: defaultImage)
         cache.trim(toCost: Int(Double(cost) * 1.5))
 
         XCTAssertNil(cache[request1])
@@ -141,7 +141,7 @@ class ImageCacheTests: XCTestCase {
     }
 
     func testThatImagesAreRemovedOnCostLimitChange() {
-        let cost = cache.cost(defaultImage)
+        let cost = cache.cost(for: defaultImage)
         cache.costLimit = Int(Double(cost) * 2.5)
 
         cache[request1] = defaultImage
@@ -156,26 +156,25 @@ class ImageCacheTests: XCTestCase {
         XCTAssertNotNil(cache[request2])
     }
 
-    #endif
+    func testGIFCost() {
+        let data = Test.data(name: "cat", extension: "gif")
+        let image = Image(data: data)!
+        image.animatedImageData = data
 
-    func testThatAfterAddingEntryForExistingKeyCostIsUpdated() {
-        cache.cost = { _ in 10 }
+        XCTAssertFalse(ImagePipeline.Configuration.isAnimatedImageDataEnabled)
+        XCTAssertEqual(cache.cost(for: image), 558000)
 
-        cache[request1] = defaultImage
-        cache[request2] = defaultImage
-
-        XCTAssertEqual(cache.totalCost, 20)
-
-        cache.cost = { _ in 5 }
-
-        cache[request1] = defaultImage
-        XCTAssertEqual(cache.totalCost, 15)
+        ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
+        XCTAssertEqual(cache.cost(for: image), 558000 + 427672)
+        ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
     }
+
+    #endif
 
     // MARK: LRU
 
     func testThatLeastRecentItemsAreRemoved() {
-        let cost = cache.cost(defaultImage)
+        let cost = cache.cost(for: defaultImage)
         cache.costLimit = Int(Double(cost) * 2.5)
 
         // case 1
@@ -188,7 +187,7 @@ class ImageCacheTests: XCTestCase {
     }
 
     func testThatItemsAreTouched() {
-        let cost = cache.cost(defaultImage)
+        let cost = cache.cost(for: defaultImage)
         cache.costLimit = Int(Double(cost) * 2.5)
 
         // case 2
@@ -244,7 +243,7 @@ class ImageCacheTests: XCTestCase {
 
     func testThatSomeImagesAreRemovedBasedOnCostOnDidEnterBackground() {
 
-        let cost = cache.cost(defaultImage)
+        let cost = cache.cost(for: defaultImage)
         cache.costLimit = cost * 10
         cache.countLimit = Int.max
 

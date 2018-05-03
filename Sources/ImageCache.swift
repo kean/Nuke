@@ -109,7 +109,7 @@ public final class ImageCache: ImageCaching {
 
     /// Stores the given `ImageResponse` in the cache using the given request.
     public func storeResponse(_ response: ImageResponse, for request: ImageRequest) {
-        _impl.set(response, forKey: ImageRequest.CacheKey(request: request), cost: self.cost(response.image))
+        _impl.set(response, forKey: ImageRequest.CacheKey(request: request), cost: self.cost(for: response.image))
     }
 
     /// Removes response stored with the given request.
@@ -134,15 +134,17 @@ public final class ImageCache: ImageCaching {
     }
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
-    public var cost: (Image) -> Int = {
+    func cost(for image: Image) -> Int {
         #if !os(macOS)
+        let dataCost = ImagePipeline.Configuration.isAnimatedImageDataEnabled ? (image.animatedImageData?.count ?? 0) : 0
+
         // bytesPerRow * height gives a rough estimation of how much memory
         // image uses in bytes. In practice this algorithm combined with a
         // concervative default cost limit works OK.
-        guard let cgImage = $0.cgImage else {
-            return 1
+        guard let cgImage = image.cgImage else {
+            return 1 + dataCost
         }
-        return cgImage.bytesPerRow * cgImage.height
+        return cgImage.bytesPerRow * cgImage.height + dataCost
         
         #else
         return 1

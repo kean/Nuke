@@ -49,32 +49,61 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertEqual(decoder.numberOfScans, 11)
     }
 
-    // MARK: Detecting Progressive JPEG
+    func testDecodingGIFs() {
+        XCTAssertFalse(ImagePipeline.Configuration.isAnimatedImageDataEnabled)
+
+        let data = Test.data(name: "cat", extension: "gif")
+        XCTAssertNil(ImageDecoder().decode(data: data, isFinal: true)?.animatedImageData)
+
+        ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
+        XCTAssertNotNil(ImageDecoder().decode(data: data, isFinal: true)?.animatedImageData)
+        ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
+    }
+}
+
+class ImageFormatTests: XCTestCase {
+    // MARK: PNG
+
+    func testDetectPNG() {
+        let data = Test.data(name: "fixture", extension: "png")
+        XCTAssertNil(ImageFormat.format(for: data[0..<1]))
+        XCTAssertNil(ImageFormat.format(for: data[0..<7]))
+        XCTAssertEqual(ImageFormat.format(for: data[0..<8]), .png)
+        XCTAssertEqual(ImageFormat.format(for: data), .png)
+    }
+
+    // MARK: GIF
+
+    func testDetectGIF() {
+        let data = Test.data(name: "cat", extension: "gif")
+        XCTAssertEqual(ImageFormat.format(for: data), .gif)
+    }
+
+    // MARK: JPEG
+
+    func testDetectBaselineJPEG() {
+        let data = Test.data(name: "baseline", extension: "jpeg")
+        XCTAssertNil(ImageFormat.format(for: data[0..<1]))
+        XCTAssertNil(ImageFormat.format(for: data[0..<2]))
+        XCTAssertEqual(ImageFormat.format(for: data[0..<3]), .jpeg(isProgressive: nil))
+        XCTAssertEqual(ImageFormat.format(for: data), .jpeg(isProgressive: false))
+    }
 
     func testDetectProgressiveJPEG() {
         let data = Test.data(name: "progressive", extension: "jpeg")
-        XCTAssertTrue(ImageDecoder.isProgressiveJPEG(data: data)!)
-    }
+        // Not enough data
+        XCTAssertNil(ImageFormat.format(for: Data()))
+        XCTAssertNil(ImageFormat.format(for: data[0..<2]))
 
-    func testDetectProgressiveJPEGNotEnoughData() {
-        let data = Test.data(name: "progressive", extension: "jpeg")
-        XCTAssertNil(ImageDecoder.isProgressiveJPEG(data: data[0...30]))
-        XCTAssertNil(ImageDecoder.isProgressiveJPEG(data: data[0...3]))
-        XCTAssertNil(ImageDecoder.isProgressiveJPEG(data: Data()))
+        // Enough to determine image format
+        XCTAssertEqual(ImageFormat.format(for: data[0..<3]), .jpeg(isProgressive: nil))
+        XCTAssertEqual(ImageFormat.format(for: data[0...30]), .jpeg(isProgressive: nil))
 
         // Just before the first scan
-        XCTAssertNil(ImageDecoder.isProgressiveJPEG(data: data[0...358]))
-        XCTAssertTrue(ImageDecoder.isProgressiveJPEG(data: data[0...359])!)
-    }
+        XCTAssertEqual(ImageFormat.format(for: data[0...358]), .jpeg(isProgressive: nil))
+        XCTAssertEqual(ImageFormat.format(for: data[0...359]), .jpeg(isProgressive: true))
 
-    func testDetectProgressiveJPEGActuallyBaseline() {
-        let data = Test.data(name: "baseline", extension: "jpeg")
-        XCTAssertFalse(ImageDecoder.isProgressiveJPEG(data: data)!)
-    }
-
-    func testDetectProgressiveJPEGActuallyPNG() {
-        let data = Test.data(name: "fixture", extension: "png")
-        XCTAssertFalse(ImageDecoder.isProgressiveJPEG(data: data)!)
-        XCTAssertFalse(ImageDecoder.isProgressiveJPEG(data: data[0...2])!)
+        // Full image
+        XCTAssertEqual(ImageFormat.format(for: data), .jpeg(isProgressive: true))
     }
 }

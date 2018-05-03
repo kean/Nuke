@@ -129,13 +129,8 @@ public /* final */ class ImagePipeline {
         /// Image cache used by the pipeline.
         public var imageCache: ImageCaching?
 
-        /// Returns a processor for the context. By default simply returns
-        /// `request.processor`. Please keep in mind that you can override the
-        /// processor from the request using this option but you're not going
-        /// to override the processor used as a cache key.
-        public var imageProcessor: (ImageProcessingContext) -> AnyImageProcessor? = {
-            return $0.request.processor
-        }
+        /// This is here just for backward compatibility with `Loader`.
+        internal var imageProcessor: (Image, ImageRequest) -> AnyImageProcessor? = { $1.processor }
 
         public var imageProcessingQueue = OperationQueue()
 
@@ -155,6 +150,14 @@ public /* final */ class ImagePipeline {
 
         /// `true` by default.
         public var isResumableDataEnabled = true
+
+        /// If `true` pipeline will detects GIFs and set `animatedImageData`
+        /// (`UIImage` property). It will also disable processing of such images,
+        /// and alter the way cache cost is calculated. However, this will not
+        /// enable actual animated image rendering. To do that take a look at
+        /// satellite projects (FLAnimatedImage and Gifu plugins for Nuke).
+        /// `false` by default (to preserve resources).
+        public static var isAnimatedImageDataEnabled = false
 
         /// Enables experimental disk cache. The created disk cache is shared.
         /// If you call this function multiple times the shared cache is going to use
@@ -553,7 +556,7 @@ public /* final */ class ImagePipeline {
         guard session.processingPartialOperation == nil else { return }
 
         let context = ImageProcessingContext(image: image, request: session.request, isFinal: false, scanNumber: scanNumber)
-        guard let processor = configuration.imageProcessor(context) else {
+        guard let processor = _processor(for: context) else {
             _session(session, didProducePartialImage: image)
             return
         }
@@ -588,7 +591,7 @@ public /* final */ class ImagePipeline {
 
         // Check if processing is required, complete immediatelly if not.
         let context = ImageProcessingContext(image: image, request: session.request, isFinal: true, scanNumber: nil)
-        guard let processor = configuration.imageProcessor(context) else {
+        guard let processor = _processor(for: context) else {
             _session(session, completedWith: .success(image))
             return
         }
@@ -608,6 +611,13 @@ public /* final */ class ImagePipeline {
         }
         session.cts.token.register { [weak operation] in operation?.cancel() }
         configuration.imageProcessingQueue.addOperation(operation)
+    }
+
+    private func _processor(for context: ImageProcessingContext) -> AnyImageProcessor? {
+        if ImagePipeline.Configuration.isAnimatedImageDataEnabled && context.image.animatedImageData != nil {
+            return nil
+        }
+        return configuration.imageProcessor(context.image, context.request)
     }
 
     private func _session(_ session: Session, didProducePartialImage image: Image) {

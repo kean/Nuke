@@ -93,7 +93,7 @@ class ImagePipelineTests: XCTestCase {
     func testOverridingProcessor() {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
-            $0.imageProcessor = { _ in
+            $0.imageProcessor = { _, _ in
                 AnyImageProcessor(MockImageProcessor(id: "processorFromOptions"))
             }
         }
