@@ -12,3 +12,11 @@ extension ImageRequest {
         return request
     }
 }
+
+#if os(macOS)
+import Cocoa
+typealias _ImageView = NSImageView
+#else
+import UIKit
+typealias _ImageView = UIImageView
+#endif

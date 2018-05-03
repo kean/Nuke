@@ -3,10 +3,10 @@
 // Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-#if os(macOS)
-    import Cocoa
+#if !os(macOS)
+import UIKit
 #else
-    import UIKit
+import Cocoa
 #endif
 
 /// In-memory image cache.
@@ -135,16 +135,17 @@ public final class ImageCache: ImageCaching {
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
     public var cost: (Image) -> Int = {
-        #if os(macOS)
+        #if !os(macOS)
+        // bytesPerRow * height gives a rough estimation of how much memory
+        // image uses in bytes. In practice this algorithm combined with a
+        // concervative default cost limit works OK.
+        guard let cgImage = $0.cgImage else {
             return 1
+        }
+        return cgImage.bytesPerRow * cgImage.height
+        
         #else
-            // bytesPerRow * height gives a rough estimation of how much memory
-            // image uses in bytes. In practice this algorithm combined with a 
-            // concervative default cost limit works OK.
-            guard let cgImage = $0.cgImage else {
-                return 1
-            }
-            return cgImage.bytesPerRow * cgImage.height
+        return 1
         #endif
     }
 }

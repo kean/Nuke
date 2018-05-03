@@ -32,7 +32,7 @@ Nuke finally has all of the basic convenience options that you would expect from
 ```swift
 Nuke.loadImage(
     with: url,
-    options: ImageViewOptions(
+    options: ImageLoadingOptions(
         placeholder: UIImage(named: "placeholder"),
         transition: .crossDissolve(0.33)
     ),

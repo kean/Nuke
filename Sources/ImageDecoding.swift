@@ -2,10 +2,10 @@
 //
 // Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
-#if os(macOS)
-import Cocoa
-#else
+#if !os(macOS)
 import UIKit
+#else
+import Cocoa
 #endif
 
 #if os(watchOS)

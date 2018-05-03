@@ -50,7 +50,9 @@ public final class DataLoader: DataLoading {
         return (200..<300).contains(response.statusCode) ? nil : Error.statusCodeUnacceptable(response.statusCode)
     }
 
-#if os(macOS)
+#if !os(macOS)
+    private static let cachePath = "com.github.kean.Nuke.Cache"
+#else
     private static let cachePath: String = {
         let cachePaths = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true)
         if let cachePath = cachePaths.first, let identifier = Bundle.main.bundleIdentifier {
@@ -59,8 +61,6 @@ public final class DataLoader: DataLoading {
 
         return ""
     }()
-#else
-    private static let cachePath = "com.github.kean.Nuke.Cache"
 #endif
 
     /// Shared url cached used by a default `DataLoader`. The cache is

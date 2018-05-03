@@ -65,32 +65,38 @@ func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath:
 
 #### Placeholders, Transitions and More
 
-Nuke extends image view with an `options` property (`ImageViewOptions`) which can be used to customize the way images are loaded and displayed. You can provide a placeholder, select one of the built-in transitions or provide a custom one:
+You can use an  `options` parameter (`ImageLoadingOptions`)  to customize the way images are loaded and displayed. You can provide a placeholder, select one of the built-in transitions or provide a custom one:
 
 ```swift
-imageView.options.placeholder = UIImage(named: "placeholder")
-imageView.options.transition = .fadeIn(0.33)
-
-Nuke.loadImage(with: url, into: imageView)
-```
-
-There is also a very common scenario when the placeholder (or the failure image) needs to be displayed with a content mode different from the one used for the loaded image. `ImageViewOptions` supports precisely that:
-
-```swift
-var options = ImageViewOptions()
-options.placeholder = UIImage(named: "placeholder")
-options.failureImage = UIImage(named: "failure_image")
-options.contentModes = ImageViewOptions.ContentModes(
-    success: .scaleAspectFill,
-    failure: .center,
-    placeholder: .center
+Nuke.loadImage(
+    with: url,
+    options: ImageLoadingOptions(
+        placeholder: UIImage(named: "placeholder"),
+        transition: .fadeIn(0.33)
+    ),
+    into: imageView
 )
-imageView.options = options
-
-Nuke.loadImage(with: url, into: imageView)
 ```
 
-Nuke will load an image and apply the correct content modes when switching between images.
+There is also a very common scenario when the placeholder (or the failure image) needs to be displayed with a content mode different from the one used for the loaded image. `ImageLoadingOptions` supports precisely that:
+
+```swift
+let options = ImageLoadingOptions(
+    placeholder: UIImage(named: "placeholder"),
+    failureImage: UIImage(named: "failure_image"),
+    contentModes = .init(
+        success: .scaleAspectFill,
+        failure: .center,
+        placeholder: .center
+    )
+)
+
+Nuke.loadImage(with: url, options: options, into: imageView)
+```
+
+If you find yourself in a situation where you need some feature that is not implemented by `ImageLoadingOptions`, it might mean that you need to use `ImagePipeline` directly to fetch an image and then display it. 
+
+> To make all image views in the app share the same behaviour modify `ImageLoadingOptions.shared`.
 
 #### Image Requests
 

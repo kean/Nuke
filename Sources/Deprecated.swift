@@ -15,9 +15,39 @@ public protocol Target: class {
     func handle(response: Result<Image>, isFromMemoryCache: Bool)
 }
 
-#if os(macOS) || os(iOS) || os(tvOS)
-@available(*, deprecated, message: "Please use `ImageTarget` instead")
-extension ImageView: Target {
+#if os(macOS)
+import Cocoa
+@available(*, deprecated, message: "This typealias is no longer used.")
+public typealias ImageView = NSImageView
+#elseif os(iOS) || os(tvOS)
+import UIKit
+@available(*, deprecated, message: "This typealias is no longer used.")
+public typealias ImageView = UIImageView
+#endif
+
+#if os(macOS)
+@available(*, deprecated, message: "Please use Nuke `Nuke.loadImage(with:into:)` functions instead. To load images w/o targets please use `ImagePipeline` directly.")
+extension NSImageView: Target {
+    /// Displays an image on success. Runs `opacity` transition if
+    /// the response was not from the memory cache.
+    public func handle(response: Result<Image>, isFromMemoryCache: Bool) {
+        guard let image = response.value else { return }
+        self.image = image
+        if !isFromMemoryCache {
+            let animation = CABasicAnimation(keyPath: "opacity")
+            animation.duration = 0.25
+            animation.fromValue = 0
+            animation.toValue = 1
+            let layer: CALayer? = self.layer // Make compiler happy on macOS
+            layer?.add(animation, forKey: "imageTransition")
+        }
+    }
+}
+#endif
+
+#if os(iOS) || os(tvOS)
+@available(*, deprecated, message: "Please use Nuke `Nuke.loadImage(with:into:)` functions instead. To load images w/o targets please use `ImagePipeline` directly.")
+extension UIImageView: Target {
     /// Displays an image on success. Runs `opacity` transition if
     /// the response was not from the memory cache.
     public func handle(response: Result<Image>, isFromMemoryCache: Bool) {

@@ -8,8 +8,9 @@ import XCTest
 class ImageViewTests: XCTestCase {
     var mockCache: MockImageCache!
     var dataLoader: MockDataLoader!
+    var _sharedPipeline: ImagePipeline!
     var pipeline: ImagePipeline!
-    var imageView: ImageView!
+    var imageView: _ImageView!
 
     override func setUp() {
         super.setUp()
@@ -21,8 +22,14 @@ class ImageViewTests: XCTestCase {
             $0.imageCache = mockCache
         }
 
-        imageView = ImageView()
-        imageView.options.pipeline = pipeline
+        imageView = _ImageView()
+
+        _sharedPipeline = ImagePipeline.shared
+        ImagePipeline.shared = pipeline
+    }
+
+    override func tearDown() {
+        ImagePipeline.shared = _sharedPipeline
     }
 
     // MARK: - Managing Tasks
@@ -42,9 +49,11 @@ class ImageViewTests: XCTestCase {
     }
 
     func testThatPrepareForReuseCanBeDisabled() {
-        imageView.options.isPrepareForReuseEnabled = false
+        var options = ImageLoadingOptions()
+        options.isPrepareForReuseEnabled = false
+
         imageView.image = Test.image
-        Nuke.loadImage(with: Test.request, into: imageView)
+        Nuke.loadImage(with: Test.request, options: options, into: imageView)
         XCTAssertEqual(imageView.image, Test.image)
     }
 
@@ -139,17 +148,21 @@ class ImageViewTests: XCTestCase {
     // MARK: - Transition
 
     func testThatCustomTransitioIsPerformed() {
+        var options = ImageLoadingOptions()
+
         let expectTransition = self.expectation(description: "")
-        imageView.options.transition = .custom({ (view, image) in
-            XCTAssertNil(view.image) // Image isn't displayed automatically.
+        options.transition = .custom({ (view, image) in
             XCTAssertEqual(view, self.imageView)
-            view.image = image
+            XCTAssertNil(self.imageView.image) // Image isn't displayed automatically.
+            XCTAssertEqual(view, self.imageView)
+            self.imageView.image = image
             expectTransition.fulfill()
         })
 
         let expectCompletion = self.expectation(description: "")
         Nuke.loadImage(
             with: Test.request,
+            options: options,
             into: imageView,
             completion: { _, _ in
                 expectCompletion.fulfill()
@@ -161,11 +174,13 @@ class ImageViewTests: XCTestCase {
     // MARK: - Placeholder
 
     func testThatPlaceholderIsDisplayed() {
+        var options = ImageLoadingOptions()
+
         let placeholder = Image()
-        imageView.options.placeholder = placeholder
+        options.placeholder = placeholder
 
         XCTAssertNil(imageView.image)
-        Nuke.loadImage(with: Test.request, into: imageView)
+        Nuke.loadImage(with: Test.request, options: options, into: imageView)
         XCTAssertEqual(imageView.image, placeholder)
     }
 
@@ -176,12 +191,15 @@ class ImageViewTests: XCTestCase {
             NSError(domain: "t", code: 42, userInfo: nil)
         )
 
+
+        var options = ImageLoadingOptions()
         let failureImage = Image()
-        imageView.options.failureImage = failureImage
+        options.failureImage = failureImage
 
         expect { fulfil in
             Nuke.loadImage(
                 with: Test.request,
+                options: options,
                 into: imageView,
                 completion: { response, error in
                     XCTAssertTrue(Thread.isMainThread)
@@ -200,20 +218,22 @@ class ImageViewTests: XCTestCase {
             NSError(domain: "t", code: 42, userInfo: nil)
         )
 
+        var options = ImageLoadingOptions()
         let failureImage = Image()
-        imageView.options.failureImage = failureImage
+        options.failureImage = failureImage
 
         let expectTransition = self.expectation(description: "")
-        imageView.options.failureImageTransition = .custom({ (view, image) in
+        options.failureImageTransition = .custom({ (view, image) in
             XCTAssertEqual(view, self.imageView)
             XCTAssertEqual(image, failureImage)
-            view.image = image
+            self.imageView.image = image
             expectTransition.fulfill()
         })
 
         let expectCompletion = self.expectation(description: "")
         Nuke.loadImage(
             with: Test.request,
+            options: options,
             into: imageView,
             completion: { _, _ in
                 expectCompletion.fulfill()
@@ -229,16 +249,18 @@ class ImageViewTests: XCTestCase {
     // MARK: - Content Modes
 
     func testThatPlaceholderAndSuccessContentModeIsApplied() {
-        imageView.options.contentModes = ImageViewOptions.ContentModes(
+        var options = ImageLoadingOptions()
+        options.contentModes = .init(
             success: .scaleAspectFill, // default is .scaleToFill
             failure: .center,
             placeholder: .center
         )
-        imageView.options.placeholder = Image()
+        options.placeholder = Image()
 
         let expectCompletion = self.expectation(description: "")
         Nuke.loadImage(
             with: Test.request,
+            options: options,
             into: imageView,
             completion: { _, _ in
                 expectCompletion.fulfill()
@@ -252,25 +274,27 @@ class ImageViewTests: XCTestCase {
     }
 
     func testThatSuccessContentModeIsAppliedWhenReturnedFromMemoryCache() {
-        imageView.options.contentModes = ImageViewOptions.ContentModes(
+        var options = ImageLoadingOptions()
+        options.contentModes = ImageLoadingOptions.ContentModes(
             success: .scaleAspectFill,
             failure: .center,
             placeholder: .center
         )
 
         mockCache[Test.request] = Test.image
-        Nuke.loadImage(with: Test.request, into: imageView)
+        Nuke.loadImage(with: Test.request, options: options, into: imageView)
 
         XCTAssertEqual(imageView.contentMode, .scaleAspectFill)
     }
 
     func testThatFailureContentModeIsApplied() {
-        imageView.options.contentModes = ImageViewOptions.ContentModes(
+        var options = ImageLoadingOptions()
+        options.contentModes = ImageLoadingOptions.ContentModes(
             success: .scaleAspectFill,
             failure: .center,
             placeholder: .center
         )
-        imageView.options.failureImage = Image()
+        options.failureImage = Image()
 
         dataLoader.results[Test.url] = .failure(
             NSError(domain: "t", code: 42, userInfo: nil)
@@ -278,6 +302,7 @@ class ImageViewTests: XCTestCase {
         let expectCompletion = self.expectation(description: "")
         Nuke.loadImage(
             with: Test.request,
+            options: options,
             into: imageView,
             completion: { _, _ in
                 expectCompletion.fulfill()
@@ -321,8 +346,7 @@ class ImageViewTests: XCTestCase {
         // Wrap everything in autorelease pool to make sure that imageView
         // gets deallocated immediately.
         autoreleasepool {
-            var imageView: ImageView! = ImageView()
-            imageView.options.pipeline = pipeline
+            var imageView: _ImageView! = _ImageView()
 
             dataLoader.queue.isSuspended = true
 
