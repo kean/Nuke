@@ -56,7 +56,9 @@ class BasicDemoViewController: UICollectionViewController {
         
         let imageView = imageViewForCell(cell)
         let request = makeRequest(with: photos[indexPath.row])
-        Nuke.loadImage(with: request, into: imageView)
+        var options = ImageLoadingOptions(transition: .fadeIn(duration: 0.25))
+        options.pipeline = self.pipeline
+        Nuke.loadImage(with: request, options: options, into: imageView)
 
         return cell
     }
@@ -73,8 +75,6 @@ class BasicDemoViewController: UICollectionViewController {
             imageView.tag = 15
             imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
-            imageView.options.pipeline = self.pipeline
-            imageView.options.transition = .fadeIn(duration: 0.25)
             cell.addSubview(imageView!)
         }
         return imageView!

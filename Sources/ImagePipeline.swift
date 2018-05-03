@@ -555,15 +555,15 @@ public /* final */ class ImagePipeline {
         // this is an option which is simpler to implement.
         guard session.processingPartialOperation == nil else { return }
 
-        let context = ImageProcessingContext(image: image, request: session.request, isFinal: false, scanNumber: scanNumber)
-        guard let processor = _processor(for: context) else {
+        let context = ImageProcessingContext(request: session.request, isFinal: false, scanNumber: scanNumber)
+        guard let processor = _processor(for: image, context: context) else {
             _session(session, didProducePartialImage: image)
             return
         }
 
         let operation = BlockOperation { [weak self, weak session] in
             guard let session = session else { return }
-            let image = autoreleasepool { processor.process(image) }
+            let image = autoreleasepool { processor.process(image: image, context: context) }
             self?.queue.async {
                 session.processingPartialOperation = nil
                 if let image = image {
@@ -590,8 +590,8 @@ public /* final */ class ImagePipeline {
         }
 
         // Check if processing is required, complete immediatelly if not.
-        let context = ImageProcessingContext(image: image, request: session.request, isFinal: true, scanNumber: nil)
-        guard let processor = _processor(for: context) else {
+        let context = ImageProcessingContext(request: session.request, isFinal: true, scanNumber: nil)
+        guard let processor = _processor(for: image, context: context) else {
             _session(session, completedWith: .success(image))
             return
         }
@@ -601,7 +601,7 @@ public /* final */ class ImagePipeline {
         let operation = BlockOperation { [weak self, weak session] in
             guard let session = session else { return }
             metrics.processStartDate = Date()
-            let image = autoreleasepool { processor.process(image) }
+            let image = autoreleasepool { processor.process(image: image, context: context) }
             let result = image.map(_Result.success) ?? .failure(Error.processingFailed)
             metrics.processEndDate = Date()
             self?.queue.async {
@@ -613,11 +613,11 @@ public /* final */ class ImagePipeline {
         configuration.imageProcessingQueue.addOperation(operation)
     }
 
-    private func _processor(for context: ImageProcessingContext) -> AnyImageProcessor? {
-        if ImagePipeline.Configuration.isAnimatedImageDataEnabled && context.image.animatedImageData != nil {
+    private func _processor(for image: Image, context: ImageProcessingContext) -> AnyImageProcessor? {
+        if ImagePipeline.Configuration.isAnimatedImageDataEnabled && image.animatedImageData != nil {
             return nil
         }
-        return configuration.imageProcessor(context.image, context.request)
+        return configuration.imageProcessor(image, context.request)
     }
 
     private func _session(_ session: Session, didProducePartialImage image: Image) {
@@ -841,7 +841,6 @@ public struct ImageDecodingContext {
 
 /// Image processing context used when selecting which processor to use.
 public struct ImageProcessingContext {
-    public let image: Image
     public let request: ImageRequest
     public let isFinal: Bool
     public let scanNumber: Int? // need a more general purpose way to implement this

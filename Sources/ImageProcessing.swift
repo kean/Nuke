@@ -7,11 +7,11 @@ import Foundation
 /// Performs image processing.
 public protocol ImageProcessing: Equatable {
     /// Returns processed image.
-    func process(_ image: Image) -> Image?
+    func process(image: Image, context: ImageProcessingContext) -> Image?
 }
 
 /// Composes multiple processors.
-public struct ImageProcessorComposition: ImageProcessing {
+internal struct ImageProcessorComposition: ImageProcessing {
     private let processors: [AnyImageProcessor]
 
     /// Composes multiple processors.
@@ -22,9 +22,11 @@ public struct ImageProcessorComposition: ImageProcessing {
     /// Processes the given image by applying each processor in an order in
     /// which they were added. If one of the processors fails to produce
     /// an image the processing stops and `nil` is returned.
-    public func process(_ input: Image) -> Image? {
-        return processors.reduce(input) { image, processor in
-            return autoreleasepool { image.flatMap(processor.process) }
+    func process(image: Image, context: ImageProcessingContext) -> Image? {
+        return processors.reduce(image) { image, processor in
+            return autoreleasepool {
+                image.flatMap { processor.process(image: $0, context: context) }
+            }
         }
     }
 
@@ -36,18 +38,18 @@ public struct ImageProcessorComposition: ImageProcessing {
 
 /// Type-erased image processor.
 public struct AnyImageProcessor: ImageProcessing {
-    private let _process: (Image) -> Image?
+    private let _process: (Image, ImageProcessingContext) -> Image?
     private let _processor: Any
     private let _equals: (AnyImageProcessor) -> Bool
 
     public init<P: ImageProcessing>(_ processor: P) {
-        self._process = { processor.process($0) }
+        self._process = { processor.process(image: $0, context: $1) }
         self._processor = processor
         self._equals = { ($0._processor as? P) == processor }
     }
 
-    public func process(_ image: Image) -> Image? {
-        return self._process(image)
+    public func process(image: Image, context: ImageProcessingContext) -> Image? {
+        return self._process(image, context)
     }
 
     public static func ==(lhs: AnyImageProcessor, rhs: AnyImageProcessor) -> Bool {
@@ -63,7 +65,7 @@ internal struct AnonymousImageProcessor<Key: Hashable>: ImageProcessing {
         self._key = key; self._closure = closure
     }
 
-    func process(_ image: Image) -> Image? {
+    func process(image: Image, context: ImageProcessingContext) -> Image? {
         return self._closure(image)
     }
 
@@ -73,7 +75,6 @@ internal struct AnonymousImageProcessor<Key: Hashable>: ImageProcessing {
 }
 
 #if !os(macOS)
-
 import UIKit
 
 /// Decompresses and (optionally) scales down input images. Maintains
@@ -110,7 +111,7 @@ public struct ImageDecompressor: ImageProcessing {
     }
 
     /// Decompresses and scales the image.
-    public func process(_ image: Image) -> Image? {
+    public func process(image: Image, context: ImageProcessingContext) -> Image? {
         return decompress(image, targetSize: targetSize, contentMode: contentMode)
     }
 
@@ -130,7 +131,7 @@ public struct ImageDecompressor: ImageProcessing {
     #endif
 }
 
-private func decompress(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) -> UIImage {
+internal func decompress(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) -> UIImage {
     guard let cgImage = image.cgImage else { return image }
     let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
     let scaleHor = targetSize.width / bitmapSize.width
@@ -139,7 +140,7 @@ private func decompress(_ image: UIImage, targetSize: CGSize, contentMode: Image
     return decompress(image, scale: CGFloat(min(scale, 1)))
 }
 
-private func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
+internal func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
     guard let cgImage = image.cgImage else { return image }
 
     let size = CGSize(width: round(scale * CGFloat(cgImage.width)), height: round(scale * CGFloat(cgImage.height)))

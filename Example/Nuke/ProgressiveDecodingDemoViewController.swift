@@ -16,33 +16,6 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
         $0.imageCache = nil
         $0.isDeduplicationEnabled = false
         $0.isProgressiveDecodingEnabled = true
-
-        $0.imageProcessor = {
-
-            // CoreImage is too slow on simulator.
-            #if targetEnvironment(simulator)
-            return nil
-            #else
-            guard !$0.isFinal else {
-                return nil // No processing.
-            }
-
-            guard let scanNumber = $0.scanNumber else {
-                return nil
-            }
-
-            // Blur partial images.
-            if scanNumber < 5 {
-                // Progressively reduce blur as we load more scans.
-                let radius = max(2, 14 - scanNumber * 4)
-                let blur = GaussianBlur(radius: radius)
-                return AnyImageProcessor(blur)
-            }
-
-            // Scans 5+ are already good enough not to blur them.
-            return nil
-            #endif
-        }
     }
 
     private let segmentedControl = UISegmentedControl(items: ["Progressive", "Baseline"])
@@ -82,13 +55,16 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
 
         let imageView = container.imageView
 
+        
+        var options = ImageLoadingOptions()
         // Use our custom pipeline with progressive decoding enabled and
         // _MockDataLoader which returns data on predifined intervals.
-        imageView.options.pipeline = pipeline
-        imageView.options.transition = .fadeIn(duration: 0.25)
+        options.pipeline = pipeline
+        options.transition = .fadeIn(duration: 0.25)
 
         Nuke.loadImage(
-            with: url,
+            with: ImageRequest(url: url).processed(with: _ProgressiveBlurImageProcessor()),
+            options: options,
             into: imageView,
             progress: { _, completed, total in
                 container.updateProgress(completed: completed, total: total)

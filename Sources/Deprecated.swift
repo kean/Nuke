@@ -354,20 +354,6 @@ public final class Cache: Caching {
 @available(*, deprecated, message: "Please use `ImageRequest` instead")
 public typealias Request = ImageRequest
 
-@available(*, deprecated, message: "Please use `ImageProcessing` instead")
-public typealias Processing = ImageProcessing
-
-@available(*, deprecated, message: "Please use `ImageProcessorComposition` instead")
-public typealias ProcessorComposition = ImageProcessorComposition
-
-@available(*, deprecated, message: "Please use `AnyImageProcessor` instead")
-public typealias AnyProcessor = AnyImageProcessor
-
-#if !os(macOS)
-@available(*, deprecated, message: "Please use `ImageDecompressor` instead")
-public typealias Decompressor = ImageDecompressor
-#endif
-
 @available(*, deprecated, message: "Please use `ImagePreheater` instead")
 public typealias Preheater = ImagePreheater
 
@@ -530,5 +516,128 @@ public enum Result<T> {
     /// Returns an `error` if the result is failure.
     public var error: Error? {
         if case let .failure(err) = self { return err } else { return nil }
+    }
+}
+
+// MARK: - Processing
+
+@available(*, deprecated, message: "Please use `ImageProcessing` instead.")
+public protocol Processing: Equatable {
+    func process(_ image: Image) -> Image?
+}
+
+@available(*, deprecated, message: "Please use `ImageRequest` methods which append image processors.")
+public struct ProcessorComposition: Processing {
+    private let processors: [AnyProcessor]
+
+    public init(_ processors: [AnyProcessor]) {
+        self.processors = processors
+    }
+
+    public func process(_ input: Image) -> Image? {
+        return processors.reduce(input) { image, processor in
+            return autoreleasepool { image.flatMap(processor.process) }
+        }
+    }
+
+    public static func ==(lhs: ProcessorComposition, rhs: ProcessorComposition) -> Bool {
+        return lhs.processors == rhs.processors
+    }
+}
+
+@available(*, deprecated, message: "Please use `AnyImageProcessor` instead.")
+public struct AnyProcessor: Processing {
+    private let _process: (Image) -> Image?
+    private let _processor: Any
+    private let _equals: (AnyProcessor) -> Bool
+
+    public init<P: Processing>(_ processor: P) {
+        self._process = { processor.process($0) }
+        self._processor = processor
+        self._equals = { ($0._processor as? P) == processor }
+    }
+
+    public func process(_ image: Image) -> Image? {
+        return self._process(image)
+    }
+
+    public static func ==(lhs: AnyProcessor, rhs: AnyProcessor) -> Bool {
+        return lhs._equals(rhs)
+    }
+}
+
+#if !os(macOS)
+import UIKit
+
+@available(*, deprecated, message: "Please use `ImageDecompressor` instead")
+public struct Decompressor: Processing {
+    public enum ContentMode {
+        case aspectFill
+        case aspectFit
+    }
+
+    public static let MaximumSize = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+
+    private let targetSize: CGSize
+    private let contentMode: ContentMode
+
+    public init(targetSize: CGSize = MaximumSize, contentMode: ContentMode = .aspectFill) {
+        self.targetSize = targetSize
+        self.contentMode = contentMode
+    }
+
+    private func _map(mode: ContentMode) -> ImageDecompressor.ContentMode {
+        switch mode {
+        case .aspectFill: return .aspectFill
+        case .aspectFit: return .aspectFit
+        }
+    }
+
+    public func process(_ image: Image) -> Image? {
+        return decompress(image, targetSize: targetSize, contentMode: _map(mode: contentMode))
+    }
+
+    public static func ==(lhs: Decompressor, rhs: Decompressor) -> Bool {
+        return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
+    }
+
+    #if !os(watchOS)
+    public static func targetSize(for view: UIView) -> CGSize { // in pixels
+        return ImageDecompressor.targetSize(for: view)
+    }
+    #endif
+}
+#endif
+
+@available(*, deprecated, message: "Please use `ImageProcessing` instead")
+private struct _ImageProcessorBridge: ImageProcessing { // Bridge from Processing to ImageProcessing
+    let processor: AnyProcessor
+
+    func process(image: Image, context: ImageProcessingContext) -> Image? {
+        return processor.process(image)
+    }
+
+    static func ==(lhs: _ImageProcessorBridge, rhs: _ImageProcessorBridge) -> Bool {
+        return lhs.processor == rhs.processor
+    }
+}
+
+public extension ImageRequest {
+    @available(*, deprecated, message: "Please use `ImageProcessing` instead")
+    public mutating func process<P: Processing>(with processor: P) {
+        let bridge = _ImageProcessorBridge(processor: AnyProcessor(processor))
+        guard let existing = self.processor else {
+            self.processor = AnyImageProcessor(bridge)
+            return
+        }
+        // Chain new processor and the existing one.
+        self.processor = AnyImageProcessor(ImageProcessorComposition([existing, AnyImageProcessor(bridge)]))
+    }
+
+    @available(*, deprecated, message: "Please use `ImageProcessing` instead")
+    public func processed<P: Processing>(with processor: P) -> ImageRequest {
+        var request = self
+        request.process(with: processor)
+        return request
     }
 }

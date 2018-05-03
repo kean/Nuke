@@ -62,22 +62,35 @@ extension UIImage {
     }
 }
 
-/// Blurs image using CIGaussianBlur filter.
-struct GaussianBlur: ImageProcessing {
-    private let radius: Int
+/// Blurs image using CIGaussianBlur filter. Only blurs first scans of the
+/// progressive JPEG.
+struct _ProgressiveBlurImageProcessor: ImageProcessing {
+    func process(image: Image, context: ImageProcessingContext) -> Image? {
+        // CoreImage is too slow on simulator.
+        #if targetEnvironment(simulator)
+        return image
+        #else
+        guard !context.isFinal else {
+            return image // No processing.
+        }
 
-    /// Initializes the receiver with a blur radius.
-    init(radius: Int = 8) {
-        self.radius = radius
+        guard let scanNumber = context.scanNumber else {
+            return image
+        }
+
+        // Blur partial images.
+        if scanNumber < 5 {
+            // Progressively reduce blur as we load more scans.
+            let radius = max(2, 14 - scanNumber * 4)
+            return image.applyFilter(filter: CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : radius]))
+        }
+
+        // Scans 5+ are already good enough not to blur them.
+        return image
+        #endif
     }
 
-    /// Applies CIGaussianBlur filter to the image.
-    func process(_ image: UIImage) -> UIImage? {
-        return image.applyFilter(filter: CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : radius]))
-    }
-
-    /// Compares two filters based on their radius.
-    static func ==(lhs: GaussianBlur, rhs: GaussianBlur) -> Bool {
-        return lhs.radius == rhs.radius
+    static func == (lhs: _ProgressiveBlurImageProcessor, rhs: _ProgressiveBlurImageProcessor) -> Bool {
+        return true
     }
 }

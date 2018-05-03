@@ -68,7 +68,8 @@ class ImageProcessingTests: XCTestCase {
             $0.nk_test_processorIDs = ["1"]
             return $0
         }
-        let image = request.processor?.process(Image())
+        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
+        let image = request.processor?.process(image: Image(), context: context)
         XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
     }
 
@@ -78,7 +79,8 @@ class ImageProcessingTests: XCTestCase {
             $0.nk_test_processorIDs = ["1"]
             return $0
         }
-        let image = request.processor?.process(Image())
+        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
+        let image = request.processor?.process(image: Image(), context: context)
         XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
     }
 
@@ -104,7 +106,8 @@ class ImageProcessingTests: XCTestCase {
     #if !os(macOS)
     func testResizingUsingRequestParameters() {
         let request = ImageRequest(url: defaultURL, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
-        let image = request.processor!.process(defaultImage)
+        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
+        let image = request.processor!.process(image: defaultImage, context: context)
         XCTAssertEqual(image?.cgImage?.width, 40)
         XCTAssertEqual(image?.cgImage?.height, 30)
     }
