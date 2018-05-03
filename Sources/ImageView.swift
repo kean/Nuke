@@ -54,62 +54,8 @@ public func loadImage(with request: ImageRequest,
                       progress: ImageTask.ProgressHandler? = nil,
                       completion: ImageTask.Completion? = nil) -> ImageTask? {
     assert(Thread.isMainThread)
-
     let controller = ImageViewController.controller(for: view)
-    controller.cancelOutstandingTask()
-
-    let options = controller.options
-
-    if options.isPrepareForReuseEnabled { // enabled by default
-        #if os(macOS)
-        view.layer?.removeAllAnimations()
-        #else
-        view.layer.removeAllAnimations()
-        #endif
-    }
-
-    // Quick synchronous memory cache lookup
-    if request.memoryCacheOptions.readAllowed,
-        let imageCache = options.pipeline.configuration.imageCache,
-        let response = imageCache.cachedResponse(for: request) {
-        controller.handle(response: response, error: nil, fromMemCache: true)
-        completion?(response, nil)
-        return nil
-    }
-
-    // Display a placeholder.
-    if let placeholder = options.placeholder {
-        view.image = placeholder
-        #if !os(macOS)
-        if let contentMode = options.contentModes?.placeholder {
-            view.contentMode = contentMode
-        }
-        #endif
-    } else {
-        if options.isPrepareForReuseEnabled {
-            view.image = nil // Remove previously displayed images (if any)
-        }
-    }
-
-    // Make sure that view reuse is handled correctly.
-    controller.taskId += 1
-    let taskId = controller.taskId
-
-    // Start the request.
-    // A delegate-based approach would probably work better here.
-    controller.task = options.pipeline.loadImage(
-        with: request,
-        progress: {  [weak controller] (image, completed, total) in
-            guard let controller = controller, controller.taskId == taskId else { return }
-            controller.handle(partialImage: image)
-            progress?(image, completed, total)
-    },
-        completion: { [weak controller] (response, error) in
-            guard let controller = controller, controller.taskId == taskId else { return }
-            controller.handle(response: response, error: error, fromMemCache: false)
-            completion?(response, error)
-    })
-    return controller.task
+    return controller.loadImage(with: request, progress: progress, completion: completion)
 }
 
 /// Cancels an outstanding request associated with the view.
@@ -203,17 +149,20 @@ public extension ImageView {
 
 // MARK: - ImageViewController
 
-// Controller is reused for multiple requests which makes sense, because in most
-// cases image views are also going to be reused (e.g. cells in a table view).
+/// Manages image requests on behalf on an image view.
+///
+/// - note: With a few modifications this might become public at some point,
+/// however at it stands today `ImageViewController` is just a helper class,
+/// making it public wouldn't expose any additional functionality to the users.
 private final class ImageViewController {
-    unowned let imageView: ImageView
-    weak var task: ImageTask?
-    var taskId: Int = 0
+    private unowned let imageView: ImageView
+    private weak var task: ImageTask?
+    private var taskId: Int = 0
     var options = ImageViewOptions()
 
     // Image view used for cross-fade transition between images with different
     // content modes.
-    lazy var transitionImageView = ImageView()
+    private lazy var transitionImageView = ImageView()
 
     // Automatically cancel the request when the view is deallocated.
     deinit {
@@ -238,7 +187,64 @@ private final class ImageViewController {
         return controller
     }
 
-    // MARK: - Managing Tasks
+    // MARK: - Loading Images
+
+    func loadImage(with request: ImageRequest,
+                   progress: ImageTask.ProgressHandler? = nil,
+                   completion: ImageTask.Completion? = nil) -> ImageTask? {
+        cancelOutstandingTask()
+
+        if options.isPrepareForReuseEnabled { // enabled by default
+            #if os(macOS)
+            imageView.layer?.removeAllAnimations()
+            #else
+            imageView.layer.removeAllAnimations()
+            #endif
+        }
+
+        // Quick synchronous memory cache lookup
+        if request.memoryCacheOptions.readAllowed,
+            let imageCache = options.pipeline.configuration.imageCache,
+            let response = imageCache.cachedResponse(for: request) {
+            handle(response: response, error: nil, fromMemCache: true)
+            completion?(response, nil)
+            return nil
+        }
+
+        // Display a placeholder.
+        if let placeholder = options.placeholder {
+            imageView.image = placeholder
+            #if !os(macOS)
+            if let contentMode = options.contentModes?.placeholder {
+                imageView.contentMode = contentMode
+            }
+            #endif
+        } else {
+            if options.isPrepareForReuseEnabled {
+                imageView.image = nil // Remove previously displayed images (if any)
+            }
+        }
+
+        // Make sure that view reuse is handled correctly.
+        self.taskId += 1
+        let taskId = self.taskId
+
+        // Start the request.
+        // A delegate-based approach would probably work better here.
+        self.task = options.pipeline.loadImage(
+            with: request,
+            progress: {  [weak self] (image, completed, total) in
+                guard let _self = self, _self.taskId == taskId else { return }
+                _self.handle(partialImage: image)
+                progress?(image, completed, total)
+            },
+            completion: { [weak self] (response, error) in
+                guard let _self = self, _self.taskId == taskId else { return }
+                _self.handle(response: response, error: error, fromMemCache: false)
+                completion?(response, error)
+        })
+        return self.task
+    }
 
     func cancelOutstandingTask() {
         task?.cancel()
@@ -249,7 +255,7 @@ private final class ImageViewController {
 
     #if !os(macOS)
 
-    func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool) {
+    private func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool) {
         if let image = response?.image {
             _display(image, options.transition, fromMemCache, options.contentModes?.success)
         } else if let failureImage = options.failureImage {
@@ -258,14 +264,14 @@ private final class ImageViewController {
         self.task = nil
     }
 
-    func handle(partialImage image: Image?) {
+    private func handle(partialImage image: Image?) {
         guard let image = image else { return }
         _display(image, options.transition, false, options.contentModes?.success)
     }
 
     #else
 
-    func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool) {
+    private func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool) {
         // NSImageView doesn't support content mode, unfortunately.
         if let image = response?.image {
             _display(image, options.transition, fromMemCache, nil)
@@ -275,7 +281,7 @@ private final class ImageViewController {
         self.task = nil
     }
 
-    func handle(partialImage image: Image?) {
+    private func handle(partialImage image: Image?) {
         guard let image = image else { return }
         _display(image, options.transition, false, nil)
     }

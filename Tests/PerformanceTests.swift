@@ -19,35 +19,6 @@ class ImageViewPerformanceTests: XCTestCase {
             }
         }
     }
-
-    func testSettingsOptionsPerformance() {
-        let view = ImageView()
-
-        measure {
-            for _ in (0..<100_000) {
-                view.options.pipeline = ImagePipeline.shared
-                view.options.placeholder = Image()
-                view.options.transition = .crossDissolve(0.33)
-            }
-        }
-    }
-
-    func testSettingsOptionsPerformanceAllAtOnce() {
-        let view = ImageView()
-
-        measure {
-            for _ in (0..<100_000) {
-                // This is a preferred way to set options which is much faster.
-                // In practice, the options would be set once when view is created
-                // for the first time, so any option should be OK.
-                var options = ImageViewOptions()
-                options.pipeline = ImagePipeline.shared
-                options.placeholder = Image()
-                options.transition = .crossDissolve(0.33)
-                view.options = options
-            }
-        }
-    }
 }
 
 class ImagePipelinePerfomanceTests: XCTestCase {
