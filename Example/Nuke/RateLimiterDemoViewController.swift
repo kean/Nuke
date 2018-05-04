@@ -9,22 +9,24 @@ private let cellReuseID = "reuseID"
 
 final class RateLimiterDemoViewController: UICollectionViewController {
     var photos: [URL]!
-    
-    var manager = Nuke.Manager.shared
-    var itemsPerRow = 6
-    
+
+    var itemsPerRow = 10
+
+    var pipeline: ImagePipeline!
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        let urlSessionConf = URLSessionConfiguration.default
-        urlSessionConf.urlCache = nil // disable disk cache
-        
-        // We don't want default Deduplicator to affect the results
-        // We don't want a memory cache either (but we take care of it
-        // using memoryCacheOptions anyway).
-        let loader = Loader(loader: DataLoader(configuration: urlSessionConf), decoder: DataDecoder())
-        manager = Manager(loader: loader, cache: nil)
-        
+
+        pipeline = ImagePipeline {
+            let urlSessionConf = URLSessionConfiguration.default
+            urlSessionConf.urlCache = nil // disable disk cache
+            $0.dataLoader = DataLoader(configuration: urlSessionConf)
+
+            $0.imageCache = nil // disable memory cache
+
+            $0.isDeduplicationEnabled = false // disable deduplication
+        }
+
         photos = demoPhotosURLs
         for _ in 0..<10 {
             self.photos.append(contentsOf: self.photos)
@@ -66,9 +68,15 @@ final class RateLimiterDemoViewController: UICollectionViewController {
         cell.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
         
         let imageView = imageViewForCell(cell)
-        imageView.image = nil
-        
-        manager.loadImage(with: photos[indexPath.row], into: imageView)
+
+        var options = ImageLoadingOptions()
+        options.pipeline = pipeline
+
+        Nuke.loadImage(
+            with: ImageRequest(url: photos[indexPath.row], targetSize: ImageDecompressor.targetSize(for: imageView), contentMode: .aspectFill),
+            options: options,
+            into: imageView
+        )
         
         return cell
     }

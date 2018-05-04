@@ -12,7 +12,7 @@ private var loggingEnabled = false
 final class PreheatingDemoViewController: UICollectionViewController {
     var photos: [URL]!
 
-    var preheater: Preheater!
+    var preheater: ImagePreheater!
     var preheatController: Preheat.Controller<UICollectionView>!
     
     override func viewDidLoad() {
@@ -20,7 +20,7 @@ final class PreheatingDemoViewController: UICollectionViewController {
 
         photos = demoPhotosURLs
 
-        preheater = Preheater()
+        preheater = ImagePreheater()
         preheatController = Preheat.Controller(view: collectionView!)
         preheatController.handler = { [weak self] addedIndexPaths, removedIndexPaths in
             self?.preheat(added: addedIndexPaths, removed: removedIndexPaths)
@@ -34,9 +34,9 @@ final class PreheatingDemoViewController: UICollectionViewController {
     }
 
     func preheat(added: [IndexPath], removed: [IndexPath]) {
-        func requests(for indexPaths: [IndexPath]) -> [Request] {
+        func requests(for indexPaths: [IndexPath]) -> [ImageRequest] {
             return indexPaths.map {
-                var request = Request(url: photos[$0.row])
+                var request = ImageRequest(url: photos[$0.row])
                 request.priority = .low
                 return request
             }
@@ -91,8 +91,12 @@ final class PreheatingDemoViewController: UICollectionViewController {
         
         let imageView = self.imageView(for: cell)
         let imageURL = photos[indexPath.row]
-        imageView.image = nil
-        Manager.shared.loadImage(with: Request(url: imageURL), into: imageView)
+
+        Nuke.loadImage(
+            with: imageURL,
+            options: ImageLoadingOptions(transition: .fadeIn(duration: 0.33)),
+            into: imageView
+        )
         
         return cell
     }

@@ -10,20 +10,18 @@ final class CustomCacheDemoViewController: BasicDemoViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Create DFCache instance. It makes sense not to store data in memory cache.
-        let cache = DFCache(name: "com.github.kean.Nuke.CachingDataLoader", memoryCache: nil)
-
-        // Create custom CachingDataLoader
-        // Disable disk caching built into URLSession
-        let conf = URLSessionConfiguration.default
-        conf.urlCache = nil
-        
-        let dataLoader = CachingDataLoader(loader: Nuke.DataLoader(configuration: conf), cache: cache)
-
-        // Create Manager which would utilize our data loader as a part of its
+        // Create a pipleine which would utilize our data loader as a part of its
         // image loading pipeline
         pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
+            // Create DFCache instance. It makes sense not to store data in memory cache.
+            let cache = DFCache(name: "com.github.kean.Nuke.CachingDataLoader", memoryCache: nil)
+
+            // Create custom CachingDataLoader
+            // Disable disk caching built into URLSession
+            let conf = URLSessionConfiguration.default
+            conf.urlCache = nil
+
+            $0.dataLoader = CachingDataLoader(loader: DataLoader(configuration: conf), cache: cache)
         }
     }
 }
