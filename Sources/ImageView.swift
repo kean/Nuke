@@ -16,15 +16,15 @@ public typealias Image = NSImage
 
 #if !os(watchOS)
 
-public protocol ImageDisplaying {
-    func display(image: Image?)
+@objc public protocol ImageDisplaying {
+    @objc func display(image: Image?)
 }
 
 #if !os(macOS)
 import UIKit
 public typealias ImageDisplayingView = UIView & ImageDisplaying
 extension UIImageView: ImageDisplaying {
-    public func display(image: Image?) {
+    open func display(image: Image?) {
         self.image = image
     }
 }
@@ -32,7 +32,7 @@ extension UIImageView: ImageDisplaying {
 import Cocoa
 public typealias ImageDisplayingView = NSView & ImageDisplaying
 extension NSImageView: ImageDisplaying {
-    public func display(image: Image?) {
+    open func display(image: Image?) {
         self.image = image
     }
 }
