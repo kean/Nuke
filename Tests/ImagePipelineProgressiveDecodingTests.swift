@@ -69,8 +69,8 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
         pipeline.loadImage(
             with: request,
-            progress: { image, _, _ in
-                if let image = image {
+            progress: { response, _, _ in
+                if let image = response?.image {
                     XCTAssertEqual(image.cgImage?.width, 45)
                     XCTAssertEqual(image.cgImage?.height, 30)
                     expectPartialImageProduced.fulfill()
@@ -100,8 +100,8 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
         pipeline.loadImage(
             with: request,
-            progress: { image, _, _ in
-                if let image = image {
+            progress: { response, _, _ in
+                if let image = response?.image {
                     XCTAssertEqual(image.nk_test_processorIDs.count, 1)
                     XCTAssertEqual(image.nk_test_processorIDs.first, "_image_processor")
                     expectPartialImageProduced.fulfill()

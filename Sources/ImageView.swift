@@ -290,8 +290,8 @@ private final class ImageViewController {
         self.task = nil
     }
 
-    private func handle(partialImage image: Image?, options: ImageLoadingOptions) {
-        guard let image = image else { return }
+    private func handle(partialImage response: ImageResponse?, options: ImageLoadingOptions) {
+        guard let image = response?.image else { return }
         _display(image, options.transition, false, options.contentModes?.success)
     }
 

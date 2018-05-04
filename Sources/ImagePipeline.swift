@@ -23,7 +23,7 @@ public /* final */ class ImageTask: Hashable {
     fileprivate private(set) var _progress: Progress?
 
     public typealias Completion = (_ response: ImageResponse?, _ error: Swift.Error?) -> Void
-    public typealias ProgressHandler = (_ image: Image?, _ completed: Int64, _ total: Int64) -> Void
+    public typealias ProgressHandler = (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void
 
     fileprivate var metrics: ImageTaskMetrics
     fileprivate var priorityObserver: ((ImageRequest.Priority) -> Void)?
@@ -625,9 +625,10 @@ public /* final */ class ImagePipeline {
         // or cancelling the task.
         guard sessions[session.key] === session else { return }
         let tasks = session.tasks
+        let response = ImageResponse(image: image, urlResponse: session.urlResponse)
         DispatchQueue.main.async {
             for (task, handlers) in tasks {
-                handlers.progress?(image, task.completedUnitCount, task.totalUnitCount)
+                handlers.progress?(response, task.completedUnitCount, task.totalUnitCount)
             }
         }
     }

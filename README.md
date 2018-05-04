@@ -10,7 +10,7 @@
 A powerful **image loading** and **caching** system. It makes simple tasks like loading images into views extremely simple, while also supporting more advanced features for more demanding apps.
 
 - Two [cache layers](https://kean.github.io/post/image-caching), fast LRU disk and memory caches
-- Progressive image loading (progressive JPEG and soon also WebP)
+- Progressive image loading (progressive JPEG and WebP)
 - Resumable downloads, request deduplication, prioritization, rate limiting and more
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [WebP](https://github.com/ryokosuge/Nuke-WebP-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) extensions
 - [RxNuke](https://github.com/kean/RxNuke) - [RxSwift](https://github.com/ReactiveX/RxSwift) extensions
