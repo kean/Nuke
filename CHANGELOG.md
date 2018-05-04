@@ -1,3 +1,29 @@
+## Nuke 7.0-rc1
+
+This is the final pre-release version. The only thing left to do is finish updating the documentation.
+
+Changes in 7.0-rc1:
+
+### Loading Image into Views
+
+- Add more `ImageLoadingOptions` including `failureImage`, `contentModes` and custom transitions.
+- `ImageView` will now automatically prepare itself for reuse (can be disabled via `ImageLoadingOptions`)
+- Add `ImageDisplaying` protocol and relax the requirement what can be used as an image view (it's `UIView & ImageDisplaying` now). This achieves two things: 1) you can now add support for more classes (e.g. `MKAnnotationView` by implementing `ImageDisplaying` protocol, 2) you can override the `display(image:` method in `UIImageView` subclasses (e.g. `FLAnimatedImageView`).
+
+### image Processing
+
+- Update new `ImageProcessing` protocol to add additional `ImageProcessingContext` parameter. This enabled features like `_ProgressiveBlurImageProcessor` which blurs only first few scans of the progressive image with each new scan having reduced blur radius (see Progressive JPEG Demo).
+
+### Animated Images
+
+- Add built-in support for animated images (everything expect the actual rendering). To enable rendering you're still going to need a plugin (see FLAnimatedImage and Gifu plugins). The changes made in Nuke dramatically simplify those plugins making both of them essentially obsolete (they both now have 10-30 lines of code).
+
+### Misc
+
+- Simplify `ImagePipeline` closure-based API. Remove `progressiveImageHandler`, pass partial images into existing `progress` closure.
+- Improve test coverage of new features.
+
+
 ## Nuke 7.0-beta3
 
 This is the final beta version. The release version is going to be available next week.
