@@ -55,11 +55,11 @@ final class MenuViewController: UITableViewController {
             }))
 
             items.append(MenuItem(
-                title: "Disk Cache (Experimental)",
-                subtitle: "Enables aggressive disk caching",
-                action: { [weak self] in
-                    let controller = DataCachingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-                    controller.title = $0.title
+                title: "Progressive Decoding",
+                subtitle: "Progressive and baseline JPEG",
+                action: { [weak self] _ in
+                    let controller = ProgressiveDecodingDemoViewController()
+                    controller.title = "Progressive JPEG"
                     self?.push(controller)
             }))
 
@@ -75,15 +75,48 @@ final class MenuViewController: UITableViewController {
             return items
         }()))
 
+        sections.append(MenuSection(title: "Integrations", items: {
+            var items = [MenuItem]()
+
+            items.append(MenuItem(
+                title: "Alamofire",
+                subtitle: "Custom networking stack",
+                action: { [weak self] in
+                    let controller = AlamofireIntegrationDemoViewController()
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
+
+            items.append(MenuItem(
+                title: "FLAnimatedImage",
+                subtitle: "Display animated GIFs",
+                action: { [weak self] in
+                    let controller = AnimatedImageViewController(nibName: nil, bundle: nil)
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
+
+            items.append(MenuItem(
+                title: "DFCache",
+                subtitle: "Custom on-disk cache",
+                action: { [weak self] in
+                    let controller = CustomCacheDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
+
+            return items
+        }()))
+
         sections.append(MenuSection(title: "Advanced", items: {
             var items = [MenuItem]()
 
             items.append(MenuItem(
-                title: "Progressive Decoding",
-                subtitle: "Progressive and baseline JPEG",
-                action: { [weak self] _ in
-                    let controller = ProgressiveDecodingDemoViewController()
-                    controller.title = "Progressive JPEG"
+                title: "Disk Cache (Experimental)",
+                subtitle: "Enables aggressive disk caching",
+                action: { [weak self] in
+                    let controller = DataCachingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
                     self?.push(controller)
             }))
 
@@ -92,15 +125,6 @@ final class MenuViewController: UITableViewController {
                 subtitle: "Infinite scroll, highlights rate limiter performance",
                 action: { [weak self] in
                     let controller = RateLimiterDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-                    controller.title = $0.title
-                    self?.push(controller)
-            }))
-
-            items.append(MenuItem(
-                title: "Custom Cache",
-                subtitle: "Uses DFCache for on-disk caching",
-                action: { [weak self] in
-                    let controller = CustomCacheDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
                     controller.title = $0.title
                     self?.push(controller)
             }))

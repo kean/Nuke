@@ -20,6 +20,8 @@
 		0CCC189B209EDCCF003D7172 /* SHA1.m in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1890209EDCCF003D7172 /* SHA1.m */; };
 		0CCC189C209EDCCF003D7172 /* MenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1892209EDCCF003D7172 /* MenuViewController.swift */; };
 		0CCC189D209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1893209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift */; };
+		0CCC18A3209EE0A6003D7172 /* AnimatedImageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC18A2209EE0A6003D7172 /* AnimatedImageViewController.swift */; };
+		0CCC18A8209EE341003D7172 /* AlamofireIntegrationDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC18A7209EE341003D7172 /* AlamofireIntegrationDemoViewController.swift */; };
 		607FACDB1AFB9204008FA782 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 607FACD91AFB9204008FA782 /* Main.storyboard */; };
 		607FACE01AFB9204008FA782 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 607FACDE1AFB9204008FA782 /* LaunchScreen.xib */; };
 		805DCD5D833F82DA12258ACC /* Pods_NukeDemo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2CB510A6862C7F5641F60A07 /* Pods_NukeDemo.framework */; };
@@ -42,6 +44,8 @@
 		0CCC1891209EDCCF003D7172 /* SHA1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHA1.h; sourceTree = "<group>"; };
 		0CCC1892209EDCCF003D7172 /* MenuViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MenuViewController.swift; sourceTree = "<group>"; };
 		0CCC1893209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProgressiveDecodingDemoViewController.swift; sourceTree = "<group>"; };
+		0CCC18A2209EE0A6003D7172 /* AnimatedImageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedImageViewController.swift; sourceTree = "<group>"; };
+		0CCC18A7209EE341003D7172 /* AlamofireIntegrationDemoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlamofireIntegrationDemoViewController.swift; sourceTree = "<group>"; };
 		204CB2429C8D01E9F281719A /* Pods-NukeDemo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NukeDemo.release.xcconfig"; path = "Pods/Target Support Files/Pods-NukeDemo/Pods-NukeDemo.release.xcconfig"; sourceTree = "<group>"; };
 		2CB510A6862C7F5641F60A07 /* Pods_NukeDemo.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_NukeDemo.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		607FACD01AFB9204008FA782 /* NukeDemo_Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NukeDemo_Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -87,16 +91,18 @@
 		0CCC1886209EDCCF003D7172 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				0CCC188C209EDCCF003D7172 /* NukeDemo-Bridging-Header.h */,
+				0CCC188D209EDCCF003D7172 /* AppDelegate.swift */,
+				0CCC1892209EDCCF003D7172 /* MenuViewController.swift */,
 				0CCC1887209EDCCF003D7172 /* BasicDemoViewController.swift */,
+				0CCC18A2209EE0A6003D7172 /* AnimatedImageViewController.swift */,
+				0CCC18A7209EE341003D7172 /* AlamofireIntegrationDemoViewController.swift */,
 				0CCC1888209EDCCF003D7172 /* PreheatingDemoViewController.swift */,
 				0CCC1889209EDCCF003D7172 /* RateLimiterDemoViewController.swift */,
 				0CCC188A209EDCCF003D7172 /* CustomCacheDemoViewController.swift */,
 				0CCC188B209EDCCF003D7172 /* DataCachingDemoViewController.swift */,
-				0CCC188C209EDCCF003D7172 /* NukeDemo-Bridging-Header.h */,
-				0CCC188D209EDCCF003D7172 /* AppDelegate.swift */,
-				0CCC188E209EDCCF003D7172 /* Helpers */,
-				0CCC1892209EDCCF003D7172 /* MenuViewController.swift */,
 				0CCC1893209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift */,
+				0CCC188E209EDCCF003D7172 /* Helpers */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -262,13 +268,17 @@
 			);
 			inputPaths = (
 				"${SRCROOT}/Pods/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-frameworks.sh",
+				"${BUILT_PRODUCTS_DIR}/Alamofire/Alamofire.framework",
 				"${BUILT_PRODUCTS_DIR}/DFCache/DFCache.framework",
+				"${BUILT_PRODUCTS_DIR}/FLAnimatedImage/FLAnimatedImage.framework",
 				"${BUILT_PRODUCTS_DIR}/Nuke/Nuke.framework",
 				"${BUILT_PRODUCTS_DIR}/Preheat/Preheat.framework",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Alamofire.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/DFCache.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FLAnimatedImage.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Nuke.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Preheat.framework",
 			);
@@ -284,12 +294,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0CCC18A3209EE0A6003D7172 /* AnimatedImageViewController.swift in Sources */,
 				0CCC1899209EDCCF003D7172 /* AppDelegate.swift in Sources */,
 				0CCC1895209EDCCF003D7172 /* PreheatingDemoViewController.swift in Sources */,
 				0CCC189A209EDCCF003D7172 /* Utilities.swift in Sources */,
 				0CCC1897209EDCCF003D7172 /* CustomCacheDemoViewController.swift in Sources */,
 				0CCC189C209EDCCF003D7172 /* MenuViewController.swift in Sources */,
 				0CCC1896209EDCCF003D7172 /* RateLimiterDemoViewController.swift in Sources */,
+				0CCC18A8209EE341003D7172 /* AlamofireIntegrationDemoViewController.swift in Sources */,
 				0CCC1898209EDCCF003D7172 /* DataCachingDemoViewController.swift in Sources */,
 				0CCC189B209EDCCF003D7172 /* SHA1.m in Sources */,
 				0CCC189D209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift in Sources */,

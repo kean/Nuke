@@ -4,5 +4,7 @@ use_frameworks!
 target 'NukeDemo' do
 	pod 'Nuke', :path => '../'
 	pod 'DFCache'
+	pod 'FLAnimatedImage'
+	pod 'Alamofire'
 	pod 'Preheat', '~>3.0'
 end
