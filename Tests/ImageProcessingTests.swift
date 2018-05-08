@@ -19,6 +19,7 @@ class ImageProcessingTests: XCTestCase {
         mockDataLoader = MockDataLoader()
         pipeline = ImagePipeline {
             $0.dataLoader = mockDataLoader
+            return // !swift(>=4.1)
         }
     }
 

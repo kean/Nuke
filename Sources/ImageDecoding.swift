@@ -191,6 +191,17 @@ enum ImageFormat: Equatable {
         }
         return true
     }
+
+    #if !swift(>=4.1)
+    static func ==(lhs: ImageFormat, rhs: ImageFormat) -> Bool {
+        switch (lhs, rhs) {
+        case let (.jpeg(lhs), .jpeg(rhs)): return lhs == rhs
+        case (.png, .png): return true
+        case (.gif, .gif): return true
+        default: return false
+        }
+    }
+    #endif
 }
 
 // MARK: - Animated Images

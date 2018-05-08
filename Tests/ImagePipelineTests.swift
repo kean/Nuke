@@ -460,6 +460,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
     func testThatProcessingFailedErrorIsReturned() {
         let loader = ImagePipeline {
             $0.dataLoader = MockDataLoader()
+            return // !swift(>=4.1)
         }
 
         let request = ImageRequest(url: defaultURL).processed(with: MockFailingProcessor())

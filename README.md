@@ -437,11 +437,11 @@ There are a variety extensions available for Nuke some of which are built by the
 |[**FLAnimatedImage**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
 
 
-# Requirements<a name="h_requirements"></a>
+# Minimum Requirements<a name="h_requirements"></a>
 
 - iOS 9.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0
-- Xcode 9.3
-- Swift 4.1
+- Xcode 9.2
+- Swift 4.0
 
 # License
 

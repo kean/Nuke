@@ -7,8 +7,8 @@ This migration guide is still work in progress, the finished version is going to
 ## Requirements
 
 - iOS 9.0, tvOS 9.0, macOS 10.11, watchOS 2.0
-- Xcode 9.3
-- Swift 4.1
+- Xcode 9.2
+- Swift 4.0
 
 ## Overview
 

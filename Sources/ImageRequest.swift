@@ -37,13 +37,17 @@ public struct ImageRequest {
         get {
             // Default processor on macOS is nil, on other platforms is Decompressor
             #if !os(macOS)
-            guard let custom = _ref._customProcessor else { return Container.decompressor }
+            return _ref._isDefaultProcessorUsed ? Container.decompressor : _ref._customProcessor
             #else
-            guard let custom = _ref._customProcessor else { return nil }
+            return _ref._isDefaultProcessorUsed ? nil : _ref._customProcessor
             #endif
-            return custom
         }
-        set { _mutate { $0._customProcessor = .some(newValue) } }
+        set {
+            _mutate {
+                $0._isDefaultProcessorUsed = false
+                $0._customProcessor = newValue
+            }
+        }
     }
 
     /// The policy to use when reading or writing images to the memory cache.
@@ -143,7 +147,7 @@ public struct ImageRequest {
     /// to the target size.
     public init(url: URL, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) {
         self = ImageRequest(url: url)
-        _ref._customProcessor = AnyImageProcessor(ImageDecompressor(targetSize: targetSize, contentMode: contentMode))
+        self.processor = AnyImageProcessor(ImageDecompressor(targetSize: targetSize, contentMode: contentMode))
     }
 
     /// Initializes a request with the given request.
@@ -152,7 +156,7 @@ public struct ImageRequest {
     /// to the target size.
     public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) {
         self = ImageRequest(urlRequest: urlRequest)
-        _ref._customProcessor = AnyImageProcessor(ImageDecompressor(targetSize: targetSize, contentMode: contentMode))
+        self.processor = AnyImageProcessor(ImageDecompressor(targetSize: targetSize, contentMode: contentMode))
     }
 
     #endif
@@ -173,14 +177,8 @@ public struct ImageRequest {
     private class Container {
         var resource: Resource
         var _urlString: String? // memoized absoluteString
-        // There are three cases:
-        // 1) Default value (custom processor not set)
-        // 2) Custom processor (.none)
-        // 3) Custom processor (.some)
-        // First case gives us a performance boost -> we don't need to store
-        // default processor in a container, we can just use static version
-        // when we need it.
-        var _customProcessor: AnyImageProcessor??
+        var _customProcessor: AnyImageProcessor?
+        var _isDefaultProcessorUsed: Bool = true
         var memoryCacheOptions = MemoryCacheOptions()
         var priority: ImageRequest.Priority = .normal
         var cacheKey: AnyHashable?
@@ -197,6 +195,7 @@ public struct ImageRequest {
             self.resource = ref.resource
             self._urlString = ref._urlString
             self._customProcessor = ref._customProcessor
+            self._isDefaultProcessorUsed = ref._isDefaultProcessorUsed
             self.memoryCacheOptions = ref.memoryCacheOptions
             self.priority = ref.priority
             self.cacheKey = ref.cacheKey
@@ -269,6 +268,7 @@ internal extension ImageRequest {
                 return lhsCustomKey == rhsCustomKey
             }
             return lhs._ref._urlString == rhs._ref._urlString
+                && lhs._ref._isDefaultProcessorUsed == rhs._ref._isDefaultProcessorUsed
                 && lhs._ref._customProcessor == rhs._ref._customProcessor
         }
     }
@@ -291,6 +291,7 @@ internal extension ImageRequest {
             }
             return lhs._ref._urlString == rhs._ref._urlString
                 && isEqual(lhs.urlRequest, rhs.urlRequest)
+                && lhs._ref._isDefaultProcessorUsed == rhs._ref._isDefaultProcessorUsed
                 && lhs._ref._customProcessor == rhs._ref._customProcessor
         }
     }

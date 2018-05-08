@@ -14,8 +14,19 @@ extension DispatchWorkItem: Cancellable {}
 /// available in the future versions when it goes out of beta.
 internal class DataCache {
     typealias Key = String
+
     struct Filename: Hashable {
         let raw: String
+
+        #if !swift(>=4.1)
+        var hashValue: Int {
+            return raw.hashValue
+        }
+
+        static func ==(lhs: DataCache.Filename, rhs: DataCache.Filename) -> Bool {
+            return lhs.raw == rhs.raw
+        }
+        #endif
     }
     
     let path: URL
@@ -150,12 +161,22 @@ internal class DataCache {
     }
     
     private func _removeData(for filenames: [Filename]) {
+        #if swift(>=4.1)
         let removed = filenames.compactMap { _index.removeValue(forKey: $0) }
+        #else
+        let removed = filenames.flatMap { _index.removeValue(forKey: $0) }
+        #endif
         guard !removed.isEmpty else { return }
         _wqueue.async {
+            #if swift(>=4.1)
             let urls = self._lock.sync {
                 removed.compactMap { $0.payload.url }
             }
+            #else
+            let urls = self._lock.sync {
+                removed.flatMap { $0.payload.url }
+            }
+            #endif
             urls.forEach {
                 try? FileManager.default.removeItem(at: $0)
             }
