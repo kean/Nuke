@@ -16,32 +16,59 @@ public typealias Image = NSImage
 
 #if !os(watchOS)
 
+/// Can displays images. Adopt this protocol in views to be able to load images
+/// into them.
+///
+/// The protocol is defined as `@objc` to enable users to override its methods
+/// in extensions (e.g. you can override `display(image:)` in `UIImageView` subclass).
 @objc public protocol ImageDisplaying {
     @objc func display(image: Image?)
 }
 
 #if !os(macOS)
 import UIKit
+/// A `UIView` that implements `ImageDisplaying` protocol.
 public typealias ImageDisplayingView = UIView & ImageDisplaying
+
 extension UIImageView: ImageDisplaying {
+    /// Displays an image.
     open func display(image: Image?) {
         self.image = image
     }
 }
 #else
 import Cocoa
+/// An `NSView` that implements `ImageDisplaying` protocol.
 public typealias ImageDisplayingView = NSView & ImageDisplaying
+
 extension NSImageView: ImageDisplaying {
+    /// Displays an image.
     open func display(image: Image?) {
         self.image = image
     }
 }
 #endif
 
-/// Loads an image into the given image view. For more info See the corresponding
-/// `loadImage(with:options:into:)` method that works with `ImageRequest`.
-/// - parameter completion: Completion handler to be called when the requests is
-/// finished and image is displayed. `nil` by default.
+/// Loads an image into the view.
+///
+/// Before loading the new image prepares the view for reuse by cancelling any
+/// outstanding requests and removing previously displayed images (if any).
+///
+/// If the image is stored in memory cache, the image is displayed immediately.
+/// If not, the image is loaded using an image pipeline. Displays a `placeholder`
+/// if it was provided. When the request completes the loaded image is displayed
+/// (or `failureImage` in case of an error).
+///
+/// Nuke keeps a weak reference to the view. If the view is deallocated
+/// the associated request automatically gets cancelled.
+///
+/// - parameter options: `ImageLoadingOptions.shared` by default.
+/// - parameter progress: A closure to be called periodically on the main thread
+/// when the progress is updated. `nil` by default.
+/// - parameter completion: A closure to be called on the main thread when the
+/// request is finished. Gets called synchronously if the response was found in
+/// memory cache. `nil` by default.
+/// - returns: An image task of `nil` if the image was found in memory cache.
 @discardableResult
 public func loadImage(with url: URL,
                       options: ImageLoadingOptions = ImageLoadingOptions.shared,
@@ -51,16 +78,26 @@ public func loadImage(with url: URL,
     return loadImage(with: ImageRequest(url: url), options: options, into: view, progress: progress, completion: completion)
 }
 
-/// Loads an image into the given image view. Cancels previous outstanding request
-/// associated with the view.
-/// - parameter completion: Completion handler to be called when the requests is
-/// finished and image is displayed. `nil` by default.
+/// Loads an image into the view.
 ///
-/// If the image is stored in the memory cache, the image is displayed
-/// immediately. The image is loaded using the pipeline object otherwise.
+/// Before loading the new image prepares the view for reuse by cancelling any
+/// outstanding requests and removing previously displayed images (if any).
+///
+/// If the image is stored in memory cache, the image is displayed immediately.
+/// If not, the image is loaded using an image pipeline. Displays a `placeholder`
+/// if it was provided. When the request completes the loaded image is displayed
+/// (or `failureImage` in case of an error).
 ///
 /// Nuke keeps a weak reference to the view. If the view is deallocated
 /// the associated request automatically gets cancelled.
+///
+/// - parameter options: `ImageLoadingOptions.shared` by default.
+/// - parameter progress: A closure to be called periodically on the main thread
+/// when the progress is updated. `nil` by default.
+/// - parameter completion: A closure to be called on the main thread when the
+/// request is finished. Gets called synchronously if the response was found in
+/// memory cache. `nil` by default.
+/// - returns: An image task of `nil` if the image was found in memory cache.
 @discardableResult
 public func loadImage(with request: ImageRequest,
                       options: ImageLoadingOptions = ImageLoadingOptions.shared,
@@ -80,6 +117,7 @@ public func cancelRequest(for view: ImageDisplayingView) {
 
 // MARK: - ImageLoadingOptions
 
+/// A range of options that control how the image is loaded and displayed.
 public struct ImageLoadingOptions {
     /// Shared options.
     public static var shared = ImageLoadingOptions()
@@ -107,17 +145,23 @@ public struct ImageLoadingOptions {
     public var pipeline: ImagePipeline?
 
     #if !os(macOS)
-    /// Custom content modes to be used when switching between images. It's very
-    /// often when a "failure" image needs a `.center` mode when a "success" image
-    /// needs something like `.scaleAspectFill`. `nil`  by default (don't change
-    /// content mode).
+    /// Custom content modes to be used for each image type (placeholder, success,
+    /// failure). `nil`  by default (don't change content mode).
     public var contentModes: ContentModes?
 
+    /// Custom content modes to be used for each image type (placeholder, success,
+    /// failure).
     public struct ContentModes {
+        /// Content mode to be used for the loaded image.
         public var success: UIViewContentMode
+        /// Content mode to be used when displaying a `failureImage`.
         public var failure: UIViewContentMode
+        /// Content mode to be used when displaying a `placeholder`.
         public var placeholder: UIViewContentMode
 
+        /// - parameter success: A content mode to be used with a loaded image.
+        /// - parameter failure: A content mode to be used with a `failureImage`.
+        /// - parameter placeholder: A content mode to be used with a `placeholder`.
         public init(success: UIViewContentMode, failure: UIViewContentMode, placeholder: UIViewContentMode) {
             self.success = success; self.failure = failure; self.placeholder = placeholder
         }
