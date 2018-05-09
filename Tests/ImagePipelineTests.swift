@@ -428,10 +428,12 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
 
         expect { fulfill in
             imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { _, error in
-                guard let error = error else { XCTFail(); return }
-                XCTAssertNotNil(error)
-                XCTAssertEqual((error as NSError).code, expectedError.code)
-                XCTAssertEqual((error as NSError).domain, expectedError.domain)
+                switch error {
+                case let .dataLoadingFailed(error)?:
+                    XCTAssertEqual((error as NSError).code, expectedError.code)
+                    XCTAssertEqual((error as NSError).domain, expectedError.domain)
+                default: XCTFail()
+                }
                 fulfill()
             }
         }
@@ -449,8 +451,10 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
 
         expect { fulfill in
             imagePipeline.loadImage(with: ImageRequest(url: defaultURL)) { _, error in
-                guard let error = error else { XCTFail(); return }
-                XCTAssertTrue((error as! ImagePipeline.Error) == ImagePipeline.Error.decodingFailed)
+                switch error {
+                case .decodingFailed?: break
+                default: XCTFail()
+                }
                 fulfill()
             }
         }
@@ -467,8 +471,10 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
 
         expect { fulfill in
             loader.loadImage(with: request) { _, error in
-                guard let error = error else { XCTFail(); return }
-                XCTAssertTrue((error as! ImagePipeline.Error) == ImagePipeline.Error.processingFailed)
+                switch error {
+                case .processingFailed?: break
+                default: XCTFail()
+                }
                 fulfill()
             }
         }

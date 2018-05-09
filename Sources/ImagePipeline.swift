@@ -22,7 +22,7 @@ public /* final */ class ImageTask: Hashable {
     }
     fileprivate private(set) var _progress: Progress?
 
-    public typealias Completion = (_ response: ImageResponse?, _ error: Swift.Error?) -> Void
+    public typealias Completion = (_ response: ImageResponse?, _ error: ImagePipeline.Error?) -> Void
     public typealias ProgressHandler = (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void
 
     fileprivate var metrics: ImageTaskMetrics
@@ -477,9 +477,9 @@ public /* final */ class ImagePipeline {
     private func _session(_ session: Session, didFinishLoadingDataWithError error: Swift.Error?) {
         session.metrics.loadDataEndDate = Date()
 
-        guard error == nil else {
+        if let error = error {
             _tryToSaveResumableData(for: session)
-            _session(session, completedWith: .failure(error ?? Error.decodingFailed))
+            _session(session, completedWith: .failure(.dataLoadingFailed(error)))
             return
         }
 
@@ -633,7 +633,7 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func _session(_ session: Session, completedWith result: _Result<Image>) {
+    private func _session(_ session: Session, completedWith result: _Result<Image, Error>) {
         let response = result.value.map {
             ImageResponse(image: $0, urlResponse: session.urlResponse)
         }
@@ -709,14 +709,18 @@ public /* final */ class ImagePipeline {
 
     // MARK: Errors
 
-    /// Error returns by `Loader` class itself. `Loader` might also return
-    /// errors from underlying `DataLoading` object.
+    /// Represents all possible image pipeline errors.
     public enum Error: Swift.Error, CustomDebugStringConvertible {
+        /// Data loader failed to load image data with a wrapped error.
+        case dataLoadingFailed(Swift.Error)
+        /// Decoder failed to produce a final image.
         case decodingFailed
+        /// Processor failed to produce a final image.
         case processingFailed
 
         public var debugDescription: String {
             switch self {
+            case let .dataLoadingFailed(error): return "Failed to load image data: \(error)"
             case .decodingFailed: return "Failed to create an image from the image data"
             case .processingFailed: return "Failed to process the image"
             }
