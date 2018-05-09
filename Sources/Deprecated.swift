@@ -26,7 +26,7 @@ public typealias ImageView = UIImageView
 #endif
 
 #if os(macOS)
-@available(*, deprecated, message: "Please use Nuke `Nuke.loadImage(with:into:)` functions instead. To load images w/o targets please use `ImagePipeline` directly.")
+@available(*, deprecated, message: "Please use new `Nuke.loadImage(with:options:into:progress:completion)` functions instead.")
 extension NSImageView: Target {
     /// Displays an image on success. Runs `opacity` transition if
     /// the response was not from the memory cache.
@@ -46,7 +46,7 @@ extension NSImageView: Target {
 #endif
 
 #if os(iOS) || os(tvOS)
-@available(*, deprecated, message: "Please use Nuke `Nuke.loadImage(with:into:)` functions instead. To load images w/o targets please use `ImagePipeline` directly.")
+@available(*, deprecated, message: "Please use new `Nuke.loadImage(with:options:into:progress:completion)` functions instead.")
 extension UIImageView: Target {
     /// Displays an image on success. Runs `opacity` transition if
     /// the response was not from the memory cache.
@@ -66,7 +66,7 @@ extension UIImageView: Target {
 #endif
 
 
-@available(*, deprecated, message: "Please use Nuke `Nuke.loadImage(with:into:)` functions instead. To load images w/o targets please use `ImagePipeline` directly.")
+@available(*, deprecated, message: "Please use new `Nuke.loadImage(with:options:into:progress:completion)` functions instead. Use new `ImagePipeline` to load images directly.")
 public final class Manager: Loading {
     public let loader: Loading
     public let cache: Caching?
@@ -168,12 +168,12 @@ public final class Manager: Loading {
 
 // MARK: - Loading
 
-@available(*, deprecated, message: "Please use ImagePipeline class directly. There is no direct alternative to `Loading` protocol in Nuke 7.")
+@available(*, deprecated, message: "Please use new `ImagePipeline` class instead. There is no direct alternative to `Loading` protocol in Nuke 7.")
 public protocol Loading {
     func loadImage(with request: ImageRequest, token: CancellationToken?, completion: @escaping (Result<Image>) -> Void)
 }
 
-@available(*, deprecated, message: "Please use ImagePipeline class directly. There is no direct alternative to `Loading` protocol in Nuke 7.")
+@available(*, deprecated, message: "Please use new `ImagePipeline` class instead. There is no direct alternative to `Loading` protocol in Nuke 7.")
 public extension Loading {
     public func loadImage(with request: ImageRequest, completion: @escaping (Result<Image>) -> Void) {
         self.loadImage(with: request, token: nil, completion: completion)
@@ -184,7 +184,7 @@ public extension Loading {
     }
 }
 
-@available(*, deprecated, message: "Please use `ImagePipeline` instead")
+@available(*, deprecated, message: "Please use new `ImagePipeline` class instead")
 public final class Loader: Loading {
 
     public static let shared: Loading = Loader(loader: DataLoader())
@@ -250,12 +250,12 @@ public extension ImageRequest {
 
 // MARK: - Caching
 
-@available(*, deprecated, message: "Please use `ImageCaching` instead")
+@available(*, deprecated, message: "Please use `ImageCaching` instead.")
 public protocol Caching: class {
     subscript(key: AnyHashable) -> Image? { get set }
 }
 
-@available(*, deprecated, message: "Please use `ImageCaching` instead")
+@available(*, deprecated, message: "Please use `ImageCaching` instead.")
 public extension Caching {
     /// Accesses the image associated with the given request.
     public subscript(request: ImageRequest) -> Image? {
@@ -264,7 +264,7 @@ public extension Caching {
     }
 }
 
-@available(*, deprecated, message: "Please use `ImageCache` instead")
+@available(*, deprecated, message: "Please use `ImageCache` instead.")
 public final class Cache: Caching {
     private let _impl: _Cache<AnyHashable, Image>
 
@@ -351,21 +351,21 @@ public final class Cache: Caching {
 
 // MARK: - Renaming
 
-@available(*, deprecated, message: "Please use `ImageRequest` instead")
+@available(*, deprecated, message: "It was renamed into `ImageRequest`.")
 public typealias Request = ImageRequest
 
-@available(*, deprecated, message: "Please use `ImageTask.Progress` instead")
+@available(*, deprecated, message: "Please use new `ImageTask.ProgressHandler` typealias instead.")
 public typealias ProgressHandler = ImageTask.ProgressHandler
 
 // MARK: - DataDecoding
 
-@available(*, deprecated, message: "Please use `ImageDecoding` instead`")
+@available(*, deprecated, message: "Please use new `ImageDecoding` protocol instead.")
 public protocol DataDecoding {
     /// Decodes image data.
     func decode(data: Data, response: URLResponse) -> Image?
 }
 
-@available(*, deprecated, message: "Please use `ImageDecoder` instead`")
+@available(*, deprecated, message: "Please use `ImageDecoder` instead.")
 public struct DataDecoder: DataDecoding {
     /// Initializes the receiver.
     public init() {}
@@ -376,7 +376,7 @@ public struct DataDecoder: DataDecoding {
     }
 }
 
-@available(*, deprecated, message: "Please use new `ImageDecoderRegistry` or `IamgePipeline.Configuration.imageDecoder` instead to dynamically decide which decoder to use.")
+@available(*, deprecated, message: "Please use new `ImageDecoderRegistry` class to register custom decoders.")
 public struct DataDecoderComposition: DataDecoding {
     public let decoders: [DataDecoding]
 
@@ -417,7 +417,7 @@ internal final class _DataDecoderAdapter: ImageDecoding {
 /// Manages cancellation tokens and signals them when cancellation is requested.
 ///
 /// All `CancellationTokenSource` methods are thread safe.
-@available(*, deprecated, message: "If you still need to use Cancellation Tokens please consider adding them into your project.")
+@available(*, deprecated, message: "If you'd like to continue using cancellation tokens please consider copying this code into your project.")
 public final class CancellationTokenSource {
     /// Returns `true` if cancellation has been requested.
     public var isCancelling: Bool {
@@ -476,7 +476,7 @@ private let _lock = NSLock()
 /// The registered objects can respond in whatever manner is appropriate.
 ///
 /// All `CancellationToken` methods are thread safe.
-@available(*, deprecated, message: "If you still need to use Cancellation Tokens please consider adding them into your project.")
+@available(*, deprecated, message: "If you'd like to continue using cancellation tokens please consider copying this code into your project.")
 public struct CancellationToken {
     fileprivate let source: CancellationTokenSource? // no-op when `nil`
 
@@ -501,7 +501,7 @@ public struct CancellationToken {
 // MARK: - Result
 
 /// An enum representing either a success with a result value, or a failure.
-@available(*, deprecated, message: "If you still need to use Cancellation Tokens please consider adding them into your project.")
+@available(*, deprecated, message: "Nuke no longer exposes public `Result` type, it's only used privately.")
 public enum Result<T> {
     case success(T), failure(Error)
 
@@ -518,12 +518,12 @@ public enum Result<T> {
 
 // MARK: - Processing
 
-@available(*, deprecated, message: "Please use `ImageProcessing` instead.")
+@available(*, deprecated, message: "Please use new `ImageProcessing` protocol instead.")
 public protocol Processing: Equatable {
     func process(_ image: Image) -> Image?
 }
 
-@available(*, deprecated, message: "Please use `ImageRequest` methods which append image processors.")
+@available(*, deprecated, message: "Please use `ImageRequest` methods which append image processors If you'd like to continue using `ProcessorComposition` please copy it in your project.")
 public struct ProcessorComposition: Processing {
     private let processors: [AnyProcessor]
 
@@ -566,7 +566,7 @@ public struct AnyProcessor: Processing {
 #if !os(macOS)
 import UIKit
 
-@available(*, deprecated, message: "Please use `ImageDecompressor` instead")
+@available(*, deprecated, message: "Please use `ImageDecompressor` instead.")
 public struct Decompressor: Processing {
     public enum ContentMode {
         case aspectFill
@@ -606,7 +606,7 @@ public struct Decompressor: Processing {
 }
 #endif
 
-@available(*, deprecated, message: "Please use `ImageProcessing` instead")
+@available(*, deprecated, message: "Please use new `ImageProcessing` protocol instead")
 private struct _ImageProcessorBridge: ImageProcessing { // Bridge from Processing to ImageProcessing
     let processor: AnyProcessor
 
@@ -620,7 +620,7 @@ private struct _ImageProcessorBridge: ImageProcessing { // Bridge from Processin
 }
 
 public extension ImageRequest {
-    @available(*, deprecated, message: "Please use `ImageProcessing` instead")
+    @available(*, deprecated, message: "Please use new functions that works with `ImageProcessing` instead.")
     public mutating func process<P: Processing>(with processor: P) {
         let bridge = _ImageProcessorBridge(processor: AnyProcessor(processor))
         guard let existing = self.processor else {
@@ -631,7 +631,7 @@ public extension ImageRequest {
         self.processor = AnyImageProcessor(ImageProcessorComposition([existing, AnyImageProcessor(bridge)]))
     }
 
-    @available(*, deprecated, message: "Please use `ImageProcessing` instead")
+    @available(*, deprecated, message: "Please use new functions that works with `ImageProcessing` instead.")
     public func processed<P: Processing>(with processor: P) -> ImageRequest {
         var request = self
         request.process(with: processor)
@@ -641,7 +641,7 @@ public extension ImageRequest {
 
 // MARK: - Preheater
 
-@available(*, deprecated, message: "Please use `ImagePreheater` instead")
+@available(*, deprecated, message: "Please use `ImagePreheater` instead.")
 public final class Preheater {
     private let manager: Manager
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
