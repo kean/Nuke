@@ -122,7 +122,7 @@ public /* final */ class ImagePipeline {
 
         /// Default implementation uses shared `ImageDecoderRegistry` to create
         /// a decoder that matches the context.
-        public var imageDecoder: (ImageDecodingContext) -> ImageDecoding = {
+        internal var imageDecoder: (ImageDecodingContext) -> ImageDecoding = {
             return ImageDecoderRegistry.shared.decoder(for: $0)
         }
 
