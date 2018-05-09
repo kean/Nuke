@@ -73,7 +73,7 @@ class ImageViewTests: XCTestCase {
 
         XCTAssertNil(imageView.image)
         var request = Test.request
-        request.memoryCacheOptions.readAllowed = false
+        request.memoryCacheOptions.isReadAllowed = false
 
         Nuke.loadImage(with: request, into: imageView)
 

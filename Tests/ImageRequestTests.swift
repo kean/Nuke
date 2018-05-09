@@ -24,7 +24,7 @@ class ImageRequestTests: XCTestCase {
 
     func testCopyOnWrite() {
         var request = ImageRequest(url: URL(string: "http://test.com/1.png")!)
-        request.memoryCacheOptions.readAllowed = false
+        request.memoryCacheOptions.isReadAllowed = false
         request.loadKey = "1"
         request.cacheKey = "2"
         request.userInfo = "3"
@@ -35,7 +35,7 @@ class ImageRequestTests: XCTestCase {
         // Requsts makes a copy at this point.
         copy.urlRequest = URLRequest(url: URL(string: "http://test.com/2.png")!)
 
-        XCTAssertEqual(copy.memoryCacheOptions.readAllowed, false)
+        XCTAssertEqual(copy.memoryCacheOptions.isReadAllowed, false)
         XCTAssertEqual(copy.loadKey, "1")
         XCTAssertEqual(copy.cacheKey, "2")
         XCTAssertEqual(copy.userInfo as? String, "3")

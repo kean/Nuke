@@ -53,10 +53,10 @@ public struct ImageRequest {
     /// The policy to use when reading or writing images to the memory cache.
     public struct MemoryCacheOptions {
         /// `true` by default.
-        public var readAllowed = true
+        public var isReadAllowed = true
 
         /// `true` by default.
-        public var writeAllowed = true
+        public var isWriteAllowed = true
 
         public init() {}
     }
@@ -172,13 +172,15 @@ public struct ImageRequest {
         closure(_ref)
     }
 
-    /// Just like many Swift built-in types, `Request` uses CoW approach to
-    /// avoid memberwise retain/releases when `Request is passed around.
+    /// Just like many Swift built-in types, `ImageRequest` uses CoW approach to
+    /// avoid memberwise retain/releases when `ImageRequest` is passed around.
     private class Container {
         var resource: Resource
         var _urlString: String? // memoized absoluteString
-        var _customProcessor: AnyImageProcessor?
+        // true unless user set a custom one, this allows us not to store the
+        // default processor anywhere in the `Container`.
         var _isDefaultProcessorUsed: Bool = true
+        var _customProcessor: AnyImageProcessor?
         var memoryCacheOptions = MemoryCacheOptions()
         var priority: ImageRequest.Priority = .normal
         var cacheKey: AnyHashable?

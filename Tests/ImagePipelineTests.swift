@@ -355,7 +355,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func testCacheWriteDisabled() {
         let request = ImageRequest(url: defaultURL).mutated {
-            $0.memoryCacheOptions.writeAllowed = false
+            $0.memoryCacheOptions.isWriteAllowed = false
         }
 
         waitLoadedImage(with: request)
@@ -368,7 +368,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
         cache.storeResponse(ImageResponse(image: defaultImage, urlResponse: nil), for: Test.request)
 
         let request = ImageRequest(url: defaultURL).mutated {
-            $0.memoryCacheOptions.readAllowed = false
+            $0.memoryCacheOptions.isReadAllowed = false
         }
 
         waitLoadedImage(with: request)

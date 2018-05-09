@@ -6,31 +6,45 @@ import Foundation
 
 // MARK: - ImageTask
 
-/// - important: Make sure that you access Task properties only from the
-/// delegate queue.
+/// A task performed by the `ImagePipeline`. The pipeline maintains a strong
+/// reference to the task until the request finishes or fails; you do not need
+/// to maintain a reference to the task unless it is useful to do so for your
+/// app’s internal bookkeeping purposes.
 public /* final */ class ImageTask: Hashable {
+    /// An identifier uniquely identifies the task within a given pipeline. Only
+    /// unique within this pipeline.
     public let taskId: Int
+
+    /// The request with which the task was created. The request might change
+    /// during the exetucion of a task. When you update the priority of the task,
+    /// the request's prir also gets updated.
     public private(set) var request: ImageRequest
 
+    /// The number of bytes that the task has received.
     public fileprivate(set) var completedUnitCount: Int64 = 0
+
+    /// A best-guess upper bound on the number of bytes the client expects to send.
     public fileprivate(set) var totalUnitCount: Int64 = 0
 
-    /// Returns progress object for the task. The object is created lazily.
+    /// Returns a progress object for the task. The object is created lazily.
     public var progress: Progress {
         if _progress == nil { _progress = Progress() }
         return _progress!
     }
     fileprivate private(set) var _progress: Progress?
 
+    /// A completion handler to be called when task finishes or fails.
     public typealias Completion = (_ response: ImageResponse?, _ error: ImagePipeline.Error?) -> Void
+    /// A progress handler to be called periodically during the lifetime of a task.
     public typealias ProgressHandler = (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void
 
+    // internal stuff associated with a task
     fileprivate var metrics: ImageTaskMetrics
     fileprivate var priorityObserver: ((ImageRequest.Priority) -> Void)?
-    fileprivate weak var session: ImagePipeline.Session?
+    fileprivate weak var session: ImagePipeline.Session? // sessino exeucting task
     fileprivate var cts = _CancellationSource()
 
-    public init(taskId: Int, request: ImageRequest) {
+    internal init(taskId: Int, request: ImageRequest) {
         self.taskId = taskId
         self.request = request
         self.metrics = ImageTaskMetrics(taskId: taskId, startDate: Date())
@@ -38,13 +52,19 @@ public /* final */ class ImageTask: Hashable {
 
     // MARK: - Priority
 
+    /// Update s priority of the task even if the task is already running.
     public func setPriority(_ priority: ImageRequest.Priority) {
         request.priority = priority
         priorityObserver?(priority)
     }
 
-    // MARK: - Managing Cancellation
+    // MARK: - Cancellation
 
+    /// Marks task as being cancelled.
+    ///
+    /// The pipeline will immediately cancel any work associated with a task
+    /// unless there is an equivalent outstanding task running (see
+    /// `ImagePipeline.Configuration.isDeduplicationEnabled` for more info).
     public func cancel() {
         cts.cancel()
     }
@@ -62,6 +82,7 @@ public /* final */ class ImageTask: Hashable {
 
 // MARK: - ImageResponse
 
+/// Represents an image response.
 public final class ImageResponse {
     public let image: Image
     public let urlResponse: URLResponse?
@@ -75,21 +96,13 @@ public final class ImageResponse {
 
 // MARK: - ImagePipeline
 
-/// `ImagePipeline` implements an image loading pipeline. It loads image data using
-/// data loader (`DataLoading`), then creates an image using `DataDecoding`
-/// object, and transforms the image using processors (`Processing`) provided
-/// in the `Request`.
+/// `ImagePipeline` will load and decode image data, process loaded images and
+/// store them in caches.
 ///
-/// Pipeline combines the requests with the same `loadKey` into a single request.
-/// The request only gets cancelled when all the registered handlers are.
+/// See [Nuke's README](https://github.com/kean/Nuke) for a detailed overview of
+/// the image pipeline and all of the related classes.
 ///
-/// `ImagePipeline` limits the number of concurrent requests (the default maximum limit
-/// is 5). It also rate limits the requests to prevent `Loader` from trashing
-/// underlying systems (e.g. `URLSession`). The rate limiter only comes into play
-/// when the requests are started and cancelled at a high rate (e.g. fast
-/// scrolling through a collection view).
-///
-/// `ImagePipeline` features can be configured using `Loader.Options`.
+/// `ImagePipeline` is created with a configuration (`Configuration`).
 ///
 /// `ImagePipeline` is thread-safe.
 public /* final */ class ImagePipeline {
@@ -111,13 +124,15 @@ public /* final */ class ImagePipeline {
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
 
-    /// The closure that gets called each time the task is completed (or cancelled). Gets called on the main thread.
+    /// The closure that gets called each time the task is completed (or cancelled).
+    /// Guaranteed to be called on the main thread.
     public var didFinishCollectingMetrics: ((ImageTask, ImageTaskMetrics) -> Void)?
 
     public struct Configuration {
-        /// Data loader using by the pipeline.
+        /// Data loader used by the pipeline.
         public var dataLoader: DataLoading
 
+        /// Data loading queue. Default maximum concurrent task count is 6.
         public var dataLoadingQueue = OperationQueue()
 
         /// Default implementation uses shared `ImageDecoderRegistry` to create
@@ -132,23 +147,30 @@ public /* final */ class ImagePipeline {
         /// This is here just for backward compatibility with `Loader`.
         internal var imageProcessor: (Image, ImageRequest) -> AnyImageProcessor? = { $1.processor }
 
+        /// Image processing queue. Default maximum concurrent task count is 2.
         public var imageProcessingQueue = OperationQueue()
 
-        /// `true` by default. If `true` loader combines the requests with the
-        /// same `loadKey` into a single request. The request only gets cancelled
-        /// when all the registered requests are.
+        /// `true` by default. If `true` the pipeline will combine the requests
+        /// with the same `loadKey` into a single request. The request only gets
+        /// cancelled when all the registered requests are.
         public var isDeduplicationEnabled = true
 
-        /// `true` by default. It `true` loader rate limits the requests to
-        /// prevent `Loader` from trashing underlying systems (e.g. `URLSession`).
+        /// `true` by default. It `true` the pipeline will rate limits the requests
+        /// to prevent trashing of the underlying systems (e.g. `URLSession`).
         /// The rate limiter only comes into play when the requests are started
         /// and cancelled at a high rate (e.g. scrolling through a collection view).
         public var isRateLimiterEnabled = true
 
-        /// `false` by default.
+        /// `false` by default. If `true` the pipeline will try to produce a new
+        /// image each time it receives a new portion of data from data loader.
+        /// The decoder used by the image loading session determines whether
+        /// to produce a partial image or not.
         public var isProgressiveDecodingEnabled = false
 
-        /// `true` by default.
+        /// If the data task is terminated (either because of a failure or a
+        /// cancellation) and the image was partially loaded, the next load will
+        /// resume where it was left off. Supports both validators (`ETag`,
+        /// `Last-Modified`). The resumable downloads are enabled by default.
         public var isResumableDataEnabled = true
 
         /// If `true` pipeline will detects GIFs and set `animatedImageData`
@@ -182,7 +204,6 @@ public /* final */ class ImagePipeline {
         /// Creates default configuration.
         /// - parameter dataLoader: `DataLoader()` by default.
         /// - parameter imageCache: `Cache.shared` by default.
-        /// - parameter options: Options which can be used to customize loader.
         public init(dataLoader: DataLoading = DataLoader(), imageCache: ImageCaching? = ImageCache.shared) {
             self.dataLoader = dataLoader
             self.imageCache = imageCache
@@ -192,7 +213,7 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    /// Initializes `Loader` instance with the given loader, decoder.
+    /// Initializes `ImagePipeline` instance with the given configuration.
     /// - parameter configuration: `Configuration()` by default.
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
@@ -233,7 +254,7 @@ public /* final */ class ImagePipeline {
         }
 
         // Read memory cache.
-        if task.request.memoryCacheOptions.readAllowed,
+        if task.request.memoryCacheOptions.isReadAllowed,
             let response = configuration.imageCache?.cachedResponse(for: task.request) {
             DispatchQueue.main.async {
                 handlers.completion?(response, nil)
@@ -640,7 +661,7 @@ public /* final */ class ImagePipeline {
 
         // Save image in cache if at least one registered task allowed it.
         if let response = response, let imageCache = configuration.imageCache,
-            session.tasks.keys.contains(where: { $0.request.memoryCacheOptions.writeAllowed }) {
+            session.tasks.keys.contains(where: { $0.request.memoryCacheOptions.isWriteAllowed }) {
             imageCache.storeResponse(response, for: session.request)
         }
         session.metrics.endDate = Date()

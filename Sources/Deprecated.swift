@@ -639,6 +639,20 @@ public extension ImageRequest {
     }
 }
 
+public extension ImageRequest.MemoryCacheOptions {
+    @available(*, deprecated, message: "Renamed to `isReadAllowed`.")
+    public var readAllowed: Bool {
+        get { return isReadAllowed }
+        set { isReadAllowed = newValue }
+    }
+    
+    @available(*, deprecated, message: "Renamed to `isWriteAllowed`.")
+    public var writeAllowed: Bool {
+        get { return isWriteAllowed }
+        set { isWriteAllowed = newValue }
+    }
+}
+
 // MARK: - Preheater
 
 @available(*, deprecated, message: "Please use `ImagePreheater` instead.")

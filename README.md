@@ -384,7 +384,7 @@ A common use case is to dynamically start and cancel requests for a collection v
 
 ### Performance Metrics (Beta)
 
-Nuke collects detailed performance metrics during the exution of an image task:
+When optimizing performance, it's important to measure. Nuke collects detailed performance metrics during the exution of each image task:
 
 ```swift
 ImagePipeline.shared.didFinishCollectingMetrics = { task, metrics in
