@@ -31,7 +31,7 @@ internal struct ImageProcessorComposition: ImageProcessing {
     }
 
     /// Returns true if the underlying processors are pairwise-equivalent.
-    public static func ==(lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
+    public static func == (lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
         return lhs.processors == rhs.processors
     }
 }
@@ -52,7 +52,7 @@ public struct AnyImageProcessor: ImageProcessing {
         return self._process(image, context)
     }
 
-    public static func ==(lhs: AnyImageProcessor, rhs: AnyImageProcessor) -> Bool {
+    public static func == (lhs: AnyImageProcessor, rhs: AnyImageProcessor) -> Bool {
         return lhs._equals(rhs)
     }
 }
@@ -69,7 +69,7 @@ internal struct AnonymousImageProcessor<Key: Hashable>: ImageProcessing {
         return self._closure(image)
     }
 
-    static func ==(lhs: AnonymousImageProcessor, rhs: AnonymousImageProcessor) -> Bool {
+    static func == (lhs: AnonymousImageProcessor, rhs: AnonymousImageProcessor) -> Bool {
         return lhs._key == rhs._key
     }
 }
@@ -96,7 +96,10 @@ public struct ImageDecompressor: ImageProcessing {
     }
 
     /// Size to pass to disable resizing.
-    public static let MaximumSize = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+    public static let MaximumSize = CGSize(
+        width: CGFloat.greatestFiniteMagnitude,
+        height: CGFloat.greatestFiniteMagnitude
+    )
 
     private let targetSize: CGSize
     private let contentMode: ContentMode
@@ -116,7 +119,7 @@ public struct ImageDecompressor: ImageProcessing {
     }
 
     /// Returns true if both have the same `targetSize` and `contentMode`.
-    public static func ==(lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
+    public static func == (lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
         return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
     }
 
@@ -143,7 +146,10 @@ internal func decompress(_ image: UIImage, targetSize: CGSize, contentMode: Imag
 internal func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
     guard let cgImage = image.cgImage else { return image }
 
-    let size = CGSize(width: round(scale * CGFloat(cgImage.width)), height: round(scale * CGFloat(cgImage.height)))
+    let size = CGSize(
+        width: round(scale * CGFloat(cgImage.width)),
+        height: round(scale * CGFloat(cgImage.height))
+    )
 
     // For more info see:
     // - Quartz 2D Programming Guide
@@ -151,8 +157,13 @@ internal func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
     // - https://github.com/kean/Nuke/issues/57
     let alphaInfo: CGImageAlphaInfo = isOpaque(cgImage) ? .noneSkipLast : .premultipliedLast
 
-    guard let ctx = CGContext(data: nil, width: Int(size.width), height: Int(size.height), bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: alphaInfo.rawValue) else {
-        return image
+    guard let ctx = CGContext(
+        data: nil,
+        width: Int(size.width), height: Int(size.height),
+        bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: alphaInfo.rawValue) else {
+            return image
     }
     ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: size))
     guard let decompressed = ctx.makeImage() else { return image }

@@ -28,7 +28,8 @@ public final class DataLoader: DataLoading {
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
-    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration, validate: @escaping (URLResponse) -> Swift.Error? = DataLoader.validate) {
+    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
+                validate: @escaping (URLResponse) -> Swift.Error? = DataLoader.validate) {
         self._impl = _DataLoader()
         self.session = URLSession(configuration: configuration, delegate: _impl, delegateQueue: _impl.queue)
         self._impl.session = self.session
@@ -157,4 +158,3 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         }
     }
 }
-

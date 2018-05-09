@@ -75,7 +75,7 @@ public func loadImage(with url: URL,
                       into view: ImageDisplayingView,
                       progress: ImageTask.ProgressHandler? = nil,
                       completion: ImageTask.Completion? = nil) -> ImageTask? {
-    return loadImage(with: ImageRequest(url: url), options: options, into: view, progress: progress, completion: completion)
+    return loadImage(with: ImageRequest(url: url),options: options, into: view, progress: progress, completion: completion)
 }
 
 /// Loads an image into the view.

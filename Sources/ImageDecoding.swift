@@ -193,7 +193,7 @@ enum ImageFormat: Equatable {
     }
 
     #if !swift(>=4.1)
-    static func ==(lhs: ImageFormat, rhs: ImageFormat) -> Bool {
+    static func == (lhs: ImageFormat, rhs: ImageFormat) -> Bool {
         switch (lhs, rhs) {
         case let (.jpeg(lhs), .jpeg(rhs)): return lhs == rhs
         case (.png, .png): return true

@@ -23,7 +23,7 @@ internal class DataCache {
             return raw.hashValue
         }
 
-        static func ==(lhs: DataCache.Filename, rhs: DataCache.Filename) -> Bool {
+        static func == (lhs: DataCache.Filename, rhs: DataCache.Filename) -> Bool {
             return lhs.raw == rhs.raw
         }
         #endif
@@ -46,7 +46,7 @@ internal class DataCache {
     
     // Temporary
     var _keyEncoder: (String) -> String? = { return $0 }
-    
+
     convenience init(name: String, algorithm: CacheAlgorithm? = CacheAlgorithmLRU()) throws {
         guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
@@ -59,7 +59,7 @@ internal class DataCache {
         self._algorithm = algorithm
         
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
-        
+
         // Pay a little price upfront to get better performance and more control
         // later (we need this index anyway to perform sweeps). We take advantage
         /// of fast filesystem metadata. Loading an index of cache with 1000 items
@@ -79,7 +79,7 @@ internal class DataCache {
     }
     
     // MARK: Loading Index
-    
+
     /// Takes advantage of the fast filesystem metadata. Reading contents of
     /// cache directory is not that much slower than, for instance, maintaining
     /// our own persistent index.
@@ -92,13 +92,13 @@ internal class DataCache {
             }
         }
     }
-    
+
     private func _contents(keys: [URLResourceKey]) -> [URL] {
         return (try? FileManager.default.contentsOfDirectory(at: path, includingPropertiesForKeys: keys, options: .skipsHiddenFiles)) ?? []
     }
-    
+
     // MARK: Data Accessors
-    
+
     func filename(for key: Key) -> Filename? {
         return _keyEncoder(key).map(Filename.init(raw:))
     }
@@ -127,20 +127,20 @@ internal class DataCache {
         entry.accessDate = Date()
         let payload = entry.payload
         _lock.unlock()
-        
+
         switch payload {
         case let .staged(data): return data
         case let .saved(url): return try? Data(contentsOf: url)
         }
     }
-    
+
     private func _setData(_ data: Data, for filename: Filename) {
         let entry = Entry(filename: filename, data: data)
         
         _lock.lock()
         _index[filename] = entry // Replace with the new value
         _lock.unlock()
-        
+
         _wqueue.async {
             let url = self.path.appendingPathComponent(filename.raw, isDirectory: false)
             
@@ -153,13 +153,13 @@ internal class DataCache {
             self._lock.unlock()
         }
     }
-    
+
     private func _removeData(for filename: Filename) {
         _lock.lock()
         _removeData(for: [filename])
         _lock.unlock()
     }
-    
+
     private func _removeData(for filenames: [Filename]) {
         #if swift(>=4.1)
         let removed = filenames.compactMap { _index.removeValue(forKey: $0) }
@@ -182,80 +182,80 @@ internal class DataCache {
             }
         }
     }
-    
+
     /// Removes all items asynchronously.
     func removeAll() {
         _lock.lock()
         _index.removeAll()
         _lock.unlock()
-        
+
         _wqueue.async {
             try? FileManager.default.removeItem(at: self.path)
             try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
         }
     }
-    
+
     // MARK: Flush Changes
-    
+
     /// Synchronously waits on the callers thread while all the remaining
     /// entries are flushed to disk.
     func flush() {
         // Wait until everything is written and flush keys
         _wqueue.sync {}
     }
-    
+
     // MARK: Sweep
-    
+
     private func _scheduleSweep() {
         _wqueue.asyncAfter(deadline: .now() + sweepInterval) { [weak self] in
             self?._sweep()
             self?._scheduleSweep()
         }
     }
-    
+
     func sweep() {
         guard let algorithm = _algorithm else { return }
         sweep(with: algorithm)
     }
-    
+
     func sweep(with algorithm: CacheAlgorithm) {
         _wqueue.async {
             self._sweep(with: algorithm)
         }
     }
-    
+
     private func _sweep() {
         guard let algorithm = _algorithm else { return }
         _sweep(with: algorithm)
     }
-    
+
     private func _sweep(with algorithm: CacheAlgorithm) {
         _lock.lock()
         let discarded = algorithm.discarded(items: _index.values)
         _removeData(for: discarded.map { $0.filename })
         _lock.unlock()
     }
-    
+
     // MARK: Inspection
-    
+
     /// Allows you to inspect the cache contents. This method executes synchronously.
     /// synchronously in the cache's critical section.
     func inspect<T>(_ closure: ([Filename: Entry]) -> T) -> T {
         return _lock.sync { closure(_index) }
     }
-    
+
     /// The total number of items in the cache.
     var totalCount: Int {
         return _lock.sync { _index.count }
     }
-    
+
     /// The total size of items in the cache.
     var totalSize: Int {
         return _lock.sync {
             _index.reduce(0) { $0 + ($1.value.fileSize ?? 0) }
         }
     }
-    
+
     /// Might be underestimdated until all write operation are completed.
     var totalAllocatedSize: Int {
         return _lock.sync {
@@ -274,7 +274,7 @@ internal class DataCache {
     }
 
     // MARK: Testing
-    
+
     func _test_withSuspendedIO(_ closure: () -> Void) {
         _wqueue.suspend()
         closure()
@@ -282,46 +282,46 @@ internal class DataCache {
     }
 
     // MARK: Entry
-    
+
     final class Entry {
         /// The date the entry was created (`URLResourceKey.creationDateKey`).
         internal(set) var creationDate: Date?
-        
+
         /// The date the entry was last accessed (`URLResourceKey.contentAccessDateKey`).
         internal(set) var accessDate: Date?
-        
+
         /// File size in bytes (`URLResourceKey.fileSizeKey`).
         internal(set) var fileSize: Int?
-        
+
         /// Total size allocated on disk for the file in bytes (number of blocks
         /// times block size) (`URLResourceKey.fileAllocatedSizeKey`).
         ///
         /// The allocated size doesn't become available until the data is
         /// actually written to disk.
         internal(set) var totalFileAllocatedSize: Int?
-        
+
         var underestimatedSize: Int {
             return totalFileAllocatedSize ?? fileSize ?? 0
         }
-        
+
         let filename: Filename
-        
+
         enum Payload {
             case staged(Data)
             case saved(URL)
-            
+
             var url: URL? {
                 if case let .saved(url) = self { return url }
                 return nil
             }
         }
         var payload: Payload
-        
+
         init(filename: Filename, payload: Payload) {
             self.filename = filename
             self.payload = payload
         }
-        
+
         convenience init(filename: Filename, url: URL, metadata: URLResourceValues) {
             self.init(filename: filename, payload: .saved(url))
             self.creationDate = metadata.creationDate
@@ -329,7 +329,7 @@ internal class DataCache {
             self.fileSize = metadata.fileSize
             self.totalFileAllocatedSize = metadata.totalFileAllocatedSize
         }
-        
+
         convenience init(filename: Filename, data: Data) {
             self.init(filename: filename, payload: .staged(data))
             let now = Date()
@@ -355,10 +355,10 @@ protocol CacheAlgorithm {
 struct CacheAlgorithmLRU: CacheAlgorithm {
     /// The maximum number of items. `1000` by default.
     var countLimit: Int
-    
+
     /// Size limit in bytes. `100 Mb` by default.
     var sizeLimit: Int
-    
+
     /// The `discarded(items:)` method removes items until the total
     /// size of the remaining items is lower then or equal to
     /// `sizeLimit * trimRatio` and the total count is lower then or
@@ -371,27 +371,27 @@ struct CacheAlgorithmLRU: CacheAlgorithm {
         self.countLimit = countLimit
         self.sizeLimit = sizeLimit
     }
-    
+
     /// Discards the least recently used items first.
-    func discarded<Items>(items: Items) -> [DataCache.Entry] where Items : Collection, Items.Element == DataCache.Entry {
+    func discarded<Items>(items: Items) -> [DataCache.Entry] where Items: Collection, Items.Element == DataCache.Entry {
         guard items.count > 0 else { return [] }
-        
+
         var size = items.reduce(0) { $0 + $1.underestimatedSize }
         var count = items.count
         let sizeLimit = self.sizeLimit / Int(1 / trimRatio)
         let countLimit = self.countLimit / Int(1 / trimRatio)
-        
-        guard (size > sizeLimit || count > countLimit) else {
+
+        guard size > sizeLimit || count > countLimit else {
             return [] // All good, no need to perform any work.
         }
-        
+
         // Least recently accessed items first
         let past = Date.distantPast
         let sorted = items.sorted {
             // In pratice items must always have `accessDate` at this point
             ($0.accessDate ?? past) < ($1.accessDate ?? past)
         }
-        
+
         // Remove the items until we satisfy both size and count limits.
         var idx = 0
         while (size > sizeLimit || count > countLimit), idx <= sorted.endIndex {
@@ -399,7 +399,7 @@ struct CacheAlgorithmLRU: CacheAlgorithm {
             count -= 1
             idx += 1
         }
-        
+
         // Remove all remaining items
         return Array(sorted[0..<idx])
     }

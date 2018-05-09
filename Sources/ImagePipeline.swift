@@ -51,7 +51,7 @@ public /* final */ class ImageTask: Hashable {
 
     // MARK: - Hashable
 
-    public static func ==(lhs: ImageTask, rhs: ImageTask) -> Bool {
+    public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
         return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
     }
 
@@ -728,7 +728,7 @@ public /* final */ class ImagePipeline {
     }
 }
 
-// MARK - ImageTaskMetrics
+// MARK: - ImageTaskMetrics
 
 public struct ImageTaskMetrics: CustomDebugStringConvertible {
     public let taskId: Int

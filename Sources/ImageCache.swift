@@ -145,7 +145,7 @@ public final class ImageCache: ImageCaching {
             return 1 + dataCost
         }
         return cgImage.bytesPerRow * cgImage.height + dataCost
-        
+
         #else
         return 1
         #endif

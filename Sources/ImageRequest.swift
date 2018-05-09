@@ -81,7 +81,7 @@ public struct ImageRequest {
             }
         }
 
-        public static func <(lhs: Priority, rhs: Priority) -> Bool {
+        public static func < (lhs: Priority, rhs: Priority) -> Bool {
             return lhs.rawValue < rhs.rawValue
         }
     }
@@ -112,7 +112,7 @@ public struct ImageRequest {
         get { return _ref.loadKey }
         set { _mutate { $0.loadKey = newValue } }
     }
-    
+
     /// Custom info passed alongside the request.
     public var userInfo: Any? {
         get { return _ref.userInfo }
@@ -262,7 +262,7 @@ internal extension ImageRequest {
             return request._ref._urlString?.hashValue ?? 0
         }
 
-        static func ==(lhs: CacheKey, rhs: CacheKey) -> Bool {
+        static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
             let lhs = lhs.request, rhs = rhs.request
             if let lhsCustomKey = lhs._ref.cacheKey, let rhsCustomKey = rhs._ref.cacheKey {
                 return lhsCustomKey == rhsCustomKey
@@ -280,10 +280,10 @@ internal extension ImageRequest {
             return request._ref._urlString?.hashValue ?? 0
         }
 
-        static func ==(lhs: LoadKey, rhs: LoadKey) -> Bool {
-            func isEqual(_ a: URLRequest, _ b: URLRequest) -> Bool {
-                return a.cachePolicy == b.cachePolicy
-                    && a.allowsCellularAccess == b.allowsCellularAccess
+        static func == (lhs: LoadKey, rhs: LoadKey) -> Bool {
+            func isEqual(_ lhs: URLRequest, _ rhs: URLRequest) -> Bool {
+                return lhs.cachePolicy == rhs.cachePolicy
+                    && lhs.allowsCellularAccess == rhs.allowsCellularAccess
             }
             let lhs = lhs.request, rhs = rhs.request
             if let lhsCustomKey = lhs._ref.loadKey, let rhsCustomKey = rhs._ref.loadKey {
