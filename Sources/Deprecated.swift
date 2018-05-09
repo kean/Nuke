@@ -354,9 +354,6 @@ public final class Cache: Caching {
 @available(*, deprecated, message: "Please use `ImageRequest` instead")
 public typealias Request = ImageRequest
 
-@available(*, deprecated, message: "Please use `ImagePreheater` instead")
-public typealias Preheater = ImagePreheater
-
 @available(*, deprecated, message: "Please use `ImageTask.Progress` instead")
 public typealias ProgressHandler = ImageTask.ProgressHandler
 
@@ -639,5 +636,85 @@ public extension ImageRequest {
         var request = self
         request.process(with: processor)
         return request
+    }
+}
+
+// MARK: - Preheater
+
+@available(*, deprecated, message: "Please use `ImagePreheater` instead")
+public final class Preheater {
+    private let manager: Manager
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
+    private let preheatQueue = OperationQueue()
+    private var tasks = [AnyHashable: Task]()
+
+    public init(manager: Manager = Manager.shared, maxConcurrentRequestCount: Int = 2) {
+        self.manager = manager
+        self.preheatQueue.maxConcurrentOperationCount = maxConcurrentRequestCount
+    }
+
+    public func startPreheating(with requests: [Request]) {
+        queue.async {
+            requests.forEach(self._startPreheating)
+        }
+    }
+
+    private func _startPreheating(with request: Request) {
+        let key = ImageRequest.LoadKey(request: request)
+        guard tasks[key] == nil else { return } // already exists
+
+        let task = Task(request: request, key: key)
+        let token = task.cts.token
+
+        let operation = Operation(starter: { [weak self] finish in
+            self?.manager.loadImage(with: request, token: token) { _ in
+                self?._remove(task)
+                finish()
+            }
+            token.register(finish)
+        })
+        preheatQueue.addOperation(operation)
+        token.register { [weak operation] in operation?.cancel() }
+
+        tasks[key] = task
+    }
+
+    private func _remove(_ task: Task) {
+        queue.async {
+            guard self.tasks[task.key] === task else { return }
+            self.tasks[task.key] = nil
+        }
+    }
+
+    public func stopPreheating(with requests: [Request]) {
+        queue.async {
+            requests.forEach(self._stopPreheating)
+        }
+    }
+
+    private func _stopPreheating(with request: Request) {
+        if let task = tasks[ImageRequest.LoadKey(request: request)] {
+            tasks[task.key] = nil
+            task.cts.cancel()
+        }
+    }
+
+    /// Stops all preheating tasks.
+    public func stopPreheating() {
+        queue.async {
+            self.tasks.forEach { $0.1.cts.cancel() }
+            self.tasks.removeAll()
+        }
+    }
+
+    private final class Task {
+        let key: AnyHashable
+        let request: Request
+        let cts = CancellationTokenSource()
+
+        init(request: Request, key: AnyHashable) {
+            self.request = request
+            self.key = key
+        }
     }
 }
