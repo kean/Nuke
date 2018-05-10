@@ -22,13 +22,13 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
 
 - Basic [**Usage Guide**](#h_usage), best place to start
   - [Load Image into Image View](#load-image-into-image-view)
-  - [Placeholders, Transitions and More](#placeholders--transitions-and-more)
+  - [Placeholders, Transitions and More](#placeholders-transitions-and-more)
   - [Image Requests](#image-requests), [Process an Image](#process-an-image)
   - [Image Pipeline](#image-pipeline), [Configuring Image Pipeline](#configuring-image-pipeline)
 - [**Advanced Usage Guide**](#advanced-usage)
-  - [Memory Cache](#memory-cache), [HTTP Disk Cache](#http-disk-cache), [Aggressive Disk Cache (Beta)](#aggressive-disk-cache--beta-)
+  - [Memory Cache](#memory-cache), [HTTP Disk Cache](#http-disk-cache), [Aggressive Disk Cache (Beta)](#aggressive-disk-cache-experimental)
   - [Preheat Images](#preheat-images)
-  - [Progressive Decoding (Beta)](#enable-progressive-decoding--beta-), [WebP](#webp)
+  - [Progressive Decoding](#progressive-decoding), [WebP](#webp)
   - [RxNuke](#rxnuke)
 - Detailed [**Image Pipeline**](#h_design) description
 - Entire section dedicated to [**Performance**](#h_performance)
@@ -214,9 +214,11 @@ DataLoader.sharedUrlCache.removeCachedResponse(for: request.urlRequest)
 DataLoader.sharedUrlCache.removeAllCachedResponses()
 ```
 
-#### Aggressive Disk Cache (Beta)
+#### Aggressive Disk Cache (Experimental)
 
-Nuke 7 features a new custom LRU disk cache which can be used for fast and reliable *aggressive* (no validation) data caching. The new cache lookups are up to 2x faster than `URLCache` lookups. You can enable it using pipeline's configuration:
+Add a completely new custom LRU disk cache which can be used for fast and reliable *aggressive* data caching (ignores [HTTP cache control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control)). The new cache lookups are up to 2x faster than `URLCache` lookups. You can enable it using pipeline's configuration:
+
+When enabling disk cache you must provide a `keyEncoder` function which takes image request's url as a parameter and produces a key which can be used as a valid filename. The [demo project uses sha1](https://gist.github.com/kean/f5e1975e01d5e0c8024bc35556665d7b) to generate those keys.
 
 ```swift
 $0.enableExperimentalAggressiveDiskCaching(keyEncoder: {
@@ -225,11 +227,9 @@ $0.enableExperimentalAggressiveDiskCaching(keyEncoder: {
 })
 ```
 
-When enabling disk cache you must provide a `keyEncoder` function which takes image request's url as a parameter and produces a key which can be used as a valid filename. The [demo project uses sha1](https://gist.github.com/kean/f5e1975e01d5e0c8024bc35556665d7b) to generate those keys.
+The public API for disk cache and the API for using custom disk caches is going to be available in the future versions.
 
-The public API for disk cache and the API for using custom disk caches is going to be available the future versions.
-
-> Existing API already allows you to use custom disk cache [by implementing `DataLoading` protocol](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries), but this is not the most straighforward option.
+> Existing API already allows you to use custom disk cache [by implementing `DataLoading` protocol](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries), but this is not the most straightforward option.
 
 #### Preheat Images
 
@@ -255,7 +255,7 @@ You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) 
 
 > Check out [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) to see what else you can do to improve performance
 
-#### Progressive Decoding (Beta)
+#### Progressive Decoding
 
 To use progressive image loading you need a pipeline with progressive decoding enabled:
 
@@ -311,7 +311,8 @@ Observable.concat(pipeline.loadImage(with: lowResUrl).orEmpty,
     .disposed(by: disposeBag)
 ```
 
-# Image Pipeline<a name="h_design"></a>
+<a name="h_design"></a>
+# Image Pipeline
 
 Nuke's image pipeline consists of roughly five stages which can be customized using the following protocols:
 
@@ -350,9 +351,11 @@ Most developers either implement their own networking layer or use a third-party
 
 Processed images which are ready to be displayed are stored in a fast in-memory cache (`ImageCache`). It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `ImageCache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
 
-### Resumable Downloads (Beta)
+### Resumable Downloads
 
-If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. Supports both validators (`ETag`, `Last-Modified`). The resumable downloads are enabled by default.
+If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. 
+
+Resumable downloads require server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators (`ETag` and `Last-Modified`). The resumable downloads are enabled by default.
 
 > By default resumable data is stored in an efficient memory cache. Future versions might include more customization.
 
@@ -362,13 +365,14 @@ By default `ImagePipeline` combines the requests with the same `loadKey` into a 
 
 > Deduplication can be disabled using `ImagePipeline.Configuration`.
 
-# Performance<a name="h_performance"></a>
+<a name="h_performance"></a>
+# Performance
 
 Performance is one of the key differentiating factors for Nuke. There are four key components of its performance:
 
 ### Main-Thread Performance
 
-The framework has been tuned to do very little work on the main thread. In fact, it's [at least 2.3x faster](https://github.com/kean/Image-Frameworks-Benchmark) than its fastest competitor. There are a number of optimizations techniques that were used to achieve that including: reducing number of allocations, reducing dynamic dispatch, backing some structs by reference typed storage to reduce ARC overhead, etc.
+The framework has been tuned to do very little work on the main thread. There are a number of optimizations techniques that were used to achieve that including: reducing number of allocations, reducing dynamic dispatch, backing some structs by reference typed storage to reduce ARC overhead, etc.
 
 ### Robustness Under Stress
 
@@ -384,7 +388,7 @@ A common use case is to dynamically start and cancel requests for a collection v
 
 ### Performance Metrics (Beta)
 
-When optimizing performance, it's important to measure. Nuke collects detailed performance metrics during the exution of each image task:
+When optimizing performance, it's important to measure. Nuke collects detailed performance metrics during the execution of each image task:
 
 ```swift
 ImagePipeline.shared.didFinishCollectingMetrics = { task, metrics in
@@ -424,7 +428,8 @@ Resumable Data {
 }
 ```
 
-# Extensions<a name="h_plugins"></a>
+<a name="h_plugins"></a>
+# Extensions
 
 There are a variety extensions available for Nuke some of which are built by the community.
 
@@ -437,7 +442,8 @@ There are a variety extensions available for Nuke some of which are built by the
 |[**FLAnimatedImage**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
 
 
-# Minimum Requirements<a name="h_requirements"></a>
+<a name="h_requirements"></a>
+# Minimum Requirements
 
 - iOS 9.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0
 - Xcode 9.2

@@ -1,3 +1,169 @@
+## Nuke 7.0
+
+Nuke 7 is the biggest release yet. It has a lot of  massive new features, new performance improvements, and some API refinements. Check out new [Nuke website](http://kean.github.io/nuke) to see quick videos showcasing some of the new features.
+
+Nuke 7 is almost completely source-compatible with Nuke 6.
+
+### Progressive JPEG & WebP
+
+Add support for progressive JPEG (built-in) and WebP (build by the [Ryo Kosuge](https://github.com/ryokosuge/Nuke-WebP-Plugin)). See [README](https://github.com/kean/Nuke) for more info. See demo project to see it in action.
+
+Add new `ImageProcessing` protocol which now takes an extra `ImageProcessingContext` parameter. One of its properties is `scanNumber` which allows you to do things like apply blur to progressive image scans reducing blur radius with each new scan ("progressive blur").
+
+### Resumable Downloads (HTTP Range Requests)
+
+If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. In many use cases resumable downloads are a massive improvement to user experience, especially on the mobile internet. 
+
+Resumable downloads require server support for [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators (`ETag` and `Last-Modified`).
+
+The resumable downloads are enabled by default. The resumable data is automatically stored in efficient memory cache. This is a good default, but future versions might add more customization options.
+
+### Loading Images into Views
+
+Add a new set of powerful methods to load images into views. Here's one of those methods:
+
+```swift
+@discardableResult
+public func loadImage(with request: ImageRequest,
+                      options: ImageLoadingOptions = ImageLoadingOptions.shared,
+                      into view: ImageDisplayingView,
+                      progress: ImageTask.ProgressHandler? = nil,
+                      completion: ImageTask.Completion? = nil) -> ImageTask?
+```
+
+You can now pass `progress` and `completion` closures as well as new  `ImageLoadingOptions` struct which offers a range of options:
+
+```swift
+public struct ImageLoadingOptions {
+    public static var shared = ImageLoadingOptions()
+    public var placeholder: Image?
+    public var transition: Transition?
+    public var failureImage: Image?
+    public var failureImageTransition: Transition?
+    public var isPrepareForReuseEnabled = true
+    public var pipeline: ImagePipeline?
+    public var contentModes: ContentModes?
+
+    /// Content modes to be used for each image type (placeholder, success, failure).
+    public struct ContentModes {
+        public var success: UIViewContentMode
+        public var failure: UIViewContentMode
+        public var placeholder: UIViewContentMode
+    }
+
+    /// An animated image transition.
+    public struct Transition {
+        public static func fadeIn(duration: TimeInterval, options: UIViewAnimationOptions = [.allowUserInteraction]) -> Transition
+        public static func custom(_ closure: @escaping (ImageDisplayingView, Image) -> Void) -> Transition
+    }
+}
+```
+
+`ImageView` will now also automatically prepare itself for reuse (can be disabled via `ImageLoadingOptions`)
+
+Instead of an `ImageTarget` protocol we now have a new simple `ImageDisplaying` protocol which relaxes the requirement what can be used as an image view (it's `UIView & ImageDisplaying` now). This achieves two things:
+
+- You can now add support for more classes (e.g. `MKAnnotationView` by implementing `ImageDisplaying` protocol
+- You can override the `display(image:` method in `UIImageView` subclasses (e.g. `FLAnimatedImageView`)
+
+### Image Pipeline
+
+The previous  `Manager` + `Loading` architecture (terrible naming, responsibilities are often confusing) was replaced with a  new unified  `ImagePipeline` class. `ImagePipeline` was built from the ground-up to support all of the powerful new features in Nuke 7 (progressive decoding, resumable downloads, performance metrics, etc).
+
+There is also a new `ImageTask` class which feels the gap where user or pipeline needed to communicate between each other after the request was started. `ImagePipeline` and `ImageTask` offer a bunch of new features:
+
+- To cancel the request you now simply need to call `cancel()` on the task (`ImageTask`) which is a bit more user-friendly than previous `CancellationTokenSource` infrastructure.
+- `ImageTask` offers a new way to track progress (in addition to closures) - native `Foundation.Progress` (created lazily)
+- `ImageTask` can be used to dynamically change the priority of the executing tasks (e.g. the user opens a new screen, you lower the priority of outstanding tasks)
+- In `ImagePipeline.Configuration` you can now provide custom queues (`OperationQueue`) for data loading, decoding and processing (separate queue for each stage).
+- You can set a custom shared `ImagePipeline`.
+
+### Animated Images (GIFs)
+
+Add built-in support for animated images (everything expect the actual rendering). To enable rendering you're still going to need a third-party library (see [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) and [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) plugins). The changes made in Nuke dramatically simplified those plugins making both of them essentially obsolete - they both now have 10-30 lines of code, you can just copy this code into your project.
+
+### Memory Cache Improvements
+
+- Add new `ImageCaching` protocol for memory cache which now works with a new `ImageRespone` class. You can do much more intelligent things in your cache implementations now (e.g. make decisions on when to evict image based on HTTP headers).
+- Improve cache write/hit/miss performance by 30% by getting rid of AnyHashable overhead. `ImageRequest` `cacheKey` and `loadKey` are now optional. If you use them, Nuke is going to use them instead of built-in internal `ImageRequest.CacheKey` and `ImageRequest.LoadKey`.
+- Add `TTL` support in `ImageCache`
+
+### Aggressive Disk Cache (Experimental)
+
+Add a completely new custom LRU disk cache which can be used for fast and reliable *aggressive* data caching (ignores [HTTP cache control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control)). The new cache lookups are up to 2x faster than `URLCache` lookups. You can enable it using pipeline's configuration:
+
+When enabling disk cache you must provide a `keyEncoder` function which takes image request's url as a parameter and produces a key which can be used as a valid filename. The [demo project uses sha1](https://gist.github.com/kean/f5e1975e01d5e0c8024bc35556665d7b) to generate those keys.
+
+```swift
+$0.enableExperimentalAggressiveDiskCaching(keyEncoder: {
+    guard let data = $0.cString(using: .utf8) else { return nil }
+    return _nuke_sha1(data, UInt32(data.count))
+})
+```
+
+The public API for disk cache and the API for using custom disk caches is going to be available in the future versions.
+
+> Existing API already allows you to use custom disk cache [by implementing `DataLoading` protocol](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries), but this is not the most straightforward option.
+
+### Performance Metrics
+
+When optimizing performance, it's important to measure. Nuke collects detailed performance metrics during the execution of each image task:
+
+```swift
+ImagePipeline.shared.didFinishCollectingMetrics = { task, metrics in
+    print(metrics)
+}
+```
+
+![timeline](https://user-images.githubusercontent.com/1567433/39193766-8dfd81b2-47dc-11e8-86b3-f3f69dc73d3a.png)
+
+```
+(lldb) po metrics
+
+Task Information {
+    Task ID - 1
+    Duration - 22:35:16.123 – 22:35:16.475 (0.352s)
+    Was Cancelled - false
+    Is Memory Cache Hit - false
+    Was Subscribed To Existing Session - false
+}
+Session Information {
+    Session ID - 1
+    Total Duration - 0.351s
+    Was Cancelled - false
+}
+Timeline {
+    22:35:16.124 – 22:35:16.475 (0.351s) - Total
+    ------------------------------------
+    nil – nil (nil)                      - Check Disk Cache
+    22:35:16.131 – 22:35:16.410 (0.278s) - Load Data
+    22:35:16.410 – 22:35:16.468 (0.057s) - Decode
+    22:35:16.469 – 22:35:16.474 (0.005s) - Process
+}
+Resumable Data {
+    Was Resumed - nil
+    Resumable Data Count - nil
+    Server Confirmed Resume - nil
+}
+```
+
+### Other Changes
+
+- `ImagePreheater` now checks `ImageCache` synchronously before creating tasks which makes it slightly more efficient.
+- `RateLimiter` now uses the same sync queue as the `ImagePipeline` reducing a number of dispatched blocks
+- Smarter `RateLimiter` which no longer attempt to execute pending tasks when the bucket isn't full resulting in idle dispatching of blocks. I've used a CountedSet to see how well it works in practice and it's perfect. Nice small win.
+- Add `ImageDecoderRegistry` to configure decoders globally.
+- Add `ImageDecodingContext` to provide as much information as needed to select a decoder.
+- `ImageTask.Completion` now contains `ImageResponse` (image + URLResponse) instead of just plain image.
+
+### Deprecations
+
+- `CancellationToken`, `CancellationTokenSource` - continued to be used internally, If you'd like to continue using cancellation tokens please consider copying this code into your project.
+- `DataDecoding`, `DataDecoder`, `DataDecoderComposition` - replaced by a new image decoding infrastructure (`ImageDecoding`, `ImageDecoder`, `ImageDecodingRegistry` etc).
+- `Request` renamed to `ImageRequest`.
+- Deprecate `Result` type. It was only used in a single completion handler so it didn't really justify its existence. More importantly, I wasn't comfortable providing a public `Result` type as part of the framework.
+
+
 ## Nuke 7.0-rc1
 
 This is the final pre-release version. The only thing left to do is finish updating the documentation.
@@ -8,7 +174,9 @@ Changes in 7.0-rc1:
 
 - Add more `ImageLoadingOptions` including `failureImage`, `contentModes` and custom transitions.
 - `ImageView` will now automatically prepare itself for reuse (can be disabled via `ImageLoadingOptions`)
-- Add `ImageDisplaying` protocol and relax the requirement what can be used as an image view (it's `UIView & ImageDisplaying` now). This achieves two things: 1) you can now add support for more classes (e.g. `MKAnnotationView` by implementing `ImageDisplaying` protocol, 2) you can override the `display(image:` method in `UIImageView` subclasses (e.g. `FLAnimatedImageView`).
+- Add `ImageDisplaying` protocol and relax the requirement what can be used as an image view (it's `UIView & ImageDisplaying` now). This achieves two things: 
+    - You can now add support for more classes (e.g. `MKAnnotationView` by implementing `ImageDisplaying` protocol
+    - You can override the `display(image:` method in `UIImageView` subclasses (e.g. `FLAnimatedImageView`).
 
 ### image Processing
 
@@ -16,7 +184,7 @@ Changes in 7.0-rc1:
 
 ### Animated Images
 
-- Add built-in support for animated images (everything expect the actual rendering). To enable rendering you're still going to need a plugin (see FLAnimatedImage and Gifu plugins). The changes made in Nuke dramatically simplify those plugins making both of them essentially obsolete (they both now have 10-30 lines of code).
+- Add built-in support for animated images (everything except the actual rendering). To enable rendering you're still going to need a plugin (see FLAnimatedImage and Gifu plugins). The changes made in Nuke dramatically simplify those plugins making both of them essentially obsolete (they both now have 10-30 lines of code).
 
 ### Misc
 
@@ -187,11 +355,11 @@ If the data task is terminated (either because of a failure or a cancellation) a
 
 > By default resumable data is stored in an efficient memory cache. Future versions might include more customization.
 
-In many use cases reusable downloads are a massive improvement. Next betas will feature more customization options for resumable downloads (e.g. customizable resumable data storage).
+In many use, cases reusable downloads are a massive improvement. Next betas will feature more customization options for resumable downloads (e.g. customizable resumable data storage).
 
 ### Image Pipelines (Beta)
 
-The previous  `Manager` + `Loading` architecture (terrible naming, responsibilities are often confused) was replaced with a  new unified  `ImagePipeline` class. There is also a new `ImageTask` class which feels the gap where user or pipeline needed to communicate between each other after the request was started.
+The previous  `Manager` + `Loading` architecture (terrible naming, responsibilities are often confused) was replaced with a  new unified  `ImagePipeline` class. There is also a new `ImageTask` class which feels the gap where user or pipeline needed to communicate with each other after the request was started.
 
 `ImagePipeline` and `ImageTask` have a bunch of new features:
 - In `ImagePipeline.Configuration` you can now provider custom queues (`OperationQueue`) for data loading, decoding and processing (each stage). This way you have more access to queuing (e.g. you can change `qualityOfService`, suspend queues) etc and you can also use the same queue across different pipelines.
