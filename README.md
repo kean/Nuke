@@ -28,7 +28,7 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
 - [**Advanced Usage Guide**](#advanced-usage)
   - [Memory Cache](#memory-cache), [HTTP Disk Cache](#http-disk-cache), [Aggressive Disk Cache (Beta)](#aggressive-disk-cache-experimental)
   - [Preheat Images](#preheat-images)
-  - [Progressive Decoding](#progressive-decoding), [WebP](#webp)
+  - [Progressive Decoding](#progressive-decoding), [Animated Images](#animated-images), [WebP](#webp)
   - [RxNuke](#rxnuke)
 - Detailed [**Image Pipeline**](#h_design) description
 - Entire section dedicated to [**Performance**](#h_performance)
@@ -285,6 +285,16 @@ let task = ImagePipeline.shared.loadImage(
 The progressive decoding only kicks in when Nuke determines that the image data does contain a progressive JPEG. The decoder scans the data and only produces a new image when it receives a full new scan (progressive JPEGs normally have around 10 scans).
 
 > See "Progressive Decoding" demo to see progressive JPEG in practice. You can also uncomment the code that blurs the first few scans of the image which makes them look a bit nicer.
+
+#### Animated Images
+
+Nuke extends `UIImage` with `animatedImageData` property. If you enable it by setting `ImagePipeline.Configuration.isAnimatedImageDataEnabled` to `true` the pipeline will start attaching original image data to the animated images (built-in decoder only supports GIFs for now).
+
+> `ImageCache` takes  `animatedImageData` into account when computing the cost of cached items. `ImagePipeline` doesn't apply processors to the images with animated data.
+
+There is no built-in way to render those images, there are though two integrations available: [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) and [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) which are both fast and efficient.
+
+GIFs are not the most efficient format for transferring and displaying animated images. The current best practice is to [replace GIFs with videos formats](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/) (e.g. `mp4`).
 
 #### WebP
 
