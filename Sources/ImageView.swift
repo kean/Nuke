@@ -183,6 +183,7 @@ public struct ImageLoadingOptions {
         self.transition = transition
         self.failureImage = failureImage
         self.failureImageTransition = failureImageTransition
+        self.contentModes = contentModes
     }
     #else
     public init(placeholder: Image? = nil, transition: Transition? = nil, failureImage: Image? = nil, failureImageTransition: Transition? = nil) {
