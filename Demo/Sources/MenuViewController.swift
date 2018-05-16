@@ -112,6 +112,15 @@ final class MenuViewController: UITableViewController {
             var items = [MenuItem]()
 
             items.append(MenuItem(
+                title: "MP4 (Experimental)",
+                subtitle: "Replaces GIFs with MP4",
+                action: { [weak self] in
+                    let controller = AnimatedImageUsingVideoViewController(nibName: nil, bundle: nil)
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
+
+            items.append(MenuItem(
                 title: "Disk Cache (Experimental)",
                 subtitle: "Enables aggressive disk caching",
                 action: { [weak self] in

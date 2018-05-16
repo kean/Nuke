@@ -294,7 +294,7 @@ Nuke extends `UIImage` with `animatedImageData` property. If you enable it by se
 
 There is no built-in way to render those images, there are though two integrations available: [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) and [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) which are both fast and efficient.
 
-GIFs are not the most efficient format for transferring and displaying animated images. The current best practice is to [replace GIFs with videos formats](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/) (e.g. `mp4`).
+GIFs are not the most efficient format for transferring and displaying animated images. The current best practice is to [replace GIFs with videos formats](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/) (e.g. `mp4`, `webm`). There is a proof of concept available in the demo project.
 
 #### WebP
 
