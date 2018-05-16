@@ -1,3 +1,14 @@
+## Nuke 7.0.1
+
+### Additions
+
+- Add a section in README about replacing GIFs with video formats (e.g. `MP4`, `WebM`)
+- Add proof of concept in the demo project that demonstrates loading, caching and displaying short `mp4` videos using Nuke
+
+### Fixes
+
+- #161 Fix the contentModes not set when initializing an ImageLoadingOptions object
+
 ## Nuke 7.0
 
 Nuke 7 is the biggest release yet. It has a lot of  massive new features, new performance improvements, and some API refinements. Check out new [Nuke website](http://kean.github.io/nuke) to see quick videos showcasing some of the new features.
