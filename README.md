@@ -48,7 +48,7 @@ Nuke.loadImage(with: url, into: imageView)
 ```
 
 Nuke will automatically load image data, decompress it in the background, store image in memory cache and display it.
-
+ƒ
 > To learn more about the image pipeline [see the dedicated section](#h_design).
 
 Nuke keeps track of each image view. When you request a new image for a view the previous outstanding request gets cancelled. The same happens automatically when the view is deallocated.
@@ -294,7 +294,7 @@ Nuke extends `UIImage` with `animatedImageData` property. If you enable it by se
 
 There is no built-in way to render those images, there are though two integrations available: [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) and [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) which are both fast and efficient.
 
-GIFs are not the most efficient format for transferring and displaying animated images. The current best practice is to [replace GIFs with videos formats](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/) (e.g. `mp4`, `webm`). There is a proof of concept available in the demo project.
+**Note:** `GIF` is not the most efficient format for transferring and displaying animated images. The current best practice is to [use short videos instead of GIFs](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/) (e.g. `MP4`, `WebM`). There is a PoC available in the demo project which uses Nuke to load, cache and dispay an `MP4` video.
 
 #### WebP
 
