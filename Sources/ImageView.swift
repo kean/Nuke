@@ -277,7 +277,9 @@ private final class ImageViewController {
                    completion: ImageTask.Completion? = nil) -> ImageTask? {
         cancelOutstandingTask()
 
-        guard let imageView = imageView else { return nil }
+        guard let imageView = imageView else {
+            return nil
+        }
 
         if options.isPrepareForReuseEnabled { // enabled by default
             #if !os(macOS)

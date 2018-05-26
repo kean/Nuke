@@ -111,49 +111,29 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
-    // MARK: - Metrics Collection
+    // MARK: - Animated Images
 
-    func testThatMetricsAreCollectedWhenTaskCompleted() {
-        expect { fulfill in
-            pipeline.didFinishCollectingMetrics = { task, metrics in
-                XCTAssertEqual(task.taskId, metrics.taskId)
-                XCTAssertNotNil(metrics.endDate)
-                XCTAssertNotNil(metrics.session)
-                XCTAssertNotNil(metrics.session?.endDate)
-                fulfill()
-            }
-        }
+    func testAnimatedImageArentProcessed() {
+        ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
 
-        expect { fulfill in
-            pipeline.loadImage(with: defaultURL) { response, _ in
-                XCTAssertNotNil(response)
-                fulfill()
-            }
-        }
-        wait()
-    }
+        dataLoader.results[defaultURL] = .success(
+            (Test.data(name: "cat", extension: "gif"), Test.urlResponse)
+        )
 
-    func testThatMetricsAreCollectedWhenTaskCancelled() {
-        expect { fulfill in
-            pipeline.didFinishCollectingMetrics = { task, metrics in
-                XCTAssertEqual(task.taskId, metrics.taskId)
-                XCTAssertTrue(metrics.wasCancelled)
-                XCTAssertNotNil(metrics.endDate)
-                XCTAssertNotNil(metrics.session)
-                XCTAssertNotNil(metrics.session?.endDate)
-                fulfill()
-            }
-        }
-
-        dataLoader.queue.isSuspended = true
-
-        let task = pipeline.loadImage(with: defaultURL) { _,_ in
+        let expectation = self.makeExpectation()
+        let request = Test.request.processed(key: "1") { _ in
             XCTFail()
+            return nil
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(10)) {
-            task.cancel()
+        pipeline.loadImage(with: request) { response, _ in
+            XCTAssertNotNil(response)
+            XCTAssertNotNil(response?.image.animatedImageData)
+            expectation.fulfill()
         }
+
         wait()
+
+        ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
     }
 }
 
