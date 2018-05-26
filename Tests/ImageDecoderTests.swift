@@ -29,7 +29,7 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertEqual(decoder.numberOfScans, 1)
 
         // Found the second Start of Scan
-        let scan1 = decoder.decode(data: data[0...2592], isFinal: false)
+        let scan1 = decoder.decode(data: data[0...2952], isFinal: false)
         XCTAssertNotNil(scan1)
         #if os(macOS)
         XCTAssertEqual(scan1!.size.width, 450)
@@ -46,7 +46,7 @@ class ImageDecoderTests: XCTestCase {
         // of the bytes and encounter all of the scans (e.g. the final chunk
         // of data that we receive contains multiple scans).
         XCTAssertNotNil(decoder.decode(data: data, isFinal: false))
-        XCTAssertEqual(decoder.numberOfScans, 11)
+        XCTAssertEqual(decoder.numberOfScans, 10)
     }
 
     func testDecodingGIFs() {
