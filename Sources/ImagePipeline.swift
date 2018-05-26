@@ -41,7 +41,7 @@ public /* final */ class ImageTask: Hashable {
     // internal stuff associated with a task
     fileprivate var metrics: ImageTaskMetrics
     fileprivate var priorityObserver: ((ImageRequest.Priority) -> Void)?
-    fileprivate weak var session: ImagePipeline.ImageLoadingSession? // sessino exeucting task
+    fileprivate weak var session: ImagePipeline.ImageLoadingSession?  
     fileprivate var cts = _CancellationSource()
 
     internal init(taskId: Int, request: ImageRequest) {
@@ -645,11 +645,9 @@ public /* final */ class ImagePipeline {
                 return nil
             }
             let operation = BlockOperation { [weak self] in
-                // Perform all the processing jobs reusing the results for equivalent processors.
                 for (processor, tasks) in jobs {
                     tasks.forEach {
-                        guard image.isFinal else { return }
-                        $0.metrics.processStartDate = Date()
+                        if image.isFinal { $0.metrics.processStartDate = Date() }
                     }
                     assert(!tasks.isEmpty)
                     let context = ImageProcessingContext(request: tasks[0].request, isFinal: image.isFinal, scanNumber: image.scanNumber)
@@ -660,8 +658,7 @@ public /* final */ class ImagePipeline {
                         }
                     }
                     tasks.forEach {
-                        guard image.isFinal else { return }
-                        $0.metrics.processEndDate = Date()
+                        if image.isFinal { $0.metrics.processEndDate = Date() }
                     }
                 }
             }
@@ -802,119 +799,6 @@ public /* final */ class ImagePipeline {
             case .decodingFailed: return "Failed to create an image from the image data"
             case .processingFailed: return "Failed to process the image"
             }
-        }
-    }
-}
-
-// MARK: - ImageTaskMetrics
-
-public struct ImageTaskMetrics: CustomDebugStringConvertible {
-    public let taskId: Int
-    public fileprivate(set) var wasCancelled: Bool = false
-    public fileprivate(set) var session: SessionMetrics?
-
-    public let startDate: Date
-    public fileprivate(set) var processStartDate: Date?
-    public fileprivate(set) var processEndDate: Date?
-    public fileprivate(set) var endDate: Date? // failed or completed
-    public var totalDuration: TimeInterval? {
-        guard let endDate = endDate else { return nil }
-        return endDate.timeIntervalSince(startDate)
-    }
-
-    /// Returns `true` is the task wasn't the one that initiated image loading.
-    public fileprivate(set) var wasSubscibedToExistingSession: Bool = false
-    public fileprivate(set) var isMemoryCacheHit: Bool = false
-
-
-    init(taskId: Int, startDate: Date) {
-        self.taskId = taskId; self.startDate = startDate
-    }
-
-    public var debugDescription: String {
-        var printer = Printer()
-        printer.section(title: "Task Information") {
-            $0.value("Task ID", taskId)
-            $0.timeline("Duration", startDate, endDate, isReversed: false)
-            $0.timeline("Process", processStartDate, processEndDate)
-            $0.value("Was Cancelled", wasCancelled)
-            $0.value("Is Memory Cache Hit", isMemoryCacheHit)
-            $0.value("Was Subscribed To Existing Image Loading Session", wasSubscibedToExistingSession)
-        }
-        printer.section(title: "Image Loading Session") {
-            $0.string(session.map({ $0.debugDescription }) ?? "nil")
-        }
-        return printer.output()
-    }
-
-    // Download session metrics. One more more tasks can share the same
-    // session metrics.
-    public final class SessionMetrics: CustomDebugStringConvertible {
-        /// - important: Data loading might start prior to `timeResumed` if the task gets
-        /// coalesced with another task.
-        public let sessionId: Int
-        public fileprivate(set) var wasCancelled: Bool = false
-
-        // MARK: - Timeline
-
-        public let startDate = Date()
-
-        public fileprivate(set) var checkDiskCacheStartDate: Date?
-        public fileprivate(set) var checkDiskCacheEndDate: Date?
-
-        public fileprivate(set) var loadDataStartDate: Date?
-        public fileprivate(set) var loadDataEndDate: Date?
-
-        public fileprivate(set) var decodeStartDate: Date?
-        public fileprivate(set) var decodeEndDate: Date?
-
-        @available(*, deprecated, message: "Please use the same property on `ImageTaskMetrics` instead.")
-        public fileprivate(set) var processStartDate: Date?
-
-        @available(*, deprecated, message: "Please use the same property on `ImageTaskMetrics` instead.")
-        public fileprivate(set) var processEndDate: Date?
-
-        public fileprivate(set) var endDate: Date? // failed or completed
-
-        public var totalDuration: TimeInterval? {
-            guard let endDate = endDate else { return nil }
-            return endDate.timeIntervalSince(startDate)
-        }
-
-        // MARK: - Resumable Data
-
-        public fileprivate(set) var wasResumed: Bool?
-        public fileprivate(set) var resumedDataCount: Int?
-        public fileprivate(set) var serverConfirmedResume: Bool?
-
-        public fileprivate(set) var downloadedDataCount: Int?
-        public var totalDownloadedDataCount: Int? {
-            guard let downloaded = self.downloadedDataCount else { return nil }
-            return downloaded + (resumedDataCount ?? 0)
-        }
-
-        init(sessionId: Int) { self.sessionId = sessionId }
-
-        public var debugDescription: String {
-            var printer = Printer()
-            printer.section(title: "Session Information") {
-                $0.value("Session ID", sessionId)
-                $0.value("Total Duration", Printer.duration(totalDuration))
-                $0.value("Was Cancelled", wasCancelled)
-            }
-            printer.section(title: "Timeline") {
-                $0.timeline("Total", startDate, endDate)
-                $0.line(String(repeating: "-", count: 36))
-                $0.timeline("Check Disk Cache", checkDiskCacheStartDate, checkDiskCacheEndDate)
-                $0.timeline("Load Data", loadDataStartDate, loadDataEndDate)
-                $0.timeline("Decode", decodeStartDate, decodeEndDate)
-            }
-            printer.section(title: "Resumable Data") {
-                $0.value("Was Resumed", wasResumed)
-                $0.value("Resumable Data Count", resumedDataCount)
-                $0.value("Server Confirmed Resume", serverConfirmedResume)
-            }
-            return printer.output()
         }
     }
 }
