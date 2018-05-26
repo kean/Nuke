@@ -173,7 +173,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             } else {
                 XCTAssertTrue(queue.operations.count < 2)
             }
-            return true
+            return true // FIXME: probably isn't correct
         }
 
         let parialProduced = self.expectation(description: "Partial Produced")
