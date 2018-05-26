@@ -226,32 +226,32 @@ class DataCacheTests: XCTestCase {
 
     // MARK: Inspection
 
-    func testThatInspectionMethodsWork() {
-        cache.inspect { XCTAssertEqual($0.count, 0) }
-        XCTAssertEqual(cache.totalCount, 0)
-        XCTAssertEqual(cache.totalSize, 0)
-
-        let data = "123".data(using: .utf8)!
-
-        cache._test_withSuspendedIO {
-
-            cache["key"] = data
-
-            cache.inspect {
-                XCTAssertEqual($0.count, 1)
-                XCTAssertNotNil($0[cache.filename(for: "key")!])
-            }
-            XCTAssertEqual(cache.totalCount, 1)
-            XCTAssertEqual(cache.totalSize, data.count)
-            XCTAssertEqual(cache.totalAllocatedSize, data.count)
-        }
-
-        cache.flush()
-
-        // Size updated to allocated size.
-        XCTAssertEqual(cache.totalSize, data.count)
-        XCTAssertTrue(cache.totalAllocatedSize > cache.totalSize)
-    }
+//    func testThatInspectionMethodsWork() {
+//        cache.inspect { XCTAssertEqual($0.count, 0) }
+//        XCTAssertEqual(cache.totalCount, 0)
+//        XCTAssertEqual(cache.totalSize, 0)
+//
+//        let data = "123".data(using: .utf8)!
+//
+//        cache._test_withSuspendedIO {
+//
+//            cache["key"] = data
+//
+//            cache.inspect {
+//                XCTAssertEqual($0.count, 1)
+//                XCTAssertNotNil($0[cache.filename(for: "key")!])
+//            }
+//            XCTAssertEqual(cache.totalCount, 1)
+//            XCTAssertEqual(cache.totalSize, data.count)
+//            XCTAssertEqual(cache.totalAllocatedSize, data.count)
+//        }
+//
+//        cache.flush()
+//
+//        // Size updated to allocated size.
+//        XCTAssertEqual(cache.totalSize, data.count)
+//        XCTAssertTrue(cache.totalAllocatedSize > cache.totalSize)
+//    }
 
     // MARK: Sweep
 

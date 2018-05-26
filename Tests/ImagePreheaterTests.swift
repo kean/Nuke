@@ -15,8 +15,53 @@ class ImagePreheaterTests: XCTestCase {
         pipeline = MockImagePipeline()
         preheater = ImagePreheater(pipeline: pipeline)
     }
-    
-    // MARK: Starting and Stoping Preheating
+
+    // MARK: Starting Preheating
+
+    func testStartPreheatingWithTheSameReqeusts() {
+        pipeline.queue.isSuspended = true
+
+        let request = ImageRequest(url: defaultURL)
+        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
+        preheater.startPreheating(with: [request])
+        preheater.startPreheating(with: [request])
+
+        wait { _ in
+            XCTAssertEqual(self.pipeline.createdTaskCount, 1, "")
+        }
+    }
+
+    func testStartPreheatingDifferentProcessors() {
+        pipeline.queue.isSuspended = true
+
+        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
+        preheater.startPreheating(with: [ImageRequest(url: defaultURL).processed(key: "1") { $0 }])
+        wait()
+
+        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
+        preheater.startPreheating(with: [ImageRequest(url: defaultURL).processed(key: "2") { $0 }])
+
+        wait { _ in
+            XCTAssertEqual(self.pipeline.createdTaskCount, 2, "")
+        }
+    }
+
+    func testStartPreheatingSameProcessorsDifferentURLRequests() {
+        pipeline.queue.isSuspended = true
+
+        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
+        preheater.startPreheating(with: [ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 100))])
+        wait()
+
+        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
+        preheater.startPreheating(with: [ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 100))])
+
+        wait { _ in
+            XCTAssertEqual(self.pipeline.createdTaskCount, 2, "")
+        }
+    }
+
+    // MARK: Stoping Preheating
 
     func testThatPreheatingRequestsAreStopped() {
         pipeline.queue.isSuspended = true
@@ -60,7 +105,7 @@ class ImagePreheaterTests: XCTestCase {
         preheater.stopPreheating()
         wait()
     }
-    
+
     // MARK: Thread Safety
     
     func testPreheatingThreadSafety() {

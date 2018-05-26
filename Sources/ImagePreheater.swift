@@ -16,7 +16,7 @@ public final class ImagePreheater {
     private let pipeline: ImagePipeline
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
     private let preheatQueue = OperationQueue()
-    private var tasks = [ImageRequest.LoadKey: Task]()
+    private var tasks = [PreheatKey: Task]()
 
     /// Initializes the `Preheater` instance.
     /// - parameter manager: `Loader.shared` by default.
@@ -38,7 +38,7 @@ public final class ImagePreheater {
     }
 
     private func _startPreheating(with request: ImageRequest) {
-        let key = ImageRequest.LoadKey(request: request)
+        let key = PreheatKey(request: request)
 
         // Check if we we've already started preheating.
         guard tasks[key] == nil else { return }
@@ -83,7 +83,7 @@ public final class ImagePreheater {
     }
 
     private func _stopPreheating(with request: ImageRequest) {
-        if let task = tasks[ImageRequest.LoadKey(request: request)] {
+        if let task = tasks[PreheatKey(request: request)] {
             tasks[task.key] = nil
             task.cts.cancel()
         }
@@ -98,13 +98,33 @@ public final class ImagePreheater {
     }
 
     private final class Task {
-        let key: ImageRequest.LoadKey
+        let key: PreheatKey
         let request: ImageRequest
         let cts = _CancellationTokenSource()
 
-        init(request: ImageRequest, key: ImageRequest.LoadKey) {
+        init(request: ImageRequest, key: PreheatKey) {
             self.request = request
             self.key = key
         }
+    }
+
+    private struct PreheatKey: Hashable {
+        let cacheKey: ImageRequest.CacheKey
+        let loadKey: ImageRequest.LoadKey
+
+        init(request: ImageRequest) {
+            self.cacheKey = ImageRequest.CacheKey(request: request)
+            self.loadKey = ImageRequest.LoadKey(request: request)
+        }
+
+        #if !swift(>=4.1)
+        var hashValue: Int {
+            return cacheKey.hashValue
+        }
+
+        static func == (lhs: PreheatKey, rhs: PreheatKey) -> Bool {
+            return lhs.cacheKey == rhs.cacheKey && lhs.loadKey == rhs.loadKey
+        }
+        #endif
     }
 }
