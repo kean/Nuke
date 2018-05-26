@@ -35,15 +35,49 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             progress: { image, _, _ in
                 if image != nil {
                     expectPartialImageProduced.fulfill()
+                    // FIXME: This seems to be working by accident
+                    // (every next chunk produces a new scan)
                     self.dataLoader.resume()
                 }
-        },
+            },
             completion: { response, _ in
                 XCTAssertNotNil(response)
                 expectFinalImageProduced.fulfill()
         })
 
         wait()
+    }
+
+    func testThatFailedPartialImagesAreIgnored() {
+        class FailingPartialsDecoder: ImageDecoding {
+            func decode(data: Data, isFinal: Bool) -> Image? {
+                if isFinal {
+                    return ImageDecoder().decode(data: data, isFinal: isFinal)
+                }
+                return nil // Fail every partial
+            }
+        }
+
+        ImageDecoderRegistry.shared.register { _ in
+            FailingPartialsDecoder()
+        }
+
+        let finalLoaded = self.makeExpectation()
+
+        pipeline.loadImage(
+            with: Test.url,
+            progress: { image, _, _ in
+                XCTAssertNil(image) // Progress closure doesn't get called.
+                self.dataLoader.resume()
+            },
+            completion: { response, _ in
+                XCTAssertNotNil(response)
+                finalLoaded.fulfill()
+        })
+
+        wait()
+
+        ImageDecoderRegistry.shared.clear()
     }
 
     // MARK: - Image Processing
@@ -76,7 +110,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
                     expectPartialImageProduced.fulfill()
                     self.dataLoader.resume()
                 }
-        },
+            },
             completion: { response, _ in
                 XCTAssertNotNil(response)
                 let image = response?.image
@@ -107,13 +141,55 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
                     expectPartialImageProduced.fulfill()
                     self.dataLoader.resume()
                 }
-        },
+            },
             completion: { response, _ in
                 XCTAssertNotNil(response)
                 let image = response?.image
                 XCTAssertEqual(image?.nk_test_processorIDs.count, 1)
                 XCTAssertEqual(image?.nk_test_processorIDs.first, "_image_processor")
                 expectFinalImageProduced.fulfill()
+        })
+
+        wait()
+    }
+
+    // Make sure that we don't try to process every partial image if we're
+    // receiving data at a higher rate than we can process it.
+    func testThatParialsArentProducedWhenDataIsProcudedAtHighRate() {
+        let queue = pipeline.configuration.imageProcessingQueue
+        queue.isSuspended = true
+        queue.maxConcurrentOperationCount = 1 // Make is serial
+
+        var partialOperation: Foundation.Operation?
+        var finalOperation: Foundation.Operation?
+        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) -> Bool in
+            if partialOperation == nil {
+                XCTAssertEqual(queue.operations.count, 1)
+                partialOperation = queue.operations[0]
+            } else if finalOperation == nil {
+                XCTAssertEqual(queue.operations.count, 2)
+                finalOperation = queue.operations[1]
+                queue.isSuspended = false
+            } else {
+                XCTAssertTrue(queue.operations.count < 2)
+            }
+            return true
+        }
+
+        let parialProduced = self.expectation(description: "Partial Produced")
+        let finalLoaded = self.expectation(description: "Final Produced")
+
+        pipeline.loadImage(
+            with: Test.request.processed(key: "1") { $0 },
+            progress: { image, _, _ in
+                if image != nil {
+                    parialProduced.fulfill() // We expect a single partial
+                }
+                self.dataLoader.resume()
+            },
+            completion: { response, _ in
+                XCTAssertNotNil(response)
+                finalLoaded.fulfill()
         })
 
         wait()

@@ -132,6 +132,10 @@ public final class ImageDecoderRegistry {
     public func register(_ match: @escaping (ImageDecodingContext) -> ImageDecoding?) {
         matches.insert(match, at: 0)
     }
+
+    func clear() {
+        matches = []
+    }
 }
 
 // MARK: - Image Formats

@@ -135,6 +135,78 @@ class ImagePipelineTests: XCTestCase {
 
         ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
     }
+
+    // MARK: - Updating Priority
+
+    func testThatPriorityIsUpdated() {
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let request = Test.request
+        XCTAssertEqual(request.priority, .normal)
+
+        var operation: Foundation.Operation?
+        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) -> Bool in
+            operation = queue.operations.first
+            XCTAssertEqual(queue.operations.count, 1)
+            return true
+        }
+
+        let task = pipeline.loadImage(with: request) { _, _ in
+            return
+        }
+
+        wait()
+
+        XCTAssertNotNil(operation)
+        self.keyValueObservingExpectation(for: operation!, keyPath: "queuePriority") { (_, _) in
+            XCTAssertEqual(operation?.queuePriority, .high)
+            return true
+        }
+
+        // We can't yet test that priority is actually changed, but we can at
+        // least run this code path and check that task's priority gets updated.
+        XCTAssertEqual(task.request.priority, .normal)
+        task.setPriority(.high)
+        XCTAssertEqual(task.request.priority, .high)
+
+        wait()
+    }
+
+    // MARK: - Cancellation
+
+    func testThatProcessingOperationIsCancelled() {
+        let queue = pipeline.configuration.imageProcessingQueue
+        queue.isSuspended = true
+
+        var operation: Foundation.Operation?
+        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) in
+            operation = queue.operations.first
+            XCTAssertEqual(queue.operations.count, 1)
+            return true
+        }
+
+        let request = Test.request.processed(key: "1") {
+            XCTFail()
+            return $0
+        }
+
+        let task = pipeline.loadImage(with: request) { (_, _) in
+            XCTFail()
+        }
+
+        wait()
+
+        XCTAssertNotNil(operation)
+        self.keyValueObservingExpectation(for: operation!, keyPath: "isCancelled") { (_, _) in
+            XCTAssertTrue(operation!.isCancelled)
+            return true
+        }
+
+        task.cancel()
+
+        wait()
+    }
 }
 
 class ImagePipelineDeduplicationTests: XCTestCase {
@@ -434,7 +506,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 }
 
 class ImagePipelineErrorHandlingTests: XCTestCase {
-    func testThatLoadingFailedErrorIsReturned() {
+    func testThatDataLoadingFailedErrorIsReturned() {
         let dataLoader = MockDataLoader()
         let imagePipeline = ImagePipeline {
             $0.dataLoader = dataLoader

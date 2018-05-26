@@ -40,7 +40,7 @@ public /* final */ class ImageTask: Hashable {
 
     // internal stuff associated with a task
     fileprivate var metrics: ImageTaskMetrics
-    fileprivate var priorityObserver: ((ImageRequest.Priority) -> Void)?
+    fileprivate var priorityObserver: ((ImageTask, ImageRequest.Priority) -> Void)?
     fileprivate weak var session: ImagePipeline.ImageLoadingSession?  
     fileprivate var cts = _CancellationSource()
 
@@ -55,7 +55,7 @@ public /* final */ class ImageTask: Hashable {
     /// Update s priority of the task even if the task is already running.
     public func setPriority(_ priority: ImageRequest.Priority) {
         request.priority = priority
-        priorityObserver?(priority)
+        priorityObserver?(self, priority)
     }
 
     // MARK: - Cancellation
@@ -289,9 +289,8 @@ public /* final */ class ImagePipeline {
             self?._imageTaskCancelled(task)
         }
 
-        task.priorityObserver = { [weak self, weak task] in
-            guard let task = task else { return }
-            self?._imageTask(task, didUpdatePriority: $0)
+        task.priorityObserver = { [weak self] in
+            self?._imageTask($0, didUpdatePriority: $1)
         }
     }
 
@@ -509,7 +508,9 @@ public /* final */ class ImagePipeline {
             guard let session = session else { return }
 
             // Produce partial image
-            guard let image = decoder.decode(data: data, isFinal: false) else { return }
+            guard let image = decoder.decode(data: data, isFinal: false) else {
+                return
+            }
             let scanNumber: Int? = (decoder as? ImageDecoder)?.numberOfScans // Need a public way to implement this.
             self?.queue.async {
                 self?._session(session, processParialImage: image, scanNumber: scanNumber)

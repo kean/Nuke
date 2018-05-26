@@ -229,7 +229,8 @@ public extension ImageRequest {
     /// processors to the request.
     public mutating func process<P: ImageProcessing>(with processor: P) {
         guard let existing = self.processor else {
-            self.processor = AnyImageProcessor(processor); return
+            self.processor = AnyImageProcessor(processor)
+            return
         }
         // Chain new processor and the existing one.
         self.processor = AnyImageProcessor(ImageProcessorComposition([existing, AnyImageProcessor(processor)]))

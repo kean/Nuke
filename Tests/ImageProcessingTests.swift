@@ -87,7 +87,7 @@ class ImageProcessingTests: XCTestCase {
 
     // MARK: Composing Filters
 
-    func testThatImageIsProcessedWithFilterComposition() {
+    func testApplyingMultipleProcessors() {
         let request = ImageRequest(url: defaultURL)
             .processed(with: MockImageProcessor(id: "processor1"))
             .processed(with: MockImageProcessor(id: "processor2"))
@@ -96,6 +96,21 @@ class ImageProcessingTests: XCTestCase {
             pipeline.loadImage(with: request) { response, _ in
                 guard let image = response?.image else { XCTFail(); return }
                 XCTAssertEqual(image.nk_test_processorIDs, ["processor1", "processor2"])
+                fulfill()
+            }
+        }
+        wait()
+    }
+
+    func testApplyProcessorWhenExistingIsNil() {
+        var request = ImageRequest(url: defaultURL)
+        request.processor = nil
+        request.process(with: MockImageProcessor(id: "processor1"))
+
+        expect { fulfill in
+            pipeline.loadImage(with: request) { response, _ in
+                guard let image = response?.image else { XCTFail(); return }
+                XCTAssertEqual(image.nk_test_processorIDs, ["processor1"])
                 fulfill()
             }
         }

@@ -52,6 +52,7 @@ class ImageCacheTests: XCTestCase {
 
     func testThatItemsAreRemoveImmediatelyWhenCountLimitIsReached() {
         cache.countLimit = 1
+        XCTAssertEqual(cache.countLimit, 1)
 
         cache[request1] = defaultImage
         XCTAssertNotNil(cache[request1])
@@ -76,6 +77,7 @@ class ImageCacheTests: XCTestCase {
 
     func testThatImagesAreRemovedOnCountLimitChange() {
         cache.countLimit = 2
+        XCTAssertEqual(cache.countLimit, 2)
 
         cache[request1] = defaultImage
         cache[request2] = defaultImage
@@ -114,6 +116,7 @@ class ImageCacheTests: XCTestCase {
     func testThatItemsAreRemoveImmediatelyWhenCostLimitIsReached() {
         let cost = cache.cost(for: defaultImage)
         cache.costLimit = Int(Double(cost) * 1.5)
+        XCTAssertEqual(cache.costLimit, Int(Double(cost) * 1.5))
 
         cache[request1] = defaultImage
         XCTAssertNotNil(cache[request1])
