@@ -620,7 +620,7 @@ public /* final */ class ImagePipeline {
 
         func _jobs() -> [ImageProcessingJob] {
             func _processor(for request: ImageRequest) -> AnyImageProcessor? {
-                if ImagePipeline.Configuration.isAnimatedImageDataEnabled && image.image.animatedImageData != nil {
+                if Configuration.isAnimatedImageDataEnabled && image.image.animatedImageData != nil {
                     return nil // Don't process animated images.
                 }
                 return configuration.imageProcessor(image.image, request)

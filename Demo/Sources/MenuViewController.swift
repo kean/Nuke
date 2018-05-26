@@ -82,7 +82,7 @@ final class MenuViewController: UITableViewController {
                 title: "Alamofire",
                 subtitle: "Custom networking stack",
                 action: { [weak self] in
-                    let controller = AlamofireIntegrationDemoViewController()
+                    let controller = AlamofireIntegrationDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
                     controller.title = $0.title
                     self?.push(controller)
             }))
