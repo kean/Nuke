@@ -174,8 +174,46 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     func testThatEquivalentRequestsAreDeduplicated() {
         dataLoader.queue.isSuspended = true
 
+        var processingCount = 0
+        let request1 = ImageRequest(url: defaultURL).processed(key: "key1") {
+            processingCount += 1
+            return $0
+        }
+        let request2 = ImageRequest(url: defaultURL).processed(key: "key1")  {
+            processingCount += 1
+            return $0
+        }
+        XCTAssertEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
+
+        expect { fulfill in
+            imagePipeline.loadImage(with: request1) { response, _ in
+                XCTAssertNotNil(response)
+                fulfill()
+            }
+        }
+
+        expect { fulfill in
+            imagePipeline.loadImage(with: request2) { response, _ in
+                XCTAssertNotNil(response)
+                fulfill()
+            }
+        }
+
+        dataLoader.queue.isSuspended = false
+
+        wait { _ in
+            XCTAssertEqual(processingCount, 1)
+            XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+        }
+    }
+
+    func testThatRequestsWithDifferenteProcessorsAreDeduplicated() {
+        dataLoader.queue.isSuspended = true
+
         let request1 = ImageRequest(url: defaultURL)
+            .processed(key: "key1") { $0 }
         let request2 = ImageRequest(url: defaultURL)
+            .processed(key: "key2") { $0 }
         XCTAssertEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
 
         expect { fulfill in

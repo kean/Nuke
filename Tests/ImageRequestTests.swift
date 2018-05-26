@@ -123,11 +123,11 @@ class ImageRequestLoadKeyTests: XCTestCase {
         XCTAssertEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
     }
     
-    func testThatRequestsWithDifferentProcessorsAreNotEquivalent() {
+    func testThatRequestsWithDifferentProcessorsAreEquivalent() {
         let request1 = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "1"))
         let request2 = ImageRequest(url: defaultURL).processed(with: MockImageProcessor(id: "2"))
         XCTAssertNotEqual(MockImageProcessor(id: "1"), MockImageProcessor(id: "2"))
-        XCTAssertNotEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
+        XCTAssertEqual(ImageRequest.LoadKey(request: request1), ImageRequest.LoadKey(request: request2))
     }
     
     func testThatRequestWithDifferentURLRequestParametersAreNotEquivalent() {

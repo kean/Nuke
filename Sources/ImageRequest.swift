@@ -293,8 +293,6 @@ internal extension ImageRequest {
             }
             return lhs._ref._urlString == rhs._ref._urlString
                 && isEqual(lhs.urlRequest, rhs.urlRequest)
-                && lhs._ref._isDefaultProcessorUsed == rhs._ref._isDefaultProcessorUsed
-                && lhs._ref._customProcessor == rhs._ref._customProcessor
         }
     }
 }
