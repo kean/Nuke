@@ -261,6 +261,9 @@ internal extension ImageRequest {
         let request: ImageRequest
 
         var hashValue: Int {
+            if let customKey = request._ref.cacheKey {
+                return customKey.hashValue
+            }
             return request._ref._urlString?.hashValue ?? 0
         }
 
@@ -279,6 +282,9 @@ internal extension ImageRequest {
         let request: ImageRequest
 
         var hashValue: Int {
+            if let customKey = request._ref.loadKey {
+                return customKey.hashValue
+            }
             return request._ref._urlString?.hashValue ?? 0
         }
 
