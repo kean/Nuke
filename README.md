@@ -371,7 +371,7 @@ Resumable downloads require server to support [HTTP Range Requests](https://deve
 
 ### Request Dedupication
 
-By default `ImagePipeline` combines the requests with the same `loadKey` into a single task. The task's priority is set to the highest priority of registered requests and gets updated when requests are added or removed to the task. The task only gets cancelled when all the registered requests are.
+By default `ImagePipeline` combines the requests for the same image (but can be different processors) into the same task. The task's priority is set to the highest priority of registered requests and gets updated when requests are added or removed to the task. The task only gets cancelled when all the registered requests are.
 
 > Deduplication can be disabled using `ImagePipeline.Configuration`.
 

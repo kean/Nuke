@@ -1,3 +1,17 @@
+## Nuke 7.1
+
+### Improvements
+
+- Improve deduplication. Now when creating two requests (at roughly the same time) for the same images but with two different processors, the original image is going to be downloaded once (used to be twice in the previous implementation) and then two separate processors are going to be applied (if the processors are the same, the processing will be performed once).
+- Greatly improved test coverage.
+
+### Fixes
+
+- Fix an issue when setting custom `loadKey` for the request, the `hashValue` of the default key was still used.
+- Fix warnings "Decoding failed with error code -1" when progressively decoding images. This was the result of `ImageDecoder` trying to decode incomplete progressive scans.
+- Fix an issue where `ImageDecoder` could produce a bit more progressive scans than necessary.
+
+
 ## Nuke 7.0.1
 
 ### Additions
