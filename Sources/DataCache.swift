@@ -10,16 +10,11 @@ import Foundation
 public protocol DataCaching {
     func data(for key: String, _ completion: @escaping (Data?) -> Void) -> Cancellable
     func storeData(_ data: Data, for key: String)
-    func removeData(for key: String)
 }
 
 extension DataCache: DataCaching {
     func storeData(_ data: Data, for key: String) {
         self[key] = data
-    }
-
-    func removeData(for key: String) {
-        self[key] = nil
     }
 }
 
