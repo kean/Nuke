@@ -39,19 +39,20 @@ class MockImagePipeline: ImagePipeline {
 
     override init(configuration: ImagePipeline.Configuration = ImagePipeline.Configuration()) {
         var conf = configuration
-        conf.imageCache = nil // Disabla caching
+        conf.imageCache = nil // Disablaecaching
         super.init(configuration: conf)
     }
 
+    @discardableResult
     override func loadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
         let task = _MockImageTask(request: request)
         task._progress = progress
         task._completion = completion
 
-        NotificationCenter.default.post(name: MockImagePipeline.DidStartTask, object: self)
-        
         createdTaskCount += 1
-        
+
+        NotificationCenter.default.post(name: MockImagePipeline.DidStartTask, object: self)
+
         let operation = BlockOperation() { [weak self] in
             self?.perform(task)
         }

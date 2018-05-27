@@ -618,7 +618,7 @@ public /* final */ class ImagePipeline {
     private func _process(_ image: ImageContainer, for tasks: [ImageTask], completion: @escaping (Image?, ImageTask) -> Void) -> Foundation.Operation? {
         typealias ImageProcessingJob = (AnyImageProcessor, [ImageTask])
 
-        func _jobs() -> [ImageProcessingJob] {
+        let jobs: [ImageProcessingJob] = {
             func _processor(for request: ImageRequest) -> AnyImageProcessor? {
                 if Configuration.isAnimatedImageDataEnabled && image.image.animatedImageData != nil {
                     return nil // Don't process animated images.
@@ -639,35 +639,31 @@ public /* final */ class ImagePipeline {
                 }
             }
             return jobs
-        }
+        }()
 
-        func _schedule(jobs: [ImageProcessingJob]) -> BlockOperation? {
-            guard !jobs.isEmpty else {
-                return nil
-            }
-            let operation = BlockOperation { [weak self] in
-                for (processor, tasks) in jobs {
-                    tasks.forEach {
-                        if image.isFinal { $0.metrics.processStartDate = Date() }
-                    }
-                    assert(!tasks.isEmpty)
-                    let context = ImageProcessingContext(request: tasks[0].request, isFinal: image.isFinal, scanNumber: image.scanNumber)
-                    let result = autoreleasepool { processor.process(image: image.image, context: context) }
-                    self?.queue.async {
-                        for task in tasks {
-                            completion(result, task)
-                        }
-                    }
-                    tasks.forEach {
-                        if image.isFinal { $0.metrics.processEndDate = Date() }
+        guard !jobs.isEmpty else {
+            return nil
+        }
+        let operation = BlockOperation { [weak self] in
+            for (processor, tasks) in jobs {
+                tasks.forEach {
+                    if image.isFinal { $0.metrics.processStartDate = Date() }
+                }
+                assert(!tasks.isEmpty)
+                let context = ImageProcessingContext(request: tasks[0].request, isFinal: image.isFinal, scanNumber: image.scanNumber)
+                let result = autoreleasepool { processor.process(image: image.image, context: context) }
+                self?.queue.async {
+                    for task in tasks {
+                        completion(result, task)
                     }
                 }
+                tasks.forEach {
+                    if image.isFinal { $0.metrics.processEndDate = Date() }
+                }
             }
-            configuration.imageProcessingQueue.addOperation(operation)
-            return operation
         }
-
-        return _schedule(jobs: _jobs())
+        configuration.imageProcessingQueue.addOperation(operation)
+        return operation
     }
 
     private struct ImageContainer {
