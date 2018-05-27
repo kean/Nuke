@@ -262,53 +262,6 @@ class ImageCacheTests: XCTestCase {
         XCTAssertEqual(cache.totalCount, 1)
     }
     #endif
-
-    // MARK: Thread Safety
-
-    func testThreadSafety() {
-        let cache = ImageCache()
-
-        func rnd_cost() -> Int {
-            return (2 + rnd(20)) * 1024 * 1024
-        }
-
-        var ops = [() -> Void]()
-
-        for _ in 0..<10 { // those ops happen more frequently
-            ops += [
-                { cache[_request(index: rnd(10))] = defaultImage },
-                { cache[_request(index: rnd(10))] = nil },
-                { let _ = cache[_request(index: rnd(10))] }
-            ]
-        }
-
-        ops += [
-            { cache.costLimit = rnd_cost() },
-            { cache.countLimit = rnd(10) },
-            { cache.trim(toCost: rnd_cost()) },
-            { cache.removeAll() }
-        ]
-
-        #if os(iOS) || os(tvOS)
-        ops.append {
-            NotificationCenter.default.post(name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
-        }
-        ops.append {
-            NotificationCenter.default.post(name: NSNotification.Name.UIApplicationDidEnterBackground, object: nil)
-        }
-        #endif
-
-        for _ in 0..<5000 {
-            expect { fulfill in
-                DispatchQueue.global().async {
-                    ops.randomItem()()
-                    fulfill()
-                }
-            }
-        }
-
-        wait()
-    }
 }
 
 class InternalCacheTTLTests: XCTestCase {

@@ -92,29 +92,6 @@ class CancellationTokenTests: XCTestCase {
         XCTAssertEqual(callsCount, 1)
     }
     
-    func testThreadSafety() {
-        for _ in 0..<100 {
-            let cts = _CancellationTokenSource()
-            
-            for _ in 0...100 {
-                expect { fulfill in
-                    DispatchQueue.global().async {
-                        if rnd(4) == 0 {
-                            cts.cancel()
-                            fulfill()
-                        } else {
-                            cts.token.register {
-                                fulfill()
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        wait(10)
-    }
-
     func testCancellingOneFromAnother() {
         let cts1 = _CancellationTokenSource()
         let cts2 = _CancellationTokenSource()

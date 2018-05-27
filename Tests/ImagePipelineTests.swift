@@ -18,10 +18,6 @@ class ImagePipelineTests: XCTestCase {
             $0.imageCache = nil
         }
     }
-    
-    func testThreadSafety() {
-        runThreadSafetyTests(for: pipeline)
-    }
 
     // MARK: - Progress
 

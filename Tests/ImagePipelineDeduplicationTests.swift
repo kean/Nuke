@@ -178,16 +178,16 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // GIVEN two equivalent requests
 
-        let task1 = pipeline.loadImage(with: Test.request)
-        let task2 = pipeline.loadImage(with: Test.request)
-
         // WHEN both tasks are cancelled the image loading session is cancelled
 
-        _ = expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
+        _ = expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
+        let task1 = pipeline.loadImage(with: Test.request)
+        let task2 = pipeline.loadImage(with: Test.request)
+        wait() // wait until the tasks is started or we might be cancelling non-exisitng task
 
+        _ = expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
         task1.cancel()
         task2.cancel()
-
         wait()
     }
 

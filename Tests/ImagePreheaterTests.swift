@@ -102,23 +102,4 @@ class ImagePreheaterTests: XCTestCase {
         preheater.stopPreheating()
         wait()
     }
-
-    // MARK: Thread Safety
-    
-    func testPreheatingThreadSafety() {
-        func makeRequests() -> [ImageRequest] {
-            return (0...rnd(30)).map { _ in
-                return ImageRequest(url: URL(string: "http://\(rnd(15))")!)
-            }
-        }
-        let queue = OperationQueue()
-        queue.maxConcurrentOperationCount = 4
-        for _ in 0...300 {
-            queue.addOperation {
-                self.preheater.stopPreheating(with: makeRequests())
-                self.preheater.startPreheating(with: makeRequests())
-            }
-        }
-        queue.waitUntilAllOperationsAreFinished()
-    }
 }
