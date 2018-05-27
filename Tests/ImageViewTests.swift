@@ -122,8 +122,8 @@ class ImageViewTests: XCTestCase {
             (Data(count: 20), URLResponse(url: defaultURL, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
-        let expectTaskFinished = makeExpectation()
-        let expectProgressFinished = makeExpectation()
+        let expectTaskFinished = self.expectation(description: "Task finished")
+        let expectProgressFinished = self.expectation(description: "Progress finished")
 
         var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
         Nuke.loadImage(
@@ -137,7 +137,7 @@ class ImageViewTests: XCTestCase {
                 if expected.isEmpty {
                     expectProgressFinished.fulfill()
                 }
-        },
+            },
             completion: { _,_ in
                 expectTaskFinished.fulfill()
         })

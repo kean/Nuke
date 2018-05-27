@@ -62,7 +62,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             FailingPartialsDecoder()
         }
 
-        let finalLoaded = self.makeExpectation()
+        let finalLoaded = self.expectation(description: "Final image loaded")
 
         pipeline.loadImage(
             with: Test.url,
@@ -153,28 +153,15 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         wait()
     }
 
-    // Make sure that we don't try to process every partial image if we're
-    // receiving data at a higher rate than we can process it.
     func testThatParialsArentProducedWhenDataIsProcudedAtHighRate() {
         let queue = pipeline.configuration.imageProcessingQueue
-        queue.isSuspended = true
-        queue.maxConcurrentOperationCount = 1 // Make is serial
 
-        var partialOperation: Foundation.Operation?
-        var finalOperation: Foundation.Operation?
-        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) -> Bool in
-            if partialOperation == nil {
-                XCTAssertEqual(queue.operations.count, 1)
-                partialOperation = queue.operations[0]
-            } else if finalOperation == nil {
-                XCTAssertEqual(queue.operations.count, 2)
-                finalOperation = queue.operations[1]
-                queue.isSuspended = false
-            } else {
-                XCTAssertTrue(queue.operations.count < 2)
-            }
-            return true // FIXME: probably isn't correct
-        }
+        // When we receive progressive image data at a higher rate that we can
+        // process (we suspended the queue in test) we don't try to process
+        // new scans until we finished processing the first one.
+
+        queue.isSuspended = true
+        self.expectPerformedOperationCount(2, on: queue) // 1 partial, 1 final
 
         let parialProduced = self.expectation(description: "Partial Produced")
         let finalLoaded = self.expectation(description: "Final Produced")

@@ -102,7 +102,7 @@ class ImageProcessingTests: XCTestCase {
         wait()
     }
 
-    func testApplyProcessorWhenExistingIsNil() {
+    func testPerformingRequestWithoutProcessors() {
         var request = ImageRequest(url: defaultURL)
         request.processor = nil
         request.process(with: MockImageProcessor(id: "processor1"))

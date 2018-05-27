@@ -11,14 +11,10 @@ extension XCTestCase {
     }
 
     func expect(_ block: (_ fulfill: @escaping () -> Void) -> Void) {
-        let expectation = makeExpectation()
+        let expectation = self.expectation(description: "Generic expectation")
         block({ expectation.fulfill() })
     }
 
-    func makeExpectation() -> XCTestExpectation {
-        return self.expectation(description: "GenericExpectation")
-    }
-    
     func expectNotification(_ name: Notification.Name, object: AnyObject? = nil, handler: XCTNSNotificationExpectation.Handler? = nil) -> XCTestExpectation {
         return self.expectation(forNotification: name, object: object, handler: handler)
     }
@@ -31,31 +27,28 @@ extension XCTestCase {
 // MARK: - XCTestCase (KVO)
 
 extension XCTestCase {
-    // A replacement for keyValueObservingExpectation which used Swift key paths.
+    /// A replacement for keyValueObservingExpectation which used Swift key paths.
+    /// - warning: Keep in mind that `changeHandler` will continue to get called
+    /// even after expectation is fulfilled. The method itself can't reliably stop
+    /// observing KVO in case its multithreaded.
+    /// FIXME: Make symmetrical to XCTest variant?
     func expectation<Object: NSObject, Value>(description: String = "", for object: Object, keyPath: KeyPath<Object, Value>, options: NSKeyValueObservingOptions = .new, _ changeHandler: @escaping (Object, NSKeyValueObservedChange<Value>, XCTestExpectation) -> Void) {
         let expectation = self.expectation(description: description)
-        let observation = object.observe(keyPath, options: options) { (object, keyPath) in
-            changeHandler(object, keyPath, expectation)
+        let observation = object.observe(keyPath, options: options) { (object, change) in
+            changeHandler(object, change, expectation)
         }
         observations.append(observation)
     }
 
-    func expect<Object: NSObject, Value: Equatable>(values: [Value], for object: Object, keyPath: KeyPath<Object, Value>) {
-        var expected = Array(values.reversed()) // Reverse to use `popLast`.
-        var recorded = [Value?]()
-        self.expectation(for: object, keyPath: keyPath) { (object, change, expectation) in
-            DispatchQueue.main.async { // Synchronize access to `expected` and `recorded`.
-                recorded.append(change.newValue)
-                guard let value = expected.popLast() else {
-                    XCTFail("Received unexpected value. Recorded: \(recorded), Expected: \(values)")
-                    return
-                }
-                XCTAssertEqual(change.newValue, value, "Recorded: \(recorded), Expected: \(values)")
-                if expected.isEmpty {
-                    expectation.fulfill()
-                }
+    func expect<Object: NSObject, Value: Equatable>(values: [Value], for object: Object, keyPath: KeyPath<Object, Value>, changeHandler: ((Object, NSKeyValueObservedChange<Value>) -> Void)? = nil) {
+        let valuesExpectation = self.expect(values: values)
+        let observation = object.observe(keyPath, options: [.new]) { (object, change) in
+            changeHandler?(object, change)
+            DispatchQueue.main.async { // Syncrhonize access to `valuesExpectation`
+                valuesExpectation.received(change.newValue!)
             }
         }
+        observations.append(observation)
     }
 
     private static var observationsAK = "ImageViewController.AssociatedKey"
@@ -95,6 +88,39 @@ extension XCTestCase {
                 }
             }
         }
+    }
+}
+
+// MARK: - ValuesExpectation
+
+extension XCTestCase {
+    class ValuesExpectation<Value: Equatable> {
+        fileprivate let expectation: XCTestExpectation
+        fileprivate let expected: [Value]
+        private var _expected: [Value]
+        private var _recorded = [Value]()
+
+        init(expected: [Value], expectation: XCTestExpectation) {
+            self.expected = expected
+            self._expected = expected.reversed() // to be ably to popLast
+            self.expectation = expectation
+        }
+
+        func received(_ newValue: Value) {
+            _recorded.append(newValue)
+            guard let value = _expected.popLast() else {
+                XCTFail("Received unexpected value. Recorded: \(_recorded), Expected: \(expected)")
+                return
+            }
+            XCTAssertEqual(newValue, value, "Recorded: \(_recorded), Expected: \(expected)")
+            if _expected.isEmpty {
+                expectation.fulfill()
+            }
+        }
+    }
+
+    func expect<Value: Equatable>(values: [Value]) -> ValuesExpectation<Value> {
+        return ValuesExpectation(expected: values, expectation: self.expectation(description: "Expecting values: \(values)"))
     }
 }
 

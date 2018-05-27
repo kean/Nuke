@@ -32,8 +32,8 @@ class ImagePipelineTests: XCTestCase {
             (Data(count: 20), URLResponse(url: defaultURL, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
-        let expectTaskFinished = makeExpectation()
-        let expectProgressFinished = makeExpectation()
+        let expectTaskFinished = self.expectation(description: "Task finished")
+        let expectProgressFinished = self.expectation(description: "Progress finished")
 
         var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
         pipeline.loadImage(
@@ -46,7 +46,7 @@ class ImagePipelineTests: XCTestCase {
                 if expected.isEmpty {
                     expectProgressFinished.fulfill()
                 }
-        },
+            },
             completion: { _,_ in
                 expectTaskFinished.fulfill()
         })
@@ -61,28 +61,17 @@ class ImagePipelineTests: XCTestCase {
             (Data(count: 20), URLResponse(url: defaultURL, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
-        let expectTaskFinished = makeExpectation()
+        let expectTaskFinished = self.expectation(description: "Task finished")
 
         let task = pipeline.loadImage(with: request) { _,_ in
             expectTaskFinished.fulfill()
         }
 
-        let progress = task.progress
-
-        var expectedTotal: [Int64] = [20]
-        self.keyValueObservingExpectation(for: progress, keyPath: "totalUnitCount") { (object, _) -> Bool in
+        self.expect(values: [20], for: task.progress, keyPath: \.totalUnitCount) { _, _ in
             XCTAssertTrue(Thread.isMainThread)
-            XCTAssertEqual(expectedTotal.first, progress.totalUnitCount)
-            expectedTotal.removeFirst()
-            return expectedTotal.isEmpty
         }
-
-        var expectedCompleted: [Int64] = [10, 20]
-        self.keyValueObservingExpectation(for: progress, keyPath: "completedUnitCount") { (object,  _) -> Bool in
+        self.expect(values: [10, 20], for: task.progress, keyPath: \.completedUnitCount) { _, _ in
             XCTAssertTrue(Thread.isMainThread)
-            XCTAssertEqual(expectedCompleted.first, progress.completedUnitCount)
-            expectedCompleted.removeFirst()
-            return expectedCompleted.isEmpty
         }
 
         wait()
@@ -120,7 +109,7 @@ class ImagePipelineTests: XCTestCase {
             (Test.data(name: "cat", extension: "gif"), Test.urlResponse)
         )
 
-        let expectation = self.makeExpectation()
+        let expectation = self.expectation(description: "Task finished")
         let request = Test.request.processed(key: "1") { _ in
             XCTFail()
             return nil
