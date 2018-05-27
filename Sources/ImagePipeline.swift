@@ -576,13 +576,8 @@ public /* final */ class ImagePipeline {
         }
 
         // Store data in data cache (in case it's enabled))
-        if let dataCache = configuration.dataCache, let key = session.request.urlString {
-            if data.isEmpty {
-                dataCache.removeData(for: key)
-            }
-            else {
-                dataCache.storeData(data, for: key)
-            }
+        if !data.isEmpty, let dataCache = configuration.dataCache, let key = session.request.urlString {
+            dataCache.storeData(data, for: key)
         }
 
         _session(session, processFinalImage: image, for: Array(session.tasks.keys))
