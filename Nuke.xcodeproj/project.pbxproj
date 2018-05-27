@@ -65,9 +65,6 @@
 		0C2A8CF720970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CF620970B790013FD65 /* ImagePipelineResumableDataTests.swift */; };
 		0C2A8CF820970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CF620970B790013FD65 /* ImagePipelineResumableDataTests.swift */; };
 		0C2A8CF920970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CF620970B790013FD65 /* ImagePipelineResumableDataTests.swift */; };
-		0C2A8CFB20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CFA20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift */; };
-		0C2A8CFC20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CFA20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift */; };
-		0C2A8CFD20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CFA20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift */; };
 		0C3261F31FEBC232009276AC /* MockImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockImageCache.swift */; };
 		0C3261F41FEBC232009276AC /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
 		0C3261F51FEBC232009276AC /* MockDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockDataLoader.swift */; };
@@ -988,7 +985,6 @@
 				0C2A8CF820970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */,
 				0C22DA591BCAAA3A006E1D3B /* MockImageProcessor.swift in Sources */,
 				0C367A9B20B9DBAA002342A5 /* ImageTaskMetricsTests.swift in Sources */,
-				0C2A8CFC20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift in Sources */,
 				0C1E623C1D6FA0FB00AD5CF5 /* CancellationTokenTests.swift in Sources */,
 				0C4AF1EC1FE85539002F86CB /* LinkedListTest.swift in Sources */,
 				0C22DA5B1BCAAA3A006E1D3B /* MockDataLoader.swift in Sources */,
@@ -1019,7 +1015,6 @@
 				0C2A8CF720970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */,
 				0C7C06981BCA888800089D7F /* Helpers.swift in Sources */,
 				0C367A9A20B9DBAA002342A5 /* ImageTaskMetricsTests.swift in Sources */,
-				0C2A8CFB20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift in Sources */,
 				0C1E623B1D6FA0FB00AD5CF5 /* CancellationTokenTests.swift in Sources */,
 				0C4AF1EB1FE85539002F86CB /* LinkedListTest.swift in Sources */,
 				0C7C06971BCA888800089D7F /* MockDataLoader.swift in Sources */,
@@ -1116,7 +1111,6 @@
 				0C2A8CF920970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */,
 				0CC345C51BD96E1D005C2DD8 /* Helpers.swift in Sources */,
 				0C367A9C20B9DBAA002342A5 /* ImageTaskMetricsTests.swift in Sources */,
-				0C2A8CFD20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift in Sources */,
 				0C1E623D1D6FA0FB00AD5CF5 /* CancellationTokenTests.swift in Sources */,
 				0C4AF1ED1FE8553A002F86CB /* LinkedListTest.swift in Sources */,
 				0CC345C01BD96E16005C2DD8 /* MockImageCache.swift in Sources */,
