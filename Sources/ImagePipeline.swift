@@ -144,6 +144,9 @@ public /* final */ class ImagePipeline {
         /// Image cache used by the pipeline.
         public var imageCache: ImageCaching?
 
+        /// Data cache used by the pipeline.
+        public var dataCache: DataCaching?
+
         /// This is here just for backward compatibility with `Loader`.
         internal var imageProcessor: (Image, ImageRequest) -> AnyImageProcessor? = { $1.processor }
 
@@ -198,8 +201,6 @@ public /* final */ class ImagePipeline {
             }
             self.dataCache = DataCache.shared
         }
-
-        var dataCache: DataCache?
 
         /// Creates default configuration.
         /// - parameter dataLoader: `DataLoader()` by default.
@@ -576,7 +577,7 @@ public /* final */ class ImagePipeline {
 
         // Store data in data cache (in case it's enabled))
         if !data.isEmpty, let dataCache = configuration.dataCache, let key = session.request.urlString {
-            dataCache[key] = data
+            dataCache.storeData(data, for: key)
         }
 
         _session(session, processFinalImage: image, for: Array(session.tasks.keys))
