@@ -22,7 +22,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     // MARK: - Basics
 
     // Very basic test, just make sure that partial images get produced and
-    // that the completion handler is called once at the end.
+    // that the completion handler is called at the end.
     func testProgressiveDecoding() {
         let expectPartialImageProduced = self.expectation(description: "Partial Image Is Produced")
         // We expect two partial images (at 5 scans, and 9 scans marks).
@@ -33,10 +33,9 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         pipeline.loadImage(
             with: Test.url,
             progress: { image, _, _ in
+                 // This works because each new chunk resulted in a new scan
                 if image != nil {
                     expectPartialImageProduced.fulfill()
-                    // FIXME: This seems to be working by accident
-                    // (every next chunk produces a new scan)
                     self.dataLoader.resume()
                 }
             },
@@ -67,7 +66,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         pipeline.loadImage(
             with: Test.url,
             progress: { image, _, _ in
-                XCTAssertNil(image) // Progress closure doesn't get called.
+                XCTAssertNil(image) // Partial images never produced.
                 self.dataLoader.resume()
             },
             completion: { response, _ in
@@ -84,13 +83,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
     #if !os(macOS)
     func testThatPartialImagesAreResized() {
-        let expectPartialImageProduced = self.expectation(description: "Partial Image Is Produced")
-        // We expect two partial images (at 5 scans, and 9 scans marks).
-        expectPartialImageProduced.expectedFulfillmentCount = 2
-
-        let expectFinalImageProduced = self.expectation(description: "Final Image Is Produced")
-
-        // Make sure that input image is correct.
+        // Given
         let image = Image(data: dataLoader.data)
         XCTAssertEqual(image?.cgImage?.width, 450)
         XCTAssertEqual(image?.cgImage?.height, 300)
@@ -100,6 +93,13 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             targetSize: CGSize(width: 45, height: 30),
             contentMode: .aspectFill
         )
+
+        // When/Then
+        let expectPartialImageProduced = self.expectation(description: "Partial Image Is Produced")
+        // We expect two partial images (at 5 scans, and 9 scans marks).
+        expectPartialImageProduced.expectedFulfillmentCount = 2
+
+        let expectFinalImageProduced = self.expectation(description: "Final Image Is Produced")
 
         pipeline.loadImage(
             with: request,
@@ -124,13 +124,15 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     #endif
 
     func testThatPartialImagesAreProcessed() {
+        // Given
+        let request = Test.request.processed(with: MockImageProcessor(id: "_image_processor"))
+
+        // When/Then
         let expectPartialImageProduced = self.expectation(description: "Partial Image Is Produced")
         // We expect two partial images (at 5 scans, and 9 scans marks).
         expectPartialImageProduced.expectedFulfillmentCount = 2
 
         let expectFinalImageProduced = self.expectation(description: "Final Image Is Produced")
-
-        let request = ImageRequest(url: Test.url).processed(with: MockImageProcessor(id: "_image_processor"))
 
         pipeline.loadImage(
             with: request,
@@ -153,7 +155,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         wait()
     }
 
-    func testThatParialsArentProducedWhenDataIsProcudedAtHighRate() {
+    func testRedundantParialsArentProducedWhenDataIsProcudedAtHighRate() {
         let queue = pipeline.configuration.imageProcessingQueue
 
         // When we receive progressive image data at a higher rate that we can
@@ -201,7 +203,7 @@ private class _MockProgressiveDataLoader: DataLoading {
 
     init() {
         self.urlResponse = HTTPURLResponse(
-            url: defaultURL,
+            url: Test.url,
             mimeType: "jpeg",
             expectedContentLength: data.count,
             textEncodingName: nil

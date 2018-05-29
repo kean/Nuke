@@ -25,13 +25,13 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     func testDeduplicationGivenSameURLDifferentSameProcessors() {
         dataLoader.queue.isSuspended = true
 
-        // GIVEN requests with the same URLs and same processors
+        // Given requests with the same URLs and same processors
         let processors = ProcessorFactory()
-        let request1 = ImageRequest(url: Test.url).processed(with: processors.make(id: "1"))
-        let request2 = ImageRequest(url: Test.url).processed(with: processors.make(id: "1"))
+        let request1 = Test.request.processed(with: processors.make(id: "1"))
+        let request2 = Test.request.processed(with: processors.make(id: "1"))
 
-        // WHEN loading images for those requests
-        // THEN the correct proessors are applied.
+        // When loading images for those requests
+        // Then the correct proessors are applied.
         expect(pipeline).toLoadImage(with: request1) { response, _ in
             XCTAssertEqual(response?.image.nk_test_processorIDs, ["1"])
         }
@@ -42,7 +42,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         dataLoader.queue.isSuspended = false
 
         wait { _ in
-            // THEN the original image is loaded once, and the image is processed
+            // Then the original image is loaded once, and the image is processed
             // also only once
             XCTAssertEqual(processors.numberOfProcessorsApplied, 1)
             XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
@@ -52,13 +52,13 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     func testDeduplicationGivenSameURLDifferentProcessors() {
         dataLoader.queue.isSuspended = true
 
-        // GIVEN requests with the same URLs but different processors
+        // Given requests with the same URLs but different processors
         let processors = ProcessorFactory()
-        let request1 = ImageRequest(url: Test.url).processed(with: processors.make(id: "1"))
-        let request2 = ImageRequest(url: Test.url).processed(with: processors.make(id: "2"))
+        let request1 = Test.request.processed(with: processors.make(id: "1"))
+        let request2 = Test.request.processed(with: processors.make(id: "2"))
 
-        // WHEN loading images for those requests
-        // THEN the correct proessors are applied.
+        // When loading images for those requests
+        // Then the correct proessors are applied.
         expect(pipeline).toLoadImage(with: request1) { response, _ in
             XCTAssertEqual(response?.image.nk_test_processorIDs, ["1"])
         }
@@ -69,7 +69,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         dataLoader.queue.isSuspended = false
 
         wait { _ in
-            // THEN the original image is loaded once, but both processors are applied
+            // Then the original image is loaded once, but both processors are applied
             XCTAssertEqual(processors.numberOfProcessorsApplied, 2)
             XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
         }
@@ -78,15 +78,15 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     func testDeduplicationGivenSameURLDifferentProcessorsOneEmpty() {
         dataLoader.queue.isSuspended = true
 
-        // GIVEN requests with the same URLs but different processors where one
+        // Given requests with the same URLs but different processors where one
         // processor is empty
         let processors = ProcessorFactory()
-        let request1 = ImageRequest(url: Test.url).processed(with: processors.make(id: "1"))
-        var request2 = ImageRequest(url: Test.url)
+        let request1 = Test.request.processed(with: processors.make(id: "1"))
+        var request2 = Test.request
         request2.processor = nil
 
-        // WHEN loading images for those requests
-        // THEN the correct proessors are applied.
+        // When loading images for those requests
+        // Then the correct proessors are applied.
         expect(pipeline).toLoadImage(with: request1) { response, _ in
             XCTAssertEqual(response?.image.nk_test_processorIDs, ["1"])
         }
@@ -104,8 +104,8 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     }
 
     func testNoDeduplicationGivenNonEquivalentRequests() {
-        let request1 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
-        let request2 = ImageRequest(urlRequest: URLRequest(url: defaultURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
+        let request1 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
+        let request2 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
 
         expect(pipeline).toLoadImage(with: request1)
         expect(pipeline).toLoadImage(with: request2)
@@ -120,20 +120,20 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     func testDduplicationWhenUsingCustomLoadKeys() {
         dataLoader.queue.isSuspended = true
 
-        // GIVEN custom load keys (e.g. you'd like to trim tokens from the URL)
+        // Given custom load keys (e.g. you'd like to trim tokens from the URL)
         var request1 = ImageRequest(url: Test.url.appendingPathComponent("token=123"))
         request1.loadKey = Test.url
         var request2 = ImageRequest(url: Test.url.appendingPathComponent("token=456"))
         request2.loadKey = Test.url
 
-        // THEN both image are loaded
+        // Then both image are loaded
         expect(pipeline).toLoadImage(with: request1)
         expect(pipeline).toLoadImage(with: request2)
 
         dataLoader.queue.isSuspended = false
 
         wait { _ in
-            // THEN the original image is loaded once
+            // Then the original image is loaded once
             XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
         }
     }
@@ -141,18 +141,18 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     func testUsingLoadKeysWithLegacyBehaviour() {
         dataLoader.queue.isSuspended = true
 
-        // WHEN using custom load keys with legacy semantics (those keys were
+        // When using custom load keys with legacy semantics (those keys were
         // comparing processors
 
-        var request1 = ImageRequest(url: Test.url).processed(with: MockImageProcessor(id: "1"))
+        var request1 = Test.request.processed(with: MockImageProcessor(id: "1"))
         // WARNING This is legacy behaviour, don't use it
         request1.loadKey = Test.url.absoluteString + "processor=1"
 
-        var request2 = ImageRequest(url: Test.url).processed(with: MockImageProcessor(id: "2"))
+        var request2 = Test.request.processed(with: MockImageProcessor(id: "2"))
         // WARNING This is legacy behaviour, don't use it
         request2.loadKey = Test.url.absoluteString + "processor=2"
 
-        // THEN both images are loaded and processors are applied
+        // Then both images are loaded and processors are applied
         expect(pipeline).toLoadImage(with: request1) { response, _ in
             XCTAssertEqual(response?.image.nk_test_processorIDs, ["1"])
         }
@@ -163,7 +163,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         dataLoader.queue.isSuspended = false
 
         wait { _ in
-            // THEN original image is loaded twice - this is how it would work
+            // Then original image is loaded twice - this is how it would work
             // if you were using ImagePipeline form version 7.0 with a legacy
             // `loadKey` semantics which were taking processors into account
             // when comparing load keys.
@@ -176,9 +176,9 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     func testCancellation() {
         dataLoader.queue.isSuspended = true
 
-        // GIVEN two equivalent requests
+        // Given two equivalent requests
 
-        // WHEN both tasks are cancelled the image loading session is cancelled
+        // When both tasks are cancelled the image loading session is cancelled
 
         _ = expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
         let task1 = pipeline.loadImage(with: Test.request)
@@ -194,7 +194,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     func testCancellationOnlyCancelOneTask() {
         dataLoader.queue.isSuspended = true
 
-        // GIVEN two equivalent requests
+        // Given two equivalent requests
 
         let task1 = pipeline.loadImage(with: Test.request) { _,_ in
             XCTFail()
@@ -202,12 +202,12 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         expect(pipeline).toLoadImage(with: Test.request)
 
-        // WHEN cancelling only only only one of the tasks
+        // When cancelling only only only one of the tasks
         task1.cancel()
 
-        // THEN the image is still loaded
+        // Then the image is still loaded
 
-        self.dataLoader.queue.isSuspended = false
+        dataLoader.queue.isSuspended = false
 
         wait()
     }
@@ -215,25 +215,26 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     // MARK: - Misc
 
     func testSubscribingToExisingSessionWhenProcessingAlreadyStarted() {
+        // Given
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
 
         let processors = ProcessorFactory()
-        let request1 = ImageRequest(url: Test.url).processed(with: processors.make(id: "1"))
-        let request2 = ImageRequest(url: Test.url).processed(with: processors.make(id: "1"))
+        let request1 = Test.request.processed(with: processors.make(id: "1"))
+        let request2 = Test.request.processed(with: processors.make(id: "1"))
 
-        let expectation2 = self.expectation(description: "Second request completed")
+        let expectation = self.expectation(description: "Second request completed")
 
         let observation = queue.observe(\.operations) { (_, _) in
             XCTAssertEqual(queue.operations.count, 1)
             DispatchQueue.main.async {
-                // WHEN loading image with the same request and processing for
+                // When loading image with the same request and processing for
                 // the first request has already started
                 self.pipeline.loadImage(with: request2) { response, _ in
-                    // THEN the image is still loaded and processors is applied
+                    // Then the image is still loaded and processors is applied
                     XCTAssertEqual(response?.image.nk_test_processorIDs, ["1"])
                     XCTAssertNotNil(response)
-                    expectation2.fulfill()
+                    expectation.fulfill()
                 }
                 queue.isSuspended = false
             }
@@ -246,40 +247,35 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         }
 
         wait { _ in
-            // THEN the original image is loaded only once, but processors are
+            // Then the original image is loaded only once, but processors are
             // applied twice
             XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
             XCTAssertEqual(processors.numberOfProcessorsApplied, 2)
         }
     }
 
-    func testThatProgressIsReported() {
-        dataLoader.results[defaultURL] = .success(
-            (Data(count: 20), URLResponse(url: defaultURL, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+    func testProgressIsReported() {
+        // Given
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
         dataLoader.queue.isSuspended = true
 
+        // When/Then
         for _ in 0..<3 {
-            let request = ImageRequest(url: defaultURL)
+            let request = Test.request
 
-            let expectTaskFinished = self.expectation(description: "Task finished")
-            let expectProgressFinished = self.expectation(description: "Progress finished")
+            let expectedCompleted = self.expect(values: [10, 20] as [Int64])
+            let expectedTotal = self.expect(values: [20, 20] as [Int64])
 
-            var expected: [(Int64, Int64)] = [(10, 20), (20, 20)]
             pipeline.loadImage(
                 with: request,
                 progress: { _, completed, total in
                     XCTAssertTrue(Thread.isMainThread)
-                    XCTAssertTrue(expected.first?.0 == completed)
-                    XCTAssertTrue(expected.first?.1 == total)
-                    expected.remove(at: 0)
-                    if expected.isEmpty {
-                        expectProgressFinished.fulfill()
-                    }
-            },
-                completion: { _,_ in
-                    expectTaskFinished.fulfill()
-            })
+                    expectedCompleted.received(completed)
+                    expectedTotal.received(total)
+                }
+            )
         }
         dataLoader.queue.isSuspended = false
 
@@ -287,19 +283,21 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     }
 
     func testDisablingDeduplication() {
-        let imagePipeline = ImagePipeline {
+        // Given
+        let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.isDeduplicationEnabled = false
         }
 
         dataLoader.queue.isSuspended = true
 
-        let request1 = ImageRequest(url: defaultURL)
-        let request2 = ImageRequest(url: defaultURL)
+        // When/Then
+        let request1 = Test.request
+        let request2 = Test.request
         XCTAssertEqual(request1.loadKey, request2.loadKey)
 
-        expect(imagePipeline).toLoadImage(with: request1)
-        expect(imagePipeline).toLoadImage(with: request2)
+        expect(pipeline).toLoadImage(with: request1)
+        expect(pipeline).toLoadImage(with: request2)
 
         dataLoader.queue.isSuspended = false
 

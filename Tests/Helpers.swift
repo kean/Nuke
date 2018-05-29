@@ -7,9 +7,6 @@ import XCTest
 
 private final class BundleToken {}
 
-let defaultURL = Test.url
-let defaultImage = Test.image
-
 // Test data.
 enum Test {
     static func data(name: String, extension ext: String) -> Data {
@@ -28,18 +25,18 @@ enum Test {
     }()
 
     static let request = ImageRequest(
-        url: defaultURL
+        url: Test.url
     )
 
     static let urlResponse = HTTPURLResponse(
-        url: defaultURL,
+        url: Test.url,
         mimeType: "jpeg",
         expectedContentLength: 22_789,
         textEncodingName: nil
     )
 
     static let response = ImageResponse(
-        image: defaultImage,
+        image: Test.image,
         urlResponse: urlResponse
     )
 }

@@ -6,15 +6,7 @@ import XCTest
 import Foundation
 
 extension XCTestCase {
-    func test(_ name: String, _ closure: @escaping () -> Void) {
-        closure()
-    }
-
-    func expect(_ block: (_ fulfill: @escaping () -> Void) -> Void) {
-        let expectation = self.expectation(description: "Generic expectation")
-        block({ expectation.fulfill() })
-    }
-
+    @discardableResult
     func expectNotification(_ name: Notification.Name, object: AnyObject? = nil, handler: XCTNSNotificationExpectation.Handler? = nil) -> XCTestExpectation {
         return self.expectation(forNotification: name, object: object, handler: handler)
     }

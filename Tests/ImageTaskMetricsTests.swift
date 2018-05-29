@@ -20,40 +20,33 @@ class ImageTaskMetricsTests: XCTestCase {
     }
 
     func testThatMetricsAreCollectedWhenTaskCompleted() {
-        expect { fulfill in
-            pipeline.didFinishCollectingMetrics = { task, metrics in
-                XCTAssertEqual(task.taskId, metrics.taskId)
-                XCTAssertNotNil(metrics.endDate)
-                XCTAssertNotNil(metrics.session)
-                XCTAssertNotNil(metrics.session?.endDate)
-                fulfill()
-            }
+        let expectation = self.expectation(description: "Metrics Produced")
+        pipeline.didFinishCollectingMetrics = { task, metrics in
+            XCTAssertEqual(task.taskId, metrics.taskId)
+            XCTAssertNotNil(metrics.endDate)
+            XCTAssertNotNil(metrics.session)
+            XCTAssertNotNil(metrics.session?.endDate)
+            expectation.fulfill()
         }
 
-        expect { fulfill in
-            pipeline.loadImage(with: defaultURL) { response, _ in
-                XCTAssertNotNil(response)
-                fulfill()
-            }
-        }
+        expect(pipeline).toLoadImage(with: Test.request)
         wait()
     }
 
     func testThatMetricsAreCollectedWhenTaskCancelled() {
-        expect { fulfill in
-            pipeline.didFinishCollectingMetrics = { task, metrics in
-                XCTAssertEqual(task.taskId, metrics.taskId)
-                XCTAssertTrue(metrics.wasCancelled)
-                XCTAssertNotNil(metrics.endDate)
-                XCTAssertNotNil(metrics.session)
-                XCTAssertNotNil(metrics.session?.endDate)
-                fulfill()
-            }
+        let expectation = self.expectation(description: "Metrics Produced")
+        pipeline.didFinishCollectingMetrics = { task, metrics in
+            XCTAssertEqual(task.taskId, metrics.taskId)
+            XCTAssertTrue(metrics.wasCancelled)
+            XCTAssertNotNil(metrics.endDate)
+            XCTAssertNotNil(metrics.session)
+            XCTAssertNotNil(metrics.session?.endDate)
+            expectation.fulfill()
         }
 
         dataLoader.queue.isSuspended = true
 
-        let task = pipeline.loadImage(with: defaultURL) { _,_ in
+        let task = pipeline.loadImage(with: Test.request) { _,_ in
             XCTFail()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(10)) {

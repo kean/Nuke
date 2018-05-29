@@ -25,18 +25,34 @@ class DataCacheTests: XCTestCase {
 
     func testAdd() {
         cache._test_withSuspendedIO {
+            // When
             cache["key"] = blob
+
+            // Then
             XCTAssertEqual(cache["key"], blob)
+        }
+    }
+
+    func testWhenAddContentNotFlushedImmediately() {
+        cache._test_withSuspendedIO {
+            // When
+            cache["key"] = blob
+
+            // Then
             XCTAssertEqual(cache.contents.count, 0)
         }
     }
 
     func testAddAndFlush() {
+        // Given
         cache._test_withSuspendedIO {
             cache["key"] = blob
-            XCTAssertEqual(cache.contents.count, 0)
         }
+
+        // When
         cache.flush()
+
+        // Then
         XCTAssertEqual(cache.contents.count, 1)
         XCTAssertEqual(cache["key"], blob)
         XCTAssertEqual(try? Data(contentsOf: cache.contents.first!), blob)
@@ -44,14 +60,19 @@ class DataCacheTests: XCTestCase {
 
     func testReplace() {
         cache._test_withSuspendedIO {
+            // Given
             cache["key"] = blob
+
+            // When
             cache["key"] = otherBlob
+
+            // Then
             XCTAssertEqual(cache["key"], otherBlob)
-            XCTAssertEqual(cache.contents.count, 0)
         }
     }
 
     func testReplaceFlushed() {
+        // Given
         cache["key"] = blob
         cache.flush()
 
@@ -120,9 +141,9 @@ class DataCacheTests: XCTestCase {
 
     // - Remove + flushed -> schedule removal
     func testRemoveFlushed() {
+        // Given
         cache["key"] = blob
         cache.flush()
-
 
         cache._test_withSuspendedIO {
             cache["key"] = nil
@@ -131,7 +152,6 @@ class DataCacheTests: XCTestCase {
             XCTAssertEqual(cache.contents.count, 1)
             XCTAssertEqual(try? Data(contentsOf: cache.contents.first!), blob)
         }
-
         cache.flush()
 
         XCTAssertNil(cache["key"])
@@ -142,42 +162,47 @@ class DataCacheTests: XCTestCase {
 
     // - Remove + removal staged -> noop
     func testRemoveWhenRemovalAlreadyScheduled() {
+        // Given
         cache["key"] = blob
         cache.flush()
 
+        // When
         cache["key"] = nil
         cache["key"] = nil
-
         cache.flush()
+
+        // Then
         XCTAssertEqual(cache.contents.count, 0)
     }
 
     func testRemoveAndThenReplace() {
+        // Given
         cache["key"] = blob
         cache.flush()
 
+        // When
         cache["key"] = nil
         cache["key"] = blob
         cache.flush()
 
+        // Then
         XCTAssertEqual(cache["key"], blob)
         XCTAssertEqual(cache.contents.count, 1)
         XCTAssertEqual(try? Data(contentsOf: cache.contents.first!), blob)
     }
 
     func testThatRemoveAllWorks() {
+        // Given
         cache["key"] = blob
         cache["key2"] = otherBlob
         cache.flush()
 
-        XCTAssertEqual(cache["key"], blob)
-        XCTAssertEqual(cache["key2"], otherBlob)
-
+        // When
         cache._test_withSuspendedIO {
             cache.removeAll()
-            XCTAssertEqual(cache.contents.count, 2)
         }
 
+        // Then
         cache.flush()
         XCTAssertNil(cache["key"])
         XCTAssertNil(cache["key2"])
@@ -187,12 +212,15 @@ class DataCacheTests: XCTestCase {
     // MARK: Flush
 
     func testFlush() {
+        // Given
         cache._test_withSuspendedIO {
-            XCTAssertEqual(cache.contents.count, 0)
             cache["key"] = blob
-            XCTAssertEqual(cache.contents.count, 0)
         }
+
+        // When
         cache.flush()
+
+        // Then
         XCTAssertEqual(cache.contents.count, 1)
     }
 
@@ -256,6 +284,7 @@ class DataCacheTests: XCTestCase {
     // MARK: Sweep
 
     func testSweep() {
+        // Given
         var lru = CacheAlgorithmLRU()
         lru.countLimit = 4 // we test count limit here
         lru.trimRatio = 0.5 // 1 item should remaing after trim
@@ -270,13 +299,13 @@ class DataCacheTests: XCTestCase {
             cache[$0] = "123".data(using: .utf8)
         }
 
-        // Flush entries to disk
-        cache.flush()
+        cache.flush() // Write to disk
 
-        // Cleanup and flush changes
+        // When
         cache.sweep()
         cache.flush()
 
+        // Then
         XCTAssertNil(cache[keys[0]])
         XCTAssertNil(cache[keys[1]])
         XCTAssertNotNil(cache[keys[2]])
@@ -287,7 +316,10 @@ class DataCacheTests: XCTestCase {
 
     func testThatAccessDateIsUpdatedOnRead() {
         cache._test_withSuspendedIO {
+            // Given
             cache["1"] = "1".data(using: .utf8)
+
+            // When
 
             // first access
             let _ = cache["1"]
@@ -303,6 +335,7 @@ class DataCacheTests: XCTestCase {
                 $0[cache.filename(for: "1")!]?.accessDate
             }
 
+            // Then
             XCTAssertNotNil(date1)
             XCTAssertNotNil(date2)
             XCTAssertTrue(date1! < date2!)
@@ -311,9 +344,9 @@ class DataCacheTests: XCTestCase {
 }
 
 class DataCacheAlgorithmTests: XCTestCase {
-    func testThatLeastRecentlyItemsAreRemovedFirst() {
+    func testLeastRecentlyItemsAreRemoved() {
+        // Given
         let now = Date()
-
         let items = [
             makeItem(accessDate: now.addingTimeInterval(-10)),
             makeItem(accessDate: now.addingTimeInterval(-20)),
@@ -326,26 +359,18 @@ class DataCacheAlgorithmTests: XCTestCase {
         lru.sizeLimit = Int.max
         lru.trimRatio = 0.5 // 1 item should remaing after trim
 
-        test("") {
-            let discarded = lru.discarded(items: items)
-            XCTAssertEqual(discarded.count, 2)
-            XCTAssertTrue(discarded.contains { $0 === items[3] })
-            XCTAssertTrue(discarded.contains { $0 === items[2] })
-        }
+        // When
+        let discarded = lru.discarded(items: items)
 
-        test("") {
-            // Reverse items and test that LRU still works
-            let reversed = Array(items.reversed())
-            let discarded = lru.discarded(items: items)
-            XCTAssertEqual(discarded.count, 2)
-            XCTAssertTrue(discarded.contains { $0 === reversed[0] })
-            XCTAssertTrue(discarded.contains { $0 === reversed[1] })
-        }
+        // Then
+        XCTAssertEqual(discarded.count, 2)
+        XCTAssertTrue(discarded.contains { $0 === items[3] })
+        XCTAssertTrue(discarded.contains { $0 === items[2] })
     }
 
     func testThatSizeLimitWorks() {
+        // Given
         let now = Date()
-
         let items = [
             makeItem(accessDate: now.addingTimeInterval(-10)),
             makeItem(accessDate: now.addingTimeInterval(-20)),
@@ -358,12 +383,13 @@ class DataCacheAlgorithmTests: XCTestCase {
         lru.sizeLimit = Int.max
         lru.trimRatio = 0.5 // 1 item should remaing after trim
 
-        test("") {
-            let discarded = lru.discarded(items: items)
-            XCTAssertEqual(discarded.count, 2)
-            XCTAssertTrue(discarded.contains { $0 === items[3] })
-            XCTAssertTrue(discarded.contains { $0 === items[2] })
-        }
+        // When
+        let discarded = lru.discarded(items: items)
+
+        // Then
+        XCTAssertEqual(discarded.count, 2)
+        XCTAssertTrue(discarded.contains { $0 === items[3] })
+        XCTAssertTrue(discarded.contains { $0 === items[2] })
     }
 
     func makeItem(accessDate: Date) -> DataCache.Entry {

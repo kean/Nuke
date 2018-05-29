@@ -14,23 +14,22 @@ class ThreadSafetyTests: XCTestCase {
         }
 
         for _ in 0..<500 {
-            expect { fulfill in
-                DispatchQueue.global().async {
-                    let request = ImageRequest(url: URL(string: "\(defaultURL)/\(rnd(30))")!)
-                    let shouldCancel = rnd(3) == 0
+            let expectation = self.expectation(description: "Finished")
+            DispatchQueue.global().async {
+                let request = ImageRequest(url: URL(string: "\(Test.url)/\(rnd(30))")!)
+                let shouldCancel = rnd(3) == 0
 
-                    let task = pipeline.loadImage(with: request) { _,_ in
-                        if shouldCancel {
-                            // do nothing, we don't expect completion on cancel
-                        } else {
-                            fulfill()
-                        }
-                    }
-
+                let task = pipeline.loadImage(with: request) { _,_ in
                     if shouldCancel {
-                        task.cancel()
-                        fulfill()
+                        // do nothing, we don't expect completion on cancel
+                    } else {
+                        expectation.fulfill()
                     }
+                }
+
+                if shouldCancel {
+                    task.cancel()
+                    expectation.fulfill()
                 }
             }
         }
@@ -65,15 +64,14 @@ class ThreadSafetyTests: XCTestCase {
             let cts = _CancellationTokenSource()
 
             for _ in 0...100 {
-                expect { fulfill in
-                    DispatchQueue.global().async {
-                        if rnd(4) == 0 {
-                            cts.cancel()
-                            fulfill()
-                        } else {
-                            cts.token.register {
-                                fulfill()
-                            }
+                let expectation = self.expectation(description: "Finished")
+                DispatchQueue.global().async {
+                    if rnd(4) == 0 {
+                        cts.cancel()
+                        expectation.fulfill()
+                    } else {
+                        cts.token.register {
+                            expectation.fulfill()
                         }
                     }
                 }
@@ -124,16 +122,17 @@ class ThreadSafetyTests: XCTestCase {
         })
 
         for _ in 0..<5000 {
-            expect { fulfill in
-                let queue = OperationQueue()
+            let expectation = self.expectation(description: "Finished")
+            let queue = OperationQueue()
 
-                // RateLimiter is not designed (unlike user-facing classes) to
-                // handle unlimited pressure from the outside, thus we limit
-                // the number of concurrent ops
-                queue.maxConcurrentOperationCount = 40
+            // RateLimiter is not designed (unlike user-facing classes) to
+            // handle unlimited pressure from the outside, thus we limit
+            // the number of concurrent ops
+            queue.maxConcurrentOperationCount = 40
 
-                queue.addOperation {
-                    ops.randomItem().closure(fulfill)
+            queue.addOperation {
+                ops.randomItem().closure {
+                    expectation.fulfill()
                 }
             }
         }
@@ -152,7 +151,7 @@ class ThreadSafetyTests: XCTestCase {
 
         for _ in 0..<10 { // those ops happen more frequently
             ops += [
-                { cache[_request(index: rnd(10))] = defaultImage },
+                { cache[_request(index: rnd(10))] = Test.image },
                 { cache[_request(index: rnd(10))] = nil },
                 { let _ = cache[_request(index: rnd(10))] }
             ]

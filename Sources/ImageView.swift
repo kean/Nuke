@@ -323,13 +323,13 @@ private final class ImageViewController {
         self.task = pipeline.loadImage(
             with: request,
             progress: {  [weak self] (response, completed, total) in
-                guard let _self = self, _self.taskId == taskId else { return }
-                _self.handle(partialImage: response, options: options)
+                guard self?.taskId == taskId else { return }
+                self?.handle(partialImage: response, options: options)
                 progress?(response, completed, total)
             },
             completion: { [weak self] (response, error) in
-                guard let _self = self, _self.taskId == taskId else { return }
-                _self.handle(response: response, error: error, fromMemCache: false, options: options)
+                guard self?.taskId == taskId else { return }
+                self?.handle(response: response, error: error, fromMemCache: false, options: options)
                 completion?(response, error)
         })
         return self.task

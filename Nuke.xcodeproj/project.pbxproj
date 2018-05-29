@@ -117,6 +117,9 @@
 		0C7C06971BCA888800089D7F /* MockDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockDataLoader.swift */; };
 		0C7C06981BCA888800089D7F /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068D1BCA888800089D7F /* Helpers.swift */; };
 		0C7C06991BCA888800089D7F /* XCTestCaseExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068E1BCA888800089D7F /* XCTestCaseExtensions.swift */; };
+		0C8684FF20BDD578009FF7CC /* ImagePipelineProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CFA20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift */; };
+		0C86850020BDD579009FF7CC /* ImagePipelineProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CFA20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift */; };
+		0C86850120BDD579009FF7CC /* ImagePipelineProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CFA20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift */; };
 		0C8D7BD31D9DBF1600D12EB7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD21D9DBF1600D12EB7 /* AppDelegate.swift */; };
 		0C8D7BD51D9DBF1600D12EB7 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD41D9DBF1600D12EB7 /* ViewController.swift */; };
 		0C8D7BD81D9DBF1600D12EB7 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD61D9DBF1600D12EB7 /* Main.storyboard */; };
@@ -438,7 +441,6 @@
 				0C4AF1E91FE8551D002F86CB /* LinkedListTest.swift */,
 				0C1E623A1D6FA0FB00AD5CF5 /* CancellationTokenTests.swift */,
 				0CB26806208F25C2004C83F4 /* DataCacheTests.swift */,
-				0C7C068D1BCA888800089D7F /* Helpers.swift */,
 				0C5D81871D46A385000ECCB6 /* ThreadSafetyTests.swift */,
 				0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */,
 				0C7C069B1BCA889000089D7F /* Extensions */,
@@ -466,6 +468,7 @@
 			children = (
 				0C7C068E1BCA888800089D7F /* XCTestCaseExtensions.swift */,
 				0C49232820BACA81001DFCC8 /* XCTestCase+Nuke.swift */,
+				0C7C068D1BCA888800089D7F /* Helpers.swift */,
 				0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */,
 				0CB2680B208F2677004C83F4 /* Nuke iOS Performance Tests-Bridging-Header.h */,
 				0CB26812208F26D6004C83F4 /* SHA1.h */,
@@ -980,6 +983,7 @@
 				0C49232A20BACA81001DFCC8 /* XCTestCase+Nuke.swift in Sources */,
 				0C22DA531BCAAA06006E1D3B /* Helpers.swift in Sources */,
 				0CE3992E1D4697CE00A87D47 /* ImagePipelineTests.swift in Sources */,
+				0C86850020BDD579009FF7CC /* ImagePipelineProgressiveDecodingTests.swift in Sources */,
 				0C1E620C1D6F817700AD5CF5 /* ImageRequestTests.swift in Sources */,
 				0C1ECA431D526461009063A9 /* ImageCacheTests.swift in Sources */,
 				0C2A8CF820970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */,
@@ -1011,6 +1015,7 @@
 				0C49232920BACA81001DFCC8 /* XCTestCase+Nuke.swift in Sources */,
 				0C75279E1D473AEF00EC6222 /* MockImageCache.swift in Sources */,
 				0C1E620B1D6F817700AD5CF5 /* ImageRequestTests.swift in Sources */,
+				0C8684FF20BDD578009FF7CC /* ImagePipelineProgressiveDecodingTests.swift in Sources */,
 				0C1ECA421D526461009063A9 /* ImageCacheTests.swift in Sources */,
 				0C2A8CF720970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */,
 				0C7C06981BCA888800089D7F /* Helpers.swift in Sources */,
@@ -1106,6 +1111,7 @@
 				0C49232B20BACA81001DFCC8 /* XCTestCase+Nuke.swift in Sources */,
 				0CE3992F1D4697CE00A87D47 /* ImagePipelineTests.swift in Sources */,
 				0CC345C31BD96E16005C2DD8 /* MockDataLoader.swift in Sources */,
+				0C86850120BDD579009FF7CC /* ImagePipelineProgressiveDecodingTests.swift in Sources */,
 				0C1E620D1D6F817700AD5CF5 /* ImageRequestTests.swift in Sources */,
 				0C1ECA441D526462009063A9 /* ImageCacheTests.swift in Sources */,
 				0C2A8CF920970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */,

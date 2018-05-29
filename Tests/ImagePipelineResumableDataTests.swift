@@ -5,12 +5,6 @@
 import XCTest
 @testable import Nuke
 
-private let _data = Data(count: 1000)
-
-private func _makeResponse(statusCode: Int = 200, headers: [String: String]? = nil) -> HTTPURLResponse {
-    return HTTPURLResponse(url: defaultURL, statusCode: statusCode, httpVersion: "HTTP/1.2", headerFields: headers)!
-}
-
 class ImagePipelineResumableDataTests: XCTestCase {
     private var dataLoader: _MockResumableDataLoader!
     private var pipeline: ImagePipeline!
@@ -26,30 +20,19 @@ class ImagePipelineResumableDataTests: XCTestCase {
 
     // Make sure that ResumableData works correctly in integration with ImagePipeline
     func testRangeSupported() {
-        expect { fulfil in
-            let _ = pipeline.loadImage(with: defaultURL) { _, error in
-                XCTAssertNotNil(error)
-                fulfil()
-            }
-        }
+        expect(pipeline).toFail(with: Test.request)
         wait()
 
-        expect { fulfil in
-            pipeline.didFinishCollectingMetrics = { _, metrics in
-                // Test that the metrics are collected correctly.
-                XCTAssertEqual(metrics.session!.wasResumed, true)
-                XCTAssertTrue(metrics.session!.resumedDataCount! > 0)
-                XCTAssertEqual(metrics.session!.totalDownloadedDataCount, self.dataLoader.data.count)
-                fulfil()
-            }
+        let metricsExpectation = self.expectation(description: "Metrics collected")
+        pipeline.didFinishCollectingMetrics = { _, metrics in
+            // Test that the metrics are collected correctly.
+            XCTAssertEqual(metrics.session!.wasResumed, true)
+            XCTAssertTrue(metrics.session!.resumedDataCount! > 0)
+            XCTAssertEqual(metrics.session!.totalDownloadedDataCount, self.dataLoader.data.count)
+            metricsExpectation.fulfill()
         }
 
-        expect { fulfil in
-            pipeline.loadImage(with: defaultURL) { response, _ in
-                XCTAssertNotNil(response)
-                fulfil()
-            }
-        }
+        expect(pipeline).toLoadImage(with: Test.request)
         wait()
     }
 }
@@ -63,7 +46,7 @@ class ResumableDataTests: XCTestCase {
             "ETag": "1234"]
         )
         let data = ResumableData(response: response, data: _data)!
-        var request = URLRequest(url: defaultURL)
+        var request = URLRequest(url: Test.url)
         data.resume(request: &request)
 
         // Check that we've set both required "range" filed
@@ -83,45 +66,57 @@ class ResumableDataTests: XCTestCase {
     // MARK: - Creation (Positive)
 
     func testCreateWithETag() {
+        // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
             "ETag": "1234"]
         )
         let data = ResumableData(response: response, data: _data)
+
+        // Then
         XCTAssertNotNil(data)
         XCTAssertEqual(data?.data.count, 1000)
         XCTAssertEqual(data?.validator, "1234")
     }
 
     func testCreateWithETagSpelledIncorrectly() {
+        // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
             "Etag": "1234"]
         )
         let data = ResumableData(response: response, data: _data)
+
+        // Then
         XCTAssertNotNil(data)
         XCTAssertEqual(data?.data.count, 1000)
         XCTAssertEqual(data?.validator, "1234")
     }
 
     func testCreateWithLastModified() {
+        // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
             "Last-Modified": "Wed, 21 Oct 2015 07:28:00 GMT"]
         )
         let data = ResumableData(response: response, data: _data)
+
+        // Then
         XCTAssertNotNil(data)
         XCTAssertEqual(data?.data.count, 1000)
         XCTAssertEqual(data?.validator, "Wed, 21 Oct 2015 07:28:00 GMT")
     }
 
     func testCreateWithBothValidators() {
+        // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
             "ETag": "1234",
             "Last-Modified": "Wed, 21 Oct 2015 07:28:00 GMT"]
         )
         let data = ResumableData(response: response, data: _data)
+
+        // Then
         XCTAssertNotNil(data)
         XCTAssertEqual(data?.data.count, 1000)
         XCTAssertEqual(data?.validator, "1234")
@@ -130,11 +125,14 @@ class ResumableDataTests: XCTestCase {
     // We should store resumable data not just for statuc code "200 OK", but also
     // for "206 Partial Content" in case the resumed download fails.
     func testCreateWithStatusCodePartialContent() {
+        // Given
         let response = _makeResponse(statusCode: 206, headers: [
             "Accept-Ranges": "bytes",
             "ETag": "1234"]
         )
         let data = ResumableData(response: response, data: _data)
+
+        // Then
         XCTAssertNotNil(data)
         XCTAssertEqual(data?.data.count, 1000)
         XCTAssertEqual(data?.validator, "1234")
@@ -143,51 +141,69 @@ class ResumableDataTests: XCTestCase {
     // MARK: - Creation (Negative)
 
     func testCreateWithEmptyData() {
+        // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
             "ETag": "1234"]
         )
         let data = ResumableData(response: response, data: Data())
+
+        // Then
         XCTAssertNil(data)
     }
 
     func testCreateWithNotHTTPResponse() {
-        let response = URLResponse(url: defaultURL, mimeType: "jpeg", expectedContentLength: 10000, textEncodingName: nil)
+        // Given
+        let response = URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 10000, textEncodingName: nil)
         let data = ResumableData(response: response, data: _data)
+
+        // Then
         XCTAssertNil(data)
     }
 
     func testCreateWithInvalidStatusCode() {
+        // Given
         let response = _makeResponse(statusCode: 304, headers: [
             "Accept-Ranges": "bytes",
             "ETag": "1234"]
         )
         let data = ResumableData(response: response, data: _data)
+
+        // Then
         XCTAssertNil(data)
     }
 
     func testCreateWithMissingValidator() {
+        // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes"]
         )
         let data = ResumableData(response: response, data: _data)
+
+        // Then
         XCTAssertNil(data)
     }
 
     func testCreateWithMissingAcceptRanges() {
+        // Given
         let response = _makeResponse(headers: [
             "ETag": "1234"]
         )
         let data = ResumableData(response: response, data: _data)
+
+        // Then
         XCTAssertNil(data)
     }
 
     func testCreateWithAcceptRangesNone() {
+        // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "none",
             "ETag": "1234"]
         )
         let data = ResumableData(response: response, data: _data)
+
+        // Then
         XCTAssertNil(data)
     }
 }
@@ -256,3 +272,10 @@ private class _MockResumableDataLoader: DataLoading {
         func cancel() { }
     }
 }
+
+private let _data = Data(count: 1000)
+
+private func _makeResponse(statusCode: Int = 200, headers: [String: String]? = nil) -> HTTPURLResponse {
+    return HTTPURLResponse(url: Test.url, statusCode: statusCode, httpVersion: "HTTP/1.2", headerFields: headers)!
+}
+
