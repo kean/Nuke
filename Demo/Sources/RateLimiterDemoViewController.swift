@@ -31,7 +31,7 @@ final class RateLimiterDemoViewController: UICollectionViewController {
         for _ in 0..<10 {
             self.photos.append(contentsOf: self.photos)
         }
-        
+
         collectionView?.backgroundColor = UIColor.white
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
         if #available(iOS 10.0, *) {
@@ -43,12 +43,12 @@ final class RateLimiterDemoViewController: UICollectionViewController {
         super.viewWillAppear(animated)
         updateItemSize()
     }
-    
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         updateItemSize()
     }
-    
+
     func updateItemSize() {
         let layout = collectionViewLayout as! UICollectionViewFlowLayout
         layout.minimumLineSpacing = 2.0
@@ -56,13 +56,13 @@ final class RateLimiterDemoViewController: UICollectionViewController {
         let side = (Double(view.bounds.size.width) - Double(itemsPerRow - 1) * 2.0) / Double(itemsPerRow)
         layout.itemSize = CGSize(width: side, height: side)
     }
-    
+
     // MARK: UICollectionView
     
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return photos.count
     }
-    
+
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellReuseID, for: indexPath)
         cell.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)

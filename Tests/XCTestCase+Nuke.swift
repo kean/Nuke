@@ -36,7 +36,7 @@ extension XCTestCase {
     func expect(_ pipeline: ImagePipeline) -> XCTestCasePipeline {
         return XCTestCasePipeline(testCase: self, pipeline: pipeline)
     }
-    
+
     func expectToFinishLoadingImage(with request: ImageRequest, options: ImageLoadingOptions = ImageLoadingOptions.shared, into imageView: ImageDisplayingView, completion: ImageTask.Completion? = nil) {
         let expectation = self.expectation(description: "Image loaded for \(request)")
         Nuke.loadImage(

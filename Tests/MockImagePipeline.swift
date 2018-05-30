@@ -23,7 +23,7 @@ class _MockImageTask: ImageTask {
 class MockImagePipeline: ImagePipeline {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidCancelTask")
-    
+
     var createdTaskCount = 0
     let queue: OperationQueue = {
         let queue = OperationQueue()
@@ -53,11 +53,11 @@ class MockImagePipeline: ImagePipeline {
 
         NotificationCenter.default.post(name: MockImagePipeline.DidStartTask, object: self)
 
-        let operation = BlockOperation() { [weak self] in
+        let operation = BlockOperation { [weak self] in
             self?.perform(task)
         }
         self.queue.addOperation(operation)
-        
+
         task._cancel = {
             operation.cancel()
             NotificationCenter.default.post(name: MockImagePipeline.DidCancelTask, object: self)

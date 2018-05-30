@@ -9,15 +9,15 @@ private let cellReuseID = "reuseID"
 
 class BasicDemoViewController: UICollectionViewController {
     var photos: [URL]!
-    
+
     var pipeline = Nuke.ImagePipeline.shared
     var itemsPerRow = 4
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         photos = demoPhotosURLs
-        
+
         collectionView?.backgroundColor = UIColor.white
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
 
@@ -25,17 +25,17 @@ class BasicDemoViewController: UICollectionViewController {
             print(metrics)
         }
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         updateItemSize()
     }
-    
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         updateItemSize()
     }
-    
+
     func updateItemSize() {
         let layout = collectionViewLayout as! UICollectionViewFlowLayout
         layout.minimumLineSpacing = 2.0
@@ -43,17 +43,17 @@ class BasicDemoViewController: UICollectionViewController {
         let side = (Double(view.bounds.size.width) - Double(itemsPerRow - 1) * 2.0) / Double(itemsPerRow)
         layout.itemSize = CGSize(width: side, height: side)
     }
-    
+
     // MARK: UICollectionView
-    
+
     override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return photos.count
     }
-    
+
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellReuseID, for: indexPath)
         cell.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
-        
+
         let imageView = imageViewForCell(cell)
         let request = makeRequest(with: photos[indexPath.row])
         var options = ImageLoadingOptions(transition: .fadeIn(duration: 0.25))
@@ -62,7 +62,7 @@ class BasicDemoViewController: UICollectionViewController {
 
         return cell
     }
-    
+
     func makeRequest(with url: URL) -> ImageRequest {
         return ImageRequest(url: url)
     }

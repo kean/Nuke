@@ -21,7 +21,7 @@ final class ImageDecoderRegistryTests: XCTestCase {
         let context = _mockImageDecodingContext()
 
         // When
-        registry.register { context in
+        registry.register { _ in
             return MockImageDecoder(name: "A")
         }
 

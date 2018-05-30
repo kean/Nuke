@@ -68,7 +68,7 @@ class ImagePipelineTests: XCTestCase {
 
         // When
         let expectTaskFinished = self.expectation(description: "Task finished")
-        let task = pipeline.loadImage(with: request) { _,_ in
+        let task = pipeline.loadImage(with: request) { _, _ in
             expectTaskFinished.fulfill()
         }
 

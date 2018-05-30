@@ -34,10 +34,10 @@ class MockImageProcessor: ImageProcessing {
         processedImage.nk_test_processorIDs = processorIDs
         return processedImage
     }
-}
 
-func ==(lhs: MockImageProcessor, rhs: MockImageProcessor) -> Bool {
-    return lhs.id == rhs.id
+    static func == (lhs: MockImageProcessor, rhs: MockImageProcessor) -> Bool {
+        return lhs.id == rhs.id
+    }
 }
 
 // MARK: - MockFailingProcessor
@@ -46,9 +46,8 @@ class MockFailingProcessor: Nuke.ImageProcessing {
     func process(image: Image, context: ImageProcessingContext) -> Image? {
         return nil
     }
-}
 
-func ==(lhs: MockFailingProcessor, rhs: MockFailingProcessor) -> Bool {
-    return true
+    static func ==(lhs: MockFailingProcessor, rhs: MockFailingProcessor) -> Bool {
+        return true
+    }
 }
-

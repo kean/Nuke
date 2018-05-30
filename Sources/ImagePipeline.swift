@@ -41,7 +41,7 @@ public /* final */ class ImageTask: Hashable {
     // internal stuff associated with a task
     fileprivate var metrics: ImageTaskMetrics
     fileprivate var priorityObserver: ((ImageTask, ImageRequest.Priority) -> Void)?
-    fileprivate weak var session: ImagePipeline.ImageLoadingSession?  
+    fileprivate weak var session: ImagePipeline.ImageLoadingSession?
     fileprivate var cts = _CancellationSource()
 
     internal init(taskId: Int, request: ImageRequest) {

@@ -29,7 +29,7 @@ class MockDataLoader: DataLoading {
 
         createdTaskCount += 1
 
-        let operation = BlockOperation() {
+        let operation = BlockOperation {
             if let result = self.results[request.url!] {
                 switch result {
                 case let .success(val):

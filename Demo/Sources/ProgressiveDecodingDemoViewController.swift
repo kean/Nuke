@@ -8,7 +8,7 @@ import Nuke
 final class ProgressiveDecodingDemoViewController: UIViewController {
     private let urls = [
         URL(string: "_mock_loader://progressive")!,
-        URL(string: "_mock_loader://baseline")!,
+        URL(string: "_mock_loader://baseline")!
     ]
 
     private let pipeline = ImagePipeline {
@@ -32,7 +32,6 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
 
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .refresh, target: self, action: #selector(_refresh))
 
-
         _start(with: urls[0])
     }
 
@@ -55,7 +54,6 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
 
         let imageView = container.imageView
 
-        
         var options = ImageLoadingOptions()
         // Use our custom pipeline with progressive decoding enabled and
         // _MockDataLoader which returns data on predifined intervals.

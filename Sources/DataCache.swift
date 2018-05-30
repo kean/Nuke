@@ -22,7 +22,6 @@ extension DataCache {
     static var shared: DataCache?
 }
 
-
 extension DispatchWorkItem: Cancellable {}
 
 /// Experimental data cache. The public API for disk cache is going to be
@@ -117,7 +116,7 @@ internal class DataCache {
     func filename(for key: Key) -> Filename? {
         return _keyEncoder(key).map(Filename.init(raw:))
     }
-    
+
     subscript(key: Key) -> Data? {
         get {
             guard let filename = self.filename(for: key) else { return nil }
@@ -151,17 +150,17 @@ internal class DataCache {
 
     private func _setData(_ data: Data, for filename: Filename) {
         let entry = Entry(filename: filename, data: data)
-        
+
         _lock.lock()
         _index[filename] = entry // Replace with the new value
         _lock.unlock()
 
         _wqueue.async {
             let url = self.path.appendingPathComponent(filename.raw, isDirectory: false)
-            
+
             try? data.write(to: url)
             let size = (try? url.resourceValues(forKeys: [.totalFileAllocatedSizeKey]))?.totalFileAllocatedSize
-            
+
             self._lock.lock()
             entry.payload = .saved(url) // Flushed the changes
             entry.totalFileAllocatedSize = size

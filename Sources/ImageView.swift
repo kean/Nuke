@@ -75,7 +75,7 @@ public func loadImage(with url: URL,
                       into view: ImageDisplayingView,
                       progress: ImageTask.ProgressHandler? = nil,
                       completion: ImageTask.Completion? = nil) -> ImageTask? {
-    return loadImage(with: ImageRequest(url: url),options: options, into: view, progress: progress, completion: completion)
+    return loadImage(with: ImageRequest(url: url), options: options, into: view, progress: progress, completion: completion)
 }
 
 /// Loads an image into the view.
@@ -213,7 +213,7 @@ public struct ImageLoadingOptions {
         #if !os(macOS)
         /// Fade-in transition (cross-fade in case the image view is already
         /// displaying an image).
-        public static func fadeIn(duration: TimeInterval, options: UIViewAnimationOptions = [.allowUserInteraction]) -> Transition {
+        public static func fadeIn(duration: TimeInterval, options: UIViewAnimationOptions = .allowUserInteraction) -> Transition {
             return Transition(style: .fadeIn(parameters:  Parameters(duration: duration, options: options)))
         }
         #else

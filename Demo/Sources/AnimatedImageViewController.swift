@@ -28,7 +28,7 @@ final class AnimatedImageViewController: UICollectionViewController, UICollectio
         collectionView?.backgroundColor = UIColor.white
 
         let layout = collectionViewLayout as! UICollectionViewFlowLayout
-        layout.sectionInset = UIEdgeInsetsMake(8, 8, 8, 8)
+        layout.sectionInset = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
         layout.minimumInteritemSpacing = 8
 
         let root = "https://cloud.githubusercontent.com/assets"

@@ -22,7 +22,7 @@ class CancellationTokenTests: XCTestCase {
         let cts = _CancellationTokenSource()
         let token1 = cts.token
         let token2 = cts.token
-        
+
         // When
         cts.cancel()
 
@@ -46,7 +46,7 @@ class CancellationTokenTests: XCTestCase {
 
         wait()
     }
-    
+
     func testThatTheRegisteredClosureIsCalledWhenRegisteringAfterCancellation() {
         // Given
         let cts = _CancellationTokenSource()
@@ -57,7 +57,7 @@ class CancellationTokenTests: XCTestCase {
         cts.token.register {
             isClosureCalled = true
         }
-        
+
         XCTAssertTrue(isClosureCalled)
     }
 
@@ -104,7 +104,7 @@ class CancellationTokenTests: XCTestCase {
         // Then
         XCTAssertEqual(callsCount, 1)
     }
-    
+
     func testCancellingOneFromAnother() {
         // Given
         let cts1 = _CancellationTokenSource()

@@ -251,7 +251,6 @@ class DataCacheTests: XCTestCase {
 //        XCTAssertEqual(cache2.totalCount, cache.totalCount)
 //    }
 
-
     // MARK: Inspection
 
 //    func testThatInspectionMethodsWork() {
@@ -407,4 +406,3 @@ extension DataCache {
         return try! FileManager.default.contentsOfDirectory(at: self.path, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
     }
 }
-

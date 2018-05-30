@@ -108,11 +108,11 @@ extension DFCache: DataCaching {
     func cachedResponse(for request: URLRequest) -> CachedURLResponse? {
         return key(for: request).map(cachedObject) as? CachedURLResponse
     }
-    
+
     func storeResponse(_ response: CachedURLResponse, for request: URLRequest) {
         key(for: request).map { store(response, forKey: $0) }
     }
-    
+
     private func key(for request: URLRequest) -> String? {
         return request.url?.absoluteString
     }

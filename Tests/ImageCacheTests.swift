@@ -237,7 +237,7 @@ class ImageCacheTests: XCTestCase {
 
         cache[request1] = Test.image
         cache[request2] = Test.image
-        let _ = cache[request1] // Touched image
+        _ = cache[request1] // Touched image
 
         // When
         cache[request3] = Test.image
@@ -298,8 +298,8 @@ class ImageCacheTests: XCTestCase {
         cache.costLimit = cost * 10
         cache.countLimit = Int.max
 
-        for i in 0..<10 {
-            let request = ImageRequest(url: URL(string: "http://example.com/img\(i)")!)
+        for index in 0..<10 {
+            let request = ImageRequest(url: URL(string: "http://example.com/img\(index)")!)
             cache[request] = Test.image
         }
         XCTAssertEqual(cache.totalCount, 10)

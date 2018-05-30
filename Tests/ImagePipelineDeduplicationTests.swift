@@ -196,7 +196,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // Given two equivalent requests
 
-        let task1 = pipeline.loadImage(with: Test.request) { _,_ in
+        let task1 = pipeline.loadImage(with: Test.request) { _, _ in
             XCTFail()
         }
 

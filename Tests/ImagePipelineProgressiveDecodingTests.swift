@@ -198,7 +198,7 @@ private class _MockProgressiveDataLoader: DataLoading {
         }
     }
 
-    private var didReceiveData: (Data, URLResponse) -> Void = { _,_ in }
+    private var didReceiveData: (Data, URLResponse) -> Void = { _ ,_ in }
     private var completion: (Error?) -> Void = { _ in }
 
     init() {

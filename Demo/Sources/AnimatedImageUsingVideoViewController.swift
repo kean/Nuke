@@ -34,7 +34,7 @@ final class AnimatedImageUsingVideoViewController: UICollectionViewController, U
         collectionView?.backgroundColor = UIColor.white
 
         let layout = collectionViewLayout as! UICollectionViewFlowLayout
-        layout.sectionInset = UIEdgeInsetsMake(8, 8, 8, 8)
+        layout.sectionInset = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
         layout.minimumInteritemSpacing = 8
     }
 
@@ -87,10 +87,9 @@ final class MP4Decoder: ImageDecoding {
 
     private static func _match(_ data: Data, offset: Int = 0, _ numbers: [UInt8]) -> Bool {
         guard data.count >= numbers.count + offset else { return false }
-        for (i, number) in zip(numbers.indices, numbers) {
-            if data[i + offset] != number { return false }
+        return !zip(numbers.indices, numbers).contains { (index, number) in
+            data[index] != number
         }
-        return true
     }
 
     private static var isRegistered: Bool = false

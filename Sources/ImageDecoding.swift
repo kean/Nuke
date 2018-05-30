@@ -192,10 +192,9 @@ enum ImageFormat: Equatable {
 
     private static func _match(_ data: Data, _ numbers: [UInt8]) -> Bool {
         guard data.count >= numbers.count else { return false }
-        for (i, number) in zip(numbers.indices, numbers) {
-            if data[i] != number { return false }
+        return !zip(numbers.indices, numbers).contains { (index, number) in
+            data[index] != number
         }
-        return true
     }
 
     #if !swift(>=4.1)

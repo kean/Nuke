@@ -22,7 +22,6 @@ public struct ImageTaskMetrics: CustomDebugStringConvertible {
     public internal(set) var wasSubscibedToExistingSession: Bool = false
     public internal(set) var isMemoryCacheHit: Bool = false
 
-
     init(taskId: Int, startDate: Date) {
         self.taskId = taskId; self.startDate = startDate
     }

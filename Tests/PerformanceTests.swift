@@ -46,7 +46,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             expect { fulfil in
                 var finished: Int = 0
                 for url in urls {
-                    loader.loadImage(with: url) { _,_ in
+                    loader.loadImage(with: url) { _, _ in
                         finished += 1
                         if finished == urls.count {
                             fulfil()
@@ -63,7 +63,7 @@ class ImageCachePerformanceTests: XCTestCase {
     func testCacheWrite() {
         let cache = ImageCache()
         let response = ImageResponse(image: Image(), urlResponse: nil)
-        
+
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
         let requests = urls.map { ImageRequest(url: $0) }
         
@@ -73,20 +73,20 @@ class ImageCachePerformanceTests: XCTestCase {
             }
         }
     }
-    
+
     func testCacheHit() {
         let cache = ImageCache()
         let response = ImageResponse(image: Image(), urlResponse: nil)
         
-        for i in 0..<200 {
-            cache.storeResponse(response, for: ImageRequest(url: URL(string: "http://test.com/\(i)")!))
+        for index in 0..<200 {
+            cache.storeResponse(response, for: ImageRequest(url: URL(string: "http://test.com/\(index)")!))
         }
-        
+
         var hits = 0
-        
+
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
         let requests = urls.map { ImageRequest(url: $0) }
-        
+
         measure {
             for request in requests {
                 if cache.cachedResponse(for: request) != nil {
@@ -94,7 +94,7 @@ class ImageCachePerformanceTests: XCTestCase {
                 }
             }
         }
-        
+
         print("hits: \(hits)")
     }
     
@@ -102,10 +102,10 @@ class ImageCachePerformanceTests: XCTestCase {
         let cache = ImageCache()
         
         var misses = 0
-        
+
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
         let requests = urls.map { ImageRequest(url: $0) }
-        
+
         measure {
             for request in requests {
                 if cache.cachedResponse(for: request) == nil {
@@ -113,7 +113,7 @@ class ImageCachePerformanceTests: XCTestCase {
                 }
             }
         }
-        
+
         print("misses: \(misses)")
     }
 }
@@ -151,7 +151,7 @@ class DataCachePeformanceTests: XCTestCase {
     func testMissPerformance() {
         measure {
             for idx in 0..<10_000 {
-                let _ = self.cache["\(idx)"]
+                _ = self.cache["\(idx)"]
             }
         }
     }
@@ -177,7 +177,7 @@ class DataCachePeformanceTests: XCTestCase {
 
             measure {
                 for idx in 0..<10_000 {
-                    let _ = self.cache["\(idx)"]
+                    _ = self.cache["\(idx)"]
                 }
             }
         }
@@ -191,7 +191,7 @@ class DataCachePeformanceTests: XCTestCase {
 
         measure {
             for idx in 0..<200 {
-                let _ = self.cache["\(idx)"]
+                _ = self.cache["\(idx)"]
             }
         }
     }
@@ -208,7 +208,7 @@ class DataCachePeformanceTests: XCTestCase {
         // filesystem caching might affect performance.
         measure {
             let cache = try! DataCache(path: self.cache.path)
-            let _ = cache["1"] // Wait till index is loaded.
+            _ = cache["1"] // Wait till index is loaded.
         }
     }
 
@@ -227,8 +227,7 @@ class DataCachePeformanceTests: XCTestCase {
         lru.sizeLimit = Int.max
 
         measure {
-            let _ = lru.discarded(items: items)
+            _ = lru.discarded(items: items)
         }
     }
 }
-

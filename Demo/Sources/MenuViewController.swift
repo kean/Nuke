@@ -5,13 +5,13 @@
 import UIKit
 import Nuke
 
-fileprivate struct MenuItem {
+private struct MenuItem {
     typealias Action = ((MenuItem) -> Void)
-    
+
     var title: String?
     var subtitle: String?
     var action: Action?
-    
+
     init(title: String?, subtitle: String? = nil, action: Action?) {
         self.title = title
         self.subtitle = subtitle
@@ -19,7 +19,7 @@ fileprivate struct MenuItem {
     }
 }
 
-fileprivate struct MenuSection {
+private struct MenuSection {
     var title: String
     var items: [MenuItem]
     
@@ -31,7 +31,7 @@ fileprivate struct MenuSection {
 
 final class MenuViewController: UITableViewController {
     fileprivate var sections = [MenuSection]()
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -44,7 +44,7 @@ final class MenuViewController: UITableViewController {
 
         sections.append(MenuSection(title: "Basic", items: {
             var items = [MenuItem]()
-            
+
             items.append(MenuItem(
                 title: "Basic",
                 subtitle: "Zero config",
@@ -141,25 +141,25 @@ final class MenuViewController: UITableViewController {
             return items
         }()))
     }
-    
+
     func push(_ controller: UIViewController) {
         self.navigationController?.pushViewController(controller, animated: true)
     }
-    
+
     // MARK: Table View
-    
+
     override func numberOfSections(in tableView: UITableView) -> Int {
         return sections.count
     }
-    
+
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return sections[section].items.count
     }
-    
+
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         return sections[section].title
     }
-    
+
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "MenuItemCell", for: indexPath)
         let item = sections[indexPath.section].items[indexPath.row]
@@ -167,7 +167,7 @@ final class MenuViewController: UITableViewController {
         cell.detailTextLabel?.text = item.subtitle
         return cell
     }
-    
+
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let item = sections[indexPath.section].items[indexPath.row]
         item.action?(item)
