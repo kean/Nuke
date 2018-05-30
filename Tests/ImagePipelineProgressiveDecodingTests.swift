@@ -12,10 +12,22 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     override func setUp() {
         dataLoader = _MockProgressiveDataLoader()
         ResumableData._cache.removeAll()
+
+        // We make two important assumptions with this setup:
+        //
+        // 1. Image processing is serial which means that all partial images are
+        // going to be processed and sent to the client before the final image is
+        // processed. So there's never going to be a situation where the final
+        // image is processed before one of the partial images.
+        //
+        // 2. Each data chunck produced by a data loader always results in a new
+        // scan. The way we split the data guarantees that.
+
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
             $0.isProgressiveDecodingEnabled = true
+            $0.imageProcessingQueue.maxConcurrentOperationCount = 1
         }
     }
 
@@ -163,7 +175,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         // new scans until we finished processing the first one.
 
         queue.isSuspended = true
-        self.expectPerformedOperationCount(2, on: queue) // 1 partial, 1 final
+        expect(queue).toFinishWithPerformedOperationCount(2) // 1 partial, 1 final
 
         let parialProduced = self.expectation(description: "Partial Produced")
         let finalLoaded = self.expectation(description: "Final Produced")
@@ -182,6 +194,39 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         })
 
         wait()
+    }
+
+    func testParitalImagesAreDisplayed() {
+        // Given
+        ImagePipeline.pushShared(pipeline)
+
+        let imageView = _ImageView()
+
+        let expectPartialImageProduced = self.expectation(description: "Partial Image Produced")
+        // We expect two partial images (at 5 scans, and 9 scans marks).
+        expectPartialImageProduced.expectedFulfillmentCount = 2
+
+        let expectedFinalLoaded = self.expectation(description: "Final Image Produced")
+
+        // When/Then
+        Nuke.loadImage(
+            with: Test.request,
+            into: imageView,
+            progress: { response, _, _ in
+                if let image = response?.image {
+                    XCTAssertTrue(imageView.image === image)
+                    expectPartialImageProduced.fulfill()
+                    self.dataLoader.resume()
+                }
+            },
+            completion: { response, _ in
+                XCTAssertTrue(imageView.image === response?.image)
+                expectedFinalLoaded.fulfill()
+            }
+        )
+        wait()
+
+        ImagePipeline.popShared()
     }
 }
 

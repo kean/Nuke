@@ -55,28 +55,59 @@ extension XCTestCase {
     }
 }
 
-// MARK: - XCTestCase (OperationQueue)
+// MARK: - XCTestExpectationFactory
+
+struct XCTestExpectationFactory<T> {
+    let testCase: XCTestCase
+    let base: T
+}
 
 extension XCTestCase {
-    // This is still in more of experimental phaze, relying on OperationQueue KVO
+    func expect<T>(_ base: T) -> XCTestExpectationFactory<T> {
+        return XCTestExpectationFactory(testCase: self, base: base)
+    }
+}
+
+// MARK: - XCTestExpectationFactory (OperationQueue)
+
+extension XCTestExpectationFactory where T: OperationQueue  {
+    // This is still in more of experimental phaze, OperationQueue KVO
     // is probably not the most reliable way to do that.
 
-    func expectPerformedOperationCount(_ expectedCount: Int, on queue: OperationQueue) {
-        precondition(queue.isSuspended, "Queue must be suspended in order to reliably track when all expected operations are enqueued.")
+    func toFinishWithPerformedOperationCount(_ expectedCount: Int) {
+        let base = self.base
+        precondition(base.isSuspended, "Queue must be suspended in order to reliably track when all expected operations are enqueued.")
 
-        var set = Set<Foundation.Operation>()
-        self.expectation(for: queue, keyPath: \.operations) { (_, change, expectation) in
-            DispatchQueue.main.async { // Synchronize access to set.
-                let operations = change.newValue ?? []
-                set.formUnion(operations)
-                if set.count == expectedCount {
-                    after(ticks: 3) { // Wait a few ticks to make sure no more operations are enqueued.
-                        queue.isSuspended = false
+        var isFinishing = false
+        var isFinished = false
+        let syncQueue = DispatchQueue(label: "XCTestCase.expectPerformedOperationCount")
+        var distinctOperations = Set<Foundation.Operation>()
+
+        testCase.expectation(for: base, keyPath: \.operations) { (_, change, expectation) in
+            syncQueue.async { // Synchronize access to set.
+                // See if there are any new operations added.
+                let operations = base.operations
+                distinctOperations.formUnion(operations)
+                if distinctOperations.count == expectedCount && base.isSuspended {
+                    syncQueue.after(ticks: 10) { // Wait a few ticks to make sure no more operations are enqueued.
+                        base.isSuspended = false
                     }
                 }
-                if operations.isEmpty {
-                    XCTAssertEqual(set.count, expectedCount)
-                    expectation.fulfill()
+
+                // Wait a bit to make sure that there are no operations added after
+                // the queue is empty. Also make sure that we don't fulfill twice.
+                if operations.isEmpty && !isFinished {
+                    if !isFinishing {
+                        isFinishing = true
+                        syncQueue.after(ticks: 10) {
+                            isFinishing = false
+                            if base.operations.isEmpty {
+                                XCTAssertEqual(distinctOperations.count, expectedCount)
+                                expectation.fulfill()
+                                isFinished = true
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -126,12 +157,14 @@ func rnd(_ uniform: Int) -> Int {
     return Int(arc4random_uniform(UInt32(uniform)))
 }
 
-func after(ticks: Int, _ closure: @escaping () -> Void) {
-    if ticks == 0 {
-        closure()
-    } else {
-        DispatchQueue.main.async {
-            after(ticks: ticks - 1, closure)
+extension DispatchQueue {
+    func after(ticks: Int, _ closure: @escaping () -> Void) {
+        if ticks == 0 {
+            closure()
+        } else {
+            async {
+                self.after(ticks: ticks - 1, closure)
+            }
         }
     }
 }

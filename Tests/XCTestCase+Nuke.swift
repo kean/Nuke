@@ -6,37 +6,30 @@ import XCTest
 import Foundation
 import Nuke
 
+extension XCTestExpectationFactory where T: ImagePipeline {
+    func toLoadImage(with request: ImageRequest, _ completion: ((ImageResponse?, ImagePipeline.Error?) -> Void)? = nil) {
+        let expectation = testCase.expectation(description: "Image loaded for \(request)")
+        base.loadImage(with: request) { response, error in
+            completion?(response, error)
+            XCTAssertTrue(Thread.isMainThread)
+            XCTAssertNotNil(response)
+            expectation.fulfill()
+        }
+    }
+
+    func toFail(with request: ImageRequest, _ completion: ((ImageResponse?, ImagePipeline.Error?) -> Void)? = nil) {
+        let expectation = testCase.expectation(description: "Image request failed \(request)")
+        base.loadImage(with: request) { response, error in
+            completion?(response, error)
+            XCTAssertTrue(Thread.isMainThread)
+            XCTAssertNil(response)
+            XCTAssertNotNil(error)
+            expectation.fulfill()
+        }
+    }
+}
+
 extension XCTestCase {
-    struct XCTestCasePipeline {
-        let testCase: XCTestCase
-        let pipeline: ImagePipeline
-
-        func toLoadImage(with request: ImageRequest, _ completion: ((ImageResponse?, ImagePipeline.Error?) -> Void)? = nil) {
-            let expectation = testCase.expectation(description: "Image loaded for \(request)")
-            pipeline.loadImage(with: request) { response, error in
-                completion?(response, error)
-                XCTAssertTrue(Thread.isMainThread)
-                XCTAssertNotNil(response)
-                expectation.fulfill()
-            }
-        }
-
-        func toFail(with request: ImageRequest, _ completion: ((ImageResponse?, ImagePipeline.Error?) -> Void)? = nil) {
-            let expectation = testCase.expectation(description: "Image request failed \(request)")
-            pipeline.loadImage(with: request) { response, error in
-                completion?(response, error)
-                XCTAssertTrue(Thread.isMainThread)
-                XCTAssertNil(response)
-                XCTAssertNotNil(error)
-                expectation.fulfill()
-            }
-        }
-    }
-
-    func expect(_ pipeline: ImagePipeline) -> XCTestCasePipeline {
-        return XCTestCasePipeline(testCase: self, pipeline: pipeline)
-    }
-
     func expectToFinishLoadingImage(with request: ImageRequest, options: ImageLoadingOptions = ImageLoadingOptions.shared, into imageView: ImageDisplayingView, completion: ImageTask.Completion? = nil) {
         let expectation = self.expectation(description: "Image loaded for \(request)")
         Nuke.loadImage(
