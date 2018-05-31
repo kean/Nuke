@@ -6,10 +6,19 @@ import XCTest
 import Foundation
 import Nuke
 
-extension XCTestExpectationFactory where T: ImagePipeline {
+extension XCTestCase {
+    func expect(_ pipeline: ImagePipeline) -> TestExpectationImagePipeline {
+        return TestExpectationImagePipeline(test: self, pipeline: pipeline)
+    }
+}
+
+struct TestExpectationImagePipeline {
+    let test: XCTestCase
+    let pipeline: ImagePipeline
+
     func toLoadImage(with request: ImageRequest, _ completion: ((ImageResponse?, ImagePipeline.Error?) -> Void)? = nil) {
-        let expectation = testCase.expectation(description: "Image loaded for \(request)")
-        base.loadImage(with: request) { response, error in
+        let expectation = test.expectation(description: "Image loaded for \(request)")
+        pipeline.loadImage(with: request) { response, error in
             completion?(response, error)
             XCTAssertTrue(Thread.isMainThread)
             XCTAssertNotNil(response)
@@ -18,8 +27,8 @@ extension XCTestExpectationFactory where T: ImagePipeline {
     }
 
     func toFail(with request: ImageRequest, _ completion: ((ImageResponse?, ImagePipeline.Error?) -> Void)? = nil) {
-        let expectation = testCase.expectation(description: "Image request failed \(request)")
-        base.loadImage(with: request) { response, error in
+        let expectation = test.expectation(description: "Image request failed \(request)")
+        pipeline.loadImage(with: request) { response, error in
             completion?(response, error)
             XCTAssertTrue(Thread.isMainThread)
             XCTAssertNil(response)

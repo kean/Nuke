@@ -13,7 +13,34 @@ class ThreadSafetyTests: XCTestCase {
             $0.imageCache = nil
         }
 
-        for _ in 0..<500 {
+        _testPipelineThreadSafety(pipeline)
+
+        wait(20) { _ in
+            _ = (dataLoader, pipeline)
+        }
+    }
+
+    func testSharingConfigurationBetweenPipelines() { // Especially operation queues
+
+        var pipelines = [ImagePipeline]()
+
+        let configuration = ImagePipeline.Configuration()
+
+        pipelines.append(ImagePipeline(configuration: configuration))
+        pipelines.append(ImagePipeline(configuration: configuration))
+        pipelines.append(ImagePipeline(configuration: configuration))
+
+        for pipeline in pipelines {
+            _testPipelineThreadSafety(pipeline)
+        }
+
+        wait(20) { _ in
+            _ = (pipelines)
+        }
+    }
+
+    func _testPipelineThreadSafety(_ pipeline: ImagePipeline) {
+        for _ in 0..<1000 {
             let expectation = self.expectation(description: "Finished")
             DispatchQueue.global().async {
                 let request = ImageRequest(url: URL(string: "\(Test.url)/\(rnd(30))")!)
@@ -32,10 +59,6 @@ class ThreadSafetyTests: XCTestCase {
                     expectation.fulfill()
                 }
             }
-        }
-
-        wait(20) { _ in
-            _ = (dataLoader, pipeline)
         }
     }
 

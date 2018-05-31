@@ -57,40 +57,29 @@ extension XCTestCase {
 
 // MARK: - XCTestExpectationFactory
 
-struct XCTestExpectationFactory<T> {
-    let testCase: XCTestCase
-    let base: T
-}
+struct TestExpectationOperationQueue {
+    let test: XCTestCase
+    let queue: OperationQueue
 
-extension XCTestCase {
-    func expect<T>(_ base: T) -> XCTestExpectationFactory<T> {
-        return XCTestExpectationFactory(testCase: self, base: base)
-    }
-}
-
-// MARK: - XCTestExpectationFactory (OperationQueue)
-
-extension XCTestExpectationFactory where T: OperationQueue  {
     // This is still in more of experimental phaze, OperationQueue KVO
     // is probably not the most reliable way to do that.
 
     func toFinishWithPerformedOperationCount(_ expectedCount: Int) {
-        let base = self.base
-        precondition(base.isSuspended, "Queue must be suspended in order to reliably track when all expected operations are enqueued.")
+        precondition(queue.isSuspended, "Queue must be suspended in order to reliably track when all expected operations are enqueued.")
 
         var isFinishing = false
         var isFinished = false
         let syncQueue = DispatchQueue(label: "XCTestCase.expectPerformedOperationCount")
         var distinctOperations = Set<Foundation.Operation>()
 
-        testCase.expectation(for: base, keyPath: \.operations) { (_, change, expectation) in
+        test.expectation(for: queue, keyPath: \.operations) { (_, change, expectation) in
             syncQueue.async { // Synchronize access to set.
                 // See if there are any new operations added.
-                let operations = base.operations
+                let operations = self.queue.operations
                 distinctOperations.formUnion(operations)
-                if distinctOperations.count == expectedCount && base.isSuspended {
+                if distinctOperations.count == expectedCount && self.queue.isSuspended {
                     syncQueue.after(ticks: 10) { // Wait a few ticks to make sure no more operations are enqueued.
-                        base.isSuspended = false
+                        self.queue.isSuspended = false
                     }
                 }
 
@@ -101,7 +90,7 @@ extension XCTestExpectationFactory where T: OperationQueue  {
                         isFinishing = true
                         syncQueue.after(ticks: 10) {
                             isFinishing = false
-                            if base.operations.isEmpty {
+                            if self.queue.operations.isEmpty {
                                 XCTAssertEqual(distinctOperations.count, expectedCount)
                                 expectation.fulfill()
                                 isFinished = true
@@ -111,6 +100,12 @@ extension XCTestExpectationFactory where T: OperationQueue  {
                 }
             }
         }
+    }
+}
+
+extension XCTestCase {
+    func expect(_ queue: OperationQueue) -> TestExpectationOperationQueue {
+        return TestExpectationOperationQueue(test: self, queue: queue)
     }
 }
 
