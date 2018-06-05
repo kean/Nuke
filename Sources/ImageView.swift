@@ -152,6 +152,21 @@ public struct ImageLoadingOptions {
     /// Custom content modes to be used for each image type (placeholder, success,
     /// failure).
     public struct ContentModes {
+        #if swift(>=4.2)
+        /// Content mode to be used for the loaded image.
+        public var success: UIView.ContentMode
+        /// Content mode to be used when displaying a `failureImage`.
+        public var failure: UIView.ContentMode
+        /// Content mode to be used when displaying a `placeholder`.
+        public var placeholder: UIView.ContentMode
+
+        /// - parameter success: A content mode to be used with a loaded image.
+        /// - parameter failure: A content mode to be used with a `failureImage`.
+        /// - parameter placeholder: A content mode to be used with a `placeholder`.
+        public init(success: UIView.ContentMode, failure: UIView.ContentMode, placeholder: UIView.ContentMode) {
+            self.success = success; self.failure = failure; self.placeholder = placeholder
+        }
+        #else
         /// Content mode to be used for the loaded image.
         public var success: UIViewContentMode
         /// Content mode to be used when displaying a `failureImage`.
@@ -163,8 +178,9 @@ public struct ImageLoadingOptions {
         /// - parameter failure: A content mode to be used with a `failureImage`.
         /// - parameter placeholder: A content mode to be used with a `placeholder`.
         public init(success: UIViewContentMode, failure: UIViewContentMode, placeholder: UIViewContentMode) {
-            self.success = success; self.failure = failure; self.placeholder = placeholder
+        self.success = success; self.failure = failure; self.placeholder = placeholder
         }
+        #endif
     }
 
     /// - parameter placeholder: Placeholder to be displayed when the image is
@@ -201,7 +217,11 @@ public struct ImageLoadingOptions {
         struct Parameters { // internal representation
             let duration: TimeInterval
             #if !os(macOS)
+            #if swift(>=4.2)
+            let options: UIView.AnimationOptions
+            #else
             let options: UIViewAnimationOptions
+            #endif
             #endif
         }
 
@@ -213,9 +233,15 @@ public struct ImageLoadingOptions {
         #if !os(macOS)
         /// Fade-in transition (cross-fade in case the image view is already
         /// displaying an image).
+        #if swift(>=4.2)
+        public static func fadeIn(duration: TimeInterval, options: UIView.AnimationOptions = .allowUserInteraction) -> Transition {
+            return Transition(style: .fadeIn(parameters:  Parameters(duration: duration, options: options)))
+        }
+        #else
         public static func fadeIn(duration: TimeInterval, options: UIViewAnimationOptions = .allowUserInteraction) -> Transition {
             return Transition(style: .fadeIn(parameters:  Parameters(duration: duration, options: options)))
         }
+        #endif
         #else
         /// Fade-in transition.
         public static func fadeIn(duration: TimeInterval) -> Transition {
@@ -407,7 +433,11 @@ private final class ImageViewController {
     // content modes.
     private lazy var transitionImageView = UIImageView()
 
+    #if swift(>=4.2)
+    private typealias _ContentMode = UIView.ContentMode
+    #else
     private typealias _ContentMode = UIViewContentMode
+    #endif
 
     private func _runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters, contentMode: _ContentMode?) {
         guard let imageView = imageView else { return }

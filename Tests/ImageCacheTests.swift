@@ -269,7 +269,11 @@ class ImageCacheTests: XCTestCase {
         cache[Test.request] = Image()
 
         // When
+        #if swift(>=4.2)
+        NotificationCenter.default.post(name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
+        #else
         NotificationCenter.default.post(name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
+        #endif
 
         // Then
         XCTAssertNil(cache[Test.request])
@@ -286,7 +290,11 @@ class ImageCacheTests: XCTestCase {
         XCTAssertEqual(cache.totalCount, 10)
 
         // When
+        #if swift(>=4.2)
+        NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        #else
         NotificationCenter.default.post(name: NSNotification.Name.UIApplicationDidEnterBackground, object: nil)
+        #endif
 
         // Then
         XCTAssertEqual(cache.totalCount, 1)
@@ -305,7 +313,11 @@ class ImageCacheTests: XCTestCase {
         XCTAssertEqual(cache.totalCount, 10)
 
         // When
+        #if swift(>=4.2)
+        NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        #else
         NotificationCenter.default.post(name: NSNotification.Name.UIApplicationDidEnterBackground, object: nil)
+        #endif
 
         // Then
         XCTAssertEqual(cache.totalCount, 1)

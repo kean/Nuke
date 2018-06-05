@@ -453,11 +453,11 @@ There are a variety extensions available for Nuke some of which are built by the
 
 
 <a name="h_requirements"></a>
-# Minimum Requirements
+# Requirements
 
 - iOS 9.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0
-- Xcode 9.2
-- Swift 4.0
+- Xcode 9.2 - Xcode 10
+- Swift 4.0 - Swift 4.2
 
 # License
 
