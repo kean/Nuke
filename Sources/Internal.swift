@@ -377,7 +377,7 @@ internal struct ResumableData {
     let data: Data
     let validator: String // Either Last-Modified or ETag
 
-    init?(response: URLResponse?, data: Data) {
+    init?(response: URLResponse, data: Data) {
         // Check if "Accept-Ranges" is present and the response is valid.
         guard !data.isEmpty,
             let response = response as? HTTPURLResponse,
