@@ -236,7 +236,7 @@ class DataCacheTests: XCTestCase {
 
         let cache2 = try! DataCache(path: cache.path)
         cache2._keyEncoder = cache._keyEncoder // keyEncoder not needed for index loading
-        cache2._test_waitUntilIndexIsFullyLoaded()
+        cache2.flush()
 
         XCTAssertEqual(cache2["key"], cache["key"])
         XCTAssertEqual(cache2.totalSize, cache.totalSize)

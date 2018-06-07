@@ -59,7 +59,7 @@ internal final class DataCache {
 
     // Persistence
     private let _rqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.ReadQueue")
-    private let _wqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue") // _wqueue is internal to make it @testable
+    private let _wqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue")
     
     // Temporary
     var _keyEncoder: (String) -> String? = { return $0 }
@@ -76,21 +76,21 @@ internal final class DataCache {
 
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
 
+        // Read queue is suspended until we load the index.
+        self._rqueue.suspend()
+
         // Pay a little price upfront to get better performance and more control
-        // later (we need this index anyway to perform sweeps). We take advantage
-        /// of fast filesystem metadata. Loading an index of cache with 1000 items
-        // 64 Kb each (~ 62 Mb total) is almost instantaneous on modern hardware.
-        self._rqueue.async {
-            // We load index on _rqueue this way we guarantee that index is
-            // going to be available by the first time `data(for:completion)` is
-            // called, but synchronous calls might return nil.
+        // later (we need this index anyway to perform sweeps). Filesystem metadata
+        // is very fast. Loading an index of cache with 1000 items 64 Kb each
+        // (~ 62 Mb total) is almost instantaneous on modern hardware.
+        self._wqueue.async {
             self._lock.lock()
             self._loadIndex()
             self._lock.unlock()
-            self._wqueue.async {
-                self._scheduleSweep()
-                self._sweep()
-            }
+
+            // Resume `_rqeueue` guaranteeing that index is available by the
+            // time async read methods are performed.
+            self._rqueue.resume()
         }
     }
     
@@ -213,10 +213,9 @@ internal final class DataCache {
 
     // MARK: Flush Changes
 
-    /// Synchronously waits on the callers thread while all the remaining
-    /// entries are flushed to disk.
+    /// Synchronously waits on the caller's thread while all outstanding disk IO
+    /// operations are finished.
     func flush() {
-        // Wait until everything is written to disk
         _wqueue.sync {}
     }
 
@@ -318,10 +317,6 @@ internal final class DataCache {
         _wqueue.suspend()
         closure()
         _wqueue.resume()
-    }
-
-    func _test_waitUntilIndexIsFullyLoaded() {
-        _rqueue.sync {}
     }
 
     // MARK: Entry
