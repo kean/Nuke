@@ -13,7 +13,7 @@ public protocol DataCaching {
 }
 
 extension DataCache: DataCaching {
-    func storeData(_ data: Data, for key: String) {
+    public func storeData(_ data: Data, for key: String) {
         self[key] = data
     }
 }
@@ -24,25 +24,29 @@ extension DataCache {
 
 extension DispatchWorkItem: Cancellable {}
 
-/// Experimental data cache. The public API for disk cache is going to be
-/// available in the future versions when it goes out of beta.
-internal class DataCache {
+/// Key-value cache for data with LRU cleanup policy (least recently used items
+/// are removed first). The elements stored in the cache are automatically
+/// discarded if either *cost* or *count* limit is reached.
+///
+/// Thread-safe.
+///
+/// - warning: Multiple instances with the same path are *not* allowed as they
+/// would conflict with each other.
+internal final class DataCache {
     typealias Key = String
 
-    struct Filename: Hashable {
-        let raw: String
+    /// The maximum number of items. `1000` by default.
+    var countLimit: Int = 1000
 
-        #if !swift(>=4.1)
-        var hashValue: Int {
-            return raw.hashValue
-        }
+    /// Size limit in bytes. `100 Mb` by default.
+    var sizeLimit: Int = 1024 * 1024 * 100
 
-        static func == (lhs: DataCache.Filename, rhs: DataCache.Filename) -> Bool {
-            return lhs.raw == rhs.raw
-        }
-        #endif
-    }
-    
+    /// When performing a sweep, the cache will remote entries until the size of
+    /// the remaining items is lower than or equal to `sizeLimit * trimRatio` and
+    /// the total count is lower than or equal to `countLimit * trimRatio`. `0.7`
+    /// by default.
+    var trimRatio = 0.7
+
     let path: URL
     
     // Index of entries.
@@ -52,7 +56,6 @@ internal class DataCache {
     /// The number of seconds between each discard sweep. 30 by default.
     /// The first sweep is run right after the cache is initialzied.
     var sweepInterval: TimeInterval = 30
-    private let _algorithm: CacheAlgorithm?
 
     // Persistence
     private let _rqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.ReadQueue")
@@ -61,17 +64,16 @@ internal class DataCache {
     // Temporary
     var _keyEncoder: (String) -> String? = { return $0 }
 
-    convenience init(name: String, algorithm: CacheAlgorithm? = CacheAlgorithmLRU()) throws {
+    convenience init(name: String) throws {
         guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
         }
-        try self.init(path: root.appendingPathComponent(name, isDirectory: true), algorithm: algorithm)
+        try self.init(path: root.appendingPathComponent(name, isDirectory: true))
     }
     
-    init(path: URL, algorithm: CacheAlgorithm? = CacheAlgorithmLRU()) throws {
+    init(path: URL) throws {
         self.path = path
-        self._algorithm = algorithm
-        
+
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
 
         // Pay a little price upfront to get better performance and more control
@@ -214,7 +216,7 @@ internal class DataCache {
     /// Synchronously waits on the callers thread while all the remaining
     /// entries are flushed to disk.
     func flush() {
-        // Wait until everything is written and flush keys
+        // Wait until everything is written to disk
         _wqueue.sync {}
     }
 
@@ -228,26 +230,49 @@ internal class DataCache {
     }
 
     func sweep() {
-        guard let algorithm = _algorithm else { return }
-        sweep(with: algorithm)
-    }
-
-    func sweep(with algorithm: CacheAlgorithm) {
         _wqueue.async {
-            self._sweep(with: algorithm)
+            self._sweep()
         }
     }
 
     private func _sweep() {
-        guard let algorithm = _algorithm else { return }
-        _sweep(with: algorithm)
-    }
-
-    private func _sweep(with algorithm: CacheAlgorithm) {
         _lock.lock()
-        let discarded = algorithm.discarded(items: _index.values)
+        let discarded = self._itemsToDicard()
         _removeData(for: discarded.map { $0.filename })
         _lock.unlock()
+    }
+
+    /// Discards the least recently used items first.
+    private func _itemsToDicard() -> ArraySlice<DataCache.Entry> {
+        var items = Array(_index.values)
+        guard items.count > 0 else { return [] }
+
+        var size = items.reduce(0) { $0 + $1.underestimatedSize }
+        var count = items.count
+        let sizeLimit = self.sizeLimit / Int(1 / trimRatio)
+        let countLimit = self.countLimit / Int(1 / trimRatio)
+
+        guard size > sizeLimit || count > countLimit else {
+            return [] // All good, no need to perform any work.
+        }
+
+        // Least recently accessed items first
+        let past = Date.distantPast
+        items.sort { // Sort in place
+            // In pratice items must always have `accessDate` at this point
+            ($0.accessDate ?? past) < ($1.accessDate ?? past)
+        }
+
+        // Remove the items until we satisfy both size and count limits.
+        var idx = 0
+        while (size > sizeLimit || count > countLimit), idx <= items.endIndex {
+            size -= items[idx].underestimatedSize
+            count -= 1
+            idx += 1
+        }
+
+        // Remove all remaining items
+        return items[0..<idx]
     }
 
     // MARK: Inspection
@@ -279,7 +304,7 @@ internal class DataCache {
 
     // MARK: Temporary
 
-    @discardableResult func data(for key: Key, _ completion: @escaping (Data?) -> Void) -> Cancellable {
+    @discardableResult public func data(for key: Key, _ completion: @escaping (Data?) -> Void) -> Cancellable {
         let work = DispatchWorkItem { [weak self] in
             completion(self?[key])
         }
@@ -293,6 +318,10 @@ internal class DataCache {
         _wqueue.suspend()
         closure()
         _wqueue.resume()
+    }
+
+    func _test_waitUntilIndexIsFullyLoaded() {
+        _rqueue.sync {}
     }
 
     // MARK: Entry
@@ -352,69 +381,20 @@ internal class DataCache {
             self.fileSize = data.count
         }
     }
-}
 
-/// Protocol that represents a [cache algorithm](https://en.wikipedia.org/wiki/Cache_replacement_policies)
-/// (also called *cache replacement policy*).
-protocol CacheAlgorithm {
-    /// Filters an array of items to contain only items that should be
-    /// discarded to make room for the new ones.
-    ///
-    /// This method gets called periodically by the Cache. The argument is
-    /// marked as `inout` to achieve max performance.
-    func discarded<Items: Collection>(items: Items) -> [DataCache.Entry] where Items.Element == DataCache.Entry
-}
+    // MARK: Misc
 
-/// Discards least recently used items first.
-struct CacheAlgorithmLRU: CacheAlgorithm {
-    /// The maximum number of items. `1000` by default.
-    var countLimit: Int
+    struct Filename: Hashable {
+        let raw: String
 
-    /// Size limit in bytes. `100 Mb` by default.
-    var sizeLimit: Int
-
-    /// The `discarded(items:)` method removes items until the total
-    /// size of the remaining items is lower then or equal to
-    /// `sizeLimit * trimRatio` and the total count is lower then or
-    /// equal to `countLimit * trimRatio`. `0.7` by default.
-    var trimRatio = 0.7
-
-    /// - parameter countLimit: The maximum number of items. `1000` by default.
-    /// - parameter sizeLimit: Size limit in bytes. `100 Mb` by default.
-    init(countLimit: Int = 1000, sizeLimit: Int = 1024 * 1024 * 100) {
-        self.countLimit = countLimit
-        self.sizeLimit = sizeLimit
-    }
-
-    /// Discards the least recently used items first.
-    func discarded<Items>(items: Items) -> [DataCache.Entry] where Items: Collection, Items.Element == DataCache.Entry {
-        guard items.count > 0 else { return [] }
-
-        var size = items.reduce(0) { $0 + $1.underestimatedSize }
-        var count = items.count
-        let sizeLimit = self.sizeLimit / Int(1 / trimRatio)
-        let countLimit = self.countLimit / Int(1 / trimRatio)
-
-        guard size > sizeLimit || count > countLimit else {
-            return [] // All good, no need to perform any work.
+        #if !swift(>=4.1)
+        var hashValue: Int {
+        return raw.hashValue
         }
 
-        // Least recently accessed items first
-        let past = Date.distantPast
-        let sorted = items.sorted {
-            // In pratice items must always have `accessDate` at this point
-            ($0.accessDate ?? past) < ($1.accessDate ?? past)
+        static func == (lhs: DataCache.Filename, rhs: DataCache.Filename) -> Bool {
+        return lhs.raw == rhs.raw
         }
-
-        // Remove the items until we satisfy both size and count limits.
-        var idx = 0
-        while (size > sizeLimit || count > countLimit), idx <= sorted.endIndex {
-            size -= sorted[idx].underestimatedSize
-            count -= 1
-            idx += 1
-        }
-
-        // Remove all remaining items
-        return Array(sorted[0..<idx])
+        #endif
     }
 }

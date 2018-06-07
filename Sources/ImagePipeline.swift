@@ -192,10 +192,9 @@ public /* final */ class ImagePipeline {
         /// - parameter sizeLimit: Size limit in bytes. `100 Mb` by default.
         public mutating func enableExperimentalAggressiveDiskCaching(countLimit: Int = 1000, sizeLimit: Int = 1024 * 1024 * 100, keyEncoder: @escaping (String) -> String?) {
             if DataCache.shared == nil {
-                let cache = try? DataCache(
-                    name: "com.github.kean.Nuke.DataCache",
-                    algorithm: CacheAlgorithmLRU(countLimit: countLimit, sizeLimit: sizeLimit)
-                )
+                let cache = try? DataCache(name: "com.github.kean.Nuke.DataCache")
+                cache?.countLimit = countLimit
+                cache?.sizeLimit = sizeLimit
                 cache?._keyEncoder = keyEncoder
                 DataCache.shared = cache
             }

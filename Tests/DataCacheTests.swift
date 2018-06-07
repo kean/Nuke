@@ -13,7 +13,8 @@ class DataCacheTests: XCTestCase {
 
     override func setUp() {
         cache = try! DataCache(name: UUID().uuidString)
-        // To make sure that we use different strings for file names
+        // Make sure that file names are different from the keys so that we
+        // could know for sure that keyEncoder works as expected.
         cache._keyEncoder = { String($0.reversed()) }
     }
 
@@ -21,7 +22,7 @@ class DataCacheTests: XCTestCase {
         try? FileManager.default.removeItem(at: cache.path)
     }
 
-    // MARK: Addition
+    // MARK: Add
 
     func testAdd() {
         cache._test_withSuspendedIO {
@@ -226,70 +227,60 @@ class DataCacheTests: XCTestCase {
 
     // MARK: Index
 
-//    func testThatIndexIsLoaded() {
-//        XCTAssertNil(cache["key"])
-//        cache["key"] = blob
-//        XCTAssertNotNil(cache["key"])
-//        cache.flush()
-//
-//        let cache2 = try! DataCache(path: cache.path)
-//        cache2._keyEncoder = cache._keyEncoder
-//
-//        // DataCache guarantees that async data call will be executed after
-//        // index is oaded, this is not true for synchronous methods.
-//        expect { fulfil in
-//            _ = cache2.data(for: "key") {
-//                XCTAssertEqual($0, self.cache["key"])
-//                fulfil()
-//            }
-//        }
-//        wait()
-//
-//        XCTAssertEqual(cache2["key"], cache["key"])
-//        XCTAssertEqual(cache2.totalSize, cache.totalSize)
-//        XCTAssertEqual(cache2.totalAllocatedSize, cache.totalAllocatedSize)
-//        XCTAssertEqual(cache2.totalCount, cache.totalCount)
-//    }
+    func testThatIndexIsLoaded() {
+        XCTAssertNil(cache["key"])
+        cache["key"] = blob
+        XCTAssertNotNil(cache["key"])
+
+        cache.flush()
+
+        let cache2 = try! DataCache(path: cache.path)
+        cache2._keyEncoder = cache._keyEncoder // keyEncoder not needed for index loading
+        cache2._test_waitUntilIndexIsFullyLoaded()
+
+        XCTAssertEqual(cache2["key"], cache["key"])
+        XCTAssertEqual(cache2.totalSize, cache.totalSize)
+        XCTAssertEqual(cache2.totalAllocatedSize, cache.totalAllocatedSize)
+        XCTAssertEqual(cache2.totalCount, cache.totalCount)
+    }
 
     // MARK: Inspection
 
-//    func testThatInspectionMethodsWork() {
-//        cache.inspect { XCTAssertEqual($0.count, 0) }
-//        XCTAssertEqual(cache.totalCount, 0)
-//        XCTAssertEqual(cache.totalSize, 0)
-//
-//        let data = "123".data(using: .utf8)!
-//
-//        cache._test_withSuspendedIO {
-//
-//            cache["key"] = data
-//
-//            cache.inspect {
-//                XCTAssertEqual($0.count, 1)
-//                XCTAssertNotNil($0[cache.filename(for: "key")!])
-//            }
-//            XCTAssertEqual(cache.totalCount, 1)
-//            XCTAssertEqual(cache.totalSize, data.count)
-//            XCTAssertEqual(cache.totalAllocatedSize, data.count)
-//        }
-//
-//        cache.flush()
-//
-//        // Size updated to allocated size.
-//        XCTAssertEqual(cache.totalSize, data.count)
-//        XCTAssertTrue(cache.totalAllocatedSize > cache.totalSize)
-//    }
+    func testThatInspectionMethodsWork() {
+        cache.inspect { XCTAssertEqual($0.count, 0) }
+        XCTAssertEqual(cache.totalCount, 0)
+        XCTAssertEqual(cache.totalSize, 0)
+
+        let data = "123".data(using: .utf8)!
+
+        cache._test_withSuspendedIO {
+
+            cache["key"] = data
+
+            cache.inspect {
+                XCTAssertEqual($0.count, 1)
+                XCTAssertNotNil($0[cache.filename(for: "key")!])
+            }
+            XCTAssertEqual(cache.totalCount, 1)
+            XCTAssertEqual(cache.totalSize, data.count)
+            XCTAssertEqual(cache.totalAllocatedSize, data.count)
+        }
+
+        cache.flush()
+
+        // Size updated to allocated size.
+        XCTAssertEqual(cache.totalSize, data.count)
+        XCTAssertTrue(cache.totalAllocatedSize > cache.totalSize)
+    }
 
     // MARK: Sweep
 
     func testSweep() {
         // Given
-        var lru = CacheAlgorithmLRU()
-        lru.countLimit = 4 // we test count limit here
-        lru.trimRatio = 0.5 // 1 item should remaing after trim
-        lru.sizeLimit = Int.max
-
-        cache = try! DataCache(path: cache.path, algorithm: lru)
+        cache = try! DataCache(path: cache.path)
+        cache.countLimit = 4 // we test count limit here
+        cache.trimRatio = 0.5 // 1 item should remaing after trim
+        cache.sizeLimit = Int.max
 
         let keys = (0..<4).map { "\($0)" }
 
@@ -339,65 +330,6 @@ class DataCacheTests: XCTestCase {
             XCTAssertNotNil(date2)
             XCTAssertTrue(date1! < date2!)
         }
-    }
-}
-
-class DataCacheAlgorithmTests: XCTestCase {
-    func testLeastRecentlyItemsAreRemoved() {
-        // Given
-        let now = Date()
-        let items = [
-            makeItem(accessDate: now.addingTimeInterval(-10)),
-            makeItem(accessDate: now.addingTimeInterval(-20)),
-            makeItem(accessDate: now.addingTimeInterval(-30)),
-            makeItem(accessDate: now.addingTimeInterval(-40))
-        ]
-
-        var lru = CacheAlgorithmLRU()
-        lru.countLimit = 4 // we test count limit here
-        lru.sizeLimit = Int.max
-        lru.trimRatio = 0.5 // 1 item should remaing after trim
-
-        // When
-        let discarded = lru.discarded(items: items)
-
-        // Then
-        XCTAssertEqual(discarded.count, 2)
-        XCTAssertTrue(discarded.contains { $0 === items[3] })
-        XCTAssertTrue(discarded.contains { $0 === items[2] })
-    }
-
-    func testThatSizeLimitWorks() {
-        // Given
-        let now = Date()
-        let items = [
-            makeItem(accessDate: now.addingTimeInterval(-10)),
-            makeItem(accessDate: now.addingTimeInterval(-20)),
-            makeItem(accessDate: now.addingTimeInterval(-30)),
-            makeItem(accessDate: now.addingTimeInterval(-40))
-        ]
-
-        var lru = CacheAlgorithmLRU()
-        lru.countLimit = 4 // we test count limit here
-        lru.sizeLimit = Int.max
-        lru.trimRatio = 0.5 // 1 item should remaing after trim
-
-        // When
-        let discarded = lru.discarded(items: items)
-
-        // Then
-        XCTAssertEqual(discarded.count, 2)
-        XCTAssertTrue(discarded.contains { $0 === items[3] })
-        XCTAssertTrue(discarded.contains { $0 === items[2] })
-    }
-
-    func makeItem(accessDate: Date) -> DataCache.Entry {
-        let cache = try! DataCache(name: UUID().uuidString)
-        let filename = cache.filename(for: "\(arc4random())")!
-        let entry = DataCache.Entry(filename: filename, payload: .saved(URL(string: "file://\(filename.raw)")!))
-        entry.accessDate = accessDate
-        entry.totalFileAllocatedSize = 1
-        return entry
     }
 }
 
