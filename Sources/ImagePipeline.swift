@@ -366,7 +366,7 @@ public /* final */ class ImagePipeline {
         session.metrics.checkDiskCacheStartDate = Date()
 
         // Disk cache lookup (Experimenal)
-        let task = cache.data(for: key) { [weak self, weak session] data in
+        let task = cache.cachedData(for: key) { [weak self, weak session] data in
             guard let session = session else { return }
             session.metrics.checkDiskCacheEndDate = Date()
             self?.queue.async {

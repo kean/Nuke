@@ -551,3 +551,13 @@ internal enum _Result<T, Error: Swift.Error> {
         if case let .failure(err) = self { return err } else { return nil }
     }
 }
+
+// MARK: - Misc
+
+final class NoOpCancellable: Cancellable {
+    func cancel() {
+        return // Do nothing
+    }
+}
+
+extension DispatchWorkItem: Cancellable {}

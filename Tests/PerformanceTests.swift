@@ -157,7 +157,7 @@ class DataCachePeformanceTests: XCTestCase {
     }
 
     func testWritePeformance() {
-        cache._test_withSuspendedIO {
+        cache._testWithSuspendedIO {
             let dummy = "123".data(using: .utf8)
 
             // FIXME: This test no just "empty" writes, but also overwrites
@@ -170,7 +170,7 @@ class DataCachePeformanceTests: XCTestCase {
     }
 
     func testReadPerformance() {
-        cache._test_withSuspendedIO {
+        cache._testWithSuspendedIO {
             for idx in 0..<10_000 {
                 cache["\(idx)"] = "123".data(using: .utf8)
             }
