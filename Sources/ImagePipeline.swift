@@ -276,7 +276,10 @@ public /* final */ class ImagePipeline {
         session.tasks[task] = handlers
 
         // Update data operation priority (in case it was already started).
-        session.dataOperation?.queuePriority = session.priority.queuePriority
+        let priority = session.priority.queuePriority
+        session.dataOperation?.queuePriority = priority
+        session.decodingOperation?.queuePriority = priority
+        session.processingOperation?.queuePriority = priority
 
         // Already loaded and decoded the final image and started processing
         // for previously registered tasks (if any).
