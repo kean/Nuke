@@ -693,7 +693,7 @@ public /* final */ class ImagePipeline {
         }
 
         if let response = response, task.request.memoryCacheOptions.isWriteAllowed {
-            configuration.imageCache?.storeResponse(response, for: session.request)
+            configuration.imageCache?.storeResponse(response, for: task.request)
         }
 
         if let handlers = session.tasks.removeValue(forKey: task) {

@@ -305,6 +305,36 @@ class ImagePipelineDeduplicationTests: XCTestCase {
             XCTAssertEqual(self.dataLoader.createdTaskCount, 2)
         }
     }
+
+    func testCorrectImageIsStoredInMemoryCache() {
+        let imageCache = MockImageCache()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+        }
+
+        // Given requests with the same URLs but different processors
+        let processors = ProcessorFactory()
+        let request1 = Test.request.processed(with: processors.make(id: "1"))
+        let request2 = Test.request.processed(with: processors.make(id: "2"))
+
+        // When loading images for those requests
+        // Then the correct proessors are applied.
+        expect(pipeline).toLoadImage(with: request1) { response, _ in
+            XCTAssertEqual(response?.image.nk_test_processorIDs, ["1"])
+        }
+        expect(pipeline).toLoadImage(with: request2) { response, _ in
+            XCTAssertEqual(response?.image.nk_test_processorIDs, ["2"])
+        }
+        wait()
+
+        // Then
+        XCTAssertNotNil(imageCache[request1])
+        XCTAssertEqual(imageCache[request1
+            ]?.nk_test_processorIDs, ["1"])
+        XCTAssertNotNil(imageCache[request2])
+        XCTAssertEqual(imageCache[request2]?.nk_test_processorIDs, ["2"])
+    }
 }
 
 /// Helps with counting processors.
