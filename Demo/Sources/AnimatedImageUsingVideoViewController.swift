@@ -88,7 +88,7 @@ final class MP4Decoder: ImageDecoding {
     private static func _match(_ data: Data, offset: Int = 0, _ numbers: [UInt8]) -> Bool {
         guard data.count >= numbers.count + offset else { return false }
         return !zip(numbers.indices, numbers).contains { (index, number) in
-            data[index] != number
+            data[index + offset] != number
         }
     }
 

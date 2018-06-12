@@ -25,7 +25,6 @@ class ImageTaskMetricsTests: XCTestCase {
             XCTAssertEqual(task.taskId, metrics.taskId)
             XCTAssertNotNil(metrics.endDate)
             XCTAssertNotNil(metrics.session)
-            XCTAssertNotNil(metrics.session?.endDate)
             expectation.fulfill()
         }
 
@@ -40,7 +39,6 @@ class ImageTaskMetricsTests: XCTestCase {
             XCTAssertTrue(metrics.wasCancelled)
             XCTAssertNotNil(metrics.endDate)
             XCTAssertNotNil(metrics.session)
-            XCTAssertNotNil(metrics.session?.endDate)
             expectation.fulfill()
         }
 

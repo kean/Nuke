@@ -21,9 +21,9 @@ class BasicDemoViewController: UICollectionViewController {
         collectionView?.backgroundColor = UIColor.white
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
 
-        pipeline.didFinishCollectingMetrics = { _, metrics in
-            print(metrics)
-        }
+//        pipeline.didFinishCollectingMetrics = { _, metrics in
+//            print(metrics)
+//        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
