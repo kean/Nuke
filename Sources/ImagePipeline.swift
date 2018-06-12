@@ -111,8 +111,6 @@ public /* final */ class ImagePipeline {
     // This is a queue on which we access the sessions.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline")
 
-    private let decodingQueue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline.DecodingQueue")
-
     // Image loading sessions. One or more tasks can be handled by the same session.
     private var sessions = [AnyHashable: ImageLoadingSession]()
 
@@ -140,6 +138,9 @@ public /* final */ class ImagePipeline {
         internal var imageDecoder: (ImageDecodingContext) -> ImageDecoding = {
             return ImageDecoderRegistry.shared.decoder(for: $0)
         }
+
+        /// Image decoding queue. Default maximum concurrent task count is 1.
+        public var imageDecodingQueue = OperationQueue()
 
         /// Image cache used by the pipeline.
         public var imageCache: ImageCaching?
@@ -209,6 +210,7 @@ public /* final */ class ImagePipeline {
             self.imageCache = imageCache
 
             self.dataLoadingQueue.maxConcurrentOperationCount = 6
+            self.imageDecodingQueue.maxConcurrentOperationCount = 1
             self.imageProcessingQueue.maxConcurrentOperationCount = 2
         }
     }
@@ -297,7 +299,9 @@ public /* final */ class ImagePipeline {
     fileprivate func _imageTask(_ task: ImageTask, didUpdatePriority: ImageRequest.Priority) {
         queue.async {
             guard let session = task.session else { return }
-            session.dataOperation?.queuePriority = session.priority.queuePriority
+            let priority = session.priority.queuePriority
+            session.dataOperation?.queuePriority = priority
+            session.decodingOperation?.queuePriority = priority
         }
     }
 
@@ -504,7 +508,7 @@ public /* final */ class ImagePipeline {
 
     private func _decodePartialImage(for session: ImageLoadingSession, data: Data) {
         guard let decoder = _decoder(for: session, data: data) else { return }
-        decodingQueue.async { [weak self, weak session] in
+        configuration.imageDecodingQueue.addOperation { [weak self, weak session] in
             guard let session = session else { return }
 
             // Produce partial image
@@ -526,7 +530,7 @@ public /* final */ class ImagePipeline {
         }
 
         let metrics = session.metrics
-        decodingQueue.async { [weak self, weak session] in
+        let operation = BlockOperation { [weak self, weak session] in
             guard let session = session else { return }
             metrics.decodeStartDate = Date()
             // Produce final image
@@ -537,6 +541,13 @@ public /* final */ class ImagePipeline {
             self?.queue.async {
                 self?._session(session, didDecodeFinalImage: image, data: data)
             }
+        }
+        operation.queuePriority = session.priority.queuePriority
+        configuration.imageDecodingQueue.addOperation(operation)
+
+        session.decodingOperation = operation
+        session.cts.token.register { [weak operation] in
+            operation?.cancel()
         }
     }
 
@@ -760,6 +771,7 @@ public /* final */ class ImagePipeline {
         // Decoding session.
         var decoder: ImageDecoding?
         var decodedImage: Image? // Decoding result
+        weak var decodingOperation: Foundation.Operation?
 
         // Progressive decoding.
         weak var processingPartialOperation: Foundation.Operation?

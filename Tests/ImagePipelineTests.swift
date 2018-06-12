@@ -129,9 +129,40 @@ class ImagePipelineTests: XCTestCase {
 
     // MARK: - Updating Priority
 
-    func testPriorityIsUpdated() {
+    func testDataLoadingPriorityUpdated() {
         // Given
         let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let request = Test.request
+        XCTAssertEqual(request.priority, .normal)
+
+        var operation: Foundation.Operation?
+        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) -> Bool in
+            operation = queue.operations.first
+            return true
+        }
+
+        let task = pipeline.loadImage(with: request)
+        wait() // Wait till the operation is created.
+
+        // When/Then
+        XCTAssertNotNil(operation)
+        self.keyValueObservingExpectation(for: operation!, keyPath: "queuePriority") { (_, _) in
+            XCTAssertEqual(operation?.queuePriority, .high)
+            return true
+        }
+
+        XCTAssertEqual(task.request.priority, .normal)
+        task.setPriority(.high)
+        XCTAssertEqual(task.request.priority, .high)
+
+        wait()
+    }
+
+    func testDecodingPriorityUpdated() {
+        // Given
+        let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
 
         let request = Test.request
@@ -173,6 +204,36 @@ class ImagePipelineTests: XCTestCase {
 
         expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
         task.cancel()
+        wait()
+    }
+
+    func testDecodingOperationCancelled() {
+        // Given
+        let queue = pipeline.configuration.imageDecodingQueue
+        queue.isSuspended = true
+
+        var operation: Foundation.Operation?
+        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) in
+            operation = queue.operations.first
+            return true
+        }
+
+        let request = Test.request
+
+        let task = pipeline.loadImage(with: request) { (_, _) in
+            XCTFail()
+        }
+        wait() // Wait till operation is created
+
+        // When/Then
+        XCTAssertNotNil(operation)
+        self.keyValueObservingExpectation(for: operation!, keyPath: "isCancelled") { (_, _) in
+            XCTAssertTrue(operation!.isCancelled)
+            return true
+        }
+
+        task.cancel()
+
         wait()
     }
 
