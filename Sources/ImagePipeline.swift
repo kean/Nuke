@@ -791,6 +791,7 @@ public /* final */ class ImagePipeline {
         weak var decodingOperation: Foundation.Operation?
 
         // Processing session.
+        // FIXME: This needs refactoring, the deduplication got too complex.
         var didStartInitialProcessingOperation: Bool = false
         weak var processingOperation: Foundation.Operation?
 

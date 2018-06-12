@@ -1,3 +1,21 @@
+## Nuke 7.2
+
+### Additions
+
+- #163 Add `DataCaching` protocol which can be used to implement custom data cache. It's not documented yet, the documentation going to be updated in 7.2.1.
+
+### Improvements
+
+- Initial iOS 12.0, Swift 4.2 and Xcode 10 beta 1 support
+- #167 `ImagePipeline` now uses `OperationQueue` instead of `DispatchQueue` for decoding images. The queue now respects `ImageRequest` priority. If the task is cancelled the operation added to a queue is also cancelled. The queue can be configured via `ImagePipeline.Configuration`.
+- #167 `ImagePipeline` now updates processing operations' priority.
+
+### Fixes
+
+- Fix a regression where in certain deduplication scenarios a wrong image would be saved in memory cache
+- Fix MP4 demo project
+- Improve test coverage, bring back `DataCache` (internal) tests
+
 ## Nuke 7.1
 
 ### Improvements
