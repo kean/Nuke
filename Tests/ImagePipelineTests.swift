@@ -191,6 +191,37 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
+    func testProcessingPriorityUpdated() {
+        // Given
+        let queue = pipeline.configuration.imageProcessingQueue
+        queue.isSuspended = true
+
+        let request = Test.request.processed(key: "1") { $0 }
+        XCTAssertEqual(request.priority, .normal)
+
+        var operation: Foundation.Operation?
+        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) -> Bool in
+            operation = queue.operations.first
+            return true
+        }
+
+        let task = pipeline.loadImage(with: request)
+        wait() // Wait till the operation is created.
+
+        // When/Then
+        XCTAssertNotNil(operation)
+        self.keyValueObservingExpectation(for: operation!, keyPath: "queuePriority") { (_, _) in
+            XCTAssertEqual(operation?.queuePriority, .high)
+            return true
+        }
+
+        XCTAssertEqual(task.request.priority, .normal)
+        task.setPriority(.high)
+        XCTAssertEqual(task.request.priority, .high)
+
+        wait()
+    }
+
     // MARK: - Cancellation
 
     func testDataLoadingOperationCancelled() {

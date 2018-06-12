@@ -302,6 +302,7 @@ public /* final */ class ImagePipeline {
             let priority = session.priority.queuePriority
             session.dataOperation?.queuePriority = priority
             session.decodingOperation?.queuePriority = priority
+            session.processingOperation?.queuePriority = priority
         }
     }
 
@@ -606,7 +607,10 @@ public /* final */ class ImagePipeline {
             guard let session = session, let image = image else { return }
             self?._session(session, didProducePartialImage: image, for: task)
         }
-        session.processingPartialOperation = operation // weak, will become `nil` when finished
+        if let operation = operation {
+            configuration.imageProcessingQueue.addOperation(operation)
+            session.processingPartialOperation = operation // weak, will become `nil` when finished
+        }
     }
 
     private func _session(_ session: ImageLoadingSession, processFinalImage image: Image, for tasks: [ImageTask]) {
@@ -616,8 +620,23 @@ public /* final */ class ImagePipeline {
             let result = image.map(_Result.success) ?? .failure(Error.processingFailed)
             self?._session(session, didCompleteTask: task, result: result)
         }
-        session.cts.token.register { [weak operation] in
-            operation?.cancel()
+        if let operation = operation {
+            operation.queuePriority = ImageLoadingSession.priority(for: tasks).queuePriority
+            configuration.imageProcessingQueue.addOperation(operation)
+
+            if !session.didStartInitialProcessingOperation {
+                // FIXME: We only remember the initial processing operation, but
+                // now the ones that are subscribed later. This means that we're
+                // not going to be able to dynamically change the priority of the
+                // operations added later. It's a very small omission, but it
+                // should be improved in the future.
+                session.processingOperation = operation
+                session.didStartInitialProcessingOperation = true
+            }
+
+            session.cts.token.register { [weak operation] in
+                operation?.cancel()
+            }
         }
     }
 
@@ -655,7 +674,7 @@ public /* final */ class ImagePipeline {
         guard !jobs.isEmpty else {
             return nil
         }
-        let operation = BlockOperation { [weak self] in
+        return BlockOperation { [weak self] in
             for (processor, tasks) in jobs {
                 tasks.forEach {
                     if image.isFinal { $0.metrics.processStartDate = Date() }
@@ -673,8 +692,6 @@ public /* final */ class ImagePipeline {
                 }
             }
         }
-        configuration.imageProcessingQueue.addOperation(operation)
-        return operation
     }
 
     private struct ImageContainer {
@@ -773,6 +790,10 @@ public /* final */ class ImagePipeline {
         var decodedImage: Image? // Decoding result
         weak var decodingOperation: Foundation.Operation?
 
+        // Processing session.
+        var didStartInitialProcessingOperation: Bool = false
+        weak var processingOperation: Foundation.Operation?
+
         // Progressive decoding.
         weak var processingPartialOperation: Foundation.Operation?
 
@@ -786,8 +807,12 @@ public /* final */ class ImagePipeline {
             self.metrics = ImageTaskMetrics.SessionMetrics(sessionId: sessionId)
         }
 
+        static func priority(for tasks: [ImageTask]) -> ImageRequest.Priority {
+            return tasks.map { $0.request.priority }.max() ?? .normal
+        }
+
         var priority: ImageRequest.Priority {
-            return tasks.keys.map { $0.request.priority }.max() ?? .normal
+            return ImageLoadingSession.priority(for: Array(tasks.keys))
         }
     }
 
