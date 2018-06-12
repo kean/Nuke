@@ -28,23 +28,23 @@ extension DataCache {
 ///
 /// - warning: Multiple instances with the same path are *not* allowed as they
 /// would conflict with each other.
-public final class DataCache: DataCaching {
-    public typealias Key = String
+internal final class DataCache: DataCaching {
+    internal typealias Key = String
 
     /// The maximum number of items. `1000` by default.
-    public var countLimit: Int = 1000
+    internal var countLimit: Int = 1000
 
     /// Size limit in bytes. `100 Mb` by default.
-    public var sizeLimit: Int = 1024 * 1024 * 100
+    internal var sizeLimit: Int = 1024 * 1024 * 100
 
     /// When performing a sweep, the cache will remote entries until the size of
     /// the remaining items is lower than or equal to `sizeLimit * trimRatio` and
     /// the total count is lower than or equal to `countLimit * trimRatio`. `0.7`
     /// by default.
-    public var trimRatio = 0.7
+    internal var trimRatio = 0.7
 
     /// The path managed by cache.
-    public let path: URL
+    internal let path: URL
     
     // Index & index lock.
     private let _lock = NSLock()
@@ -66,7 +66,7 @@ public final class DataCache: DataCaching {
     ///
     /// - warning: Multiple instances with the same path are *not* allowed as they
     /// would conflict with each other.
-    public convenience init(name: String) throws {
+    internal convenience init(name: String) throws {
         guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
         }
@@ -77,7 +77,7 @@ public final class DataCache: DataCaching {
     ///
     /// - warning: Multiple instances with the same path are *not* allowed as they
     /// would conflict with each other.
-    public init(path: URL) throws {
+    internal init(path: URL) throws {
         self.path = path
 
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
@@ -124,7 +124,7 @@ public final class DataCache: DataCaching {
     /// Retrieves data from cache for the given key. The completion will be called
     /// syncrhonously if there is no cached data for the given key.
     @discardableResult
-    public func cachedData(for key: Key, _ completion: @escaping (Data?) -> Void) -> Cancellable {
+    internal func cachedData(for key: Key, _ completion: @escaping (Data?) -> Void) -> Cancellable {
         guard let filename = self.filename(for: key),
             let payload = _getPayload(for: filename) else {
                 // TODO: Is it really something that we want?
@@ -141,19 +141,19 @@ public final class DataCache: DataCaching {
 
     /// Stores data for the given key. The method returns instantly and the data
     /// is written asyncrhonously.
-    public func storeData(_ data: Data, for key: Key) {
+    internal func storeData(_ data: Data, for key: Key) {
         self[key] = data
     }
 
     /// Removes data for the given key. The method returns instantly, the data
     /// is removed asyncrhonously.
-    public func removeData(for key: Key) {
+    internal func removeData(for key: Key) {
         self[key] = nil
     }
 
     /// Removes all items. The method returns instantly, the data is removed
     /// asyncrhonously.
-    public func removeAll() {
+    internal func removeAll() {
         _lock.lock()
         _index.removeAll()
         _lock.unlock()
