@@ -340,7 +340,13 @@ internal struct _CancellationSource {
     private var _isCancelling: Bool = false
     private var _observer: (() -> Void)?
 
-    mutating func register(_ closure: @escaping () -> Void) {
+    mutating func register(on queue: DispatchQueue? = nil, _ input: @escaping () -> Void) {
+        var closure = input
+        if let queue = queue {
+            closure = {
+                queue.async(execute: input)
+            }
+        }
         if !_register(closure) {
             closure()
         }
@@ -565,4 +571,28 @@ extension DispatchWorkItem: Cancellable {}
 struct TaskMetrics {
     var startDate: Date? = nil
     var endDate: Date? = nil
+}
+
+final class DisposableOperation: Hashable {
+    // When all registered tasks remove references to image processing
+    // session the wrapped operation gets deallocated.
+    deinit {
+        operation?.cancel()
+    }
+
+    weak var operation: Foundation.Operation?
+
+    init(_ operation: Foundation.Operation) {
+        self.operation = operation
+    }
+
+    // MARK: - Hashable
+
+    public static func == (lhs: DisposableOperation, rhs: DisposableOperation) -> Bool {
+        return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+    }
+
+    public var hashValue: Int {
+        return ObjectIdentifier(self).hashValue
+    }
 }

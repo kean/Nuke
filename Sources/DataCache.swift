@@ -127,7 +127,7 @@ internal final class DataCache: DataCaching {
     internal func cachedData(for key: Key, _ completion: @escaping (Data?) -> Void) -> Cancellable {
         guard let filename = self.filename(for: key),
             let payload = _getPayload(for: filename) else {
-                // TODO: Is it really something that we want?
+                // FIXME: Is it really something that we want?
                 completion(nil) // Instant miss
                 return NoOpCancellable()
         }

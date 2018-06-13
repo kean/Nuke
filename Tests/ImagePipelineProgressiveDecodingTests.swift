@@ -142,14 +142,15 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         queue.isSuspended = true
         expect(queue).toFinishWithPerformedOperationCount(2) // 1 partial, 1 final
 
-        let parialProduced = self.expectation(description: "Partial Produced")
         let finalLoaded = self.expectation(description: "Final Produced")
 
         pipeline.loadImage(
             with: Test.request.processed(key: "1") { $0 },
             progress: { image, _, _ in
                 if image != nil {
-                    parialProduced.fulfill() // We expect a single partial
+                    // We don't expect partial to finish, because as soon as
+                    // we create operation to create final image, partial
+                    // operations is going to be finished before even starting
                 }
                 self.dataLoader.resume()
             },

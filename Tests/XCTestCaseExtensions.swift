@@ -57,12 +57,36 @@ extension XCTestCase {
 
 // MARK: - XCTestExpectationFactory
 
+final class TestExpectationCreatedOperations {
+    var operations = Set<Foundation.Operation>()
+}
+
 struct TestExpectationOperationQueue {
     let test: XCTestCase
     let queue: OperationQueue
 
     // This is still in more of experimental phaze, OperationQueue KVO
     // is probably not the most reliable way to do that.
+
+    @discardableResult
+    func toEnqueueOperationsWithCount(_ count: Int) -> TestExpectationCreatedOperations {
+        let syncQueue = DispatchQueue(label: "XCTestCase.expectPerformedOperationCount")
+        let distinctOperations = TestExpectationCreatedOperations()
+        var isFinished = false
+
+        test.expectation(for: queue, keyPath: \.operations) { (_, change, expectation) in
+            syncQueue.async { // Synchronize access to set.
+                // See if there are any new operations added.
+                let operations = self.queue.operations
+                distinctOperations.operations.formUnion(operations)
+                if distinctOperations.operations.count == count, !isFinished {
+                    isFinished = true
+                    expectation.fulfill()
+                }
+            }
+        }
+        return distinctOperations
+    }
 
     func toFinishWithPerformedOperationCount(_ expectedCount: Int) {
         precondition(queue.isSuspended, "Queue must be suspended in order to reliably track when all expected operations are enqueued.")

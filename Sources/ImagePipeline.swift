@@ -276,10 +276,7 @@ public /* final */ class ImagePipeline {
         session.tasks[task] = handlers
 
         // Update data operation priority (in case it was already started).
-        let priority = session.priority.queuePriority
-        session.dataOperation?.queuePriority = priority
-        session.decodingOperation?.queuePriority = priority
-        session.processingOperation?.queuePriority = priority
+        _updatePriority(for: session)
 
         // Already loaded and decoded the final image and started processing
         // for previously registered tasks (if any).
@@ -289,46 +286,52 @@ public /* final */ class ImagePipeline {
         }
 
         // Register cancellation and priority observers.
-        task.cts.register { [weak self, weak task] in
+        task.cts.register(on: queue) { [weak self, weak task] in
             guard let task = task else { return }
             self?._imageTaskCancelled(task)
         }
 
-        task.priorityObserver = { [weak self] in
-            self?._imageTask($0, didUpdatePriority: $1)
+        task.priorityObserver = { [weak self, weak session] (_, _) in
+            self?.queue.async {
+                guard let session = session else { return }
+                self?._updatePriority(for: session)
+            }
         }
     }
 
-    fileprivate func _imageTask(_ task: ImageTask, didUpdatePriority: ImageRequest.Priority) {
-        queue.async {
-            guard let session = task.session else { return }
-            let priority = session.priority.queuePriority
-            session.dataOperation?.queuePriority = priority
-            session.decodingOperation?.queuePriority = priority
-            session.processingOperation?.queuePriority = priority
+    private func _updatePriority(for session: ImageLoadingSession) {
+        let priority = session.priority.queuePriority
+        session.dataOperation?.queuePriority = priority
+        session.decodingOperation?.queuePriority = priority
+
+        // Update prioriry for processing operations (those are per image task,
+        // not per image session).
+        let groups = Dictionary(grouping: session.processingSessions.keys) {
+            session.processingSessions[$0]!
+        }
+        for (session, tasks) in groups {
+            session.operation?.queuePriority = ImageLoadingSession.priority(for: tasks).queuePriority
         }
     }
 
     // Cancel the session in case all handlers were removed.
     fileprivate func _imageTaskCancelled(_ task: ImageTask) {
-        queue.async {
-            task.metrics.wasCancelled = true
-            task.metrics.endDate = Date()
+        task.metrics.wasCancelled = true
+        task.metrics.endDate = Date()
 
-            if let session = task.session { // executing == true
-                session.tasks[task] = nil
-                // Cancel the session when there are no remaining tasks.
-                if session.tasks.isEmpty {
-                    self._tryToSaveResumableData(for: session)
-                    session.cts.cancel()
-                    session.metrics.wasCancelled = true
-                    self._sessionDidFinish(session)
-                }
+        if let session = task.session { // executing == true
+            session.tasks[task] = nil
+            // Cancel the session when there are no remaining tasks.
+            if session.tasks.isEmpty {
+                _tryToSaveResumableData(for: session)
+                session.cts.cancel()
+                session.metrics.wasCancelled = true
+                _sessionDidFinish(session)
             }
-
-            guard let didFinishTask = self.didFinishCollectingMetrics else { return }
-            DispatchQueue.main.async { didFinishTask(task, task.metrics) }
         }
+
+        guard let didFinishTask = didFinishCollectingMetrics else { return }
+        DispatchQueue.main.async { didFinishTask(task, task.metrics) }
     }
 
     // MARK: ImageLoadingSession (Managing)
@@ -550,7 +553,7 @@ public /* final */ class ImagePipeline {
         configuration.imageDecodingQueue.addOperation(operation)
 
         session.decodingOperation = operation
-        session.cts.token.register { [weak operation] in
+        session.token.register { [weak operation] in
             operation?.cancel()
         }
     }
@@ -599,48 +602,25 @@ public /* final */ class ImagePipeline {
     // MARK: Pipeline (Processing)
 
     private func _session(_ session: ImageLoadingSession, processParialImage image: Image, scanNumber: Int?) {
-        // Producing faster than able to consume, skip this partial.
-        // As an alternative we could store partial in a buffer for later, but
-        // this is an option which is simpler to implement.
-        guard session.processingPartialOperation == nil else { return }
-
+        let tasks = session.tasks.keys.filter {
+            // Don't consume faster than we can produce partials
+            session.processingSessions[$0]?.operation == nil
+        }
         let image = ImageContainer(image: image, isFinal: false, scanNumber: scanNumber)
-        let operation = _process(image, for: Array(session.tasks.keys)) { [weak self, weak session] (image, task, _) in
+        _session(session, processImage: image, for: tasks) { [weak self, weak session] (image, task, _) in
             guard let session = session, let image = image else { return }
             self?._session(session, didProducePartialImage: image, for: task)
-        }
-        if let operation = operation {
-            configuration.imageProcessingQueue.addOperation(operation)
-            session.processingPartialOperation = operation // weak, will become `nil` when finished
         }
     }
 
     private func _session(_ session: ImageLoadingSession, processFinalImage image: Image, for tasks: [ImageTask]) {
         let image = ImageContainer(image: image, isFinal: true, scanNumber: nil)
-        let operation = _process(image, for: tasks) { [weak self, weak session] (image, task, metrics) in
+        _session(session, processImage: image, for: tasks) { [weak self, weak session] (image, task, metrics) in
             guard let session = session else { return }
             task.metrics.processStartDate = metrics.startDate
             task.metrics.processEndDate = metrics.endDate
             let result = image.map(_Result.success) ?? .failure(Error.processingFailed)
             self?._session(session, didCompleteTask: task, result: result)
-        }
-        if let operation = operation {
-            operation.queuePriority = ImageLoadingSession.priority(for: tasks).queuePriority
-            configuration.imageProcessingQueue.addOperation(operation)
-
-            if !session.didStartInitialProcessingOperation {
-                // FIXME: We only remember the initial processing operation, but
-                // now the ones that are subscribed later. This means that we're
-                // not going to be able to dynamically change the priority of the
-                // operations added later. It's a very small omission, but it
-                // should be improved in the future.
-                session.processingOperation = operation
-                session.didStartInitialProcessingOperation = true
-            }
-
-            session.cts.token.register { [weak operation] in
-                operation?.cancel()
-            }
         }
     }
 
@@ -649,44 +629,36 @@ public /* final */ class ImagePipeline {
     /// - parameter completion: Will get called synchronously if processing is not required.
     /// If it is will get called on `self.queue` when processing is finished.
     /// - returns: `nil` if processing wasn't required for any of the tasks
-    private func _process(_ image: ImageContainer, for tasks: [ImageTask], completion: @escaping (Image?, ImageTask, TaskMetrics) -> Void) -> Foundation.Operation? {
+    private func _session(_ session: ImageLoadingSession, processImage image: ImageContainer, for tasks: [ImageTask], completion: @escaping (Image?, ImageTask, TaskMetrics) -> Void) {
         typealias ImageProcessingJob = (AnyImageProcessor, [ImageTask], ImageProcessingContext)
 
-        let jobs: [ImageProcessingJob] = {
-            func _processor(for request: ImageRequest) -> AnyImageProcessor? {
-                if Configuration.isAnimatedImageDataEnabled && image.image.animatedImageData != nil {
-                    return nil // Don't process animated images.
-                }
-                return configuration.imageProcessor(image.image, request)
+        func _processor(for request: ImageRequest) -> AnyImageProcessor? {
+            if Configuration.isAnimatedImageDataEnabled && image.image.animatedImageData != nil {
+                return nil // Don't process animated images.
             }
-            var jobs = [ImageProcessingJob]()
-            for task in tasks {
-                if let processor = _processor(for: task.request) {
-                    // Try to find existing job with equivalent processor.
-                    if let index = jobs.index(where: { $0.0 == processor }) {
-                        jobs[index].1.append(task)
-                    } else {
-                        let context = ImageProcessingContext(request: task.request, isFinal: image.isFinal, scanNumber: image.scanNumber)
-                        jobs.append(ImageProcessingJob(processor, [task], context))
-                    }
-                } else {
-                    completion(image.image, task, TaskMetrics())
-                }
-            }
-            return jobs
-        }()
-
-        guard !jobs.isEmpty else {
-            return nil
+            return configuration.imageProcessor(image.image, request)
         }
-        return BlockOperation { [weak self] in
-            for (processor, tasks, context) in jobs {
+
+        var jobs = [ImageProcessingJob]()
+        for task in tasks {
+            if let processor = _processor(for: task.request) {
+                // Try to find existing job with equivalent processor.
+                if let index = jobs.index(where: { $0.0 == processor }) {
+                    jobs[index].1.append(task)
+                } else {
+                    let context = ImageProcessingContext(request: task.request, isFinal: image.isFinal, scanNumber: image.scanNumber)
+                    jobs.append(ImageProcessingJob(processor, [task], context))
+                }
+            } else {
+                completion(image.image, task, TaskMetrics())
+            }
+        }
+
+        for (processor, tasks, context) in jobs {
+            let operation = BlockOperation { [weak self] in
                 var metrics = TaskMetrics()
                 metrics.startDate = Date()
-
-                assert(!tasks.isEmpty)
                 let result = autoreleasepool { processor.process(image: image.image, context: context) }
-
                 metrics.endDate = Date()
 
                 self?.queue.async {
@@ -695,6 +667,19 @@ public /* final */ class ImagePipeline {
                     }
                 }
             }
+
+            for task in tasks {
+                session.processingSessions[task] = DisposableOperation(operation)
+                task.cts.register(on: queue) {
+                    // When all registered tasks are cancelled, the session is
+                    // deallocated and the underlying operation is cancelled
+                    // automatically.
+                    session.processingSessions[task] = nil
+                }
+            }
+
+            operation.queuePriority = ImageLoadingSession.priority(for: tasks).queuePriority
+            configuration.imageProcessingQueue.addOperation(operation)
         }
     }
 
@@ -751,7 +736,6 @@ public /* final */ class ImagePipeline {
         // Check if session is still registered.
         guard sessions[session.key] === session else { return }
 
-        session.processingPartialOperation?.cancel()
         session.metrics.endDate = Date()
 
         // By removing a session we get rid of all the stuff that is no longer
@@ -794,13 +778,8 @@ public /* final */ class ImagePipeline {
         var decodedImage: Image? // Decoding result
         weak var decodingOperation: Foundation.Operation?
 
-        // Processing session.
-        // FIXME: This needs refactoring, the deduplication got too complex.
-        var didStartInitialProcessingOperation: Bool = false
-        weak var processingOperation: Foundation.Operation?
-
-        // Progressive decoding.
-        weak var processingPartialOperation: Foundation.Operation?
+        // Processing sessions.
+        var processingSessions = [ImageTask: DisposableOperation]()
 
         // Metrics that we collect during the lifetime of a session.
         let metrics: ImageTaskMetrics.SessionMetrics
