@@ -561,3 +561,8 @@ final class NoOpCancellable: Cancellable {
 }
 
 extension DispatchWorkItem: Cancellable {}
+
+struct TaskMetrics {
+    var startDate: Date? = nil
+    var endDate: Date? = nil
+}

@@ -582,7 +582,6 @@ public /* final */ class ImagePipeline {
     private func _session(_ session: ImageLoadingSession, didDecodeFinalImage image: Image?, data: Data) {
         session.decoder = nil // Decoding session completed, no longer need decoder.
         session.decodedImage = image
-        session.metrics.decodeEndDate = Date()
 
         guard let image = image else {
             _session(session, didFailWithError: .decodingFailed)
@@ -606,7 +605,7 @@ public /* final */ class ImagePipeline {
         guard session.processingPartialOperation == nil else { return }
 
         let image = ImageContainer(image: image, isFinal: false, scanNumber: scanNumber)
-        let operation = _process(image, for: Array(session.tasks.keys)) { [weak self, weak session] (image, task) in
+        let operation = _process(image, for: Array(session.tasks.keys)) { [weak self, weak session] (image, task, _) in
             guard let session = session, let image = image else { return }
             self?._session(session, didProducePartialImage: image, for: task)
         }
@@ -618,8 +617,10 @@ public /* final */ class ImagePipeline {
 
     private func _session(_ session: ImageLoadingSession, processFinalImage image: Image, for tasks: [ImageTask]) {
         let image = ImageContainer(image: image, isFinal: true, scanNumber: nil)
-        let operation = _process(image, for: tasks) { [weak self, weak session] (image, task) in
+        let operation = _process(image, for: tasks) { [weak self, weak session] (image, task, metrics) in
             guard let session = session else { return }
+            task.metrics.processStartDate = metrics.startDate
+            task.metrics.processEndDate = metrics.endDate
             let result = image.map(_Result.success) ?? .failure(Error.processingFailed)
             self?._session(session, didCompleteTask: task, result: result)
         }
@@ -648,8 +649,8 @@ public /* final */ class ImagePipeline {
     /// - parameter completion: Will get called synchronously if processing is not required.
     /// If it is will get called on `self.queue` when processing is finished.
     /// - returns: `nil` if processing wasn't required for any of the tasks
-    private func _process(_ image: ImageContainer, for tasks: [ImageTask], completion: @escaping (Image?, ImageTask) -> Void) -> Foundation.Operation? {
-        typealias ImageProcessingJob = (AnyImageProcessor, [ImageTask])
+    private func _process(_ image: ImageContainer, for tasks: [ImageTask], completion: @escaping (Image?, ImageTask, TaskMetrics) -> Void) -> Foundation.Operation? {
+        typealias ImageProcessingJob = (AnyImageProcessor, [ImageTask], ImageProcessingContext)
 
         let jobs: [ImageProcessingJob] = {
             func _processor(for request: ImageRequest) -> AnyImageProcessor? {
@@ -665,10 +666,11 @@ public /* final */ class ImagePipeline {
                     if let index = jobs.index(where: { $0.0 == processor }) {
                         jobs[index].1.append(task)
                     } else {
-                        jobs.append(ImageProcessingJob(processor, [task]))
+                        let context = ImageProcessingContext(request: task.request, isFinal: image.isFinal, scanNumber: image.scanNumber)
+                        jobs.append(ImageProcessingJob(processor, [task], context))
                     }
                 } else {
-                    completion(image.image, task)
+                    completion(image.image, task, TaskMetrics())
                 }
             }
             return jobs
@@ -678,20 +680,19 @@ public /* final */ class ImagePipeline {
             return nil
         }
         return BlockOperation { [weak self] in
-            for (processor, tasks) in jobs {
-                tasks.forEach {
-                    if image.isFinal { $0.metrics.processStartDate = Date() }
-                }
+            for (processor, tasks, context) in jobs {
+                var metrics = TaskMetrics()
+                metrics.startDate = Date()
+
                 assert(!tasks.isEmpty)
-                let context = ImageProcessingContext(request: tasks[0].request, isFinal: image.isFinal, scanNumber: image.scanNumber)
                 let result = autoreleasepool { processor.process(image: image.image, context: context) }
+
+                metrics.endDate = Date()
+
                 self?.queue.async {
                     for task in tasks {
-                        completion(result, task)
+                        completion(result, task, metrics)
                     }
-                }
-                tasks.forEach {
-                    if image.isFinal { $0.metrics.processEndDate = Date() }
                 }
             }
         }
