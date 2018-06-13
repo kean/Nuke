@@ -596,3 +596,26 @@ final class DisposableOperation: Hashable {
         return ObjectIdentifier(self).hashValue
     }
 }
+
+
+/// A simple observable property. Not thread safe.
+final class Property<T> {
+    var value: T {
+        didSet {
+            for observer in observers {
+                observer(value)
+            }
+        }
+    }
+
+    init(value: T) {
+        self.value = value
+    }
+
+    private var observers = [(T) -> Void]()
+
+    func observe(_ closure: @escaping (T) -> Void) {
+        observers.append(closure)
+    }
+
+}
