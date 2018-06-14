@@ -819,19 +819,3 @@ public /* final */ class ImagePipeline {
         }
     }
 }
-
-// MARK: - Contexts
-
-/// Image decoding context used when selecting which decoder to use.
-public struct ImageDecodingContext {
-    public let request: ImageRequest
-    internal let urlResponse: URLResponse?
-    public let data: Data
-}
-
-/// Image processing context used when selecting which processor to use.
-public struct ImageProcessingContext {
-    public let request: ImageRequest
-    public let isFinal: Bool
-    public let scanNumber: Int? // need a more general purpose way to implement this
-}

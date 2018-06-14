@@ -10,6 +10,13 @@ public protocol ImageProcessing: Equatable {
     func process(image: Image, context: ImageProcessingContext) -> Image?
 }
 
+/// Image processing context used when selecting which processor to use.
+public struct ImageProcessingContext {
+    public let request: ImageRequest
+    public let isFinal: Bool
+    public let scanNumber: Int? // need a more general purpose way to implement this
+}
+
 /// Composes multiple processors.
 internal struct ImageProcessorComposition: ImageProcessing {
     private let processors: [AnyImageProcessor]

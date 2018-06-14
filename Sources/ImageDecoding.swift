@@ -140,6 +140,13 @@ public final class ImageDecoderRegistry {
     }
 }
 
+/// Image decoding context used when selecting which decoder to use.
+public struct ImageDecodingContext {
+    public let request: ImageRequest
+    internal let urlResponse: URLResponse?
+    public let data: Data
+}
+
 // MARK: - Image Formats
 
 enum ImageFormat: Equatable {
