@@ -23,7 +23,7 @@ class ImagePreheaterTests: XCTestCase {
         pipeline.queue.isSuspended = true
 
         // When starting preheating for the same requests (same cacheKey, loadKey).
-        expect(pipeline.queue).toFinishWithPerformedOperationCount(1)
+        expect(pipeline.queue).toFinishWithEnqueuedOperationCount(1)
 
         let request = Test.request
         preheater.startPreheating(with: [request])
@@ -37,7 +37,7 @@ class ImagePreheaterTests: XCTestCase {
 
         // When starting preheating for the requests with the same URL (same loadKey)
         // but different processors (different cacheKey).
-        expect(pipeline.queue).toFinishWithPerformedOperationCount(2)
+        expect(pipeline.queue).toFinishWithEnqueuedOperationCount(2)
 
         preheater.startPreheating(with: [Test.request.processed(key: "1") { $0 }])
         preheater.startPreheating(with: [Test.request.processed(key: "2") { $0 }])
@@ -51,7 +51,7 @@ class ImagePreheaterTests: XCTestCase {
         // When starting preheating for the requests with the same URL, but
         // different URL requests (different loadKey) but the same processors
         // (same cacheKey).
-        expect(pipeline.queue).toFinishWithPerformedOperationCount(2)
+        expect(pipeline.queue).toFinishWithEnqueuedOperationCount(2)
 
         preheater.startPreheating(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 100))])
         preheater.startPreheating(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 100))])

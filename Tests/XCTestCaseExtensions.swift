@@ -58,7 +58,7 @@ extension XCTestCase {
 // MARK: - XCTestExpectationFactory
 
 final class TestExpectationCreatedOperations {
-    var operations = Set<Foundation.Operation>()
+    var operations = [Foundation.Operation]()
 }
 
 struct TestExpectationOperationQueue {
@@ -78,7 +78,13 @@ struct TestExpectationOperationQueue {
             syncQueue.async { // Synchronize access to set.
                 // See if there are any new operations added.
                 let operations = self.queue.operations
-                distinctOperations.operations.formUnion(operations)
+                // Yes this is O(n^2), but we don't have ordered Set in Swift
+                // so this will do.
+                for operation in operations {
+                    if !distinctOperations.operations.contains(operation) {
+                        distinctOperations.operations.append(operation)
+                    }
+                }
                 if distinctOperations.operations.count == count, !isFinished {
                     isFinished = true
                     expectation.fulfill()
@@ -88,7 +94,11 @@ struct TestExpectationOperationQueue {
         return distinctOperations
     }
 
-    func toFinishWithPerformedOperationCount(_ expectedCount: Int) {
+    /// Fulfills an expectation as soon as a queue finished exeucting `n`
+    /// operations (doesn't matter whether they were cancelled or executed).
+    ///
+    /// Automatically resumes a queue as soon as `n` operations are enqueued.
+    func toFinishWithEnqueuedOperationCount(_ expectedCount: Int) {
         precondition(queue.isSuspended, "Queue must be suspended in order to reliably track when all expected operations are enqueued.")
 
         var isFinishing = false

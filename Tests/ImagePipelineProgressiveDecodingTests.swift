@@ -132,36 +132,6 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         wait()
     }
 
-    func testRedundantParialsArentProducedWhenDataIsProcudedAtHighRate() {
-        let queue = pipeline.configuration.imageProcessingQueue
-
-        // When we receive progressive image data at a higher rate that we can
-        // process (we suspended the queue in test) we don't try to process
-        // new scans until we finished processing the first one.
-
-        queue.isSuspended = true
-        expect(queue).toFinishWithPerformedOperationCount(2) // 1 partial, 1 final
-
-        let finalLoaded = self.expectation(description: "Final Produced")
-
-        pipeline.loadImage(
-            with: Test.request.processed(key: "1") { $0 },
-            progress: { image, _, _ in
-                if image != nil {
-                    // We don't expect partial to finish, because as soon as
-                    // we create operation to create final image, partial
-                    // operations is going to be finished before even starting
-                }
-                self.dataLoader.resume()
-            },
-            completion: { response, _ in
-                XCTAssertNotNil(response)
-                finalLoaded.fulfill()
-        })
-
-        wait()
-    }
-
     func testParitalImagesAreDisplayed() {
         // Given
         ImagePipeline.pushShared(pipeline)
@@ -215,6 +185,40 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         )
         wait()
     }
+
+    // MARK: Back Pressure
+
+    func testRedundantParialsArentProducedWhenDataIsProcudedAtHighRate() {
+        let queue = pipeline.configuration.imageProcessingQueue
+
+        // When we receive progressive image data at a higher rate that we can
+        // process (we suspended the queue in test) we don't try to process
+        // new scans until we finished processing the first one.
+
+        queue.isSuspended = true
+        expect(queue).toFinishWithEnqueuedOperationCount(2) // 1 partial, 1 final
+
+        let finalLoaded = self.expectation(description: "Final Produced")
+
+        pipeline.loadImage(
+            with: Test.request.processed(key: "1") { $0 },
+            progress: { image, _, _ in
+                if image != nil {
+                    // We don't expect partial to finish, because as soon as
+                    // we create operation to create final image, partial
+                    // operations is going to be finished before even starting
+                }
+                self.dataLoader.resume()
+        },
+            completion: { response, _ in
+                XCTAssertNotNil(response)
+                finalLoaded.fulfill()
+        })
+
+        wait()
+    }
+
+    // TODO: Processing Operations Back Pressure
 }
 
 private extension XCTestCase {
@@ -288,13 +292,14 @@ private class _MockProgressiveDataLoader: DataLoading {
     }
 
     // Serves the next chunk.
-    func resume() {
+    func resume(_ completed: @escaping () -> Void = {}) {
         DispatchQueue.main.async {
             if let chunk = self.chunks.first {
                 self.chunks.removeFirst()
                 self.didReceiveData(chunk, self.urlResponse)
                 if self.chunks.isEmpty {
                     self.completion(nil)
+                    completed()
                 }
             }
         }

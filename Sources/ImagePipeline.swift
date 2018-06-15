@@ -303,7 +303,7 @@ public /* final */ class ImagePipeline {
         let priority = ImageLoadingSession.priority(for: Array(session.tasks.keys))
         session.priority.value = priority
 
-        // Update prioriry for processing operations (those are per image task,
+        // Update priority for processing operations (those are per image task,
         // not per image session).
         if let processingOperation = session.processingOperations[task] {
             let tasks = session.processingOperations
@@ -508,6 +508,10 @@ public /* final */ class ImagePipeline {
     // MARK: Pipeline (Decoding)
 
     private func _decodePartialImage(for session: ImageLoadingSession, data: Data) {
+        // (Back pressure) Don't start trying to produce new partials if we've
+        // already enqueued one operation.
+        guard session.decodingOperation?.operation == nil else { return }
+
         guard let decoder = _decoder(for: session, data: data) else { return }
         let operation = BlockOperation { [weak self, weak session] in
             guard let session = session else { return }
@@ -518,10 +522,10 @@ public /* final */ class ImagePipeline {
             }
             let scanNumber: Int? = (decoder as? ImageDecoder)?.numberOfScans // Need a public way to implement this.
             self?.queue.async {
-                self?._session(session, processParialImage: image, scanNumber: scanNumber)
+                self?._session(session, processPartialImage: image, scanNumber: scanNumber)
             }
         }
-        _session(session, enqueue: operation, on: configuration.imageDecodingQueue)
+        _enqueueDecodingOperation(operation, for: session)
     }
 
     private func _decodeFinalImage(for session: ImageLoadingSession, data: Data) {
@@ -544,7 +548,12 @@ public /* final */ class ImagePipeline {
                 self?._session(session, didDecodeFinalImage: image, data: data)
             }
         }
+        _enqueueDecodingOperation(operation, for: session)
+    }
+
+    private func _enqueueDecodingOperation(_ operation: Foundation.Operation, for session: ImageLoadingSession) {
         _session(session, enqueue: operation, on: configuration.imageDecodingQueue)
+        session.decodingOperation = DisposableOperation(operation)
     }
 
     // Lazily creates a decoder if necessary.
@@ -590,9 +599,10 @@ public /* final */ class ImagePipeline {
 
     // MARK: Pipeline (Processing)
 
-    private func _session(_ session: ImageLoadingSession, processParialImage image: Image, scanNumber: Int?) {
+    private func _session(_ session: ImageLoadingSession, processPartialImage image: Image, scanNumber: Int?) {
+        // (Back pressure) Don't start trying to produce new partials if we've
+        // already enqueued one operation.
         let tasks = session.tasks.keys.filter {
-            // Don't consume faster than we can produce partials
             session.processingOperations[$0]?.operation == nil
         }
         let image = ImageContainer(image: image, isFinal: false, scanNumber: scanNumber)
@@ -795,9 +805,14 @@ private final class ImageLoadingSession {
     var resumableData: ResumableData?
     lazy var data = Data()
 
+    // FIXME: Ideally we could manager data loading session using a separate
+    // transient loading which is only there while session is running.
+    // Same goes to other properties.
+
     // Decoding session.
     var decoder: ImageDecoding?
     var decodedImage: Image? // Decoding result
+    var decodingOperation: DisposableOperation?
 
     // Processing sessions.
     var processingOperations = [ImageTask: DisposableOperation]()
