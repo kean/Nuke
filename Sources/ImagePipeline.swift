@@ -41,7 +41,7 @@ public /* final */ class ImageTask: Hashable {
     // internal stuff associated with a task
     fileprivate var metrics: ImageTaskMetrics
     fileprivate var priorityObserver: ((ImageTask, ImageRequest.Priority) -> Void)?
-    fileprivate weak var session: ImagePipeline.ImageLoadingSession?
+    fileprivate weak var session: ImageLoadingSession?
     fileprivate var cts = _CancellationSource()
 
     internal init(taskId: Int, request: ImageRequest) {
@@ -735,57 +735,6 @@ public /* final */ class ImagePipeline {
         sessions[session.key] = nil
     }
 
-    // MARK: ImageLoadingSession
-
-    /// A image loading session. During a lifetime of a session handlers can
-    /// subscribe to and unsubscribe from it.
-    fileprivate final class ImageLoadingSession {
-        let sessionId: Int
-
-        /// The original request with which the session was created.
-        let request: ImageRequest
-        let key: AnyHashable // loading key
-        let cts = _CancellationTokenSource()
-        var token: _CancellationToken { return cts.token }
-
-        // Registered image tasks.
-        var tasks = [ImageTask: Handlers]()
-
-        struct Handlers {
-            let progress: ImageTask.ProgressHandler?
-            let completion: ImageTask.Completion?
-        }
-
-        // Data loading session.
-        var urlResponse: URLResponse?
-        var resumableData: ResumableData?
-        lazy var data = Data()
-
-        // Decoding session.
-        var decoder: ImageDecoding?
-        var decodedImage: Image? // Decoding result
-
-        // Processing sessions.
-        var processingOperations = [ImageTask: DisposableOperation]()
-
-        // Metrics that we collect during the lifetime of a session.
-        let metrics: ImageTaskMetrics.SessionMetrics
-
-        init(sessionId: Int, request: ImageRequest, key: AnyHashable) {
-            self.sessionId = sessionId
-            self.request = request
-            self.key = key
-            self.metrics = ImageTaskMetrics.SessionMetrics(sessionId: sessionId)
-            self.priority = Property(value: request.priority)
-        }
-
-        static func priority(for tasks: [ImageTask]) -> ImageRequest.Priority {
-            return tasks.map { $0.request.priority }.max() ?? .normal
-        }
-
-        var priority: Property<ImageRequest.Priority>
-    }
-
     private func _session(_ session: ImageLoadingSession, enqueue operation: Foundation.Operation, on queue: Foundation.OperationQueue) {
         operation.queuePriority = session.priority.value.queuePriority
 
@@ -818,4 +767,55 @@ public /* final */ class ImagePipeline {
             }
         }
     }
+}
+
+// MARK: - ImageLoadingSession
+
+/// A image loading session. During a lifetime of a session handlers can
+/// subscribe to and unsubscribe from it.
+private final class ImageLoadingSession {
+    let sessionId: Int
+
+    /// The original request with which the session was created.
+    let request: ImageRequest
+    let key: AnyHashable // loading key
+    let cts = _CancellationTokenSource()
+    var token: _CancellationToken { return cts.token }
+
+    // Registered image tasks.
+    var tasks = [ImageTask: Handlers]()
+
+    struct Handlers {
+        let progress: ImageTask.ProgressHandler?
+        let completion: ImageTask.Completion?
+    }
+
+    // Data loading session.
+    var urlResponse: URLResponse?
+    var resumableData: ResumableData?
+    lazy var data = Data()
+
+    // Decoding session.
+    var decoder: ImageDecoding?
+    var decodedImage: Image? // Decoding result
+
+    // Processing sessions.
+    var processingOperations = [ImageTask: DisposableOperation]()
+
+    // Metrics that we collect during the lifetime of a session.
+    let metrics: ImageTaskMetrics.SessionMetrics
+
+    init(sessionId: Int, request: ImageRequest, key: AnyHashable) {
+        self.sessionId = sessionId
+        self.request = request
+        self.key = key
+        self.metrics = ImageTaskMetrics.SessionMetrics(sessionId: sessionId)
+        self.priority = Property(value: request.priority)
+    }
+
+    static func priority(for tasks: [ImageTask]) -> ImageRequest.Priority {
+        return tasks.map { $0.request.priority }.max() ?? .normal
+    }
+
+    var priority: Property<ImageRequest.Priority>
 }
