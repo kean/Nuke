@@ -597,7 +597,6 @@ final class DisposableOperation: Hashable {
     }
 }
 
-
 /// A simple observable property. Not thread safe.
 final class Property<T> {
     var value: T {
@@ -617,5 +616,4 @@ final class Property<T> {
     func observe(_ closure: @escaping (T) -> Void) {
         observers.append(closure)
     }
-
 }

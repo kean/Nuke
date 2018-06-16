@@ -127,6 +127,9 @@ public /* final */ class ImagePipeline {
     public var didFinishCollectingMetrics: ((ImageTask, ImageTaskMetrics) -> Void)?
 
     public struct Configuration {
+        /// Image cache used by the pipeline.
+        public var imageCache: ImageCaching?
+
         /// Data loader used by the pipeline.
         public var dataLoader: DataLoading
 
@@ -141,9 +144,6 @@ public /* final */ class ImagePipeline {
 
         /// Image decoding queue. Default maximum concurrent task count is 1.
         public var imageDecodingQueue = OperationQueue()
-
-        /// Image cache used by the pipeline.
-        public var imageCache: ImageCaching?
 
         /// Data cache used by the pipeline.
         public var dataCache: DataCaching?

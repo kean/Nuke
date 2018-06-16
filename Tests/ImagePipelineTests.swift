@@ -137,16 +137,13 @@ class ImagePipelineTests: XCTestCase {
         let request = Test.request
         XCTAssertEqual(request.priority, .normal)
 
-        var operation: Foundation.Operation?
-        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) -> Bool in
-            operation = queue.operations.first
-            return true
-        }
+        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
         let task = pipeline.loadImage(with: request)
         wait() // Wait till the operation is created.
 
         // When/Then
+        let operation = observer.operations.first
         XCTAssertNotNil(operation)
         self.keyValueObservingExpectation(for: operation!, keyPath: "queuePriority") { (_, _) in
             XCTAssertEqual(operation?.queuePriority, .high)
@@ -168,16 +165,13 @@ class ImagePipelineTests: XCTestCase {
         let request = Test.request
         XCTAssertEqual(request.priority, .normal)
 
-        var operation: Foundation.Operation?
-        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) -> Bool in
-            operation = queue.operations.first
-            return true
-        }
+        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
         let task = pipeline.loadImage(with: request)
         wait() // Wait till the operation is created.
 
         // When/Then
+        let operation = observer.operations.first
         XCTAssertNotNil(operation)
         self.keyValueObservingExpectation(for: operation!, keyPath: "queuePriority") { (_, _) in
             XCTAssertEqual(operation?.queuePriority, .high)
@@ -199,16 +193,13 @@ class ImagePipelineTests: XCTestCase {
         let request = Test.request.processed(key: "1") { $0 }
         XCTAssertEqual(request.priority, .normal)
 
-        var operation: Foundation.Operation?
-        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) -> Bool in
-            operation = queue.operations.first
-            return true
-        }
+        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
         let task = pipeline.loadImage(with: request)
         wait() // Wait till the operation is created.
 
         // When/Then
+        let operation = observer.operations.first
         XCTAssertNotNil(operation)
         self.keyValueObservingExpectation(for: operation!, keyPath: "queuePriority") { (_, _) in
             XCTAssertEqual(operation?.queuePriority, .high)
@@ -243,11 +234,7 @@ class ImagePipelineTests: XCTestCase {
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
 
-        var operation: Foundation.Operation?
-        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) in
-            operation = queue.operations.first
-            return true
-        }
+        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
         let request = Test.request
 
@@ -257,11 +244,9 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till operation is created
 
         // When/Then
+        let operation = observer.operations.first
         XCTAssertNotNil(operation)
-        self.keyValueObservingExpectation(for: operation!, keyPath: "isCancelled") { (_, _) in
-            XCTAssertTrue(operation!.isCancelled)
-            return true
-        }
+        expect(operation!).toCancel()
 
         task.cancel()
 
@@ -273,11 +258,7 @@ class ImagePipelineTests: XCTestCase {
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
 
-        var operation: Foundation.Operation?
-        _ = self.keyValueObservingExpectation(for: queue, keyPath: "operations") { (_, _) in
-            operation = queue.operations.first
-            return true
-        }
+        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
         let request = Test.request.processed(key: "1") {
             XCTFail()
@@ -290,11 +271,9 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till operation is created
 
         // When/Then
+        let operation = observer.operations.first
         XCTAssertNotNil(operation)
-        self.keyValueObservingExpectation(for: operation!, keyPath: "isCancelled") { (_, _) in
-            XCTAssertTrue(operation!.isCancelled)
-            return true
-        }
+        expect(operation!).toCancel()
 
         task.cancel()
 

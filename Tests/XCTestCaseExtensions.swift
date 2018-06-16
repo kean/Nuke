@@ -57,10 +57,6 @@ extension XCTestCase {
 
 // MARK: - XCTestExpectationFactory
 
-final class TestExpectationCreatedOperations {
-    var operations = [Foundation.Operation]()
-}
-
 struct TestExpectationOperationQueue {
     let test: XCTestCase
     let queue: OperationQueue
@@ -69,70 +65,41 @@ struct TestExpectationOperationQueue {
     // is probably not the most reliable way to do that.
 
     @discardableResult
-    func toEnqueueOperationsWithCount(_ count: Int) -> TestExpectationCreatedOperations {
-        let syncQueue = DispatchQueue(label: "XCTestCase.expectPerformedOperationCount")
-        let distinctOperations = TestExpectationCreatedOperations()
-        var isFinished = false
-
-        test.expectation(for: queue, keyPath: \.operations) { (_, change, expectation) in
-            syncQueue.async { // Synchronize access to set.
-                // See if there are any new operations added.
-                let operations = self.queue.operations
-                // Yes this is O(n^2), but we don't have ordered Set in Swift
-                // so this will do.
-                for operation in operations {
-                    if !distinctOperations.operations.contains(operation) {
-                        distinctOperations.operations.append(operation)
-                    }
-                }
-                if distinctOperations.operations.count == count, !isFinished {
-                    isFinished = true
-                    expectation.fulfill()
-                }
+    func toEnqueueOperationsWithCount(_ count: Int) -> OperationQueueObserver {
+        let observer = OperationQueueObserver(queue: queue)
+        let expectation = test.expectation(description: "Expect queue to enqueue \(count) operations")
+        observer.didAddOperation = { _ in
+            if observer.operations.count == count {
+                observer.didAddOperation = nil
+                expectation.fulfill()
             }
         }
-        return distinctOperations
+        return observer
     }
 
     /// Fulfills an expectation as soon as a queue finished exeucting `n`
     /// operations (doesn't matter whether they were cancelled or executed).
     ///
     /// Automatically resumes a queue as soon as `n` operations are enqueued.
-    func toFinishWithEnqueuedOperationCount(_ expectedCount: Int) {
+    func toFinishWithEnqueuedOperationCount(_ count: Int) {
         precondition(queue.isSuspended, "Queue must be suspended in order to reliably track when all expected operations are enqueued.")
 
-        var isFinishing = false
-        var isFinished = false
-        let syncQueue = DispatchQueue(label: "XCTestCase.expectPerformedOperationCount")
-        var distinctOperations = Set<Foundation.Operation>()
+        let observer = OperationQueueObserver(queue: queue)
+        let expectation = test.expectation(description: "Expect queue to finish with \(count) operations")
 
-        test.expectation(for: queue, keyPath: \.operations) { (_, change, expectation) in
-            syncQueue.async { // Synchronize access to set.
-                // See if there are any new operations added.
-                let operations = self.queue.operations
-                distinctOperations.formUnion(operations)
-                if distinctOperations.count == expectedCount && self.queue.isSuspended {
-                    syncQueue.after(ticks: 10) { // Wait a few ticks to make sure no more operations are enqueued.
-                        self.queue.isSuspended = false
-                    }
-                }
-
-                // Wait a bit to make sure that there are no operations added after
-                // the queue is empty. Also make sure that we don't fulfill twice.
-                if operations.isEmpty && !isFinished {
-                    if !isFinishing {
-                        isFinishing = true
-                        syncQueue.after(ticks: 10) {
-                            isFinishing = false
-                            if self.queue.operations.isEmpty {
-                                XCTAssertEqual(distinctOperations.count, expectedCount)
-                                expectation.fulfill()
-                                isFinished = true
-                            }
-                        }
-                    }
-                }
+        observer.didAddOperation = { _ in
+            // We don't expect any more operations added after that
+            XCTAssertTrue(self.queue.isSuspended)
+            if observer.operations.count == count {
+                self.queue.isSuspended = false
             }
+        }
+        observer.didFinishAllOperations = {
+            expectation.fulfill()
+
+            // Release observer
+            observer.didAddOperation = nil
+            observer.didFinishAllOperations = nil
         }
     }
 }
@@ -140,6 +107,35 @@ struct TestExpectationOperationQueue {
 extension XCTestCase {
     func expect(_ queue: OperationQueue) -> TestExpectationOperationQueue {
         return TestExpectationOperationQueue(test: self, queue: queue)
+    }
+}
+
+struct TestExpectationOperation {
+    let test: XCTestCase
+    let operation: Operation
+
+    // This is useful because KVO on Foundation.Operation is super flaky in Swift
+    func toCancel(with expectation: XCTestExpectation? = nil) {
+        let expectation = expectation ?? self.test.expectation(description: "Cancelled")
+        let operation = self.operation
+
+        func check() {
+            if operation.isCancelled {
+                expectation.fulfill()
+            } else {
+                // Use GCD because Timer with closures not available on iOS 9
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(5)) {
+                    check()
+                }
+            }
+        }
+        check()
+    }
+}
+
+extension XCTestCase {
+    func expect(_ operation: Operation) -> TestExpectationOperation {
+        return TestExpectationOperation(test: self, operation: operation)
     }
 }
 
@@ -173,6 +169,48 @@ extension XCTestCase {
 
     func expect<Value: Equatable>(values: [Value]) -> ValuesExpectation<Value> {
         return ValuesExpectation(expected: values, expectation: self.expectation(description: "Expecting values: \(values)"))
+    }
+}
+
+// MARK: - OperationQueueObserver
+
+final class OperationQueueObserver {
+    private let queue: OperationQueue
+    // All recorded operations.
+    private(set) var operations = [Foundation.Operation]()
+    private var _ops = Set<Foundation.Operation>()
+    private var _observers = [NSKeyValueObservation]()
+    private let _lock = NSLock()
+
+    var didAddOperation: ((Foundation.Operation) -> Void)?
+    var didFinishAllOperations: (() -> Void)?
+
+    init(queue: OperationQueue) {
+        self.queue = queue
+
+        _startObservingOperations()
+    }
+
+    private func _startObservingOperations() {
+        let observer = queue.observe(\.operations) { [weak self] (_, change) in
+            self?._didUpdateOperations()
+        }
+        _observers.append(observer)
+    }
+
+    private func _didUpdateOperations() {
+        _lock.lock()
+        for operation in queue.operations {
+            if !_ops.contains(operation) {
+                _ops.insert(operation)
+                operations.append(operation)
+                didAddOperation?(operation)
+            }
+        }
+        if queue.operations.isEmpty {
+            didFinishAllOperations?()
+        }
+        _lock.unlock()
     }
 }
 

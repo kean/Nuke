@@ -9,7 +9,7 @@
 
 A powerful **image loading** and **caching** system. It makes simple tasks like loading images into views extremely simple, while also supporting more advanced features for more demanding apps.
 
-- Fast LRU memory cache, native HTTP disk cache, and custom aggressive LRU disk cache.
+- Fast LRU memory cache, native HTTP disk cache, and custom aggressive LRU disk cache
 - Progressive image loading (progressive JPEG and WebP)
 - Resumable downloads, request deduplication, prioritization, rate limiting and more
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [WebP](https://github.com/ryokosuge/Nuke-WebP-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) extensions
@@ -48,7 +48,7 @@ Nuke.loadImage(with: url, into: imageView)
 ```
 
 Nuke will automatically load image data, decompress it in the background, store image in memory cache and display it.
-ƒ
+
 > To learn more about the image pipeline [see the dedicated section](#h_design).
 
 Nuke keeps track of each image view. When you request a new image for a view the previous outstanding request gets cancelled. The same happens automatically when the view is deallocated.
@@ -216,9 +216,7 @@ DataLoader.sharedUrlCache.removeAllCachedResponses()
 
 #### Aggressive Disk Cache (Experimental)
 
-Add a completely new custom LRU disk cache which can be used for fast and reliable *aggressive* data caching (ignores [HTTP cache control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control)). The new cache lookups are up to 2x faster than `URLCache` lookups. You can enable it using pipeline's configuration:
-
-When enabling disk cache you must provide a `keyEncoder` function which takes image request's url as a parameter and produces a key which can be used as a valid filename. The [demo project uses sha1](https://gist.github.com/kean/f5e1975e01d5e0c8024bc35556665d7b) to generate those keys.
+Add a completely new custom LRU disk cache which can be used for fast and reliable *aggressive* data caching (ignores [HTTP cache control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control)). The new cache lookups are up to 2x faster than `URLCache` lookups. You can enable it using pipeline's configuration.
 
 ```swift
 $0.enableExperimentalAggressiveDiskCaching(keyEncoder: {
@@ -226,6 +224,10 @@ $0.enableExperimentalAggressiveDiskCaching(keyEncoder: {
     return _nuke_sha1(data, UInt32(data.count))
 })
 ```
+
+> If you enable aggressive disk cache, make sure that you also disable native URL cache (see `DataLoader`), or you might end up storing the same image data twice.
+
+When enabling disk cache you must provide a `keyEncoder` function which takes image request's url as a parameter and produces a key which can be used as a valid filename. The [demo project uses sha1](https://gist.github.com/kean/f5e1975e01d5e0c8024bc35556665d7b) to generate those keys.
 
 The public API for disk cache and the API for using custom disk caches is going to be available in the future versions.
 

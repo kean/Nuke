@@ -189,7 +189,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     // MARK: Back Pressure
 
     func testRedundantParialsArentProducedWhenDataIsProcudedAtHighRate() {
-        let queue = pipeline.configuration.imageProcessingQueue
+        let queue = pipeline.configuration.imageDecodingQueue
 
         // When we receive progressive image data at a higher rate that we can
         // process (we suspended the queue in test) we don't try to process
@@ -209,7 +209,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
                     // operations is going to be finished before even starting
                 }
                 self.dataLoader.resume()
-        },
+            },
             completion: { response, _ in
                 XCTAssertNotNil(response)
                 finalLoaded.fulfill()
