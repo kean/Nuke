@@ -1,4 +1,4 @@
-# [WIP] Nuke 7 Migration Guide
+# Nuke 7 Migration Guide
 
 This guide is provided in order to ease the transition of existing applications using Nuke 6.x to the latest APIs, as well as explain the design and structure of new and changed functionality.
 

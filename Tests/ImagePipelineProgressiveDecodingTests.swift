@@ -217,8 +217,6 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
         wait()
     }
-
-    // TODO: Processing Operations Back Pressure
 }
 
 private extension XCTestCase {

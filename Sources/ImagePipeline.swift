@@ -280,7 +280,6 @@ public /* final */ class ImagePipeline {
 
         // Already loaded and decoded the final image and started processing
         // for previously registered tasks (if any).
-        // FIXME: This needs refactoring.
         if let decodedImage = session.decodedImage {
             _session(session, processFinalImage: decodedImage, for: [task])
         }
@@ -804,10 +803,6 @@ private final class ImageLoadingSession {
     var urlResponse: URLResponse?
     var resumableData: ResumableData?
     lazy var data = Data()
-
-    // FIXME: Ideally we could manager data loading session using a separate
-    // transient loading which is only there while session is running.
-    // Same goes to other properties.
 
     // Decoding session.
     var decoder: ImageDecoding?

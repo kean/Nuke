@@ -160,7 +160,6 @@ class DataCachePeformanceTests: XCTestCase {
         cache._testWithSuspendedIO {
             let dummy = "123".data(using: .utf8)
 
-            // FIXME: This test no just "empty" writes, but also overwrites
             measure {
                 for idx in 0..<10_000 {
                     self.cache["\(idx)"] = dummy
@@ -204,8 +203,6 @@ class DataCachePeformanceTests: XCTestCase {
         }
         cache.flush()
 
-        // FIXME: I'm not entirely sure this the measurement is accurate,
-        // filesystem caching might affect performance.
         measure {
             let cache = try! DataCache(path: self.cache.path)
             _ = cache["1"] // Wait till index is loaded.
