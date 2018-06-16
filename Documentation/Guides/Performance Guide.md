@@ -5,20 +5,17 @@
 
 ### Avoiding Decompression on the Main Thread
 
-By default each `ImageRequest` comes with a `ImageDecompressor` which forces compressed image data to be drawn into a bitmap. This happens in a background to [avoid decompression sickness](https://www.cocoanetics.com/2011/10/avoiding-image-decompression-sickness/) on the main thread.
+When you create `UIImage` object form data, the data doesn't get decoded immediately. It's decoded the first time it's used - for example, when you display the image in an image view. Decoding is a resource-intensive operation, if you do it on the main thread you might see dropped frames, especially for image formats like JPEG.
 
-
-### Avoiding High Memory Usage
-
-Displaying images takes a lot of memory. Here's a couple of tips to reduce memory usage when using Nuke:
-
-- The loaded images should ideally be the same size as the image views (taking retina into account). If the loaded images have a resolution which is higher than necessary make sure to resize them. Nuke has a built-in way to resize images:
+To prevent decoding happening on the main thread, Nuke perform it in a background for you. But for even better performance it's recommended to downsample the images. To do so create a request with a target view size:
 
 ```swift
-ImageRequest(url: url, targetSize: ImageDecompressor.targetSize(for: view), contentMode: .aspectFill)
+ImageRequest(url: url, targetSize: CGSize(width: 640, height: 320), contentMode: .aspectFill)
 ```
 
-- Reduce the `costLimit` and/or `countLimit` of `ImageCache.shared`. In most cases having a single global memory cache is what you want.
+> **Warning:** target size is in pixels!
+
+> See [Image and Graphics Best Practices](https://developer.apple.com/videos/play/wwdc2018/219) to learn more about image decoding and downsampling.
 
 
 ### Avoiding Excessive Cancellations
