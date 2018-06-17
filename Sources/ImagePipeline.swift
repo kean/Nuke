@@ -285,9 +285,11 @@ public /* final */ class ImagePipeline {
         }
 
         // Register cancellation and priority observers.
-        task.cts.register(on: queue) { [weak self, weak task] in
+        task.cts.register { [weak self, weak task] in
             guard let task = task else { return }
-            self?._imageTaskCancelled(task)
+            self?.queue.async {
+                self?._imageTaskCancelled(task)
+            }
         }
 
         task.priorityObserver = { [weak self, weak session] (task, _) in
@@ -319,6 +321,12 @@ public /* final */ class ImagePipeline {
 
         if let session = task.session { // executing == true
             session.tasks[task] = nil
+
+            // When all registered tasks are cancelled, the session is
+            // deallocated and the underlying operation is cancelled
+            // automatically.
+            session.processingOperations[task] = nil
+
             // Cancel the session when there are no remaining tasks.
             if session.tasks.isEmpty {
                 _tryToSaveResumableData(for: session)
@@ -680,12 +688,6 @@ public /* final */ class ImagePipeline {
         for (operation, context) in operations {
             for task in context.tasks {
                 session.processingOperations[task] = DisposableOperation(operation)
-                task.cts.register(on: queue) {
-                    // When all registered tasks are cancelled, the session is
-                    // deallocated and the underlying operation is cancelled
-                    // automatically.
-                    session.processingOperations[task] = nil
-                }
             }
             operation.queuePriority = ImageLoadingSession.priority(for: context.tasks).queuePriority
             configuration.imageProcessingQueue.addOperation(operation)

@@ -1,3 +1,15 @@
+## Nuke 7.2.1
+
+Nuke's [roadmap](https://trello.com/b/Us4rHryT/nuke) is now publicly available. Please feel free to contribute!
+
+### Enhancements
+
+- Address tech debt introduces in version 7.1 and 7.2.
+- Simpler and more efficient model for managing decoding and processing operations (including progressive ones). All operations now take the request priority into account. The processing operations are now created per processor, not per image loading session which leads to better performance.
+- Update `DFCache` integration demo to use new `DataCaching` protocol
+- Added ["Default Image Pipeline"](https://github.com/kean/Nuke#default-image-pipeline) section and ["Image Pipeline Overview"](https://github.com/kean/Nuke#image-pipeline-overview) sections in README.
+- Update "Third Party Libraries" guide to use new `DataCaching` protocol
+
 ## Nuke 7.2
 
 ### Additions

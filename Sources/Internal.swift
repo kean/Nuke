@@ -340,13 +340,7 @@ internal struct _CancellationSource {
     private var _isCancelling: Bool = false
     private var _observer: (() -> Void)?
 
-    mutating func register(on queue: DispatchQueue? = nil, _ input: @escaping () -> Void) {
-        var closure = input
-        if let queue = queue {
-            closure = {
-                queue.async(execute: input)
-            }
-        }
+    mutating func register(_ closure: @escaping () -> Void) {
         if !_register(closure) {
             closure()
         }
@@ -355,6 +349,7 @@ internal struct _CancellationSource {
     private mutating func _register(_ closure: @escaping () -> Void) -> Bool {
         _lock.lock(); defer { _lock.unlock() }
         guard !_isCancelling else { return false }
+        assert(_observer == nil)
         _observer = closure
         return true
     }
