@@ -9,7 +9,7 @@ class ImageViewPerformanceTests: XCTestCase {
     // This is the primary use case that we are optimizing for - loading images
     // into target, the API that majoriy of the apps are going to use.
     func testImageViewMainThreadPerformance() {
-        let view = ImageView()
+        let view = _ImageView()
 
         let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }
         
@@ -38,19 +38,18 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             $0.isDeduplicationEnabled = false
 
             // Disables processing which takes a bulk of time.
-            $0.imageProcessor = { _ in nil }
+            $0.imageProcessor = { (_, _)  in nil }
         }
 
         let urls = (0...3_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
         measure {
-            expect { fulfil in
-                var finished: Int = 0
-                for url in urls {
-                    loader.loadImage(with: url) { _, _ in
-                        finished += 1
-                        if finished == urls.count {
-                            fulfil()
-                        }
+            let expectation = self.expectation(description: "Image loaded")
+            var finished: Int = 0
+            for url in urls {
+                loader.loadImage(with: url) { _, _ in
+                    finished += 1
+                    if finished == urls.count {
+                        expectation.fulfill()
                     }
                 }
             }
@@ -206,25 +205,6 @@ class DataCachePeformanceTests: XCTestCase {
         measure {
             let cache = try! DataCache(path: self.cache.path)
             _ = cache["1"] // Wait till index is loaded.
-        }
-    }
-
-    func testLRUPerformance() {
-        let items: [DataCache.Entry] = (0..<10_000).map {
-            let filename = cache.filename(for: "\($0)")!
-            let item = DataCache.Entry(filename: filename, payload: .saved(URL(string: "file://\(filename.raw)")!))
-            item.accessDate = Date().addingTimeInterval(TimeInterval(arc4random_uniform(1000)))
-            item.totalFileAllocatedSize = 1
-            return item
-        }
-
-        var lru = CacheAlgorithmLRU()
-        lru.countLimit = 1000 // we test count limit here
-        lru.trimRatio = 0.5 // 1 item should remain after trim
-        lru.sizeLimit = Int.max
-
-        measure {
-            _ = lru.discarded(items: items)
         }
     }
 }

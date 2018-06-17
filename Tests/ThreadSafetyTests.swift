@@ -21,7 +21,6 @@ class ThreadSafetyTests: XCTestCase {
     }
 
     func testSharingConfigurationBetweenPipelines() { // Especially operation queues
-
         var pipelines = [ImagePipeline]()
 
         let configuration = ImagePipeline.Configuration()
@@ -206,6 +205,83 @@ class ThreadSafetyTests: XCTestCase {
         }
 
         queue.waitUntilAllOperationsAreFinished()
+    }
+}
+
+class RandomizedTests: XCTestCase {
+    func testImagePipeline() {
+        let dataLoader = MockDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 8
+
+        func every(_ count: Int) -> Bool {
+            return rnd() % count == 0
+        }
+
+        func randomRequest() -> ImageRequest {
+            let url = URL(string: "\(Test.url)/\(rnd(50))")!
+            var request = ImageRequest(url: url)
+            request.priority = every(2) ? .high : .normal
+            if every(3) {
+                let size = every(2) ? CGSize(width: 40, height: 40) : CGSize(width: 60, height: 60)
+                request.processor = AnyImageProcessor(
+                    ImageDecompressor(targetSize: size, contentMode: .aspectFit)
+                )
+            }
+            if every(10) {
+                request.loadKey = url
+            }
+            return request
+        }
+
+        func randomSleep() {
+            let ms = TimeInterval(arc4random_uniform(200)) / 1000.0
+            Thread.sleep(forTimeInterval: ms)
+        }
+
+        for _ in 0..<1000 {
+            let expectation = self.expectation(description: "Finished")
+            queue.addOperation {
+                randomSleep()
+
+                let request = randomRequest()
+
+                let shouldCancel = every(3)
+
+                let task = pipeline.loadImage(with: request) { _, _ in
+                    if shouldCancel {
+                        // do nothing, we don't expect completion on cancel
+                    } else {
+                        expectation.fulfill()
+                    }
+                }
+
+                if shouldCancel {
+                    queue.addOperation {
+                        randomSleep()
+                        task.cancel()
+                        expectation.fulfill()
+                    }
+                }
+
+                if every(10) {
+                    queue.addOperation {
+                        randomSleep()
+                        let priority: ImageRequest.Priority = every(2) ? .veryHigh : .veryLow
+                        task.setPriority(priority)
+                    }
+                }
+            }
+        }
+
+        wait(100) { _ in
+            _ = pipeline
+        }
     }
 }
 
