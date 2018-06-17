@@ -81,6 +81,13 @@ internal struct AnonymousImageProcessor<Key: Hashable>: ImageProcessing {
     }
 }
 
+extension ImageProcessing {
+    func process(image: ImageContainer, request: ImageRequest) -> Image? {
+        let context = ImageProcessingContext(request: request, isFinal: image.isFinal, scanNumber: image.scanNumber)
+        return process(image: image.image, context: context)
+    }
+}
+
 #if !os(macOS)
 import UIKit
 

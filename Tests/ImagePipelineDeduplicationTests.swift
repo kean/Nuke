@@ -236,8 +236,8 @@ class ImagePipelineDeduplicationTests: XCTestCase {
             // Then the original image is loaded only once, but processors are
             // applied twice
             XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
-            XCTAssertEqual(processors.numberOfProcessorsApplied, 2)
-            XCTAssertEqual(queueObserver.operations.count, 2)
+            XCTAssertEqual(processors.numberOfProcessorsApplied, 1)
+            XCTAssertEqual(queueObserver.operations.count, 1)
         }
     }
 

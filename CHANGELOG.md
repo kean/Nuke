@@ -2,10 +2,12 @@
 
 Nuke's [roadmap](https://trello.com/b/Us4rHryT/nuke) is now publicly available. Please feel free to contribute!
 
+This update addresses tech debt introduces in version 7.1 and 7.2. All of the changes made in these version which improved deduplication are prerequisites for implementing smart prefetching which be able to skip decoding, load to data cache only, etc.
+
 ### Enhancements
 
-- Address tech debt introduces in version 7.1 and 7.2.
 - Simpler and more efficient model for managing decoding and processing operations (including progressive ones). All operations now take the request priority into account. The processing operations are now created per processor, not per image loading session which leads to better performance.
+- When subscribing to existing session which already started processing, pipeline will try to find existing processing operation.
 - Update `DFCache` integration demo to use new `DataCaching` protocol
 - Added ["Default Image Pipeline"](https://github.com/kean/Nuke#default-image-pipeline) section and ["Image Pipeline Overview"](https://github.com/kean/Nuke#image-pipeline-overview) sections in README.
 - Update "Third Party Libraries" guide to use new `DataCaching` protocol

@@ -280,8 +280,8 @@ public /* final */ class ImagePipeline {
 
         // Already loaded and decoded the final image and started processing
         // for previously registered tasks (if any).
-        if let decodedImage = session.decodedImage {
-            _session(session, processFinalImage: decodedImage, for: [task])
+        if let image = session.decodedFinalImage {
+            _session(session, processImage: image, for: task)
         }
 
         // Register cancellation and priority observers.
@@ -303,15 +303,9 @@ public /* final */ class ImagePipeline {
     private func _updatePriority(for session: ImageLoadingSession, task: ImageTask) {
         let priority = ImageLoadingSession.priority(for: Array(session.tasks.keys))
         session.priority.value = priority
-
         // Update priority for processing operations (those are per image task,
         // not per image session).
-        if let processingOperation = session.processingOperations[task] {
-            let tasks = session.processingOperations
-                .filter { (_, operation) in operation === processingOperation }
-                .map { $0.key }
-            processingOperation.operation?.queuePriority = ImageLoadingSession.priority(for: tasks).queuePriority
-        }
+        session.processingSessions[task]?.updatePriority()
     }
 
     // Cancel the session in case all handlers were removed.
@@ -325,7 +319,7 @@ public /* final */ class ImagePipeline {
             // When all registered tasks are cancelled, the session is
             // deallocated and the underlying operation is cancelled
             // automatically.
-            session.processingOperations[task] = nil
+            session.processingSessions[task] = nil
 
             // Cancel the session when there are no remaining tasks.
             if session.tasks.isEmpty {
@@ -538,7 +532,10 @@ public /* final */ class ImagePipeline {
         if let image = decoder?.decode(data: data, isFinal: false) {
             let scanNumber: Int? = (decoder as? ImageDecoder)?.numberOfScans
             queue.async {
-                self._session(session, processPartialImage: image, scanNumber: scanNumber)
+                let container = ImageContainer(image: image, isFinal: false, scanNumber: scanNumber)
+                for task in session.tasks.keys {
+                    self._session(session, processImage: container, for: task)
+                }
             }
         }
     }
@@ -560,7 +557,10 @@ public /* final */ class ImagePipeline {
             }
             metrics.decodeEndDate = Date()
             self?.queue.async {
-                self?._session(session, didDecodeFinalImage: image, data: data)
+                let container = image.map {
+                    ImageContainer(image: $0, isFinal: true, scanNumber: nil)
+                }
+                self?._session(session, didDecodeFinalImage: container, data: data)
             }
         }
         _enqueueDecodingOperation(operation, for: session)
@@ -595,9 +595,9 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func _session(_ session: ImageLoadingSession, didDecodeFinalImage image: Image?, data: Data) {
+    private func _session(_ session: ImageLoadingSession, didDecodeFinalImage image: ImageContainer?, data: Data) {
         session.decoder = nil // Decoding session completed, no longer need decoder.
-        session.decodedImage = image
+        session.decodedFinalImage = image
 
         guard let image = image else {
             _session(session, didFailWithError: .decodingFailed)
@@ -609,89 +609,60 @@ public /* final */ class ImagePipeline {
             dataCache.storeData(data, for: key)
         }
 
-        _session(session, processFinalImage: image, for: Array(session.tasks.keys))
+        for task in session.tasks.keys {
+            _session(session, processImage: image, for: task)
+        }
     }
 
     // MARK: Pipeline (Processing)
-
-    private func _session(_ session: ImageLoadingSession, processPartialImage image: Image, scanNumber: Int?) {
-        // (Back pressure) Don't start trying to produce new partials if we've
-        // already enqueued one operation.
-        let tasks = session.tasks.keys.filter {
-            session.processingOperations[$0]?.operation == nil
-        }
-        let image = ImageContainer(image: image, isFinal: false, scanNumber: scanNumber)
-        _session(session, processImage: image, for: tasks) { [weak self, weak session] (image, task, _) in
-            guard let session = session, let image = image else { return }
-            self?._session(session, didProducePartialImage: image, for: task)
-        }
-    }
-
-    private func _session(_ session: ImageLoadingSession, processFinalImage image: Image, for tasks: [ImageTask]) {
-        let image = ImageContainer(image: image, isFinal: true, scanNumber: nil)
-        _session(session, processImage: image, for: tasks) { [weak self, weak session] (image, task, metrics) in
-            guard let session = session else { return }
-            task.metrics.processStartDate = metrics.startDate
-            task.metrics.processEndDate = metrics.endDate
-            let error: Error?  = (image == nil ? .processingFailed : nil)
-            self?._session(session, didCompleteTask: task, image: image, error: error)
-        }
-    }
 
     /// Processes the input image for each of the given tasks. The image is processed
     /// only once for the equivalent processors.
     /// - parameter completion: Will get called synchronously if processing is not
     /// required. If it is will get called on `self.queue` when processing is finished.
-    private func _session(_ session: ImageLoadingSession, processImage image: ImageContainer, for tasks: [ImageTask], completion: @escaping (Image?, ImageTask, TaskMetrics) -> Void) {
-        final class Context {
-            let processor: AnyImageProcessor
-            var tasks: [ImageTask]
-            init(processor: AnyImageProcessor, task: ImageTask) {
-                self.processor = processor; self.tasks = [task]
-            }
+    private func _session(_ session: ImageLoadingSession, processImage image: ImageContainer, for task: ImageTask) {
+        let isFinal = image.isFinal
+        guard let processor = _processor(for: image.image, request: task.request) else {
+            _session(session, didProcessImage: image.image, isFinal: isFinal, metrics: TaskMetrics(), for: task)
+            return // No processing needed.
         }
 
-        // Create the operations
-        var operations = [(Foundation.Operation, Context)]()
-        for task in tasks {
-            guard let processor = _processor(for: image.image, request: task.request) else {
-                completion(image.image, task, TaskMetrics())
-                continue // No processing needed.
-            }
+        if !image.isFinal && session.processingSessions[task] != nil {
+            return  // Back pressure - we'are already busy processing another partial image
+        }
 
-            if let (_, context) = operations.first(where: { $0.1.processor == processor }) {
-                // Found existing operation with the same processor.
-                context.tasks.append(task)
-            } else {
-                let context = Context(processor: processor, task: task)
-                let process: () -> Image? = {
-                    let context = ImageProcessingContext(request: task.request, isFinal: image.isFinal, scanNumber: image.scanNumber)
-                    return processor.process(image: image.image, context: context)
+        // Find existing session or create a new one.
+        let processingSession = session.processingSessions.values.first {
+            $0.processor == processor && $0.image.image === image.image
+        } ?? {
+            let processingSession = ImageProcessingSession(processor: processor, image: image)
+            let operation = BlockOperation { [weak self, weak session, weak processingSession] in
+                var metrics = TaskMetrics()
+                metrics.start()
+                let output: Image? = autoreleasepool {
+                    processor.process(image: image, request: task.request)
                 }
-                let operation = BlockOperation { [weak self] in
-                    var metrics = TaskMetrics()
-                    metrics.start()
-                    let result = autoreleasepool(invoking: process)
-                    metrics.end()
+                metrics.end()
 
-                    self?.queue.async {
-                        for task in context.tasks {
-                            completion(result, task, metrics)
+                self?.queue.async {
+                    guard let session = session else { return }
+                    for task in (processingSession?.tasks ?? []) {
+                        if session.processingSessions[task] === processingSession {
+                            session.processingSessions[task] = nil
                         }
+                        self?._session(session, didProcessImage: output, isFinal: isFinal, metrics: metrics, for: task)
                     }
                 }
-                operations.append((operation, context))
             }
-        }
-
-        // Schedule the operations
-        for (operation, context) in operations {
-            for task in context.tasks {
-                session.processingOperations[task] = DisposableOperation(operation)
-            }
-            operation.queuePriority = ImageLoadingSession.priority(for: context.tasks).queuePriority
             configuration.imageProcessingQueue.addOperation(operation)
-        }
+            processingSession.operation = operation
+            return processingSession
+        }()
+
+        // Register task for a session.
+        processingSession.tasks.insert(task)
+        session.processingSessions[task] = processingSession
+        processingSession.updatePriority()
     }
 
     private func _processor(for image: Image, request: ImageRequest) -> AnyImageProcessor? {
@@ -701,10 +672,16 @@ public /* final */ class ImagePipeline {
         return configuration.imageProcessor(image, request)
     }
 
-    private struct ImageContainer {
-        let image: Image
-        let isFinal: Bool
-        let scanNumber: Int?
+    private func _session(_ session: ImageLoadingSession, didProcessImage image: Image?, isFinal: Bool, metrics: TaskMetrics, for task: ImageTask) {
+        if isFinal {
+            task.metrics.processStartDate = metrics.startDate
+            task.metrics.processEndDate = metrics.endDate
+            let error: Error?  = (image == nil ? .processingFailed : nil)
+            _session(session, didCompleteTask: task, image: image, error: error)
+        } else {
+            guard let image = image else { return }
+            _session(session, didProducePartialImage: image, for: task)
+        }
     }
 
     // MARK: ImageLoadingSession (Callbacks)
@@ -818,11 +795,11 @@ private final class ImageLoadingSession {
 
     // Decoding session.
     var decoder: ImageDecoding?
-    var decodedImage: Image? // Decoding result
+    var decodedFinalImage: ImageContainer? // Decoding result
     var decodingOperation: DisposableOperation?
 
     // Processing sessions.
-    var processingOperations = [ImageTask: DisposableOperation]()
+    var processingSessions = [ImageTask: ImageProcessingSession]()
 
     // Metrics that we collect during the lifetime of a session.
     let metrics: ImageTaskMetrics.SessionMetrics
@@ -840,4 +817,29 @@ private final class ImageLoadingSession {
     }
 
     var priority: Property<ImageRequest.Priority>
+}
+
+private final class ImageProcessingSession {
+    let processor: AnyImageProcessor
+    let image: ImageContainer
+    var tasks = Set<ImageTask>()
+    weak var operation: Foundation.Operation?
+
+    deinit {
+        operation?.cancel()
+    }
+
+    init(processor: AnyImageProcessor, image: ImageContainer) {
+        self.processor = processor; self.image = image
+    }
+
+    func updatePriority() {
+        operation?.queuePriority = ImageLoadingSession.priority(for: Array(tasks)).queuePriority
+    }
+}
+
+struct ImageContainer {
+    let image: Image
+    let isFinal: Bool
+    let scanNumber: Int?
 }
