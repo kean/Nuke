@@ -571,6 +571,12 @@ extension DispatchWorkItem: Cancellable {}
 struct TaskMetrics {
     var startDate: Date? = nil
     var endDate: Date? = nil
+    mutating func start() {
+        self.startDate = Date()
+    }
+    mutating func end() {
+        self.endDate = Date()
+    }
 }
 
 final class DisposableOperation: Hashable {

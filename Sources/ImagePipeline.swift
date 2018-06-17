@@ -632,61 +632,71 @@ public /* final */ class ImagePipeline {
 
     /// Processes the input image for each of the given tasks. The image is processed
     /// only once for the equivalent processors.
-    /// - parameter completion: Will get called synchronously if processing is not required.
-    /// If it is will get called on `self.queue` when processing is finished.
-    /// - returns: `nil` if processing wasn't required for any of the tasks
+    /// - parameter completion: Will get called synchronously if processing is not
+    /// required. If it is will get called on `self.queue` when processing is finished.
     private func _session(_ session: ImageLoadingSession, processImage image: ImageContainer, for tasks: [ImageTask], completion: @escaping (Image?, ImageTask, TaskMetrics) -> Void) {
-        typealias ImageProcessingJob = (AnyImageProcessor, [ImageTask], ImageProcessingContext)
-
-        func _processor(for request: ImageRequest) -> AnyImageProcessor? {
-            if Configuration.isAnimatedImageDataEnabled && image.image.animatedImageData != nil {
-                return nil // Don't process animated images.
+        final class Context {
+            let processor: AnyImageProcessor
+            var tasks: [ImageTask]
+            init(processor: AnyImageProcessor, task: ImageTask) {
+                self.processor = processor; self.tasks = [task]
             }
-            return configuration.imageProcessor(image.image, request)
         }
 
-        var jobs = [ImageProcessingJob]()
+        // Create the operations
+        var operations = [(Foundation.Operation, Context)]()
         for task in tasks {
-            if let processor = _processor(for: task.request) {
-                // Try to find existing job with equivalent processor.
-                if let index = jobs.index(where: { $0.0 == processor }) {
-                    jobs[index].1.append(task)
-                } else {
-                    let context = ImageProcessingContext(request: task.request, isFinal: image.isFinal, scanNumber: image.scanNumber)
-                    jobs.append(ImageProcessingJob(processor, [task], context))
-                }
-            } else {
+            guard let processor = _processor(for: image.image, request: task.request) else {
                 completion(image.image, task, TaskMetrics())
+                continue // No processing needed.
             }
-        }
 
-        for (processor, tasks, context) in jobs {
-            let operation = BlockOperation { [weak self] in
-                var metrics = TaskMetrics()
-                metrics.startDate = Date()
-                let result = autoreleasepool { processor.process(image: image.image, context: context) }
-                metrics.endDate = Date()
+            if let (_, context) = operations.first(where: { $0.1.processor == processor }) {
+                // Found existing operation with the same processor.
+                context.tasks.append(task)
+            } else {
+                let context = Context(processor: processor, task: task)
+                let process: () -> Image? = {
+                    let context = ImageProcessingContext(request: task.request, isFinal: image.isFinal, scanNumber: image.scanNumber)
+                    return processor.process(image: image.image, context: context)
+                }
+                let operation = BlockOperation { [weak self] in
+                    var metrics = TaskMetrics()
+                    metrics.start()
+                    let result = autoreleasepool(invoking: process)
+                    metrics.end()
 
-                self?.queue.async {
-                    for task in tasks {
-                        completion(result, task, metrics)
+                    self?.queue.async {
+                        for task in context.tasks {
+                            completion(result, task, metrics)
+                        }
                     }
                 }
+                operations.append((operation, context))
             }
+        }
 
-            for task in tasks {
+        // Schedule the operations
+        for (operation, context) in operations {
+            for task in context.tasks {
                 session.processingOperations[task] = DisposableOperation(operation)
                 task.cts.register(on: queue) {
                     // When all registered tasks are cancelled, the session is
                     // deallocated and the underlying operation is cancelled
-                    // automatically.u
+                    // automatically.
                     session.processingOperations[task] = nil
                 }
             }
-
-            operation.queuePriority = ImageLoadingSession.priority(for: tasks).queuePriority
+            operation.queuePriority = ImageLoadingSession.priority(for: context.tasks).queuePriority
             configuration.imageProcessingQueue.addOperation(operation)
         }
+    }
+
+    private func _processor(for image: Image, request: ImageRequest) -> AnyImageProcessor? {
+        if Configuration.isAnimatedImageDataEnabled && image.animatedImageData != nil {
+            return nil // Don't process animated images.
+        }
+        return configuration.imageProcessor(image, request)
     }
 
     private struct ImageContainer {
@@ -741,27 +751,18 @@ public /* final */ class ImagePipeline {
     private func _sessionDidFinish(_ session: ImageLoadingSession) {
         // Check if session is still registered.
         guard sessions[session.key] === session else { return }
-
         session.metrics.endDate = Date()
-
-        // By removing a session we get rid of all the stuff that is no longer
-        // needed after completing associated tasks. This includes completion
-        // and progress closures, individual requests, etc. The user may still
-        // hold a reference to `ImageTask` at this point, but it doesn't
-        // store almost anythng.
         sessions[session.key] = nil
     }
 
     private func _session(_ session: ImageLoadingSession, enqueue operation: Foundation.Operation, on queue: Foundation.OperationQueue) {
         operation.queuePriority = session.priority.value.queuePriority
-
-        session.token.register { [weak operation] in
-            operation?.cancel()
-        }
         session.priority.observe { [weak operation] in
             operation?.queuePriority = $0.queuePriority
         }
-
+        session.token.register { [weak operation] in
+            operation?.cancel()
+        }
         queue.addOperation(operation)
     }
 
