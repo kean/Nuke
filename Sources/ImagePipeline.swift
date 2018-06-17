@@ -625,8 +625,8 @@ public /* final */ class ImagePipeline {
             guard let session = session else { return }
             task.metrics.processStartDate = metrics.startDate
             task.metrics.processEndDate = metrics.endDate
-            let result = image.map(_Result.success) ?? .failure(Error.processingFailed)
-            self?._session(session, didCompleteTask: task, result: result)
+            let error: Error?  = (image == nil ? .processingFailed : nil)
+            self?._session(session, didCompleteTask: task, image: image, error: error)
         }
     }
 
@@ -720,23 +720,22 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func _session(_ session: ImageLoadingSession, didCompleteTask task: ImageTask, result: _Result<Image, Error>) {
-        let response = result.value.map {
+    private func _session(_ session: ImageLoadingSession, didCompleteTask task: ImageTask, image: Image?, error: Error?) {
+        let response = image.map {
             ImageResponse(image: $0, urlResponse: session.urlResponse)
         }
-
+        // Store response in memory cache if allowed.
         if let response = response, task.request.memoryCacheOptions.isWriteAllowed {
             configuration.imageCache?.storeResponse(response, for: task.request)
         }
-
+        // Dispatch completion blocks.
         if let handlers = session.tasks.removeValue(forKey: task) {
             task.metrics.endDate = Date()
             DispatchQueue.main.async {
-                handlers.completion?(response, result.error)
+                handlers.completion?(response, error)
                 self.didFinishCollectingMetrics?(task, task.metrics)
             }
         }
-
         if session.tasks.isEmpty {
             _sessionDidFinish(session)
         }
@@ -744,7 +743,7 @@ public /* final */ class ImagePipeline {
 
     private func _session(_ session: ImageLoadingSession, didFailWithError error: Error) {
         for task in session.tasks.keys {
-            _session(session, didCompleteTask: task, result: .failure(error))
+            _session(session, didCompleteTask: task, image: nil, error: error)
         }
     }
 
@@ -754,6 +753,8 @@ public /* final */ class ImagePipeline {
         session.metrics.endDate = Date()
         sessions[session.key] = nil
     }
+
+    // MARK: Misc
 
     private func _session(_ session: ImageLoadingSession, enqueue operation: Foundation.Operation, on queue: Foundation.OperationQueue) {
         operation.queuePriority = session.priority.value.queuePriority

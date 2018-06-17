@@ -541,23 +541,6 @@ internal struct Printer {
     }
 }
 
-// MARK: - Result
-
-// we're still using Result internally, but don't pollute user's space
-internal enum _Result<T, Error: Swift.Error> {
-    case success(T), failure(Error)
-
-    /// Returns a `value` if the result is success.
-    var value: T? {
-        if case let .success(val) = self { return val } else { return nil }
-    }
-
-    /// Returns an `error` if the result is failure.
-    var error: Error? {
-        if case let .failure(err) = self { return err } else { return nil }
-    }
-}
-
 // MARK: - Misc
 
 final class NoOpCancellable: Cancellable {
