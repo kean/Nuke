@@ -33,6 +33,7 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
 - Detailed [**Image Pipeline**](#h_design) description
 - Entire section dedicated to [**Performance**](#h_performance)
 - List of [**Extensions**](#h_plugins)
+- [**Contribution**](#h_contribute) and roadmap
 - [**Requirements**](#h_requirements)
 
 More information is available in [**Documentation**](https://github.com/kean/Nuke/blob/master/Documentation/) directory and a full [**API Reference**](https://kean.github.io/Nuke/reference/7.0/index.html). When you are ready to install Nuke you can follow an [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md) - all major package managers are supported.
@@ -501,6 +502,13 @@ There are a variety extensions available for Nuke some of which are built by the
 |[**Gifu**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
 |[**FLAnimatedImage**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
 
+
+<a name="h_contribute"></a>
+# Contribution
+
+[Nuke's roadmap](https://trello.com/b/Us4rHryT/nuke) is managed in Trello and is publically available. The roadmap is flexible. Feel free to leave your feedback.
+
+If you'd like to contribute, please feel free to create a PR.
 
 <a name="h_requirements"></a>
 # Requirements
