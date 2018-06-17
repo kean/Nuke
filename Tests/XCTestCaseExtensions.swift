@@ -60,9 +60,6 @@ struct TestExpectationOperationQueue {
     let test: XCTestCase
     let queue: OperationQueue
 
-    // This is still in more of experimental phaze, OperationQueue KVO
-    // is probably not the most reliable way to do that.
-
     @discardableResult
     func toEnqueueOperationsWithCount(_ count: Int) -> OperationQueueObserver {
         let observer = OperationQueueObserver(queue: queue)
@@ -80,7 +77,8 @@ struct TestExpectationOperationQueue {
     /// operations (doesn't matter whether they were cancelled or executed).
     ///
     /// Automatically resumes a queue as soon as `n` operations are enqueued.
-    func toFinishWithEnqueuedOperationCount(_ count: Int) {
+    @discardableResult
+    func toFinishWithEnqueuedOperationCount(_ count: Int) -> OperationQueueObserver {
         precondition(queue.isSuspended, "Queue must be suspended in order to reliably track when all expected operations are enqueued.")
 
         let observer = OperationQueueObserver(queue: queue)
@@ -88,7 +86,7 @@ struct TestExpectationOperationQueue {
 
         observer.didAddOperation = { _ in
             // We don't expect any more operations added after that
-            XCTAssertTrue(self.queue.isSuspended)
+            XCTAssertTrue(self.queue.isSuspended, "More operations were added to the queue then were expected")
             if observer.operations.count == count {
                 self.queue.isSuspended = false
             }
@@ -100,6 +98,7 @@ struct TestExpectationOperationQueue {
             observer.didAddOperation = nil
             observer.didFinishAllOperations = nil
         }
+        return observer
     }
 }
 

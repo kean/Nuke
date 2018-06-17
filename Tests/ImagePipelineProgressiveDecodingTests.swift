@@ -198,7 +198,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         queue.isSuspended = true
         expect(queue).toFinishWithEnqueuedOperationCount(2) // 1 partial, 1 final
 
-        let finalLoaded = self.expectation(description: "Final Produced")
+        let finalLoaded = self.expectation(description: "Final image produced")
 
         pipeline.loadImage(
             with: Test.request.processed(key: "1") { $0 },

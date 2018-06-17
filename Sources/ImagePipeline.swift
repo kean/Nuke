@@ -485,7 +485,7 @@ public /* final */ class ImagePipeline {
             // don't allow progressive decoding.
             guard session.data.count < response.expectedContentLength else { return }
 
-            _decodePartialImage(for: session, data: session.data)
+            _setNeedsDecodePartialImage(for: session)
         }
     }
 
@@ -506,25 +506,33 @@ public /* final */ class ImagePipeline {
 
     // MARK: Pipeline (Decoding)
 
-    private func _decodePartialImage(for session: ImageLoadingSession, data: Data) {
-        // (Back pressure) Don't start trying to produce new partials if we've
-        // already enqueued one operation.
-        guard session.decodingOperation?.operation == nil else { return }
-
-        guard let decoder = _decoder(for: session, data: data) else { return }
+    private func _setNeedsDecodePartialImage(for session: ImageLoadingSession) {
+        guard session.decodingOperation?.operation == nil else {
+            return // Already enqueued an operation.
+        }
         let operation = BlockOperation { [weak self, weak session] in
             guard let session = session else { return }
-
-            // Produce partial image
-            guard let image = decoder.decode(data: data, isFinal: false) else {
-                return
-            }
-            let scanNumber: Int? = (decoder as? ImageDecoder)?.numberOfScans // Need a public way to implement this.
-            self?.queue.async {
-                self?._session(session, processPartialImage: image, scanNumber: scanNumber)
-            }
+            self?._actuallyDecodePartialImage(for: session)
         }
         _enqueueDecodingOperation(operation, for: session)
+    }
+
+    private func _actuallyDecodePartialImage(for session: ImageLoadingSession) {
+        // As soon as we get a chance to execute, grab the latest available
+        // data, create a decoder (if necessary) and decode the data.
+        let (data, decoder): (Data, ImageDecoding?) = queue.sync {
+            let data = session.data
+            let decoder = _decoder(for: session, data: data)
+            return (data, decoder)
+        }
+
+        // Produce partial image
+        if let image = decoder?.decode(data: data, isFinal: false) {
+            let scanNumber: Int? = (decoder as? ImageDecoder)?.numberOfScans
+            queue.async {
+                self._session(session, processPartialImage: image, scanNumber: scanNumber)
+            }
+        }
     }
 
     private func _decodeFinalImage(for session: ImageLoadingSession, data: Data) {
@@ -671,7 +679,7 @@ public /* final */ class ImagePipeline {
                 task.cts.register(on: queue) {
                     // When all registered tasks are cancelled, the session is
                     // deallocated and the underlying operation is cancelled
-                    // automatically.
+                    // automatically.u
                     session.processingOperations[task] = nil
                 }
             }
