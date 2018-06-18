@@ -67,7 +67,9 @@ extension UIImage {
 struct _ProgressiveBlurImageProcessor: ImageProcessing {
     func process(image: Image, context: ImageProcessingContext) -> Image? {
         // CoreImage is too slow on simulator.
-
+        #if targetEnvironment(simulator)
+        return image
+        #else
         guard !context.isFinal else {
             return image // No processing.
         }
@@ -85,7 +87,7 @@ struct _ProgressiveBlurImageProcessor: ImageProcessing {
 
         // Scans 5+ are already good enough not to blur them.
         return image
-
+        #endif
     }
 
     static func == (lhs: _ProgressiveBlurImageProcessor, rhs: _ProgressiveBlurImageProcessor) -> Bool {
