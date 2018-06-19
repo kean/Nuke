@@ -20,7 +20,7 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
 
 > Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Migrations).
 
-- Basic [**Usage Guide**](#h_usage), best place to start
+- Basic [**Usage Guide**](#h_usage), the best place to start
   - [Load Image into Image View](#load-image-into-image-view)
   - [Placeholders, Transitions and More](#placeholders-transitions-and-more)
   - [Image Requests](#image-requests), [Process an Image](#process-an-image)
@@ -31,9 +31,9 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
   - [Progressive Decoding](#progressive-decoding), [Animated Images](#animated-images), [WebP](#webp)
   - [RxNuke](#rxnuke)
 - Detailed [**Image Pipeline**](#h_design) description
-- Entire section dedicated to [**Performance**](#h_performance)
+- An entire section dedicated to [**Performance**](#h_performance)
 - List of [**Extensions**](#h_plugins)
-- [**Contribution**](#h_contribute) and roadmap
+- [**Contributing**](#h_contribute) and roadmap
 - [**Requirements**](#h_requirements)
 
 More information is available in [**Documentation**](https://github.com/kean/Nuke/blob/master/Documentation/) directory and a full [**API Reference**](https://kean.github.io/Nuke/reference/7.2/index.html). When you are ready to install Nuke you can follow an [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md) - all major package managers are supported.
@@ -472,7 +472,7 @@ Task Information {
 Session Information {
     Session ID - 1
     Total Duration - 0.351s
-    Was canceled - false
+    Was Canceled - false
 }
 Timeline {
     22:35:16.124 – 22:35:16.475 (0.351s) - Total
