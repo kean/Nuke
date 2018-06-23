@@ -156,7 +156,7 @@ class DataCachePeformanceTests: XCTestCase {
     }
 
     func testWritePeformance() {
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             let dummy = "123".data(using: .utf8)
 
             measure {
@@ -168,7 +168,7 @@ class DataCachePeformanceTests: XCTestCase {
     }
 
     func testReadPerformance() {
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             for idx in 0..<10_000 {
                 cache["\(idx)"] = "123".data(using: .utf8)
             }

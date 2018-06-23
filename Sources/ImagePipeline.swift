@@ -192,15 +192,17 @@ public /* final */ class ImagePipeline {
         /// - parameter countLimit: The maximum number of items. `1000` by default.
         /// - parameter sizeLimit: Size limit in bytes. `100 Mb` by default.
         public mutating func enableExperimentalAggressiveDiskCaching(countLimit: Int = 1000, sizeLimit: Int = 1024 * 1024 * 100, keyEncoder: @escaping (String) -> String?) {
-            if DataCache.shared == nil {
+            if Configuration.sharedDataCache == nil {
                 let cache = try? DataCache(name: "com.github.kean.Nuke.DataCache")
                 cache?.countLimit = countLimit
                 cache?.sizeLimit = sizeLimit
                 cache?._keyEncoder = keyEncoder
-                DataCache.shared = cache
+                Configuration.sharedDataCache = cache
             }
-            self.dataCache = DataCache.shared
+            self.dataCache = Configuration.sharedDataCache
         }
+
+        static var sharedDataCache: DataCache?
 
         /// Creates default configuration.
         /// - parameter dataLoader: `DataLoader()` by default.

@@ -36,7 +36,7 @@ class ImageProcessingTests: XCTestCase {
         // When
         expect(pipeline).toLoadImage(with: request) { response, _ in
             // Then
-            XCTAssertEqual(response?.image.nk_test_processorIDs, ["processor1"])
+            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["processor1"])
         }
         wait()
     }
@@ -52,7 +52,7 @@ class ImageProcessingTests: XCTestCase {
         // When
         expect(pipeline).toLoadImage(with: request) { response, _ in
             // Then
-            XCTAssertEqual(response?.image.nk_test_processorIDs, ["processor1", "processor2"])
+            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["processor1", "processor2"])
         }
         wait()
     }
@@ -65,7 +65,7 @@ class ImageProcessingTests: XCTestCase {
         // When
         expect(pipeline).toLoadImage(with: request) { response, _ in
             // Then
-            XCTAssertEqual(response?.image.nk_test_processorIDs, [])
+            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], [])
         }
         wait()
     }

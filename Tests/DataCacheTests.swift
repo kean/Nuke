@@ -53,7 +53,7 @@ class DataCacheTests: XCTestCase {
     // MARK: Add
 
     func testAdd() {
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             // When
             cache["key"] = blob
 
@@ -63,7 +63,7 @@ class DataCacheTests: XCTestCase {
     }
 
     func testWhenAddContentNotFlushedImmediately() {
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             // When
             cache["key"] = blob
 
@@ -74,7 +74,7 @@ class DataCacheTests: XCTestCase {
 
     func testAddAndFlush() {
         // Given
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             cache["key"] = blob
         }
 
@@ -88,7 +88,7 @@ class DataCacheTests: XCTestCase {
     }
 
     func testReplace() {
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             // Given
             cache["key"] = blob
 
@@ -105,7 +105,7 @@ class DataCacheTests: XCTestCase {
         cache["key"] = blob
         cache.flush()
 
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             cache["key"] = otherBlob
             XCTAssertEqual(cache.contents.count, 1)
             // Test that before flush we still have the old blob on disk,
@@ -128,9 +128,9 @@ class DataCacheTests: XCTestCase {
         cache.flush()
     }
 
-    // - Remove + write (new) staged -> remove form staging
+    // - Remove + write (new) staged -> remove from staging
     func testRemoveFromStaging() {
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             cache["key"] = blob
             cache["key"] = nil
             XCTAssertNil(cache["key"])
@@ -139,10 +139,9 @@ class DataCacheTests: XCTestCase {
         XCTAssertNil(cache["key"])
     }
 
-    // Same as:
-    // - Remove + write (new) staged -> remove form staging
+    // - Remove + write (new) staged -> remove from staging
     func testRemoveReplaced() {
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             cache["key"] = blob
             cache["key"] = otherBlob
             cache["key"] = nil
@@ -157,7 +156,7 @@ class DataCacheTests: XCTestCase {
         cache["key"] = blob
         cache.flush()
 
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             cache["key"] = otherBlob
             cache["key"] = nil
             XCTAssertNil(cache["key"])
@@ -174,7 +173,7 @@ class DataCacheTests: XCTestCase {
         cache["key"] = blob
         cache.flush()
 
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             cache["key"] = nil
             XCTAssertNil(cache["key"])
             // Still have data in cache
@@ -220,43 +219,83 @@ class DataCacheTests: XCTestCase {
         XCTAssertEqual(try? Data(contentsOf: cache.contents.first!), blob)
     }
 
-    func testThatRemoveAllWorks() {
+    // MARK: Remove All
+
+    func testRemoveAll() {
+        cache._withSuspendedIO {
+            // Given
+            cache["key"] = blob
+
+            // When
+            cache.removeAll()
+
+            // Then
+            XCTAssertNil(cache["key"])
+        }
+    }
+
+    func testRemoveAllFlushed() {
         // Given
         cache["key"] = blob
-        cache["key2"] = otherBlob
         cache.flush()
 
         // When
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             cache.removeAll()
+            XCTAssertNil(cache["key"])
         }
+    }
+
+    func testRemoveAllFlushedAndFlush() {
+        // Given
+        cache["key"] = blob
+        cache.flush()
+
+        // When
+        cache.removeAll()
+        cache.flush()
 
         // Then
-        cache.flush()
         XCTAssertNil(cache["key"])
-        XCTAssertNil(cache["key2"])
         XCTAssertEqual(cache.contents.count, 0)
     }
 
-    // MARK: DataCaching
+    func testRemoveAllAndAdd() {
+        // Given
+        cache._withSuspendedIO {
+            cache["key"] = blob
 
-    func testGetCachedDataMiss() {
-        // When
-        var called = false
-        cache.cachedData(for: "key") { (data) in
-            called = true
-            XCTAssertNil(data)
+            // When
+            cache.removeAll()
+            cache["key"] = blob
+
+            // Then
+            XCTAssertEqual(cache["key"], blob)
         }
-
-        // Then
-        XCTAssertTrue(called)
     }
+
+    func testRemoveAllTwice() {
+        // Given
+        cache._withSuspendedIO {
+            cache["key"] = blob
+
+            // When
+            cache.removeAll()
+            cache["key"] = blob
+            cache.removeAll()
+
+            // Then
+            XCTAssertNil(cache["key"])
+        }
+    }
+
+    // MARK: DataCaching
 
     func testGetCachedDataHitFromStaging() {
         // Given
         cache.flush() // Index is loaded
 
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             // Given
             cache["key"] = blob
 
@@ -289,7 +328,7 @@ class DataCacheTests: XCTestCase {
 
     func testFlush() {
         // Given
-        cache._testWithSuspendedIO {
+        cache._withSuspendedIO {
             cache["key"] = blob
         }
 
@@ -298,54 +337,6 @@ class DataCacheTests: XCTestCase {
 
         // Then
         XCTAssertEqual(cache.contents.count, 1)
-    }
-
-    // MARK: Index
-
-    func testThatIndexIsLoaded() {
-        XCTAssertNil(cache["key"])
-        cache["key"] = blob
-        XCTAssertNotNil(cache["key"])
-
-        cache.flush()
-
-        let cache2 = try! DataCache(path: cache.path)
-        cache2._keyEncoder = cache._keyEncoder // keyEncoder not needed for index loading
-        cache2.flush()
-
-        XCTAssertEqual(cache2["key"], cache["key"])
-        XCTAssertEqual(cache2.totalSize, cache.totalSize)
-        XCTAssertEqual(cache2.totalAllocatedSize, cache.totalAllocatedSize)
-        XCTAssertEqual(cache2.totalCount, cache.totalCount)
-    }
-
-    // MARK: Inspection
-
-    func testThatInspectionMethodsWork() {
-        cache.inspect { XCTAssertEqual($0.count, 0) }
-        XCTAssertEqual(cache.totalCount, 0)
-        XCTAssertEqual(cache.totalSize, 0)
-
-        let data = "123".data(using: .utf8)!
-
-        cache._testWithSuspendedIO {
-
-            cache["key"] = data
-
-            cache.inspect {
-                XCTAssertEqual($0.count, 1)
-                XCTAssertNotNil($0[cache.filename(for: "key")!])
-            }
-            XCTAssertEqual(cache.totalCount, 1)
-            XCTAssertEqual(cache.totalSize, data.count)
-            XCTAssertEqual(cache.totalAllocatedSize, data.count)
-        }
-
-        cache.flush()
-
-        // Size updated to allocated size.
-        XCTAssertEqual(cache.totalSize, data.count)
-        XCTAssertTrue(cache.totalAllocatedSize > cache.totalSize)
     }
 
     // MARK: Sweep
@@ -360,11 +351,10 @@ class DataCacheTests: XCTestCase {
         let keys = (0..<4).map { "\($0)" }
 
         keys.forEach {
-            usleep(100) // make sure accessDate is different for each entry
+            Thread.sleep(forTimeInterval: 1)
             cache[$0] = "123".data(using: .utf8)
+            cache.flush()
         }
-
-        cache.flush() // Write to disk
 
         // When
         cache.sweep()
@@ -377,33 +367,64 @@ class DataCacheTests: XCTestCase {
         XCTAssertNotNil(cache[keys[3]])
     }
 
+    // MARK: Inspection
+
+    func testTotalCount() {
+        XCTAssertEqual(cache.totalCount, 0)
+
+        cache["1"] = "1".data(using: .utf8)
+        cache.flush()
+
+        XCTAssertEqual(cache.totalCount, 1)
+    }
+
+    func testTotalSize() {
+        XCTAssertEqual(cache.totalSize, 0)
+
+        cache["1"] = "1".data(using: .utf8)
+        cache.flush()
+
+        XCTAssertTrue(cache.totalSize > 0)
+    }
+
+    func testTotalAllocatedSize() {
+        XCTAssertEqual(cache.totalAllocatedSize, 0)
+
+        cache["1"] = "1".data(using: .utf8)
+        cache.flush()
+
+        // Depends on the file system.
+        XCTAssertTrue(cache.totalAllocatedSize > 0)
+    }
+
     // MARK: Intricacies
 
     func testThatAccessDateIsUpdatedOnRead() {
-        cache._testWithSuspendedIO {
-            // Given
-            cache["1"] = "1".data(using: .utf8)
+        // Given
+        cache["1"] = "1".data(using: .utf8)
+        cache.flush()
 
-            // When
+        // When
 
-            // first access
-            let _ = cache["1"]
-            let date1 = cache.inspect {
-                $0[cache.filename(for: "1")!]?.accessDate
-            }
+        // First access
+        let _ = cache["1"]
+        let date1 = cache.contents(keys: [.contentAccessDateKey])
+            .first
+            .flatMap { $0.meta.contentAccessDate }
 
-            usleep(100)
+        Thread.sleep(forTimeInterval: 1)
 
-            // second access
-            let _ = cache["1"]
-            let date2 = cache.inspect {
-                $0[cache.filename(for: "1")!]?.accessDate
-            }
+        // Second access
+        let _ = cache["1"]
+        let date2 = cache.contents(keys: [.contentAccessDateKey])
+            .first
+            .flatMap { $0.meta.contentAccessDate }
 
-            // Then
-            XCTAssertNotNil(date1)
-            XCTAssertNotNil(date2)
-            XCTAssertTrue(date1! < date2!)
+        // Then
+        XCTAssertNotNil(date1)
+        XCTAssertNotNil(date2)
+        if let date1 = date1, let date2 = date2 {
+            XCTAssertTrue(date1 < date2)
         }
     }
 }
@@ -411,5 +432,11 @@ class DataCacheTests: XCTestCase {
 extension DataCache {
     var contents: [URL] {
         return try! FileManager.default.contentsOfDirectory(at: self.path, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
+    }
+
+    func _withSuspendedIO(_ closure: () -> Void) {
+        _wqueue.suspend()
+        closure()
+        _wqueue.resume()
     }
 }
