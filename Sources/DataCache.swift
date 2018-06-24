@@ -42,8 +42,8 @@ public protocol DataCaching {
 ///
 /// - warning: It's possible to have more than one instance of `DataCache` with
 /// the same `path` but it is not recommended.
-internal final class DataCache: DataCaching {
-    internal typealias Key = String
+public final class DataCache: DataCaching {
+    public typealias Key = String
 
     /// The maximum number of items. `1000` by default.
     internal var countLimit: Int = 1000
@@ -66,7 +66,7 @@ internal final class DataCache: DataCaching {
 
     // Staging
     private let _lock = NSLock()
-    private var _staging = DataCacheStaging()
+    private var _staging = Staging()
 
     // Persistence
     /* testable */ let _wqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue")
@@ -80,7 +80,7 @@ internal final class DataCache: DataCaching {
     ///
     /// - warning: Multiple instances with the same path are *not* allowed as they
     /// would conflict with each other.
-    internal convenience init(name: String) throws {
+    public convenience init(name: String) throws {
         guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
         }
@@ -91,7 +91,7 @@ internal final class DataCache: DataCaching {
     ///
     /// - warning: Multiple instances with the same path are *not* allowed as they
     /// would conflict with each other.
-    internal init(path: URL) throws {
+    public init(path: URL) throws {
         self.path = path
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
     }
@@ -101,7 +101,7 @@ internal final class DataCache: DataCaching {
     /// Retrieves data from cache for the given key. The completion will be called
     /// syncrhonously if there is no cached data for the given key.
     @discardableResult
-    internal func cachedData(for key: Key, _ completion: @escaping (Data?) -> Void) -> Cancellable {
+    public func cachedData(for key: Key, _ completion: @escaping (Data?) -> Void) -> Cancellable {
         let work = DispatchWorkItem { [weak self] in
             completion(self?[key])
         }
@@ -111,13 +111,13 @@ internal final class DataCache: DataCaching {
 
     /// Stores data for the given key. The method returns instantly and the data
     /// is written asyncrhonously.
-    internal func storeData(_ data: Data, for key: Key) {
+    public func storeData(_ data: Data, for key: Key) {
         self[key] = data
     }
 
     /// Removes data for the given key. The method returns instantly, the data
     /// is removed asyncrhonously.
-    internal func removeData(for key: Key) {
+    public func removeData(for key: Key) {
         self[key] = nil
     }
 
@@ -191,7 +191,7 @@ internal final class DataCache: DataCaching {
     /// asyncrhonously.
     internal func removeAll() {
         _lock.sync {
-        let change = _staging.removeAll()
+            let change = _staging.removeAll()
             _wqueue.async {
                 try? FileManager.default.removeItem(at: self.path)
                 try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
@@ -318,86 +318,86 @@ internal final class DataCache: DataCaching {
             $0 + ($1.meta.totalFileAllocatedSize ?? 0)
         }
     }
-}
 
-// MARK: - DataCacheStaging
+    // MARK: - Staging
 
-/// DataCache allows for parallel reads and writes. This is made possible by
-/// DataCacheStaging.
-///
-/// For example, when the data is added in cache, it is first added to staging
-/// and is removed from staging only after data is written to disk. Removal works
-/// the same way.
-private final class DataCacheStaging {
-    private var changes = [String: Change]()
-    private var changeRemoveAll: ChangeRemoveAll?
+    /// DataCache allows for parallel reads and writes. This is made possible by
+    /// DataCacheStaging.
+    ///
+    /// For example, when the data is added in cache, it is first added to staging
+    /// and is removed from staging only after data is written to disk. Removal works
+    /// the same way.
+    private final class Staging {
+        private var changes = [String: Change]()
+        private var changeRemoveAll: ChangeRemoveAll?
 
-    struct ChangeRemoveAll {
-        let id: Int
-    }
-
-    struct Change {
-        let key: String
-        let id: Int
-        let type: ChangeType
-    }
-
-    enum ChangeType {
-        case add(Data)
-        case remove
-    }
-
-    private var nextChangeId = 0
-
-    // MARK: Changes
-
-    func change(for key: String) -> ChangeType? {
-        if let change = changes[key] {
-            return change.type
+        struct ChangeRemoveAll {
+            let id: Int
         }
-        if changeRemoveAll != nil {
-            return .remove
+
+        struct Change {
+            let key: String
+            let id: Int
+            let type: ChangeType
         }
-        return nil
-    }
 
-    // MARK: Register Changes
-
-    func add(data: Data, for key: String) -> Change {
-        return _makeChange(.add(data), for: key)
-    }
-
-    func removeData(for key: String) -> Change {
-        return _makeChange(.remove, for: key)
-    }
-
-    private func _makeChange(_ type: ChangeType, for key: String) -> Change {
-        nextChangeId += 1
-        let change = Change(key: key, id: nextChangeId, type: type)
-        changes[key] = change
-        return change
-    }
-
-    func removeAll() -> ChangeRemoveAll {
-        nextChangeId += 1
-        let change = ChangeRemoveAll(id: nextChangeId)
-        changeRemoveAll = change
-        changes.removeAll()
-        return change
-    }
-
-    // MARK: Flush Changes
-
-    func flushed(_ change: Change) {
-        if let index = changes.index(forKey: change.key),
-            changes[index].value.id == change.id {
-            changes.remove(at: index)
+        enum ChangeType {
+            case add(Data)
+            case remove
         }
-    }
 
-    func flushed(_ change: ChangeRemoveAll) {
-        if changeRemoveAll?.id == change.id {
-            changeRemoveAll = nil
+        private var nextChangeId = 0
+
+        // MARK: Changes
+
+        func change(for key: String) -> ChangeType? {
+            if let change = changes[key] {
+                return change.type
+            }
+            if changeRemoveAll != nil {
+                return .remove
+            }
+            return nil
+        }
+
+        // MARK: Register Changes
+
+        func add(data: Data, for key: String) -> Change {
+            return _makeChange(.add(data), for: key)
+        }
+
+        func removeData(for key: String) -> Change {
+            return _makeChange(.remove, for: key)
+        }
+
+        private func _makeChange(_ type: ChangeType, for key: String) -> Change {
+            nextChangeId += 1
+            let change = Change(key: key, id: nextChangeId, type: type)
+            changes[key] = change
+            return change
+        }
+
+        func removeAll() -> ChangeRemoveAll {
+            nextChangeId += 1
+            let change = ChangeRemoveAll(id: nextChangeId)
+            changeRemoveAll = change
+            changes.removeAll()
+            return change
+        }
+
+        // MARK: Flush Changes
+
+        func flushed(_ change: Change) {
+            if let index = changes.index(forKey: change.key),
+                changes[index].value.id == change.id {
+                changes.remove(at: index)
+            }
+        }
+
+        func flushed(_ change: ChangeRemoveAll) {
+            if changeRemoveAll?.id == change.id {
+                changeRemoveAll = nil
+            }
         }
     }
 }
