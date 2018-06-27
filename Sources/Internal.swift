@@ -609,3 +609,26 @@ extension Sequence {
     }
 }
 #endif
+
+#if swift(>=4.2)
+import CommonCrypto
+
+extension String {
+    /// Calculates SHA1 from the given string and returns its hex representation.
+    ///
+    /// ```swift
+    /// print("http://test.com".sha1)
+    /// // prints "50334ee0b51600df6397ce93ceed4728c37fee4e"
+    /// ```
+    var sha1: String? {
+        guard let input = self.data(using: .utf8) else {
+            return nil
+        }
+        var hash = [UInt8](repeating: 0, count: Int(CC_SHA1_DIGEST_LENGTH))
+        input.withUnsafeBytes {
+            _ = CC_SHA1($0, CC_LONG(input.count), &hash)
+        }
+        return hash.map({ String(format: "%02x", $0) }).joined()
+    }
+}
+#endif

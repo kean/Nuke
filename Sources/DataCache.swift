@@ -68,33 +68,64 @@ public final class DataCache: DataCaching {
     private let _lock = NSLock()
     private var _staging = Staging()
 
-    // Persistence
     /* testable */ let _wqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue")
     private let _rqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.ReadQueue")
-    
-    // Temporary
-    var _keyEncoder: (String) -> String? = { return $0 }
 
+    /// A function which generates a filename for the given key. A good candidate
+    /// for a filename generator is a _cryptographic_ hash function like SHA1.
+    ///
+    /// The reason why filename needs to be generated in the first place is
+    /// that filesystems have a size limit for filenames (e.g. 255 UTF-8 characters
+    /// in AFPS) and do not allow certain characters to be used in filenames.
+    public typealias FilenameGenerator = (_ key: String) -> String?
+
+    private let _filenameGenerator: FilenameGenerator
+
+    #if swift(>=4.2)
     /// Creates a cache instance with a given `name`. The cache creates a directory
     /// with the given `name` in a `.cachesDirectory` in `.userDomainMask`.
-    ///
-    /// - warning: Multiple instances with the same path are *not* allowed as they
-    /// would conflict with each other.
-    public convenience init(name: String) throws {
+    /// - parameter filenameGenerator: Generates a filename for the given URL.
+    /// The default implementation generates a filename using SHA1 hash function.
+    public convenience init(name: String, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
         guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
         }
-        try self.init(path: root.appendingPathComponent(name, isDirectory: true))
+        try self.init(path: root.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator)
     }
 
     /// Creates a cache instance with a given path.
-    ///
-    /// - warning: Multiple instances with the same path are *not* allowed as they
-    /// would conflict with each other.
-    public init(path: URL) throws {
+    /// - parameter filenameGenerator: Generates a filename for the given URL.
+    /// The default implementation generates a filename using SHA1 hash function.
+    public init(path: URL, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
         self.path = path
+        self._filenameGenerator = filenameGenerator
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
     }
+
+    /// A `FilenameGenerator` implementation which uses SHA1 hash function to
+    /// generate a filename from the given key.
+    public static func filename(for key: String) -> String? {
+        return key.sha1
+    }
+    #else
+    /// Creates a cache instance with a given `name`. The cache creates a directory
+    /// with the given `name` in a `.cachesDirectory` in `.userDomainMask`.
+    /// - parameter filenameGenerator: Generates a filename for the given URL.
+    public convenience init(name: String, filenameGenerator: @escaping (String) -> String?) throws {
+        guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
+        }
+        try self.init(path: root.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator)
+    }
+
+    /// Creates a cache instance with a given path.
+    /// - parameter filenameGenerator: Generates a filename for the given URL.
+    public init(path: URL, filenameGenerator: @escaping (String) -> String?) throws {
+        self.path = path
+        self._filenameGenerator = filenameGenerator
+        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
+    }
+    #endif
 
     // MARK: DataCaching
 
@@ -204,8 +235,8 @@ public final class DataCache: DataCaching {
 
     // MARK: Managing URLs
 
-    func filename(for key: Key) -> String? {
-        return _keyEncoder(key)
+    public func filename(for key: Key) -> String? {
+        return _filenameGenerator(key)
     }
 
     private func _url(for key: Key) -> URL? {

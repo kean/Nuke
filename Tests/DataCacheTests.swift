@@ -13,10 +13,12 @@ class DataCacheTests: XCTestCase {
     var cache: DataCache!
 
     override func setUp() {
-        cache = try! DataCache(name: UUID().uuidString)
         // Make sure that file names are different from the keys so that we
         // could know for sure that keyEncoder works as expected.
-        cache._keyEncoder = { String($0.reversed()) }
+        cache = try! DataCache(
+            name: UUID().uuidString,
+            filenameGenerator: { String($0.reversed()) }
+        )
     }
 
     override func tearDown() {
@@ -30,7 +32,7 @@ class DataCacheTests: XCTestCase {
         let name = UUID().uuidString
 
         // When
-        let cache = try! DataCache(name: name)
+        let cache = try! DataCache(name: name, filenameGenerator: { $0 })
 
         // Then
         XCTAssertEqual(cache.path.lastPathComponent, name)
@@ -43,12 +45,26 @@ class DataCacheTests: XCTestCase {
         let path = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!.appendingPathComponent(name)
 
         // When
-        let cache = try! DataCache(path: path)
+        let cache = try! DataCache(path: path, filenameGenerator: { $0 })
 
         // Then
         XCTAssertEqual(cache.path, path)
         XCTAssertNotNil(FileManager.default.fileExists(atPath: path.absoluteString))
     }
+
+    // MARK: Default Key Encoder
+
+    #if swift(>=4.2)
+    func testDefaultKeyEncoder() {
+        let cache = try! DataCache(name: UUID().uuidString)
+        let filename = cache.filename(for: "http://test.com")
+        XCTAssertEqual(filename, "50334ee0b51600df6397ce93ceed4728c37fee4e")
+    }
+
+    func testSHA1() {
+        XCTAssertEqual("http://test.com".sha1, "50334ee0b51600df6397ce93ceed4728c37fee4e")
+    }
+    #endif
 
     // MARK: Add
 
@@ -343,7 +359,7 @@ class DataCacheTests: XCTestCase {
 
     func testSweep() {
         // Given
-        cache = try! DataCache(path: cache.path)
+        cache = try! DataCache(path: cache.path, filenameGenerator: { $0 })
         cache.countLimit = 4 // we test count limit here
         cache.trimRatio = 0.5 // 1 item should remaing after trim
         cache.sizeLimit = Int.max
