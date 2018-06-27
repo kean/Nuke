@@ -137,6 +137,8 @@ internal final class Operation: Foundation.Operation {
         }
     }
 
+    private var _didFinish: Int32 = 0
+
     override var isExecuting: Bool {
         return queue.sync { _state == .executing }
     }
@@ -159,16 +161,15 @@ internal final class Operation: Foundation.Operation {
         }
         _setState(.executing)
         starter { [weak self] in
-            DispatchQueue.main.async { self?._finish() }
+            self?._finish()
         }
     }
 
-    // Calls to _finish() are syncrhonized on the main thread. This way we
-    // guarantee that `starter` doesn't finish operation more than once.
-    // Other paths are also guaranteed to be safe.
     private func _finish() {
-        guard _state != .finished else { return }
-        _setState(.finished)
+        // Make sure that we ignore if `finish` is called more than once.
+        if OSAtomicCompareAndSwap32Barrier(0, 1, &_didFinish) {
+            _setState(.finished)
+        }
     }
 }
 
