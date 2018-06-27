@@ -10,7 +10,10 @@ import Foundation
 ///
 /// - warning: The implementation must be thread safe.
 public protocol DataCaching {
+    /// Retrieves data from cache for the given key.
     func cachedData(for key: String, _ completion: @escaping (Data?) -> Void) -> Cancellable
+
+    /// Stores data for the given key.
     func storeData(_ data: Data, for key: String)
 }
 
@@ -22,9 +25,9 @@ public protocol DataCaching {
 /// first). The elements stored in the cache are automatically discarded if
 /// either *cost* or *count* limit is reached. The sweeps are performed periodically.
 ///
-/// DataCache always writes data asynchronously. It also allows for parallel
-/// reads of data. This is achieved using a "staging" area which stores changes
-/// until they are flushed to disk:
+/// DataCache always writes and removes data asynchronously. It also allows for
+/// reading and writing data in parallel. This is implemented using a "staging"
+/// area which stores changes until they are flushed to disk:
 ///
 ///     // Schedules data to be written asynchronously and returns immediately
 ///     cache[key] = data
@@ -43,13 +46,18 @@ public protocol DataCaching {
 /// - warning: It's possible to have more than one instance of `DataCache` with
 /// the same `path` but it is not recommended.
 public final class DataCache: DataCaching {
+    /// A cache key.
     public typealias Key = String
 
     /// The maximum number of items. `1000` by default.
-    internal var countLimit: Int = 1000
+    ///
+    /// Changes tos `countLimit` will take effect when the next LRU sweep is run.
+    public var countLimit: Int = 1000
 
     /// Size limit in bytes. `100 Mb` by default.
-    internal var sizeLimit: Int = 1024 * 1024 * 100
+    ///
+    /// Changes to `sizeLimit` will take effect when the next LRU sweep is run.
+    public var sizeLimit: Int = 1024 * 1024 * 100
 
     /// When performing a sweep, the cache will remote entries until the size of
     /// the remaining items is lower than or equal to `sizeLimit * trimRatio` and
@@ -57,12 +65,15 @@ public final class DataCache: DataCaching {
     /// by default.
     internal var trimRatio = 0.7
 
-    /// The path managed by cache.
-    internal let path: URL
+    /// The path for the directory managed by the cache.
+    public let path: URL
 
-    /// The number of seconds between each discard sweep. 30 by default.
-    /// The first sweep is run right after the cache is initialzied.
-    var sweepInterval: TimeInterval = 30
+    /// The number of seconds between each LRU sweep. 30 by default.
+    /// The first sweep is performed right after the cache is initialized.
+    ///
+    /// Sweeps are performed in a background and can be performed in parallel
+    /// with reading.
+    public var sweepInterval: TimeInterval = 30
 
     // Staging
     private let _lock = NSLock()
@@ -87,25 +98,25 @@ public final class DataCache: DataCaching {
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
     public convenience init(name: String, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
-        guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
-        }
-        try self.init(path: root.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator)
+    guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+    throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
+    }
+    try self.init(path: root.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator)
     }
 
     /// Creates a cache instance with a given path.
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
     public init(path: URL, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
-        self.path = path
-        self._filenameGenerator = filenameGenerator
-        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
+    self.path = path
+    self._filenameGenerator = filenameGenerator
+    try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
     }
 
     /// A `FilenameGenerator` implementation which uses SHA1 hash function to
     /// generate a filename from the given key.
     public static func filename(for key: String) -> String? {
-        return key.sha1
+    return key.sha1
     }
     #else
     /// Creates a cache instance with a given `name`. The cache creates a directory
@@ -129,12 +140,12 @@ public final class DataCache: DataCaching {
 
     // MARK: DataCaching
 
-    /// Retrieves data from cache for the given key. The completion will be called
+    /// Retrieves data for the given key. The completion will be called
     /// syncrhonously if there is no cached data for the given key.
     @discardableResult
     public func cachedData(for key: Key, _ completion: @escaping (Data?) -> Void) -> Cancellable {
         let work = DispatchWorkItem { [weak self] in
-            completion(self?[key])
+            completion(self?._getData(for: key))
         }
         _rqueue.async(execute: work)
         return work
@@ -143,17 +154,38 @@ public final class DataCache: DataCaching {
     /// Stores data for the given key. The method returns instantly and the data
     /// is written asyncrhonously.
     public func storeData(_ data: Data, for key: Key) {
-        self[key] = data
+        _setData(data: data, for: key)
     }
 
     /// Removes data for the given key. The method returns instantly, the data
     /// is removed asyncrhonously.
     public func removeData(for key: Key) {
-        self[key] = nil
+        _removeData(for: key)
     }
 
-    // MARK: Data Accessors
+    // MARK: Subscipt
 
+    /// Accesses the data associated with the given key for reading and writing.
+    ///
+    /// When you assign a new data for a key and the key already exists, the cache
+    /// overwrites the existing data.
+    ///
+    /// When assigning or removing data, the subscript adds a requested operation
+    /// in a staging area and returns immediately. The staging area allows for
+    /// reading and writing data in parallel.
+    ///
+    ///     // Schedules data to be written asynchronously and returns immediately
+    ///     cache[key] = data
+    ///
+    ///     // The data is returned from the staging area
+    ///     let data = cache[key]
+    ///
+    ///     // Schedules data to be removed asynchronously and returns immediately
+    ///     cache[key] = nil
+    ///
+    ///     // Data is nil
+    ///     let data = cache[key]
+    ///
     subscript(key: Key) -> Data? {
         get {
             return _getData(for: key)
@@ -185,9 +217,7 @@ public final class DataCache: DataCaching {
         guard let url = _url(for: key) else {
             return nil
         }
-        return _wqueue.sync {
-            return try? Data(contentsOf: url)
-        }
+        return try? Data(contentsOf: url)
     }
 
     private func _setData(data: Data, for key: Key) {
@@ -220,7 +250,7 @@ public final class DataCache: DataCaching {
 
     /// Removes all items. The method returns instantly, the data is removed
     /// asyncrhonously.
-    internal func removeAll() {
+    public func removeAll() {
         _lock.sync {
             let change = _staging.removeAll()
             _wqueue.async {
@@ -235,6 +265,8 @@ public final class DataCache: DataCaching {
 
     // MARK: Managing URLs
 
+    /// Uses the `FilenameGenerator` that the cache was initialized with to
+    /// generate and return a filename for the given key.
     public func filename(for key: Key) -> String? {
         return _filenameGenerator(key)
     }
@@ -250,7 +282,7 @@ public final class DataCache: DataCaching {
 
     /// Synchronously waits on the caller's thread until all outstanding disk IO
     /// operations are finished.
-    public func flush() {
+    func flush() {
         _wqueue.sync {}
     }
 
