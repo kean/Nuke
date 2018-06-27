@@ -71,7 +71,7 @@ Nuke.loadImage(
     with: url,
     options: ImageLoadingOptions(
         placeholder: UIImage(named: "placeholder"),
-        transition: .fadeIn(0.33)
+        transition: .fadeIn(duration: 0.33)
     ),
     into: imageView
 )
