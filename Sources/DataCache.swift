@@ -98,25 +98,25 @@ public final class DataCache: DataCaching {
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
     public convenience init(name: String, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
-    guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-    throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
-    }
-    try self.init(path: root.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator)
+        guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
+        }
+        try self.init(path: root.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator)
     }
 
     /// Creates a cache instance with a given path.
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
     public init(path: URL, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
-    self.path = path
-    self._filenameGenerator = filenameGenerator
-    try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
+        self.path = path
+        self._filenameGenerator = filenameGenerator
+        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
     }
 
     /// A `FilenameGenerator` implementation which uses SHA1 hash function to
     /// generate a filename from the given key.
     public static func filename(for key: String) -> String? {
-    return key.sha1
+        return key.sha1
     }
     #else
     /// Creates a cache instance with a given `name`. The cache creates a directory
