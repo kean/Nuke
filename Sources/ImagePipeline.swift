@@ -185,12 +185,7 @@ public /* final */ class ImagePipeline {
         /// `false` by default (to preserve resources).
         public static var isAnimatedImageDataEnabled = false
 
-        /// Enables experimental disk cache. The created disk cache is shared.
-        /// If you call this function multiple times the shared cache is going to use
-        /// the initial count and size limits. The public API for disk cache is
-        /// going to be available in the future versions when it goes out of beta.
-        /// - parameter countLimit: The maximum number of items. `1000` by default.
-        /// - parameter sizeLimit: Size limit in bytes. `100 Mb` by default.
+        @available(*, deprecated, message: "Please create a `DataCache` instance and set it as a `configuration.dataCache` instead.")
         public mutating func enableExperimentalAggressiveDiskCaching(countLimit: Int = 1000, sizeLimit: Int = 1024 * 1024 * 100, keyEncoder: @escaping (String) -> String?) {
             if Configuration.sharedDataCache == nil {
                 let cache = try? DataCache(name: "com.github.kean.Nuke.DataCache", filenameGenerator: keyEncoder)
@@ -377,7 +372,7 @@ public /* final */ class ImagePipeline {
 
         session.metrics.checkDiskCacheStartDate = Date()
 
-        // Disk cache lookup (Experimenal)
+        // Disk cache lookup
         let task = cache.cachedData(for: key) { [weak self, weak session] data in
             guard let session = session else { return }
             session.metrics.checkDiskCacheEndDate = Date()
