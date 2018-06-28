@@ -21,8 +21,8 @@ final class CustomCacheDemoViewController: BasicDemoViewController {
 }
 
 extension DFCache: DataCaching {
-    public func cachedData(for key: String, _ completion: @escaping (Data?) -> Void) {
-        self.cachedData(forKey: key, completion: completion)
+    public func cachedData(for key: String) -> Data? {
+        return self.cachedData(forKey: key)
     }
 
     public func storeData(_ data: Data, for key: String) {

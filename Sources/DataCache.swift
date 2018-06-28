@@ -11,9 +11,11 @@ import Foundation
 /// - warning: The implementation must be thread safe.
 public protocol DataCaching {
     /// Retrieves data from cache for the given key.
-    func cachedData(for key: String, _ completion: @escaping (Data?) -> Void)
+    func cachedData(for key: String) -> Data?
 
     /// Stores data for the given key.
+    /// - note: The implementation must return immediately and store data
+    /// asynchronously.
     func storeData(_ data: Data, for key: String)
 }
 
@@ -80,7 +82,6 @@ public final class DataCache: DataCaching {
     private var _staging = Staging()
 
     /* testable */ let _wqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue")
-    private let _rqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.ReadQueue")
 
     /// A function which generates a filename for the given key. A good candidate
     /// for a filename generator is a _cryptographic_ hash function like SHA1.
@@ -142,10 +143,8 @@ public final class DataCache: DataCaching {
 
     /// Retrieves data for the given key. The completion will be called
     /// syncrhonously if there is no cached data for the given key.
-    public func cachedData(for key: Key, _ completion: @escaping (Data?) -> Void) {
-        _rqueue.async {
-            completion(self._getData(for: key))
-        }
+    public func cachedData(for key: Key) -> Data? {
+        return _getData(for: key)
     }
 
     /// Stores data for the given key. The method returns instantly and the data

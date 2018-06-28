@@ -316,13 +316,8 @@ class DataCacheTests: XCTestCase {
             cache["key"] = blob
 
             // When/Then
-            let expectation = self.expectation(description: "Data returned")
-            cache.cachedData(for: "key") { (data) in
-                expectation.fulfill()
-                XCTAssertEqual(data, blob)
-            }
-
-            wait()
+            let data = cache.cachedData(for: "key")
+            XCTAssertEqual(data, blob)
         }
     }
 
@@ -332,12 +327,8 @@ class DataCacheTests: XCTestCase {
         cache.flush()
 
         // When/Then
-        let expectation = self.expectation(description: "Data returned")
-        cache.cachedData(for: "key") { (data) in
-            expectation.fulfill()
-            XCTAssertEqual(data, blob)
-        }
-        wait()
+        let data = cache.cachedData(for: "key")
+        XCTAssertEqual(data, blob)
     }
 
     // MARK: Flush

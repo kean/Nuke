@@ -376,20 +376,18 @@ public /* final */ class ImagePipeline {
 
         session.metrics.checkDiskCacheStartDate = Date()
 
-        let operation = Operation(starter: { [weak self, weak session] finish in
-            cache.cachedData(for: key) { data in
-                guard let session = session else { finish(); return }
-                session.metrics.checkDiskCacheEndDate = Date()
-                self?.queue.async {
-                    finish()
-                    if let data = data {
-                        self?._decodeFinalImage(for: session, data: data)
-                    } else {
-                        self?._loadData(for: session)
-                    }
+        let operation = BlockOperation { [weak self, weak session] in
+            guard let session = session else { return }
+            let data = cache.cachedData(for: key)
+            session.metrics.checkDiskCacheEndDate = Date()
+            self?.queue.async {
+                if let data = data {
+                    self?._decodeFinalImage(for: session, data: data)
+                } else {
+                    self?._loadData(for: session)
                 }
             }
-        })
+        }
 
         _session(session, enqueue: operation, on: configuration.dataCachingQueue)
     }
