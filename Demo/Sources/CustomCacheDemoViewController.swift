@@ -21,12 +21,8 @@ final class CustomCacheDemoViewController: BasicDemoViewController {
 }
 
 extension DFCache: DataCaching {
-    public func cachedData(for key: String, _ completion: @escaping (Data?) -> Void) -> Cancellable {
-        class NoOpCancellable: Cancellable {
-            func cancel() {}
-        }
+    public func cachedData(for key: String, _ completion: @escaping (Data?) -> Void) {
         self.cachedData(forKey: key, completion: completion)
-        return NoOpCancellable()
     }
 
     public func storeData(_ data: Data, for key: String) {

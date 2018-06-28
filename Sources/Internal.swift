@@ -539,14 +539,6 @@ internal struct Printer {
 
 // MARK: - Misc
 
-final class NoOpCancellable: Cancellable {
-    func cancel() {
-        return // Do nothing
-    }
-}
-
-extension DispatchWorkItem: Cancellable {}
-
 struct TaskMetrics {
     var startDate: Date? = nil
     var endDate: Date? = nil

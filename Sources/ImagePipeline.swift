@@ -136,6 +136,12 @@ public /* final */ class ImagePipeline {
         /// Data loading queue. Default maximum concurrent task count is 6.
         public var dataLoadingQueue = OperationQueue()
 
+        /// Data cache used by the pipeline.
+        public var dataCache: DataCaching?
+
+        /// Data caching queue. Default maximum concurrent task count is 2.
+        public var dataCachingQueue = OperationQueue()
+
         /// Default implementation uses shared `ImageDecoderRegistry` to create
         /// a decoder that matches the context.
         internal var imageDecoder: (ImageDecodingContext) -> ImageDecoding = {
@@ -144,9 +150,6 @@ public /* final */ class ImagePipeline {
 
         /// Image decoding queue. Default maximum concurrent task count is 1.
         public var imageDecodingQueue = OperationQueue()
-
-        /// Data cache used by the pipeline.
-        public var dataCache: DataCaching?
 
         /// This is here just for backward compatibility with `Loader`.
         internal var imageProcessor: (Image, ImageRequest) -> AnyImageProcessor? = { $1.processor }
@@ -206,6 +209,7 @@ public /* final */ class ImagePipeline {
             self.imageCache = imageCache
 
             self.dataLoadingQueue.maxConcurrentOperationCount = 6
+            self.dataCachingQueue.maxConcurrentOperationCount = 2
             self.imageDecodingQueue.maxConcurrentOperationCount = 1
             self.imageProcessingQueue.maxConcurrentOperationCount = 2
         }
@@ -372,19 +376,22 @@ public /* final */ class ImagePipeline {
 
         session.metrics.checkDiskCacheStartDate = Date()
 
-        // Disk cache lookup
-        let task = cache.cachedData(for: key) { [weak self, weak session] data in
-            guard let session = session else { return }
-            session.metrics.checkDiskCacheEndDate = Date()
-            self?.queue.async {
-                if let data = data {
-                    self?._decodeFinalImage(for: session, data: data)
-                } else {
-                    self?._loadData(for: session)
+        let operation = Operation(starter: { [weak self, weak session] finish in
+            cache.cachedData(for: key) { data in
+                guard let session = session else { finish(); return }
+                session.metrics.checkDiskCacheEndDate = Date()
+                self?.queue.async {
+                    finish()
+                    if let data = data {
+                        self?._decodeFinalImage(for: session, data: data)
+                    } else {
+                        self?._loadData(for: session)
+                    }
                 }
             }
-        }
-        session.token.register { task.cancel() }
+        })
+
+        _session(session, enqueue: operation, on: configuration.dataCachingQueue)
     }
 
     private func _loadData(for session: ImageLoadingSession) {

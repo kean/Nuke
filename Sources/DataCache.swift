@@ -11,7 +11,7 @@ import Foundation
 /// - warning: The implementation must be thread safe.
 public protocol DataCaching {
     /// Retrieves data from cache for the given key.
-    func cachedData(for key: String, _ completion: @escaping (Data?) -> Void) -> Cancellable
+    func cachedData(for key: String, _ completion: @escaping (Data?) -> Void)
 
     /// Stores data for the given key.
     func storeData(_ data: Data, for key: String)
@@ -142,13 +142,10 @@ public final class DataCache: DataCaching {
 
     /// Retrieves data for the given key. The completion will be called
     /// syncrhonously if there is no cached data for the given key.
-    @discardableResult
-    public func cachedData(for key: Key, _ completion: @escaping (Data?) -> Void) -> Cancellable {
-        let work = DispatchWorkItem { [weak self] in
-            completion(self?._getData(for: key))
+    public func cachedData(for key: Key, _ completion: @escaping (Data?) -> Void) {
+        _rqueue.async {
+            completion(self._getData(for: key))
         }
-        _rqueue.async(execute: work)
-        return work
     }
 
     /// Stores data for the given key. The method returns instantly and the data
