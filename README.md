@@ -283,7 +283,7 @@ let task = ImagePipeline.shared.loadImage(
 )
 ```
 
-> See "Progressive Decoding" demo to see progressive JPEG in practice. You can also uncomment the code that blurs the first few scans of the image which makes them look a bit nicer.
+> See "Progressive Decoding" demo to see progressive JPEG in practice.
 
 #### Animated Images
 

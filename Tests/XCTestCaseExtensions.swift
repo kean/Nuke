@@ -129,6 +129,14 @@ struct TestExpectationOperation {
         }
         check()
     }
+
+    func toUpdatePriority(from: Operation.QueuePriority = .normal, to: Operation.QueuePriority = .high) {
+        XCTAssertEqual(operation.queuePriority, from)
+        test.keyValueObservingExpectation(for: operation, keyPath: "queuePriority") { (_, _) in
+            XCTAssertEqual(self.operation.queuePriority, to)
+            return true
+        }
+    }
 }
 
 extension XCTestCase {

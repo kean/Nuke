@@ -143,16 +143,8 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till the operation is created.
 
         // When/Then
-        let operation = observer.operations.first
-        XCTAssertNotNil(operation)
-        self.keyValueObservingExpectation(for: operation!, keyPath: "queuePriority") { (_, _) in
-            XCTAssertEqual(operation?.queuePriority, .high)
-            return true
-        }
-
-        XCTAssertEqual(task.request.priority, .normal)
+        expect(observer.operations.first!).toUpdatePriority()
         task.setPriority(.high)
-        XCTAssertEqual(task.request.priority, .high)
 
         wait()
     }
@@ -171,16 +163,8 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till the operation is created.
 
         // When/Then
-        let operation = observer.operations.first
-        XCTAssertNotNil(operation)
-        self.keyValueObservingExpectation(for: operation!, keyPath: "queuePriority") { (_, _) in
-            XCTAssertEqual(operation?.queuePriority, .high)
-            return true
-        }
-
-        XCTAssertEqual(task.request.priority, .normal)
+        expect(observer.operations.first!).toUpdatePriority()
         task.setPriority(.high)
-        XCTAssertEqual(task.request.priority, .high)
 
         wait()
     }
@@ -199,16 +183,8 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till the operation is created.
 
         // When/Then
-        let operation = observer.operations.first
-        XCTAssertNotNil(operation)
-        self.keyValueObservingExpectation(for: operation!, keyPath: "queuePriority") { (_, _) in
-            XCTAssertEqual(operation?.queuePriority, .high)
-            return true
-        }
-
-        XCTAssertEqual(task.request.priority, .normal)
+        expect(observer.operations.first!).toUpdatePriority()
         task.setPriority(.high)
-        XCTAssertEqual(task.request.priority, .high)
 
         wait()
     }

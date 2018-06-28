@@ -17,10 +17,10 @@ enum Test {
 
     static let url = URL(string: "http://test.com")!
 
+    static let data: Data = Test.data(name: "fixture", extension: "jpeg")
+
     static let image: Image = {
-        let bundle = Bundle(for: BundleToken.self)
-        let URL = bundle.url(forResource: "fixture", withExtension: "jpeg")
-        let data = try! Data(contentsOf: URL!)
+        let data = Test.data(name: "fixture", extension: "jpeg")
         return Nuke.ImageDecoder().decode(data: data, isFinal: true)!
     }()
 
