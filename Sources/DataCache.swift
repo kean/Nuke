@@ -144,58 +144,6 @@ public final class DataCache: DataCaching {
     /// Retrieves data for the given key. The completion will be called
     /// syncrhonously if there is no cached data for the given key.
     public func cachedData(for key: Key) -> Data? {
-        return _getData(for: key)
-    }
-
-    /// Stores data for the given key. The method returns instantly and the data
-    /// is written asyncrhonously.
-    public func storeData(_ data: Data, for key: Key) {
-        _setData(data: data, for: key)
-    }
-
-    /// Removes data for the given key. The method returns instantly, the data
-    /// is removed asyncrhonously.
-    public func removeData(for key: Key) {
-        _removeData(for: key)
-    }
-
-    // MARK: Subscipt
-
-    /// Accesses the data associated with the given key for reading and writing.
-    ///
-    /// When you assign a new data for a key and the key already exists, the cache
-    /// overwrites the existing data.
-    ///
-    /// When assigning or removing data, the subscript adds a requested operation
-    /// in a staging area and returns immediately. The staging area allows for
-    /// reading and writing data in parallel.
-    ///
-    ///     // Schedules data to be written asynchronously and returns immediately
-    ///     cache[key] = data
-    ///
-    ///     // The data is returned from the staging area
-    ///     let data = cache[key]
-    ///
-    ///     // Schedules data to be removed asynchronously and returns immediately
-    ///     cache[key] = nil
-    ///
-    ///     // Data is nil
-    ///     let data = cache[key]
-    ///
-    subscript(key: Key) -> Data? {
-        get {
-            return _getData(for: key)
-        }
-        set {
-            if let data = newValue {
-                _setData(data: data, for: key)
-            } else {
-                _removeData(for: key)
-            }
-        }
-    }
-
-    private func _getData(for key: Key) -> Data? {
         _lock.lock()
 
         if let change = _staging.change(for: key) {
@@ -216,7 +164,9 @@ public final class DataCache: DataCaching {
         return try? Data(contentsOf: url)
     }
 
-    private func _setData(data: Data, for key: Key) {
+    /// Stores data for the given key. The method returns instantly and the data
+    /// is written asyncrhonously.
+    public func storeData(_ data: Data, for key: Key) {
         _lock.sync {
             let change = _staging.add(data: data, for: key)
             _wqueue.async {
@@ -230,7 +180,9 @@ public final class DataCache: DataCaching {
         }
     }
 
-    private func _removeData(for key: Key) {
+    /// Removes data for the given key. The method returns instantly, the data
+    /// is removed asyncrhonously.
+    public func removeData(for key: Key) {
         _lock.sync {
             let change = _staging.removeData(for: key)
             _wqueue.async {
@@ -255,6 +207,40 @@ public final class DataCache: DataCaching {
                 self._lock.sync {
                     self._staging.flushed(change)
                 }
+            }
+        }
+    }
+
+    /// Accesses the data associated with the given key for reading and writing.
+    ///
+    /// When you assign a new data for a key and the key already exists, the cache
+    /// overwrites the existing data.
+    ///
+    /// When assigning or removing data, the subscript adds a requested operation
+    /// in a staging area and returns immediately. The staging area allows for
+    /// reading and writing data in parallel.
+    ///
+    ///     // Schedules data to be written asynchronously and returns immediately
+    ///     cache[key] = data
+    ///
+    ///     // The data is returned from the staging area
+    ///     let data = cache[key]
+    ///
+    ///     // Schedules data to be removed asynchronously and returns immediately
+    ///     cache[key] = nil
+    ///
+    ///     // Data is nil
+    ///     let data = cache[key]
+    ///
+    subscript(key: Key) -> Data? {
+        get {
+            return cachedData(for: key)
+        }
+        set {
+            if let data = newValue {
+                storeData(data, for: key)
+            } else {
+                removeData(for: key)
             }
         }
     }
