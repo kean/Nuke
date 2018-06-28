@@ -135,11 +135,10 @@ class DataCachePeformanceTests: XCTestCase {
     var cache: DataCache!
 
     override func setUp() {
-        cache = try! DataCache(name: UUID().uuidString)
-        cache._keyEncoder = {
+        cache = try! DataCache(name: UUID().uuidString, filenameGenerator: {
             guard let data = $0.cString(using: .utf8) else { return "" }
             return _nuke_sha1(data, UInt32(data.count))
-        }
+        })
         _ = cache["key"] // Wait till index is loaded.
     }
 
@@ -147,64 +146,21 @@ class DataCachePeformanceTests: XCTestCase {
         try? FileManager.default.removeItem(at: cache.path)
     }
 
-    func testMissPerformance() {
-        measure {
-            for idx in 0..<10_000 {
-                _ = self.cache["\(idx)"]
-            }
-        }
-    }
-
-    func testWritePeformance() {
-        cache._withSuspendedIO {
-            let dummy = "123".data(using: .utf8)
-
-            measure {
-                for idx in 0..<10_000 {
-                    self.cache["\(idx)"] = dummy
-                }
-            }
-        }
-    }
-
-    func testReadPerformance() {
-        cache._withSuspendedIO {
-            for idx in 0..<10_000 {
-                cache["\(idx)"] = "123".data(using: .utf8)
-            }
-
-            measure {
-                for idx in 0..<10_000 {
-                    _ = self.cache["\(idx)"]
-                }
-            }
-        }
-    }
-
     func testReadFlushedPerformance() {
-        for idx in 0..<200 {
+        for idx in 0..<1000 {
             cache["\(idx)"] = Data(repeating: 1, count: 256 * 1024)
         }
         cache.flush()
 
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 2
         measure {
-            for idx in 0..<200 {
-                _ = self.cache["\(idx)"]
+            for idx in 0..<1000 {
+                queue.addOperation {
+                    _ = self.cache["\(idx)"]
+                }
             }
-        }
-    }
-
-    func testIndexLoadingPerformance() {
-        for _ in 0..<1_000 {
-            // Create a realistic-looking key
-            let key = "http://example.com/images/" + UUID().uuidString + ".jpeg" + "?width=150&height=300"
-            cache[key] = Data(repeating: 1, count: 64 * 1024)
-        }
-        cache.flush()
-
-        measure {
-            let cache = try! DataCache(path: self.cache.path)
-            _ = cache["1"] // Wait till index is loaded.
+            queue.waitUntilAllOperationsAreFinished()
         }
     }
 }
