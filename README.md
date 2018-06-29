@@ -26,7 +26,7 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
   - [Image Requests](#image-requests), [Process an Image](#process-an-image)
   - [Image Pipeline](#image-pipeline), [Configuring Image Pipeline](#configuring-image-pipeline)
 - [**Advanced Usage Guide**](#advanced-usage)
-  - [Memory Cache](#memory-cache), [HTTP Disk Cache](#http-disk-cache), [Aggressive Disk Cache (Beta)](#aggressive-disk-cache-experimental)
+  - [Memory Cache](#memory-cache), [HTTP Disk Cache](#http-disk-cache), [Aggressive Disk Cache](#aggressive-disk-cache)
   - [Preheat Images](#preheat-images)
   - [Progressive Decoding](#progressive-decoding), [Animated Images](#animated-images), [WebP](#webp)
   - [RxNuke](#rxnuke)
@@ -217,22 +217,18 @@ DataLoader.sharedUrlCache.removeCachedResponse(for: request.urlRequest)
 DataLoader.sharedUrlCache.removeAllCachedResponses()
 ```
 
-#### Aggressive Disk Cache (Beta)
+#### Aggressive Disk Cache
 
-A custom LRU disk cache can be used for fast and reliable *aggressive* data caching (ignores [HTTP cache control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control)). Enable it using pipeline's configuration.
+A custom LRU disk cache can be used for fast and reliable *aggressive* data caching (ignores [HTTP cache control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control)). You can enable it using pipeline's configuration.
 
 ```swift
-$0.enableExperimentalAggressiveDiskCaching(keyEncoder: {
-    guard let data = $0.cString(using: .utf8) else { return nil }
-    return _nuke_sha1(data, UInt32(data.count))
-})
+$0.dataCache = try! DataCache(name: "com.myapp.datacache")
+// On Swift 4.1 and lower you'll also need to provide a `FilenameGenerator`.
 ```
 
-> If you enable aggressive disk cache, make sure that you also disable native URL cache (see `DataLoader`), or you might end up storing the same image data twice.
+If you enable aggressive disk cache, make sure that you also disable native URL cache (see `DataLoader`), or you might end up storing the same image data twice.
 
-When enabling disk cache you must provide a `keyEncoder` function which takes image request's url as a parameter and produces a key which can be used as a valid filename. The [demo project uses sha1](https://gist.github.com/kean/f5e1975e01d5e0c8024bc35556665d7b) to generate those keys.
-
-> The public API for the disk cache is going to be available in the future versions. See `DataCaching` protocol for implementing custom disk caches.
+> `DataCache` type implements public `DataCaching` protocol which can be used for implementing custom data caches.
 
 #### Preheat Images
 
@@ -429,23 +425,13 @@ By default `ImagePipeline` combines the requests for the same image (but can be 
 <a name="h_performance"></a>
 # Performance
 
-Performance is one of the key differentiating factors for Nuke. There are four key components of its performance:
+Performance is one of the key differentiating factors for Nuke.
 
-### Main-Thread Performance
+The framework is tuned to do as little work on the main thread as possible. It uses multiple optimizations techniques to achieve that: reducing number of allocations, reducing dynamic dispatch, backing some structs by reference typed storage to reduce ARC overhead, etc.
 
-The framework has been tuned to do very little work on the main thread. There are a number of optimizations techniques that were used to achieve that including: reducing number of allocations, reducing dynamic dispatch, backing some structs by reference typed storage to reduce ARC overhead, etc.
+Nuke is fully asynchronous and works great under stress. `ImagePipeline` schedules each of its stages on a dedicated queue. Each queue limits the number of concurrent tasks, respect request priorities even when moving between queue, and cancels the work as soon as possible. Under certain loads, `ImagePipeline` will also rate limit the requests to prevent trashing of the underlying systems.
 
-### Robustness Under Stress
-
-A common use case is to dynamically start and cancel requests for a collection view full of images when scrolling at a high speed. There are a number of components that ensure robustness in those kinds of scenarios:
-
-- `ImagePipeline` schedules each of its stages on a dedicated queue. Each queue limits the number of concurrent tasks. This way we don't use too much system resources at any given moment and each stage doesn't block the other. For example, if the image doesn't require processing, it doesn't go through the processing queue.
-- Under stress `ImagePipeline` will rate limit the requests to prevent trashing of the underlying systems (e.g. `URLSession`).
-
-### Memory Usage
-
-- Nuke tries to free memory as early as possible.
-- Memory cache uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. It has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `ImageCache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
+Another important performance characteristic is memory usage. Nuke uses a custom memory cache with [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. It has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `ImageCache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
 
 ### Performance Metrics (Beta)
 
@@ -506,7 +492,7 @@ There are a variety extensions available for Nuke some of which are built by the
 <a name="h_contribute"></a>
 # Contribution
 
-[Nuke's roadmap](https://trello.com/b/Us4rHryT/nuke) is managed in Trello and is publically available. The roadmap is flexible. Feel free to leave your feedback.
+[Nuke's roadmap](https://trello.com/b/Us4rHryT/nuke) is managed in Trello and is publically available.
 
 If you'd like to contribute, please feel free to create a PR.
 
