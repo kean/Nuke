@@ -1,3 +1,23 @@
+## Nuke 7.3
+
+This release introduces new `DataCache` type and features some other improvements in custom data caching.
+
+- Add new `DataCache` type - a cache backed by a local storage with an LRU cleanup policy. This type is a reworked version of the experimental data cache which was added in Nuke 7.0. It's now much simpler and also faster. It allows for reading and writing in parallel, it has a simple consistent API, and I hope it's going to be a please to use.
+
+> **Migration note:** The storage format - which is simply a bunch of files in a directory really - is backward compatible with the previous implementation. If you'd like the new cache to continue working with the same path, please create it with "com.github.kean.Nuke.DataCache" name and use the same filename generator that you were using before:
+> 
+>    try? DataCache(name: "com.github.kean.Nuke.DataCache", filenameGenerator: filenameGenerator)
+
+- #160 `DataCache` now has a default `FilenameGenerator` on Swift 4.2 which uses `SHA1` hash function provided by `CommonCrypto` (`CommonCrypto` is not available on the previous version of Swift).
+
+- #171 Fix a regression introduced in version 7.1. where experimental `DataCache` would not perform LRU data sweeps.
+
+- Update `DataCaching` protocol. To store data you now need to implement a synchronous method `func cachedData(for key: String) -> Data?`. This change was necessary to make the data cache fit nicely in `ImagePipeline` infrastructure where each stage is managed by a separate `OperationQueue` and each operation respects the priority of the image requests associated with it.
+
+- Add `dataCachingQueue` parameter to `ImagePipeline.Configuration`. The default `maxConcurrentOperationCount` is `2`.
+
+- Improve internal `Operation` type performance.
+
 ## Nuke 7.2.1
 
 Nuke's [roadmap](https://trello.com/b/Us4rHryT/nuke) is now publicly available. Please feel free to contribute!

@@ -188,7 +188,7 @@ public /* final */ class ImagePipeline {
         /// `false` by default (to preserve resources).
         public static var isAnimatedImageDataEnabled = false
 
-        @available(*, deprecated, message: "Please create a `DataCache` instance and set it as a `configuration.dataCache` instead.")
+        @available(*, deprecated, message: "Please create a `DataCache` instance and set it as a `configuration.dataCache` instead. If you'd like the new cache to continue working with the same path, please create it with \"com.github.kean.Nuke.DataCache\" name.")
         public mutating func enableExperimentalAggressiveDiskCaching(countLimit: Int = 1000, sizeLimit: Int = 1024 * 1024 * 100, keyEncoder: @escaping (String) -> String?) {
             if Configuration.sharedDataCache == nil {
                 let cache = try? DataCache(name: "com.github.kean.Nuke.DataCache", filenameGenerator: keyEncoder)
