@@ -244,7 +244,7 @@ public final class DataCache: DataCaching {
     ///     // Data is nil
     ///     let data = cache[key]
     ///
-    subscript(key: Key) -> Data? {
+    public subscript(key: Key) -> Data? {
         get {
             return cachedData(for: key)
         }
