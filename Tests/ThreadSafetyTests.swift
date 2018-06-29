@@ -206,9 +206,38 @@ class ThreadSafetyTests: XCTestCase {
 
         queue.waitUntilAllOperationsAreFinished()
     }
+
+    // MARK: - DataCache
+
+    func testDataCacheThreadSafety() {
+        let cache = try! DataCache(name: UUID().uuidString, filenameGenerator: { $0 })
+
+        let data = Data(repeating: 1, count: 256 * 1024)
+
+        for idx in 0..<500 {
+            cache["\(idx)"] = data
+        }
+        cache.flush()
+
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 5
+
+        for _ in 0..<5 {
+            for idx in 0..<500 {
+                queue.addOperation {
+                    let _ = cache["\(idx)"]
+                }
+                queue.addOperation {
+                    cache["\(idx)"] = data
+                    cache.flush()
+                }
+            }
+        }
+        queue.waitUntilAllOperationsAreFinished()
+    }
 }
 
-class RandomizedTests: XCTestCase {
+final class RandomizedTests: XCTestCase {
     func testImagePipeline() {
         let dataLoader = MockDataLoader()
         let pipeline = ImagePipeline {
