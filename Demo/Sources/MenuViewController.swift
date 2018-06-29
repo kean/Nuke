@@ -55,6 +55,15 @@ final class MenuViewController: UITableViewController {
             }))
 
             items.append(MenuItem(
+                title: "Disk Cache",
+                subtitle: "Aggressive disk caching",
+                action: { [weak self] in
+                    let controller = DataCachingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
+
+            items.append(MenuItem(
                 title: "Progressive Decoding",
                 subtitle: "Progressive and baseline JPEG",
                 action: { [weak self] _ in
@@ -116,15 +125,6 @@ final class MenuViewController: UITableViewController {
                 subtitle: "Replaces GIFs with MP4",
                 action: { [weak self] in
                     let controller = AnimatedImageUsingVideoViewController(nibName: nil, bundle: nil)
-                    controller.title = $0.title
-                    self?.push(controller)
-            }))
-
-            items.append(MenuItem(
-                title: "Disk Cache (Experimental)",
-                subtitle: "Enables aggressive disk caching",
-                action: { [weak self] in
-                    let controller = DataCachingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
                     controller.title = $0.title
                     self?.push(controller)
             }))

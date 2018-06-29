@@ -19,11 +19,16 @@ final class DataCachingDemoViewController: BasicDemoViewController {
 
             $0.imageCache = ImageCache()
 
-            $0.enableExperimentalAggressiveDiskCaching(
-                keyEncoder: {
+            #if swift(>=4.2)
+            $0.dataCache = try! DataCache(name: "com.github.kean.Nuke.DataCache")
+            #else
+            $0.dataCache = try! DataCache(
+                name: "com.github.kean.Nuke.DataCache",
+                filenameGenerator: {
                     guard let data = $0.cString(using: .utf8) else { return nil }
                     return _nuke_sha1(data, UInt32(data.count))
             })
+            #endif
         }
     }
 }
