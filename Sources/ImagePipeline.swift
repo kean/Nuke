@@ -655,6 +655,7 @@ public /* final */ class ImagePipeline {
                     }
                 }
             }
+            operation.queuePriority = task.request.priority.queuePriority
             configuration.imageProcessingQueue.addOperation(operation)
             processingSession.operation = operation
             return processingSession

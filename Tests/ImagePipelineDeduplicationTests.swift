@@ -351,39 +351,24 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
 
-        // When/Then
+        // Given
         let operations = expect(queue).toEnqueueOperationsWithCount(1)
 
-        let processors = ProcessorFactory()
-        let request1 = Test.request.processed(with: processors.make(id: "1")).mutated {
-            $0.priority = .low
-            return
-        }
-        let request2 = Test.request.processed(with: processors.make(id: "1")).mutated {
-            $0.priority = .high
-            return
-        }
-
-        let _ = pipeline.loadImage(with: request1)
-        let task2 = pipeline.loadImage(with: request2)
+        pipeline.loadImage(with: Test.request.with(processorId: "1").with(priority: .low))
 
         dataLoader.queue.isSuspended = false
-
         wait { _ in
-            XCTAssertEqual(operations.operations.count, 1)
+            XCTAssertEqual(operations.operations.first!.queuePriority, .low)
         }
 
-        let operation = operations.operations.first!
-        XCTAssertEqual(operation.queuePriority, .high)
+        // When/Theb
+        expect(operations.operations.first!).toUpdatePriority(from: .low, to: .high)
+        let task = pipeline.loadImage(with: Test.request.with(processorId: "1").with(priority: .high))
+        wait()
 
         // When/Then
-        self.keyValueObservingExpectation(for: operation, keyPath: "queuePriority") { (_, _) in
-            XCTAssertEqual(operation.queuePriority, .normal)
-            return true
-        }
-
-        task2.setPriority(.normal)
-
+        expect(operations.operations.first!).toUpdatePriority(from: .high, to: .low)
+        task.setPriority(.veryLow)
         wait()
     }
 

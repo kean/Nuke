@@ -11,6 +11,16 @@ extension ImageRequest {
         closure(&request)
         return request
     }
+
+    func with(processorId: String) -> ImageRequest {
+        return processed(with: MockImageProcessor(id: processorId))
+    }
+
+    func with(priority: Priority) -> ImageRequest {
+        var request = self
+        request.priority = priority
+        return request
+    }
 }
 
 extension ImagePipeline {
