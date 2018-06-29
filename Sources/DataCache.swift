@@ -77,6 +77,11 @@ public final class DataCache: DataCaching {
     /// with reading.
     public var sweepInterval: TimeInterval = 30
 
+    /// The delay after which the initial sweep is performed. 10 by default.
+    /// The initial sweep is performed after a delay to avoid competing with
+    /// other subsystems for the resources.
+    private var initialSweepDelay: TimeInterval = 15
+
     // Staging
     private let _lock = NSLock()
     private var _staging = Staging()
@@ -111,7 +116,7 @@ public final class DataCache: DataCaching {
     public init(path: URL, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
         self.path = path
         self._filenameGenerator = filenameGenerator
-        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
+        try self._didInit()
     }
 
     /// A `FilenameGenerator` implementation which uses SHA1 hash function to
@@ -135,9 +140,16 @@ public final class DataCache: DataCaching {
     public init(path: URL, filenameGenerator: @escaping (String) -> String?) throws {
         self.path = path
         self._filenameGenerator = filenameGenerator
-        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
+        try self._didInit()
     }
     #endif
+
+    private func _didInit() throws {
+        try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
+        _wqueue.asyncAfter(deadline: .now() + initialSweepDelay) { [weak self] in
+            self?._performAndScheduleSweep()
+        }
+    }
 
     // MARK: DataCaching
 
@@ -270,14 +282,15 @@ public final class DataCache: DataCaching {
 
     // MARK: Sweep
 
-    private func _scheduleSweep() {
+    private func _performAndScheduleSweep() {
+        _sweep()
         _wqueue.asyncAfter(deadline: .now() + sweepInterval) { [weak self] in
-            self?._sweep()
-            self?._scheduleSweep()
+            self?._performAndScheduleSweep()
         }
     }
 
-    func sweep() {
+    /// Schedules a cache sweep to be performed immediately.
+    public func sweep() {
         _wqueue.async {
             self._sweep()
         }
