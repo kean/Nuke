@@ -177,7 +177,7 @@ public final class DataCache: DataCaching {
     }
 
     /// Stores data for the given key. The method returns instantly and the data
-    /// is written asyncrhonously.
+    /// is written asynchronously.
     public func storeData(_ data: Data, for key: Key) {
         _lock.sync {
             let change = _staging.add(data: data, for: key)
@@ -193,7 +193,7 @@ public final class DataCache: DataCaching {
     }
 
     /// Removes data for the given key. The method returns instantly, the data
-    /// is removed asyncrhonously.
+    /// is removed asynchronously.
     public func removeData(for key: Key) {
         _lock.sync {
             let change = _staging.removeData(for: key)
@@ -209,7 +209,7 @@ public final class DataCache: DataCaching {
     }
 
     /// Removes all items. The method returns instantly, the data is removed
-    /// asyncrhonously.
+    /// asynchronously.
     public func removeAll() {
         _lock.sync {
             let change = _staging.removeAll()
