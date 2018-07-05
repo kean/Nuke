@@ -348,12 +348,12 @@ private final class ImageViewController {
         // A delegate-based approach would probably work better here.
         self.task = pipeline.loadImage(
             with: request,
-            progress: {  [weak self] (response, completed, total) in
+            progress: { [weak self] response, completed, total in
                 guard self?.taskId == taskId else { return }
                 self?.handle(partialImage: response, options: options)
                 progress?(response, completed, total)
             },
-            completion: { [weak self] (response, error) in
+            completion: { [weak self] response, error in
                 guard self?.taskId == taskId else { return }
                 self?.handle(response: response, error: error, fromMemCache: false, options: options)
                 completion?(response, error)
