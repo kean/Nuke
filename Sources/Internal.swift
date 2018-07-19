@@ -590,10 +590,13 @@ final class Property<T> {
 
     private var observers = [(T) -> Void]()
 
+    // For our use-cases we can just ignore unsubscribing for now.
     func observe(_ closure: @escaping (T) -> Void) {
         observers.append(closure)
     }
 }
+
+// MARK: - Misc
 
 #if !swift(>=4.1)
 extension Sequence {

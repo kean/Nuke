@@ -275,8 +275,8 @@ public /* final */ class ImagePipeline {
         // Register handler with a session.
         session.tasks[task] = handlers
 
-        // Update priority for tasks.
-        _updatePriority(for: session, task: task)
+        // Update priority for the outstanding operations.
+        session.updatePriority()
 
         // Already loaded and decoded the final image and started processing
         // for previously registered tasks (if any).
@@ -295,17 +295,10 @@ public /* final */ class ImagePipeline {
         task.priorityObserver = { [weak self, weak session] (task, _) in
             self?.queue.async {
                 guard let session = session else { return }
-                self?._updatePriority(for: session, task: task)
+                session.updatePriority()
+                session.processingSessions[task]?.updatePriority()
             }
         }
-    }
-
-    private func _updatePriority(for session: ImageLoadingSession, task: ImageTask) {
-        let priority = ImageLoadingSession.priority(for: Array(session.tasks.keys))
-        session.priority.value = priority
-        // Update priority for processing operations (those are per image task,
-        // not per image session).
-        session.processingSessions[task]?.updatePriority()
     }
 
     // Cancel the session in case all handlers were removed.
@@ -319,7 +312,8 @@ public /* final */ class ImagePipeline {
             // When all registered tasks are cancelled, the session is
             // deallocated and the underlying operation is cancelled
             // automatically.
-            session.processingSessions[task] = nil
+            let processingSession = session.processingSessions.removeValue(forKey: task)
+            processingSession?.tasks.remove(task)
 
             // Cancel the session when there are no remaining tasks.
             if session.tasks.isEmpty {
@@ -327,6 +321,11 @@ public /* final */ class ImagePipeline {
                 session.cts.cancel()
                 session.metrics.wasCancelled = true
                 _sessionDidFinish(session)
+            } else {
+                // We're not cancelling the task session yet because there are
+                // still tasks registered to it, but we need to update the priority.
+                session.updatePriority()
+                processingSession?.updatePriority()
             }
         }
 
@@ -656,6 +655,9 @@ public /* final */ class ImagePipeline {
                 }
             }
             operation.queuePriority = task.request.priority.queuePriority
+            session.priority.observe { [weak operation] in
+                operation?.queuePriority = $0.queuePriority
+            }
             configuration.imageProcessingQueue.addOperation(operation)
             processingSession.operation = operation
             return processingSession
@@ -806,6 +808,8 @@ private final class ImageLoadingSession {
     // Metrics that we collect during the lifetime of a session.
     let metrics: ImageTaskMetrics.SessionMetrics
 
+    let priority: Property<ImageRequest.Priority>
+
     init(sessionId: Int, request: ImageRequest, key: AnyHashable) {
         self.sessionId = sessionId
         self.request = request
@@ -814,11 +818,9 @@ private final class ImageLoadingSession {
         self.priority = Property(value: request.priority)
     }
 
-    static func priority(for tasks: [ImageTask]) -> ImageRequest.Priority {
-        return tasks.map { $0.request.priority }.max() ?? .normal
+    func updatePriority() {
+        priority.update(for: tasks.keys)
     }
-
-    var priority: Property<ImageRequest.Priority>
 }
 
 private final class ImageProcessingSession {
@@ -826,6 +828,8 @@ private final class ImageProcessingSession {
     let image: ImageContainer
     var tasks = Set<ImageTask>()
     weak var operation: Foundation.Operation?
+
+    let priority = Property<ImageRequest.Priority>(value: .normal)
 
     deinit {
         operation?.cancel()
@@ -835,8 +839,10 @@ private final class ImageProcessingSession {
         self.processor = processor; self.image = image
     }
 
+    // Update priority for processing operations (those are per image task,
+    // not per image session).
     func updatePriority() {
-        operation?.queuePriority = ImageLoadingSession.priority(for: Array(tasks)).queuePriority
+        priority.update(for: tasks)
     }
 }
 
@@ -844,4 +850,14 @@ struct ImageContainer {
     let image: Image
     let isFinal: Bool
     let scanNumber: Int?
+}
+
+// MARK: - Extensions
+
+extension Property where T == ImageRequest.Priority {
+    func update<Tasks: Sequence>(for tasks: Tasks) where Tasks.Element == ImageTask {
+        if let newPriority = tasks.map({ $0.request.priority }).max(), self.value != newPriority {
+            self.value = newPriority
+        }
+    }
 }

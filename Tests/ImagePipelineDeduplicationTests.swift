@@ -361,14 +361,39 @@ class ImagePipelineDeduplicationTests: XCTestCase {
             XCTAssertEqual(operations.operations.first!.queuePriority, .low)
         }
 
-        // When/Theb
+        // When/Then
         expect(operations.operations.first!).toUpdatePriority(from: .low, to: .high)
         let task = pipeline.loadImage(with: Test.request.with(processorId: "1").with(priority: .high))
         wait()
 
         // When/Then
         expect(operations.operations.first!).toUpdatePriority(from: .high, to: .low)
-        task.setPriority(.veryLow)
+        task.setPriority(.low)
+        wait()
+    }
+
+    func testProcessingOperationPriorityUpdatedWhenCancellingTask() {
+        // Given
+        dataLoader.queue.isSuspended = true
+        let queue = pipeline.configuration.imageProcessingQueue
+        queue.isSuspended = true
+
+        // Given
+        let operations = expect(queue).toEnqueueOperationsWithCount(1)
+        pipeline.loadImage(with: Test.request.with(processorId: "1").with(priority: .low))
+        dataLoader.queue.isSuspended = false
+        wait()
+
+        // Given
+        // Note: adding a second task separately because we should guarantee
+        // that both are subscribed by the time we start our test.
+        expect(operations.operations.first!).toUpdatePriority(from: .low, to: .high)
+        let task = pipeline.loadImage(with: Test.request.with(processorId: "1").with(priority: .high))
+        wait()
+
+        // When/Then
+        expect(operations.operations.first!).toUpdatePriority(from: .high, to: .low)
+        task.cancel()
         wait()
     }
 
