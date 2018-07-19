@@ -239,6 +239,25 @@ public /* final */ class ImagePipeline {
     @discardableResult public func loadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
         let task = ImageTask(taskId: Int(OSAtomicIncrement32(&nextTaskId)), request: request)
         queue.async {
+            // Fast preflight check.
+            guard !task.cts.isCancelling else {
+                self._imageTaskCancelled(task)
+                return
+            }
+            // Fast memory cache lookup. We do this asynchronously because we
+            // expect users to check memory cache synchronously if needed.
+            if task.request.memoryCacheOptions.isReadAllowed,
+                let response = self.configuration.imageCache?.cachedResponse(for: task.request) {
+                DispatchQueue.main.async {
+                    completion?(response, nil)
+
+                    task.metrics.isMemoryCacheHit = true
+                    task.metrics.endDate = Date()
+                    self.didFinishCollectingMetrics?(task, task.metrics)
+                }
+                return
+            }
+            // Memory cache lookup failed -> start loading.
             self._startLoadingImage(
                 for: task,
                 handlers: ImageLoadingSession.Handlers(progress: progress, completion: completion)
@@ -248,23 +267,6 @@ public /* final */ class ImagePipeline {
     }
 
     private func _startLoadingImage(for task: ImageTask, handlers: ImageLoadingSession.Handlers) {
-        // Fast preflight check.
-        guard !task.cts.isCancelling else {
-            task.metrics.wasCancelled = true
-            task.metrics.endDate = Date()
-            return
-        }
-
-        // Read memory cache.
-        if task.request.memoryCacheOptions.isReadAllowed,
-            let response = configuration.imageCache?.cachedResponse(for: task.request) {
-            DispatchQueue.main.async {
-                handlers.completion?(response, nil)
-            }
-            task.metrics.isMemoryCacheHit = true
-            return
-        }
-
         // Create a new image loading session or register with an existing one.
         let session = _createSession(with: task.request)
         task.session = session
@@ -274,8 +276,6 @@ public /* final */ class ImagePipeline {
 
         // Register handler with a session.
         session.tasks[task] = handlers
-
-        // Update priority for the outstanding operations.
         session.updatePriority()
 
         // Already loaded and decoded the final image and started processing
@@ -306,31 +306,34 @@ public /* final */ class ImagePipeline {
         task.metrics.wasCancelled = true
         task.metrics.endDate = Date()
 
-        if let session = task.session { // executing == true
-            session.tasks[task] = nil
-
-            // When all registered tasks are cancelled, the session is
-            // deallocated and the underlying operation is cancelled
-            // automatically.
-            let processingSession = session.processingSessions.removeValue(forKey: task)
-            processingSession?.tasks.remove(task)
-
-            // Cancel the session when there are no remaining tasks.
-            if session.tasks.isEmpty {
-                _tryToSaveResumableData(for: session)
-                session.cts.cancel()
-                session.metrics.wasCancelled = true
-                _sessionDidFinish(session)
-            } else {
-                // We're not cancelling the task session yet because there are
-                // still tasks registered to it, but we need to update the priority.
-                session.updatePriority()
-                processingSession?.updatePriority()
-            }
-        }
+        _cancelSession(for: task)
 
         guard let didFinishTask = didFinishCollectingMetrics else { return }
         DispatchQueue.main.async { didFinishTask(task, task.metrics) }
+    }
+
+    private func _cancelSession(for task: ImageTask) {
+        guard let session = task.session else { return }
+
+        session.tasks[task] = nil
+
+        // When all registered tasks are cancelled, the session is deallocated
+        // and the underlying operation is cancelled automatically.
+        let processingSession = session.processingSessions.removeValue(forKey: task)
+        processingSession?.tasks.remove(task)
+
+        // Cancel the session when there are no remaining tasks.
+        if session.tasks.isEmpty {
+            _tryToSaveResumableData(for: session)
+            session.cts.cancel()
+            session.metrics.wasCancelled = true
+            _sessionDidFinish(session)
+        } else {
+            // We're not cancelling the task session yet because there are
+            // still tasks registered to it, but we need to update the priority.
+            session.updatePriority()
+            processingSession?.updatePriority()
+        }
     }
 
     // MARK: ImageLoadingSession (Managing)

@@ -542,11 +542,13 @@ internal struct Printer {
 struct TaskMetrics {
     var startDate: Date? = nil
     var endDate: Date? = nil
+
     mutating func start() {
-        self.startDate = Date()
+        startDate = Date()
     }
+
     mutating func end() {
-        self.endDate = Date()
+        endDate = Date()
     }
 }
 
