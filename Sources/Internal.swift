@@ -190,7 +190,8 @@ internal final class LinkedList<Element> {
     }
 
     /// Adds an element to the end of the list.
-    @discardableResult func append(_ element: Element) -> Node {
+    @discardableResult
+    func append(_ element: Element) -> Node {
         let node = Node(value: element)
         append(node)
         return node

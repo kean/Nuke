@@ -234,7 +234,8 @@ internal final class _Cache<Key: Hashable, Value> {
         _trim() // _trim is extremely fast, it's OK to call it each time
     }
 
-    @discardableResult func removeValue(forKey key: Key) -> Value? {
+    @discardableResult
+    func removeValue(forKey key: Key) -> Value? {
         lock.lock(); defer { lock.unlock() }
 
         guard let node = map[key] else { return nil }
