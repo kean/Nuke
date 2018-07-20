@@ -1,3 +1,9 @@
+## Nuke 7.3.1
+
+- `ImagePipeline` now updates the priority of shared operations when the registered tasks get canceled (was previosuly only reacting to added tasks)
+- Fix an issue where `didFinishCollectingMetrics` closure wasn't called for the tasks completed with images found in memory cache and the tasks canceled before they got a chance to run. Now _every_ created tasks gets a corresponding `didFinishCollectingMetrics` call.
+
+
 ## Nuke 7.3
 
 This release introduces new `DataCache` type and features some other improvements in custom data caching.
