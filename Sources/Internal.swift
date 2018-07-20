@@ -543,6 +543,12 @@ struct TaskMetrics {
     var startDate: Date? = nil
     var endDate: Date? = nil
 
+    static func started() -> TaskMetrics {
+        var metrics = TaskMetrics()
+        metrics.start()
+        return metrics
+    }
+
     mutating func start() {
         startDate = Date()
     }

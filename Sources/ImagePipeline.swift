@@ -241,20 +241,15 @@ public /* final */ class ImagePipeline {
         queue.async {
             // Fast preflight check.
             guard !task.cts.isCancelling else {
-                self._imageTaskCancelled(task)
+                self._didCancelTask(task)
                 return
             }
             // Fast memory cache lookup. We do this asynchronously because we
             // expect users to check memory cache synchronously if needed.
             if task.request.memoryCacheOptions.isReadAllowed,
                 let response = self.configuration.imageCache?.cachedResponse(for: task.request) {
-                DispatchQueue.main.async {
-                    completion?(response, nil)
-
-                    task.metrics.isMemoryCacheHit = true
-                    task.metrics.endDate = Date()
-                    self.didFinishCollectingMetrics?(task, task.metrics)
-                }
+                task.metrics.isMemoryCacheHit = true
+                self._didCompleteTask(task, response: response, error: nil, completion: completion)
                 return
             }
             // Memory cache lookup failed -> start loading.
@@ -288,28 +283,17 @@ public /* final */ class ImagePipeline {
         task.cts.register { [weak self, weak task] in
             guard let task = task else { return }
             self?.queue.async {
-                self?._imageTaskCancelled(task)
+                self?._didCancelTask(task)
             }
         }
 
-        task.priorityObserver = { [weak self, weak session] (task, _) in
+        task.priorityObserver = { [weak self, weak session] task, _ in
             self?.queue.async {
                 guard let session = session else { return }
                 session.updatePriority()
                 session.processingSessions[task]?.updatePriority()
             }
         }
-    }
-
-    // Cancel the session in case all handlers were removed.
-    fileprivate func _imageTaskCancelled(_ task: ImageTask) {
-        task.metrics.wasCancelled = true
-        task.metrics.endDate = Date()
-
-        _cancelSession(for: task)
-
-        guard let didFinishTask = didFinishCollectingMetrics else { return }
-        DispatchQueue.main.async { didFinishTask(task, task.metrics) }
     }
 
     private func _cancelSession(for task: ImageTask) {
@@ -327,7 +311,7 @@ public /* final */ class ImagePipeline {
             _tryToSaveResumableData(for: session)
             session.cts.cancel()
             session.metrics.wasCancelled = true
-            _sessionDidFinish(session)
+            _didFinishSession(session)
         } else {
             // We're not cancelling the task session yet because there are
             // still tasks registered to it, but we need to update the priority.
@@ -390,8 +374,7 @@ public /* final */ class ImagePipeline {
                 }
             }
         }
-
-        _session(session, enqueue: operation, on: configuration.dataCachingQueue)
+        configuration.dataCachingQueue.enqueue(operation, for: session)
     }
 
     private func _loadData(for session: ImageLoadingSession) {
@@ -405,7 +388,7 @@ public /* final */ class ImagePipeline {
                 self?._actuallyLoadData(for: session, finish: finish)
             }
         })
-        _session(session, enqueue: operation, on: configuration.dataLoadingQueue)
+        configuration.dataLoadingQueue.enqueue(operation, for: session)
     }
 
     // This methods gets called inside data loading operation (Operation).
@@ -554,9 +537,8 @@ public /* final */ class ImagePipeline {
         let operation = BlockOperation { [weak self, weak session] in
             guard let session = session else { return }
             metrics.decodeStartDate = Date()
-            // Produce final image
             let image = autoreleasepool {
-                decoder.decode(data: data, isFinal: true)
+                decoder.decode(data: data, isFinal: true) // Produce final image
             }
             metrics.decodeEndDate = Date()
             self?.queue.async {
@@ -570,7 +552,7 @@ public /* final */ class ImagePipeline {
     }
 
     private func _enqueueDecodingOperation(_ operation: Foundation.Operation, for session: ImageLoadingSession) {
-        _session(session, enqueue: operation, on: configuration.imageDecodingQueue)
+        configuration.imageDecodingQueue.enqueue(operation, for: session)
         session.decodingOperation = DisposableOperation(operation)
     }
 
@@ -635,41 +617,54 @@ public /* final */ class ImagePipeline {
         }
 
         // Find existing session or create a new one.
-        let processingSession = session.processingSessions.values.first {
-            $0.processor == processor && $0.image.image === image.image
-        } ?? {
-            let processingSession = ImageProcessingSession(processor: processor, image: image)
-            let operation = BlockOperation { [weak self, weak session, weak processingSession] in
-                var metrics = TaskMetrics()
-                metrics.start()
-                let output: Image? = autoreleasepool {
-                    processor.process(image: image, request: task.request)
-                }
-                metrics.end()
+        let processingSession = _processingSession(for: image, processor: processor, session: session, task: task)
 
-                self?.queue.async {
-                    guard let session = session else { return }
-                    for task in (processingSession?.tasks ?? []) {
-                        if session.processingSessions[task] === processingSession {
-                            session.processingSessions[task] = nil
-                        }
-                        self?._session(session, didProcessImage: output, isFinal: isFinal, metrics: metrics, for: task)
-                    }
-                }
-            }
-            operation.queuePriority = task.request.priority.queuePriority
-            session.priority.observe { [weak operation] in
-                operation?.queuePriority = $0.queuePriority
-            }
-            configuration.imageProcessingQueue.addOperation(operation)
-            processingSession.operation = operation
-            return processingSession
-        }()
-
-        // Register task for a session.
+        // Register task with a processing session.
         processingSession.tasks.insert(task)
         session.processingSessions[task] = processingSession
         processingSession.updatePriority()
+    }
+
+    private func _processingSession(for image: ImageContainer, processor: AnyImageProcessor, session: ImageLoadingSession, task: ImageTask) -> ImageProcessingSession {
+        func findExistingSession() -> ImageProcessingSession? {
+            return session.processingSessions.values.first {
+                $0.processor == processor && $0.image.image === image.image
+            }
+        }
+
+        if let processingSession = findExistingSession() {
+            return processingSession
+        }
+
+        let processingSession = ImageProcessingSession(processor: processor, image: image)
+
+        let isFinal = image.isFinal
+        let operation = BlockOperation { [weak self, weak session, weak processingSession] in
+            var metrics = TaskMetrics.started()
+            let output: Image? = autoreleasepool {
+                processor.process(image: image, request: task.request)
+            }
+            metrics.end()
+
+            self?.queue.async {
+                guard let session = session else { return }
+                for task in (processingSession?.tasks ?? []) {
+                    if session.processingSessions[task] === processingSession {
+                        session.processingSessions[task] = nil
+                    }
+                    self?._session(session, didProcessImage: output, isFinal: isFinal, metrics: metrics, for: task)
+                }
+            }
+        }
+
+        operation.queuePriority = task.request.priority.queuePriority
+        session.priority.observe { [weak operation] in
+            operation?.queuePriority = $0.queuePriority
+        }
+        configuration.imageProcessingQueue.addOperation(operation)
+        processingSession.operation = operation
+
+        return processingSession
     }
 
     private func _processor(for image: Image, request: ImageRequest) -> AnyImageProcessor? {
@@ -714,16 +709,11 @@ public /* final */ class ImagePipeline {
         if let response = response, task.request.memoryCacheOptions.isWriteAllowed {
             configuration.imageCache?.storeResponse(response, for: task.request)
         }
-        // Dispatch completion blocks.
         if let handlers = session.tasks.removeValue(forKey: task) {
-            task.metrics.endDate = Date()
-            DispatchQueue.main.async {
-                handlers.completion?(response, error)
-                self.didFinishCollectingMetrics?(task, task.metrics)
-            }
+            _didCompleteTask(task, response: response, error: error, completion: handlers.completion)
         }
         if session.tasks.isEmpty {
-            _sessionDidFinish(session)
+            _didFinishSession(session)
         }
     }
 
@@ -733,24 +723,32 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func _sessionDidFinish(_ session: ImageLoadingSession) {
+    private func _didFinishSession(_ session: ImageLoadingSession) {
         // Check if session is still registered.
         guard sessions[session.key] === session else { return }
         session.metrics.endDate = Date()
         sessions[session.key] = nil
     }
 
-    // MARK: Misc
+    // Cancel the session in case all handlers were removed.
+    private func _didCancelTask(_ task: ImageTask) {
+        task.metrics.wasCancelled = true
+        task.metrics.endDate = Date()
 
-    private func _session(_ session: ImageLoadingSession, enqueue operation: Foundation.Operation, on queue: Foundation.OperationQueue) {
-        operation.queuePriority = session.priority.value.queuePriority
-        session.priority.observe { [weak operation] in
-            operation?.queuePriority = $0.queuePriority
+        _cancelSession(for: task)
+
+        guard let didCollectMetrics = didFinishCollectingMetrics else { return }
+        DispatchQueue.main.async {
+            didCollectMetrics(task, task.metrics)
         }
-        session.token.register { [weak operation] in
-            operation?.cancel()
+    }
+
+    private func _didCompleteTask(_ task: ImageTask, response: ImageResponse?, error: Error?, completion: ImageTask.Completion?) {
+        task.metrics.endDate = Date()
+        DispatchQueue.main.async {
+            completion?(response, error)
+            self.didFinishCollectingMetrics?(task, task.metrics)
         }
-        queue.addOperation(operation)
     }
 
     // MARK: Errors
@@ -822,7 +820,7 @@ private final class ImageLoadingSession {
     }
 
     func updatePriority() {
-        priority.update(for: tasks.keys)
+        priority.update(with: tasks.keys)
     }
 }
 
@@ -845,7 +843,7 @@ private final class ImageProcessingSession {
     // Update priority for processing operations (those are per image task,
     // not per image session).
     func updatePriority() {
-        priority.update(for: tasks)
+        priority.update(with: tasks)
     }
 }
 
@@ -857,10 +855,23 @@ struct ImageContainer {
 
 // MARK: - Extensions
 
-extension Property where T == ImageRequest.Priority {
-    func update<Tasks: Sequence>(for tasks: Tasks) where Tasks.Element == ImageTask {
+private extension Property where T == ImageRequest.Priority {
+    func update<Tasks: Sequence>(with tasks: Tasks) where Tasks.Element == ImageTask {
         if let newPriority = tasks.map({ $0.request.priority }).max(), self.value != newPriority {
             self.value = newPriority
         }
+    }
+}
+
+private extension Foundation.OperationQueue {
+    func enqueue(_ operation: Foundation.Operation, for session: ImageLoadingSession) {
+        operation.queuePriority = session.priority.value.queuePriority
+        session.priority.observe { [weak operation] in
+            operation?.queuePriority = $0.queuePriority
+        }
+        session.token.register { [weak operation] in
+            operation?.cancel()
+        }
+        addOperation(operation)
     }
 }
