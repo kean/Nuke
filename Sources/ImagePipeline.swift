@@ -37,12 +37,13 @@ public /* final */ class ImageTask: Hashable {
 
     /// A completion handler to be called when task finishes or fails.
     public typealias Completion = (_ response: ImageResponse?, _ error: ImagePipeline.Error?) -> Void
+
     /// A progress handler to be called periodically during the lifetime of a task.
     public typealias ProgressHandler = (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void
 
     // internal stuff associated with a task
     fileprivate var metrics: ImageTaskMetrics
-    fileprivate var priorityObserver: ((ImageTask, ImageRequest.Priority) -> Void)?
+
     fileprivate weak var session: ImageLoadingSession?
 
     internal init(taskId: Int, request: ImageRequest) {
