@@ -102,6 +102,14 @@ class ImageRequestCacheKeyTests: XCTestCase {
         AssertHashableEqual(CacheKey(request: request1), CacheKey(request: request2))
     }
 
+    func testSettingDefaultProcessorManually() {
+        let request1 = ImageRequest(url: Test.url)
+        let request2 = ImageRequest(url: Test.url).mutated {
+            $0.processor = request1.processor
+        }
+        AssertHashableEqual(CacheKey(request: request1), CacheKey(request: request2))
+    }
+
     // MARK: Custom Cache Key
 
     func testRequestsWithSameCustomKeysAreEquivalent() {
