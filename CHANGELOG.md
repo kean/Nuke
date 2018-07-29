@@ -1,3 +1,8 @@
+## Nuke 7.3.2
+
+- #178 Fix TSan warning being triggered by performance optimization in `ImageTask.cancel()` (false positive)
+- Fix an issue where a request (`ImageRequest`) with a default processor and a request with the same processor but set manually would have different cache keys 
+
 ## Nuke 7.3.1
 
 - `ImagePipeline` now updates the priority of shared operations when the registered tasks get canceled (was previosuly only reacting to added tasks)
