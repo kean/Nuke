@@ -516,30 +516,6 @@ struct TaskMetrics {
     }
 }
 
-final class DisposableOperation: Hashable {
-    // When all registered tasks remove references to image processing
-    // session the wrapped operation gets deallocated.
-    deinit {
-        operation?.cancel()
-    }
-
-    weak var operation: Foundation.Operation?
-
-    init(_ operation: Foundation.Operation) {
-        self.operation = operation
-    }
-
-    // MARK: - Hashable
-
-    public static func == (lhs: DisposableOperation, rhs: DisposableOperation) -> Bool {
-        return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
-    }
-
-    public var hashValue: Int {
-        return ObjectIdentifier(self).hashValue
-    }
-}
-
 /// A simple observable property. Not thread safe.
 final class Property<T> {
     var value: T {

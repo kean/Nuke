@@ -505,7 +505,7 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
     // MARK: Pipeline (Decoding)
 
     private func _setNeedsDecodePartialImage(for session: ImageLoadingSession) {
-        guard session.decodingOperation?.operation == nil else {
+        guard session.decodingOperation == nil else {
             return // Already enqueued an operation.
         }
         let operation = BlockOperation { [weak self, weak session] in
@@ -563,7 +563,8 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
 
     private func _enqueueDecodingOperation(_ operation: Foundation.Operation, for session: ImageLoadingSession) {
         configuration.imageDecodingQueue.enqueue(operation, for: session)
-        session.decodingOperation = DisposableOperation(operation)
+        session.decodingOperation?.cancel()
+        session.decodingOperation = operation
     }
 
     // Lazily creates a decoder if necessary.
@@ -811,7 +812,7 @@ private final class ImageLoadingSession {
     // Decoding session.
     var decoder: ImageDecoding?
     var decodedFinalImage: ImageContainer? // Decoding result
-    var decodingOperation: DisposableOperation?
+    weak var decodingOperation: Foundation.Operation?
 
     // Processing sessions.
     var processingSessions = [ImageTask: ImageProcessingSession]()
@@ -820,6 +821,10 @@ private final class ImageLoadingSession {
     let metrics: ImageTaskMetrics.SessionMetrics
 
     let priority: Property<ImageRequest.Priority>
+
+    deinit {
+        decodingOperation?.cancel()
+    }
 
     init(sessionId: Int, request: ImageRequest, key: AnyHashable) {
         self.sessionId = sessionId
