@@ -15,6 +15,8 @@ public /* final */ class ImageTask: Hashable {
     /// unique within this pipeline.
     public let taskId: Int
 
+    fileprivate weak var delegate: ImageTaskDelegate?
+
     /// The request with which the task was created. The request might change
     /// during the exetucion of a task. When you update the priority of the task,
     /// the request's prir also gets updated.
@@ -42,7 +44,6 @@ public /* final */ class ImageTask: Hashable {
     fileprivate var metrics: ImageTaskMetrics
     fileprivate var priorityObserver: ((ImageTask, ImageRequest.Priority) -> Void)?
     fileprivate weak var session: ImageLoadingSession?
-    fileprivate var cts = _CancellationSource()
 
     internal init(taskId: Int, request: ImageRequest) {
         self.taskId = taskId
@@ -55,10 +56,12 @@ public /* final */ class ImageTask: Hashable {
     /// Update s priority of the task even if the task is already running.
     public func setPriority(_ priority: ImageRequest.Priority) {
         request.priority = priority
-        priorityObserver?(self, priority)
+        delegate?.imageTask(self, didUpdatePrioity: priority)
     }
 
     // MARK: - Cancellation
+
+    private var _wasCancelled: Int32 = 0
 
     /// Marks task as being cancelled.
     ///
@@ -66,7 +69,10 @@ public /* final */ class ImageTask: Hashable {
     /// unless there is an equivalent outstanding task running (see
     /// `ImagePipeline.Configuration.isDeduplicationEnabled` for more info).
     public func cancel() {
-        cts.cancel()
+        // Make sure that we ignore if `cancel` being called more than once.
+        if OSAtomicCompareAndSwap32Barrier(0, 1, &_wasCancelled) {
+            delegate?.imageTaskWasCancelled(self)
+        }
     }
 
     // MARK: - Hashable
@@ -78,6 +84,11 @@ public /* final */ class ImageTask: Hashable {
     public var hashValue: Int {
         return ObjectIdentifier(self).hashValue
     }
+}
+
+protocol ImageTaskDelegate: class {
+    func imageTaskWasCancelled(_ task: ImageTask)
+    func imageTask(_ task: ImageTask, didUpdatePrioity: ImageRequest.Priority)
 }
 
 // MARK: - ImageResponse
@@ -105,7 +116,7 @@ public final class ImageResponse {
 /// `ImagePipeline` is created with a configuration (`Configuration`).
 ///
 /// `ImagePipeline` is thread-safe.
-public /* final */ class ImagePipeline {
+public /* final */ class ImagePipeline: ImageTaskDelegate {
     public let configuration: Configuration
 
     // This is a queue on which we access the sessions.
@@ -240,12 +251,8 @@ public /* final */ class ImagePipeline {
     @discardableResult
     public func loadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
         let task = ImageTask(taskId: Int(OSAtomicIncrement32(&nextTaskId)), request: request)
+        task.delegate = self
         queue.async {
-            // Fast preflight check.
-            guard !task.cts.isCancelling else {
-                self._didCancelTask(task)
-                return
-            }
             // Fast memory cache lookup. We do this asynchronously because we
             // expect users to check memory cache synchronously if needed.
             if task.request.memoryCacheOptions.isReadAllowed,
@@ -280,22 +287,40 @@ public /* final */ class ImagePipeline {
         if let image = session.decodedFinalImage {
             _session(session, processImage: image, for: task)
         }
+    }
 
-        // Register cancellation and priority observers.
-        task.cts.register { [weak self, weak task] in
-            guard let task = task else { return }
-            self?.queue.async {
-                self?._didCancelTask(task)
-            }
-        }
+    // MARK: ImageTaskDelegate
 
-        task.priorityObserver = { [weak self, weak session] task, _ in
-            self?.queue.async {
-                guard let session = session else { return }
-                session.updatePriority()
-                session.processingSessions[task]?.updatePriority()
-            }
+    func imageTaskWasCancelled(_ task: ImageTask) {
+        queue.async {
+            self._didCancelTask(task)
         }
+    }
+
+    func imageTask(_ task: ImageTask, didUpdatePrioity: ImageRequest.Priority) {
+        queue.async {
+            guard let session = task.session else { return }
+            session.updatePriority()
+            session.processingSessions[task]?.updatePriority()
+        }
+    }
+
+    // MARK: ImageLoadingSession (Managing)
+
+    private func _createSession(with request: ImageRequest) -> ImageLoadingSession {
+        // Check if session for the given key already exists.
+        //
+        // This part is more clever than I would like. The reason why we need a
+        // key even when deduplication is disabled is to have a way to retain
+        // a session by storing it in `sessions` dictionary.
+        let key: AnyHashable = configuration.isDeduplicationEnabled ? ImageRequest.LoadKey(request: request) : UUID()
+        if let session = sessions[key] {
+            return session
+        }
+        let session = ImageLoadingSession(sessionId: Int(OSAtomicIncrement32(&nextSessionId)), request: request, key: key)
+        sessions[key] = session
+        _loadImage(for: session) // Start the pipeline
+        return session
     }
 
     private func _cancelSession(for task: ImageTask) {
@@ -320,24 +345,6 @@ public /* final */ class ImagePipeline {
             session.updatePriority()
             processingSession?.updatePriority()
         }
-    }
-
-    // MARK: ImageLoadingSession (Managing)
-
-    private func _createSession(with request: ImageRequest) -> ImageLoadingSession {
-        // Check if session for the given key already exists.
-        //
-        // This part is more clever than I would like. The reason why we need a
-        // key even when deduplication is disabled is to have a way to retain
-        // a session by storing it in `sessions` dictionary.
-        let key: AnyHashable = configuration.isDeduplicationEnabled ? ImageRequest.LoadKey(request: request) : UUID()
-        if let session = sessions[key] {
-            return session
-        }
-        let session = ImageLoadingSession(sessionId: Int(OSAtomicIncrement32(&nextSessionId)), request: request, key: key)
-        sessions[key] = session
-        _loadImage(for: session) // Start the pipeline
-        return session
     }
 
     // MARK: Pipeline (Loading Data)
