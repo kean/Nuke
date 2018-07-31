@@ -9,10 +9,14 @@ private final class BundleToken {}
 
 // Test data.
 enum Test {
-    static func data(name: String, extension ext: String) -> Data {
+    static func url(forResource name: String, extension ext: String) -> URL {
         let bundle = Bundle(for: BundleToken.self)
-        let URL = bundle.url(forResource: name, withExtension: ext)
-        return try! Data(contentsOf: URL!)
+        return bundle.url(forResource: name, withExtension: ext)!
+    }
+
+    static func data(name: String, extension ext: String) -> Data {
+        let url = self.url(forResource: name, extension: ext)
+        return try! Data(contentsOf: url)
     }
 
     static let url = URL(string: "http://test.com")!

@@ -41,6 +41,21 @@ class ImageProcessingTests: XCTestCase {
         wait()
     }
 
+    func testReplacingDefaultProcessor() {
+        // Given
+        var request = Test.request
+        request.processor = nil
+        request.process(with: MockImageProcessor(id: "processor1"))
+
+        // When
+        // When
+        expect(pipeline).toLoadImage(with: request) { response, _ in
+            // Then
+            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["processor1"])
+        }
+        wait()
+    }
+
     // MARK: - Composing Filters
 
     func testApplyingMultipleProcessors() {
@@ -120,6 +135,19 @@ class ImageProcessingTests: XCTestCase {
     func testResizingUsingRequestParameters() {
         // Given
         let request = ImageRequest(url: Test.url, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
+
+        // When
+        let image = request.processor!.process(image: Test.image, context: context)
+
+        // Then
+        XCTAssertEqual(image?.cgImage?.width, 40)
+        XCTAssertEqual(image?.cgImage?.height, 30)
+    }
+
+    func testResizingUsingRequestParametersInitWithURLRequest() {
+        // Given
+        let request = ImageRequest(urlRequest: Test.request.urlRequest, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
         let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
 
         // When

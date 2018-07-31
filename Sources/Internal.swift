@@ -312,6 +312,7 @@ internal struct _CancellationToken {
     fileprivate let source: _CancellationTokenSource? // no-op when `nil`
 
     /// Returns `true` if cancellation has been requested for this token.
+    /// Returns `false` if the source was deallocated.
     var isCancelling: Bool {
         return source?.isCancelling ?? false
     }

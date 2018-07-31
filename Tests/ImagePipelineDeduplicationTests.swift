@@ -453,10 +453,10 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 }
 
 /// Helps with counting processors.
-private class ProcessorFactory {
+private final class ProcessorFactory {
     var numberOfProcessorsApplied: Int = 0
 
-    class Processor: MockImageProcessor {
+    private final class Processor: MockImageProcessor {
         var factory: ProcessorFactory!
 
         override func process(image: Image, context: ImageProcessingContext) -> Image? {

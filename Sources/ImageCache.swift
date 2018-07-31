@@ -194,17 +194,6 @@ internal final class _Cache<Key: Hashable, Value> {
         #endif
     }
 
-    subscript(key: Key) -> Value? {
-        get { return value(forKey: key) }
-        set {
-            if let newValue = newValue {
-                set(newValue, forKey: key)
-            } else {
-                removeValue(forKey: key)
-            }
-        }
-    }
-
     func value(forKey key: Key) -> Value? {
         lock.lock(); defer { lock.unlock() }
 

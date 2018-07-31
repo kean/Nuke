@@ -67,7 +67,8 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             completion: { response, _ in
                 XCTAssertNotNil(response)
                 finalLoaded.fulfill()
-        })
+            }
+        )
 
         wait()
 
@@ -188,7 +189,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
     // MARK: Back Pressure
 
-    func testRedundantParialsArentProducedWhenDataIsProcudedAtHighRate() {
+    func testRedundantPartialsArentProducedWhenDataIsProcudedAtHighRate() {
         let queue = pipeline.configuration.imageDecodingQueue
 
         // When we receive progressive image data at a higher rate that we can
@@ -213,7 +214,8 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             completion: { response, _ in
                 XCTAssertNotNil(response)
                 finalLoaded.fulfill()
-        })
+            }
+        )
 
         wait()
     }
@@ -252,7 +254,8 @@ private struct TestExpectationProgressivePipeline {
                 completion?(response, error)
                 XCTAssertNotNil(response)
                 expectFinalImageProduced.fulfill()
-        })
+            }
+        )
     }
 }
 

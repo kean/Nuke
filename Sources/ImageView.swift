@@ -178,7 +178,7 @@ public struct ImageLoadingOptions {
         /// - parameter failure: A content mode to be used with a `failureImage`.
         /// - parameter placeholder: A content mode to be used with a `placeholder`.
         public init(success: UIViewContentMode, failure: UIViewContentMode, placeholder: UIViewContentMode) {
-        self.success = success; self.failure = failure; self.placeholder = placeholder
+            self.success = success; self.failure = failure; self.placeholder = placeholder
         }
         #endif
     }
@@ -357,7 +357,8 @@ private final class ImageViewController {
                 guard self?.taskId == taskId else { return }
                 self?.handle(response: response, error: error, fromMemCache: false, options: options)
                 completion?(response, error)
-        })
+            }
+        )
         return self.task
     }
 
@@ -460,7 +461,7 @@ private final class ImageViewController {
             options: params.options.union(.transitionCrossDissolve),
             animations: {
                 imageView.display(image: image)
-        },
+            },
             completion: nil
         )
     }
@@ -490,12 +491,13 @@ private final class ImageViewController {
             animations: {
                 transitionView.alpha = 0
                 imageView.alpha = 1
-        },
+            },
             completion: { isCompleted in
                 if isCompleted {
                     transitionView.removeFromSuperview()
                 }
-        })
+            }
+        )
     }
 
     #else
