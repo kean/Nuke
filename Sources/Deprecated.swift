@@ -9,7 +9,7 @@ import UIKit
 #endif
 
 /// Represents a target for image loading.
-@available(*, deprecated, message: "Please use `ImageTarget` instead")
+@available(*, deprecated, message: "Please use `ImageDisplaying` protocol instead")
 public protocol Target: class {
     /// Callback that gets called when the request is completed.
     func handle(response: Result<Image>, isFromMemoryCache: Bool)
