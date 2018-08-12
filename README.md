@@ -16,16 +16,16 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
 - [RxNuke](https://github.com/kean/RxNuke) - [RxSwift](https://github.com/ReactiveX/RxSwift) extensions
 - Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) (*deprecated in iOS 10*)
 
-# <a name="h_getting_started"></a>Quick Start
+# <a name="h_getting_started"></a>Getting Started
 
 > Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Migrations).
 
-- Basic [**Usage Guide**](#h_usage), the best place to start
+- [**Quick Start Guide**](#h_usage)
   - [Load Image into Image View](#load-image-into-image-view)
   - [Placeholders, Transitions and More](#placeholders-transitions-and-more)
   - [Image Requests](#image-requests), [Process an Image](#process-an-image)
-  - [Image Pipeline](#image-pipeline), [Configuring Image Pipeline](#configuring-image-pipeline)
 - [**Advanced Usage Guide**](#advanced-usage)
+  - [Image Pipeline](#image-pipeline), [Configuring Image Pipeline](#configuring-image-pipeline)
   - [Memory Cache](#memory-cache), [HTTP Disk Cache](#http-disk-cache), [Aggressive Disk Cache](#aggressive-disk-cache)
   - [Preheat Images](#preheat-images)
   - [Progressive Decoding](#progressive-decoding), [Animated Images](#animated-images), [WebP](#webp)
@@ -38,7 +38,7 @@ A powerful **image loading** and **caching** system. It makes simple tasks like 
 
 More information is available in [**Documentation**](https://github.com/kean/Nuke/blob/master/Documentation/) directory and a full [**API Reference**](https://kean.github.io/Nuke/reference/7.3/index.html). When you are ready to install Nuke you can follow an [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md) - all major package managers are supported.
 
-# <a name="h_usage"></a>Usage
+# <a name="h_usage"></a>Quick Start
 
 #### Load Image into Image View
 
@@ -135,6 +135,8 @@ All those APIs are built on top of `ImageProcessing` protocol which you can also
 
 > See [Core Image Integration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md) for info about using Core Image with Nuke
 
+# Advanced Usage
+
 #### Image Pipeline
 
 Use `ImagePipeline` directly to load images without a view.
@@ -175,8 +177,6 @@ let pipeline = ImagePipeline {
 // When you're done you can make the pipeline a shared one:
 ImagePipeline.shared = pipeline
 ```
-
-# Advanced Usage
 
 #### Memory Cache
 
