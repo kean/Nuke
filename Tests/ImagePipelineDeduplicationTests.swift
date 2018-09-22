@@ -397,6 +397,40 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         wait()
     }
 
+    // MARK: - Disabling Decoding
+
+    func testThatWhenAllRequestsHaveDecodingDisabledDecodingFails() {
+        dataLoader.queue.isSuspended = true
+
+        // Given two requests with decoding disabled
+        let request1 = Test.request.mutated { $0.isDecodingDisabled = true }
+        let request2 = Test.request.mutated { $0.isDecodingDisabled = true }
+
+        // When the image data is loaded
+        // Expect the pipeline to skip decoding and fail with .decodingFailed error
+        expect(pipeline).toFailRequest(request1, with: .decodingFailed)
+        expect(pipeline).toFailRequest(request2, with: .decodingFailed)
+
+        dataLoader.queue.isSuspended = false
+        wait()
+    }
+
+    func testThatWhenOneOfTheRequestsHasDecodingDisabledImageIsStillProduced() {
+        dataLoader.queue.isSuspended = true
+
+        // Given only one request with decoding disabled
+        let request1 = Test.request.mutated { $0.isDecodingDisabled = true }
+        let request2 = Test.request.mutated { $0.isDecodingDisabled = false }
+
+        // When the image data is loaded
+        // Expect the pipeline to still decode the image and return the response
+        expect(pipeline).toLoadImage(with: request1)
+        expect(pipeline).toLoadImage(with: request2)
+
+        dataLoader.queue.isSuspended = false
+        wait()
+    }
+
     // MARK: - Misc
 
     func testProgressIsReported() {

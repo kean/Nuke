@@ -20,7 +20,7 @@ class ImagePipelineResumableDataTests: XCTestCase {
 
     // Make sure that ResumableData works correctly in integration with ImagePipeline
     func testRangeSupported() {
-        expect(pipeline).toFail(with: Test.request)
+        expect(pipeline).toFailRequest(Test.request)
         wait()
 
         let metricsExpectation = self.expectation(description: "Metrics collected")
@@ -43,7 +43,7 @@ class ImagePipelineResumableDataTests: XCTestCase {
         let expectedProgressInitial = expectProgress(
             [(3799, 22789), (7598, 22789), (11397, 22789)]
         )
-        expect(pipeline).toFail(with: Test.request, progress: { (_, completed, total) in
+        expect(pipeline).toFailRequest(Test.request, progress: { (_, completed, total) in
             expectedProgressInitial.received((completed, total))
         })
         wait()

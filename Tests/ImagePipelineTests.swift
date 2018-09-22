@@ -253,6 +253,30 @@ class ImagePipelineTests: XCTestCase {
 
         wait()
     }
+
+    // MARK: Disabling Decoding
+
+    func testDisablingDecoding() {
+        // Given the pipeline successfully returning image data
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+            $0.imageDecoder = { _ in
+                XCTFail("The pipeline tried to decode the image data")
+                return ImageDecoder()
+            }
+            $0.imageCache = nil
+        }
+
+        // Given the request with disabled decoding
+        let request = Test.request.mutated {
+            $0.isDecodingDisabled = true
+        }
+
+        // When the image data is loaded
+        // Expect pipeline to skip decoding and return .decodingFailded error
+        expect(pipeline).toFailRequest(request, with: .decodingFailed)
+        wait()
+    }
 }
 
 /// Test how well image pipeline interacts with memory cache.
@@ -348,14 +372,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         dataLoader.results[Test.url] = .failure(expectedError)
 
         // When/Then
-        expect(pipeline).toFail(with: Test.request) { (_, error) in
-            switch error {
-            case let .dataLoadingFailed(error)?:
-                XCTAssertEqual((error as NSError).code, expectedError.code)
-                XCTAssertEqual((error as NSError).domain, expectedError.domain)
-            default: XCTFail()
-            }
-        }
+        expect(pipeline).toFailRequest(Test.request, with: .dataLoadingFailed(expectedError))
         wait()
     }
 
@@ -370,12 +387,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         }
 
         // When/Then
-        expect(pipeline).toFail(with: Test.request) { (_, error) in
-            switch error {
-            case .decodingFailed?: break
-            default: XCTFail()
-            }
-        }
+        expect(pipeline).toFailRequest(Test.request, with: .decodingFailed)
         wait()
     }
 
@@ -389,12 +401,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         let request = Test.request.processed(with: MockFailingProcessor())
 
         // When/Then
-        expect(pipeline).toFail(with: request) { (_, error) in
-            switch error {
-            case .processingFailed?: break
-            default: XCTFail()
-            }
-        }
+        expect(pipeline).toFailRequest(request, with: .processingFailed)
         wait()
     }
 }

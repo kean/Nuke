@@ -206,6 +206,6 @@ private typealias CacheKey = ImageRequest.CacheKey
 private typealias LoadKey = ImageRequest.LoadKey
 
 private func AssertHashableEqual<T: Hashable>(_ lhs: T, _ rhs: T, file: StaticString = #file, line: UInt = #line) {
-    XCTAssertEqual(lhs.hashValue, rhs.hashValue)
-    XCTAssertEqual(lhs, rhs)
+    XCTAssertEqual(lhs.hashValue, rhs.hashValue, file: file, line: line)
+    XCTAssertEqual(lhs, rhs, file: file, line: line)
 }

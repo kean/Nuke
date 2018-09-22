@@ -23,6 +23,18 @@ extension ImageRequest {
     }
 }
 
+extension ImagePipeline.Error: Equatable {
+    public static func == (lhs: ImagePipeline.Error, rhs: ImagePipeline.Error) -> Bool {
+        switch (lhs, rhs) {
+        case let (.dataLoadingFailed(lhs), .dataLoadingFailed(rhs)):
+            return lhs as NSError == rhs as NSError
+        case (.decodingFailed, .decodingFailed): return true
+        case (.processingFailed, .processingFailed): return true
+        default: return false
+        }
+    }
+}
+
 extension ImagePipeline {
     private static var stack = [ImagePipeline]()
 

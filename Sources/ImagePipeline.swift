@@ -557,11 +557,19 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
 
     // Lazily creates a decoder if necessary.
     private func _decoder(for session: ImageLoadingSession, data: Data) -> ImageDecoding? {
-        // Return existing one.
-        if let decoder = session.decoder { return decoder }
+        guard !session.isDecodingDisabled else {
+            return nil
+        }
+
+        // Return the existing processor in case it has already been created.
+        if let decoder = session.decoder {
+            return decoder
+        }
 
         // Basic sanity checks.
-        guard !data.isEmpty else { return nil }
+        guard !data.isEmpty else {
+            return nil
+        }
 
         let context = ImageDecodingContext(request: session.request, urlResponse: session.urlResponse, data: data)
         let decoder = configuration.imageDecoder(context)
@@ -825,6 +833,12 @@ private final class ImageLoadingSession {
 
     func updatePriority() {
         priority.update(with: tasks.keys)
+    }
+
+    var isDecodingDisabled: Bool {
+        return !tasks.keys.contains {
+            !$0.request.isDecodingDisabled
+        }
     }
 }
 
