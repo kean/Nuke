@@ -4,61 +4,31 @@
 
 import UIKit
 import Nuke
-import Preheat
 
 private let cellReuseID = "reuseID"
 private var loggingEnabled = false
 
-final class PreheatingDemoViewController: UICollectionViewController {
+final class PrefetchingDemoViewController: UICollectionViewController, UICollectionViewDataSourcePrefetching {
     var photos: [URL]!
 
-    var preheater: ImagePreheater!
-    var preheatController: Preheat.Controller<UICollectionView>!
+    let preheater = ImagePreheater()
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
         photos = demoPhotosURLs
 
-        preheater = ImagePreheater()
-        preheatController = Preheat.Controller(view: collectionView!)
-        preheatController.handler = { [weak self] addedIndexPaths, removedIndexPaths in
-            self?.preheat(added: addedIndexPaths, removed: removedIndexPaths)
-        }
-
         collectionView?.backgroundColor = UIColor.white
         if #available(iOS 10.0, *) {
-            collectionView?.isPrefetchingEnabled = false
+            collectionView?.isPrefetchingEnabled = true
+            collectionView?.prefetchDataSource = self
         }
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
-    }
-
-    func preheat(added: [IndexPath], removed: [IndexPath]) {
-        func urls(for indexPaths: [IndexPath]) -> [URL] {
-            return indexPaths.map { photos[$0.row] }
-        }
-        preheater.startPreheating(with: urls(for: added))
-        preheater.stopPreheating(with: urls(for: removed))
-        if loggingEnabled {
-            logAddedIndexPaths(added, removedIndexPaths: removed)
-        }
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         updateItemSize()
-    }
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-
-        preheatController.enabled = true
-    }
-
-    override func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
-
-        preheatController.enabled = false
     }
 
     override func viewDidLayoutSubviews() {
@@ -109,17 +79,32 @@ final class PreheatingDemoViewController: UICollectionViewController {
         }
         return imageView!
     }
+
+    // MARK: UICollectionViewDataSourcePrefetching
+
+    func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
+        let urls = indexPaths.map { photos[$0.row] }
+        preheater.startPreheating(with: urls)
+        if loggingEnabled {
+            print("prefetchItemsAt: \(stringForIndexPaths(indexPaths))")
+        }
+    }
+
+    func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
+        let urls = indexPaths.map { photos[$0.row] }
+        preheater.stopPreheating(with: urls)
+        if loggingEnabled {
+            print("cancelPrefetchingForItemsAt: \(stringForIndexPaths(indexPaths))")
+        }
+    }
 }
 
-private func logAddedIndexPaths(_ addedIndexPath: [IndexPath], removedIndexPaths: [IndexPath]) {
-    func stringForIndexPaths(_ indexPaths: [IndexPath]) -> String {
-        guard indexPaths.count > 0 else {
-            return "[]"
-        }
-        let items = indexPaths
-            .map { return "\(($0 as NSIndexPath).item)" }
-            .joined(separator: " ")
-        return "[\(items)]"
+private func stringForIndexPaths(_ indexPaths: [IndexPath]) -> String {
+    guard indexPaths.count > 0 else {
+        return "[]"
     }
-    print("did change preheat rect with added indexes \(stringForIndexPaths(addedIndexPath)), removed indexes \(stringForIndexPaths(removedIndexPaths))")
+    let items = indexPaths
+        .map { return "\(($0 as NSIndexPath).item)" }
+        .joined(separator: " ")
+    return "[\(items)]"
 }
