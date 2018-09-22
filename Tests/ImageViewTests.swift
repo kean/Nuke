@@ -176,8 +176,7 @@ class ImageViewTests: XCTestCase {
         )
 
         // When
-        let expectedCompleted = self.expect(values: [10, 20] as [Int64])
-        let expectedTotal = self.expect(values: [20, 20] as [Int64])
+        let expectedProgress = expectProgress([(10, 20), (20, 20)])
 
         Nuke.loadImage(
             with: Test.request,
@@ -185,8 +184,7 @@ class ImageViewTests: XCTestCase {
             progress: { _, completed, total in
                 // Then
                 XCTAssertTrue(Thread.isMainThread)
-                expectedCompleted.received(completed)
-                expectedTotal.received(total)
+                expectedProgress.received((completed, total))
             }
         )
 

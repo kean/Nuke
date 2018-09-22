@@ -437,9 +437,10 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
             if let resumableData = session.resumableData {
                 if ResumableData.isResumedResponse(response) {
                     session.data = resumableData.data
+                    session.resumedDataCount = Int64(resumableData.data.count)
                     session.metrics.serverConfirmedResume = true
                 }
-                session.resumableData = nil // Get rid of resumable data anyway
+                session.resumableData = nil // Get rid of resumable data
             }
         }
 
@@ -451,7 +452,7 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
         session.metrics.downloadedDataCount = ((session.metrics.downloadedDataCount ?? 0) + chunk.count)
 
         // Update tasks' progress and call progress closures if any
-        let (completed, total) = (Int64(session.data.count), response.expectedContentLength)
+        let (completed, total) = (Int64(session.data.count), response.expectedContentLength + session.resumedDataCount)
         let tasks = session.tasks
         DispatchQueue.main.async {
             for (task, handlers) in tasks {
@@ -794,6 +795,7 @@ private final class ImageLoadingSession {
     // Data loading session.
     var urlResponse: URLResponse?
     var resumableData: ResumableData?
+    var resumedDataCount: Int64 = 0
     lazy var data = Data()
 
     // Decoding session.

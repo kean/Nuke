@@ -148,14 +148,16 @@ extension XCTestCase {
 // MARK: - ValuesExpectation
 
 extension XCTestCase {
-    class ValuesExpectation<Value: Equatable> {
+    class ValuesExpectation<Value> {
         fileprivate let expectation: XCTestExpectation
         fileprivate let expected: [Value]
+        private let isEqual: (Value, Value) -> Bool
         private var _expected: [Value]
         private var _recorded = [Value]()
 
-        init(expected: [Value], expectation: XCTestExpectation) {
+        init(expected: [Value], isEqual: @escaping (Value, Value) -> Bool, expectation: XCTestExpectation) {
             self.expected = expected
+            self.isEqual = isEqual
             self._expected = expected.reversed() // to be ably to popLast
             self.expectation = expectation
         }
@@ -166,7 +168,7 @@ extension XCTestCase {
                 XCTFail("Received unexpected value. Recorded: \(_recorded), Expected: \(expected)")
                 return
             }
-            XCTAssertEqual(newValue, value, "Recorded: \(_recorded), Expected: \(expected)")
+            XCTAssertTrue(isEqual(newValue, value), "Recorded: \(_recorded), Expected: \(expected)")
             if _expected.isEmpty {
                 expectation.fulfill()
             }
@@ -174,7 +176,15 @@ extension XCTestCase {
     }
 
     func expect<Value: Equatable>(values: [Value]) -> ValuesExpectation<Value> {
-        return ValuesExpectation(expected: values, expectation: self.expectation(description: "Expecting values: \(values)"))
+        return ValuesExpectation(expected: values, isEqual: ==, expectation: self.expectation(description: "Expecting values: \(values)"))
+    }
+
+    func expect<Value>(values: [Value], isEqual: @escaping (Value, Value) -> Bool) -> ValuesExpectation<Value> {
+        return ValuesExpectation(expected: values, isEqual: isEqual, expectation: self.expectation(description: "Expecting values: \(values)"))
+    }
+
+    func expectProgress(_ values: [(Int64, Int64)]) -> ValuesExpectation<(Int64, Int64)> {
+        return expect(values: values, isEqual: ==)
     }
 }
 

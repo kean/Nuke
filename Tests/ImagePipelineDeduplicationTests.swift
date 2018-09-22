@@ -410,15 +410,13 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         for _ in 0..<3 {
             let request = Test.request
 
-            let expectedCompleted = self.expect(values: [10, 20] as [Int64])
-            let expectedTotal = self.expect(values: [20, 20] as [Int64])
+            let expectedProgress = expectProgress([(10, 20), (20, 20)])
 
             pipeline.loadImage(
                 with: request,
                 progress: { _, completed, total in
                     XCTAssertTrue(Thread.isMainThread)
-                    expectedCompleted.received(completed)
-                    expectedTotal.received(total)
+                    expectedProgress.received((completed, total))
                 }
             )
         }
