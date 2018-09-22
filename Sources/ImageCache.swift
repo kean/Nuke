@@ -45,7 +45,7 @@ public extension ImageCaching {
 /// The elements stored in cache are automatically discarded if either *cost* or
 /// *count* limit is reached. The default cost limit represents a number of bytes
 /// and is calculated based on the amount of physical memory available on the
-/// device. The default count limit is set to `Int.max`.
+/// device. The default cmount limit is set to `Int.max`.
 ///
 /// `Cache` automatically removes all stored elements when it received a
 /// memory warning. It also automatically removes *most* of cached elements

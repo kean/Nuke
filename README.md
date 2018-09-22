@@ -230,24 +230,35 @@ If you enable aggressive disk cache, make sure that you also disable native URL 
 
 > `DataCache` type implements public `DataCaching` protocol which can be used for implementing custom data caches.
 
-#### Preheat Images
+#### Prefetching Images
 
-[Preheating](https://kean.github.io/post/image-preheating) (prefetching) means loading images ahead of time in anticipation of their use. Nuke provides a `ImagePreheater` class that does just that.
+[Prefethcing](https://kean.github.io/post/image-preheating) images in advance reduces the wait time for users. Nuke provides an `ImagePreheater` to do just that:
 
 ```swift
-let preheater = ImagePreheater(pipeline: ImagePipeline.shared)
+let preheater = ImagePreheater()
+preheater.startPreheating(for: requests)
 
-let requests = urls.map {
+// Cancels all of the preheating tasks created for the given requests.
+preheater.stopPreheating(for: requests)
+```
+
+There are trade-offs, prefetching takes up users's data and puts an extra pressure on CPU and memory. To reduce the CPU and memory usage you have an option to choose only the disk cache as a prefetching destination:
+
+```swift
+// The preheater with `.diskCache` destination will skip image data decoding
+// entirely to reduce CPU and memory usage. It will still load the image data
+// and store it in disk caches to be used later.
+let preheater = ImagePreheater(destination: .diskCache)
+```
+
+To make sure that the prefetching requests don't interfere with normal requests it's best to reduce their priority:
+
+```swift
+preheater.startPreheating(for: urls.map {
     var request = ImageRequest(url: $0)
     request.priority = .low
     return request
-}
-
-// User enters the screen:
-preheater.startPreheating(for: requests)
-
-// User leaves the screen:
-preheater.stopPreheating(for: requests)
+})
 ```
 
 You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`. On iOS 10.0 you might want to use new [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) provided by iOS instead.

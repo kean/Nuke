@@ -17,12 +17,27 @@ public final class ImagePreheater {
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
     private let preheatQueue = OperationQueue()
     private var tasks = [PreheatKey: Task]()
+    private let destination: Destination
+
+    /// Prefetching destination.
+    public enum Destination {
+        /// Prefetches the image and stores it both in memory and disk caches
+        /// (in case they are enabled, naturally, there is no reason to prefetch
+        /// unless they are).
+        case memoryCache
+
+        /// Prefetches image data and stores in disk cache. Will no decode
+        /// the image data and will therefore useless less CPU.
+        case diskCache
+    }
 
     /// Initializes the `Preheater` instance.
     /// - parameter manager: `Loader.shared` by default.
     /// - parameter `maxConcurrentRequestCount`: 2 by default.
-    public init(pipeline: ImagePipeline = ImagePipeline.shared, maxConcurrentRequestCount: Int = 2) {
+    /// - parameter destination: `.memoryCache` by default.
+    public init(pipeline: ImagePipeline = ImagePipeline.shared, destination: Destination = .memoryCache, maxConcurrentRequestCount: Int = 2) {
         self.pipeline = pipeline
+        self.destination = destination
         self.preheatQueue.maxConcurrentOperationCount = maxConcurrentRequestCount
     }
 
@@ -33,7 +48,9 @@ public final class ImagePreheater {
     /// for individual images with equivalent requests.
     public func startPreheating(with requests: [ImageRequest]) {
         queue.async {
-            requests.forEach(self._startPreheating)
+            for request in requests {
+                self._startPreheating(with: self._updatedRequest(request))
+            }
         }
     }
 
@@ -54,6 +71,7 @@ public final class ImagePreheater {
         let operation = Operation(starter: { [weak self] finish in
             let task = self?.pipeline.loadImage(with: request) { [weak self] _, _  in
                 self?._remove(task)
+                self?.didFinishPreheatingRequest?(task.request)
                 finish()
             }
             token.register {
@@ -76,9 +94,13 @@ public final class ImagePreheater {
 
     /// Stops preheating images for the given requests and cancels outstanding
     /// requests.
+    ///
+    /// - parameter destination: `.memoryCache` by default.
     public func stopPreheating(with requests: [ImageRequest]) {
         queue.async {
-            requests.forEach(self._stopPreheating)
+            for request in requests {
+                self._stopPreheating(with: self._updatedRequest(request))
+            }
         }
     }
 
@@ -96,6 +118,21 @@ public final class ImagePreheater {
             self.tasks.removeAll()
         }
     }
+
+    private func _updatedRequest(_ request: ImageRequest) -> ImageRequest {
+        guard destination == .diskCache else {
+            return request // Avoid creating a new copy
+        }
+
+        var request = request
+        // What we do under the hood is we disable decoding for the requests
+        // that are meant to not be stored in memory cache.
+        request.isDecodingDisabled = (destination == .diskCache)
+        return request
+    }
+
+    /// For testing purposes.
+    var didFinishPreheatingRequest: ((ImageRequest) -> Void)?
 
     private final class Task {
         let key: PreheatKey

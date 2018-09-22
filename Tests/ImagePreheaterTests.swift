@@ -3,12 +3,11 @@
 // Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-import Nuke
+@testable import Nuke
 
 class ImagePreheaterTests: XCTestCase {
     var pipeline: MockImagePipeline!
     var preheater: ImagePreheater!
-    var observations = [NSKeyValueObservation]()
 
     override func setUp() {
         super.setUp()
@@ -100,6 +99,44 @@ class ImagePreheaterTests: XCTestCase {
 
         _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
         preheater.stopPreheating()
+        wait()
+    }
+}
+
+class ImagePreheterDiskCacheTests: XCTestCase {
+    var imageCache: MockImageCache!
+    var dataLoader: MockDataLoader!
+    var pipeline: ImagePipeline!
+    var preheater: ImagePreheater!
+
+    override func setUp() {
+        super.setUp()
+
+        pipeline = MockImagePipeline()
+        dataLoader = MockDataLoader()
+        imageCache = MockImageCache()
+        pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+            $0.imageDecoder = { _ in
+                XCTFail("The pipeline tried to decode the image data")
+                return ImageDecoder()
+            }
+        }
+        preheater = ImagePreheater(pipeline: pipeline)
+    }
+
+    func testPreheatingIntoDiskCache() {
+        // Given preheater with .diskCache destination
+        preheater = ImagePreheater(pipeline: pipeline, destination: .diskCache, maxConcurrentRequestCount: 1)
+
+        let expectation = self.expectation(description: "Finished preheating")
+        preheater.didFinishPreheatingRequest = { _ in
+            XCTAssertTrue(self.imageCache.images.isEmpty)
+            expectation.fulfill()
+        }
+
+        preheater.startPreheating(with: [Test.request])
         wait()
     }
 }

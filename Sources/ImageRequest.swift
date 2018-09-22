@@ -114,9 +114,10 @@ public struct ImageRequest {
     }
 
     /// If decoding is disabled, when the image data is loaded, the pipeline is
-    /// not going to create an image from it will produce the `.decodingFailed`
+    /// not going to create an image from it and will produce the `.decodingFailed`
     /// error instead. `false` by default.
-    public var isDecodingDisabled: Bool {
+    var isDecodingDisabled: Bool {
+        // This only used by `ImagePreheater` right now
         get { return _ref.isDecodingDisabled }
         set { _mutate { $0.isDecodingDisabled = newValue } }
     }
