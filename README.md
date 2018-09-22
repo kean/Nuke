@@ -236,10 +236,10 @@ If you enable aggressive disk cache, make sure that you also disable native URL 
 
 ```swift
 let preheater = ImagePreheater()
-preheater.startPreheating(for: requests)
+preheater.startPreheating(with: urls)
 
 // Cancels all of the preheating tasks created for the given requests.
-preheater.stopPreheating(for: requests)
+preheater.stopPreheating(with: urls)
 ```
 
 There are trade-offs, prefetching takes up users's data and puts an extra pressure on CPU and memory. To reduce the CPU and memory usage you have an option to choose only the disk cache as a prefetching destination:
@@ -251,15 +251,7 @@ There are trade-offs, prefetching takes up users's data and puts an extra pressu
 let preheater = ImagePreheater(destination: .diskCache)
 ```
 
-To make sure that the prefetching requests don't interfere with normal requests it's best to reduce their priority:
-
-```swift
-preheater.startPreheating(for: urls.map {
-    var request = ImageRequest(url: $0)
-    request.priority = .low
-    return request
-})
-```
+To make sure that the prefetching requests don't interfere with normal requests it's best to reduce their priority.
 
 You can use Nuke in combination with [Preheat](https://github.com/kean/Preheat) library which automates preheating of content in `UICollectionView` and `UITableView`. On iOS 10.0 you might want to use new [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) provided by iOS instead.
 

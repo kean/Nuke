@@ -41,7 +41,13 @@ public final class ImagePreheater {
         self.preheatQueue.maxConcurrentOperationCount = maxConcurrentRequestCount
     }
 
-    /// Preheats images for the given requests.
+    /// Starte preheating images for the given urls.
+    /// - note: See `func startPreheating(with requests: [ImageRequest])` for more info
+    public func startPreheating(with urls: [URL]) {
+        startPreheating(with: _requests(for: urls))
+    }
+
+    /// Starts preheating images for the given requests.
     ///
     /// When you call this method, `Preheater` starts to load and cache images
     /// for the given requests. At any time afterward, you can create tasks
@@ -92,6 +98,11 @@ public final class ImagePreheater {
         }
     }
 
+    /// Stops preheating images for the given urls.
+    public func stopPreheating(with urls: [URL]) {
+        stopPreheating(with: _requests(for: urls))
+    }
+
     /// Stops preheating images for the given requests and cancels outstanding
     /// requests.
     ///
@@ -116,6 +127,14 @@ public final class ImagePreheater {
         queue.async {
             self.tasks.forEach { $0.1.cts.cancel() }
             self.tasks.removeAll()
+        }
+    }
+
+    private func _requests(for urls: [URL]) -> [ImageRequest] {
+        return urls.map {
+            var request = ImageRequest(url: $0)
+            request.priority = .veryLow
+            return request
         }
     }
 

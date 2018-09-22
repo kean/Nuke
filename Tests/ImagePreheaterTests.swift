@@ -58,6 +58,16 @@ class ImagePreheaterTests: XCTestCase {
         wait()
     }
 
+    func testStartingPreheatingWithURLS() {
+        pipeline.queue.isSuspended = true
+
+        expect(pipeline.queue).toFinishWithEnqueuedOperationCount(1)
+
+        preheater.startPreheating(with: [Test.url])
+
+        wait()
+    }
+
     // MARK: - Stoping Preheating
 
     func testThatPreheatingRequestsAreStopped() {
