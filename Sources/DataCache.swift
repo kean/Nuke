@@ -265,7 +265,7 @@ public final class DataCache: DataCaching {
         return _filenameGenerator(key)
     }
 
-    private func _url(for key: Key) -> URL? {
+    /* testable */ func _url(for key: Key) -> URL? {
         guard let filename = self.filename(for: key) else {
             return nil
         }

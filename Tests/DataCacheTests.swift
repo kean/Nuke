@@ -346,34 +346,6 @@ class DataCacheTests: XCTestCase {
         XCTAssertEqual(cache.contents.count, 1)
     }
 
-    // MARK: Sweep
-
-    func testSweep() {
-        // Given
-        cache = try! DataCache(path: cache.path, filenameGenerator: { $0 })
-        cache.countLimit = 4 // we test count limit here
-        cache.trimRatio = 0.5 // 1 item should remaing after trim
-        cache.sizeLimit = Int.max
-
-        let keys = (0..<4).map { "\($0)" }
-
-        keys.forEach {
-            Thread.sleep(forTimeInterval: 1)
-            cache[$0] = "123".data(using: .utf8)
-            cache.flush()
-        }
-
-        // When
-        cache.sweep()
-        cache.flush()
-
-        // Then
-        XCTAssertNil(cache[keys[0]])
-        XCTAssertNil(cache[keys[1]])
-        XCTAssertNotNil(cache[keys[2]])
-        XCTAssertNotNil(cache[keys[3]])
-    }
-
     // MARK: Inspection
 
     func testTotalCount() {
@@ -402,37 +374,6 @@ class DataCacheTests: XCTestCase {
 
         // Depends on the file system.
         XCTAssertTrue(cache.totalAllocatedSize > 0)
-    }
-
-    // MARK: Intricacies
-
-    func testThatAccessDateIsUpdatedOnRead() {
-        // Given
-        cache["1"] = "1".data(using: .utf8)
-        cache.flush()
-
-        // When
-
-        // First access
-        let _ = cache["1"]
-        let date1 = cache.contents(keys: [.contentAccessDateKey])
-            .first
-            .flatMap { $0.meta.contentAccessDate }
-
-        Thread.sleep(forTimeInterval: 1)
-
-        // Second access
-        let _ = cache["1"]
-        let date2 = cache.contents(keys: [.contentAccessDateKey])
-            .first
-            .flatMap { $0.meta.contentAccessDate }
-
-        // Then
-        XCTAssertNotNil(date1)
-        XCTAssertNotNil(date2)
-        if let date1 = date1, let date2 = date2 {
-            XCTAssertTrue(date1 < date2)
-        }
     }
 }
 
