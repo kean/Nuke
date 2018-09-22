@@ -1,3 +1,19 @@
+## Nuke 7.4
+
+### Prefetching Improvements
+
+- Add an `ImagePreheater.Destination` option to `ImagePreheater`. The default option is `.memoryCache` which works exactly the way `ImagePreheater` used to work before. The more interesting option is `.diskCache`. The preheater with `.diskCache` destination will skip image data decoding entirely to reduce CPU and memory usage. It will still load the image data and store it in disk caches to be used later.
+- Add convenience `func startPreheating(with urls: [URL])` function which creates requests with `.low` requests for you.
+- `ImagePreheater` now automatically cancels all of the managed outstanding requests on deinit.
+- Add `UICollectionViewDataSourcePrefetching` demo on iOS 10+. Nuke still supports iOS 9 so [Preheat](https://github.com/kean/Preheat) is also still around.
+
+### Other Changes
+
+- #187 Fix an issue with progress handler reporting incorrect progress for resumed (206 Partial Content) downloads
+- Remove `enableExperimentalAggressiveDiskCaching` function from `ImagePipeline.Configuration`, please use `DataCache` directly instead
+- Update [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md)
+
+
 ## Nuke 7.3.2
 
 - #178 Fix TSan warning being triggered by performance optimization in `ImageTask.cancel()` (false positive)

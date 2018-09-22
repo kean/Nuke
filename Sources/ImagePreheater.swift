@@ -137,7 +137,7 @@ public final class ImagePreheater {
     private func _requests(for urls: [URL]) -> [ImageRequest] {
         return urls.map {
             var request = ImageRequest(url: $0)
-            request.priority = .veryLow
+            request.priority = .low
             return request
         }
     }
