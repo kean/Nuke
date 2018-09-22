@@ -81,7 +81,6 @@ public final class ImagePreheater {
         let operation = Operation(starter: { [weak self] finish in
             let task = self?.pipeline.loadImage(with: request) { [weak self] _, _  in
                 self?._remove(task)
-                self?.didFinishPreheatingRequest?(task.request)
                 finish()
             }
             token.register {
@@ -153,9 +152,6 @@ public final class ImagePreheater {
         request.isDecodingDisabled = (destination == .diskCache)
         return request
     }
-
-    /// For testing purposes.
-    var didFinishPreheatingRequest: ((ImageRequest) -> Void)?
 
     private final class Task {
         let key: PreheatKey
