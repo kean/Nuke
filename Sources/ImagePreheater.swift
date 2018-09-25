@@ -31,10 +31,6 @@ public final class ImagePreheater {
         case diskCache
     }
 
-    deinit {
-        stopPreheating()
-    }
-
     /// Initializes the `Preheater` instance.
     /// - parameter manager: `Loader.shared` by default.
     /// - parameter `maxConcurrentRequestCount`: 2 by default.
