@@ -83,7 +83,7 @@ There is a very common scenario when the placeholder (or the failure image) need
 let options = ImageLoadingOptions(
     placeholder: UIImage(named: "placeholder"),
     failureImage: UIImage(named: "failure_image"),
-    contentModes = .init(
+    contentModes: .init(
         success: .scaleAspectFill,
         failure: .center,
         placeholder: .center
