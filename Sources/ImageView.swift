@@ -321,6 +321,9 @@ private final class ImageViewController {
         if request.memoryCacheOptions.isReadAllowed,
             let imageCache = pipeline.configuration.imageCache,
             let response = imageCache.cachedResponse(for: request) {
+
+            self.taskId = 0
+
             handle(response: response, error: nil, fromMemCache: true, options: options)
             completion?(response, nil)
             return nil
