@@ -1,6 +1,8 @@
 language: objective-c
 os: osx
-osx_image: xcode9.4
+osx_image:
+  - xcode9.4
+  - xcode10
 
 env:
   global:
@@ -23,7 +25,7 @@ env:
   - DESTINATION="arch=x86_64"
     SCHEME="$MACOS_SCHEME"   RUN_TESTS="YES"
 
-  - DESTINATION="OS=4.3,name=Apple Watch - 42mm"
+  - DESTINATION="OS=4.2,name=Apple Watch - 42mm"
     SCHEME="$WATCHOS_SCHEME" RUN_TESTS="NO"
   - DESTINATION="OS=3.2,name=Apple Watch - 42mm"
     SCHEME="$WATCHOS_SCHEME" RUN_TESTS="NO"
