@@ -1,3 +1,8 @@
+## Nuke 7.4.2
+
+- #174 Fix an issue with an `ImageView` reuse logic where in rare cases a wrong image would be displayed, thanks to @michaelnisi
+
+
 ## Nuke 7.4.1
 
 - Disable automatic `stopPreheating` which was causing some issues
