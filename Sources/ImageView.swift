@@ -321,9 +321,6 @@ private final class ImageViewController {
         if request.memoryCacheOptions.isReadAllowed,
             let imageCache = pipeline.configuration.imageCache,
             let response = imageCache.cachedResponse(for: request) {
-
-            self.taskId = 0
-
             handle(response: response, error: nil, fromMemCache: true, options: options)
             completion?(response, nil)
             return nil
@@ -343,12 +340,10 @@ private final class ImageViewController {
             }
         }
 
-        // Make sure that view reuse is handled correctly.
-        self.taskId += 1
+        // Makes sure that view reuse is handled correctly.
         let taskId = self.taskId
 
         // Start the request.
-        // A delegate-based approach would probably work better here.
         self.task = pipeline.loadImage(
             with: request,
             progress: { [weak self] response, completed, total in
@@ -366,6 +361,7 @@ private final class ImageViewController {
     }
 
     func cancelOutstandingTask() {
+        taskId += 1
         task?.cancel()
         task = nil
     }

@@ -5,10 +5,7 @@
 import Foundation
 @testable import Nuke
 
-class _MockImageTask: ImageTask {
-    var _progress: ImageTask.ProgressHandler?
-    var _completion: ImageTask.Completion?
-
+private class _MockImageTask: ImageTask {
     fileprivate var _cancel: () -> Void = {}
 
     init(request: ImageRequest) {
@@ -23,6 +20,9 @@ class _MockImageTask: ImageTask {
 class MockImagePipeline: ImagePipeline {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidCancelTask")
+    static let DidFinishTask = Notification.Name("com.github.kean.Nuke.Tests.MockLoader.DidFinishTask")
+
+    var isCancellationEnabled = true
 
     var createdTaskCount = 0
     let queue: OperationQueue = {
@@ -31,36 +31,34 @@ class MockImagePipeline: ImagePipeline {
         return queue
     }()
 
-    var perform: (_ task: _MockImageTask) -> Void = { task in
-        DispatchQueue.main.async {
-            task._completion?(Test.response, nil)
-        }
-    }
-
-    override init(configuration: ImagePipeline.Configuration = ImagePipeline.Configuration()) {
-        var conf = configuration
-        conf.imageCache = nil // Disablaecaching
-        super.init(configuration: conf)
-    }
-
     @discardableResult
     override func loadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
         let task = _MockImageTask(request: request)
-        task._progress = progress
-        task._completion = completion
 
         createdTaskCount += 1
 
         NotificationCenter.default.post(name: MockImagePipeline.DidStartTask, object: self)
 
-        let operation = BlockOperation { [weak self] in
-            self?.perform(task)
+        let operation = BlockOperation {
+            for (completed, total) in [(10, 20), (20, 20)] as [(Int64, Int64)] {
+                DispatchQueue.main.async {
+                    progress?(nil, completed, total)
+                }
+            }
+
+            DispatchQueue.main.async {
+                completion?(Test.response, nil)
+                _ = task // Retain task
+                NotificationCenter.default.post(name: MockImagePipeline.DidFinishTask, object: self)
+            }
         }
         self.queue.addOperation(operation)
 
-        task._cancel = {
-            operation.cancel()
-            NotificationCenter.default.post(name: MockImagePipeline.DidCancelTask, object: self)
+        if isCancellationEnabled {
+            task._cancel = { [weak operation] in
+                operation?.cancel()
+                NotificationCenter.default.post(name: MockImagePipeline.DidCancelTask, object: self)
+            }
         }
 
         return task

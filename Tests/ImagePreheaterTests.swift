@@ -12,7 +12,9 @@ class ImagePreheaterTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        pipeline = MockImagePipeline()
+        pipeline = MockImagePipeline {
+            $0.imageCache = nil
+        }
         preheater = ImagePreheater(pipeline: pipeline)
     }
 

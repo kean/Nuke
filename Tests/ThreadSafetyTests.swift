@@ -62,7 +62,9 @@ class ThreadSafetyTests: XCTestCase {
     }
 
     func testPreheaterThreadSafety() {
-        let pipeline = MockImagePipeline()
+        let pipeline = MockImagePipeline {
+            $0.imageCache = nil
+        }
         let preheater = ImagePreheater(pipeline: pipeline)
 
         func makeRequests() -> [ImageRequest] {
