@@ -64,7 +64,7 @@ func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath:
 
 #### Placeholders, Transitions and More
 
-Use an  `options` parameter (`ImageLoadingOptions`)  to customize the way images are loaded and displayed. You can provide a placeholder, select one of the built-in transitions or provide a custom one.
+Use an  `options` parameter (`ImageLoadingOptions`)  to customize the way images are loaded and displayed. You can provide a placeholder, select one of the built-in transitions or provide a custom one. When using transitions, be aware that UIKit may keep a reference to the image, preventing it from being removed for long animations or loading many transitions at once.
 
 ```swift
 Nuke.loadImage(
