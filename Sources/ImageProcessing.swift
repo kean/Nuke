@@ -104,9 +104,11 @@ public struct ImageDecompressor: ImageProcessing {
         /// Scales the image so that it completely fills the target size.
         /// Doesn't clip images.
         case aspectFill
+        case aspectFillWithUpscaling
 
         /// Scales the image so that it fits the target size.
         case aspectFit
+        case aspectFitWithUpscaling
     }
 
     /// Size to pass to disable resizing.
@@ -153,8 +155,19 @@ internal func decompress(_ image: UIImage, targetSize: CGSize, contentMode: Imag
     let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
     let scaleHor = targetSize.width / bitmapSize.width
     let scaleVert = targetSize.height / bitmapSize.height
-    let scale = contentMode == .aspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
-    return decompress(image, scale: CGFloat(min(scale, 1)))
+
+    let upscale: Bool
+    let scale: CGFloat
+    switch (contentMode) {
+    case .aspectFill, .aspectFillWithUpscaling:
+        upscale = contentMode == .aspectFillWithUpscaling
+        scale = max(scaleHor, scaleVert)
+    case .aspectFit, .aspectFitWithUpscaling:
+        upscale = contentMode == .aspectFitWithUpscaling
+        scale = min(scaleHor, scaleVert)
+    }
+
+    return decompress(image, scale: CGFloat(upscale ? scale : min(scale, 1)))
 }
 
 internal func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
