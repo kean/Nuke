@@ -87,7 +87,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         let request = ImageRequest(
             url: Test.url,
             targetSize: CGSize(width: 45, height: 30),
-            contentMode: .aspectFill
+            contentMode: .aspectFill(upscale: false)
         )
 
         // When/Then
