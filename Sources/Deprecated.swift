@@ -591,7 +591,7 @@ public struct Decompressor: Processing {
     }
 
     public func process(_ image: Image) -> Image? {
-        return decompress(image, targetSize: targetSize, contentMode: _map(mode: contentMode))
+        return decompress(image, targetSize: targetSize, contentMode: _map(mode: contentMode), upscale: false)
     }
 
     public static func ==(lhs: Decompressor, rhs: Decompressor) -> Bool {

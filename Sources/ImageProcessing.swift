@@ -117,19 +117,21 @@ public struct ImageDecompressor: ImageProcessing {
 
     private let targetSize: CGSize
     private let contentMode: ContentMode
+    private let upscale: Bool
 
     /// Initializes `Decompressor` with the given parameters.
     /// - parameter targetSize: Size in pixels. `MaximumSize` by default.
     /// - parameter contentMode: An option for how to resize the image
     /// to the target size. `.aspectFill` by default.
-    public init(targetSize: CGSize = MaximumSize, contentMode: ContentMode = .aspectFill) {
+    public init(targetSize: CGSize = MaximumSize, contentMode: ContentMode = .aspectFill, upscale: Bool = false) {
         self.targetSize = targetSize
         self.contentMode = contentMode
+        self.upscale = upscale
     }
 
     /// Decompresses and scales the image.
     public func process(image: Image, context: ImageProcessingContext) -> Image? {
-        return decompress(image, targetSize: targetSize, contentMode: contentMode)
+        return decompress(image, targetSize: targetSize, contentMode: contentMode, upscale: upscale)
     }
 
     /// Returns true if both have the same `targetSize` and `contentMode`.
@@ -148,13 +150,13 @@ public struct ImageDecompressor: ImageProcessing {
     #endif
 }
 
-internal func decompress(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) -> UIImage {
+internal func decompress(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode, upscale: Bool) -> UIImage {
     guard let cgImage = image.cgImage else { return image }
     let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
     let scaleHor = targetSize.width / bitmapSize.width
     let scaleVert = targetSize.height / bitmapSize.height
     let scale = contentMode == .aspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
-    return decompress(image, scale: CGFloat(min(scale, 1)))
+    return decompress(image, scale: CGFloat(upscale ? scale : min(scale, 1)))
 }
 
 internal func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
