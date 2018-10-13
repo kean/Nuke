@@ -154,18 +154,18 @@ public struct ImageRequest {
     /// - parameter targetSize: Size in pixels.
     /// - parameter contentMode: An option for how to resize the image
     /// to the target size.
-    public init(url: URL, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) {
+    public init(url: URL, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode, upscale: Bool = false) {
         self = ImageRequest(url: url)
-        self.processor = AnyImageProcessor(ImageDecompressor(targetSize: targetSize, contentMode: contentMode))
+        self.processor = AnyImageProcessor(ImageDecompressor(targetSize: targetSize, contentMode: contentMode, upscale: upscale))
     }
 
     /// Initializes a request with the given request.
     /// - parameter targetSize: Size in pixels.
     /// - parameter contentMode: An option for how to resize the image
     /// to the target size.
-    public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) {
+    public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode, upscale: Bool = false) {
         self = ImageRequest(urlRequest: urlRequest)
-        self.processor = AnyImageProcessor(ImageDecompressor(targetSize: targetSize, contentMode: contentMode))
+        self.processor = AnyImageProcessor(ImageDecompressor(targetSize: targetSize, contentMode: contentMode, upscale: upscale))
     }
 
     fileprivate static let decompressor = AnyImageProcessor(ImageDecompressor())
