@@ -585,8 +585,8 @@ public struct Decompressor: Processing {
 
     private func _map(mode: ContentMode) -> ImageDecompressor.ContentMode {
         switch mode {
-        case .aspectFill: return .aspectFill
-        case .aspectFit: return .aspectFit
+        case .aspectFill: return .aspectFill(upscale: false)
+        case .aspectFit: return .aspectFit(upscale: false)
         }
     }
 

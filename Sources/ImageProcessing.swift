@@ -103,10 +103,10 @@ public struct ImageDecompressor: ImageProcessing {
     public enum ContentMode {
         /// Scales the image so that it completely fills the target size.
         /// Doesn't clip images.
-        case aspectFill
+        case aspectFill(upscale: Bool)
 
         /// Scales the image so that it fits the target size.
-        case aspectFit
+        case aspectFit(upscale: Bool)
     }
 
     /// Size to pass to disable resizing.
@@ -122,7 +122,7 @@ public struct ImageDecompressor: ImageProcessing {
     /// - parameter targetSize: Size in pixels. `MaximumSize` by default.
     /// - parameter contentMode: An option for how to resize the image
     /// to the target size. `.aspectFill` by default.
-    public init(targetSize: CGSize = MaximumSize, contentMode: ContentMode = .aspectFill) {
+    public init(targetSize: CGSize = MaximumSize, contentMode: ContentMode = .aspectFill(upscale: false)) {
         self.targetSize = targetSize
         self.contentMode = contentMode
     }
@@ -148,13 +148,37 @@ public struct ImageDecompressor: ImageProcessing {
     #endif
 }
 
+extension ImageDecompressor.ContentMode: Equatable {
+}
+public func ==(lhs: ImageDecompressor.ContentMode, rhs: ImageDecompressor.ContentMode) -> Bool {
+    switch (lhs, rhs) {
+    case (let .aspectFill(upscale: upscale1A), let .aspectFill(upscale: upscale1B)):
+        return upscale1A == upscale1B
+    case (let .aspectFit(upscale: upscale2A), let .aspectFit(upscale: upscale2B)):
+        return upscale2A == upscale2B
+    default:
+        return false
+    }
+}
+
 internal func decompress(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode) -> UIImage {
     guard let cgImage = image.cgImage else { return image }
     let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
     let scaleHor = targetSize.width / bitmapSize.width
     let scaleVert = targetSize.height / bitmapSize.height
-    let scale = contentMode == .aspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
-    return decompress(image, scale: CGFloat(min(scale, 1)))
+
+    let upscale: Bool
+    let scale: CGFloat
+    switch (contentMode) {
+    case (let .aspectFill(upscale: upscaleFill)):
+        upscale = upscaleFill
+        scale = max(scaleHor, scaleVert)
+    case (let .aspectFit(upscale: upscaleFit)):
+        upscale = upscaleFit
+        scale = min(scaleHor, scaleVert)
+    }
+
+    return decompress(image, scale: CGFloat(upscale ? scale : min(scale, 1)))
 }
 
 internal func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {

@@ -134,7 +134,7 @@ class ImageProcessingTests: XCTestCase {
     #if !os(macOS)
     func testResizingUsingRequestParameters() {
         // Given
-        let request = ImageRequest(url: Test.url, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+        let request = ImageRequest(url: Test.url, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit(upscale: false))
         let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
 
         // When
@@ -147,7 +147,7 @@ class ImageProcessingTests: XCTestCase {
 
     func testResizingUsingRequestParametersInitWithURLRequest() {
         // Given
-        let request = ImageRequest(urlRequest: Test.request.urlRequest, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+        let request = ImageRequest(urlRequest: Test.request.urlRequest, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit(upscale: false))
         let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
 
         // When
