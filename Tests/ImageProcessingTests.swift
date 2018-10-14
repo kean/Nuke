@@ -132,6 +132,17 @@ class ImageProcessingTests: XCTestCase {
     // MARK: - Resizing
 
     #if !os(macOS)
+    func testUsingProcessorRequestParameter() {
+        // Given
+        let processor = ImageDecompressor(targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit, upscale: false)
+
+        // When
+        let request = ImageRequest(url: Test.url, processor: processor)
+
+        // Then
+        XCTAssertEqual(AnyImageProcessor(processor), request.processor)
+    }
+
     func testResizingUsingRequestParameters() {
         // Given
         let request = ImageRequest(url: Test.url, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
@@ -156,6 +167,34 @@ class ImageProcessingTests: XCTestCase {
         // Then
         XCTAssertEqual(image?.cgImage?.width, 40)
         XCTAssertEqual(image?.cgImage?.height, 30)
+    }
+
+    func testResizingShouldNotUpscaleWithoutParamater() {
+        // Given
+        let targetSize = CGSize(width: 960, height: 720)
+        let request = ImageRequest(url: Test.url, targetSize: targetSize, contentMode: .aspectFit)
+        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
+
+        // When
+        let image = request.processor!.process(image: Test.image, context: context)
+
+        // Then
+        XCTAssertEqual(image?.cgImage?.width, 640)
+        XCTAssertEqual(image?.cgImage?.height, 480)
+    }
+
+    func testResizingShouldUpscaleWithParamater() {
+        // Given
+        let targetSize = CGSize(width: 960, height: 720)
+        let request = ImageRequest(url: Test.url, targetSize: targetSize, contentMode: .aspectFit, upscale: true)
+        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
+
+        // When
+        let image = request.processor!.process(image: Test.image, context: context)
+
+        // Then
+        XCTAssertEqual(image?.cgImage?.width, 960)
+        XCTAssertEqual(image?.cgImage?.height, 720)
     }
     #endif
 }
