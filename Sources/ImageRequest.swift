@@ -146,10 +146,6 @@ public struct ImageRequest {
 
     #if !os(macOS)
 
-    // Convenience initializers with custom processor. The reason why these
-    // are implemented as separate init methods is to take advantage of
-    // memorized `decompressor` when a custom processor is not needed.
-
     /// Initializes a request with the given URL.
     /// - parameter processor: Custom image processer.
     public init<Processor: ImageProcessing>(url: URL, processor: Processor) {
@@ -163,9 +159,6 @@ public struct ImageRequest {
         self.init(urlRequest: urlRequest)
         self.processor = AnyImageProcessor(processor)
     }
-
-    // Convenience initializers with `targetSize`, `contentMode`, and `upscale`
-    // to provide to ImageDecompressor custom processor.
 
     /// Initializes a request with the given URL.
     /// - parameter targetSize: Size in pixels.
