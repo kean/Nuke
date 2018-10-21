@@ -326,11 +326,6 @@ internal struct CancellationToken {
     func register(_ closure: @escaping () -> Void) {
         source?.register(closure)
     }
-
-    /// Special no-op token which does nothing.
-    static var noOp: CancellationToken {
-        return CancellationToken(source: nil)
-    }
 }
 
 // MARK: - ResumableData

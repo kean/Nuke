@@ -122,23 +122,4 @@ class CancellationTokenTests: XCTestCase {
         cts1.cancel()
         wait()
     }
-
-    // MARK: No-op token
-
-    func testNoOpTokenInitialState() {
-        // Given
-        let token = CancellationToken.noOp
-
-        // Then
-        XCTAssertFalse(token.isCancelling)
-    }
-
-    func testNoOpToken() {
-        // Given
-        let token = CancellationToken.noOp
-
-        // When/Then
-        token.register { XCTFail() }
-        XCTAssertFalse(token.isCancelling)
-    }
 }
