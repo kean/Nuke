@@ -146,7 +146,7 @@ internal final class Operation: Foundation.Operation {
         return queue.sync { _state == .finished }
     }
 
-    typealias Starter = (_ fulfill: @escaping () -> Void) -> Void
+    typealias Starter = (_ finish: @escaping () -> Void) -> Void
     private let starter: Starter
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Operation", attributes: .concurrent)
 
