@@ -1,3 +1,20 @@
+## Nuke 7.5
+
+### Additions
+
+- [#193](https://github.com/kean/Nuke/pull/193) Add an option to `ImageDecompressor` to allow images to upscale, thanks to [@drkibitz](https://github.com/drkibitz)
+- [#197](https://github.com/kean/Nuke/pull/197) Add a convenience initializer to `ImageRequest` which takes an image processor (`ImageProcessing`) as a parameter, thanks to [@drkibitz](https://github.com/drkibitz)
+
+### Improvements
+
+- Add a guarantee that if you cancel `ImageTask` on the main thread, you won't receive any more callbacks (progress, completion)
+- Improve internal `Operation` performance, images are loading up to 5% faster
+
+### Removals
+
+Nuke 7 had a lot of API changes, to make the migration easier it shipped with Deprecated.swift file (536 line of code) which enabled Nuke 7 to be almost 100% source-compatible with Nuke 6. It's been 6 months since Nuke 7 release, so now it's finally a good time to remove all of this code. 
+
+
 ## Nuke 7.4.2
 
 - #174 Fix an issue with an `ImageView` reuse logic where in rare cases a wrong image would be displayed, thanks to @michaelnisi
