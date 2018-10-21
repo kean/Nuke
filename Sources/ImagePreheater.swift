@@ -152,7 +152,7 @@ public final class ImagePreheater {
     private final class Task {
         let key: PreheatKey
         let request: ImageRequest
-        let cts = _CancellationTokenSource()
+        let cts = CancellationTokenSource()
 
         init(request: ImageRequest, key: PreheatKey) {
             self.request = request

@@ -85,7 +85,7 @@ class ThreadSafetyTests: XCTestCase {
 
     func testCancellationTokenThreadSafety() {
         for _ in 0..<100 {
-            let cts = _CancellationTokenSource()
+            let cts = CancellationTokenSource()
 
             for _ in 0...100 {
                 let expectation = self.expectation(description: "Finished")
@@ -117,7 +117,7 @@ class ThreadSafetyTests: XCTestCase {
         var ops = [Op]()
 
         ops.append(Op() { fulfill in
-            let cts = _CancellationTokenSource()
+            let cts = CancellationTokenSource()
             limiter.execute(token: cts.token) {
                 DispatchQueue.global().async {
                     fulfill()
@@ -127,7 +127,7 @@ class ThreadSafetyTests: XCTestCase {
 
         ops.append(Op() { fulfill in
             // cancel after executing
-            let cts = _CancellationTokenSource()
+            let cts = CancellationTokenSource()
             limiter.execute(token: cts.token) {
                 return
             }
@@ -137,7 +137,7 @@ class ThreadSafetyTests: XCTestCase {
 
         ops.append(Op() { fulfill in
             // cancel immediately
-            let cts = _CancellationTokenSource()
+            let cts = CancellationTokenSource()
             cts.cancel()
             limiter.execute(token: cts.token) {
                 XCTFail() // must not be executed

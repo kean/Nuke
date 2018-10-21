@@ -789,8 +789,8 @@ private final class ImageLoadingSession {
     /// The original request with which the session was created.
     let request: ImageRequest
     let key: AnyHashable // loading key
-    let cts = _CancellationTokenSource()
-    var token: _CancellationToken { return cts.token }
+    let cts = CancellationTokenSource()
+    var token: CancellationToken { return cts.token }
 
     // Registered image tasks.
     var tasks = [ImageTask: Handlers]()

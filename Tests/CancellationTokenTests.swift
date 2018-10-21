@@ -8,7 +8,7 @@ import XCTest
 class CancellationTokenTests: XCTestCase {
     func testInitialState() {
         // Given
-        let cts = _CancellationTokenSource()
+        let cts = CancellationTokenSource()
         let token = cts.token
 
         // Then
@@ -19,7 +19,7 @@ class CancellationTokenTests: XCTestCase {
 
     func testCancellation() {
         // Given
-        let cts = _CancellationTokenSource()
+        let cts = CancellationTokenSource()
         let token1 = cts.token
         let token2 = cts.token
 
@@ -35,7 +35,7 @@ class CancellationTokenTests: XCTestCase {
     
     func testThatTheRegisteredClosureIsCalled() {
         // Given
-        let cts = _CancellationTokenSource()
+        let cts = CancellationTokenSource()
 
         // When/ Then
         let expectation = self.expectation(description: "Token Cancelled")
@@ -49,7 +49,7 @@ class CancellationTokenTests: XCTestCase {
 
     func testThatTheRegisteredClosureIsCalledWhenRegisteringAfterCancellation() {
         // Given
-        let cts = _CancellationTokenSource()
+        let cts = CancellationTokenSource()
         cts.cancel()
 
         // When/Then
@@ -63,7 +63,7 @@ class CancellationTokenTests: XCTestCase {
 
     func testMultipleClosuresRegistered() {
         // Given
-        let cts = _CancellationTokenSource()
+        let cts = CancellationTokenSource()
         let token = cts.token
 
         // When/Then
@@ -89,7 +89,7 @@ class CancellationTokenTests: XCTestCase {
 
     func testCancellingMultipleTimes() {
         // Given
-        let cts = _CancellationTokenSource()
+        let cts = CancellationTokenSource()
         let token = cts.token
 
         var callsCount = 0
@@ -107,8 +107,8 @@ class CancellationTokenTests: XCTestCase {
 
     func testCancellingOneFromAnother() {
         // Given
-        let cts1 = _CancellationTokenSource()
-        let cts2 = _CancellationTokenSource()
+        let cts1 = CancellationTokenSource()
+        let cts2 = CancellationTokenSource()
 
         // When/Then
         let expectation = self.expectation(description: "Token Cancelled")
@@ -127,7 +127,7 @@ class CancellationTokenTests: XCTestCase {
 
     func testNoOpTokenInitialState() {
         // Given
-        let token = _CancellationToken.noOp
+        let token = CancellationToken.noOp
 
         // Then
         XCTAssertFalse(token.isCancelling)
@@ -135,7 +135,7 @@ class CancellationTokenTests: XCTestCase {
 
     func testNoOpToken() {
         // Given
-        let token = _CancellationToken.noOp
+        let token = CancellationToken.noOp
 
         // When/Then
         token.register { XCTFail() }

@@ -30,7 +30,7 @@ internal final class RateLimiter {
     private var pending = LinkedList<Task>() // fast append, fast remove first
     private var isExecutingPendingTasks = false
 
-    private typealias Task = (_CancellationToken, () -> Void)
+    private typealias Task = (CancellationToken, () -> Void)
 
     /// Initializes the `RateLimiter` with the given configuration.
     /// - parameter queue: Queue on which to execute pending tasks.
@@ -42,7 +42,7 @@ internal final class RateLimiter {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
-    func execute(token: _CancellationToken, _ closure: @escaping () -> Void) {
+    func execute(token: CancellationToken, _ closure: @escaping () -> Void) {
         let task = Task(token, closure)
         if !pending.isEmpty || !_execute(task) {
             pending.append(task)
@@ -250,15 +250,15 @@ internal final class LinkedList<Element> {
 /// Manages cancellation tokens and signals them when cancellation is requested.
 ///
 /// All `CancellationTokenSource` methods are thread safe.
-internal final class _CancellationTokenSource {
+internal final class CancellationTokenSource {
     /// Returns `true` if cancellation has been requested.
     var isCancelling: Bool {
         return _lock.sync { _observers == nil }
     }
 
     /// Creates a new token associated with the source.
-    var token: _CancellationToken {
-        return _CancellationToken(source: self)
+    var token: CancellationToken {
+        return CancellationToken(source: self)
     }
 
     private var _observers: ContiguousArray<() -> Void>? = []
@@ -308,8 +308,8 @@ private let _lock = NSLock()
 /// The registered objects can respond in whatever manner is appropriate.
 ///
 /// All `CancellationToken` methods are thread safe.
-internal struct _CancellationToken {
-    fileprivate let source: _CancellationTokenSource? // no-op when `nil`
+internal struct CancellationToken {
+    fileprivate let source: CancellationTokenSource? // no-op when `nil`
 
     /// Returns `true` if cancellation has been requested for this token.
     /// Returns `false` if the source was deallocated.
@@ -325,8 +325,8 @@ internal struct _CancellationToken {
     }
 
     /// Special no-op token which does nothing.
-    static var noOp: _CancellationToken {
-        return _CancellationToken(source: nil)
+    static var noOp: CancellationToken {
+        return CancellationToken(source: nil)
     }
 }
 

@@ -15,7 +15,7 @@ class RateLimiterTests: XCTestCase {
 
     func testThatBurstIsExecutedImmediatelly() {
         // Given
-        let cts = _CancellationTokenSource()
+        let cts = CancellationTokenSource()
         var isExecuted = Array(repeating: false, count: 3)
 
         // When
@@ -39,7 +39,7 @@ class RateLimiterTests: XCTestCase {
 
     func testThatCancelledTaskIsNotExecuted() {
         // Given
-        let cts = _CancellationTokenSource()
+        let cts = CancellationTokenSource()
         var isExecuted = false
 
         cts.cancel()
@@ -57,7 +57,7 @@ class RateLimiterTests: XCTestCase {
         rateLimiter.execute(token: token) {}
         rateLimiter.execute(token: token) {}
 
-        let cts = _CancellationTokenSource()
+        let cts = CancellationTokenSource()
         rateLimiter.execute(token: cts.token) {
             XCTFail()
         }
@@ -72,6 +72,6 @@ class RateLimiterTests: XCTestCase {
     }
 }
 
-private var token: _CancellationToken {
-    return _CancellationTokenSource().token
+private var token: CancellationToken {
+    return CancellationTokenSource().token
 }
