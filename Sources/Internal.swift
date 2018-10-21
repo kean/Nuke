@@ -118,37 +118,39 @@ internal final class RateLimiter {
 // MARK: - Operation
 
 internal final class Operation: Foundation.Operation {
-    enum State { case executing, finished }
-
-    // `queue` here is basically to make TSan happy. In reality the calls to
-    // `_setState` are guaranteed to never run concurrently in different ways.
-    private var _state: State?
-    private func _setState(_ newState: State) {
-        willChangeValue(forKey: "isExecuting")
-        if newState == .finished {
-            willChangeValue(forKey: "isFinished")
-        }
-        queue.sync(flags: .barrier) {
-            _state = newState
-        }
-        didChangeValue(forKey: "isExecuting")
-        if newState == .finished {
-            didChangeValue(forKey: "isFinished")
-        }
-    }
-
-    private var _didFinish: Int32 = 0
+    private var _isExecuting = false
+    private var _isFinished = false
+    private var _isFinishCalled: Int32 = 0
 
     override var isExecuting: Bool {
-        return queue.sync { _state == .executing }
+        set {
+            guard _isExecuting != newValue else {
+                fatalError("Invalid state, operation is already (not) executing")
+            }
+            willChangeValue(forKey: "isExecuting")
+            _isExecuting = newValue
+            didChangeValue(forKey: "isExecuting")
+        }
+        get {
+            return _isExecuting
+        }
     }
     override var isFinished: Bool {
-        return queue.sync { _state == .finished }
+        set {
+            guard !_isFinished else {
+                fatalError("Invalid state, operation is already finished")
+            }
+            willChangeValue(forKey: "isFinished")
+            _isFinished = newValue
+            didChangeValue(forKey: "isFinished")
+        }
+        get {
+            return _isFinished
+        }
     }
 
     typealias Starter = (_ finish: @escaping () -> Void) -> Void
     private let starter: Starter
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Operation", attributes: .concurrent)
 
     init(starter: @escaping Starter) {
         self.starter = starter
@@ -156,10 +158,10 @@ internal final class Operation: Foundation.Operation {
 
     override func start() {
         guard !isCancelled else {
-            _setState(.finished)
+            isFinished = true
             return
         }
-        _setState(.executing)
+        isExecuting = true
         starter { [weak self] in
             self?._finish()
         }
@@ -167,8 +169,9 @@ internal final class Operation: Foundation.Operation {
 
     private func _finish() {
         // Make sure that we ignore if `finish` is called more than once.
-        if OSAtomicCompareAndSwap32Barrier(0, 1, &_didFinish) {
-            _setState(.finished)
+        if OSAtomicCompareAndSwap32Barrier(0, 1, &_isFinishCalled) {
+            isExecuting = false
+            isFinished = true
         }
     }
 }
