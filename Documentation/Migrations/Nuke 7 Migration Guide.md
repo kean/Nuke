@@ -2,6 +2,8 @@
 
 This guide is provided in order to ease the transition of existing applications using Nuke 6.x to the latest APIs, as well as explain the design and structure of new and changed functionality.
 
+> Source-compatibility was removed in [Nuke 7.5](https://github.com/kean/Nuke/releases/tag/7.5). The latest source-compatible release is [Nuke 7.4.2](https://github.com/kean/Nuke/releases/tag/7.4.2).
+
 This migration guide is still work in progress, the finished version is going to be available when Nuke 7 is finally released.
 
 ## Requirements
