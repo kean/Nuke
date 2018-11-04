@@ -6,11 +6,11 @@ import XCTest
 @testable import Nuke
 
 class ImagePipelineProgressiveDecodingTests: XCTestCase {
-    private var dataLoader: _MockProgressiveDataLoader!
+    private var dataLoader: MockProgressiveDataLoader!
     private var pipeline: ImagePipeline!
 
     override func setUp() {
-        dataLoader = _MockProgressiveDataLoader()
+        dataLoader = MockProgressiveDataLoader()
         ResumableData._cache.removeAll()
 
         // We make two important assumptions with this setup:
@@ -240,7 +240,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 }
 
 private extension XCTestCase {
-    func expect(_ pipeline: ImagePipeline, _ dataLoader: _MockProgressiveDataLoader) -> TestExpectationProgressivePipeline {
+    func expect(_ pipeline: ImagePipeline, _ dataLoader: MockProgressiveDataLoader) -> TestExpectationProgressivePipeline {
         return TestExpectationProgressivePipeline(test: self, pipeline: pipeline, dataLoader: dataLoader)
     }
 }
@@ -248,7 +248,7 @@ private extension XCTestCase {
 private struct TestExpectationProgressivePipeline {
     let test: XCTestCase
     let pipeline: ImagePipeline
-    let dataLoader: _MockProgressiveDataLoader
+    let dataLoader: MockProgressiveDataLoader
 
     // We expect two partial images (at 5 scans, and 9 scans marks).
     func toProducePartialImages(for request: ImageRequest = Test.request, withCount count: Int = 2, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) {
@@ -274,53 +274,5 @@ private struct TestExpectationProgressivePipeline {
                 expectFinalImageProduced.fulfill()
             }
         )
-    }
-}
-
-// One-shot data loader that servers data split into chunks, only send one chunk
-// per one `resume()` call.
-private class _MockProgressiveDataLoader: DataLoading {
-    let urlResponse: HTTPURLResponse
-    var chunks: [Data]
-    let data = Test.data(name: "progressive", extension: "jpeg")
-
-    class _MockTask: Cancellable {
-        func cancel() {
-            // Do nothing
-        }
-    }
-
-    private var didReceiveData: (Data, URLResponse) -> Void = { _ ,_ in }
-    private var completion: (Error?) -> Void = { _ in }
-
-    init() {
-        self.urlResponse = HTTPURLResponse(
-            url: Test.url,
-            mimeType: "jpeg",
-            expectedContentLength: data.count,
-            textEncodingName: nil
-        )
-        self.chunks = Array(_createChunks(for: data, size: data.count / 3))
-    }
-
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
-        self.didReceiveData = didReceiveData
-        self.completion = completion
-        self.resume()
-        return _MockTask()
-    }
-
-    // Serves the next chunk.
-    func resume(_ completed: @escaping () -> Void = {}) {
-        DispatchQueue.main.async {
-            if let chunk = self.chunks.first {
-                self.chunks.removeFirst()
-                self.didReceiveData(chunk, self.urlResponse)
-                if self.chunks.isEmpty {
-                    self.completion(nil)
-                    completed()
-                }
-            }
-        }
     }
 }
