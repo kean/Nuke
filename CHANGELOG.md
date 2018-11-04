@@ -1,3 +1,8 @@
+## Nuke 7.5.1
+
+- Update Swift version in pbxproj to Swift 4.2, [#199](https://github.com/kean/Nuke/issues/199)
+- Update demo to Swift 4.2
+
 ## Nuke 7.5
 
 ### Additions

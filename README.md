@@ -436,7 +436,7 @@ Nuke is fully asynchronous and works great under stress. `ImagePipeline` schedul
 
 Another important performance characteristic is memory usage. Nuke uses a custom memory cache with [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. It has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `ImageCache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
 
-### Performance Metrics (Beta)
+### Performance Metrics
 
 When optimizing performance, it's important to measure. Nuke collects detailed performance metrics during the execution of each image task:
 
