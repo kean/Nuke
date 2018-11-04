@@ -109,7 +109,7 @@ final class AnimatedImageCell: UICollectionViewCell {
 
     override init(frame: CGRect) {
         imageView = FLAnimatedImageView()
-        activityIndicator = UIActivityIndicatorView(activityIndicatorStyle: .gray)
+        activityIndicator = UIActivityIndicatorView(style: .gray)
 
         super.init(frame: frame)
 

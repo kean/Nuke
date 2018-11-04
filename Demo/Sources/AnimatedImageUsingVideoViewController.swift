@@ -139,7 +139,7 @@ private final class VideoCell: UICollectionViewCell, Nuke.ImageDisplaying {
     }
 
     override init(frame: CGRect) {
-        activityIndicator = UIActivityIndicatorView(activityIndicatorStyle: .gray)
+        activityIndicator = UIActivityIndicatorView(style: .gray)
 
         super.init(frame: frame)
 
