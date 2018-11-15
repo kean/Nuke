@@ -135,6 +135,10 @@ public struct ImageLoadingOptions {
     /// The image transition animation performed when displaying a failure image.
     /// `.nil` by default.
     public var failureImageTransition: Transition?
+    
+    /// If true, the requested image will always appear with transition, even
+    /// when loaded from cache
+    public var alwaysTransition = false
 
     /// If true, every time you request a new image for a view, the view will be
     /// automatically prepared for reuse: image will be set to `nil`, and animations
@@ -372,16 +376,16 @@ private final class ImageViewController {
 
     private func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool, options: ImageLoadingOptions) {
         if let image = response?.image {
-            _display(image, options.transition, fromMemCache, options.contentModes?.success)
+            _display(image, options.transition, options.alwaysTransition, fromMemCache, options.contentModes?.success)
         } else if let failureImage = options.failureImage {
-            _display(failureImage, options.failureImageTransition, fromMemCache, options.contentModes?.failure)
+            _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache, options.contentModes?.failure)
         }
         self.task = nil
     }
 
     private func handle(partialImage response: ImageResponse?, options: ImageLoadingOptions) {
         guard let image = response?.image else { return }
-        _display(image, options.transition, false, options.contentModes?.success)
+        _display(image, options.transition, options.alwaysTransition, false, options.contentModes?.success)
     }
 
     #else
@@ -403,10 +407,10 @@ private final class ImageViewController {
 
     #endif
 
-    private func _display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ fromMemCache: Bool, _ newContentMode: _ContentMode?) {
+    private func _display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: _ContentMode?) {
         guard let imageView = imageView else { return }
 
-        if !fromMemCache, let transition = transition {
+        if !fromMemCache || alwaysTransition, let transition = transition {
             switch transition.style {
             case let .fadeIn(params):
                 _runFadeInTransition(image: image, params: params, contentMode: newContentMode)
