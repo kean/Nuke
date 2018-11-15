@@ -395,14 +395,14 @@ private final class ImageViewController {
         if let image = response?.image {
             _display(image, options.transition, fromMemCache, nil)
         } else if let failureImage = options.failureImage {
-            _display(failureImage, options.failureImageTransition, fromMemCache, nil)
+            _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache, nil)
         }
         self.task = nil
     }
 
     private func handle(partialImage response: ImageResponse?, options: ImageLoadingOptions) {
         guard let image = response?.image else { return }
-        _display(image, options.transition, false, nil)
+        _display(image, options.transition, options.alwaysTransition, false, nil)
     }
 
     #endif
