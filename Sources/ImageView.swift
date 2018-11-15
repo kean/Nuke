@@ -393,7 +393,7 @@ private final class ImageViewController {
     private func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool, options: ImageLoadingOptions) {
         // NSImageView doesn't support content mode, unfortunately.
         if let image = response?.image {
-            _display(image, options.transition, fromMemCache, nil)
+            _display(image, options.transition, options.alwaysTransition, fromMemCache, nil)
         } else if let failureImage = options.failureImage {
             _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache, nil)
         }
