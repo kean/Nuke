@@ -187,6 +187,17 @@
 		0CF4DE7E1D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
 		0CF4DE7F1D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
 		0CF4DE801D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
+		453CA5BB21ACEC5C00DD8E81 /* ImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DF1CA47FE1002A78FB /* ImageView.swift */; };
+		453CA5BC21ACEC5C00DD8E81 /* ImageRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */; };
+		453CA5BD21ACEC5C00DD8E81 /* ImagePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */; };
+		453CA5BE21ACEC5C00DD8E81 /* ImageTaskMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C367A9420B9D0D0002342A5 /* ImageTaskMetrics.swift */; };
+		453CA5BF21ACEC5C00DD8E81 /* ImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D71CA47FE1002A78FB /* ImageCache.swift */; };
+		453CA5C021ACEC5C00DD8E81 /* ImageProcessing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D81CA47FE1002A78FB /* ImageProcessing.swift */; };
+		453CA5C121ACEC5C00DD8E81 /* ImageDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE2D9B92084FDDD00934B28 /* ImageDecoding.swift */; };
+		453CA5C221ACEC5C00DD8E81 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
+		453CA5C321ACEC5C00DD8E81 /* DataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */; };
+		453CA5C421ACEC5C00DD8E81 /* DataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB26801208F2565004C83F4 /* DataCache.swift */; };
+		453CA5C521ACEC5C00DD8E81 /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7150081FC9724C00B880AC /* Internal.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -242,6 +253,15 @@
 			dstSubfolderSpec = 10;
 			files = (
 				0C973E141D9FDB9F00C00AD9 /* Nuke.framework in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		453CA5B221ACEC0B00DD8E81 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -332,6 +352,7 @@
 		0CE5F78820A22ABF00BC3283 /* Nuke 7 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 7 Migration Guide.md"; sourceTree = "<group>"; };
 		0CE745741D4767B900123F65 /* MockImageDecoder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockImageDecoder.swift; sourceTree = "<group>"; };
 		0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheater.swift; sourceTree = "<group>"; };
+		453CA5B421ACEC0B00DD8E81 /* libNuke.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libNuke.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -399,6 +420,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				0CC345A81BD96D2A005C2DD8 /* Nuke.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		453CA5B121ACEC0B00DD8E81 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -543,6 +571,7 @@
 				0CC345A31BD96D2A005C2DD8 /* Nuke tvOS Tests.xctest */,
 				0C8D7BD01D9DBF1600D12EB7 /* Nuke iOS Tests Host.app */,
 				0C8D7BE81D9DC02B00D12EB7 /* Nuke iOS Performance Tests.xctest */,
+				453CA5B421ACEC0B00DD8E81 /* libNuke.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -793,13 +822,30 @@
 			productReference = 0CC345A31BD96D2A005C2DD8 /* Nuke tvOS Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		453CA5B321ACEC0B00DD8E81 /* Nuke iOS Static */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 453CA5BA21ACEC0B00DD8E81 /* Build configuration list for PBXNativeTarget "Nuke iOS Static" */;
+			buildPhases = (
+				453CA5B021ACEC0B00DD8E81 /* Sources */,
+				453CA5B121ACEC0B00DD8E81 /* Frameworks */,
+				453CA5B221ACEC0B00DD8E81 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Nuke iOS Static";
+			productName = "Nuke iOS Static";
+			productReference = 453CA5B421ACEC0B00DD8E81 /* libNuke.a */;
+			productType = "com.apple.product-type.library.static";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		0C9174871BAE99EE004A7905 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 0800;
+				LastSwiftUpdateCheck = 1010;
 				LastUpgradeCheck = 1000;
 				ORGANIZATIONNAME = "Alexander Grebenyuk";
 				TargetAttributes = {
@@ -844,6 +890,10 @@
 						CreatedOnToolsVersion = 7.1;
 						LastSwiftMigration = 0800;
 					};
+					453CA5B321ACEC0B00DD8E81 = {
+						CreatedOnToolsVersion = 10.1;
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = 0C91748A1BAE99EE004A7905 /* Build configuration list for PBXProject "Nuke" */;
@@ -863,6 +913,7 @@
 				0C22DA2B1BCAA220006E1D3B /* Nuke macOS */,
 				0C22D9C41BCA9734006E1D3B /* Nuke watchOS */,
 				0CC345961BD96CFE005C2DD8 /* Nuke tvOS */,
+				453CA5B321ACEC0B00DD8E81 /* Nuke iOS Static */,
 				0C7C06761BCA882A00089D7F /* Nuke iOS Tests */,
 				0C22DA371BCAA22A006E1D3B /* Nuke macOS Tests */,
 				0CC345A21BD96D2A005C2DD8 /* Nuke tvOS Tests */,
@@ -1170,6 +1221,24 @@
 				0C9B6E7820B9F3E2001924B8 /* ImagePipelineDeduplicationTests.swift in Sources */,
 				0C6D0A8E20E57C810037B68F /* ImagePipelineDataCachingTests.swift in Sources */,
 				0C68F60B208A1F40007DC696 /* ImageDecoderRegistryTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		453CA5B021ACEC0B00DD8E81 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				453CA5C321ACEC5C00DD8E81 /* DataLoader.swift in Sources */,
+				453CA5BF21ACEC5C00DD8E81 /* ImageCache.swift in Sources */,
+				453CA5C221ACEC5C00DD8E81 /* ImagePreheater.swift in Sources */,
+				453CA5BB21ACEC5C00DD8E81 /* ImageView.swift in Sources */,
+				453CA5BE21ACEC5C00DD8E81 /* ImageTaskMetrics.swift in Sources */,
+				453CA5C021ACEC5C00DD8E81 /* ImageProcessing.swift in Sources */,
+				453CA5C421ACEC5C00DD8E81 /* DataCache.swift in Sources */,
+				453CA5BC21ACEC5C00DD8E81 /* ImageRequest.swift in Sources */,
+				453CA5C121ACEC5C00DD8E81 /* ImageDecoding.swift in Sources */,
+				453CA5C521ACEC5C00DD8E81 /* Internal.swift in Sources */,
+				453CA5BD21ACEC5C00DD8E81 /* ImagePipeline.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1678,6 +1747,49 @@
 			};
 			name = Release;
 		};
+		453CA5B821ACEC0B00DD8E81 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = Nuke;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_VERSION = 4.2;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		453CA5B921ACEC0B00DD8E81 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = Nuke;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 4.2;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1767,6 +1879,15 @@
 			buildConfigurations = (
 				0CC345AC1BD96D2A005C2DD8 /* Debug */,
 				0CC345AD1BD96D2A005C2DD8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		453CA5BA21ACEC0B00DD8E81 /* Build configuration list for PBXNativeTarget "Nuke iOS Static" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				453CA5B821ACEC0B00DD8E81 /* Debug */,
+				453CA5B921ACEC0B00DD8E81 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
