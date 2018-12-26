@@ -345,6 +345,19 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         wait()
     }
 
+    // Tests https://github.com/kean/Nuke/issues/206
+    func testImageIsDisplayedFadeInTransition() {
+        // Given options with .fadeIn transition
+        let options = ImageLoadingOptions(transition: .fadeIn(duration: 10))
+
+        // When loading an image into an image view
+        expectToLoadImage(with: Test.request, options: options, into: imageView)
+        wait()
+
+        // Then image is actually displayed
+        XCTAssertNotNil(imageView.image)
+    }
+
     // MARK: - Placeholder
 
     func testPlaceholderDisplayed() {

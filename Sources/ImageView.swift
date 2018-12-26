@@ -513,6 +513,8 @@ private final class ImageViewController {
         animation.fromValue = 0
         animation.toValue = 1
         imageView?.layer?.add(animation, forKey: "imageTransition")
+
+        imageView?.display(image: image)
     }
 
     #endif
