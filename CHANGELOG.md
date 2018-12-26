@@ -1,3 +1,9 @@
+## Nuke 7.5.2
+
+- Fix [#206](https://github.com/kean/Nuke/issues/206): [macOS] `Nuke.loadImage` image is not displayed when `.fadeIn` transition is used
+- [#201](https://github.com/kean/Nuke/pull/201): add `.alwaysTransition` flag to `ImageLoadingOptions`, thanks to [@gabzsa](https://github.com/gabzsa) 
+
+
 ## Nuke 7.5.1
 
 - Update Swift version in pbxproj to Swift 4.2, [#199](https://github.com/kean/Nuke/issues/199)
