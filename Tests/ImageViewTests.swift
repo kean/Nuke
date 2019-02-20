@@ -455,7 +455,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
 
         mockCache[Test.request] = Test.image
 
-        // Whem
+        // When
         Nuke.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
@@ -482,6 +482,33 @@ class ImageViewLoadingOptionsTests: XCTestCase {
 
         // Then
         XCTAssertEqual(imageView.contentMode, .center)
+    }
+
+    func testSuccessImageRenderingModeNotApplied() {
+        // Given
+        let options = ImageLoadingOptions()
+
+        mockCache[Test.request] = Test.image
+
+        // When
+        Nuke.loadImage(with: Test.request, options: options, into: imageView)
+
+        // Then
+        XCTAssertEqual(imageView.image, Test.image)
+    }
+
+    func testSuccessImageRenderingModeApplied() {
+        // Given
+        var options = ImageLoadingOptions()
+        options.successImageRenderingMode = .alwaysTemplate
+
+        mockCache[Test.request] = Test.alphaImage
+
+        // When
+        Nuke.loadImage(with: Test.request, options: options, into: imageView)
+
+        // Then
+        XCTAssertEqual(imageView.image, Test.alphaImage.withRenderingMode(.alwaysTemplate))
     }
 
     #endif

@@ -187,6 +187,7 @@
 		0CF4DE7E1D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
 		0CF4DE7F1D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
 		0CF4DE801D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
+		8FDC7F39221DF99D001F5DDF /* alpha.png in Resources */ = {isa = PBXBuildFile; fileRef = 8FDC7F38221DF99D001F5DDF /* alpha.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -332,6 +333,7 @@
 		0CE5F78820A22ABF00BC3283 /* Nuke 7 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 7 Migration Guide.md"; sourceTree = "<group>"; };
 		0CE745741D4767B900123F65 /* MockImageDecoder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockImageDecoder.swift; sourceTree = "<group>"; };
 		0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheater.swift; sourceTree = "<group>"; };
+		8FDC7F38221DF99D001F5DDF /* alpha.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = alpha.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -435,6 +437,7 @@
 		0C09B1641FE9A62400E8FE3B /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				8FDC7F38221DF99D001F5DDF /* alpha.png */,
 				0C70D9702089016800A49DAC /* baseline.jpeg */,
 				0C70D96F2089016700A49DAC /* progressive.jpeg */,
 				0C09B1651FE9A65600E8FE3B /* fixture.jpeg */,
@@ -905,6 +908,7 @@
 			files = (
 				0C09B1661FE9A65700E8FE3B /* fixture.jpeg in Resources */,
 				0C70D97C2089042400A49DAC /* fixture.png in Resources */,
+				8FDC7F39221DF99D001F5DDF /* alpha.png in Resources */,
 				0C8DC723209B842600084AA6 /* cat.gif in Resources */,
 				0C70D9742089016800A49DAC /* baseline.jpeg in Resources */,
 				0C70D9712089016800A49DAC /* progressive.jpeg in Resources */,

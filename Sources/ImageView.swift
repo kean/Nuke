@@ -187,6 +187,15 @@ public struct ImageLoadingOptions {
         #endif
     }
 
+    #if swift(>=4.2)
+    /// Rendering mode to be used for the loaded image. `nil` by default.
+    public var successImageRenderingMode: UIImage.RenderingMode?
+    #else
+    /// Rendering mode to be used for the loaded image. `nil` by default.
+    public var successImageRenderingMode: UIImageRenderingMode?
+    #endif
+
+    #if swift(>=4.2)
     /// - parameter placeholder: Placeholder to be displayed when the image is
     /// loading . `nil` by default.
     /// - parameter transision: The image transition animation performed when
@@ -198,13 +207,40 @@ public struct ImageLoadingOptions {
     /// performed when displaying a failure image. `.nil` by default.
     /// - parameter contentModes: Content modes to be used for each image type
     /// (placeholder, success, failure). `nil` by default (don't change content mode).
-    public init(placeholder: Image? = nil, transition: Transition? = nil, failureImage: Image? = nil, failureImageTransition: Transition? = nil, contentModes: ContentModes? = nil) {
+    /// - parameter successImageRenderingMode: Image rendering mode to be used
+    /// for the loaded image. `nil` by default.
+    public init(placeholder: Image? = nil, transition: Transition? = nil, failureImage: Image? = nil, failureImageTransition: Transition? = nil, contentModes: ContentModes? = nil, successImageRenderingMode: UIImage.RenderingMode? = nil) {
         self.placeholder = placeholder
         self.transition = transition
         self.failureImage = failureImage
         self.failureImageTransition = failureImageTransition
         self.contentModes = contentModes
+        self.successImageRenderingMode = successImageRenderingMode
     }
+    #else
+    /// - parameter placeholder: Placeholder to be displayed when the image is
+    /// loading . `nil` by default.
+    /// - parameter transision: The image transition animation performed when
+    /// displaying a loaded image. Only runs when the image was not found in
+    /// memory cache `.nil` by default (no animations).
+    /// - parameter failureImage: Image to be displayd when request fails.
+    /// `nil` by default.
+    /// - parameter failureImageTransition: The image transition animation
+    /// performed when displaying a failure image. `.nil` by default.
+    /// - parameter contentModes: Content modes to be used for each image type
+    /// (placeholder, success, failure). `nil` by default (don't change content mode).
+    /// - parameter successImageRenderingMode: Image rendering mode to be used
+    /// for the loaded image. `nil` by default.
+    public init(placeholder: Image? = nil, transition: Transition? = nil, failureImage: Image? = nil, failureImageTransition: Transition? = nil, contentModes: ContentModes? = nil, successImageRenderingMode: UIImageRenderingMode? = nil) {
+        self.placeholder = placeholder
+        self.transition = transition
+        self.failureImage = failureImage
+        self.failureImageTransition = failureImageTransition
+        self.contentModes = contentModes
+        self.successImageRenderingMode = successImageRenderingMode
+    }
+    #endif
+
     #else
     public init(placeholder: Image? = nil, transition: Transition? = nil, failureImage: Image? = nil, failureImageTransition: Transition? = nil) {
         self.placeholder = placeholder
@@ -375,7 +411,10 @@ private final class ImageViewController {
     #if !os(macOS)
 
     private func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool, options: ImageLoadingOptions) {
-        if let image = response?.image {
+        if var image = response?.image {
+            if let renderingMode = options.successImageRenderingMode {
+                image = image.withRenderingMode(renderingMode)
+            }
             _display(image, options.transition, options.alwaysTransition, fromMemCache, options.contentModes?.success)
         } else if let failureImage = options.failureImage {
             _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache, options.contentModes?.failure)
@@ -384,14 +423,17 @@ private final class ImageViewController {
     }
 
     private func handle(partialImage response: ImageResponse?, options: ImageLoadingOptions) {
-        guard let image = response?.image else { return }
+        guard var image = response?.image else { return }
+        if let renderingMode = options.successImageRenderingMode {
+            image = image.withRenderingMode(renderingMode)
+        }
         _display(image, options.transition, options.alwaysTransition, false, options.contentModes?.success)
     }
 
     #else
 
     private func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool, options: ImageLoadingOptions) {
-        // NSImageView doesn't support content mode, unfortunately.
+        // NSImageView doesn't support content mode, or rendering mode, unfortunately.
         if let image = response?.image {
             _display(image, options.transition, options.alwaysTransition, fromMemCache, nil)
         } else if let failureImage = options.failureImage {

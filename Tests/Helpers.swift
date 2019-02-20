@@ -28,6 +28,11 @@ enum Test {
         return Nuke.ImageDecoder().decode(data: data, isFinal: true)!
     }()
 
+    static let alphaImage: Image = {
+        let data = Test.data(name: "alpha", extension: "png")
+        return Nuke.ImageDecoder().decode(data: data, isFinal: true)!
+    }()
+
     static let request = ImageRequest(
         url: Test.url
     )
