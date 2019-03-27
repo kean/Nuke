@@ -253,7 +253,7 @@ public struct ImageRequest {
 public extension ImageRequest {
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    public mutating func process<P: ImageProcessing>(with processor: P) {
+    mutating func process<P: ImageProcessing>(with processor: P) {
         guard let existing = self.processor else {
             self.processor = AnyImageProcessor(processor)
             return
@@ -264,7 +264,7 @@ public extension ImageRequest {
 
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    public func processed<P: ImageProcessing>(with processor: P) -> ImageRequest {
+    func processed<P: ImageProcessing>(with processor: P) -> ImageRequest {
         var request = self
         request.process(with: processor)
         return request
@@ -272,13 +272,13 @@ public extension ImageRequest {
 
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    public mutating func process<Key: Hashable>(key: Key, _ closure: @escaping (Image) -> Image?) {
+    mutating func process<Key: Hashable>(key: Key, _ closure: @escaping (Image) -> Image?) {
         process(with: AnonymousImageProcessor<Key>(key, closure))
     }
 
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    public func processed<Key: Hashable>(key: Key, _ closure: @escaping (Image) -> Image?) -> ImageRequest {
+    func processed<Key: Hashable>(key: Key, _ closure: @escaping (Image) -> Image?) -> ImageRequest {
         return processed(with: AnonymousImageProcessor<Key>(key, closure))
     }
 }
