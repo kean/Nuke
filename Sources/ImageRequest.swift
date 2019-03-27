@@ -286,12 +286,12 @@ public extension ImageRequest {
 internal extension ImageRequest {
     struct CacheKey: Hashable {
         let request: ImageRequest
-
-        var hashValue: Int {
+        
+        func hash(into hasher: inout Hasher) {
             if let customKey = request._ref.cacheKey {
-                return customKey.hashValue
+                hasher.combine(customKey)
             }
-            return request._ref._urlString?.hashValue ?? 0
+            hasher.combine(request._ref._urlString?.hashValue ?? 0)
         }
 
         static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
@@ -309,12 +309,12 @@ internal extension ImageRequest {
 
     struct LoadKey: Hashable {
         let request: ImageRequest
-
-        var hashValue: Int {
+        
+        func hash(into hasher: inout Hasher) {
             if let customKey = request._ref.loadKey {
-                return customKey.hashValue
+                hasher.combine(customKey)
             }
-            return request._ref._urlString?.hashValue ?? 0
+            hasher.combine(request._ref._urlString?.hashValue ?? 0)
         }
 
         static func == (lhs: LoadKey, rhs: LoadKey) -> Bool {
