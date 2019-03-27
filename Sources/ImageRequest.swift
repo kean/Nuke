@@ -291,7 +291,9 @@ internal extension ImageRequest {
             if let customKey = request._ref.cacheKey {
                 hasher.combine(customKey)
             }
-            hasher.combine(request._ref._urlString?.hashValue ?? 0)
+            else {
+                hasher.combine(request._ref._urlString?.hashValue ?? 0)
+            }
         }
 
         static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
@@ -314,7 +316,9 @@ internal extension ImageRequest {
             if let customKey = request._ref.loadKey {
                 hasher.combine(customKey)
             }
-            hasher.combine(request._ref._urlString?.hashValue ?? 0)
+            else {
+                hasher.combine(request._ref._urlString?.hashValue ?? 0)
+            }
         }
 
         static func == (lhs: LoadKey, rhs: LoadKey) -> Bool {

@@ -560,11 +560,18 @@ extension String {
     var sha1: String? {
         guard let input = self.data(using: .utf8) else { return nil }
         
+        #if swift(>=5.0)
         let hash = input.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> [UInt8] in
             var hash = [UInt8](repeating: 0, count: Int(CC_SHA1_DIGEST_LENGTH))
             CC_SHA1(bytes.baseAddress, CC_LONG(input.count), &hash)
             return hash
         }
+        #else
+        var hash = [UInt8](repeating: 0, count: Int(CC_SHA1_DIGEST_LENGTH))
+        input.withUnsafeBytes {
+            _ = CC_SHA1($0, CC_LONG(input.count), &hash)
+        }
+        #endif
         
         return hash.map({ String(format: "%02x", $0) }).joined()
     }
