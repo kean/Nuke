@@ -3,6 +3,7 @@ os: osx
 osx_image:
   - xcode9.4
   - xcode10
+  - xcode10.2
 
 env:
   global:
@@ -12,6 +13,8 @@ env:
   - WATCHOS_SCHEME="Nuke watchOS"
 
   matrix:
+  - DESTINATION="OS=12.2,name=iPhone X"
+    SCHEME="$IOS_SCHEME"     RUN_TESTS="YES"
   - DESTINATION="OS=11.3,name=iPhone X"
     SCHEME="$IOS_SCHEME"     RUN_TESTS="YES"
   - DESTINATION="OS=10.3.1,name=iPhone 7 Plus"
@@ -19,6 +22,8 @@ env:
   - DESTINATION="OS=9.3,name=iPhone 5"
     SCHEME="$IOS_SCHEME"     RUN_TESTS="YES"
 
+  - DESTINATION="OS=12.2,name=Apple TV 4K"
+    SCHEME="$TVOS_SCHEME"    RUN_TESTS="YES"
   - DESTINATION="OS=11.3,name=Apple TV 4K"
     SCHEME="$TVOS_SCHEME"    RUN_TESTS="YES"
 

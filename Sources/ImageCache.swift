@@ -26,7 +26,7 @@ public protocol ImageCaching: class {
 /// Convenience subscript.
 public extension ImageCaching {
     /// Accesses the image associated with the given request.
-    public subscript(request: ImageRequest) -> Image? {
+    subscript(request: ImageRequest) -> Image? {
         get {
             return cachedResponse(for: request)?.image
         }
