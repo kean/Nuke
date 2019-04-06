@@ -120,7 +120,8 @@ internal final class RateLimiter {
 internal final class Operation: Foundation.Operation {
     private var _isExecuting = false
     private var _isFinished = false
-    private var _isFinishCalled: Int32 = 0
+    private var isFinishCalled = false
+    private var lock = os_unfair_lock_s()
 
     override var isExecuting: Bool {
         set {
@@ -168,8 +169,19 @@ internal final class Operation: Foundation.Operation {
     }
 
     private func _finish() {
+        func tryFinish() -> Bool {
+            os_unfair_lock_lock(&lock)
+            defer { os_unfair_lock_unlock(&lock) }
+            guard !isFinishCalled else {
+                return false
+            }
+            isFinishCalled = true
+            return true
+        }
+
+
         // Make sure that we ignore if `finish` is called more than once.
-        if OSAtomicCompareAndSwap32Barrier(0, 1, &_isFinishCalled) {
+        if tryFinish() {
             isExecuting = false
             isFinished = true
         }
