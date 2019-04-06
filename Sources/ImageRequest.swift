@@ -286,15 +286,23 @@ public extension ImageRequest {
 internal extension ImageRequest {
     struct CacheKey: Hashable {
         let request: ImageRequest
-        
+
+        #if swift(>=5.0)
         func hash(into hasher: inout Hasher) {
             if let customKey = request._ref.cacheKey {
                 hasher.combine(customKey)
-            }
-            else {
+            } else {
                 hasher.combine(request._ref._urlString?.hashValue ?? 0)
             }
         }
+        #else
+        var hashValue: Int {
+            if let customKey = request._ref.cacheKey {
+                return customKey.hashValue
+            }
+            return request._ref._urlString?.hashValue ?? 0
+        }
+        #endif
 
         static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
             let lhs = lhs.request, rhs = rhs.request
@@ -311,15 +319,23 @@ internal extension ImageRequest {
 
     struct LoadKey: Hashable {
         let request: ImageRequest
-        
+
+        #if swift(>=5.0)
         func hash(into hasher: inout Hasher) {
             if let customKey = request._ref.loadKey {
                 hasher.combine(customKey)
-            }
-            else {
+            } else {
                 hasher.combine(request._ref._urlString?.hashValue ?? 0)
             }
         }
+        #else
+        var hashValue: Int {
+            if let customKey = request._ref.loadKey {
+                return customKey.hashValue
+            }
+            return request._ref._urlString?.hashValue ?? 0
+        }
+        #endif
 
         static func == (lhs: LoadKey, rhs: LoadKey) -> Bool {
             func isEqual(_ lhs: URLRequest, _ rhs: URLRequest) -> Bool {
