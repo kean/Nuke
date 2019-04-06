@@ -35,18 +35,6 @@ matrix:
     - osx_image: xcode10.1
       env: DESTINATION="OS=11.4,name=iPhone X" RUN_TESTS="YES" SWIFT_VERSION="4.2"
 
-    - osx_image: xcode10.0
-      env: DESTINATION="OS=11.4,name=iPhone X" RUN_TESTS="YES" SWIFT_VERSION="4.2"
-
-    - osx_image: xcode9.4
-      env: DESTINATION="OS=11.4,name=iPhone X" RUN_TESTS="YES" SWIFT_VERSION="4.2"
-
-    - osx_image: xcode9.3
-      env: DESTINATION="OS=11.4,name=iPhone X" RUN_TESTS="YES" SWIFT_VERSION="4.2"
-
-    - osx_image: xcode9.2
-      env: DESTINATION="OS=11.4,name=iPhone X" RUN_TESTS="YES" SWIFT_VERSION="4.2"
-
     - osx_image: xcode10.2
       env: DESTINATION="OS=12.2,name=Apple TV 4K" RUN_TESTS="YES" SWIFT_VERSION="5.0"
     - osx_image: xcode10.2

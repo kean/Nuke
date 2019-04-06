@@ -506,7 +506,7 @@ If you'd like to contribute, please feel free to create a PR.
 
 | Nuke                 | Swift                     | Xcode                | Platforms                                           |
 |------------------    |-----------------------    |------------------    |-------------------------------------------------    |
-| Nuke 7.6             | Swift 4.2 – 5.0           | Xcode 9.2 – 10.2     | iOS 9.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0      |
+| Nuke 7.6             | Swift 4.2 – 5.0           | Xcode 10.1 – 10.2     | iOS 9.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0      |
 | Nuke 7.2 – 7.5.2     | Swift 4.0 – 4.2     | Xcode 9.2 – 10.1     |  iOS 9.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0     | 
 
 # License
