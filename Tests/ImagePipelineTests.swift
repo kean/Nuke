@@ -395,7 +395,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         // Given
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
-            return // !swift(>=4.1)
+            return
         }
 
         let request = Test.request.processed(with: MockFailingProcessor())

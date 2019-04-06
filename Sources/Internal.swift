@@ -539,15 +539,6 @@ final class Property<T> {
 
 // MARK: - Misc
 
-#if !swift(>=4.1)
-extension Sequence {
-    public func compactMap<ElementOfResult>(_ transform: (Element) throws -> ElementOfResult?) rethrows -> [ElementOfResult] {
-        return try flatMap(transform)
-    }
-}
-#endif
-
-#if swift(>=4.2)
 import CommonCrypto
 
 extension String {
@@ -576,4 +567,3 @@ extension String {
         return hash.map({ String(format: "%02x", $0) }).joined()
     }
 }
-#endif

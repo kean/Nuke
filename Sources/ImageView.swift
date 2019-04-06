@@ -362,26 +362,7 @@ private final class ImageViewController {
         _display(image, options.transition, options.alwaysTransition, false, options.contentModes?.success)
     }
 
-    #else
-
-    private func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool, options: ImageLoadingOptions) {
-        // NSImageView doesn't support content mode, unfortunately.
-        if let image = response?.image {
-            _display(image, options.transition, options.alwaysTransition, fromMemCache, nil)
-        } else if let failureImage = options.failureImage {
-            _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache, nil)
-        }
-        self.task = nil
-    }
-
-    private func handle(partialImage response: ImageResponse?, options: ImageLoadingOptions) {
-        guard let image = response?.image else { return }
-        _display(image, options.transition, options.alwaysTransition, false, nil)
-    }
-
-    #endif
-
-    private func _display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: _ContentMode?) {
+    private func _display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?) {
         guard let imageView = imageView else { return }
 
         if !fromMemCache || alwaysTransition, let transition = transition {
@@ -396,28 +377,16 @@ private final class ImageViewController {
         } else {
             imageView.display(image: image)
         }
-        #if !os(macOS)
         if let newContentMode = newContentMode {
             imageView.contentMode = newContentMode
         }
-        #endif
     }
-
-    // MARK: - Animations
-
-    #if !os(macOS)
 
     // Image view used for cross-fade transition between images with different
     // content modes.
     private lazy var transitionImageView = UIImageView()
 
-    #if swift(>=4.2)
-    private typealias _ContentMode = UIView.ContentMode
-    #else
-    private typealias _ContentMode = UIViewContentMode
-    #endif
-
-    private func _runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters, contentMode: _ContentMode?) {
+    private func _runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters, contentMode: UIView.ContentMode?) {
         guard let imageView = imageView else { return }
 
         // Special case where we animate between content modes, only works
@@ -438,7 +407,7 @@ private final class ImageViewController {
             options: params.options.union(.transitionCrossDissolve),
             animations: {
                 imageView.display(image: image)
-            },
+        },
             completion: nil
         )
     }
@@ -468,20 +437,50 @@ private final class ImageViewController {
             animations: {
                 transitionView.alpha = 0
                 imageView.alpha = 1
-            },
+        },
             completion: { isCompleted in
                 if isCompleted {
                     transitionView.removeFromSuperview()
                 }
-            }
+        }
         )
     }
 
     #else
 
-    private typealias _ContentMode = Void // There is no content mode on macOS
+    private func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool, options: ImageLoadingOptions) {
+        // NSImageView doesn't support content mode, unfortunately.
+        if let image = response?.image {
+            _display(image, options.transition, options.alwaysTransition, fromMemCache)
+        } else if let failureImage = options.failureImage {
+            _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache)
+        }
+        self.task = nil
+    }
 
-    private func _runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters, contentMode: _ContentMode?) {
+    private func handle(partialImage response: ImageResponse?, options: ImageLoadingOptions) {
+        guard let image = response?.image else { return }
+        _display(image, options.transition, options.alwaysTransition, false)
+    }
+
+    private func _display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool) {
+        guard let imageView = imageView else { return }
+
+        if !fromMemCache || alwaysTransition, let transition = transition {
+            switch transition.style {
+            case let .fadeIn(params):
+                _runFadeInTransition(image: image, params: params)
+            case let .custom(closure):
+                // The user is reponsible for both displaying an image and performing
+                // animations.
+                closure(imageView, image)
+            }
+        } else {
+            imageView.display(image: image)
+        }
+    }
+
+    private func _runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters) {
         let animation = CABasicAnimation(keyPath: "opacity")
         animation.duration = params.duration
         animation.fromValue = 0

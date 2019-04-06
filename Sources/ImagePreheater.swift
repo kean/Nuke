@@ -168,15 +168,5 @@ public final class ImagePreheater {
             self.cacheKey = ImageRequest.CacheKey(request: request)
             self.loadKey = ImageRequest.LoadKey(request: request)
         }
-
-        #if !swift(>=4.1)
-        var hashValue: Int {
-            return cacheKey.hashValue
-        }
-
-        static func == (lhs: PreheatKey, rhs: PreheatKey) -> Bool {
-            return lhs.cacheKey == rhs.cacheKey && lhs.loadKey == rhs.loadKey
-        }
-        #endif
     }
 }

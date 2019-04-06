@@ -98,7 +98,6 @@ public final class DataCache: DataCaching {
 
     private let _filenameGenerator: FilenameGenerator
 
-    #if swift(>=4.2)
     /// Creates a cache instance with a given `name`. The cache creates a directory
     /// with the given `name` in a `.cachesDirectory` in `.userDomainMask`.
     /// - parameter filenameGenerator: Generates a filename for the given URL.
@@ -124,25 +123,6 @@ public final class DataCache: DataCaching {
     public static func filename(for key: String) -> String? {
         return key.sha1
     }
-    #else
-    /// Creates a cache instance with a given `name`. The cache creates a directory
-    /// with the given `name` in a `.cachesDirectory` in `.userDomainMask`.
-    /// - parameter filenameGenerator: Generates a filename for the given URL.
-    public convenience init(name: String, filenameGenerator: @escaping (String) -> String?) throws {
-        guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-            throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
-        }
-        try self.init(path: root.appendingPathComponent(name, isDirectory: true), filenameGenerator: filenameGenerator)
-    }
-
-    /// Creates a cache instance with a given path.
-    /// - parameter filenameGenerator: Generates a filename for the given URL.
-    public init(path: URL, filenameGenerator: @escaping (String) -> String?) throws {
-        self.path = path
-        self._filenameGenerator = filenameGenerator
-        try self._didInit()
-    }
-    #endif
 
     private func _didInit() throws {
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)

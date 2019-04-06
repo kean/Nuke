@@ -178,13 +178,8 @@ internal final class _Cache<Key: Hashable, Value> {
         self.costLimit = costLimit
         self.countLimit = countLimit
         #if os(iOS) || os(tvOS)
-        #if swift(>=4.2)
         NotificationCenter.default.addObserver(self, selector: #selector(removeAll), name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
-        #else
-        NotificationCenter.default.addObserver(self, selector: #selector(removeAll), name: .UIApplicationDidReceiveMemoryWarning, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: .UIApplicationDidEnterBackground, object: nil)
-        #endif
         #endif
     }
 
