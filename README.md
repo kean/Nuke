@@ -225,7 +225,6 @@ A custom LRU disk cache can be used for fast and reliable *aggressive* data cach
 
 ```swift
 $0.dataCache = try! DataCache(name: "com.myapp.datacache")
-// On Swift 4.1 and lower you'll also need to provide a `FilenameGenerator`.
 ```
 
 If you enable aggressive disk cache, make sure that you also disable native URL cache (see `DataLoader`), or you might end up storing the same image data twice.
