@@ -190,10 +190,10 @@ class ThreadSafetyTests: XCTestCase {
 
         #if os(iOS) || os(tvOS)
         ops.append {
-            NotificationCenter.default.post(name: NSNotification.Name.UIApplicationDidReceiveMemoryWarning, object: nil)
+            NotificationCenter.default.post(name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
         }
         ops.append {
-            NotificationCenter.default.post(name: NSNotification.Name.UIApplicationDidEnterBackground, object: nil)
+            NotificationCenter.default.post(name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
         }
         #endif
 
