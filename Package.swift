@@ -1,6 +1,12 @@
+// swift-tools-version:5.0
 import PackageDescription
 
 let package = Package(
     name: "Nuke",
-    exclude: ["Tests"] // excluding until all module layouts get supported
+    products: [
+        .library(name: "Nuke", targets: ["Nuke"]),
+    ],
+    targets: [
+        .target(name: "Nuke", path: "Sources")
+    ]
 )
