@@ -2,8 +2,6 @@
 
 This guide is provided in order to ease the transition of existing applications using Nuke 6.x to the latest APIs, as well as explain the design and structure of new and changed functionality.
 
-> Source-compatibility was removed in [Nuke 7.5](https://github.com/kean/Nuke/releases/tag/7.5). The latest source-compatible release is [Nuke 7.4.2](https://github.com/kean/Nuke/releases/tag/7.4.2).
-
 This migration guide is still work in progress, the finished version is going to be available when Nuke 7 is finally released.
 
 ## Requirements
@@ -15,6 +13,8 @@ This migration guide is still work in progress, the finished version is going to
 ## Overview
 
 Nuke 7 is the biggest release yet. It contains more features and refinements that all of the previous releases combined. There are a lot of new APIs in Nuke 7, fortunately, it's almost completely source-compatible with Nuke 6. 
+
+> Source-compatibility was removed in [Nuke 7.5](https://github.com/kean/Nuke/releases/tag/7.5). The latest source-compatible release is [Nuke 7.4.2](https://github.com/kean/Nuke/releases/tag/7.4.2). The best way to migrate would be to either upgrade to Nuke 7.4.2 first, or to drop this [Deprecated.swift](https://gist.github.com/kean/a14ca485ce72bef0e50cbb2f36ec7d91) into your project and follow the instructions from the warnings.
 
 Most of the new APIs have `Image*` prefix. Some of the types with `Image*` prefix are new (e.g. `ImagePipeline` which replaced `Manager` and `Loader`), some were just renamed (e.g. `ImageRequest` instead of `Request`), and some are reimagining of old APIs (e.g. `ImageDecoding` instead of `Decoding`).
 
