@@ -17,6 +17,7 @@
 - [Nuke 4 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%204%20Migration%20Guide.md)
 - [Nuke 5 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%205%20Migration%20Guide.md)
 - [Nuke 6 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%206%20Migration%20Guide.md)
+- [Nuke 7 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%207%20Migration%20Guide.md)
 
 ## Support
 
