@@ -1,11 +1,12 @@
 ## Nuke 7.6.1
 
-- Fix "hashValue is deprecated" warnings on Swift 4.2
+- Fix SwiftPM 5.0 support by adding explicit platform version requirements  – [Vadim Shpakovski](https://github.com/shpakovski) in [#220](https://github.com/kean/Nuke/pull/220)
+- Update [Nuke 7 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%207%20Migration%20Guide.md)
 
 ## Nuke 7.6
 
 - Add Swift 5.0 support – [Daniel Storm](https://github.com/DanielStormApps) in [#217](https://github.com/kean/Nuke/pull/217)
-- Add SwiftPM 5.0 support - [Vadim Shpakovski](https://github.com/shpakovski) in [#219](https://github.com/kean/Nuke/pull/219)
+- Add SwiftPM 5.0 support – [Vadim Shpakovski](https://github.com/shpakovski) in [#219](https://github.com/kean/Nuke/pull/219)
 - Remove Swift 4.0 and Swift 4.1 support
 - Remove iOS 9, tvOS 9, watchOS 2.0, macOS 10.10 and macOS 10.11 support
 - Add a single `Nuke` target which can build the framework for any platform
