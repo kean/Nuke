@@ -1,9 +1,16 @@
+# Nuke 7
+
 ## Nuke 7.6.1
+
+*Apr 13, 2019*
 
 - Fix SwiftPM 5.0 support by adding explicit platform version requirements  – [Vadim Shpakovski](https://github.com/shpakovski) in [#220](https://github.com/kean/Nuke/pull/220)
 - Update [Nuke 7 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%207%20Migration%20Guide.md)
 
+
 ## Nuke 7.6
+
+*Apr 7, 2019*
 
 - Add Swift 5.0 support – [Daniel Storm](https://github.com/DanielStormApps) in [#217](https://github.com/kean/Nuke/pull/217)
 - Add SwiftPM 5.0 support – [Vadim Shpakovski](https://github.com/shpakovski) in [#219](https://github.com/kean/Nuke/pull/219)
@@ -15,17 +22,23 @@
 
 ## Nuke 7.5.2
 
-- Fix [#206](https://github.com/kean/Nuke/issues/206): [macOS] `Nuke.loadImage` image is not displayed when `.fadeIn` transition is used
-- [#201](https://github.com/kean/Nuke/pull/201): add `.alwaysTransition` flag to `ImageLoadingOptions`, thanks to [@gabzsa](https://github.com/gabzsa) 
+*Dec 26, 2018*
+
+- [macOS] Fix `Nuke.loadImage` image is not displayed when `.fadeIn` transition is used – [#206](https://github.com/kean/Nuke/issues/206)
+- Add `.alwaysTransition` flag to `ImageLoadingOptions` – [@gabzsa](https://github.com/gabzsa) in [#201](https://github.com/kean/Nuke/pull/201)
 
 
 ## Nuke 7.5.1
+
+*Nov 8, 2018*
 
 - Update Swift version in pbxproj to Swift 4.2, [#199](https://github.com/kean/Nuke/issues/199)
 - Update demo to Swift 4.2
 
 
 ## Nuke 7.5
+
+*Oct 21, 2018*
 
 ### Additions
 
@@ -44,15 +57,21 @@ Nuke 7 had a lot of API changes, to make the migration easier it shipped with De
 
 ## Nuke 7.4.2
 
+*Oct 1, 2018*
+
 - #174 Fix an issue with an `ImageView` reuse logic where in rare cases a wrong image would be displayed, thanks to @michaelnisi
 
 
 ## Nuke 7.4.1
 
+*Sep 25, 2018*
+
 - Disable automatic `stopPreheating` which was causing some issues
 
 
 ## Nuke 7.4
+
+*Sep 22, 2018*
 
 ### Prefetching Improvements
 
@@ -70,16 +89,22 @@ Nuke 7 had a lot of API changes, to make the migration easier it shipped with De
 
 ## Nuke 7.3.2
 
+*Jul 29, 2018*
+
 - #178 Fix TSan warning being triggered by performance optimization in `ImageTask.cancel()` (false positive)
 - Fix an issue where a request (`ImageRequest`) with a default processor and a request with the same processor but set manually would have different cache keys 
 
 ## Nuke 7.3.1
+
+*Jul 20, 2018*
 
 - `ImagePipeline` now updates the priority of shared operations when the registered tasks get canceled (was previosuly only reacting to added tasks)
 - Fix an issue where `didFinishCollectingMetrics` closure wasn't called for the tasks completed with images found in memory cache and the tasks canceled before they got a chance to run. Now _every_ created tasks gets a corresponding `didFinishCollectingMetrics` call.
 
 
 ## Nuke 7.3
+
+*Jun 29, 2018*
 
 This release introduces new `DataCache` type and features some other improvements in custom data caching.
 
@@ -99,7 +124,10 @@ This release introduces new `DataCache` type and features some other improvement
 
 - Improve internal `Operation` type performance.
 
+
 ## Nuke 7.2.1
+
+*Jun 18, 2018*
 
 Nuke's [roadmap](https://trello.com/b/Us4rHryT/nuke) is now publicly available. Please feel free to contribute!
 
@@ -113,7 +141,10 @@ This update addresses tech debt introduces in version 7.1 and 7.2. All of the ch
 - Added ["Default Image Pipeline"](https://github.com/kean/Nuke#default-image-pipeline) section and ["Image Pipeline Overview"](https://github.com/kean/Nuke#image-pipeline-overview) sections in README.
 - Update "Third Party Libraries" guide to use new `DataCaching` protocol
 
+
 ## Nuke 7.2
+
+*Jun 12, 2018*
 
 ### Additions
 
@@ -131,7 +162,10 @@ This update addresses tech debt introduces in version 7.1 and 7.2. All of the ch
 - Fix MP4 demo project
 - Improve test coverage, bring back `DataCache` (internal) tests
 
+
 ## Nuke 7.1
+
+*May 27, 2018*
 
 ### Improvements
 
@@ -147,6 +181,8 @@ This update addresses tech debt introduces in version 7.1 and 7.2. All of the ch
 
 ## Nuke 7.0.1
 
+*May 16, 2018*
+
 ### Additions
 
 - Add a section in README about replacing GIFs with video formats (e.g. `MP4`, `WebM`)
@@ -156,7 +192,10 @@ This update addresses tech debt introduces in version 7.1 and 7.2. All of the ch
 
 - #161 Fix the contentModes not set when initializing an ImageLoadingOptions object
 
+
 ## Nuke 7.0
+
+*May 10, 2018*
 
 Nuke 7 is the biggest release yet. It has a lot of  massive new features, new performance improvements, and some API refinements. Check out new [Nuke website](http://kean.github.io/nuke) to see quick videos showcasing some of the new features.
 
@@ -322,261 +361,19 @@ Resumable Data {
 - Deprecate `Result` type. It was only used in a single completion handler so it didn't really justify its existence. More importantly, I wasn't comfortable providing a public `Result` type as part of the framework.
 
 
-## Nuke 7.0-rc1
-
-This is the final pre-release version. The only thing left to do is finish updating the documentation.
-
-Changes in 7.0-rc1:
-
-### Loading Image into Views
-
-- Add more `ImageLoadingOptions` including `failureImage`, `contentModes` and custom transitions.
-- `ImageView` will now automatically prepare itself for reuse (can be disabled via `ImageLoadingOptions`)
-- Add `ImageDisplaying` protocol and relax the requirement what can be used as an image view (it's `UIView & ImageDisplaying` now). This achieves two things: 
-    - You can now add support for more classes (e.g. `MKAnnotationView` by implementing `ImageDisplaying` protocol
-    - You can override the `display(image:` method in `UIImageView` subclasses (e.g. `FLAnimatedImageView`).
-
-### image Processing
-
-- Update new `ImageProcessing` protocol to add additional `ImageProcessingContext` parameter. This enabled features like `_ProgressiveBlurImageProcessor` which blurs only first few scans of the progressive image with each new scan having reduced blur radius (see Progressive JPEG Demo).
-
-### Animated Images
-
-- Add built-in support for animated images (everything except the actual rendering). To enable rendering you're still going to need a plugin (see FLAnimatedImage and Gifu plugins). The changes made in Nuke dramatically simplify those plugins making both of them essentially obsolete (they both now have 10-30 lines of code).
-
-### Misc
-
-- Simplify `ImagePipeline` closure-based API. Remove `progressiveImageHandler`, pass partial images into existing `progress` closure.
-- Improve test coverage of new features.
-
-
-## Nuke 7.0-beta3
-
-This is the final beta version. The release version is going to be available next week.
-
-### Aggressive Disk Cache (Beta)
-
-Add a completely new custom LRU disk cache which can be used for fast and reliable *aggressive* (no validation) data caching. The new cache lookups are up to 2x faster than `URLCache` lookups. You can enable it using pipeline's configuration:
-
-```swift
-$0.enableExperimentalAggressiveDiskCaching(keyEncoder: {
-    guard let data = $0.cString(using: .utf8) else { return nil }
-    return _nuke_sha1(data, UInt32(data.count))
-})
-```
-
-When enabling disk cache you must provide a `keyEncoder` function which takes image request's url as a parameter and produces a key which can be used as a valid filename. The [demo project uses sha1](https://gist.github.com/kean/f5e1975e01d5e0c8024bc35556665d7b) to generate those keys.
-
-The public API for disk cache and the API for using custom disk caches is going to be available the future versions.
-
-> Existing API already allows you to use custom disk cache [by implementing `DataLoading` protocol](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries), but this is not the most straightforward option.
-
-### Memory Cache Improvements
-
-- New `ImageCaching` protocol for memory cache with methods like `func storeResponse(_ response: ImageRespone, for request: ImageRequest)` (it use to be just `subscript[key: AnyHashable] -> Image?`. You can do much more intelligent things in your cache implementations now (e.g. make decisions on when to evict image based on HTTP headers). Plus there is more room for optimization (get rid of AnyHashable overhead).
-- Improve cache write/hit/miss performance by 30% by getting rid of AnyHashable overhead. `ImageRequest` `cacheKey` and `loadKey` are now optional. If you use them, Nuke is going to use them instead of built-in internal `ImageRequest.CacheKey` and `ImageRequest.LoadKey`.
-- Add `TTL` support in `ImageCache`
-
-### Image Loading Options
-
-Nuke finally has all of the basic convenience options that you would expect from an image loading framework:
-
-```swift
-Nuke.loadImage(
-    with: url,
-    options: ImageLoadingOptions(
-        placeholder: UIImage(named: "placeholder"),
-        transition: .crossDissolve(0.33)
-    ),
-    into: imageView
-)
-```
-
-### Other Changes
-
-- Performance improvements in performance metrics, they are virtually free now
-- Performance improvements in `ImageTask` cancellation.
-- Add progress to `ImageTask`. Progress object is created lazily (it's creation is relatively expensive)
-- Deprecate `Result` type. It was only used in a single completion handler so it didn't really justify its existence. More imporantly, in case of image loading you're really just interested in whether the image was loaded or not. The error is there mostly for diagnostics. We also no longer pollute users' project with yet another `Result` implementation.
-- `ImageTask.Completion` now gives you `ImageResponse` (image + URLResponse) instead of just plain image.
-- More generic `Cancellable` protocol instead of `DataLoadingTask`
-
-
-## Nuke 7.0-beta2
-
-### Progressive Image Loading (Beta)
-
-You need a pipeline with progressive decoding enabled:
-
-```swift
-let pipeline = ImagePipeline {
-    $0.isProgressiveDecodingEnabled = true
-}
-```
-
-And that's it, you can start observing images as they are produced by the pipeline:
-
-```swift
-let imageView = UIImageView()
-let task = pipeline.loadImage(with: url) {
-    imageView.image = $0.value
-}
-task.progressiveImageHandler = {
-    imageView.image = $0
-}
-```
-
-The progressive decoding only kicks in when Nuke determines that the image data does contain a progressive JPEG. The decoder intelligently scans the data and only produces a new image when it receives a full new scan (progressive JPEGs normally have around 10 scans).
-
-> See "Progressive Decoding" demo to see progressive JPEG in practice. You can also uncomment the code that blurs the first few scans of the image which makes them look a bit nicer.
-
-### Resumable Data (Beta)
-
-- Mov resumable data implementation to the pipeline which means it will automatically start working with Alamofire plugin and other custom loaders
-- Fix an issue with `206 Partial Content` handling
-- Add a test suite
-- Add `ImagePipeline.Configuration.isResumableDataEnabled flag` (enabled by default)
-- Add support for `ETag` (beta1 only had support for `Last-Modified`).
-
-### Performance Metrics (Beta)
-
-- Extend a number of metrics introduced in Nuke 7.0-beta1
-- Nicer debug output:
-
-```swift
-(lldb) po task.metrics
-
-Task Information {
-    Task ID - 5
-    Total Duration - 0.363
-    Was Cancelled - false
-    Is Memory Cache Hit - false
-    Was Subscribed To Existing Image Loading Session - false
-}
-Timeline {
-    12:42:06.559 - Start Date
-    12:42:06.923 - End Date
-}
-Image Loading Session {
-    Session Information - {
-        Session ID - 5
-        Total Duration - 0.357
-        Was Cancelled - false
-    }
-    Timeline {
-        12:42:06.566 - Start Date
-        12:42:06.570 - Data Loading Start Date
-        12:42:06.904 - Data Loading End Date
-        12:42:06.909 - Decoding Start Date
-        12:42:06.912 - Decoding End Date
-        12:42:06.913 - Processing Start Date
-        12:42:06.922 - Processing End Date
-        12:42:06.923 - End Date
-    }
-    Resumable Data {
-        Was Resumed - nil
-        Resumable Data Count - nil
-        Server Confirmed Resume - nil
-    }
-}
-```
-
-### Additions
-
-- `Nuke.loadImage(with:into:)` now returns a task (discardable)
-- Add `ImageDecoderRegistry` to configure decoders globally
-- Add `ImageDecodingContext` to provide as much information as needed to select a decoder
-
-### Improvements
-
-- Smarter `RateLimiter` which no longer attempt to execute pending tasks when the bucket isn't full resulting in idle dispatching of blocks. I've used a CountedSet to see how well it works in practice and it's perfect. Nice small win.
-- `RateLimiter` now uses the same sync queue as the `ImagePipeline` reducing a number of dispatched blocks
-
-### Deprecations
-
-- `DataDecoding`, `DataDecoder`, `DataDecoderComposition` - replaced by a new image decoding infrastructure (`ImageDecoding`, `ImageDecoder`, `ImageDecodingRegistry` etc)
-- `CancellationToken`, `CancellationTokenSource` - continued to be used internally, if you want to use those types in your own project consider copying them
-- `typealias ProgerssHandler` is not nested in `ImageTask` (`ImageTask.ProgressHandler`)
-
-
-## Nuke 7.0-beta1
-
-Nuke 7 is the next major milestone continuing the trend started in Nuke 6 which makes the framework more pragmatic and mature. Nuke 7 is more ergonomic, fast, and more powerful. 
-
-Nuke `7.0-beta1` is an early released (compared to `6.0-beta1`). There are still some major changes coming in next betas. To make migration easier Nuke 7 is almost fully source compatible with Nuke 6, but many APIs were deprecated and will be removed soon.
-
-There are four major new features in Nuke 7:
-
-### Resumable Downloads (Beta)
-
-If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. The resumable downloads are enabled by default.
-
-> By default resumable data is stored in an efficient memory cache. Future versions might include more customization.
-
-In many use, cases reusable downloads are a massive improvement. Next betas will feature more customization options for resumable downloads (e.g. customizable resumable data storage).
-
-### Image Pipelines (Beta)
-
-The previous  `Manager` + `Loading` architecture (terrible naming, responsibilities are often confused) was replaced with a  new unified  `ImagePipeline` class. There is also a new `ImageTask` class which feels the gap where user or pipeline needed to communicate with each other after the request was started.
-
-`ImagePipeline` and `ImageTask` have a bunch of new features:
-- In `ImagePipeline.Configuration` you can now provider custom queues (`OperationQueue`) for data loading, decoding and processing (each stage). This way you have more access to queuing (e.g. you can change `qualityOfService`, suspend queues) etc and you can also use the same queue across different pipelines.
-- There are two APIs: convenience ones with blocks (`loadImage(with:completion:)`) and new one `imageTask(with:)` which returns new `ImageTask` class which gives you access to more advanced features. To start a task call `resume()` method, to cancel the task call `cancel()`.
-- Dynamically change priority of executing tasks.
-- Set a custom shared `ImagePipeline`.
-
-### Progressive Image Decoding (WIP)
-
-This feature is still in development and might be coming in one of the next beta.
-
-### Performance Metrics (Beta)
-
-Nuke captures detailed metrics on each image task:
-
-```swift
-(lldb) p task.metrics
-(Nuke.ImageTaskMetrics) $R2 = {
-  taskId = 9
-  timeCreated = 545513853.67615998
-  timeResumed = 545513853.67778301
-  timeCompleted = 545513860.90999401
-  session = 0x00007b1c00011100 {
-    sessionId = 9
-    timeDataLoadingStarted = 545513853.67789805
-    timeDataLoadingFinished = 545513853.74310505
-    timeDecodingFinished = 545513860.90150297
-    timeProcessingFinished = 545513860.90990996
-    urlResponse = 0x00007b0800066960 {
-      ObjectiveC.NSObject = {}
-    }
-    downloadedDataCount = 35049
-  }
-  wasSubscibedToExistingTask = false
-  isMemoryCacheHit = false
-  wasCancelled = false
-}
-```
-
-### Improvements
-
-- Improve main-thread performance by another 20%.
-- `ImagePreheater` now checks `ImageCache` synchronously before creating tasks which makes it more efficient.
-
-### Removed
-
-- Users were confused by separate set of `loadImage(with:into:handler:)` methods so they were removed. There were adding very little convenience for a lot of mental overhead.  It's fairly easy to reimplement them the way you want
-
-### Reworked
-
-- Prefix all classes with *Image* starting with a new ImagePipeline. This makes code more readable. It felt awkward to use types like ‘Request’ in your project. ‘Request’ is an integral part of ‘Nuke’, but you are only using it in your project once or twice.
-
+# Nuke 6
 
 ## Nuke 6.1.1
+
+*Apr 9, 2018*
 
 - Lower macOS deployment target to 10.10. #156.
 - Improve README: add detailed *Image Pipeline* section, *Performance* section, rewrite *Usage* guide
 
+
 ## Nuke 6.1
+
+*Feb 24, 2018*
 
 ### Features
 
@@ -595,6 +392,8 @@ Nuke captures detailed metrics on each image task:
 
 
 ## Nuke 6.0
+
+*Dec 23, 2017*
 
 > About 8 months ago I finally started using Nuke in production. The project has matured from a playground for experimenting with Swift features to something that I rely on in my day's job.
 
@@ -639,46 +438,18 @@ There are three main areas of improvements in Nuke 6:
 - `DataLoader` now works with `URLRequest`, not `Request`
 
 
-## Nuke 6.0-beta2
-
-- Fix memory leak in `Loader` - regression introduced in `6.0-beta1`
-- Get rid of Thread Sanitizer warnings in `CancellationTokenSource` (false positive)
-- Improve performance of `CancellationTokenSource`
-- Improve `Cache` hits and writes performance by ~15%
-- Improve `Loader` performance
-
-
-## Nuke 6.0-beta1
-
-> About 8 months ago I've started using Nuke in production. The project matured from being a playground for experimenting with Swift features to something that I rely on in my days work. The primary goal behind Nuke 6 is to simplify the project even further, and to get rid of the implementation details leaking into a public API.
-
-Nuke is now Swift 4 only. It's simpler, smaller (< 1000 lines of code) , and faster. It features progress reporting and makes it simpler to create custom data loader (e.g. [Alamofire data loader](https://github.com/kean/Nuke-Alamofire-Plugin)).
-
-### Features
-
-- Implements progress reporting https://github.com/kean/Nuke/issues/81
-
-### Removed APIs 
-
-- Remove global `loadImage(...)` functions https://github.com/kean/Nuke/issues/142
-- Remove `Deduplicator` class, make this functionality part of `Loader`. This has a number of benefits: reduced API surface, improves performance by reducing number of queue switching, enables new features like progress reporting.
-- Remove `Scheduler`, `AsyncScheduler`, `Loader.Schedulers`, `DispatchQueueScheduler`, `OperationQueueScheduler`. This whole infrastructure was way too excessive.
-- Make `RateLimiter` private.
-
-### Improvements 
-
-- Replace `Foundation.OperationQueue` & custom `Foundation.Operation` subclass with a new `Queue` type. It's simpler, faster, and gets rid of pesky Thread Sanitizer warnings https://github.com/kean/Nuke/issues/141
-- `DataLoader` now works with `URLRequest`, not `Request`
-- `Loader` now always call completion on the main thread.
-- Move `URLResponse` validation from `DataDecoder` to `DataLoader`
-- Make use of some Swift 4 feature like nested types inside generic types.
-
+# Nuke 5
 
 ## Nuke 5.2
 
+*Sep 1, 2017*
+
 Add support for both Swift 3.2 and 4.0.
 
+
 ## Nuke 5.1.1
+
+*Jun 11, 2017*
 
 - Fix Swift 4 warnings
 - Add `DataDecoder.sharedUrlCache` to easy access for shared `URLCache` object
@@ -688,6 +459,8 @@ Add support for both Swift 3.2 and 4.0.
 
 ## Nuke 5.1
 
+*Feb 23, 2017*
+
 - De facto `Manager` has already implemented `Loading` protocol in Nuke 5 (you could use it to load images directly w/o targets). Now it also conforms to `Loading` protocols which gives access to some convenience functions available in `Loading` extensions.
 - Add `static func targetSize(for view: UIView) -> CGSize` method to `Decompressor`
 - Simpler, faster `Preheater`
@@ -696,11 +469,15 @@ Add support for both Swift 3.2 and 4.0.
 
 ## Nuke 5.0.1
 
+*Feb 2, 2017*
+
 - #116 `Manager` can now be used to load images w/o specifying a target
 - `Preheater` is now initialized with `Manager` instead of object conforming to `Loading` protocol
 
 
 ## Nuke 5.0
+
+* Feb 1, 2017*
 
 ### Overview
 
@@ -742,7 +519,11 @@ Those two types were included in Nuke to make integrating third party caching li
 - Improved documentation
 
 
+# Nuke 4
+
 ## Nuke 4.1.2
+
+*Oct 22, 2016*
 
 Bunch of improvements in built-in `Promise`:
 - `Promise` now also uses new `Lock` - faster creation, faster locking
@@ -754,10 +535,14 @@ Bunch of improvements in built-in `Promise`:
 
 ## Nuke 4.1.1
 
+*Oct 4, 2016*
+
 - Fix deadlock in `Cache` - small typo, much embarrassment  😄 (https://github.com/kean/Nuke-Alamofire-Plugin/issues/8)
 
 
 ## Nuke 4.1 ⚡️
+
+*Oct 4, 2016*
 
 Nuke 4.1 is all about **performance**. Here are some notable performance improvements:
 
@@ -783,6 +568,8 @@ Nuke 4.1 also includes a new [Performance Guide](https://github.com/kean/Nuke/bl
 
 
 ## Nuke 4.0 🚀
+
+*Sep 19, 2016*
 
 ### Overview
  
@@ -822,27 +609,50 @@ You can see `RateLimiter` in action in a new `Rate Limiter Demo` added in the sa
 Make sure to check out new [Toucan plugin](https://github.com/kean/Nuke-Toucan-Plugin) which provides a simple API for processing images. It supports resizing, cropping, rounded rect masking and more.
  
 
+# Nuke 3
+
 ## Nuke 3.2
+
+*Sep 8, 2016*
  
  - Swift 2.3 support
  - Preheating is now thread-safe #75
 
+
+## Nuke 3.1.3
+
+*Jul 17, 2016*
+
+#72 Fix synchronization issue in ImageManager loader:task:didFinishWithImage... method
+
+
 ## Nuke 3.1.2
+
+*Jul 14, 2016*
 
 - #71 ImageViewLoadingController now cancels tasks synchronously, thanks to @adomanico
 
+
 ## Nuke 3.1.1
+
+*Jun 7, 2016*
 
 - Demo project update to support CocoaPods 1.0
 - #69 Bitcode support for Carthage builds, thanks to @vincentsaluzzo
 
-## Nuke 3.1.0
+
+## Nuke 3.1
+
+*Apr 15, 2016*
 
 - #64 Fix a performance regression: images are now decoded once per DataTask like they used to
 - #65 Fix an issue custom on-disk cache (`ImageDiskCaching`) was called `setData(_:response:forTask:)` method when the error wasn't nil
 - Add notifications for NSURLSessionTask state changes to enable activity indicators (based on https://github.com/kean/Nuke-Alamofire-Plugin/issues/4)
 
-## Nuke 3.0.0
+
+## Nuke 3.0
+
+*Mar 26, 2016*
 
 - Update for Swift 2.2
 - Move `ImagePreheatController` to a standalone package [Preheat](https://github.com/kean/Preheat)
@@ -857,12 +667,20 @@ Make sure to check out new [Toucan plugin](https://github.com/kean/Nuke-Toucan-P
 - `ImageDisplayingView` protocol now has a single `nk_displayImage(_)` method instead of a `nk_image` property
 - Remove `nk_targetSize` property from `UI(NS)View` extension
 
-## Nuke 2.3.0
+
+# Nuke 2
+
+## Nuke 2.3
+
+*Mar 19, 2016*
 
 - #60 Add custom on-disk caching support (see `ImageDiskCaching` protocol)
 - Reduce dynamic dispatch
 
-## Nuke 2.2.0
+
+## Nuke 2.2
+
+*Mar 11, 2016*
 
 - `ImageTask` `suspend` method is deprecated, implementation does nothing
 - `ImageLoader` now limits a number of concurrent `NSURLSessionTasks`
@@ -871,17 +689,26 @@ Make sure to check out new [Toucan plugin](https://github.com/kean/Nuke-Toucan-P
 - Add [Swift Package Manager](https://swift.org/package-manager/) support
 - Update documentation
 
-## Nuke 2.1.0
+
+## Nuke 2.1
+
+*Feb 27, 2016*
  
 - #57 `ImageDecompressor` now uses `CGImageAlphaInfo.NoneSkipLast` for opaque images 
 - Add `ImageProcessorWithClosure` that can be used for creating anonymous image filters
 - `ImageLoader` ensures thread safety of image initializers by running decoders on a `NSOperationQueue` with `maxConcurrentOperationCount=1`. However, `ImageDecoder` class is now also made thread safe.
 
+
 ## Nuke 2.0.1
+
+*Feb 10, 2016*
 
 - #53 ImageRequest no longer uses NSURLSessionTaskPriorityDefault, which requires CFNetwork that doesn't get added as a dependency automatically
 
+
 ## Nuke 2.0
+
+*Feb 6, 2016*
 
 Nuke now has an [official website](http://kean.github.io/Nuke/)!
 
@@ -919,11 +746,19 @@ Nuke now has an [official website](http://kean.github.io/Nuke/)!
 - Remove public helper function `allowsCaching` from `ImageRequest` extension
 - Remove deprecated `XCPSetExecutionShouldContinueIndefinitely` from playground
 
-## Nuke 1.4.0
+
+# Nuke 1
+
+## Nuke 1.4
+
+*Jan 9, 2016*
 
 - #46 Add option to disable memory cache storage, thanks to @RuiAAPeres
 
-## Nuke 1.3.0
+
+## Nuke 1.3
+
+*Dec 7, 2015*
 
 - Add [Core Image Integration Guide](https://github.com/kean/Nuke/wiki/Core-Image-Integration-Guide)
 - Fill most of the blanks in the documentation
@@ -932,7 +767,9 @@ Nuke now has an [official website](http://kean.github.io/Nuke/)!
 - Wrap each iteration in `ProcessorComposition` in an `autoreleasepool`
 
 
-## Nuke 1.2.0
+## Nuke 1.2
+
+*Nov 15, 2015*
 
 - #20 Add preheating for UITableView (see ImagePreheatControllerForTableView class)
 - #41 Enhanced tvOS support thanks to @joergbirkhold
@@ -943,17 +780,23 @@ Nuke now has an [official website](http://kean.github.io/Nuke/)!
 
 ## Nuke 1.1.1
 
+*Oct 30, 2015*
+
 - #35 ImageDecompressor now uses `32 bpp, 8 bpc, CGImageAlphaInfo.PremultipliedLast` pixel format which adds support for images in an obscure formats, including 16 bpc images.
 - Improve docs
 
 
-## Nuke 1.1.0
+## Nuke 1.1
+
+*Oct 23, 2015*
 
 - #25 Add tvOS support
 - #33 Add app extensions support for OSX target (other targets were already supported)
 
 
-## Nuke 1.0.0
+## Nuke 1.0
+
+*Oct 18, 2015*
 
 - #30 Add new protocols and extensions to make it easy to add full featured image loading capabilities to custom UI components. Here's how it works:
 ```swift
@@ -970,3 +813,154 @@ extension MKAnnotationView: ImageDisplayingView, ImageLoadingView {
 - #26 Add `getImageTaskWithCompletion(_:)` method to Manager
 - Add essential documentation
 - Add handy extensions to ImageResponse
+
+
+# Nuke 0.x
+
+## Nuke 0.5.1
+
+*Oct 13, 2015*
+
+Nuke is now available almost [everywhere](https://github.com/kean/Nuke/wiki/Supported-Platforms). Also got rid of CocoaPods subspecs.
+
+### New Supported Platforms
+
+- CocoaPods, Nuke, watchOS
+- CocoaPods, Nuke, OSX
+- CocoaPods, NukeAlamofirePlugin, watchOS
+- CocoaPods, NukeAlamofirePlugin, OSX
+- Carthage, Nuke, watchOS
+- Carthage, Nuke, OSX
+- Carthage, NukeAlamofirePlugin, iOS
+- Carthage, NukeAlamofirePlugin, watchOS
+- Carthage, NukeAlamofirePlugin, OSX
+
+### Repo Changes
+
+- Remove Nuke/Alamofire subspec, move sources to separate repo [Nuke-Alamofire-Plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
+- Remove Nuke/GIF subspec, move sources to separate repo [Nuke-AnimatedImage-Plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin)
+
+### Code Changes
+
+- #9, #19 ImageTask now has a closure for progress instead of NSProgress
+- Rename ImageLoadingDelegate to ImageLoadingManager
+- Add ImageLoaderDelegate with factory method to construct image decompressor, and `shouldProcessImage(_:)` method
+- Make ImageRequest extensions public
+- Make ImageTask constructor public; Annotate abstract methods.
+
+
+## Nuke 0.5
+
+*Oct 9, 2015*
+
+This is a pre-1.0 version, first major release which is going to be available soon.
+
+### Major
+
+- #18 ImageTask can now be suspended (see `suspend()` method). Add `suspendLoadingForImageTask(_:)` method to `ImageLoading` protocol
+- #24 ImageRequest can now be initialized with NSURLRequest. ImageDataLoading `imageDataTaskWithURL(_:progressHandler:completionHandler:)` method changed to `imageDataTaskWithRequest(_:progressHandler:completionHandler:)`. First parameter is ImageRequest, return value change from NSURLSessionDataTask to NSURLSessionTask.
+- ImageLoader no longer limits number of concurrent NSURLSessionTasks (which had several drawbacks)
+- Add base ImagePreheatingController class
+- Multiple preheating improvements: significantly simplified implementation; visible index paths are now subtracted from preheat window; performance improvements.
+
+### Minor
+
+- BUGFIX: When subscribing to an existing NSURLSessionTask user was receiving progress callback with invalid totalUnitCount
+- Add public `equivalentProcessors(lhs:rhs:) -> Bool` function that works on optional processors
+- Add essential documentation
+
+
+## Nuke 0.4
+
+*Oct 4, 2015*
+
+### Major
+
+- Make ImageLoading protocol and ImageLoader class public
+- Make ImageManager `cachedResponseForRequest(_:)` and `storeResponse(_:forRequest:)` methods public
+- Make ImageRequestKey class and ImageRequestKeyOwner protocol public
+- Remove unused ImageManaging and ImagePreheating protocols 
+
+### Minor
+
+- #13 BUGFIX: Crash on 32-bit iOS simulator on Mac with 16Gb+ of RAM (@RuiAAPeres)
+- BUGFIX: Processing operation might not get cancelled in certain situations
+- ImageProcessing protocol now provides default implementation for `isEquivalentToProcessor(_:)` method including separate implementation for processors that also conform to Equatable protocol.
+- Add identifier: Int property to ImageTask
+- ImageRequestKey now relies on Hashable and Equatable implementation provided by NSObject
+- ImageMemoryCaching protocol now works with ImageRequestKey class
+
+### Plumbing
+
+- Adopt multiple Swift best practices (tons of them in fact)
+- ImageManager is now fully responsible for memory caching and preheating, doesn't delegate any work to ImageLoader (simplifies its implementation and limits dependencies)
+- Remove ImageRequestKeyType enum
+- Rename ImageManagerLoader to ImageLoader
+- Simply ImageManagerLoader (now ImageLoader) implementation
+- Add multiple unit tests
+
+
+## Nuke 0.3.1
+
+*Sep 22, 2015*
+
+#10 Fix Carthage build
+
+
+## Nuke 0.3
+
+*Sep 21, 2015*
+
+- ImageTask now acts like a promise
+- ImageManager.shared is now a property instead of a method
+- ImageTask progress is now created lazily
+- Add maxConcurrentTaskCount to ImageManagerConfiguration
+- Move taskWithURL method to ImageManaging extension
+- Add ImagePreheating protocol
+- Multiple improvements across the board
+
+
+## Nuke 0.2.2
+
+*Sep 20, 2015*
+
+- Add limited Carthage support (doesn't feature [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) and [Alamofire](https://github.com/Alamofire/Alamofire) integration yet, you'll have to stick with CocoaPods for that)
+- ImageTask resume() and cancel() methods now return Self
+- ImageTask completion property is now public
+- Minor implementation improvements
+
+
+## Nuke 0.2.1
+
+*Sep 19, 2015*
+
+- Add ImageCollectionViewPreheatingController (yep)
+- Add [Image Preheating Guide](https://github.com/kean/Nuke/wiki/Image-Preheating-Guide)
+- Add preheating demo
+
+
+## Nuke 0.2
+
+*Sep 18, 2015*
+
+#### Major
+
+- Optional [Alamofire](https://github.com/Alamofire/Alamofire) integration via 'Nuke/Alamofire' subspec
+- Optional [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) integration via 'Nuke/GIF' subspec
+- More concise API
+- Add image filters to ImageRequest
+- Add ImageManaging protocol
+- Add ImageDecoderComposition
+- Add ImageProcessorComposition
+- watchOS
+- Add convenience functions that forward calls to the shared manager
+
+#### Minor
+
+- Use ErrorType
+- Add removeAllCachedImages method
+- ImageRequest userInfo is now Any? so that you can pass anything including closures
+- ImageResponseInfo now has userInfo: Any? property
+- ImageResponseInfo is now a struct
+- CachedImageResponse renamed to ImageCachedResponse; userInfo is now Any?
+- Multiple improvements across the board
