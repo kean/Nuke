@@ -964,3 +964,10 @@ This is a pre-1.0 version, first major release which is going to be available so
 - ImageResponseInfo is now a struct
 - CachedImageResponse renamed to ImageCachedResponse; userInfo is now Any?
 - Multiple improvements across the board
+
+
+## Nuke 0
+
+*Mar 11, 2015*
+
+- Initial commit
