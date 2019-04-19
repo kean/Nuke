@@ -253,12 +253,23 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
     public func loadImage(with url: URL, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
         return loadImage(with: ImageRequest(url: url), progress: progress, completion: completion)
     }
+    
+    private let sQueue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline.sQueue")
+    
+    private func makeTask(request: ImageRequest) -> ImageTask {
+        return sQueue.sync {
+            let task = ImageTask(taskId: getNextTaskId(), request: request)
+            task.delegate = self
+            
+            return task
+        }
+    }
 
     /// Loads an image for the given request using image loading pipeline.
     @discardableResult
     public func loadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
-        let task = ImageTask(taskId: getNextTaskId(), request: request)
-        task.delegate = self
+        let task = makeTask(request: request)
+        
         queue.async {
             // Fast memory cache lookup. We do this asynchronously because we
             // expect users to check memory cache synchronously if needed.
@@ -325,8 +336,17 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
             session.processingSessions[task]?.updatePriority()
         }
     }
-
+    
     // MARK: ImageLoadingSession (Managing)
+    
+    private func makeSession(request: ImageRequest, key: AnyHashable) -> ImageLoadingSession {
+        return sQueue.sync {
+            let session = ImageLoadingSession(sessionId: getNextSessionId(), request: request, key: key)
+            sessions[key] = session
+            
+            return session
+        }
+    }
 
     private func _createSession(with request: ImageRequest) -> ImageLoadingSession {
         // Check if session for the given key already exists.
@@ -338,8 +358,7 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
         if let session = sessions[key] {
             return session
         }
-        let session = ImageLoadingSession(sessionId: getNextSessionId(), request: request, key: key)
-        sessions[key] = session
+        let session = makeSession(request: request, key: key)
         _loadImage(for: session) // Start the pipeline
         return session
     }
