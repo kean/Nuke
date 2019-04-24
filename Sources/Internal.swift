@@ -256,7 +256,7 @@ internal final class LinkedList<Element> {
 internal final class CancellationTokenSource {
     /// Returns `true` if cancellation has been requested.
     var isCancelling: Bool {
-        return _lock.sync { _observers == nil }
+        return lock.sync { observers == nil }
     }
 
     /// Creates a new token associated with the source.
@@ -264,7 +264,8 @@ internal final class CancellationTokenSource {
         return CancellationToken(source: self)
     }
 
-    private var _observers: ContiguousArray<() -> Void>? = []
+    private var lock = NSLock()
+    private var observers: [() -> Void]? = []
 
     /// Initializes the `CancellationTokenSource` instance.
     init() {}
@@ -276,9 +277,11 @@ internal final class CancellationTokenSource {
     }
 
     private func _register(_ closure: @escaping () -> Void) -> Bool {
-        _lock.lock(); defer { _lock.unlock() }
-        _observers?.append(closure)
-        return _observers != nil
+        lock.lock()
+        defer { lock.unlock() }
+
+        observers?.append(closure)
+        return observers != nil
     }
 
     /// Communicates a request for cancellation to the managed tokens.
@@ -288,18 +291,15 @@ internal final class CancellationTokenSource {
         }
     }
 
-    private func _cancel() -> ContiguousArray<() -> Void>? {
-        _lock.lock(); defer { _lock.unlock() }
-        let observers = _observers
-        _observers = nil // transition to `isCancelling` state
+    private func _cancel() -> [() -> Void]? {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let observers = self.observers
+        self.observers = nil // transition to `isCancelling` state
         return observers
     }
 }
-
-// We use the same lock across different tokens because the design of CTS
-// prevents potential issues. For example, closures registered with a token
-// are never executed inside a lock.
-private let _lock = NSLock()
 
 /// Enables cooperative cancellation of operations.
 ///
