@@ -120,8 +120,7 @@ internal final class RateLimiter {
 internal final class Operation: Foundation.Operation {
     private var _isExecuting = false
     private var _isFinished = false
-    private var isFinishCalled = false
-    private var lock = os_unfair_lock_s()
+    private var isFinishCalled = Atomic(false)
 
     override var isExecuting: Bool {
         set {
@@ -169,19 +168,8 @@ internal final class Operation: Foundation.Operation {
     }
 
     private func _finish() {
-        func tryFinish() -> Bool {
-            os_unfair_lock_lock(&lock)
-            defer { os_unfair_lock_unlock(&lock) }
-            guard !isFinishCalled else {
-                return false
-            }
-            isFinishCalled = true
-            return true
-        }
-
-
         // Make sure that we ignore if `finish` is called more than once.
-        if tryFinish() {
+        if isFinishCalled.swap(to: true, ifEqual: false) {
             isExecuting = false
             isFinished = true
         }
@@ -546,6 +534,57 @@ final class Property<T> {
     // For our use-cases we can just ignore unsubscribing for now.
     func observe(_ closure: @escaping (T) -> Void) {
         observers.append(closure)
+    }
+}
+
+// MARK: - Atomic
+
+/// A thread-safe value wrapper.
+final class Atomic<T> {
+    private var _value: T
+    private let lock = NSLock()
+
+    init(_ value: T) {
+        self._value = value
+    }
+
+    var value: T {
+        get {
+            lock.lock()
+            let value = _value
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _value = newValue
+            lock.unlock()
+        }
+    }
+}
+
+extension Atomic where T: Equatable {
+    /// "Compare and Swap"
+    func swap(to newValue: T, ifEqual oldValue: T) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard _value == oldValue else {
+            return false
+        }
+        _value = newValue
+        return true
+    }
+}
+
+extension Atomic where T == Int {
+    /// Atomically increments the value and retruns a new incremented value.
+    func increment() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+
+        _value += 1
+        return _value
     }
 }
 

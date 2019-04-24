@@ -11,8 +11,6 @@ import Foundation
 /// to maintain a reference to the task unless it is useful to do so for your
 /// app’s internal bookkeeping purposes.
 public /* final */ class ImageTask: Hashable {
-    private var lock = os_unfair_lock_s()
-
     /// An identifier uniquely identifies the task within a given pipeline. Only
     /// unique within this pipeline.
     public let taskId: Int
@@ -65,12 +63,10 @@ public /* final */ class ImageTask: Hashable {
     // MARK: - Cancellation
 
     fileprivate var isCancelled: Bool {
-        os_unfair_lock_lock(&lock)
-        defer { os_unfair_lock_unlock(&lock) }
-        return _isCancelled
+        return _isCancelled.value
     }
 
-    private var _isCancelled: Bool = false
+    private var _isCancelled = Atomic(false)
 
     /// Marks task as being cancelled.
     ///
@@ -78,18 +74,8 @@ public /* final */ class ImageTask: Hashable {
     /// unless there is an equivalent outstanding task running (see
     /// `ImagePipeline.Configuration.isDeduplicationEnabled` for more info).
     public func cancel() {
-        func tryCancel() -> Bool {
-            os_unfair_lock_lock(&lock)
-            defer { os_unfair_lock_unlock(&lock) }
-            guard !_isCancelled else {
-                return false
-            }
-            _isCancelled = true
-            return true
-        }
-
         // Make sure that we ignore if `cancel` being called more than once.
-        if tryCancel() {
+        if _isCancelled.swap(to: true, ifEqual: false) {
             delegate?.imageTaskWasCancelled(self)
         }
     }
@@ -144,9 +130,9 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
     // Image loading sessions. One or more tasks can be handled by the same session.
     private var sessions = [AnyHashable: ImageLoadingSession]()
 
-    private var nextTaskId: Int = 0
+    private var nextTaskId = Atomic<Int>(0)
+    // Unlike `nextTaskId` doesn't need to be atomic because it's accessed only on a queue 
     private var nextSessionId: Int = 0
-    private var lock = os_unfair_lock_s()
 
     private let rateLimiter: RateLimiter
 
@@ -278,15 +264,10 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
     }
 
     private func getNextTaskId() -> Int {
-        os_unfair_lock_lock(&lock)
-        defer { os_unfair_lock_unlock(&lock) }
-        nextTaskId += 1
-        return nextTaskId
+        return nextTaskId.increment()
     }
 
     private func getNextSessionId() -> Int {
-        os_unfair_lock_lock(&lock)
-        defer { os_unfair_lock_unlock(&lock) }
         nextSessionId += 1
         return nextSessionId
     }
