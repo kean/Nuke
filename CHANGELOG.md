@@ -2,6 +2,8 @@
 
 ## Nuke 7.6.2
 
+*Apr 24, 2019*
+
 - Fix [Thread Sanitizer warnings](https://github.com/kean/Nuke/issues/224). The issue was related to `unfair_lock` usage which was introduced as a replacement for `OSAtomic` functions in Nuke 7.6. In order to fix the issue, `unfair_lock` was replaced with simple `NSLock`. The performance hit is pretty insignificant and definitely isn't worth introducing this additional level of complexity.
 
 ## Nuke 7.6.1
