@@ -1,5 +1,12 @@
 # Nuke 7
 
+## Nuke 7.6.3
+
+*May 1, 2019*
+
+- Fix [#226](https://github.com/kean/Nuke/issues/226) `ImageTask.setPriority(_:)` sometimes crashes
+
+
 ## Nuke 7.6.2
 
 *Apr 24, 2019*
