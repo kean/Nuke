@@ -487,12 +487,15 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 /// Helps with counting processors.
 private final class ProcessorFactory {
     var numberOfProcessorsApplied: Int = 0
+    let lock = NSLock()
 
     private final class Processor: MockImageProcessor {
         var factory: ProcessorFactory!
 
         override func process(image: Image, context: ImageProcessingContext) -> Image? {
-            factory.numberOfProcessorsApplied += 1
+            factory.lock.sync {
+                factory.numberOfProcessorsApplied += 1
+            }
             return super.process(image: image, context: context)
         }
     }
