@@ -4,7 +4,7 @@
 
 import Foundation
 
-public struct ImageTaskMetrics: CustomDebugStringConvertible {
+public final class ImageTaskMetrics: CustomDebugStringConvertible {
     public let taskId: Int
     public internal(set) var wasCancelled: Bool = false
     public internal(set) var session: SessionMetrics?

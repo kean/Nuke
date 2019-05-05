@@ -41,14 +41,13 @@ public /* final */ class ImageTask: Hashable {
     public typealias ProgressHandler = (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void
 
     // internal stuff associated with a task
-    fileprivate var metrics: ImageTaskMetrics
+    fileprivate var metrics: ImageTaskMetrics?
 
     fileprivate weak var session: ImageLoadingSession?
 
     internal init(taskId: Int, request: ImageRequest) {
         self.taskId = taskId
         self.request = request
-        self.metrics = ImageTaskMetrics(taskId: taskId, startDate: Date())
         self.priority = request.priority
     }
 
@@ -245,11 +244,15 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
         let task = ImageTask(taskId: getNextTaskId(), request: request)
         task.delegate = self
         queue.async {
+            if self.didFinishCollectingMetrics != nil {
+                task.metrics = ImageTaskMetrics(taskId: task.taskId, startDate: Date())
+            }
+
             // Fast memory cache lookup. We do this asynchronously because we
             // expect users to check memory cache synchronously if needed.
             if task.request.memoryCacheOptions.isReadAllowed,
                 let response = self.configuration.imageCache?.cachedResponse(for: task.request) {
-                task.metrics.isMemoryCacheHit = true
+                task.metrics?.isMemoryCacheHit = true
                 self._didCompleteTask(task, response: response, error: nil, completion: completion)
                 return
             }
@@ -276,8 +279,8 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
         let session = _createSession(with: task.request)
         task.session = session
 
-        task.metrics.session = session.metrics
-        task.metrics.wasSubscibedToExistingSession = !session.tasks.isEmpty
+        task.metrics?.session = session.metrics
+        task.metrics?.wasSubscibedToExistingSession = !session.tasks.isEmpty
 
         // Register handler with a session.
         session.tasks[task] = handlers
@@ -697,8 +700,8 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
 
     private func _session(_ session: ImageLoadingSession, didProcessImage image: Image?, isFinal: Bool, metrics: TaskMetrics, for task: ImageTask) {
         if isFinal {
-            task.metrics.processStartDate = metrics.startDate
-            task.metrics.processEndDate = metrics.endDate
+            task.metrics?.processStartDate = metrics.startDate
+            task.metrics?.processEndDate = metrics.endDate
             let error: Error?  = (image == nil ? .processingFailed : nil)
             _session(session, didCompleteTask: task, image: image, error: error)
         } else {
@@ -754,23 +757,27 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
 
     // Cancel the session in case all handlers were removed.
     private func _didCancelTask(_ task: ImageTask) {
-        task.metrics.wasCancelled = true
-        task.metrics.endDate = Date()
+        task.metrics?.wasCancelled = true
+        task.metrics?.endDate = Date()
 
         _cancelSession(for: task)
 
-        guard let didCollectMetrics = didFinishCollectingMetrics else { return }
-        DispatchQueue.main.async {
-            didCollectMetrics(task, task.metrics)
+        if let didCollectMetrics = didFinishCollectingMetrics, let metrics = task.metrics {
+            DispatchQueue.main.async {
+                didCollectMetrics(task, metrics)
+            }
         }
     }
 
     private func _didCompleteTask(_ task: ImageTask, response: ImageResponse?, error: Error?, completion: ImageTask.Completion?) {
-        task.metrics.endDate = Date()
+        task.metrics?.endDate = Date()
+
         DispatchQueue.main.async {
             guard !task.isCancelled else { return }
             completion?(response, error)
-            self.didFinishCollectingMetrics?(task, task.metrics)
+            if let didCollectMetrics = self.didFinishCollectingMetrics, let metrics = task.metrics {
+                didCollectMetrics(task, metrics)
+            }
         }
     }
 
