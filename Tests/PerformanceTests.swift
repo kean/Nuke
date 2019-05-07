@@ -6,16 +6,54 @@ import XCTest
 @testable import Nuke
 
 class ImageViewPerformanceTests: XCTestCase {
+    private let dummyCacheRequest = ImageRequest(url: URL(string: "http://test.com/9999999)")!, targetSize: CGSize(width: 2, height: 2), contentMode: .aspectFill)
+
+    override func setUp() {
+        // Store something in memory cache to avoid going through an optimized empty Dictionary path
+        let response = ImageResponse(image: Image(), urlResponse: nil)
+        ImagePipeline.shared.configuration.imageCache?.storeResponse(response, for: dummyCacheRequest)
+    }
+
+    override func tearDown() {
+        ImagePipeline.shared.configuration.imageCache?.removeResponse(for: dummyCacheRequest)
+    }
+
     // This is the primary use case that we are optimizing for - loading images
     // into target, the API that majoriy of the apps are going to use.
     func testImageViewMainThreadPerformance() {
         let view = _ImageView()
 
-        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }
-        
+        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/1)")! }
+
         measure {
             for url in urls {
                 Nuke.loadImage(with: url, into: view)
+            }
+        }
+    }
+
+    func testImageViewMainThreadPerformanceWithProcessor() {
+        let view = _ImageView()
+
+        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/1)")! }
+
+        measure {
+            for url in urls {
+                let request = ImageRequest(url: url, targetSize: CGSize(width: 0, height: 0), contentMode: .aspectFill)
+                Nuke.loadImage(with: request, into: view)
+            }
+        }
+    }
+
+    func testImageViewMainThreadPerformanceWithProcessorAndSimilarImageInCache() {
+        let view = _ImageView()
+
+        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/9999999)")! }
+
+        measure {
+            for url in urls {
+                let request = ImageRequest(url: url, targetSize: CGSize(width: 0, height: 0), contentMode: .aspectFill)
+                Nuke.loadImage(with: request, into: view)
             }
         }
     }
@@ -45,6 +83,9 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             let expectation = self.expectation(description: "Image loaded")
             var finished: Int = 0
             for url in urls {
+                var request = ImageRequest(url: url)
+                request.processor = nil // Remove processing time from equation
+
                 loader.loadImage(with: url) { _, _ in
                     finished += 1
                     if finished == urls.count {
@@ -125,6 +166,32 @@ class RequestPerformanceTests: XCTestCase {
             var array = [ImageRequest]()
             for request in requests {
                 array.append(request)
+            }
+        }
+    }
+}
+
+class ImageProcessingPerformanceTests: XCTestCase {
+    func testCreatingProcessorIdentifiers() {
+        let decompressor = ImageScalingProcessor(targetSize: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)
+
+        measure {
+            for _ in 0..<25_000 {
+                _ = decompressor.identifier
+            }
+        }
+    }
+
+    func testComparingTwoProcessorCompositions() {
+
+        let lhs = ImageProcessorComposition([MockImageProcessor(id: "123"), ImageScalingProcessor(targetSize: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
+        let rhs = ImageProcessorComposition([MockImageProcessor(id: "124"), ImageScalingProcessor(targetSize: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
+
+        measure {
+            for _ in 0..<25_000 {
+                if lhs.hashableIdentifier == rhs.hashableIdentifier {
+                    // do nothing
+                }
             }
         }
     }
