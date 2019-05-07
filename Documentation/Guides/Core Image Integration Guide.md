@@ -69,11 +69,11 @@ let processedImage = image.applyFilter(filter)
 
 # Core Image in Nuke
 
-Here's an example of a blur filter that implements Nuke's `Processing` protocol and uses our new extensions:
+Here's an example of a blur filter that implements Nuke's `ImageProcessing` protocol and uses our new extensions:
 
 ```swift
 /// Blurs image using CIGaussianBlur filter.
-struct GaussianBlur: ImageProcessing {
+struct GaussianBlur: ImageProcessing, Hashable {
     private let radius: Int
 
     /// Initializes the receiver with a blur radius.
@@ -86,9 +86,12 @@ struct GaussianBlur: ImageProcessing {
         return image.applyFilter(filter: CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : radius]))
     }
 
-    /// Compares two filters based on their radius.
-    static func ==(lhs: GaussianBlur, rhs: GaussianBlur) -> Bool {
-        return lhs.radius == rhs.radius
+    var identifier: String {
+        return "GaussianBlur\(radius)"
+    }
+    
+    var hashableIdentifier: AnyHashable {
+        return self
     }
 }
 ```

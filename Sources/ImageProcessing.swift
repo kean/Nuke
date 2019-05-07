@@ -5,9 +5,26 @@
 import Foundation
 
 /// Performs image processing.
-public protocol ImageProcessing: Equatable {
+public protocol ImageProcessing {
     /// Returns processed image.
     func process(image: Image, context: ImageProcessingContext) -> Image?
+
+    /// Returns a string which uniquely identifies the processor.
+    var identifier: String { get }
+
+    /// Returns a unique processor identifier.
+    ///
+    /// The default implementation simply returns `var identifier: String` but
+    /// can be overridden as a performance optimization - creating and comparing
+    /// strings is _expensive_ so you can opt-in to return something which is
+    /// fast to create and to compare. See `ImageDecompressor` to example.
+    var hashableIdentifier: AnyHashable { get }
+}
+
+public extension ImageProcessing {
+    var hashableIdentifier: AnyHashable {
+        return identifier
+    }
 }
 
 /// Image processing context used when selecting which processor to use.
@@ -18,11 +35,11 @@ public struct ImageProcessingContext {
 }
 
 /// Composes multiple processors.
-struct ImageProcessorComposition: ImageProcessing {
-    private let processors: [AnyImageProcessor]
+struct ImageProcessorComposition: ImageProcessing, Hashable {
+    private let processors: [ImageProcessing]
 
     /// Composes multiple processors.
-    public init(_ processors: [AnyImageProcessor]) {
+    public init(_ processors: [ImageProcessing]) {
         self.processors = processors
     }
 
@@ -37,54 +54,56 @@ struct ImageProcessorComposition: ImageProcessing {
         }
     }
 
-    /// Returns true if the underlying processors are pairwise-equivalent.
-    public static func == (lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
-        return lhs.processors == rhs.processors
+    var identifier: String {
+        return processors.map({ $0.identifier }).joined()
+    }
+
+    var hashableIdentifier: AnyHashable {
+        return self
+    }
+
+    func hash(into hasher: inout Hasher) {
+        for processor in processors {
+            hasher.combine(processor.hashableIdentifier)
+        }
+    }
+
+    static func == (lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
+        guard lhs.processors.count == rhs.processors.count else {
+            return false
+        }
+        // Lazily creates `hashableIdentifiers` because for some processors the
+        // identifiers might be expensive to compute.
+        return zip(lhs.processors, rhs.processors).allSatisfy {
+            $0.hashableIdentifier == $1.hashableIdentifier
+        }
     }
 }
 
-/// Type-erased image processor.
-public struct AnyImageProcessor: ImageProcessing {
-    private let _process: (Image, ImageProcessingContext) -> Image?
-    private let _processor: Any
-    private let _equals: (AnyImageProcessor) -> Bool
+struct AnonymousImageProcessor: ImageProcessing {
+    public let identifier: String
+    private let closure: (Image) -> Image?
 
-    public init<P: ImageProcessing>(_ processor: P) {
-        self._process = { processor.process(image: $0, context: $1) }
-        self._processor = processor
-        self._equals = { ($0._processor as? P) == processor }
-    }
-
-    public func process(image: Image, context: ImageProcessingContext) -> Image? {
-        return self._process(image, context)
-    }
-
-    public static func == (lhs: AnyImageProcessor, rhs: AnyImageProcessor) -> Bool {
-        return lhs._equals(rhs)
-    }
-}
-
-struct AnonymousImageProcessor<Key: Hashable>: ImageProcessing {
-    private let _key: Key
-    private let _closure: (Image) -> Image?
-
-    init(_ key: Key, _ closure: @escaping (Image) -> Image?) {
-        self._key = key; self._closure = closure
+    init(_ identifier: String, _ closure: @escaping (Image) -> Image?) {
+        self.identifier = identifier
+        self.closure = closure
     }
 
     func process(image: Image, context: ImageProcessingContext) -> Image? {
-        return self._closure(image)
-    }
-
-    static func == (lhs: AnonymousImageProcessor, rhs: AnonymousImageProcessor) -> Bool {
-        return lhs._key == rhs._key
+        return self.closure(image)
     }
 }
 
 #if !os(macOS)
 import UIKit
 
-struct ImageDecompression: ImageProcessing {
+struct ImageDecompression: ImageProcessing, Hashable {
+    let identifier: String = "ImageDecompressor"
+
+    var hashableIdentifier: AnyHashable {
+        return self
+    }
+
     func process(image: Image, context: ImageProcessingContext) -> Image? {
         guard ImageDecompression.isDecompressionNeeded(for: image) ?? false else {
             return image // Image doesn't require decompression
@@ -116,7 +135,15 @@ struct ImageDecompression: ImageProcessing {
 public typealias ImageDecompressor = ImageScalingProcessor
 
 /// Scales down the input images. Maintains original aspect ratio.
-public struct ImageScalingProcessor: ImageProcessing {
+public struct ImageScalingProcessor: ImageProcessing, Hashable {
+
+    public var identifier: String {
+        return "ImageScalingProcessor\(targetSize)\(contentMode)\(upscale)"
+    }
+
+    public var hashableIdentifier: AnyHashable {
+        return self
+    }
 
     /// An option for how to resize the image.
     public enum ContentMode {
@@ -155,11 +182,6 @@ public struct ImageScalingProcessor: ImageProcessing {
         return ImageUlitities.scale(image, targetSize: targetSize, contentMode: contentMode, upscale: upscale)
     }
 
-    /// Returns true if both have the same `targetSize` and `contentMode`.
-    public static func == (lhs: ImageScalingProcessor, rhs: ImageScalingProcessor) -> Bool {
-        return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode && lhs.upscale == rhs.upscale
-    }
-
     #if !os(watchOS)
     /// Returns target size in pixels for the given view. Takes main screen
     /// scale into the account.
@@ -169,6 +191,13 @@ public struct ImageScalingProcessor: ImageProcessing {
         return CGSize(width: size.width * scale, height: size.height * scale)
     }
     #endif
+}
+
+extension CGSize: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(width)
+        hasher.combine(height)
+    }
 }
 
 enum ImageUlitities {
@@ -236,3 +265,13 @@ enum ImageUlitities {
     }
 }
 #endif
+
+// A special version of `==` which is optimized to not create hashable identifiers
+// when not necessary (e.g. one processor is `nil` and another one isn't.
+func == (lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
+    switch (lhs, rhs) {
+    case (.none, .none): return true
+    case let (.some(lhs), .some(rhs)): return lhs.hashableIdentifier == rhs.hashableIdentifier
+    default: return false
+    }
+}

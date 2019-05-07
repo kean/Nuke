@@ -29,7 +29,7 @@ public struct ImageRequest {
     }
 
     /// Processor to be applied to the image. `nil` by default.
-    public var processor: AnyImageProcessor? {
+    public var processor: ImageProcessing? {
         get { return ref.processor }
         set { mutate { $0.processor = newValue } }
     }
@@ -132,16 +132,16 @@ public struct ImageRequest {
 
     /// Initializes a request with the given URL.
     /// - parameter processor: Custom image processer.
-    public init<Processor: ImageProcessing>(url: URL, processor: Processor) {
+    public init(url: URL, processor: ImageProcessing) {
         self.init(url: url)
-        self.processor = AnyImageProcessor(processor)
+        self.processor = processor
     }
 
     /// Initializes a request with the given request.
     /// - parameter processor: Custom image processer.
-    public init<Processor: ImageProcessing>(urlRequest: URLRequest, processor: Processor) {
+    public init(urlRequest: URLRequest, processor: ImageProcessing) {
         self.init(urlRequest: urlRequest)
-        self.processor = AnyImageProcessor(processor)
+        self.processor = processor
     }
 
     /// Initializes a request with the given URL.
@@ -159,6 +159,7 @@ public struct ImageRequest {
     public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: ImageScalingProcessor.ContentMode, upscale: Bool = false) {
         self.init(urlRequest: urlRequest, processor: ImageScalingProcessor(targetSize: targetSize, contentMode: contentMode, upscale: upscale))
     }
+
     #endif
 
     // CoW:
@@ -177,7 +178,7 @@ public struct ImageRequest {
     private class Container {
         var resource: Resource
         var urlString: String? // memoized absoluteString
-        var processor: AnyImageProcessor?
+        var processor: ImageProcessing?
         var memoryCacheOptions = MemoryCacheOptions()
         var priority: ImageRequest.Priority = .normal
         var cacheKey: AnyHashable?
@@ -221,18 +222,18 @@ public struct ImageRequest {
 public extension ImageRequest {
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    mutating func process<P: ImageProcessing>(with processor: P) {
+    mutating func process(with processor: ImageProcessing) {
         guard let existing = self.processor else {
-            self.processor = AnyImageProcessor(processor)
+            self.processor = processor
             return
         }
         // Chain new processor and the existing one.
-        self.processor = AnyImageProcessor(ImageProcessorComposition([existing, AnyImageProcessor(processor)]))
+        self.processor = ImageProcessorComposition([existing, processor])
     }
 
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    func processed<P: ImageProcessing>(with processor: P) -> ImageRequest {
+    func processed(with processor: ImageProcessing) -> ImageRequest {
         var request = self
         request.process(with: processor)
         return request
@@ -240,14 +241,14 @@ public extension ImageRequest {
 
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    mutating func process<Key: Hashable>(key: Key, _ closure: @escaping (Image) -> Image?) {
-        process(with: AnonymousImageProcessor<Key>(key, closure))
+    mutating func process(key: String, _ closure: @escaping (Image) -> Image?) {
+        process(with: AnonymousImageProcessor(key, closure))
     }
 
     /// Appends a processor to the request. You can append arbitrary number of
     /// processors to the request.
-    func processed<Key: Hashable>(key: Key, _ closure: @escaping (Image) -> Image?) -> ImageRequest {
-        return processed(with: AnonymousImageProcessor<Key>(key, closure))
+    func processed(key: String, _ closure: @escaping (Image) -> Image?) -> ImageRequest {
+        return processed(with: AnonymousImageProcessor(key, closure))
     }
 }
 
@@ -272,6 +273,7 @@ extension ImageRequest {
             guard lhs.urlString == rhs.urlString else {
                 return false
             }
+
             return lhs.processor == rhs.processor
         }
     }

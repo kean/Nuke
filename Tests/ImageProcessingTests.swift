@@ -87,20 +87,31 @@ class ImageProcessingTests: XCTestCase {
 
     // MARK: - Anonymous Processor
 
-    func testAnonymousProcessorsEquatable() {
+    func testAnonymousProcessorsHaveDifferentIdentifiers() {
         XCTAssertEqual(
-            Test.request.processed(key: 1, { $0 }).processor,
-            Test.request.processed(key: 1, { $0 }).processor
+            Test.request.processed(key: "1", { $0 }).processor?.identifier,
+            Test.request.processed(key: "1", { $0 }).processor?.identifier
         )
         XCTAssertNotEqual(
-            Test.request.processed(key: 1, { $0 }).processor,
-            Test.request.processed(key: 2, { $0 }).processor
+            Test.request.processed(key: "1", { $0 }).processor?.identifier,
+            Test.request.processed(key: "2", { $0 }).processor?.identifier
+        )
+    }
+
+    func testAnonymousProcessorsHaveDifferentHashableIdentifiers() {
+        XCTAssertEqual(
+            Test.request.processed(key: "1", { $0 }).processor?.hashableIdentifier,
+            Test.request.processed(key: "1", { $0 }).processor?.hashableIdentifier
+        )
+        XCTAssertNotEqual(
+            Test.request.processed(key: "1", { $0 }).processor?.hashableIdentifier,
+            Test.request.processed(key: "2", { $0 }).processor?.hashableIdentifier
         )
     }
 
     func testAnonymousProcessorIsApplied() {
         // Given
-        let request = Test.request.processed(key: 1) {
+        let request = Test.request.processed(key: "1") {
             $0.nk_test_processorIDs = ["1"]
             return $0
         }
@@ -116,7 +127,7 @@ class ImageProcessingTests: XCTestCase {
     func testAnonymousProcessorIsApplied2() {
         // Given
         var request = Test.request
-        request.process(key: 1) {
+        request.process(key: "1") {
             $0.nk_test_processorIDs = ["1"]
             return $0
         }
@@ -129,9 +140,17 @@ class ImageProcessingTests: XCTestCase {
         XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
     }
 
+    #if !os(macOS)
+
+    // MARK: - Decompression
+
+    func testTwoDifferentDecompressorsAreEqual() {
+        XCTAssertEqual(ImageDecompression().hashValue, ImageDecompression().hashValue)
+        XCTAssertEqual(ImageDecompression(), ImageDecompression())
+    }
+
     // MARK: - Resizing
 
-    #if !os(macOS)
     func testUsingProcessorRequestParameter() {
         // Given
         let processor = ImageScalingProcessor(targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit, upscale: false)
@@ -140,7 +159,7 @@ class ImageProcessingTests: XCTestCase {
         let request = ImageRequest(url: Test.url, processor: processor)
 
         // Then
-        XCTAssertEqual(AnyImageProcessor(processor), request.processor)
+        XCTAssertEqual(processor.identifier, request.processor?.identifier)
     }
 
     func testResizingUsingRequestParameters() {
@@ -198,3 +217,72 @@ class ImageProcessingTests: XCTestCase {
     }
     #endif
 }
+
+class ImageProcessorCompositionTest: XCTestCase {
+
+    func testAppliesAllProcessors() {
+        // Given
+        let processor = ImageProcessorComposition([
+            MockImageProcessor(id: "1"),
+            MockImageProcessor(id: "2")]
+        )
+
+        // When
+        let image = processor.process(image: Image(), context: dummyProcessingContext)
+
+        // Then
+        XCTAssertEqual(image?.nk_test_processorIDs, ["1", "2"])
+    }
+
+    func testIdenfitiers() {
+        // Given different processors
+        let lhs = ImageProcessorComposition([MockImageProcessor(id: "1")])
+        let rhs = ImageProcessorComposition([MockImageProcessor(id: "2")])
+
+        // Then
+        XCTAssertNotEqual(lhs.identifier, rhs.identifier)
+        XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
+    }
+
+    func testIdentifiersDifferentProcessorCount() {
+        // Given processors with different processor count
+        let lhs = ImageProcessorComposition([MockImageProcessor(id: "1")])
+        let rhs = ImageProcessorComposition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+
+        // Then
+        XCTAssertNotEqual(lhs.identifier, rhs.identifier)
+        XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
+    }
+
+    func testIdenfitiersEqualProcessors() {
+        // Given processors with equal processors
+        let lhs = ImageProcessorComposition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+        let rhs = ImageProcessorComposition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+
+        // Then
+        XCTAssertEqual(lhs.identifier, rhs.identifier)
+        XCTAssertEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
+    }
+
+    func testIdentifiersWithSameProcessorsButInDifferentOrder() {
+        // Given processors with equal processors but in different order
+        let lhs = ImageProcessorComposition([MockImageProcessor(id: "2"), MockImageProcessor(id: "1")])
+        let rhs = ImageProcessorComposition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+
+        // Then
+        XCTAssertNotEqual(lhs.identifier, rhs.identifier)
+        XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
+    }
+
+    func testIdenfitiersEmptyProcessors() {
+        // Given empty processors
+        let lhs = ImageProcessorComposition([])
+        let rhs = ImageProcessorComposition([])
+
+        // Then
+        XCTAssertEqual(lhs.identifier, rhs.identifier)
+        XCTAssertEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
+    }
+}
+
+private let dummyProcessingContext = ImageProcessingContext(request: Test.request, isFinal: true, scanNumber: nil)
