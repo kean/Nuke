@@ -233,7 +233,7 @@ If you enable aggressive disk cache, make sure that you also disable native URL 
 
 #### Prefetching Images
 
-[Prefethcing](https://kean.github.io/post/image-preheating) images in advance reduces the wait time for users. Nuke provides an `ImagePreheater` to do just that:
+[Prefetching](https://kean.github.io/post/image-preheating) images in advance reduces the wait time for users. Nuke provides an `ImagePreheater` to do just that:
 
 ```swift
 let preheater = ImagePreheater()
