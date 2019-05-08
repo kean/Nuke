@@ -134,7 +134,7 @@ class ImageProcessingTests: XCTestCase {
     #if !os(macOS)
     func testUsingProcessorRequestParameter() {
         // Given
-        let processor = ImageDecompressor(targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit, upscale: false)
+        let processor = ImageScalingProcessor(targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit, upscale: false)
 
         // When
         let request = ImageRequest(url: Test.url, processor: processor)

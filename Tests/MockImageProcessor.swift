@@ -51,3 +51,15 @@ class MockFailingProcessor: Nuke.ImageProcessing {
         return true
     }
 }
+
+// MARK: - MockEmptyImageProcessor
+
+class MockEmptyImageProcessor: ImageProcessing {
+    func process(image: Image, context: ImageProcessingContext) -> Image? {
+        return image
+    }
+
+    static func == (lhs: MockEmptyImageProcessor, rhs: MockEmptyImageProcessor) -> Bool {
+        return true
+    }
+}
