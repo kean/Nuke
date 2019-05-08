@@ -22,7 +22,8 @@ public typealias Image = NSImage
 /// The protocol is defined as `@objc` to enable users to override its methods
 /// in extensions (e.g. you can override `display(image:)` in `UIImageView` subclass).
 @objc public protocol ImageDisplaying {
-    @objc func display(image: Image?)
+    @objc
+    func display(image: Image?)
 }
 
 #if !os(macOS)
@@ -135,7 +136,7 @@ public struct ImageLoadingOptions {
     /// The image transition animation performed when displaying a failure image.
     /// `.nil` by default.
     public var failureImageTransition: Transition?
-    
+
     /// If true, the requested image will always appear with transition, even
     /// when loaded from cache
     public var alwaysTransition = false
@@ -325,12 +326,16 @@ private final class ImageViewController {
         self.task = pipeline.loadImage(
             with: request,
             progress: { [weak self] response, completed, total in
-                guard self?.taskId == taskId else { return }
+                guard self?.taskId == taskId else {
+                    return
+                }
                 self?.handle(partialImage: response, options: options)
                 progress?(response, completed, total)
             },
             completion: { [weak self] response, error in
-                guard self?.taskId == taskId else { return }
+                guard self?.taskId == taskId else {
+                    return
+                }
                 self?.handle(response: response, error: error, fromMemCache: false, options: options)
                 completion?(response, error)
             }
@@ -358,12 +363,16 @@ private final class ImageViewController {
     }
 
     private func handle(partialImage response: ImageResponse?, options: ImageLoadingOptions) {
-        guard let image = response?.image else { return }
+        guard let image = response?.image else {
+            return
+        }
         _display(image, options.transition, options.alwaysTransition, false, options.contentModes?.success)
     }
 
     private func _display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?) {
-        guard let imageView = imageView else { return }
+        guard let imageView = imageView else {
+            return
+        }
 
         if !fromMemCache || alwaysTransition, let transition = transition {
             switch transition.style {
@@ -387,7 +396,9 @@ private final class ImageViewController {
     private lazy var transitionImageView = UIImageView()
 
     private func _runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters, contentMode: UIView.ContentMode?) {
-        guard let imageView = imageView else { return }
+        guard let imageView = imageView else {
+            return
+        }
 
         // Special case where we animate between content modes, only works
         // on imageView subclasses.
@@ -399,7 +410,9 @@ private final class ImageViewController {
     }
 
     private func _runSimpleFadeIn(image: Image, params: ImageLoadingOptions.Transition.Parameters) {
-        guard let imageView = imageView else { return }
+        guard let imageView = imageView else {
+            return
+        }
 
         UIView.transition(
             with: imageView,
@@ -407,7 +420,7 @@ private final class ImageViewController {
             options: params.options.union(.transitionCrossDissolve),
             animations: {
                 imageView.display(image: image)
-        },
+            },
             completion: nil
         )
     }
@@ -437,12 +450,12 @@ private final class ImageViewController {
             animations: {
                 transitionView.alpha = 0
                 imageView.alpha = 1
-        },
+            },
             completion: { isCompleted in
                 if isCompleted {
                     transitionView.removeFromSuperview()
                 }
-        }
+            }
         )
     }
 
@@ -459,12 +472,16 @@ private final class ImageViewController {
     }
 
     private func handle(partialImage response: ImageResponse?, options: ImageLoadingOptions) {
-        guard let image = response?.image else { return }
+        guard let image = response?.image else {
+            return
+        }
         _display(image, options.transition, options.alwaysTransition, false)
     }
 
     private func _display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool) {
-        guard let imageView = imageView else { return }
+        guard let imageView = imageView else {
+            return
+        }
 
         if !fromMemCache || alwaysTransition, let transition = transition {
             switch transition.style {

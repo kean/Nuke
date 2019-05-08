@@ -45,7 +45,7 @@ public /* final */ class ImageTask: Hashable {
 
     fileprivate weak var session: ImageLoadingSession?
 
-    internal init(taskId: Int, request: ImageRequest) {
+    init(taskId: Int, request: ImageRequest) {
         self.taskId = taskId
         self.request = request
         self.priority = request.priority
@@ -83,7 +83,7 @@ public /* final */ class ImageTask: Hashable {
     public func hash(into hasher: inout Hasher) {
         hasher.combine(ObjectIdentifier(self).hashValue)
     }
-    
+
     public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
         return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
     }
@@ -159,7 +159,7 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
 
         /// Default implementation uses shared `ImageDecoderRegistry` to create
         /// a decoder that matches the context.
-        internal var imageDecoder: (ImageDecodingContext) -> ImageDecoding = {
+        var imageDecoder: (ImageDecodingContext) -> ImageDecoding = {
             return ImageDecoderRegistry.shared.decoder(for: $0)
         }
 
@@ -167,7 +167,7 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
         public var imageDecodingQueue = OperationQueue()
 
         /// This is here just for backward compatibility with `Loader`.
-        internal var imageProcessor: (Image, ImageRequest) -> AnyImageProcessor? = { $1.processor }
+        var imageProcessor: (Image, ImageRequest) -> AnyImageProcessor? = { $1.processor }
 
         /// Image processing queue. Default maximum concurrent task count is 2.
         public var imageProcessingQueue = OperationQueue()
@@ -234,13 +234,17 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
 
     /// Loads an image with the given url.
     @discardableResult
-    public func loadImage(with url: URL, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
+    public func loadImage(with url: URL,
+                          progress: ImageTask.ProgressHandler? = nil,
+                          completion: ImageTask.Completion? = nil) -> ImageTask {
         return loadImage(with: ImageRequest(url: url), progress: progress, completion: completion)
     }
 
     /// Loads an image for the given request using image loading pipeline.
     @discardableResult
-    public func loadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
+    public func loadImage(with request: ImageRequest,
+                          progress: ImageTask.ProgressHandler? = nil,
+                          completion: ImageTask.Completion? = nil) -> ImageTask {
         let task = ImageTask(taskId: getNextTaskId(), request: request)
         task.delegate = self
         queue.async {
@@ -440,7 +444,7 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
                     guard let session = session else { return }
                     self?._session(session, didFinishLoadingDataWithError: error)
                 }
-        })
+            })
         session.token.register {
             task.cancel()
             finish() // Make sure we always finish the operation.

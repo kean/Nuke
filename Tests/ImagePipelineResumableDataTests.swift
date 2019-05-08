@@ -11,7 +11,7 @@ class ImagePipelineResumableDataTests: XCTestCase {
 
     override func setUp() {
         dataLoader = _MockResumableDataLoader()
-        ResumableData._cache.removeAll()
+        ResumableData.cache.removeAll()
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil

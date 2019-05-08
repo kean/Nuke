@@ -18,7 +18,7 @@ public struct ImageProcessingContext {
 }
 
 /// Composes multiple processors.
-internal struct ImageProcessorComposition: ImageProcessing {
+struct ImageProcessorComposition: ImageProcessing {
     private let processors: [AnyImageProcessor]
 
     /// Composes multiple processors.
@@ -64,7 +64,7 @@ public struct AnyImageProcessor: ImageProcessing {
     }
 }
 
-internal struct AnonymousImageProcessor<Key: Hashable>: ImageProcessing {
+struct AnonymousImageProcessor<Key: Hashable>: ImageProcessing {
     private let _key: Key
     private let _closure: (Image) -> Image?
 
@@ -131,7 +131,7 @@ public struct ImageDecompressor: ImageProcessing {
 
     /// Decompresses and scales the image.
     public func process(image: Image, context: ImageProcessingContext) -> Image? {
-        return decompress(image, targetSize: targetSize, contentMode: contentMode, upscale: upscale)
+        return ImageProcessor.decompress(image, targetSize: targetSize, contentMode: contentMode, upscale: upscale)
     }
 
     /// Returns true if both have the same `targetSize` and `contentMode`.
@@ -150,44 +150,55 @@ public struct ImageDecompressor: ImageProcessing {
     #endif
 }
 
-internal func decompress(_ image: UIImage, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode, upscale: Bool) -> UIImage {
-    guard let cgImage = image.cgImage else { return image }
-    let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
-    let scaleHor = targetSize.width / bitmapSize.width
-    let scaleVert = targetSize.height / bitmapSize.height
-    let scale = contentMode == .aspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
-    return decompress(image, scale: CGFloat(upscale ? scale : min(scale, 1)))
-}
-
-internal func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
-    guard let cgImage = image.cgImage else { return image }
-
-    let size = CGSize(
-        width: round(scale * CGFloat(cgImage.width)),
-        height: round(scale * CGFloat(cgImage.height))
-    )
-
-    // For more info see:
-    // - Quartz 2D Programming Guide
-    // - https://github.com/kean/Nuke/issues/35
-    // - https://github.com/kean/Nuke/issues/57
-    let alphaInfo: CGImageAlphaInfo = isOpaque(cgImage) ? .noneSkipLast : .premultipliedLast
-
-    guard let ctx = CGContext(
-        data: nil,
-        width: Int(size.width), height: Int(size.height),
-        bitsPerComponent: 8, bytesPerRow: 0,
-        space: CGColorSpaceCreateDeviceRGB(),
-        bitmapInfo: alphaInfo.rawValue) else {
+enum ImageProcessor {
+    static func decompress(_ image: UIImage,
+                           targetSize: CGSize,
+                           contentMode: ImageDecompressor.ContentMode,
+                           upscale: Bool) -> UIImage {
+        guard let cgImage = image.cgImage else {
             return image
+        }
+        let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
+        let scaleHor = targetSize.width / bitmapSize.width
+        let scaleVert = targetSize.height / bitmapSize.height
+        let scale = contentMode == .aspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
+        return decompress(image, scale: CGFloat(upscale ? scale : min(scale, 1)))
     }
-    ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: size))
-    guard let decompressed = ctx.makeImage() else { return image }
-    return UIImage(cgImage: decompressed, scale: image.scale, orientation: image.imageOrientation)
-}
 
-private func isOpaque(_ image: CGImage) -> Bool {
-    let alpha = image.alphaInfo
-    return alpha == .none || alpha == .noneSkipFirst || alpha == .noneSkipLast
+    static func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
+        guard let cgImage = image.cgImage else {
+            return image
+        }
+
+        let size = CGSize(
+            width: round(scale * CGFloat(cgImage.width)),
+            height: round(scale * CGFloat(cgImage.height))
+        )
+
+        // For more info see:
+        // - Quartz 2D Programming Guide
+        // - https://github.com/kean/Nuke/issues/35
+        // - https://github.com/kean/Nuke/issues/57
+        let alphaInfo: CGImageAlphaInfo = isOpaque(cgImage) ? .noneSkipLast : .premultipliedLast
+
+        guard let ctx = CGContext(
+            data: nil,
+            width: Int(size.width), height: Int(size.height),
+            bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: alphaInfo.rawValue) else {
+                return image
+        }
+        ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: size))
+        guard let decompressed = ctx.makeImage() else {
+            return image
+        }
+        return UIImage(cgImage: decompressed, scale: image.scale, orientation: image.imageOrientation)
+    }
+
+    private static func isOpaque(_ image: CGImage) -> Bool {
+        let alpha = image.alphaInfo
+        return alpha == .none || alpha == .noneSkipFirst || alpha == .noneSkipLast
+    }
 }
 #endif

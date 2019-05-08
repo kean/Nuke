@@ -24,7 +24,7 @@ extension NSLock {
 /// The implementation supports quick bursts of requests which can be executed
 /// without any delays when "the bucket is full". This is important to prevent
 /// rate limiter from affecting "normal" requests flow.
-internal final class RateLimiter {
+final class RateLimiter {
     private let bucket: TokenBucket
     private let queue: DispatchQueue
     private var pending = LinkedList<Task>() // fast append, fast remove first
@@ -58,7 +58,9 @@ internal final class RateLimiter {
     }
 
     private func _setNeedsExecutePendingTasks() {
-        guard !isExecutingPendingTasks else { return }
+        guard !isExecutingPendingTasks else {
+            return
+        }
         isExecutingPendingTasks = true
         // Compute a delay such that by the time the closure is executed the
         // bucket is refilled to a point that is able to execute at least one
@@ -117,7 +119,7 @@ internal final class RateLimiter {
 
 // MARK: - Operation
 
-internal final class Operation: Foundation.Operation {
+final class Operation: Foundation.Operation {
     private var _isExecuting = false
     private var _isFinished = false
     private var isFinishCalled = Atomic(false)
@@ -179,7 +181,7 @@ internal final class Operation: Foundation.Operation {
 // MARK: - LinkedList
 
 /// A doubly linked list.
-internal final class LinkedList<Element> {
+final class LinkedList<Element> {
     // first <-> node <-> ... <-> last
     private(set) var first: Node?
     private(set) var last: Node?
@@ -253,7 +255,7 @@ internal final class LinkedList<Element> {
 /// Manages cancellation tokens and signals them when cancellation is requested.
 ///
 /// All `CancellationTokenSource` methods are thread safe.
-internal final class CancellationTokenSource {
+final class CancellationTokenSource {
     /// Returns `true` if cancellation has been requested.
     var isCancelling: Bool {
         return lock.sync { observers == nil }
@@ -311,7 +313,7 @@ internal final class CancellationTokenSource {
 /// The registered objects can respond in whatever manner is appropriate.
 ///
 /// All `CancellationToken` methods are thread safe.
-internal struct CancellationToken {
+struct CancellationToken {
     fileprivate let source: CancellationTokenSource? // no-op when `nil`
 
     /// Returns `true` if cancellation has been requested for this token.
@@ -332,7 +334,7 @@ internal struct CancellationToken {
 
 /// Resumable data support. For more info see:
 /// - https://developer.apple.com/library/content/qa/qa1761/_index.html
-internal struct ResumableData {
+struct ResumableData {
     let data: Data
     let validator: String // Either Last-Modified or ETag
 
@@ -390,47 +392,52 @@ internal struct ResumableData {
 
     /// Shared between multiple pipelines. Thread safe. In the future version we
     /// might feature more customization options.
-    static var _cache = _Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100) // internal only for testing purposes
+    static var cache = Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100)
+    // internal only for testing purposes
 
     static func removeResumableData(for request: URLRequest) -> ResumableData? {
-        guard let url = request.url?.absoluteString else { return nil }
-        return _cache.removeValue(forKey: url)
+        guard let url = request.url?.absoluteString else {
+            return nil
+        }
+        return cache.removeValue(forKey: url)
     }
 
     static func storeResumableData(_ data: ResumableData, for request: URLRequest) {
-        guard let url = request.url?.absoluteString else { return }
-        _cache.set(data, forKey: url, cost: data.data.count)
+        guard let url = request.url?.absoluteString else {
+            return
+        }
+        cache.set(data, forKey: url, cost: data.data.count)
     }
 }
 
 // MARK: - Printer
 
 /// Helper type for printing nice debug descriptions.
-internal struct Printer {
-    private(set) internal var _out = String()
+struct Printer {
+    private(set) var out = String()
 
     private let timelineFormatter: DateFormatter
 
     init(_ string: String = "") {
-        self._out = string
+        self.out = string
 
         timelineFormatter = DateFormatter()
         timelineFormatter.dateFormat = "HH:mm:ss.SSS"
     }
 
     func output(indent: Int = 0) -> String {
-        return _out.components(separatedBy: .newlines)
+        return out.components(separatedBy: .newlines)
             .map { $0.isEmpty ? "" : String(repeating: " ", count: indent) + $0 }
             .joined(separator: "\n")
     }
 
     mutating func string(_ str: String) {
-        _out.append(str)
+        out.append(str)
     }
 
     mutating func line(_ str: String) {
-        _out.append(str)
-        _out.append("\n")
+        out.append(str)
+        out.append("\n")
     }
 
     mutating func value(_ key: String, _ value: CustomStringConvertible?) {
@@ -459,12 +466,12 @@ internal struct Printer {
     }
 
     mutating func section(title: String, _ closure: (inout Printer) -> Void) {
-        _out.append(contentsOf: title)
-        _out.append(" {\n")
+        out.append(contentsOf: title)
+        out.append(" {\n")
         var printer = Printer()
         closure(&printer)
-        _out.append(printer.output(indent: 4))
-        _out.append("}\n")
+        out.append(printer.output(indent: 4))
+        out.append("}\n")
     }
 
     // MARK: Formatters
@@ -474,13 +481,19 @@ internal struct Printer {
     }
 
     private func _duration(from: Date?, to: Date?) -> String {
-        guard let from = from else { return "nil" }
-        guard let to = to else { return "unknown" }
+        guard let from = from else {
+            return "nil"
+        }
+        guard let to = to else {
+            return "unknown"
+        }
         return Printer.duration(to.timeIntervalSince(from)) ?? "nil"
     }
 
     static func duration(_ duration: TimeInterval?) -> String? {
-        guard let duration = duration else { return nil }
+        guard let duration = duration else {
+            return nil
+        }
 
         let m: Int = Int(duration) / 60
         let s: Int = Int(duration) % 60
@@ -497,8 +510,8 @@ internal struct Printer {
 // MARK: - Misc
 
 struct TaskMetrics {
-    var startDate: Date? = nil
-    var endDate: Date? = nil
+    var startDate: Date?
+    var endDate: Date?
 
     static func started() -> TaskMetrics {
         var metrics = TaskMetrics()
@@ -600,8 +613,10 @@ extension String {
     /// // prints "50334ee0b51600df6397ce93ceed4728c37fee4e"
     /// ```
     var sha1: String? {
-        guard let input = self.data(using: .utf8) else { return nil }
-        
+        guard let input = self.data(using: .utf8) else {
+            return nil
+        }
+
         #if swift(>=5.0)
         let hash = input.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> [UInt8] in
             var hash = [UInt8](repeating: 0, count: Int(CC_SHA1_DIGEST_LENGTH))
@@ -614,7 +629,7 @@ extension String {
             _ = CC_SHA1($0, CC_LONG(input.count), &hash)
         }
         #endif
-        
+
         return hash.map({ String(format: "%02x", $0) }).joined()
     }
 }

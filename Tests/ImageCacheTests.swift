@@ -314,7 +314,7 @@ class ImageCacheTests: XCTestCase {
 }
 
 class InternalCacheTTLTests: XCTestCase {
-    let cache = _Cache<Int, Int>(costLimit: 1000, countLimit: 1000)
+    let cache = Cache<Int, Int>(costLimit: 1000, countLimit: 1000)
 
     // MARK: TTL
 
