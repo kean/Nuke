@@ -259,9 +259,13 @@ enum ImageUlitities {
         return draw(image)
     }
 
-    private static func isOpaque(_ image: CGImage) -> Bool {
+    static func isOpaque(_ image: CGImage) -> Bool {
         let alpha = image.alphaInfo
         return alpha == .none || alpha == .noneSkipFirst || alpha == .noneSkipLast
+    }
+
+    static func isTransparent(_ image: CGImage) -> Bool {
+        return !isOpaque(image)
     }
 }
 #endif
