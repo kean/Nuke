@@ -35,7 +35,9 @@ public final class ImagePreheater {
     /// - parameter manager: `Loader.shared` by default.
     /// - parameter `maxConcurrentRequestCount`: 2 by default.
     /// - parameter destination: `.memoryCache` by default.
-    public init(pipeline: ImagePipeline = ImagePipeline.shared, destination: Destination = .memoryCache, maxConcurrentRequestCount: Int = 2) {
+    public init(pipeline: ImagePipeline = ImagePipeline.shared,
+                destination: Destination = .memoryCache,
+                maxConcurrentRequestCount: Int = 2) {
         self.pipeline = pipeline
         self.destination = destination
         self.preheatQueue.maxConcurrentOperationCount = maxConcurrentRequestCount
@@ -64,7 +66,9 @@ public final class ImagePreheater {
         let key = PreheatKey(request: request)
 
         // Check if we we've already started preheating.
-        guard tasks[key] == nil else { return }
+        guard tasks[key] == nil else {
+            return
+        }
 
         // Check if the image is already in memory cache.
         guard pipeline.configuration.imageCache?.cachedResponse(for: request) == nil else {
@@ -92,7 +96,9 @@ public final class ImagePreheater {
 
     private func _remove(_ task: Task) {
         queue.async {
-            guard self.tasks[task.key] === task else { return }
+            guard self.tasks[task.key] === task else {
+                return
+            }
             self.tasks[task.key] = nil
         }
     }

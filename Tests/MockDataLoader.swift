@@ -60,7 +60,7 @@ class MockDataLoader: DataLoading {
 // MARK: - Result
 
 // we're still using Result internally, but don't pollute user's space
-internal enum _Result<T, Error: Swift.Error> {
+enum _Result<T, Error: Swift.Error> {
     case success(T), failure(Error)
 
     /// Returns a `value` if the result is success.

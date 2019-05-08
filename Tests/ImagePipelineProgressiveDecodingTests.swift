@@ -11,7 +11,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
     override func setUp() {
         dataLoader = MockProgressiveDataLoader()
-        ResumableData._cache.removeAll()
+        ResumableData.cache.removeAll()
 
         // We make two important assumptions with this setup:
         //

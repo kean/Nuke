@@ -14,7 +14,9 @@ public final class ImageTaskMetrics: CustomDebugStringConvertible {
     public internal(set) var processEndDate: Date?
     public internal(set) var endDate: Date? // failed or completed
     public var totalDuration: TimeInterval? {
-        guard let endDate = endDate else { return nil }
+        guard let endDate = endDate else {
+            return nil
+        }
         return endDate.timeIntervalSince(startDate)
     }
 
@@ -72,7 +74,9 @@ public final class ImageTaskMetrics: CustomDebugStringConvertible {
         public internal(set) var endDate: Date? // failed or completed
 
         public var totalDuration: TimeInterval? {
-            guard let endDate = endDate else { return nil }
+            guard let endDate = endDate else {
+                return nil
+            }
             return endDate.timeIntervalSince(startDate)
         }
 
@@ -84,7 +88,9 @@ public final class ImageTaskMetrics: CustomDebugStringConvertible {
 
         public internal(set) var downloadedDataCount: Int?
         public var totalDownloadedDataCount: Int? {
-            guard let downloaded = self.downloadedDataCount else { return nil }
+            guard let downloaded = self.downloadedDataCount else {
+                return nil
+            }
             return downloaded + (resumedDataCount ?? 0)
         }
 
