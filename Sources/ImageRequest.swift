@@ -28,26 +28,10 @@ public struct ImageRequest {
         }
     }
 
-    /// Processor to be applied to the image. `Decompressor` by default.
-    ///
-    /// Decompressing compressed image formats (such as JPEG) can significantly
-    /// improve drawing performance as it allows a bitmap representation to be
-    /// created in a background rather than on the main thread.
+    /// Processor to be applied to the image. `nil` by default.
     public var processor: AnyImageProcessor? {
-        get {
-            // Default processor on macOS is nil, on other platforms is Decompressor
-            #if !os(macOS)
-            return ref.isDefaultProcessorUsed ? ImageRequest.decompressor : ref.processor
-            #else
-            return ref.isDefaultProcessorUsed ? nil : ref.processor
-            #endif
-        }
-        set {
-            mutate {
-                $0.isDefaultProcessorUsed = false
-                $0.processor = newValue
-            }
-        }
+        get { return ref.processor }
+        set { mutate { $0.processor = newValue } }
     }
 
     /// The policy to use when reading or writing images to the memory cache.
@@ -164,20 +148,17 @@ public struct ImageRequest {
     /// - parameter targetSize: Size in pixels.
     /// - parameter contentMode: An option for how to resize the image
     /// to the target size.
-    public init(url: URL, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode, upscale: Bool = false) {
-        self.init(url: url, processor: ImageDecompressor(targetSize: targetSize, contentMode: contentMode, upscale: upscale))
+    public init(url: URL, targetSize: CGSize, contentMode: ImageScalingProcessor.ContentMode, upscale: Bool = false) {
+        self.init(url: url, processor: ImageScalingProcessor(targetSize: targetSize, contentMode: contentMode, upscale: upscale))
     }
 
     /// Initializes a request with the given request.
     /// - parameter targetSize: Size in pixels.
     /// - parameter contentMode: An option for how to resize the image
     /// to the target size.
-    public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode, upscale: Bool = false) {
-        self.init(urlRequest: urlRequest, processor: ImageDecompressor(targetSize: targetSize, contentMode: contentMode, upscale: upscale))
+    public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: ImageScalingProcessor.ContentMode, upscale: Bool = false) {
+        self.init(urlRequest: urlRequest, processor: ImageScalingProcessor(targetSize: targetSize, contentMode: contentMode, upscale: upscale))
     }
-
-    private static let decompressor = AnyImageProcessor(ImageDecompressor())
-
     #endif
 
     // CoW:
@@ -196,10 +177,6 @@ public struct ImageRequest {
     private class Container {
         var resource: Resource
         var urlString: String? // memoized absoluteString
-        // true unless user set a custom one, this allows us not to store the
-        // default processor anywhere in the `Container` & skip equality tests
-        // when the default processor is used
-        var isDefaultProcessorUsed: Bool = true
         var processor: AnyImageProcessor?
         var memoryCacheOptions = MemoryCacheOptions()
         var priority: ImageRequest.Priority = .normal
@@ -217,7 +194,6 @@ public struct ImageRequest {
         init(container ref: Container) {
             self.resource = ref.resource
             self.urlString = ref.urlString
-            self.isDefaultProcessorUsed = ref.isDefaultProcessorUsed
             self.processor = ref.processor
             self.memoryCacheOptions = ref.memoryCacheOptions
             self.priority = ref.priority
@@ -288,15 +264,14 @@ extension ImageRequest {
         }
 
         static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
-            let lhs = lhs.request, rhs = rhs.request
-            if let lhsCustomKey = lhs.ref.cacheKey, let rhsCustomKey = rhs.ref.cacheKey {
+            let lhs = lhs.request.ref, rhs = rhs.request.ref
+            if let lhsCustomKey = lhs.cacheKey, let rhsCustomKey = rhs.cacheKey {
                 return lhsCustomKey == rhsCustomKey
             }
-            guard lhs.ref.urlString == rhs.ref.urlString else {
+            guard lhs.urlString == rhs.urlString else {
                 return false
             }
-            return (lhs.ref.isDefaultProcessorUsed && rhs.ref.isDefaultProcessorUsed)
-                || (lhs.processor == rhs.processor)
+            return lhs.processor == rhs.processor
         }
     }
 
@@ -316,12 +291,13 @@ extension ImageRequest {
                 return lhs.cachePolicy == rhs.cachePolicy
                     && lhs.allowsCellularAccess == rhs.allowsCellularAccess
             }
-            let lhs = lhs.request, rhs = rhs.request
-            if let lhsCustomKey = lhs.ref.loadKey, let rhsCustomKey = rhs.ref.loadKey {
+
+            let lhs = lhs.request.ref, rhs = rhs.request.ref
+            if let lhsCustomKey = lhs.loadKey, let rhsCustomKey = rhs.loadKey {
                 return lhsCustomKey == rhsCustomKey
             }
-            return lhs.ref.urlString == rhs.ref.urlString
-                && isEqual(lhs.urlRequest, rhs.urlRequest)
+            return lhs.urlString == rhs.urlString
+                && isEqual(lhs.resource.urlRequest, rhs.resource.urlRequest)
         }
     }
 }

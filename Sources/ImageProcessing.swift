@@ -91,13 +91,35 @@ extension ImageProcessing {
 #if !os(macOS)
 import UIKit
 
-/// Decompresses and (optionally) scales down input images. Maintains
-/// original aspect ratio.
-///
-/// Decompressing compressed image formats (such as JPEG) can significantly
-/// improve drawing performance as it allows a bitmap representation to be
-/// created in a background rather than on the main thread.
-public struct ImageDecompressor: ImageProcessing {
+struct ImageDecompressor: ImageProcessing {
+    func process(image: Image, context: ImageProcessingContext) -> Image? {
+        guard ImageDecompressor.isDecompressionNeeded(for: image) ?? false else {
+            return image // Image doesn't require decompression
+        }
+        let output = ImageUlitities.decompress(image)
+        ImageDecompressor.setDecompressionNeeded(false, for: output)
+        return output
+    }
+
+    public static func == (lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
+        return true
+    }
+
+    // MARK: Managing Decompression State
+
+    static var isDecompressionNeededAK = "ImageDecompressor.isDecompressionNeeded.AssociatedKey"
+
+    static func setDecompressionNeeded(_ isDecompressionNeeded: Bool, for image: Image) {
+        objc_setAssociatedObject(image, &isDecompressionNeededAK, isDecompressionNeeded, .OBJC_ASSOCIATION_RETAIN)
+    }
+
+    static func isDecompressionNeeded(for image: Image) -> Bool? {
+        return objc_getAssociatedObject(image, &isDecompressionNeededAK) as? Bool
+    }
+}
+
+/// Scales down the input images. Maintains original aspect ratio.
+public struct ImageScalingProcessor: ImageProcessing {
 
     /// An option for how to resize the image.
     public enum ContentMode {
@@ -121,8 +143,10 @@ public struct ImageDecompressor: ImageProcessing {
 
     /// Initializes `Decompressor` with the given parameters.
     /// - parameter targetSize: Size in pixels. `MaximumSize` by default.
-    /// - parameter contentMode: An option for how to resize the image
-    /// to the target size. `.aspectFill` by default.
+    /// - parameter contentMode: An option for how to resize the image to the
+    /// target size. `.aspectFill` by default.
+    /// - parameter upscale: If disabled, will never upscale the input images.
+    /// `false` by default.
     public init(targetSize: CGSize = MaximumSize, contentMode: ContentMode = .aspectFill, upscale: Bool = false) {
         self.targetSize = targetSize
         self.contentMode = contentMode
@@ -131,12 +155,12 @@ public struct ImageDecompressor: ImageProcessing {
 
     /// Decompresses and scales the image.
     public func process(image: Image, context: ImageProcessingContext) -> Image? {
-        return ImageProcessor.decompress(image, targetSize: targetSize, contentMode: contentMode, upscale: upscale)
+        return ImageUlitities.scale(image, targetSize: targetSize, contentMode: contentMode, upscale: upscale)
     }
 
     /// Returns true if both have the same `targetSize` and `contentMode`.
-    public static func == (lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
-        return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode
+    public static func == (lhs: ImageScalingProcessor, rhs: ImageScalingProcessor) -> Bool {
+        return lhs.targetSize == rhs.targetSize && lhs.contentMode == rhs.contentMode && lhs.upscale == rhs.upscale
     }
 
     #if !os(watchOS)
@@ -150,30 +174,38 @@ public struct ImageDecompressor: ImageProcessing {
     #endif
 }
 
-enum ImageProcessor {
-    static func decompress(_ image: UIImage,
-                           targetSize: CGSize,
-                           contentMode: ImageDecompressor.ContentMode,
-                           upscale: Bool) -> UIImage {
+enum ImageUlitities {
+    static func scale(_ image: UIImage,
+                      targetSize: CGSize,
+                      contentMode: ImageScalingProcessor.ContentMode,
+                      upscale: Bool) -> UIImage {
         guard let cgImage = image.cgImage else {
             return image
         }
-        let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
-        let scaleHor = targetSize.width / bitmapSize.width
-        let scaleVert = targetSize.height / bitmapSize.height
-        let scale = contentMode == .aspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
-        return decompress(image, scale: CGFloat(upscale ? scale : min(scale, 1)))
-    }
-
-    static func decompress(_ image: UIImage, scale: CGFloat) -> UIImage {
-        guard let cgImage = image.cgImage else {
-            return image
+        let scale: CGFloat = {
+            let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
+            let scaleHor = targetSize.width / bitmapSize.width
+            let scaleVert = targetSize.height / bitmapSize.height
+            return contentMode == .aspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
+        }()
+        guard scale < 1 || upscale else {
+            return image // The image doesn't require scaling
         }
-
-        let size = CGSize(
+        let targetSize = CGSize(
             width: round(scale * CGFloat(cgImage.width)),
             height: round(scale * CGFloat(cgImage.height))
         )
+        return draw(image, targetSize: targetSize)
+    }
+
+    /// Draws the input image in a new `CGContext` with a given size. If the target
+    /// size is `nil`, uses the image's original size.
+    private static func draw(_ image: UIImage, targetSize: CGSize? = nil) -> UIImage {
+        guard let cgImage = image.cgImage else {
+            return image
+        }
+
+        let size = targetSize ?? CGSize(width: cgImage.width, height: cgImage.height)
 
         // For more info see:
         // - Quartz 2D Programming Guide
@@ -194,6 +226,11 @@ enum ImageProcessor {
             return image
         }
         return UIImage(cgImage: decompressed, scale: image.scale, orientation: image.imageOrientation)
+    }
+
+    /// Draws the image in a `CGContext` to force image data decompression.
+    static func decompress(_ image: UIImage) -> UIImage {
+        return draw(image)
     }
 
     private static func isOpaque(_ image: CGImage) -> Bool {

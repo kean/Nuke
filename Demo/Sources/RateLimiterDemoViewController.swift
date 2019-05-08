@@ -73,7 +73,7 @@ final class RateLimiterDemoViewController: UICollectionViewController {
         options.pipeline = pipeline
 
         Nuke.loadImage(
-            with: ImageRequest(url: photos[indexPath.row], targetSize: ImageDecompressor.targetSize(for: imageView), contentMode: .aspectFill),
+            with: ImageRequest(url: photos[indexPath.row], targetSize: ImageScalingProcessor.targetSize(for: imageView), contentMode: .aspectFill),
             options: options,
             into: imageView
         )
