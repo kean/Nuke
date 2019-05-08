@@ -382,7 +382,7 @@ By default, the data is loaded using [`URLSession`](https://developer.apple.com/
 
 > See [Image Caching Guide](https://kean.github.io/post/image-caching) to learn more.
 
-When the data is loaded the pipeline decodes the data (creates `UIImage` object from `Data`). Then it applies a default image processor - `ImageDecompressor` - to force data decompression in a background. The processed image is then stored in the memory cache and returned in the completion closure.
+When the data is loaded the pipeline decodes the data (creates `UIImage` object from `Data`). Then it applies the processors specified in the request. It then decompressed the image in the backgound (if there were no processors or the processors did nothing). The processed image is then stored in the memory cache and returned in the completion closure.
 
 > When you create `UIImage` object form data, the data doesn't get decoded immediately. It's decoded the first time it's used - for example, when you display the image in an image view. Decoding is a resource-intensive operation, if you do it on the main thread you might see dropped frames, especially for image formats like JPEG.
 >

@@ -254,6 +254,97 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
+    // MARK: Decompression
+
+    #if !os(macOS)
+
+    func testDisablingDecompression() {
+        let image = Test.image
+
+        // Given the pipeline which returns a predefined image and which
+        // has decompression disabled
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+            $0.imageDecoder = { _ in
+                MockAnonymousImageDecoder { _, _ in
+                    return image
+                }
+            }
+            $0.imageCache = nil
+
+            $0.isDecompressionEnabled = false
+        }
+
+        // When
+        expect(pipeline).toLoadImage(with: Test.request, completion: { response, _ in
+            let output = response!.image
+
+            XCTAssertTrue(output === image)
+
+            let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: output)
+            XCTAssertEqual(isDecompressionNeeded, true)
+        })
+        wait()
+    }
+
+    func testDecompression() {
+        let image = Test.image
+
+        // Given the pipeline which returns a predefined image
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+            $0.imageDecoder = { _ in
+                MockAnonymousImageDecoder { _, _ in
+                    return image
+                }
+            }
+            $0.imageCache = nil
+        }
+
+        // When
+        expect(pipeline).toLoadImage(with: Test.request, completion: { response, _ in
+            let output = response!.image
+
+            XCTAssertTrue(output !== image)
+
+            let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: output)
+            XCTAssertEqual(isDecompressionNeeded, false)
+        })
+        wait()
+    }
+
+    func testDecompressionNotPerformedWhenProcessorWasApplied() {
+        // Given request with scaling processor
+        var request = Test.request
+        request.processor = AnyImageProcessor(ImageScalingProcessor(targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit))
+
+        expect(pipeline).toLoadImage(with: request) { response, _ in
+            let image = response!.image
+
+            // Expect decompression to not be performed
+            let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: image)
+            XCTAssertNil(isDecompressionNeeded)
+        }
+        wait()
+    }
+
+    func testDecompressionPerformedWhenProcessorIsAppliedButDoesnNothing() {
+        // Given request with scaling processor
+        var request = Test.request
+        request.processor = AnyImageProcessor(MockEmptyImageProcessor())
+
+        expect(pipeline).toLoadImage(with: request) { response, _ in
+            let image = response!.image
+
+            // Expect decompression to be performed (processor was applied but it did nothing)
+            let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: image)
+            XCTAssertEqual(isDecompressionNeeded, false)
+        }
+        wait()
+    }
+
+    #endif
+
     // MARK: Disabling Decoding
 
     func testDisablingDecoding() {

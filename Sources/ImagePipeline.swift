@@ -172,6 +172,15 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
         /// Image processing queue. Default maximum concurrent task count is 2.
         public var imageProcessingQueue = OperationQueue()
 
+        #if !os(macOS)
+        /// Decompresses the loaded images. `true` by default.
+        ///
+        /// Decompressing compressed image formats (such as JPEG) can significantly
+        /// improve drawing performance as it allows a bitmap representation to be
+        /// created in a background rather than on the main thread.
+        public var isDecompressionEnabled = true
+        #endif
+
         /// `true` by default. If `true` the pipeline will combine the requests
         /// with the same `loadKey` into a single request. The request only gets
         /// cancelled when all the registered requests are.
@@ -535,6 +544,9 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
 
         // Produce partial image
         if let image = decoder?.decode(data: data, isFinal: false) {
+            #if !os(macOS)
+            ImageDecompressor.setDecompressionNeeded(true, for: image)
+            #endif
             let scanNumber: Int? = (decoder as? ImageDecoder)?.numberOfScans
             queue.async {
                 let container = ImageContainer(image: image, isFinal: false, scanNumber: scanNumber)
@@ -559,6 +571,11 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
             let image = autoreleasepool {
                 decoder.decode(data: data, isFinal: true) // Produce final image
             }
+            #if !os(macOS)
+            if let image = image {
+                ImageDecompressor.setDecompressionNeeded(true, for: image)
+            }
+            #endif
             metrics.decodeEndDate = Date()
             self?.queue.async {
                 let container = image.map {
@@ -699,7 +716,16 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
         if Configuration.isAnimatedImageDataEnabled && image.animatedImageData != nil {
             return nil // Don't process animated images.
         }
-        return configuration.imageProcessor(image, request)
+        var processors = [AnyImageProcessor]()
+        if let processor = configuration.imageProcessor(image, request) {
+            processors.append(processor)
+        }
+        #if !os(macOS)
+        if configuration.isDecompressionEnabled {
+            processors.append(AnyImageProcessor(ImageDecompressor()))
+        }
+        #endif
+        return processors.isEmpty ? nil : AnyImageProcessor(ImageProcessorComposition(processors))
     }
 
     private func _session(_ session: ImageLoadingSession, didProcessImage image: Image?, isFinal: Bool, metrics: TaskMetrics, for task: ImageTask) {

@@ -24,3 +24,15 @@ class MockImageDecoder: ImageDecoding {
         return decoder.decode(data: data, isFinal: isFinal)
     }
 }
+
+class MockAnonymousImageDecoder: ImageDecoding {
+    let closure: (Data, Bool) -> Image?
+
+    init(_ closure: @escaping (Data, Bool) -> Image?) {
+        self.closure = closure
+    }
+
+    func decode(data: Data, isFinal: Bool) -> Image? {
+        return closure(data, isFinal)
+    }
+}
