@@ -186,9 +186,7 @@ private final class VideoCell: UICollectionViewCell, Nuke.ImageDisplaying {
         let playerItem = AVPlayerItem(url: url)
         let player = AVQueuePlayer(playerItem: playerItem)
         let playerLayer = AVPlayerLayer(player: player)
-        if #available(iOS 10.0, *) {
-            self.playerLooper = AVPlayerLooper(player: player, templateItem: playerItem)
-        }
+        self.playerLooper = AVPlayerLooper(player: player, templateItem: playerItem)
 
         contentView.layer.addSublayer(playerLayer)
         playerLayer.frame = contentView.bounds
