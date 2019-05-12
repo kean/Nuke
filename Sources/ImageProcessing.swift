@@ -91,17 +91,17 @@ extension ImageProcessing {
 #if !os(macOS)
 import UIKit
 
-struct ImageDecompressor: ImageProcessing {
+struct ImageDecompression: ImageProcessing {
     func process(image: Image, context: ImageProcessingContext) -> Image? {
-        guard ImageDecompressor.isDecompressionNeeded(for: image) ?? false else {
+        guard ImageDecompression.isDecompressionNeeded(for: image) ?? false else {
             return image // Image doesn't require decompression
         }
         let output = ImageUlitities.decompress(image)
-        ImageDecompressor.setDecompressionNeeded(false, for: output)
+        ImageDecompression.setDecompressionNeeded(false, for: output)
         return output
     }
 
-    public static func == (lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
+    public static func == (lhs: ImageDecompression, rhs: ImageDecompression) -> Bool {
         return true
     }
 

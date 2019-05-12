@@ -545,7 +545,7 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
         // Produce partial image
         if let image = decoder?.decode(data: data, isFinal: false) {
             #if !os(macOS)
-            ImageDecompressor.setDecompressionNeeded(true, for: image)
+            ImageDecompression.setDecompressionNeeded(true, for: image)
             #endif
             let scanNumber: Int? = (decoder as? ImageDecoder)?.numberOfScans
             queue.async {
@@ -573,7 +573,7 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
             }
             #if !os(macOS)
             if let image = image {
-                ImageDecompressor.setDecompressionNeeded(true, for: image)
+                ImageDecompression.setDecompressionNeeded(true, for: image)
             }
             #endif
             metrics.decodeEndDate = Date()
@@ -722,7 +722,7 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
         }
         #if !os(macOS)
         if configuration.isDecompressionEnabled {
-            processors.append(AnyImageProcessor(ImageDecompressor()))
+            processors.append(AnyImageProcessor(ImageDecompression()))
         }
         #endif
         return processors.isEmpty ? nil : AnyImageProcessor(ImageProcessorComposition(processors))
