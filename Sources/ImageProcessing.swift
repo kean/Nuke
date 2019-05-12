@@ -118,6 +118,10 @@ struct ImageDecompression: ImageProcessing {
     }
 }
 
+// Deprecated in Nuke 8.0. Remove by January 2020.
+@available(*, deprecated, message: "Please use ImageScalingProcessor to resize images and ImagePipeline.Configuration.isDecompressionEnabled to control decompression (enabled by default)")
+public typealias ImageDecompressor = ImageScalingProcessor
+
 /// Scales down the input images. Maintains original aspect ratio.
 public struct ImageScalingProcessor: ImageProcessing {
 
