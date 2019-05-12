@@ -84,16 +84,11 @@ public final class DataLoader: DataLoading {
     public enum Error: Swift.Error, CustomDebugStringConvertible {
         /// Validation failed.
         case statusCodeUnacceptable(Int)
-        /// Either the response or body was empty.
-        @available(*, deprecated, message: "This error case is not used any more")
-        case responseEmpty
 
         public var debugDescription: String {
             switch self {
             case let .statusCodeUnacceptable(code):
                 return "Response status code was unacceptable: \(code.description)"
-            case .responseEmpty:
-                return "Either the response or body was empty."
             }
         }
     }

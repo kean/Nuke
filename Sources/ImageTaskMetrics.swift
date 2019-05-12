@@ -65,12 +65,6 @@ public final class ImageTaskMetrics: CustomDebugStringConvertible {
         public internal(set) var decodeStartDate: Date?
         public internal(set) var decodeEndDate: Date?
 
-        @available(*, deprecated, message: "Please use the same property on `ImageTaskMetrics` instead.")
-        public internal(set) var processStartDate: Date?
-
-        @available(*, deprecated, message: "Please use the same property on `ImageTaskMetrics` instead.")
-        public internal(set) var processEndDate: Date?
-
         public internal(set) var endDate: Date? // failed or completed
 
         public var totalDuration: TimeInterval? {
