@@ -34,9 +34,6 @@ final class RateLimiterDemoViewController: UICollectionViewController {
 
         collectionView?.backgroundColor = UIColor.white
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
-        if #available(iOS 10.0, *) {
-            collectionView?.isPrefetchingEnabled = false
-        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
