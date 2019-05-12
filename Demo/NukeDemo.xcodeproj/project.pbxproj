@@ -19,7 +19,6 @@
 		0CCC1898209EDCCF003D7172 /* DataCachingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC188B209EDCCF003D7172 /* DataCachingDemoViewController.swift */; };
 		0CCC1899209EDCCF003D7172 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC188D209EDCCF003D7172 /* AppDelegate.swift */; };
 		0CCC189A209EDCCF003D7172 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC188F209EDCCF003D7172 /* Utilities.swift */; };
-		0CCC189B209EDCCF003D7172 /* SHA1.m in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1890209EDCCF003D7172 /* SHA1.m */; };
 		0CCC189C209EDCCF003D7172 /* MenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1892209EDCCF003D7172 /* MenuViewController.swift */; };
 		0CCC189D209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1893209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift */; };
 		0CCC18A3209EE0A6003D7172 /* AnimatedImageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC18A2209EE0A6003D7172 /* AnimatedImageViewController.swift */; };
@@ -40,11 +39,8 @@
 		0CCC1889209EDCCF003D7172 /* RateLimiterDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RateLimiterDemoViewController.swift; sourceTree = "<group>"; };
 		0CCC188A209EDCCF003D7172 /* CustomCacheDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomCacheDemoViewController.swift; sourceTree = "<group>"; };
 		0CCC188B209EDCCF003D7172 /* DataCachingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataCachingDemoViewController.swift; sourceTree = "<group>"; };
-		0CCC188C209EDCCF003D7172 /* NukeDemo-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NukeDemo-Bridging-Header.h"; sourceTree = "<group>"; };
 		0CCC188D209EDCCF003D7172 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		0CCC188F209EDCCF003D7172 /* Utilities.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
-		0CCC1890209EDCCF003D7172 /* SHA1.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHA1.m; sourceTree = "<group>"; };
-		0CCC1891209EDCCF003D7172 /* SHA1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHA1.h; sourceTree = "<group>"; };
 		0CCC1892209EDCCF003D7172 /* MenuViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MenuViewController.swift; sourceTree = "<group>"; };
 		0CCC1893209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProgressiveDecodingDemoViewController.swift; sourceTree = "<group>"; };
 		0CCC18A2209EE0A6003D7172 /* AnimatedImageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedImageViewController.swift; sourceTree = "<group>"; };
@@ -95,7 +91,6 @@
 		0CCC1886209EDCCF003D7172 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				0CCC188C209EDCCF003D7172 /* NukeDemo-Bridging-Header.h */,
 				0CCC188D209EDCCF003D7172 /* AppDelegate.swift */,
 				0CCC1892209EDCCF003D7172 /* MenuViewController.swift */,
 				0CCC1887209EDCCF003D7172 /* BasicDemoViewController.swift */,
@@ -117,8 +112,6 @@
 			isa = PBXGroup;
 			children = (
 				0CCC188F209EDCCF003D7172 /* Utilities.swift */,
-				0CCC1890209EDCCF003D7172 /* SHA1.m */,
-				0CCC1891209EDCCF003D7172 /* SHA1.h */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -303,7 +296,6 @@
 				0CCC18A8209EE341003D7172 /* AlamofireIntegrationDemoViewController.swift in Sources */,
 				0CCC1898209EDCCF003D7172 /* DataCachingDemoViewController.swift in Sources */,
 				0CBBB09B20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift in Sources */,
-				0CCC189B209EDCCF003D7172 /* SHA1.m in Sources */,
 				0CCC189D209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift in Sources */,
 				0CCC1894209EDCCF003D7172 /* BasicDemoViewController.swift in Sources */,
 			);
@@ -450,7 +442,6 @@
 				MODULE_NAME = ExampleApp;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = NukeDemo_Example;
-				SWIFT_OBJC_BRIDGING_HEADER = "Sources/NukeDemo-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
@@ -470,7 +461,6 @@
 				MODULE_NAME = ExampleApp;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = NukeDemo_Example;
-				SWIFT_OBJC_BRIDGING_HEADER = "Sources/NukeDemo-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};
