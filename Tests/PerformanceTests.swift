@@ -135,10 +135,7 @@ class DataCachePeformanceTests: XCTestCase {
     var cache: DataCache!
 
     override func setUp() {
-        cache = try! DataCache(name: UUID().uuidString, filenameGenerator: {
-            guard let data = $0.cString(using: .utf8) else { return "" }
-            return _nuke_sha1(data, UInt32(data.count))
-        })
+        cache = try! DataCache(name: UUID().uuidString)
         _ = cache["key"] // Wait till index is loaded.
     }
 

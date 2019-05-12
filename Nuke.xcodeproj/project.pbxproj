@@ -63,8 +63,6 @@
 		0CAAB0131E45D6DA00924450 /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
 		0CB26802208F2565004C83F4 /* DataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB26801208F2565004C83F4 /* DataCache.swift */; };
 		0CB26807208F25C2004C83F4 /* DataCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB26806208F25C2004C83F4 /* DataCacheTests.swift */; };
-		0CB2680D208F2678004C83F4 /* SHA1.m in Sources */ = {isa = PBXBuildFile; fileRef = 0CB2680C208F2678004C83F4 /* SHA1.m */; };
-		0CB26810208F26CF004C83F4 /* SHA1.m in Sources */ = {isa = PBXBuildFile; fileRef = 0CB2680C208F2678004C83F4 /* SHA1.m */; };
 		0CB2EFD22110F38600F7C63F /* ImagePipelineConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB2EFD12110F38600F7C63F /* ImagePipelineConfigurationTests.swift */; };
 		0CB2EFD62110F52C00F7C63F /* RateLimiterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB2EFD52110F52C00F7C63F /* RateLimiterTests.swift */; };
 		0CCBB530217D0B6A0026F552 /* ImageViewIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCBB52F217D0B6A0026F552 /* ImageViewIntegrationTests.swift */; };
@@ -163,9 +161,6 @@
 		0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NukeExtensions.swift; sourceTree = "<group>"; };
 		0CB26801208F2565004C83F4 /* DataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataCache.swift; sourceTree = "<group>"; };
 		0CB26806208F25C2004C83F4 /* DataCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataCacheTests.swift; sourceTree = "<group>"; };
-		0CB2680B208F2677004C83F4 /* Nuke iOS Performance Tests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Nuke iOS Performance Tests-Bridging-Header.h"; sourceTree = "<group>"; };
-		0CB2680C208F2678004C83F4 /* SHA1.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SHA1.m; sourceTree = "<group>"; };
-		0CB26812208F26D6004C83F4 /* SHA1.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SHA1.h; sourceTree = "<group>"; };
 		0CB2EFD12110F38600F7C63F /* ImagePipelineConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineConfigurationTests.swift; sourceTree = "<group>"; };
 		0CB2EFD52110F52C00F7C63F /* RateLimiterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimiterTests.swift; sourceTree = "<group>"; };
 		0CCBB52F217D0B6A0026F552 /* ImageViewIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewIntegrationTests.swift; sourceTree = "<group>"; };
@@ -319,9 +314,6 @@
 				0C49232820BACA81001DFCC8 /* XCTestCase+Nuke.swift */,
 				0C7C068D1BCA888800089D7F /* Helpers.swift */,
 				0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */,
-				0CB2680B208F2677004C83F4 /* Nuke iOS Performance Tests-Bridging-Header.h */,
-				0CB26812208F26D6004C83F4 /* SHA1.h */,
-				0CB2680C208F2678004C83F4 /* SHA1.m */,
 			);
 			name = Extensions;
 			sourceTree = "<group>";
@@ -597,7 +589,6 @@
 				0C7C06991BCA888800089D7F /* XCTestCaseExtensions.swift in Sources */,
 				0CE5F6832156386B0046609F /* ResumableDataTests.swift in Sources */,
 				0CAAB0101E45D6DA00924450 /* NukeExtensions.swift in Sources */,
-				0CB26810208F26CF004C83F4 /* SHA1.m in Sources */,
 				0CE745751D4767B900123F65 /* MockImageDecoder.swift in Sources */,
 				0C70D9782089017500A49DAC /* ImageDecoderTests.swift in Sources */,
 				0CB2EFD22110F38600F7C63F /* ImagePipelineConfigurationTests.swift in Sources */,
@@ -642,7 +633,6 @@
 				0C3261F71FEBC232009276AC /* MockImageDecoder.swift in Sources */,
 				0C09B16F1FE9A6D800E8FE3B /* Helpers.swift in Sources */,
 				0C3261F41FEBC232009276AC /* MockImageProcessor.swift in Sources */,
-				0CB2680D208F2678004C83F4 /* SHA1.m in Sources */,
 				0C3261F31FEBC232009276AC /* MockImageCache.swift in Sources */,
 				0C3261F61FEBC232009276AC /* MockImagePipeline.swift in Sources */,
 				0CAAB0131E45D6DA00924450 /* NukeExtensions.swift in Sources */,
@@ -802,7 +792,6 @@
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_OBJC_BRIDGING_HEADER = "Tests/Nuke iOS Performance Tests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Nuke Tests Host.app/Nuke Tests Host";
 			};
@@ -828,7 +817,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphonesimulator iphoneos";
-				SWIFT_OBJC_BRIDGING_HEADER = "Tests/Nuke iOS Performance Tests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Nuke Tests Host.app/Nuke Tests Host";
 			};
