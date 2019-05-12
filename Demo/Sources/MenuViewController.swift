@@ -72,25 +72,14 @@ final class MenuViewController: UITableViewController {
                     self?.push(controller)
             }))
 
-            if #available(iOS 10.0, *) {
-                items.append(MenuItem(
-                    title: "Prefetching",
-                    subtitle: "UICollectionView Prefetching",
-                    action: { [weak self] in
-                        let controller = PrefetchingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-                        controller.title = $0.title
-                        self?.push(controller)
-                }))
-            } else {
-                items.append(MenuItem(
-                    title: "Preheating",
-                    subtitle: "Uses Preheat library",
-                    action: { [weak self] in
-                        let controller = PreheatingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-                        controller.title = $0.title
-                        self?.push(controller)
-                }))
-            }
+            items.append(MenuItem(
+                title: "Prefetching",
+                subtitle: "UICollectionView Prefetching",
+                action: { [weak self] in
+                    let controller = PrefetchingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
 
             return items
         }()))

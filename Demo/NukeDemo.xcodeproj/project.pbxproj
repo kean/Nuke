@@ -13,7 +13,6 @@
 		0CBBB09B20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBBB09A20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift */; };
 		0CCC1883209EDAF9003D7172 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CCC1882209EDAF9003D7172 /* Images.xcassets */; };
 		0CCC1894209EDCCF003D7172 /* BasicDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1887209EDCCF003D7172 /* BasicDemoViewController.swift */; };
-		0CCC1895209EDCCF003D7172 /* PreheatingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1888209EDCCF003D7172 /* PreheatingDemoViewController.swift */; };
 		0CCC1896209EDCCF003D7172 /* RateLimiterDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1889209EDCCF003D7172 /* RateLimiterDemoViewController.swift */; };
 		0CCC1897209EDCCF003D7172 /* CustomCacheDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC188A209EDCCF003D7172 /* CustomCacheDemoViewController.swift */; };
 		0CCC1898209EDCCF003D7172 /* DataCachingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC188B209EDCCF003D7172 /* DataCachingDemoViewController.swift */; };
@@ -35,7 +34,6 @@
 		0CCC1882209EDAF9003D7172 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		0CCC1884209EDC01003D7172 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0CCC1887209EDCCF003D7172 /* BasicDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BasicDemoViewController.swift; sourceTree = "<group>"; };
-		0CCC1888209EDCCF003D7172 /* PreheatingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreheatingDemoViewController.swift; sourceTree = "<group>"; };
 		0CCC1889209EDCCF003D7172 /* RateLimiterDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RateLimiterDemoViewController.swift; sourceTree = "<group>"; };
 		0CCC188A209EDCCF003D7172 /* CustomCacheDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomCacheDemoViewController.swift; sourceTree = "<group>"; };
 		0CCC188B209EDCCF003D7172 /* DataCachingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataCachingDemoViewController.swift; sourceTree = "<group>"; };
@@ -97,7 +95,6 @@
 				0CCC18A2209EE0A6003D7172 /* AnimatedImageViewController.swift */,
 				0CBBB09A20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift */,
 				0CCC18A7209EE341003D7172 /* AlamofireIntegrationDemoViewController.swift */,
-				0CCC1888209EDCCF003D7172 /* PreheatingDemoViewController.swift */,
 				0CE5F686215688590046609F /* PrefetchingDemoViewController.swift */,
 				0CCC1889209EDCCF003D7172 /* RateLimiterDemoViewController.swift */,
 				0CCC188A209EDCCF003D7172 /* CustomCacheDemoViewController.swift */,
@@ -256,12 +253,11 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-frameworks.sh",
 				"${BUILT_PRODUCTS_DIR}/Alamofire/Alamofire.framework",
 				"${BUILT_PRODUCTS_DIR}/DFCache/DFCache.framework",
 				"${BUILT_PRODUCTS_DIR}/FLAnimatedImage/FLAnimatedImage.framework",
 				"${BUILT_PRODUCTS_DIR}/Nuke/Nuke.framework",
-				"${BUILT_PRODUCTS_DIR}/Preheat/Preheat.framework",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
@@ -271,11 +267,10 @@
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/DFCache.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FLAnimatedImage.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Nuke.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Preheat.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -287,7 +282,6 @@
 			files = (
 				0CCC18A3209EE0A6003D7172 /* AnimatedImageViewController.swift in Sources */,
 				0CCC1899209EDCCF003D7172 /* AppDelegate.swift in Sources */,
-				0CCC1895209EDCCF003D7172 /* PreheatingDemoViewController.swift in Sources */,
 				0CCC189A209EDCCF003D7172 /* Utilities.swift in Sources */,
 				0CCC1897209EDCCF003D7172 /* CustomCacheDemoViewController.swift in Sources */,
 				0CE5F687215688590046609F /* PrefetchingDemoViewController.swift in Sources */,
