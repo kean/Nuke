@@ -249,7 +249,6 @@ private final class ImageViewController {
     // https://bugs.swift.org/browse/SR-7369
     private weak var imageView: ImageDisplayingView?
     private weak var task: ImageTask?
-    private var taskId: Int = 0
 
     // Automatically cancel the request when the view is deallocated.
     deinit {
@@ -319,23 +318,14 @@ private final class ImageViewController {
             }
         }
 
-        // Makes sure that view reuse is handled correctly.
-        let taskId = self.taskId
-
         // Start the request.
         self.task = pipeline.loadImage(
             with: request,
             progress: { [weak self] response, completed, total in
-                guard self?.taskId == taskId else {
-                    return
-                }
                 self?.handle(partialImage: response, options: options)
                 progress?(response, completed, total)
             },
             completion: { [weak self] response, error in
-                guard self?.taskId == taskId else {
-                    return
-                }
                 self?.handle(response: response, error: error, fromMemCache: false, options: options)
                 completion?(response, error)
             }
@@ -344,8 +334,7 @@ private final class ImageViewController {
     }
 
     func cancelOutstandingTask() {
-        taskId += 1
-        task?.cancel()
+        task?.cancel() // The pipeline guarantees no callbacks to be deliver after cancellation
         task = nil
     }
 

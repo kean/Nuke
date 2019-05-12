@@ -6,6 +6,7 @@ import Foundation
 @testable import Nuke
 
 private class _MockImageTask: ImageTask {
+    fileprivate var isCancelled = false
     fileprivate var _cancel: () -> Void = {}
 
     init(request: ImageRequest) {
@@ -13,6 +14,7 @@ private class _MockImageTask: ImageTask {
     }
 
     override func cancel() {
+        isCancelled = true
         _cancel()
     }
 }
@@ -42,14 +44,17 @@ class MockImagePipeline: ImagePipeline {
         let operation = BlockOperation {
             for (completed, total) in [(10, 20), (20, 20)] as [(Int64, Int64)] {
                 DispatchQueue.main.async {
+                    guard !task.isCancelled else { return }
                     progress?(nil, completed, total)
                 }
             }
 
             DispatchQueue.main.async {
-                completion?(Test.response, nil)
                 _ = task // Retain task
                 NotificationCenter.default.post(name: MockImagePipeline.DidFinishTask, object: self)
+
+                guard !task.isCancelled else { return }
+                completion?(Test.response, nil)
             }
         }
         self.queue.addOperation(operation)
