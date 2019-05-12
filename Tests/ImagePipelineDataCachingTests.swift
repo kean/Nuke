@@ -61,7 +61,10 @@ class ImagePipelineDataCachingTests: XCTestCase {
         wait() // Wait till the operation is created.
 
         // When/Then
-        expect(observer.operations.first!).toUpdatePriority()
+        guard let operation = observer.operations.first else {
+            return XCTFail("No operations gor registered")
+        }
+        expect(operation).toUpdatePriority()
         task.setPriority(.high)
 
         wait()
@@ -78,7 +81,10 @@ class ImagePipelineDataCachingTests: XCTestCase {
         wait() // Wait till the operation is created.
 
         // When/Then
-        expect(observer.operations.first!).toCancel()
+        guard let operation = observer.operations.first else {
+            return XCTFail("No operations gor registered")
+        }
+        expect(operation).toCancel()
         task.cancel()
         wait() // Wait till operation is created
     }

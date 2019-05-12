@@ -16,7 +16,7 @@ public final class ImagePreheater {
     private let pipeline: ImagePipeline
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
     private let preheatQueue = OperationQueue()
-    private var tasks = [PreheatKey: Task]()
+    private var tasks = [ImageRequest.ImageLoadKey: Task]()
     private let destination: Destination
 
     /// Prefetching destination.
@@ -63,7 +63,7 @@ public final class ImagePreheater {
     }
 
     private func _startPreheating(with request: ImageRequest) {
-        let key = PreheatKey(request: request)
+        let key = ImageRequest.ImageLoadKey(request: request)
 
         // Check if we we've already started preheating.
         guard tasks[key] == nil else {
@@ -76,22 +76,32 @@ public final class ImagePreheater {
         }
 
         let task = Task(request: request, key: key)
-        let token = task.cts.token
 
-        let operation = Operation(starter: { [weak self] finish in
-            let task = self?.pipeline.loadImage(with: request) { [weak self] _, _  in
-                self?._remove(task)
-                finish()
+        // Use `Operation` to limit maximum number of concurrent preheating jobs
+        let operation = Operation(starter: { [weak self, weak task] finish in
+            guard let self = self, let task = task else {
+                return finish()
             }
-            token.register {
-                task?.cancel()
-                finish()
+            self.queue.async {
+                self.loadImage(with: request, task: task, finish: finish)
             }
         })
         preheatQueue.addOperation(operation)
-        token.register { [weak operation] in operation?.cancel() }
-
         tasks[key] = task
+    }
+
+    private func loadImage(with request: ImageRequest, task: Task, finish: @escaping () -> Void) {
+        guard !task.isCancelled else {
+            return finish()
+        }
+        let imageTask = pipeline.loadImage(with: request) { [weak self] _, _  in
+            self?._remove(task)
+            finish()
+        }
+        task.onCancelled = {
+            imageTask.cancel()
+            finish()
+        }
     }
 
     private func _remove(_ task: Task) {
@@ -121,16 +131,16 @@ public final class ImagePreheater {
     }
 
     private func _stopPreheating(with request: ImageRequest) {
-        if let task = tasks[PreheatKey(request: request)] {
+        if let task = tasks[ImageRequest.ImageLoadKey(request: request)] {
             tasks[task.key] = nil
-            task.cts.cancel()
+            task.cancel()
         }
     }
 
     /// Stops all preheating tasks.
     public func stopPreheating() {
         queue.async {
-            self.tasks.forEach { $0.1.cts.cancel() }
+            self.tasks.values.forEach { $0.cancel() }
             self.tasks.removeAll()
         }
     }
@@ -156,23 +166,22 @@ public final class ImagePreheater {
     }
 
     private final class Task {
-        let key: PreheatKey
+        let key: ImageRequest.ImageLoadKey
         let request: ImageRequest
-        let cts = CancellationTokenSource()
+        var isCancelled = false
+        var onCancelled: (() -> Void)?
+        weak var operation: Operation?
 
-        init(request: ImageRequest, key: PreheatKey) {
+        init(request: ImageRequest, key: ImageRequest.ImageLoadKey) {
             self.request = request
             self.key = key
         }
-    }
 
-    private struct PreheatKey: Hashable {
-        let cacheKey: ImageRequest.CacheKey
-        let loadKey: ImageRequest.LoadKey
-
-        init(request: ImageRequest) {
-            self.cacheKey = ImageRequest.CacheKey(request: request)
-            self.loadKey = ImageRequest.LoadKey(request: request)
+        func cancel() {
+            guard !isCancelled else { return }
+            isCancelled = true
+            operation?.cancel()
+            onCancelled?()
         }
     }
 }

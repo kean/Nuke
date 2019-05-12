@@ -29,19 +29,18 @@ class ImagePipelinePerfomanceTests: XCTestCase {
         let dataLoader = MockDataLoader()
 
         let loader = ImagePipeline {
+            $0.imageCache = nil
+
             $0.dataLoader = dataLoader
+
+            $0.isDecompressionEnabled = false
 
             // This must be off for this test, because rate limiter is optimized for
             // the actual loading in the apps and not the syntetic tests like this.
             $0.isRateLimiterEnabled = false
-
-            $0.isDeduplicationEnabled = false
-
-            // Disables processing which takes a bulk of time.
-            $0.imageProcessor = { (_, _)  in nil }
         }
 
-        let urls = (0...3_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
+        let urls = (0...3_000).map { URL(string: "http://test.com/\($0)")! }
         measure {
             let expectation = self.expectation(description: "Image loaded")
             var finished: Int = 0
