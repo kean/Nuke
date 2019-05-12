@@ -19,10 +19,8 @@ final class PrefetchingDemoViewController: UICollectionViewController, UICollect
         photos = demoPhotosURLs
 
         collectionView?.backgroundColor = UIColor.white
-        if #available(iOS 10.0, *) {
-            collectionView?.isPrefetchingEnabled = true
-            collectionView?.prefetchDataSource = self
-        }
+        collectionView?.isPrefetchingEnabled = true
+        collectionView?.prefetchDataSource = self
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: cellReuseID)
     }
 
