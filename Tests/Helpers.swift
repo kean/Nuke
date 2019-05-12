@@ -41,7 +41,8 @@ enum Test {
 
     static let response = ImageResponse(
         image: Test.image,
-        urlResponse: urlResponse
+        urlResponse: urlResponse,
+        scanNumber: nil
     )
 }
 

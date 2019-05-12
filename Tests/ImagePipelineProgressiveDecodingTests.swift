@@ -187,24 +187,6 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         wait()
     }
 
-    func testDecodingDisabled() {
-        // Given request with decoding disabled
-        let request = Test.request.mutated { $0.isDecodingDisabled = true }
-
-        // Expect the pipeline to not produce any partial images
-        expect(pipeline).toFailRequest(
-            request,
-            progress: { (response, _, _) in
-                XCTAssertNil(response)
-                self.dataLoader.resume()
-            },
-            completion: { (response, error) in
-                XCTAssertEqual(error, .decodingFailed)
-            }
-        )
-        wait()
-    }
-
     // MARK: Back Pressure
 
     func testRedundantPartialsArentProducedWhenDataIsProcudedAtHighRate() {

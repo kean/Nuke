@@ -27,10 +27,10 @@ extension NSLock {
 final class RateLimiter {
     private let bucket: TokenBucket
     private let queue: DispatchQueue
-    private var pending = LinkedList<Task>() // fast append, fast remove first
+    private var pending = LinkedList<Work>() // fast append, fast remove first
     private var isExecutingPendingTasks = false
 
-    private typealias Task = (CancellationToken, () -> Void)
+    typealias Work = () -> Bool
 
     /// Initializes the `RateLimiter` with the given configuration.
     /// - parameter queue: Queue on which to execute pending tasks.
@@ -42,22 +42,16 @@ final class RateLimiter {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
-    func execute(token: CancellationToken, _ closure: @escaping () -> Void) {
-        let task = Task(token, closure)
-        if !pending.isEmpty || !_execute(task) {
-            pending.append(task)
-            _setNeedsExecutePendingTasks()
+    /// - parameter closure: Returns `true` if the close was executed, `false`
+    /// if the work was cancelled.
+    func execute( _ work: @escaping Work) {
+        if !pending.isEmpty || !bucket.execute(work) {
+            pending.append(work)
+            setNeedsExecutePendingTasks()
         }
     }
 
-    private func _execute(_ task: Task) -> Bool {
-        guard !task.0.isCancelling else {
-            return true // No need to execute
-        }
-        return bucket.execute(task.1)
-    }
-
-    private func _setNeedsExecutePendingTasks() {
+    private func setNeedsExecutePendingTasks() {
         guard !isExecutingPendingTasks else {
             return
         }
@@ -67,52 +61,53 @@ final class RateLimiter {
         // pending task. With a rate of 100 tasks we expect a refill every 10 ms.
         let delay = Int(1.15 * (1000 / bucket.rate)) // 14 ms for rate 80 (default)
         let bounds = max(100, min(5, delay)) // Make the delay is reasonable
-        queue.asyncAfter(deadline: .now() + .milliseconds(bounds), execute: _executePendingTasks)
+        queue.asyncAfter(deadline: .now() + .milliseconds(bounds), execute: executePendingTasks)
     }
 
-    private func _executePendingTasks() {
-        while let node = pending.first, _execute(node.value) {
+    private func executePendingTasks() {
+        while let node = pending.first, bucket.execute(node.value) {
             pending.remove(node)
         }
         isExecutingPendingTasks = false
         if !pending.isEmpty { // Not all pending items were executed
-            _setNeedsExecutePendingTasks()
+            setNeedsExecutePendingTasks()
         }
     }
+}
 
-    private final class TokenBucket {
-        let rate: Double
-        private let burst: Double // maximum bucket size
-        private var bucket: Double
-        private var timestamp: TimeInterval // last refill timestamp
+private final class TokenBucket {
+    let rate: Double
+    private let burst: Double // maximum bucket size
+    private var bucket: Double
+    private var timestamp: TimeInterval // last refill timestamp
 
-        /// - parameter rate: Rate (tokens/second) at which bucket is refilled.
-        /// - parameter burst: Bucket size (maximum number of tokens).
-        init(rate: Double, burst: Double) {
-            self.rate = rate
-            self.burst = burst
-            self.bucket = burst
-            self.timestamp = CFAbsoluteTimeGetCurrent()
+    /// - parameter rate: Rate (tokens/second) at which bucket is refilled.
+    /// - parameter burst: Bucket size (maximum number of tokens).
+    init(rate: Double, burst: Double) {
+        self.rate = rate
+        self.burst = burst
+        self.bucket = burst
+        self.timestamp = CFAbsoluteTimeGetCurrent()
+    }
+
+    /// Returns `true` if the closure was executed, `false` if dropped.
+    func execute(_ work: () -> Bool) -> Bool {
+        refill()
+        guard bucket >= 1.0 else {
+            return false // bucket is empty
         }
-
-        /// Returns `true` if the closure was executed, `false` if dropped.
-        func execute(_ closure: () -> Void) -> Bool {
-            refill()
-            guard bucket >= 1.0 else {
-                return false // bucket is empty
-            }
-            bucket -= 1.0
-            closure()
-            return true
+        if work() {
+            bucket -= 1.0 // work was cancelled, no need to reduce the bucket
         }
+        return true
+    }
 
-        private func refill() {
-            let now = CFAbsoluteTimeGetCurrent()
-            bucket += rate * max(0, now - timestamp) // rate * (time delta)
-            timestamp = now
-            if bucket > burst { // prevent bucket overflow
-                bucket = burst
-            }
+    private func refill() {
+        let now = CFAbsoluteTimeGetCurrent()
+        bucket += rate * max(0, now - timestamp) // rate * (time delta)
+        timestamp = now
+        if bucket > burst { // prevent bucket overflow
+            bucket = burst
         }
     }
 }
@@ -247,86 +242,6 @@ final class LinkedList<Element> {
         init(value: Element) {
             self.value = value
         }
-    }
-}
-
-// MARK: - CancellationTokenSource
-
-/// Manages cancellation tokens and signals them when cancellation is requested.
-///
-/// All `CancellationTokenSource` methods are thread safe.
-final class CancellationTokenSource {
-    /// Returns `true` if cancellation has been requested.
-    var isCancelling: Bool {
-        return lock.sync { observers == nil }
-    }
-
-    /// Creates a new token associated with the source.
-    var token: CancellationToken {
-        return CancellationToken(source: self)
-    }
-
-    private var lock = NSLock()
-    private var observers: [() -> Void]? = []
-
-    /// Initializes the `CancellationTokenSource` instance.
-    init() {}
-
-    fileprivate func register(_ closure: @escaping () -> Void) {
-        if !_register(closure) {
-            closure()
-        }
-    }
-
-    private func _register(_ closure: @escaping () -> Void) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-
-        observers?.append(closure)
-        return observers != nil
-    }
-
-    /// Communicates a request for cancellation to the managed tokens.
-    func cancel() {
-        if let observers = _cancel() {
-            observers.forEach { $0() }
-        }
-    }
-
-    private func _cancel() -> [() -> Void]? {
-        lock.lock()
-        defer { lock.unlock() }
-
-        let observers = self.observers
-        self.observers = nil // transition to `isCancelling` state
-        return observers
-    }
-}
-
-/// Enables cooperative cancellation of operations.
-///
-/// You create a cancellation token by instantiating a `CancellationTokenSource`
-/// object and calling its `token` property. You then pass the token to any
-/// number of threads, tasks, or operations that should receive notice of
-/// cancellation. When the owning object calls `cancel()`, the `isCancelling`
-/// property on every copy of the cancellation token is set to `true`.
-/// The registered objects can respond in whatever manner is appropriate.
-///
-/// All `CancellationToken` methods are thread safe.
-struct CancellationToken {
-    fileprivate let source: CancellationTokenSource? // no-op when `nil`
-
-    /// Returns `true` if cancellation has been requested for this token.
-    /// Returns `false` if the source was deallocated.
-    var isCancelling: Bool {
-        return source?.isCancelling ?? false
-    }
-
-    /// Registers the closure that will be called when the token is canceled.
-    /// If this token is already cancelled, the closure will be run immediately
-    /// and synchronously.
-    func register(_ closure: @escaping () -> Void) {
-        source?.register(closure)
     }
 }
 
@@ -525,28 +440,6 @@ struct TaskMetrics {
 
     mutating func end() {
         endDate = Date()
-    }
-}
-
-/// A simple observable property. Not thread safe.
-final class Property<T> {
-    var value: T {
-        didSet {
-            for observer in observers {
-                observer(value)
-            }
-        }
-    }
-
-    init(value: T) {
-        self.value = value
-    }
-
-    private var observers = [(T) -> Void]()
-
-    // For our use-cases we can just ignore unsubscribing for now.
-    func observe(_ closure: @escaping (T) -> Void) {
-        observers.append(closure)
     }
 }
 

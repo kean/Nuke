@@ -424,7 +424,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // When the image data is loaded
         // Expect the pipeline to still decode the image and return the response
-        expect(pipeline).toLoadImage(with: request1)
+        expect(pipeline).toFailRequest(request1, with: .decodingFailed)
         expect(pipeline).toLoadImage(with: request2)
 
         dataLoader.queue.isSuspended = false
