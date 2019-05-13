@@ -252,6 +252,7 @@ public extension ImageRequest {
 }
 
 extension ImageRequest {
+    // Uniquely identifies a cache processed image.
     struct CacheKey: Hashable {
         let request: ImageRequest
 
@@ -275,6 +276,18 @@ extension ImageRequest {
         }
     }
 
+    // Uniquely identifies a task of retrieving the processed image.
+    struct ImageLoadKey: Hashable {
+        let cacheKey: CacheKey
+        let loadKey: LoadKey
+
+        init(request: ImageRequest) {
+            self.cacheKey = CacheKey(request: request)
+            self.loadKey = LoadKey(request: request)
+        }
+    }
+
+    /// Uniquely identifies a task of loading image data.
     struct LoadKey: Hashable {
         let request: ImageRequest
 

@@ -9,54 +9,54 @@ If you'd like to use some other networking library or use your own custom code a
 ```swift
 /// Loads data.
 public protocol DataLoading {
-    /// Loads data with the given request.
+    /// - parameter didReceiveData: Can be called multiple times if streaming
+    /// is supported.
+    /// - parameter completion: Must be called once after all (or none in case
+    /// of an error) `didReceiveData` closures have been called.
     func loadData(with request: URLRequest,
-                  token: CancellationToken?,
-                  progress: ProgressHandler?,
-                  completion: @escaping (Result<(Data, URLResponse)>) -> Void)
+                  didReceiveData: @escaping (Data, URLResponse) -> Void,
+                  completion: @escaping (Error?) -> Void) -> Cancellable
 }
 ```
 
 You can use [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) as a starting point. Here how it's actual implementation:
 
 ```swift
-import Alamofire
-import Nuke
+/// Implements data loading using Alamofire framework.
+public class AlamofireDataLoader: Nuke.DataLoading {
+    public let manager: Alamofire.SessionManager
 
-class AlamofireDataLoader: Nuke.DataLoading {
-    private let manager: Alamofire.SessionManager
-
-    init(manager: Alamofire.SessionManager = Alamofire.SessionManager.default) {
+    /// Initializes the receiver with a given Alamofire.SessionManager.
+    /// - parameter manager: Alamofire.SessionManager.default by default.
+    public init(manager: Alamofire.SessionManager = Alamofire.SessionManager.default) {
         self.manager = manager
     }
 
-    // MARK: Nuke.DataLoading
-
+    // MARK: DataLoading
     /// Loads data using Alamofire.SessionManager.
-    public func loadData(with request: URLRequest, token: CancellationToken?, progress: ProgressHandler?, completion: @escaping (Nuke.Result<(Data, URLResponse)>) -> Void) {
+    public func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
         // Alamofire.SessionManager automatically starts requests as soon as they are created (see `startRequestsImmediately`)
-        let task = manager.request(request)
-            .validate()
-            .downloadProgress(closure: { progress?($0.completedUnitCount, $0.totalUnitCount) })
-            .response(completionHandler: { (response) in
-                if let data = response.data, let response: URLResponse = response.response {
-                    completion(.success((data, response)))
-                } else {
-                    completion(.failure(response.error ?? NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown, userInfo: nil)))
-                }
-            })
-        token?.register { task.cancel() }
+        let task = self.manager.request(request)
+        task.stream { [weak task] data in
+            guard let response = task?.response else { return } // Never nil
+            didReceiveData(data, response)
+        }
+        task.response { response in
+            completion(response.error)
+        }
+        return task
     }
 }
+
+extension Alamofire.DataRequest: Nuke.Cancellable {}
 ```
 
-That's it. You can now create a `Nuke.Manager` instance with your custom data loader and use it to load images:
+That's it. You can now create an `ImagePipeline` instance with your custom data loader and use it to load images:
 
 ```swift
-let loader = Nuke.Loader(loader: AlamofireDataLoader())
-let manager = Nuke.Manager(loader: loader, cache: Cache.shared)
-
-manager.loadImage(with: url, into: imageView)
+let pipeline = ImagePipeliner {
+    $0.dataLoader = AlamofireDataLoader()
+}
 ```
 
 ### Using Other Caching Libraries

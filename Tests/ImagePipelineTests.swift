@@ -141,7 +141,10 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till the operation is created.
 
         // When/Then
-        expect(observer.operations.first!).toUpdatePriority()
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        expect(operation).toUpdatePriority()
         task.setPriority(.high)
 
         wait()
@@ -161,7 +164,10 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till the operation is created.
 
         // When/Then
-        expect(observer.operations.first!).toUpdatePriority()
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        expect(operation).toUpdatePriority()
         task.setPriority(.high)
 
         wait()
@@ -181,7 +187,10 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till the operation is created.
 
         // When/Then
-        expect(observer.operations.first!).toUpdatePriority()
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        expect(operation).toUpdatePriority()
         task.setPriority(.high)
 
         wait()
@@ -218,9 +227,10 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till operation is created
 
         // When/Then
-        let operation = observer.operations.first
-        XCTAssertNotNil(operation)
-        expect(operation!).toCancel()
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        expect(operation).toCancel()
 
         task.cancel()
 
@@ -406,7 +416,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func testCacheRead() {
         // Given
-        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil), for: Test.request)
+        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil, scanNumber: nil), for: Test.request)
 
         // When
         expect(pipeline).toLoadImage(with: Test.request)
@@ -434,7 +444,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func testCacheReadDisabled() {
         // Given
-        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil), for: Test.request)
+        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil, scanNumber: nil), for: Test.request)
 
         let request = Test.request.mutated {
             $0.memoryCacheOptions.isReadAllowed = false
