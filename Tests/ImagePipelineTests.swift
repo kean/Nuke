@@ -46,7 +46,7 @@ class ImagePipelineTests: XCTestCase {
 
         pipeline.loadImage(
             with: request,
-            progress: { _, completed, total in
+            progress: { completed, total in
                 // Then
                 XCTAssertTrue(Thread.isMainThread)
                 expectedProgress.received((completed, total))
@@ -503,6 +503,99 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
 
         // When/Then
         expect(pipeline).toFailRequest(request, with: .processingFailed)
+        wait()
+    }
+}
+
+class ImagePipelineImageTaskDelegateTests: XCTestCase {
+    var dataLoader: MockDataLoader!
+    var pipeline: ImagePipeline!
+    var delegate: MockImageTaskDelegate!
+
+    override func setUp() {
+        super.setUp()
+
+        dataLoader = MockDataLoader()
+        delegate = MockImageTaskDelegate()
+        pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+    }
+
+    func testThatTaskIsntStartedByDefault() {
+        // Given
+        delegate.completion = { _, _ in
+            XCTFail("Expect completion not to be called")
+        }
+
+        // When
+        let _ = pipeline.imageTask(with: Test.request, delegate: delegate)
+
+        let expectation = self.expectation(description: "Wait a bit")
+        DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(150)) {
+            expectation.fulfill()
+        }
+
+        wait()
+
+        // Then
+        XCTAssertEqual(dataLoader.createdTaskCount, 0)
+    }
+
+    func testThatTaskIsStartedWhenStartIsCalled() {
+        // Given
+        let expectation = self.expectation(description: "Expected image to be loaded")
+        delegate.completion = { response, _ in
+            XCTAssertTrue(Thread.isMainThread)
+            XCTAssertNotNil(response)
+            expectation.fulfill()
+        }
+
+        // When
+        let task = pipeline.imageTask(with: Test.request, delegate: delegate)
+        task.start()
+        wait()
+    }
+
+    func testThatCancelledTaskCantBeStarted() {
+        // Given cancelled task
+        delegate.completion = { _, _ in
+            XCTFail("Expect completion not to be called")
+        }
+        let task = pipeline.imageTask(with: Test.request, delegate: delegate)
+        task.cancel()
+
+        // When
+        task.start()
+
+        let expectation = self.expectation(description: "Wait a bit")
+        DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(150)) {
+            expectation.fulfill()
+        }
+
+        wait()
+
+        // Then
+        XCTAssertEqual(dataLoader.createdTaskCount, 0)
+    }
+
+    func testThatProgressIsReported() {
+        // Given
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        let expectedProgress = expectProgress([(10, 20), (20, 20)])
+
+        delegate.progressHandler = { completed, total in
+            // Then
+            XCTAssertTrue(Thread.isMainThread)
+            expectedProgress.received((completed, total))
+        }
+
+        pipeline.imageTask(with: Test.request, delegate: delegate).start()
+
         wait()
     }
 }
