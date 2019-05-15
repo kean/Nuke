@@ -39,7 +39,7 @@ public /* final */ class ImageTask: Hashable {
     public let taskId: Int
 
     weak var delegate: ImageTaskDelegate?
-    weak var pipeline: ImageTaskManaging?
+    weak var pipeline: ImagePipeline?
 
     /// The original request with which the task was created.
     public let request: ImageRequest
@@ -115,12 +115,6 @@ public /* final */ class ImageTask: Hashable {
     public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
         return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
     }
-}
-
-protocol ImageTaskManaging: class {
-    func imageTaskStartCalled(_ task: ImageTask)
-    func imageTaskCancelCalled(_ task: ImageTask)
-    func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority)
 }
 
 // MARK: - ImageResponse
