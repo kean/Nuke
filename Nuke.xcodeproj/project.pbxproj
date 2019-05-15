@@ -138,7 +138,6 @@
 		0C70D9772089017500A49DAC /* ImageDecoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDecoderTests.swift; sourceTree = "<group>"; };
 		0C70D97B2089042400A49DAC /* fixture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = fixture.png; sourceTree = "<group>"; };
 		0C7150081FC9724C00B880AC /* Internal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Internal.swift; sourceTree = "<group>"; };
-		0C778CFC1D89634B00361A1F /* Nuke.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Nuke.h; sourceTree = "<group>"; };
 		0C7C06771BCA882A00089D7F /* Nuke Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C7C06871BCA888800089D7F /* ImageCacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageCacheTests.swift; sourceTree = "<group>"; };
 		0C7C06881BCA888800089D7F /* ImageProcessingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageProcessingTests.swift; sourceTree = "<group>"; };
@@ -226,7 +225,6 @@
 		0C096C781BAE9AC9007FE380 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
-				0C778CFC1D89634B00361A1F /* Nuke.h */,
 				0C096C791BAE9AC9007FE380 /* Info.plist */,
 				0CCDB8D121D576F00032518B /* Nuke.xcconfig */,
 			);
