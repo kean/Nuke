@@ -97,15 +97,6 @@ public struct ImageRequest {
         set { mutate { $0.loadKey = newValue } }
     }
 
-    /// If decoding is disabled, when the image data is loaded, the pipeline is
-    /// not going to create an image from it and will produce the `.decodingFailed`
-    /// error instead. `false` by default.
-    var isDecodingDisabled: Bool {
-        // This only used by `ImagePreheater` right now
-        get { return ref.isDecodingDisabled }
-        set { mutate { $0.isDecodingDisabled = newValue } }
-    }
-
     /// Custom info passed alongside the request.
     public var userInfo: Any? {
         get { return ref.userInfo }
@@ -183,7 +174,6 @@ public struct ImageRequest {
         var priority: ImageRequest.Priority = .normal
         var cacheKey: AnyHashable?
         var loadKey: AnyHashable?
-        var isDecodingDisabled: Bool = false
         var userInfo: Any?
 
         /// Creates a resource with a default processor.
@@ -200,7 +190,6 @@ public struct ImageRequest {
             self.priority = ref.priority
             self.cacheKey = ref.cacheKey
             self.loadKey = ref.loadKey
-            self.isDecodingDisabled = ref.isDecodingDisabled
             self.userInfo = ref.userInfo
         }
     }

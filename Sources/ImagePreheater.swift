@@ -57,7 +57,7 @@ public final class ImagePreheater {
     public func startPreheating(with requests: [ImageRequest]) {
         queue.async {
             for request in requests {
-                self._startPreheating(with: self._updatedRequest(request))
+                self._startPreheating(with: request)
             }
         }
     }
@@ -94,9 +94,19 @@ public final class ImagePreheater {
         guard !task.isCancelled else {
             return finish()
         }
-        let imageTask = pipeline.loadImage(with: request) { [weak self] _, _  in
-            self?._remove(task)
-            finish()
+
+        let imageTask: ImageTask
+        switch destination {
+        case .diskCache:
+            imageTask = pipeline.loadData(with: request) { [weak self] _, _, _ in
+                self?._remove(task)
+                finish()
+            }
+        case .memoryCache:
+            imageTask = pipeline.loadImage(with: request) { [weak self] _, _ in
+                self?._remove(task)
+                finish()
+            }
         }
         task.onCancelled = {
             imageTask.cancel()
@@ -125,7 +135,7 @@ public final class ImagePreheater {
     public func stopPreheating(with requests: [ImageRequest]) {
         queue.async {
             for request in requests {
-                self._stopPreheating(with: self._updatedRequest(request))
+                self._stopPreheating(with: request)
             }
         }
     }
@@ -151,18 +161,6 @@ public final class ImagePreheater {
             request.priority = .low
             return request
         }
-    }
-
-    private func _updatedRequest(_ request: ImageRequest) -> ImageRequest {
-        guard destination == .diskCache else {
-            return request // Avoid creating a new copy
-        }
-
-        var request = request
-        // What we do under the hood is we disable decoding for the requests
-        // that are meant to not be stored in memory cache.
-        request.isDecodingDisabled = (destination == .diskCache)
-        return request
     }
 
     private final class Task {
