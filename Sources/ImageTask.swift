@@ -97,6 +97,15 @@ public /* final */ class ImageTask: Hashable {
         pipeline?.imageTaskUpdatePriorityCalled(self, priority: priority)
     }
 
+    // MARK: - Internal
+
+    func setProgress(_ progress: TaskProgress) {
+        completedUnitCount = progress.completed
+        totalUnitCount = progress.total
+        _progress?.completedUnitCount = progress.completed
+        _progress?.totalUnitCount = progress.total
+    }
+
     // MARK: - Hashable
 
     public func hash(into hasher: inout Hasher) {

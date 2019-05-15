@@ -42,6 +42,17 @@ struct TestExpectationImagePipeline {
             XCTAssertEqual(error, expectedError, file: file, line: line)
         }
     }
+
+    func toLoadData(with request: ImageRequest) {
+        let expectation = test.expectation(description: "Data loaded for \(request)")
+        pipeline.loadData(with: request, progress: nil) { data, urlResponse, error in
+            XCTAssertTrue(Thread.isMainThread)
+            XCTAssertNotNil(data)
+            XCTAssertNotNil(urlResponse)
+            XCTAssertNil(error)
+            expectation.fulfill()
+        }
+    }
 }
 
 extension XCTestCase {
