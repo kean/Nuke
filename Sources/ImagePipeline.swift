@@ -13,7 +13,7 @@ import Foundation
 /// `ImagePipeline` is created with a configuration (`Configuration`).
 ///
 /// `ImagePipeline` is thread-safe.
-public /* final */ class ImagePipeline: ImageTaskManaging {
+public /* final */ class ImagePipeline {
     public let configuration: Configuration
 
     // This is a queue on which we access the sessions.
@@ -189,7 +189,7 @@ public /* final */ class ImagePipeline: ImageTaskManaging {
     // to the client. We use the same logic for data tasks.
     private var dataTaskDummyDelegate = ImageTaskAnonymousDelegate(progress: nil, completion: nil)
 
-    // MARK: - ImageTaskManaging
+    // MARK: - Image Task Events
 
     func imageTaskStartCalled(_ task: ImageTask) {
         queue.async {
