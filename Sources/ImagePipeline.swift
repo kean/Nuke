@@ -4,122 +4,6 @@
 
 import Foundation
 
-// MARK: - ImageTask
-
-/// A task performed by the `ImagePipeline`. The pipeline maintains a strong
-/// reference to the task until the request finishes or fails; you do not need
-/// to maintain a reference to the task unless it is useful to do so for your
-/// app’s internal bookkeeping purposes.
-public /* final */ class ImageTask: Hashable {
-    /// An identifier uniquely identifies the task within a given pipeline. Only
-    /// unique within this pipeline.
-    public let taskId: Int
-
-    fileprivate weak var delegate: ImageTaskDelegate?
-
-    /// The original request with which the task was created.
-    public let request: ImageRequest
-    fileprivate var priority: ImageRequest.Priority
-
-    /// The number of bytes that the task has received.
-    public fileprivate(set) var completedUnitCount: Int64 = 0
-
-    /// A best-guess upper bound on the number of bytes the client expects to send.
-    public fileprivate(set) var totalUnitCount: Int64 = 0
-
-    /// Returns a progress object for the task. The object is created lazily.
-    public var progress: Progress {
-        if _progress == nil { _progress = Progress() }
-        return _progress!
-    }
-    fileprivate private(set) var _progress: Progress?
-
-    /// A completion handler to be called when task finishes or fails.
-    public typealias Completion = (_ response: ImageResponse?, _ error: ImagePipeline.Error?) -> Void
-
-    /// A progress handler to be called periodically during the lifetime of a task.
-    public typealias ProgressHandler = (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void
-
-    // internal stuff associated with a task
-    fileprivate var metrics: ImageTaskMetrics?
-
-    init(taskId: Int, request: ImageRequest) {
-        self.taskId = taskId
-        self.request = request
-        self.priority = request.priority
-    }
-
-    // MARK: - Priority
-
-    /// Update s priority of the task even if the task is already running.
-    public func setPriority(_ priority: ImageRequest.Priority) {
-        delegate?.imageTask(self, didUpdatePriority: priority)
-    }
-
-    // MARK: - Cancellation
-
-    fileprivate var isCancelled: Bool {
-        return _isCancelled.value
-    }
-
-    private var _isCancelled = Atomic(false)
-
-    /// Marks task as being cancelled.
-    ///
-    /// The pipeline will immediately cancel any work associated with a task
-    /// unless there is an equivalent outstanding task running (see
-    /// `ImagePipeline.Configuration.isDeduplicationEnabled` for more info).
-    public func cancel() {
-        // Make sure that we ignore if `cancel` being called more than once.
-        if _isCancelled.swap(to: true, ifEqual: false) {
-            delegate?.imageTaskWasCancelled(self)
-        }
-    }
-
-    // MARK: - Hashable
-
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(ObjectIdentifier(self).hashValue)
-    }
-
-    public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
-        return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
-    }
-}
-
-protocol ImageTaskDelegate: class {
-    func imageTaskWasCancelled(_ task: ImageTask)
-    func imageTask(_ task: ImageTask, didUpdatePriority: ImageRequest.Priority)
-}
-
-// MARK: - ImageResponse
-
-/// Represents an image response.
-public final class ImageResponse {
-    public let image: Image
-    public let urlResponse: URLResponse?
-    // the response is only nil when new disk cache is enabled (it only stores
-    // data for now, but this might change in the future).
-    public let scanNumber: Int?
-
-    public init(image: Image, urlResponse: URLResponse? = nil, scanNumber: Int? = nil) {
-        self.image = image
-        self.urlResponse = urlResponse
-        self.scanNumber = scanNumber
-    }
-
-    func map(_ transformation: (Image) -> Image?) -> ImageResponse? {
-        return autoreleasepool {
-            guard let output = transformation(image) else {
-                return nil
-            }
-            return ImageResponse(image: output, urlResponse: urlResponse, scanNumber: scanNumber)
-        }
-    }
-}
-
-// MARK: - ImagePipeline
-
 /// `ImagePipeline` will load and decode image data, process loaded images and
 /// store them in caches.
 ///
@@ -129,7 +13,7 @@ public final class ImageResponse {
 /// `ImagePipeline` is created with a configuration (`Configuration`).
 ///
 /// `ImagePipeline` is thread-safe.
-public /* final */ class ImagePipeline: ImageTaskDelegate {
+public /* final */ class ImagePipeline: ImageTaskManaging {
     public let configuration: Configuration
 
     // This is a queue on which we access the sessions.
@@ -151,6 +35,8 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
     /// The closure that gets called each time the task is completed (or cancelled).
     /// Guaranteed to be called on the main thread.
     public var didFinishCollectingMetrics: ((ImageTask, ImageTaskMetrics) -> Void)?
+
+    // MARK: - Configuration
 
     public struct Configuration {
         /// Image cache used by the pipeline.
@@ -256,7 +142,7 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
         self.init(configuration: configuration)
     }
 
-    // MARK: Loading Images
+    // MARK: - Loading Images
 
     /// Loads an image with the given url.
     @discardableResult
@@ -271,127 +157,153 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
     public func loadImage(with request: ImageRequest,
                           progress: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        let task = ImageTask(taskId: getNextTaskId(), request: request)
-        task.delegate = self
+        let task = makeImageTask(with: request)
         queue.async {
-            // TODO: reimplement metrics
-            if self.didFinishCollectingMetrics != nil {
-                task.metrics = ImageTaskMetrics(taskId: task.taskId, startDate: Date())
-            }
-
-            // Fast memory cache lookup. We do this asynchronously because we
-            // expect users to check memory cache synchronously if needed.
-            if task.request.memoryCacheOptions.isReadAllowed,
-                let response = self.configuration.imageCache?.cachedResponse(for: task.request) {
-                DispatchQueue.main.async {
-                    guard !task.isCancelled else { return }
-                    completion?(response, nil)
-                }
-                return
-            }
-            // Memory cache lookup failed -> start loading.
-            let context = ImageTaskExecutionContext(progress: progress, completion: completion)
-            if request.isDecodingDisabled {
-                self.loadData(for: task, context: context)
-            } else {
-                self.loadImage(for: task, context: context)
-            }
+            // Start exeucing the task immediatelly.
+            let delegate = ImageTaskAnonymousDelegate(progress: progress, completion: completion)
+            task.delegate = delegate
+            self.startTask(task, delegate: delegate)
         }
         return task
     }
 
-    private func getNextTaskId() -> Int {
-        return nextTaskId.increment()
+    /// Creates a task with the given request and delegate. After the task
+    /// is created, it needs to be started by calling `task.start()`.
+    public func imageTask(with request: ImageRequest, delegate: ImageTaskDelegate) -> ImageTask {
+        let task = makeImageTask(with: request)
+        task.delegate = delegate
+        return task
     }
 
-    // MARK: - Image Loading
+    private func makeImageTask(with request: ImageRequest) -> ImageTask {
+        let task = ImageTask(taskId: nextTaskId.increment(), request: request)
+        task.pipeline = self
+        return task
+    }
+
+    // MARK: - ImageTaskManaging
+
+    func imageTaskStartCalled(_ task: ImageTask) {
+        queue.async {
+            self.startTask(task, delegate: nil)
+        }
+    }
+
+    func imageTaskCancelCalled(_ task: ImageTask) {
+        queue.async {
+            task.isStartNeeded = false
+            guard let context = self.tasks.removeValue(forKey: task) else { return }
+            context.subscription?.unsubscribe()
+        }
+    }
+
+    func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
+        queue.async {
+            task.priority = priority
+            guard let context = self.tasks[task] else { return }
+            context.subscription?.setPriority(priority)
+        }
+    }
+
+    // MARK: - Starting Image Tasks
 
     private final class ImageTaskExecutionContext {
         var subscription: TaskSubscription?
-        let progressHandler: ImageTask.ProgressHandler?
-        let completionHandler: ImageTask.Completion?
+    }
 
-        init(progress: ImageTask.ProgressHandler?, completion: ImageTask.Completion?) {
-            self.progressHandler = progress
-            self.completionHandler = completion
+    private func startTask(_ task: ImageTask, delegate anonymousDelegate: ImageTaskAnonymousDelegate?) {
+        guard task.isStartNeeded else { return }
+        task.isStartNeeded = false
+
+        if self.didFinishCollectingMetrics != nil {
+            task.metrics = ImageTaskMetrics(taskId: task.taskId, startDate: Date())
+        }
+
+        // Fast memory cache lookup. We do this asynchronously because we
+        // expect users to check memory cache synchronously if needed.
+        if task.request.memoryCacheOptions.isReadAllowed,
+            let response = self.configuration.imageCache?.cachedResponse(for: task.request) {
+            DispatchQueue.main.async {
+                guard let delegate = task.delegate else { return }
+                delegate.imageTask(task, didCompleteWithResponse: response, error: nil)
+                _ = anonymousDelegate // retain anonymous delegates until we are finished with them
+            }
+            return
+        }
+
+        // Memory cache lookup failed -> start loading.
+        if task.request.isDecodingDisabled {
+            self.loadData(for: task, delegate: anonymousDelegate)
+        } else {
+            self.loadImage(for: task, delegate: anonymousDelegate)
         }
     }
 
-    private func loadImage(for task: ImageTask, context: ImageTaskExecutionContext) {
+    private func loadImage(for task: ImageTask, delegate anonymousDelegate: ImageTaskAnonymousDelegate?) {
         let request = task.request
-        tasks[task] = context
+
+        let context = ImageTaskExecutionContext()
+        self.tasks[task] = context
 
         context.subscription = getProcessedImage(for: task.request)
-            .subscribe(priority: task.priority) { [weak self, weak task, weak context] event in
-            guard let self = self, let task = task, let context = context else { return }
+            .subscribe(priority: task.priority) { [weak self, weak task] event in
+                guard let self = self, let task = task else { return }
 
-            if event.isCompleted {
-                self.tasks[task] = nil
-            }
-
-            // Store response in memory cache if allowed.
-            if case let .value(response, isCompleted) = event, isCompleted && request.memoryCacheOptions.isWriteAllowed {
-                self.configuration.imageCache?.storeResponse(response, for: request)
-            }
-
-            DispatchQueue.main.async {
-                guard !task.isCancelled else { return }
-                switch event {
-                case let .value(response, isCompleted):
-                    if isCompleted {
-                        // TODO: replace with ImageTaskDelegate for progressive images
-                        context.completionHandler?(response, nil)
-                    } else {
-                        context.progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
-                    }
-                case let .progress(progress):
-                    task.completedUnitCount = progress.completed
-                    task.totalUnitCount = progress.total
-                    task._progress?.completedUnitCount = progress.completed
-                    task._progress?.totalUnitCount = progress.total
-                    context.progressHandler?(nil, progress.completed, progress.total)
-                case let .error(error):
-                    context.completionHandler?(nil, error)
+                if event.isCompleted {
+                    self.tasks[task] = nil
                 }
-            }
+
+                // Store response in memory cache if allowed.
+                if case let .value(response, isCompleted) = event, isCompleted && request.memoryCacheOptions.isWriteAllowed {
+                    self.configuration.imageCache?.storeResponse(response, for: request)
+                }
+
+                DispatchQueue.main.async {
+                    guard let delegate = task.delegate else { return }
+                    switch event {
+                    case let .value(response, isCompleted):
+                        if isCompleted {
+                            delegate.imageTask(task, didCompleteWithResponse: response, error: nil)
+                        } else {
+                            delegate.imageTask(task, didProduceProgressiveResponse: response)
+                        }
+                    case let .progress(progress):
+                        task.completedUnitCount = progress.completed
+                        task.totalUnitCount = progress.total
+                        task._progress?.completedUnitCount = progress.completed
+                        task._progress?.totalUnitCount = progress.total
+                        delegate.imageTask(task, didUpdateProgress: progress.completed, totalUnitCount: progress.total)
+                    case let .error(error):
+                        delegate.imageTask(task, didCompleteWithResponse: nil, error: error)
+                    }
+                    _ = anonymousDelegate // retain anonymous delegates until we are finished with them
+                }
         }
     }
 
-    private func loadData(for task: ImageTask, context: ImageTaskExecutionContext) {
+    private func loadData(for task: ImageTask, delegate anonymousDelegate: ImageTaskAnonymousDelegate?) {
         let request = task.request
-        tasks[task] = context
+
+        let context = ImageTaskExecutionContext()
+        self.tasks[task] = context
 
         context.subscription = getImageData(for: request)
-            .subscribe(priority: task.priority) { [weak self, weak task, weak context] event in
-            guard let self = self, let task = task, let context = context else { return }
+            .subscribe(priority: task.priority) { [weak self, weak task] event in
+            guard let self = self, let task = task else { return }
 
             guard event.isCompleted else {
                 return
             }
 
             self.tasks[task] = nil
+
             DispatchQueue.main.async {
+                guard let delegate = task.delegate else { return }
                 // TODO: replace with separate completion handlers for decoding
                 // For now we keep the behavior from the previous versions.
-                context.completionHandler?(nil, .decodingFailed)
+                delegate.imageTask(task, didCompleteWithResponse: nil, error: .decodingFailed)
+                _ = anonymousDelegate // retain anonymous delegates until we are finished with them
             }
-        }
-    }
-
-    // MARK: ImageTaskDelegate
-
-    func imageTaskWasCancelled(_ task: ImageTask) {
-        queue.async {
-            guard let context = self.tasks.removeValue(forKey: task) else { return }
-            context.subscription?.unsubscribe()
-        }
-    }
-
-    func imageTask(_ task: ImageTask, didUpdatePriority priority: ImageRequest.Priority) {
-        queue.async {
-            task.priority = priority
-            guard let context = self.tasks[task] else { return }
-            context.subscription?.setPriority(priority)
         }
     }
 
@@ -764,7 +676,7 @@ public /* final */ class ImagePipeline: ImageTaskDelegate {
         }
     }
 
-    // MARK: Errors
+    // MARK: - Errors
 
     /// Represents all possible image pipeline errors.
     public enum Error: Swift.Error, CustomDebugStringConvertible {

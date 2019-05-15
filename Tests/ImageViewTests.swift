@@ -175,7 +175,7 @@ class ImageViewTests: XCTestCase {
         Nuke.loadImage(
             with: Test.request,
             into: imageView,
-            progress: { _, completed, total in
+            progress: { completed, total in
                 // Expect progress to be reported, on the main thread
                 XCTAssertTrue(Thread.isMainThread)
                 expectedProgress.received((completed, total))

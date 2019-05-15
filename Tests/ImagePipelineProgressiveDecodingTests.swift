@@ -8,9 +8,11 @@ import XCTest
 class ImagePipelineProgressiveDecodingTests: XCTestCase {
     private var dataLoader: MockProgressiveDataLoader!
     private var pipeline: ImagePipeline!
+    private var delegate: MockImageTaskDelegate!
 
     override func setUp() {
         dataLoader = MockProgressiveDataLoader()
+        delegate = MockImageTaskDelegate()
         ResumableData.cache.removeAll()
 
         // We make two important assumptions with this setup:
@@ -58,17 +60,20 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         // When/Then
         let finalLoaded = self.expectation(description: "Final image loaded")
 
-        pipeline.loadImage(
-            with: Test.url,
-            progress: { image, _, _ in
-                XCTAssertNil(image) // Partial images never produced.
-                self.dataLoader.resume()
-            },
-            completion: { response, _ in
-                XCTAssertNotNil(response)
-                finalLoaded.fulfill()
-            }
-        )
+        delegate.progressHandler = { [unowned self] _, _ in
+            self.dataLoader.resume()
+        }
+
+        delegate.progressiveResponseHandler = { _ in
+            XCTFail("Expected partial images to never be produced")
+        }
+
+        delegate.completion = { response, _ in
+            XCTAssertNotNil(response, "Expected the final image to be produced")
+            finalLoaded.fulfill()
+        }
+
+        pipeline.imageTask(with: Test.request, delegate: delegate).start()
 
         wait()
 
@@ -91,21 +96,20 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         )
 
         // When/Then
-        expect(pipeline, dataLoader).toProducePartialImages(
-            for: request,
-            progress: { response, _, _ in
-                if let image = response?.image {
-                    XCTAssertEqual(image.cgImage?.width, 45)
-                    XCTAssertEqual(image.cgImage?.height, 30)
-                }
-            },
-            completion: { response, _ in
-                XCTAssertNotNil(response)
-                let image = response?.image
-                XCTAssertEqual(image?.cgImage?.width, 45)
-                XCTAssertEqual(image?.cgImage?.height, 30)
-            }
-        )
+        delegate.progressiveResponseHandler = { response in
+            let image = response.image
+            XCTAssertEqual(image.cgImage?.width, 45, "Expected progressive image to be resized")
+            XCTAssertEqual(image.cgImage?.height, 30, "Expected progressive image to be resized")
+        }
+
+        delegate.completion = { response, _ in
+            XCTAssertNotNil(response, "Expected the final image to be produced")
+            let image = response?.image
+            XCTAssertEqual(image?.cgImage?.width, 45, "Expected the final image to be resized")
+            XCTAssertEqual(image?.cgImage?.height, 30, "Expected the final image to be resized")
+        }
+
+        expect(pipeline, dataLoader).toProducePartialImages(for: request, delegate: delegate)
 
         wait()
     }
@@ -116,54 +120,18 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         let request = Test.request.processed(with: MockImageProcessor(id: "_image_processor"))
 
         // When/Then
-        expect(pipeline, dataLoader).toProducePartialImages(
-            for: request,
-            progress: { response, _, _ in
-                if let image = response?.image {
-                    XCTAssertEqual(image.nk_test_processorIDs.count, 1)
-                    XCTAssertEqual(image.nk_test_processorIDs.first, "_image_processor")
-                }
-            },
-            completion: { response, _ in
-                let image = response?.image
-                XCTAssertEqual(image?.nk_test_processorIDs.count, 1)
-                XCTAssertEqual(image?.nk_test_processorIDs.first, "_image_processor")
-            }
-        )
+        delegate.progressiveResponseHandler = { response in
+            let image = response.image
+            XCTAssertEqual(image.nk_test_processorIDs.count, 1)
+            XCTAssertEqual(image.nk_test_processorIDs.first, "_image_processor")
+        }
+        delegate.completion = { response, _ in
+            let image = response?.image
+            XCTAssertEqual(image?.nk_test_processorIDs.count, 1)
+            XCTAssertEqual(image?.nk_test_processorIDs.first, "_image_processor")
+        }
+        expect(pipeline, dataLoader).toProducePartialImages(for: request, delegate: delegate)
         wait()
-    }
-
-    func testParitalImagesAreDisplayed() {
-        // Given
-        ImagePipeline.pushShared(pipeline)
-
-        let imageView = _ImageView()
-
-        let expectPartialImageProduced = self.expectation(description: "Partial Image Produced")
-        // We expect two partial images (at 5 scans, and 9 scans marks).
-        expectPartialImageProduced.expectedFulfillmentCount = 2
-
-        let expectedFinalLoaded = self.expectation(description: "Final Image Produced")
-
-        // When/Then
-        Nuke.loadImage(
-            with: Test.request,
-            into: imageView,
-            progress: { response, _, _ in
-                if let image = response?.image {
-                    XCTAssertTrue(imageView.image === image)
-                    expectPartialImageProduced.fulfill()
-                    self.dataLoader.resume()
-                }
-            },
-            completion: { response, _ in
-                XCTAssertTrue(imageView.image === response?.image)
-                expectedFinalLoaded.fulfill()
-            }
-        )
-        wait()
-
-        ImagePipeline.popShared()
     }
 
     func testProgressiveDecodingDisabled() {
@@ -174,16 +142,18 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
         // When/Then
         let expectFinalImageProduced = self.expectation(description: "Final Image Is Produced")
-        pipeline.loadImage(
-            with: Test.request,
-            progress: { response, _, _ in
-                XCTAssertNil(response)
-                self.dataLoader.resume()
-            },
-            completion: { response, error in
-                expectFinalImageProduced.fulfill()
-            }
-        )
+        delegate.progressHandler = { [unowned self] _, _ in
+            self.dataLoader.resume()
+        }
+        delegate.progressiveResponseHandler = { _ in
+            XCTFail("Expected partial images to never be produced")
+        }
+        delegate.completion = { response, _ in
+            XCTAssertNotNil(response)
+            expectFinalImageProduced.fulfill()
+        }
+        pipeline.imageTask(with: Test.request, delegate: delegate).start()
+
         wait()
     }
 
@@ -201,21 +171,18 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
         let finalLoaded = self.expectation(description: "Final image produced")
 
-        pipeline.loadImage(
-            with: Test.request.processed(key: "1") { $0 },
-            progress: { image, _, _ in
-                if image != nil {
-                    // We don't expect partial to finish, because as soon as
-                    // we create operation to create final image, partial
-                    // operations is going to be finished before even starting
-                }
-                self.dataLoader.resume()
-            },
-            completion: { response, _ in
-                XCTAssertNotNil(response)
-                finalLoaded.fulfill()
-            }
-        )
+        delegate.progressHandler = { [unowned self] _, _ in
+            self.dataLoader.resume()
+        }
+        delegate.progressiveResponseHandler = { _ in
+            XCTFail("Expected partial images to never be produced")
+        }
+        delegate.completion = { response, _ in
+            XCTAssertNotNil(response)
+            finalLoaded.fulfill()
+        }
+
+        pipeline.imageTask(with: Test.request.processed(key: "1") { $0 }, delegate: delegate).start()
 
         wait()
     }
@@ -231,30 +198,27 @@ private struct TestExpectationProgressivePipeline {
     let test: XCTestCase
     let pipeline: ImagePipeline
     let dataLoader: MockProgressiveDataLoader
+    let delegate = MockImageTaskDelegate()
 
     // We expect two partial images (at 5 scans, and 9 scans marks).
-    func toProducePartialImages(for request: ImageRequest = Test.request, withCount count: Int = 2, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) {
+    func toProducePartialImages(for request: ImageRequest = Test.request, withCount count: Int = 2, delegate: MockImageTaskDelegate? = nil) {
         let expectPartialImageProduced = test.expectation(description: "Partial Image Is Produced")
         expectPartialImageProduced.expectedFulfillmentCount = count
 
         let expectFinalImageProduced = test.expectation(description: "Final Image Is Produced")
 
-        pipeline.loadImage(
-            with: request,
-            progress: { image, completed, total in
-                progress?(image, completed, total)
+        self.delegate.next = delegate
 
-                // This works because each new chunk resulted in a new scan
-                if image != nil {
-                    expectPartialImageProduced.fulfill()
-                    self.dataLoader.resume()
-                }
-            },
-            completion: { response, error in
-                completion?(response, error)
-                XCTAssertNotNil(response)
-                expectFinalImageProduced.fulfill()
-            }
-        )
+        self.delegate.progressiveResponseHandler = { response in
+            expectPartialImageProduced.fulfill()
+            self.dataLoader.resume()
+        }
+
+        self.delegate.completion = { response, error in
+            XCTAssertNotNil(response)
+            expectFinalImageProduced.fulfill()
+        }
+
+        pipeline.imageTask(with: request, delegate: self.delegate).start()
     }
 }

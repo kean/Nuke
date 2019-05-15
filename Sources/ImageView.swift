@@ -244,11 +244,15 @@ public struct ImageLoadingOptions {
 /// - note: With a few modifications this might become public at some point,
 /// however as it stands today `ImageViewController` is just a helper class,
 /// making it public wouldn't expose any additional functionality to the users.
-private final class ImageViewController {
+private final class ImageViewController: ImageTaskDelegate {
     // Ideally should be `unowned` but can't because of the Swift bug
     // https://bugs.swift.org/browse/SR-7369
     private weak var imageView: ImageDisplayingView?
-    private weak var task: ImageTask?
+    private var task: ImageTask?
+
+    private var completionHandler: ImageTask.Completion?
+    private var progressHandler: ImageTask.ProgressHandler?
+    private var options: ImageLoadingOptions = ImageLoadingOptions()
 
     // Automatically cancel the request when the view is deallocated.
     deinit {
@@ -318,24 +322,39 @@ private final class ImageViewController {
             }
         }
 
-        // Start the request.
-        self.task = pipeline.loadImage(
-            with: request,
-            progress: { [weak self] response, completed, total in
-                self?.handle(partialImage: response, options: options)
-                progress?(response, completed, total)
-            },
-            completion: { [weak self] response, error in
-                self?.handle(response: response, error: error, fromMemCache: false, options: options)
-                completion?(response, error)
-            }
-        )
+        self.options = options
+        self.progressHandler = progress
+        self.completionHandler = completion
+
+        // Start the request. Note: the delegate-based flow is used to handle
+        // progressive image but also to improve performance. For simple cases,
+        // please consider using convenience closure-based API:
+        //
+        //     pipeline.loadImage(with: request, completion) { ... }
+
+        self.task = pipeline.imageTask(with: request, delegate: self)
+        self.task?.start()
         return self.task
     }
 
     func cancelOutstandingTask() {
         task?.cancel() // The pipeline guarantees no callbacks to be deliver after cancellation
         task = nil
+    }
+
+    // MARK: - ImageTaskDelegate
+
+    func imageTask(_ task: ImageTask, didCompleteWithResponse response: ImageResponse?, error: ImagePipeline.Error?) {
+        handle(response: response, error: error, fromMemCache: false, options: options)
+        completionHandler?(response, error)
+    }
+
+    func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64) {
+        progressHandler?(completedUnitCount, totalUnitCount)
+    }
+
+    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
+        handle(partialImage: response, options: options)
     }
 
     // MARK: - Handling Responses
@@ -351,11 +370,8 @@ private final class ImageViewController {
         self.task = nil
     }
 
-    private func handle(partialImage response: ImageResponse?, options: ImageLoadingOptions) {
-        guard let image = response?.image else {
-            return
-        }
-        _display(image, options.transition, options.alwaysTransition, false, options.contentModes?.success)
+    private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
+        _display(response.image, options.transition, options.alwaysTransition, false, options.contentModes?.success)
     }
 
     private func _display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?) {
@@ -460,11 +476,8 @@ private final class ImageViewController {
         self.task = nil
     }
 
-    private func handle(partialImage response: ImageResponse?, options: ImageLoadingOptions) {
-        guard let image = response?.image else {
-            return
-        }
-        _display(image, options.transition, options.alwaysTransition, false)
+    private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
+        _display(response.image, options.transition, options.alwaysTransition, false)
     }
 
     private func _display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool) {
