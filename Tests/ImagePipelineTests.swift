@@ -23,7 +23,7 @@ class ImagePipelineTests: XCTestCase {
 
     func testCompletionCalledAsynchronouslyOnMainThread() {
         var isCompleted = false
-        expect(pipeline).toLoadImage(with: Test.request) { _, _ in
+        expect(pipeline).toLoadImage(with: Test.request) { _ in
             XCTAssert(Thread.isMainThread)
             isCompleted = true
         }
@@ -66,7 +66,7 @@ class ImagePipelineTests: XCTestCase {
 
         // When
         let expectTaskFinished = self.expectation(description: "Task finished")
-        let task = pipeline.loadImage(with: request) { _, _ in
+        let task = pipeline.loadImage(with: request) { _ in
             expectTaskFinished.fulfill()
         }
 
@@ -97,8 +97,9 @@ class ImagePipelineTests: XCTestCase {
         }
 
         // Then
-        expect(pipeline).toLoadImage(with: request) { response, _ in
-            XCTAssertNotNil(response?.image.animatedImageData)
+        expect(pipeline).toLoadImage(with: request) { result in
+            let image = result.value?.image
+            XCTAssertNotNil(image?.animatedImageData)
         }
         wait()
 
@@ -182,7 +183,7 @@ class ImagePipelineTests: XCTestCase {
         dataLoader.queue.isSuspended = true
 
         expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-        let task = pipeline.loadImage(with: Test.request) { (_, _) in
+        let task = pipeline.loadImage(with: Test.request) { _ in
             XCTFail()
         }
         wait() // Wait till operation is created
@@ -201,7 +202,7 @@ class ImagePipelineTests: XCTestCase {
 
         let request = Test.request
 
-        let task = pipeline.loadImage(with: request) { (_, _) in
+        let task = pipeline.loadImage(with: request) { _ in
             XCTFail()
         }
         wait() // Wait till operation is created
@@ -229,7 +230,7 @@ class ImagePipelineTests: XCTestCase {
             return $0
         }
 
-        let task = pipeline.loadImage(with: request) { (_, _) in
+        let task = pipeline.loadImage(with: request) { _ in
             XCTFail()
         }
         wait() // Wait till operation is created
@@ -266,14 +267,14 @@ class ImagePipelineTests: XCTestCase {
         }
 
         // When
-        expect(pipeline).toLoadImage(with: Test.request, completion: { response, _ in
-            let output = response!.image
+        expect(pipeline).toLoadImage(with: Test.request) { result in
+            let output = result.value!.image
 
             XCTAssertTrue(output === image)
 
             let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: output)
             XCTAssertEqual(isDecompressionNeeded, true)
-        })
+        }
         wait()
     }
 
@@ -292,14 +293,14 @@ class ImagePipelineTests: XCTestCase {
         }
 
         // When
-        expect(pipeline).toLoadImage(with: Test.request, completion: { response, _ in
-            let output = response!.image
+        expect(pipeline).toLoadImage(with: Test.request) { result in
+            let output = result.value!.image
 
             XCTAssertTrue(output !== image)
 
             let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: output)
             XCTAssertEqual(isDecompressionNeeded, false)
-        })
+        }
         wait()
     }
 
@@ -308,8 +309,8 @@ class ImagePipelineTests: XCTestCase {
         var request = Test.request
         request.processor = ImageScalingProcessor(targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
 
-        expect(pipeline).toLoadImage(with: request) { response, _ in
-            let image = response!.image
+        expect(pipeline).toLoadImage(with: request) { result in
+            let image = result.value!.image
 
             // Expect decompression to not be performed
             let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
@@ -323,8 +324,8 @@ class ImagePipelineTests: XCTestCase {
         var request = Test.request
         request.processor = MockEmptyImageProcessor()
 
-        expect(pipeline).toLoadImage(with: request) { response, _ in
-            let image = response!.image
+        expect(pipeline).toLoadImage(with: request) { result in
+            let image = result.value!.image
 
             // Expect decompression to be performed (processor was applied but it did nothing)
             let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
@@ -481,7 +482,7 @@ class ImagePipelineImageTaskDelegateTests: XCTestCase {
 
     func testThatTaskIsntStartedByDefault() {
         // Given
-        delegate.completion = { _, _ in
+        delegate.completion = { _ in
             XCTFail("Expect completion not to be called")
         }
 
@@ -502,9 +503,9 @@ class ImagePipelineImageTaskDelegateTests: XCTestCase {
     func testThatTaskIsStartedWhenStartIsCalled() {
         // Given
         let expectation = self.expectation(description: "Expected image to be loaded")
-        delegate.completion = { response, _ in
+        delegate.completion = { result in
             XCTAssertTrue(Thread.isMainThread)
-            XCTAssertNotNil(response)
+            XCTAssertTrue(result.isSuccess)
             expectation.fulfill()
         }
 
@@ -516,7 +517,7 @@ class ImagePipelineImageTaskDelegateTests: XCTestCase {
 
     func testThatCancelledTaskCantBeStarted() {
         // Given cancelled task
-        delegate.completion = { _, _ in
+        delegate.completion = { _ in
             XCTFail("Expect completion not to be called")
         }
         let task = pipeline.imageTask(with: Test.request, delegate: delegate)

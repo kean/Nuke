@@ -42,7 +42,7 @@ class ImageViewTests: XCTestCase {
     func testImageLoadedWithURL() {
         // When requesting an image with URL
         let expectation = self.expectation(description: "Image loaded")
-        Nuke.loadImage(with: Test.url, into: imageView) { response, _ in
+        Nuke.loadImage(with: Test.url, into: imageView) { _ in
             expectation.fulfill()
         }
         wait()
@@ -136,10 +136,10 @@ class ImageViewTests: XCTestCase {
         Nuke.loadImage(
             with: Test.request,
             into: imageView,
-            completion: { response, _ in
+            completion: { result in
                 // Expect completion to be called  on the main thread
                 XCTAssertTrue(Thread.isMainThread)
-                XCTAssertNotNil(response)
+                XCTAssertTrue(result.isSuccess)
                 didCallCompletion = true
                 expectation.fulfill()
             }
@@ -158,10 +158,10 @@ class ImageViewTests: XCTestCase {
         Nuke.loadImage(
             with: Test.request,
             into: imageView,
-            completion: { response, _ in
+            completion: { result in
                 // Expect completion to be called syncrhonously on the main thread
                 XCTAssertTrue(Thread.isMainThread)
-                XCTAssertNotNil(response)
+                XCTAssertTrue(result.isSuccess)
                 didCallCompletion = true
             }
         )
@@ -246,7 +246,7 @@ class ImageViewTests: XCTestCase {
         mockPipeline.isCancellationEnabled = false
 
         // Given an image view which is in the process of loading the image
-        Nuke.loadImage(with: Test.request, into: imageView) { _, _ in
+        Nuke.loadImage(with: Test.request, into: imageView) { _ in
             // Expect completion to never get called, we're already displaying
             // the image B by that point.
             XCTFail("Enexpected completion")
@@ -278,7 +278,7 @@ class ImageViewTests: XCTestCase {
         mockCache[requestB] = imageB
 
         // Given an image view which is in the process of loading the image A.
-        Nuke.loadImage(with: requestA, into: imageView) { _, _ in
+        Nuke.loadImage(with: requestA, into: imageView) { _ in
             // Expect completion to never get called, we're already displaying
             // the image B by that point.
             XCTFail("Enexpected completion for requestA")

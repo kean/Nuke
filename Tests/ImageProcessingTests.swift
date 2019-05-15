@@ -34,9 +34,10 @@ class ImageProcessingTests: XCTestCase {
         let request = Test.request.processed(with: MockImageProcessor(id: "processor1"))
 
         // When
-        expect(pipeline).toLoadImage(with: request) { response, _ in
+        expect(pipeline).toLoadImage(with: request) { result in
             // Then
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["processor1"])
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["processor1"])
         }
         wait()
     }
@@ -49,9 +50,10 @@ class ImageProcessingTests: XCTestCase {
 
         // When
         // When
-        expect(pipeline).toLoadImage(with: request) { response, _ in
+        expect(pipeline).toLoadImage(with: request) { result in
             // Then
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["processor1"])
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["processor1"])
         }
         wait()
     }
@@ -65,9 +67,10 @@ class ImageProcessingTests: XCTestCase {
             .processed(with: MockImageProcessor(id: "processor2"))
 
         // When
-        expect(pipeline).toLoadImage(with: request) { response, _ in
+        expect(pipeline).toLoadImage(with: request) { result in
             // Then
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["processor1", "processor2"])
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["processor1", "processor2"])
         }
         wait()
     }
@@ -78,9 +81,10 @@ class ImageProcessingTests: XCTestCase {
         request.processor = nil
 
         // When
-        expect(pipeline).toLoadImage(with: request) { response, _ in
+        expect(pipeline).toLoadImage(with: request) { result in
             // Then
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], [])
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], [])
         }
         wait()
     }

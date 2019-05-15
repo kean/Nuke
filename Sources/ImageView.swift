@@ -303,8 +303,8 @@ private final class ImageViewController: ImageTaskDelegate {
         if request.memoryCacheOptions.isReadAllowed,
             let imageCache = pipeline.configuration.imageCache,
             let response = imageCache.cachedResponse(for: request) {
-            handle(response: response, error: nil, fromMemCache: true, options: options)
-            completion?(response, nil)
+            handle(result: .success(response), fromMemCache: true, options: options)
+            completion?(.success(response))
             return nil
         }
 
@@ -344,9 +344,9 @@ private final class ImageViewController: ImageTaskDelegate {
 
     // MARK: - ImageTaskDelegate
 
-    func imageTask(_ task: ImageTask, didCompleteWithResponse response: ImageResponse?, error: ImagePipeline.Error?) {
-        handle(response: response, error: error, fromMemCache: false, options: options)
-        completionHandler?(response, error)
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
+        handle(result: result, fromMemCache: false, options: options)
+        completionHandler?(result)
     }
 
     func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64) {
@@ -361,11 +361,14 @@ private final class ImageViewController: ImageTaskDelegate {
 
     #if !os(macOS)
 
-    private func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool, options: ImageLoadingOptions) {
-        if let image = response?.image {
-            _display(image, options.transition, options.alwaysTransition, fromMemCache, options.contentModes?.success)
-        } else if let failureImage = options.failureImage {
-            _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache, options.contentModes?.failure)
+    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool, options: ImageLoadingOptions) {
+        switch result {
+        case let .success(response):
+            _display(response.image, options.transition, options.alwaysTransition, fromMemCache, options.contentModes?.success)
+        case .failure:
+            if let failureImage = options.failureImage {
+                _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache, options.contentModes?.failure)
+            }
         }
         self.task = nil
     }
@@ -466,12 +469,15 @@ private final class ImageViewController: ImageTaskDelegate {
 
     #else
 
-    private func handle(response: ImageResponse?, error: Error?, fromMemCache: Bool, options: ImageLoadingOptions) {
+    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool, options: ImageLoadingOptions) {
         // NSImageView doesn't support content mode, unfortunately.
-        if let image = response?.image {
-            _display(image, options.transition, options.alwaysTransition, fromMemCache)
-        } else if let failureImage = options.failureImage {
-            _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache)
+        switch result {
+        case let .success(response):
+            _display(response.image, options.transition, options.alwaysTransition, fromMemCache)
+        case .failure:
+            if let failureImage = options.failureImage {
+                _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache)
+            }
         }
         self.task = nil
     }
