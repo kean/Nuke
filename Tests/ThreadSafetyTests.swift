@@ -45,7 +45,7 @@ class ThreadSafetyTests: XCTestCase {
                 let request = ImageRequest(url: URL(string: "\(Test.url)/\(rnd(30))")!)
                 let shouldCancel = rnd(3) == 0
 
-                let task = pipeline.loadImage(with: request) { _, _ in
+                let task = pipeline.loadImage(with: request) { _ in
                     if shouldCancel {
                         // do nothing, we don't expect completion on cancel
                     } else {
@@ -201,7 +201,7 @@ final class RandomizedTests: XCTestCase {
 
                 let shouldCancel = every(3)
 
-                let task = pipeline.loadImage(with: request) { _, _ in
+                let task = pipeline.loadImage(with: request) { _ in
                     if shouldCancel {
                         // do nothing, we don't expect completion on cancel
                     } else {

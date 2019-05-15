@@ -76,7 +76,7 @@ class MockImagePipeline: ImagePipeline {
                 NotificationCenter.default.post(name: MockImagePipeline.DidFinishTask, object: self)
 
                 guard !task.isCancelled else { return }
-                delegate?.imageTask(task, didCompleteWithResponse: Test.response, error: nil)
+                delegate?.imageTask(task, didCompleteWithResult: .success(Test.response))
                 _ = anonymous // retain the delegates
             }
         }
@@ -95,7 +95,7 @@ class MockImagePipeline: ImagePipeline {
 final class MockImageTaskDelegate: ImageTaskDelegate {
     var progressHandler: ((_ total: Int64, _ completed: Int64) -> Void)?
     var progressiveResponseHandler: ((ImageResponse) -> Void)?
-    var completion: ((ImageResponse?, ImagePipeline.Error?) -> Void)?
+    var completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)?
     var next: ImageTaskDelegate?
 
     func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64) {
@@ -108,8 +108,8 @@ final class MockImageTaskDelegate: ImageTaskDelegate {
         next?.imageTask(task, didProduceProgressiveResponse: response)
     }
 
-    func imageTask(_ task: ImageTask, didCompleteWithResponse response: ImageResponse?, error: ImagePipeline.Error?) {
-        completion?(response, error)
-        next?.imageTask(task, didCompleteWithResponse: response, error: error)
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
+        completion?(result)
+        next?.imageTask(task, didCompleteWithResult: result)
     }
 }

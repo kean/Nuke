@@ -176,7 +176,7 @@ public /* final */ class ImagePipeline {
     @discardableResult
     public func loadData(with request: ImageRequest,
                          progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
-                         completion: @escaping (_ data: Data?, _ urlResponse: URLResponse?, _ error: ImagePipeline.Error?) -> Void) -> ImageTask {
+                         completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
         let task = imageTask(with: request, delegate: dataTaskDummyDelegate)
         queue.async {
             self.startDataTask(task, progress: progress, completion: completion)
@@ -229,7 +229,7 @@ public /* final */ class ImagePipeline {
             let response = self.configuration.imageCache?.cachedResponse(for: task.request) {
             DispatchQueue.main.async {
                 guard let delegate = task.delegate else { return }
-                delegate.imageTask(task, didCompleteWithResponse: response, error: nil)
+                delegate.imageTask(task, didCompleteWithResult: .success(response))
                 _ = anonymousDelegate // retain anonymous delegates until we are finished with them
             }
             return
@@ -253,7 +253,7 @@ public /* final */ class ImagePipeline {
                 switch event {
                 case let .value(response, isCompleted):
                     if isCompleted {
-                        delegate.imageTask(task, didCompleteWithResponse: response, error: nil)
+                        delegate.imageTask(task, didCompleteWithResult: .success(response))
                     } else {
                         delegate.imageTask(task, didProduceProgressiveResponse: response)
                     }
@@ -261,7 +261,7 @@ public /* final */ class ImagePipeline {
                     task.setProgress(progress)
                     delegate.imageTask(task, didUpdateProgress: progress.completed, totalUnitCount: progress.total)
                 case let .error(error):
-                    delegate.imageTask(task, didCompleteWithResponse: nil, error: error)
+                    delegate.imageTask(task, didCompleteWithResult: .failure(error))
                 }
                 _ = anonymousDelegate // retain anonymous delegates until we are finished with them
             }
@@ -270,7 +270,7 @@ public /* final */ class ImagePipeline {
 
     private func startDataTask(_ task: ImageTask,
                                progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
-                               completion: ((_ data: Data?, _ urlResponse: URLResponse?, _ error: ImagePipeline.Error?) -> Void)?) {
+                               completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
         if self.didFinishCollectingMetrics != nil {
             task.metrics = ImageTaskMetrics(taskId: task.taskId, startDate: Date())
         }
@@ -288,13 +288,13 @@ public /* final */ class ImagePipeline {
                 switch event {
                 case let .value(response, isCompleted):
                     if isCompleted {
-                        completion?(response.0, response.1, nil)
+                        completion(.success(response))
                     }
                 case let .progress(progress):
                     task.setProgress(progress)
                     progressHandler?(progress.completed, progress.total)
                 case let .error(error):
-                    completion?(nil, nil, error)
+                    completion(.failure(error))
                 }
             }
         }

@@ -98,12 +98,12 @@ public final class ImagePreheater {
         let imageTask: ImageTask
         switch destination {
         case .diskCache:
-            imageTask = pipeline.loadData(with: request) { [weak self] _, _, _ in
+            imageTask = pipeline.loadData(with: request) { [weak self] _ in
                 self?._remove(task)
                 finish()
             }
         case .memoryCache:
-            imageTask = pipeline.loadImage(with: request) { [weak self] _, _ in
+            imageTask = pipeline.loadImage(with: request) { [weak self] _ in
                 self?._remove(task)
                 finish()
             }
