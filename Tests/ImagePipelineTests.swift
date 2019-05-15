@@ -354,30 +354,6 @@ class ImagePipelineTests: XCTestCase {
     }
 
     #endif
-
-    // MARK: Disabling Decoding
-
-    func testDisablingDecoding() {
-        // Given the pipeline successfully returning image data
-        let pipeline = ImagePipeline {
-            $0.dataLoader = MockDataLoader()
-            $0.imageDecoder = { _ in
-                XCTFail("The pipeline tried to decode the image data")
-                return ImageDecoder()
-            }
-            $0.imageCache = nil
-        }
-
-        // Given the request with disabled decoding
-        let request = Test.request.mutated {
-            $0.isDecodingDisabled = true
-        }
-
-        // When the image data is loaded
-        // Expect pipeline to skip decoding and return .decodingFailded error
-        expect(pipeline).toFailRequest(request, with: .decodingFailed)
-        wait()
-    }
 }
 
 /// Test how well image pipeline interacts with memory cache.

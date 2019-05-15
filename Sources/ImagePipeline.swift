@@ -19,7 +19,7 @@ public /* final */ class ImagePipeline: ImageTaskManaging {
     // This is a queue on which we access the sessions.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline")
 
-    private var tasks = [ImageTask: ImageTaskExecutionContext]()
+    private var tasks = [ImageTask: TaskSubscription]()
 
     private var processingTasks: [AnyHashable: ImageProcessingTask]?
     private var decodingTasks: [AnyHashable: ImageDecodingTask]?
@@ -157,12 +157,10 @@ public /* final */ class ImagePipeline: ImageTaskManaging {
     public func loadImage(with request: ImageRequest,
                           progress: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        let task = makeImageTask(with: request)
+        let delegate = ImageTaskAnonymousDelegate(progress: progress, completion: completion)
+        let task = imageTask(with: request, delegate: delegate)
         queue.async {
-            // Start exeucing the task immediatelly.
-            let delegate = ImageTaskAnonymousDelegate(progress: progress, completion: completion)
-            task.delegate = delegate
-            self.startTask(task, delegate: delegate)
+            self.startImageTask(task, delegate: delegate)
         }
         return task
     }
@@ -170,48 +168,57 @@ public /* final */ class ImagePipeline: ImageTaskManaging {
     /// Creates a task with the given request and delegate. After the task
     /// is created, it needs to be started by calling `task.start()`.
     public func imageTask(with request: ImageRequest, delegate: ImageTaskDelegate) -> ImageTask {
-        let task = makeImageTask(with: request)
+        let task = ImageTask(taskId: nextTaskId.increment(), request: request)
+        task.pipeline = self
         task.delegate = delegate
         return task
     }
 
-    private func makeImageTask(with request: ImageRequest) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request)
-        task.pipeline = self
+    // MARK: - Loading Image Data
+
+    @discardableResult
+    public func loadData(with request: ImageRequest,
+                         progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
+                         completion: @escaping (_ data: Data?, _ urlResponse: URLResponse?, _ error: ImagePipeline.Error?) -> Void) -> ImageTask {
+        let task = imageTask(with: request, delegate: dataTaskDummyDelegate)
+        queue.async {
+            self.startDataTask(task, progress: progress, completion: completion)
+        }
         return task
     }
+
+    // This is a bit of a hack to support new `loadData` feature. By setting delegate
+    // to nil we indicate that the task is cancelled and no events must by delivered
+    // to the client. We use the same logic for data tasks.
+    private var dataTaskDummyDelegate = ImageTaskAnonymousDelegate(progress: nil, completion: nil)
 
     // MARK: - ImageTaskManaging
 
     func imageTaskStartCalled(_ task: ImageTask) {
         queue.async {
-            self.startTask(task, delegate: nil)
+            self.startImageTask(task, delegate: nil)
         }
     }
 
     func imageTaskCancelCalled(_ task: ImageTask) {
         queue.async {
             task.isStartNeeded = false
-            guard let context = self.tasks.removeValue(forKey: task) else { return }
-            context.subscription?.unsubscribe()
+            guard let subscription = self.tasks.removeValue(forKey: task) else { return }
+            subscription.unsubscribe()
         }
     }
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
         queue.async {
             task.priority = priority
-            guard let context = self.tasks[task] else { return }
-            context.subscription?.setPriority(priority)
+            guard let subscription = self.tasks[task] else { return }
+            subscription.setPriority(priority)
         }
     }
 
     // MARK: - Starting Image Tasks
 
-    private final class ImageTaskExecutionContext {
-        var subscription: TaskSubscription?
-    }
-
-    private func startTask(_ task: ImageTask, delegate anonymousDelegate: ImageTaskAnonymousDelegate?) {
+    private func startImageTask(_ task: ImageTask, delegate anonymousDelegate: ImageTaskAnonymousDelegate?) {
         guard task.isStartNeeded else { return }
         task.isStartNeeded = false
 
@@ -231,78 +238,67 @@ public /* final */ class ImagePipeline: ImageTaskManaging {
             return
         }
 
-        // Memory cache lookup failed -> start loading.
-        if task.request.isDecodingDisabled {
-            self.loadData(for: task, delegate: anonymousDelegate)
-        } else {
-            self.loadImage(for: task, delegate: anonymousDelegate)
-        }
-    }
-
-    private func loadImage(for task: ImageTask, delegate anonymousDelegate: ImageTaskAnonymousDelegate?) {
-        let request = task.request
-
-        let context = ImageTaskExecutionContext()
-        self.tasks[task] = context
-
-        context.subscription = getProcessedImage(for: task.request)
-            .subscribe(priority: task.priority) { [weak self, weak task] event in
-                guard let self = self, let task = task else { return }
-
-                if event.isCompleted {
-                    self.tasks[task] = nil
-                }
-
-                // Store response in memory cache if allowed.
-                if case let .value(response, isCompleted) = event, isCompleted && request.memoryCacheOptions.isWriteAllowed {
-                    self.configuration.imageCache?.storeResponse(response, for: request)
-                }
-
-                DispatchQueue.main.async {
-                    guard let delegate = task.delegate else { return }
-                    switch event {
-                    case let .value(response, isCompleted):
-                        if isCompleted {
-                            delegate.imageTask(task, didCompleteWithResponse: response, error: nil)
-                        } else {
-                            delegate.imageTask(task, didProduceProgressiveResponse: response)
-                        }
-                    case let .progress(progress):
-                        task.completedUnitCount = progress.completed
-                        task.totalUnitCount = progress.total
-                        task._progress?.completedUnitCount = progress.completed
-                        task._progress?.totalUnitCount = progress.total
-                        delegate.imageTask(task, didUpdateProgress: progress.completed, totalUnitCount: progress.total)
-                    case let .error(error):
-                        delegate.imageTask(task, didCompleteWithResponse: nil, error: error)
-                    }
-                    _ = anonymousDelegate // retain anonymous delegates until we are finished with them
-                }
-        }
-    }
-
-    private func loadData(for task: ImageTask, delegate anonymousDelegate: ImageTaskAnonymousDelegate?) {
-        let request = task.request
-
-        let context = ImageTaskExecutionContext()
-        self.tasks[task] = context
-
-        context.subscription = getImageData(for: request)
-            .subscribe(priority: task.priority) { [weak self, weak task] event in
+        self.tasks[task] = getProcessedImage(for: task.request).subscribe(priority: task.priority) { [weak self, weak task] event in
             guard let self = self, let task = task else { return }
 
-            guard event.isCompleted else {
-                return
+            if event.isCompleted {
+                self.tasks[task] = nil
             }
 
-            self.tasks[task] = nil
+            // Store response in memory cache if allowed.
+            let request = task.request
+            if case let .value(response, isCompleted) = event, isCompleted && request.memoryCacheOptions.isWriteAllowed {
+                self.configuration.imageCache?.storeResponse(response, for: request)
+            }
 
             DispatchQueue.main.async {
                 guard let delegate = task.delegate else { return }
-                // TODO: replace with separate completion handlers for decoding
-                // For now we keep the behavior from the previous versions.
-                delegate.imageTask(task, didCompleteWithResponse: nil, error: .decodingFailed)
+                switch event {
+                case let .value(response, isCompleted):
+                    if isCompleted {
+                        delegate.imageTask(task, didCompleteWithResponse: response, error: nil)
+                    } else {
+                        delegate.imageTask(task, didProduceProgressiveResponse: response)
+                    }
+                case let .progress(progress):
+                    task.setProgress(progress)
+                    delegate.imageTask(task, didUpdateProgress: progress.completed, totalUnitCount: progress.total)
+                case let .error(error):
+                    delegate.imageTask(task, didCompleteWithResponse: nil, error: error)
+                }
                 _ = anonymousDelegate // retain anonymous delegates until we are finished with them
+            }
+        }
+    }
+
+    private func startDataTask(_ task: ImageTask,
+                               progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
+                               completion: ((_ data: Data?, _ urlResponse: URLResponse?, _ error: ImagePipeline.Error?) -> Void)?) {
+        if self.didFinishCollectingMetrics != nil {
+            task.metrics = ImageTaskMetrics(taskId: task.taskId, startDate: Date())
+        }
+
+        self.tasks[task] = getImageData(for: task.request) .subscribe(priority: task.priority) { [weak self, weak task] event in
+            guard let self = self, let task = task else { return }
+
+            if event.isCompleted {
+                self.tasks[task] = nil
+            }
+
+            DispatchQueue.main.async {
+                guard let _ = task.delegate else { return }
+
+                switch event {
+                case let .value(response, isCompleted):
+                    if isCompleted {
+                        completion?(response.0, response.1, nil)
+                    }
+                case let .progress(progress):
+                    task.setProgress(progress)
+                    progressHandler?(progress.completed, progress.total)
+                case let .error(error):
+                    completion?(nil, nil, error)
+                }
             }
         }
     }
