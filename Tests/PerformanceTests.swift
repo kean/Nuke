@@ -86,7 +86,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
                 var request = ImageRequest(url: url)
                 request.processor = nil // Remove processing time from equation
 
-                loader.loadImage(with: url) { _, _ in
+                loader.loadImage(with: url) { _ in
                     finished += 1
                     if finished == urls.count {
                         expectation.fulfill()

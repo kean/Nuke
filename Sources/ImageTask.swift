@@ -9,7 +9,7 @@ import Foundation
 /// All methods of the delegates are called on the main thread.
 public protocol ImageTaskDelegate: class {
     /// Called when the task finishes loading the image.
-    func imageTask(_ task: ImageTask, didCompleteWithResponse response: ImageResponse?, error: ImagePipeline.Error?)
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>)
 
     /// Called periodically during the lifetime of a task when progress is updated.
     func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64)
@@ -59,7 +59,7 @@ public /* final */ class ImageTask: Hashable {
     private(set) var _progress: Progress?
 
     /// A completion handler to be called when task finishes or fails.
-    public typealias Completion = (_ response: ImageResponse?, _ error: ImagePipeline.Error?) -> Void
+    public typealias Completion = (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
 
     /// A progress handler to be called periodically during the lifetime of a task.
     public typealias ProgressHandler = (_ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
@@ -154,8 +154,8 @@ final class ImageTaskAnonymousDelegate: ImageTaskDelegate {
         self.completionHandler = completion
     }
 
-    func imageTask(_ task: ImageTask, didCompleteWithResponse response: ImageResponse?, error: ImagePipeline.Error?) {
-        completionHandler?(response, error)
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
+        completionHandler?(result)
     }
 
     func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64) {

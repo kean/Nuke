@@ -32,11 +32,13 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // When loading images for those requests
         // Then the correct proessors are applied.
-        expect(pipeline).toLoadImage(with: request1) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["1"])
+        expect(pipeline).toLoadImage(with: request1) { result in
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
         }
-        expect(pipeline).toLoadImage(with: request2) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["1"])
+        expect(pipeline).toLoadImage(with: request2) { result in
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
         }
 
         dataLoader.queue.isSuspended = false
@@ -59,11 +61,13 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // When loading images for those requests
         // Then the correct proessors are applied.
-        expect(pipeline).toLoadImage(with: request1) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["1"])
+        expect(pipeline).toLoadImage(with: request1) { result in
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
         }
-        expect(pipeline).toLoadImage(with: request2) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["2"])
+        expect(pipeline).toLoadImage(with: request2) { result in
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["2"])
         }
 
         dataLoader.queue.isSuspended = false
@@ -87,11 +91,13 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // When loading images for those requests
         // Then the correct proessors are applied.
-        expect(pipeline).toLoadImage(with: request1) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["1"])
+        expect(pipeline).toLoadImage(with: request1) { result in
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
         }
-        expect(pipeline).toLoadImage(with: request2) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], [])
+        expect(pipeline).toLoadImage(with: request2) { result in
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], [])
         }
 
         dataLoader.queue.isSuspended = false
@@ -158,11 +164,13 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         request2.loadKey = Test.url.absoluteString + "processor=2"
 
         // Then both images are loaded and processors are applied
-        expect(pipeline).toLoadImage(with: request1) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["1"])
+        expect(pipeline).toLoadImage(with: request1) { result in
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
         }
-        expect(pipeline).toLoadImage(with: request2) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["2"])
+        expect(pipeline).toLoadImage(with: request2) { result in
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["2"])
         }
 
         dataLoader.queue.isSuspended = false
@@ -219,17 +227,18 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
             // When loading image with the same request and processing for
             // the first request has already started
-            self.pipeline.loadImage(with: request2) { response, _ in
+            self.pipeline.loadImage(with: request2) { result in
+                let image = result.value?.image
                 // Then the image is still loaded and processors is applied
-                XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["1"])
-                XCTAssertNotNil(response)
+                XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
                 expectation.fulfill()
             }
             queue.isSuspended = false
         }
 
-        expect(pipeline).toLoadImage(with: request1) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["1"])
+        expect(pipeline).toLoadImage(with: request1) { result in
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
         }
 
         wait { _ in
@@ -255,11 +264,13 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // When loading images for those requests
         // Then the correct proessors are applied.
-        expect(pipeline).toLoadImage(with: request1) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["1"])
+        expect(pipeline).toLoadImage(with: request1) { result in
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
         }
-        expect(pipeline).toLoadImage(with: request2) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs ?? [], ["2"])
+        expect(pipeline).toLoadImage(with: request2) { result in
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["2"])
         }
         wait()
 
@@ -294,7 +305,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
     func testCancellatioOnlyCancelOneTask() {
         dataLoader.queue.isSuspended = true
 
-        let task1 = pipeline.loadImage(with: Test.request) { _, _ in
+        let task1 = pipeline.loadImage(with: Test.request) { _ in
             XCTFail()
         }
 

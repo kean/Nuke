@@ -146,10 +146,10 @@ Use `ImagePipeline` directly to load images without a view.
 ```swift
 let task = ImagePipeline.shared.loadImage(
     with: url,
-    progress: { _, completed, total in
+    progress: { completed, total in
         print("progress updated")
     },
-    completion: { response, error in
+    completion: { result in
         print("task completed")
     }
 )
@@ -277,8 +277,8 @@ let task = ImagePipeline.shared.loadImage(
     progress: { response, _, _ in
         imageView.image = response?.image
     },
-    completion: { response, _ in
-        imageView.image = response?.image
+    completion: { result in
+        imageView.image = try? result.get().image
     }
 )
 ```

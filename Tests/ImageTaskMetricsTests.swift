@@ -48,7 +48,7 @@ class ImageTaskMetricsTests: XCTestCase {
 
         dataLoader.queue.isSuspended = true
 
-        let task = pipeline.loadImage(with: Test.request) { _, _ in
+        let task = pipeline.loadImage(with: Test.request) { _ in
             XCTFail()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(10)) {
