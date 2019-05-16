@@ -1,22 +1,24 @@
 <br/>
 
-<p align="center"><img src="https://cloud.githubusercontent.com/assets/1567433/13918338/f8670eea-ef7f-11e5-814d-f15bdfd6b2c0.png" height="180"/>
+# Nuke
 
-<p align="center">
+<p align="left">
 <img src="https://img.shields.io/cocoapods/v/Nuke.svg?label=version">
-<img src="https://img.shields.io/badge/supports-CocoaPods%2C%20Carthage%2C%20SwiftPM-green.svg">
 <img src="https://img.shields.io/badge/platforms-iOS%2C%20macOS%2C%20watchOS%2C%20tvOS-lightgrey.svg">
 <a href="https://travis-ci.org/kean/Nuke"><img src="https://img.shields.io/travis/kean/Nuke/master.svg"></a>
 </p>
 
+<img src="https://user-images.githubusercontent.com/1567433/57885299-eeb04600-782a-11e9-991b-93dc888455f9.png" align="right" height="340"/>
+
 A powerful **image loading** and **caching** system.
 
-- Fast LRU memory cache, native HTTP disk cache, and custom aggressive LRU disk cache
+- Fast LRU memory cache, native HTTP cache, and aggressive LRU disk cache
 - Progressive image loading (progressive JPEG and WebP)
-- Resumable downloads, request prioritization, deduplication, rate limiting and more
+- Resumable downloads, request prioritization, deduplication, rate limiting
 - [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [WebP](https://github.com/ryokosuge/Nuke-WebP-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) extensions
 - [RxNuke](https://github.com/kean/RxNuke) - [RxSwift](https://github.com/ReactiveX/RxSwift) extensions
-- Automates [prefetching](https://kean.github.io/post/image-preheating) with [Preheat](https://github.com/kean/Preheat) (*deprecated in iOS 10*)
+
+<br/>
 
 # <a name="h_getting_started"></a>Getting Started
 
@@ -40,6 +42,10 @@ A powerful **image loading** and **caching** system.
 
 More information is available in [**Documentation**](https://github.com/kean/Nuke/blob/master/Documentation/) directory and a full [**API Reference**](https://kean.github.io/Nuke/reference/7.3/index.html). When you are ready to install Nuke you can follow an [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md) - all major package managers are supported.
 
+<br/>
+
+<img src="https://user-images.githubusercontent.com/1567433/57886245-0dafd780-782d-11e9-813f-037ee1929f01.png" align="left" height="250" vspace="20px" hspace="20px"/>
+ 
 # <a name="h_usage"></a>Quick Start
 
 #### Load Image into Image View
@@ -50,9 +56,14 @@ You can load an image into an image view with a single line of code.
 Nuke.loadImage(with: url, into: imageView)
 ```
 
+<br/>
+<br/>
+
 Nuke will automatically load image data, decompress it in the background, store image in memory cache and display it.
 
 > To learn more about the `ImagePipeline` [see the dedicated section](#h_design).
+
+#### In a Collection View
 
 When you request a new image for the view, the previous outstanding request gets canceled and the image is set to `nil`. The request also gets canceled automatically when the view is deallocated.
 
@@ -136,6 +147,10 @@ ImageRequest(url: url).process(key: "circularAvatar") {
 All those APIs are built on top of `ImageProcessing` protocol which you can also use to implement custom processors. Keep in mind that `ImageProcessing` also requires `Equatable` conformance which helps Nuke identify images in memory cache.
 
 > See [Core Image Integration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md) for info about using Core Image with Nuke
+
+<br/>
+
+<img src="https://user-images.githubusercontent.com/1567433/57884716-9b89c380-7829-11e9-888f-8fac8280fccf.png" align="right" height="290" vspace="20px" hspace="20px"/>
 
 # Advanced Usage
 
@@ -320,18 +335,20 @@ Observable.concat(pipeline.loadImage(with: lowResUrl).orEmpty,
     .disposed(by: disposeBag)
 ```
 
+<br/>
+
+<img src="https://user-images.githubusercontent.com/1567433/57884668-77c67d80-7829-11e9-895f-eae36ef33c2f.png" align="left" height="250" vspace="20px" hspace="20px"/>
+
 <a name="h_design"></a>
 # Image Pipeline
 
-Nuke's image pipeline consists of roughly five stages which can be customized using the following protocols:
+The pipeline consists of five primary stages:
 
-|Protocol|Description|
-|--------|-----------|
-|`DataLoading`|Download (or return cached) image data|
-|`DataCaching`|Custom data cache|
-|`ImageDecoding`|Convert data into image objects|
-|`ImageProcessing`|Apply image transformations|
-|`ImageCaching`|Store image into memory cache|
+- `DataLoading` – Download (or return cached) image data
+- `DataCaching` – Custom data cache
+- `ImageDecoding` – Convert data into image objects
+- `ImageProcessing` – Apply image transformations
+- `ImageCaching` – Store image into memory cache
 
 ### Default Image Pipeline
 
@@ -425,6 +442,10 @@ Resumable downloads require server to support [HTTP Range Requests](https://deve
 By default `ImagePipeline` combines the requests for the same image (but can be different processors) into the same task. The task's priority is set to the highest priority of registered requests and gets updated when requests are added or removed to the task. The task only gets canceled when all the registered requests are.
 
 > Deduplication can be disabled using `ImagePipeline.Configuration`.
+
+<br/>
+
+<img src="https://user-images.githubusercontent.com/1567433/57885784-063bfe80-782c-11e9-9fcd-44791006527c.png" align="right" height="340" vspace="20px" hspace="20px"/>
 
 <a name="h_performance"></a>
 # Performance
