@@ -81,26 +81,6 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
-    // MARK: - Configuration
-
-    func testOverridingProcessor() {
-        // Given
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageProcessor = { _, _ in
-                AnyImageProcessor(MockImageProcessor(id: "processorFromOptions"))
-            }
-        }
-        let request = Test.request.processed(with: MockImageProcessor(id: "processorFromRequest"))
-
-        // Then
-        expect(pipeline).toLoadImage(with: request) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs.count, 1)
-            XCTAssertEqual(response?.image.nk_test_processorIDs.first, "processorFromOptions")
-        }
-        wait()
-    }
-
     // MARK: - Animated Images
 
     func testAnimatedImagesArentProcessed() {
@@ -326,7 +306,7 @@ class ImagePipelineTests: XCTestCase {
     func testDecompressionNotPerformedWhenProcessorWasApplied() {
         // Given request with scaling processor
         var request = Test.request
-        request.processor = AnyImageProcessor(ImageScalingProcessor(targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit))
+        request.processor = ImageScalingProcessor(targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
 
         expect(pipeline).toLoadImage(with: request) { response, _ in
             let image = response!.image
@@ -341,7 +321,7 @@ class ImagePipelineTests: XCTestCase {
     func testDecompressionPerformedWhenProcessorIsAppliedButDoesnNothing() {
         // Given request with scaling processor
         var request = Test.request
-        request.processor = AnyImageProcessor(MockEmptyImageProcessor())
+        request.processor = MockEmptyImageProcessor()
 
         expect(pipeline).toLoadImage(with: request) { response, _ in
             let image = response!.image

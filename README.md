@@ -133,7 +133,7 @@ ImageRequest(url: url).process(key: "circularAvatar") {
 }
 ```
 
-All those APIs are built on top of `ImageProcessing` protocol which you can also use to implement custom processors. Keep in mind that `ImageProcessing` also requires `Equatable` conformance which helps Nuke identify images in memory cache.
+All those APIs are built on top of `ImageProcessing` protocol which you can also use to implement custom processors.
 
 > See [Core Image Integration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md) for info about using Core Image with Nuke
 

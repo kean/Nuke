@@ -30,7 +30,7 @@ class ImageRequestTests: XCTestCase {
         request.loadKey = "1"
         request.cacheKey = "2"
         request.userInfo = "3"
-        request.processor = AnyImageProcessor(MockImageProcessor(id: "4"))
+        request.processor = MockImageProcessor(id: "4")
         request.priority = .high
 
         // When
@@ -43,7 +43,7 @@ class ImageRequestTests: XCTestCase {
         XCTAssertEqual(copy.loadKey, "1")
         XCTAssertEqual(copy.cacheKey, "2")
         XCTAssertEqual(copy.userInfo as? String, "3")
-        XCTAssertEqual(copy.processor, AnyImageProcessor(MockImageProcessor(id: "4")))
+        XCTAssertEqual((copy.processor as? MockImageProcessor)?.identifier, "4")
         XCTAssertEqual(copy.priority, .high)
     }
 
@@ -85,14 +85,12 @@ class ImageRequestCacheKeyTests: XCTestCase {
     func testRequestsWithTheSameProcessorsAreEquivalent() {
         let request1 = ImageRequest(url: Test.url).processed(with: MockImageProcessor(id: "1"))
         let request2 = ImageRequest(url: Test.url).processed(with: MockImageProcessor(id: "1"))
-        XCTAssertEqual(MockImageProcessor(id: "1"), MockImageProcessor(id: "1"))
         AssertHashableEqual(CacheKey(request: request1), CacheKey(request: request2))
     }
     
     func testRequestsWithDifferentProcessorsAreNotEquivalent() {
         let request1 = ImageRequest(url: Test.url).processed(with: MockImageProcessor(id: "1"))
         let request2 = ImageRequest(url: Test.url).processed(with: MockImageProcessor(id: "2"))
-        XCTAssertNotEqual(MockImageProcessor(id: "1"), MockImageProcessor(id: "2"))
         XCTAssertNotEqual(CacheKey(request: request1), CacheKey(request: request2))
     }
 
@@ -158,14 +156,12 @@ class ImageRequestLoadKeyTests: XCTestCase {
     func testRequestsWithTheSameProcessorsAreEquivalent() {
         let request1 = ImageRequest(url: Test.url).processed(with: MockImageProcessor(id: "1"))
         let request2 = ImageRequest(url: Test.url).processed(with: MockImageProcessor(id: "1"))
-        XCTAssertEqual(MockImageProcessor(id: "1"), MockImageProcessor(id: "1"))
         AssertHashableEqual(LoadKey(request: request1), LoadKey(request: request2))
     }
 
     func testRequestsWithDifferentProcessorsAreEquivalent() {
         let request1 = ImageRequest(url: Test.url).processed(with: MockImageProcessor(id: "1"))
         let request2 = ImageRequest(url: Test.url).processed(with: MockImageProcessor(id: "2"))
-        XCTAssertNotEqual(MockImageProcessor(id: "1"), MockImageProcessor(id: "2"))
         AssertHashableEqual(LoadKey(request: request1), LoadKey(request: request2))
     }
 
@@ -173,6 +169,14 @@ class ImageRequestLoadKeyTests: XCTestCase {
         let request1 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 50))
         let request2 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
         XCTAssertNotEqual(LoadKey(request: request1), LoadKey(request: request2))
+    }
+
+    func testMockImageProcessorCorrectlyImplementsIdentifiers() {
+        XCTAssertEqual(MockImageProcessor(id: "1").identifier, MockImageProcessor(id: "1").identifier)
+        XCTAssertEqual(MockImageProcessor(id: "1").hashableIdentifier, MockImageProcessor(id: "1").hashableIdentifier)
+
+        XCTAssertNotEqual(MockImageProcessor(id: "1").identifier, MockImageProcessor(id: "2").identifier)
+        XCTAssertNotEqual(MockImageProcessor(id: "1").hashableIdentifier, MockImageProcessor(id: "2").hashableIdentifier)
     }
 
     // MARK: - Custom Load Key
