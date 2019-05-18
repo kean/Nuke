@@ -119,6 +119,7 @@ extension ImageProcessor {
 
         private let size: CGSize
         private let contentMode: ContentMode
+        private let crop: Bool
         private let upscale: Bool
 
         /// An option for how to resize the image.
@@ -131,18 +132,20 @@ extension ImageProcessor {
             case aspectFit
         }
 
-        public init(size: CGSize, unit: Unit = .points, contentMode: ContentMode = .aspectFill, upscale: Bool = false) {
+        // TODO: document
+        public init(size: CGSize, unit: Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
             self.size = CGSize(size: size, unit: unit)
             self.contentMode = contentMode
+            self.crop = crop
             self.upscale = upscale
         }
 
         public func process(image: Image, context: ImageProcessingContext) -> Image? {
-            return ImageProcessor.scale(image, targetSize: size, contentMode: contentMode, upscale: upscale)
+            return ImageProcessor.scale(image, targetSize: size, contentMode: contentMode, crop: crop, upscale: upscale)
         }
 
         public var identifier: String {
-            return "ImageProcessor.Scale(\(size)-\(contentMode)-\(upscale))"
+            return "ImageProcessor.Scale(\(size)\(contentMode)\(crop)\(upscale))"
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -169,6 +172,57 @@ extension ImageProcessor {
 
         public var identifier: String {
             return "ImageProcessor.Resize(\(size))"
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+    }
+}
+
+// MARK: - ImageProcessor.Circle
+
+extension ImageProcessor {
+
+    public struct Circle: ImageProcessing, Hashable {
+        public init() {}
+
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            return ImageProcessor.drawInCircle(image)
+        }
+
+        public var identifier: String {
+            return "ImageProcessor.Circle"
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+    }
+}
+
+// MARK: - ImageProcessor.RoundedCorners
+
+extension ImageProcessor {
+
+    public struct RoundedCorners: ImageProcessing, Hashable {
+        private let radius: CGFloat
+
+        public init(radius: CGFloat, unit: Unit = .points) {
+            switch unit {
+            case .pixels:
+                self.radius = radius
+            case .points:
+                self.radius = radius * ImageProcessor.screenScale
+            }
+        }
+
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            return ImageProcessor.addRoundedCorners(image, radius: radius)
+        }
+
+        public var identifier: String {
+            return "ImageProcessor.RoundedCorners(\(radius))"
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -322,10 +376,16 @@ extension ImageProcessor {
     static func scale(_ image: UIImage,
                       targetSize: CGSize,
                       contentMode: ImageProcessor.Scale.ContentMode,
-                      upscale: Bool) -> UIImage {
+                      crop: Bool,
+                      upscale: Bool) -> UIImage? {
         guard let cgImage = image.cgImage else {
-            return image
+            return nil
         }
+        // A special case in which scaling is irrelevant, we just fill and crop
+        if crop && contentMode == .aspectFill {
+            return ImageProcessor.crop(image: image, size: targetSize)
+        }
+
         let scale: CGFloat = {
             let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
             let scaleHor = targetSize.width / bitmapSize.width
@@ -335,11 +395,30 @@ extension ImageProcessor {
         guard scale < 1 || upscale else {
             return image // The image doesn't require scaling
         }
-        let targetSize = CGSize(
+        let size = CGSize(
             width: round(scale * CGFloat(cgImage.width)),
             height: round(scale * CGFloat(cgImage.height))
         )
-        return draw(image, targetSize: targetSize)
+        return draw(image, targetSize: size)
+    }
+
+    private static func crop(image: UIImage, size targetSize: CGSize) -> UIImage? {
+        guard let cgImage = image.cgImage else {
+            return nil
+        }
+
+        // Example:
+        //
+        // target size: 40 x 40 (square cell)
+        // image sise: 120 x 80 (horizontal image)
+        // draw size: 40 x 40 (square context)
+        // draw rect: x: -20, y: 0, width: 80, height: 40 (to draw cropped)
+        let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+        let drawRect = CGRect(origin: .zero, size: imageSize).offsetBy(
+            dx: min(0, -(imageSize.width - targetSize.width) / 2),
+            dy: min(0, -(imageSize.height - targetSize.height) / 2)
+        )
+        return draw(image, size: targetSize, in: drawRect)
     }
 
     static func resize(_ image: UIImage, size: CGSize) -> UIImage {
@@ -352,8 +431,16 @@ extension ImageProcessor {
         guard let cgImage = image.cgImage else {
             return image
         }
-
         let size = targetSize ?? CGSize(width: cgImage.width, height: cgImage.height)
+        return draw(image, size: size, in: CGRect(origin: CGPoint.zero, size: size))
+    }
+
+    /// Draws the input image in a new `CGContext` with a given size. If the target
+    /// size is `nil`, uses the image's original size.
+    private static func draw(_ image: UIImage, size: CGSize, in rect: CGRect) -> UIImage {
+        guard let cgImage = image.cgImage else {
+            return image
+        }
 
         // For more info see:
         // - Quartz 2D Programming Guide
@@ -369,7 +456,7 @@ extension ImageProcessor {
             bitmapInfo: alphaInfo.rawValue) else {
                 return image
         }
-        ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: size))
+        ctx.draw(cgImage, in: rect)
         guard let decompressed = ctx.makeImage() else {
             return image
         }
@@ -389,6 +476,49 @@ extension ImageProcessor {
     static func isTransparent(_ image: CGImage) -> Bool {
         return !isOpaque(image)
     }
+
+    static func drawInCircle(_ image: UIImage) -> UIImage? {
+        guard let cgImage = image.cgImage else {
+            return nil
+        }
+        let input: UIImage
+        if cgImage.width == cgImage.height {
+            input = image // Already is a square
+        } else {
+            // Need to crop first
+            let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+            let side = min(cgImage.width, cgImage.height)
+            let targetSize = CGSize(width: side, height: side)
+            let drawRect = CGRect(origin: .zero, size: targetSize).offsetBy(
+                dx: max(0, (imageSize.width - targetSize.width) / 2),
+                dy: max(0, (imageSize.height - targetSize.height) / 2)
+            )
+            guard let cropped = cgImage.cropping(to: drawRect) else {
+                return nil
+            }
+            input = UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
+        }
+        return addRoundedCorners(input, radius: CGFloat(cgImage.width) / 2.0)
+    }
+
+    static func addRoundedCorners(_ image: UIImage, radius: CGFloat) -> UIImage {
+        guard let cgImage = image.cgImage else {
+            return image
+        }
+        let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+        UIGraphicsBeginImageContextWithOptions(imageSize, false, 1.0)
+
+        let clippingPath = UIBezierPath(roundedRect: CGRect(origin: CGPoint.zero, size: imageSize), cornerRadius: radius)
+        clippingPath.addClip()
+
+        image.draw(in: CGRect(origin: CGPoint.zero, size: imageSize))
+
+        guard let roundedImage = UIGraphicsGetImageFromCurrentImageContext()?.cgImage else {
+            return image
+        }
+        UIGraphicsEndImageContext()
+        return UIImage(cgImage: roundedImage, scale: image.scale, orientation: image.imageOrientation)
+    }
 }
 
 extension CGSize: Hashable {
@@ -404,13 +534,19 @@ extension CGSize {
         case .pixels:
             self = size
         case .points:
-            #if os(watchOS)
-            let scale = WKInterfaceDevice.current().screenScale
-            #else
-            let scale = UIScreen.main.scale
-            #endif
+            let scale = ImageProcessor.screenScale
             self = CGSize(width: size.width * scale, height: size.height * scale)
         }
+    }
+}
+
+extension ImageProcessor {
+    static var screenScale: CGFloat {
+        #if os(watchOS)
+        return WKInterfaceDevice.current().screenScale
+        #else
+        return UIScreen.main.scale
+        #endif
     }
 }
 

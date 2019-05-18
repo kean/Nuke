@@ -108,12 +108,7 @@ extension ImageDecoder {
             #if os(macOS)
             return NSImage(data: data)
             #else
-            #if os(iOS) || os(tvOS)
-            let scale = UIScreen.main.scale
-            #else
-            let scale = WKInterfaceDevice.current().screenScale
-            #endif
-            return UIImage(data: data, scale: scale)
+            return UIImage(data: data, scale: ImageProcessor.screenScale)
             #endif
         }
     }
