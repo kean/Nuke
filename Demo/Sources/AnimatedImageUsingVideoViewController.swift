@@ -59,7 +59,7 @@ final class AnimatedImageUsingVideoViewController: UICollectionViewController, U
         Nuke.loadImage(
             with: imageURLs[indexPath.row],
             into: cell,
-            completion: { [weak cell] _, _ in
+            completion: { [weak cell] _ in
                 cell?.activityIndicator.stopAnimating()
         })
 
