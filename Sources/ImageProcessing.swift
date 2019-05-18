@@ -177,6 +177,110 @@ extension ImageProcessor {
     }
 }
 
+#if os(iOS) || os(tvOS)
+
+// MARK: - ImageProcessor.CoreImageFilter
+
+import CoreImage
+
+extension ImageProcessor {
+
+    /// Applies Core Image filter `CIFilter` to the image.
+    ///
+    /// # Performance Considerations.
+    ///
+    /// Prefer chaining multiple `CIFilter` objects using `Core Image` facilities
+    /// instead of using multiple instances of `ImageProcessor.CoreImageFilter`.
+    ///
+    /// # References
+    ///
+    /// - [Core Image Programming Guide](https://developer.apple.com/library/ios/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html)
+    /// - [Core Image Filter Reference](https://developer.apple.com/library/prerelease/ios/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html)
+    public struct CoreImageFilter: ImageProcessing {
+        private let name: String
+        private let parameters: [String: Any]
+
+        public init(name: String, parameters: [String: Any]) {
+            self.name = name
+            self.parameters = parameters
+        }
+
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            let filter = CIFilter(name: name, parameters: parameters)
+            return CoreImageFilter.apply(filter: filter, to: image)
+        }
+
+        public var identifier: String {
+            return "ImageProcessor.CoreImageFilter(\(name))\(parameters))" }
+
+        // MARK: - Apply Filter
+
+        /// A default context shared between all Core Image filters. The context
+        /// has `.priorityRequestLow` option set to `true`.
+        public static var context = CIContext(options: [.priorityRequestLow: true])
+
+        static func applyFilter(to image: UIImage, context: CIContext = context, closure: (CoreImage.CIImage) -> CoreImage.CIImage?) -> UIImage? {
+            let ciImage: CoreImage.CIImage? = {
+                if let image = image.ciImage {
+                    return image
+                }
+                if let image = image.cgImage {
+                    return CoreImage.CIImage(cgImage: image)
+                }
+                return nil
+            }()
+            guard let inputImage = ciImage, let outputImage = closure(inputImage) else {
+                return nil
+            }
+            guard let imageRef = context.createCGImage(outputImage, from: inputImage.extent) else {
+                return nil
+            }
+            return UIImage(cgImage: imageRef, scale: image.scale, orientation: image.imageOrientation)
+        }
+
+        static func apply(filter: CIFilter?, to image: UIImage) -> UIImage? {
+            guard let filter = filter else {
+                return nil
+            }
+            return applyFilter(to: image) {
+                filter.setValue($0, forKey: kCIInputImageKey)
+                return filter.outputImage
+            }
+        }
+    }
+}
+
+// MARK: - ImageProcessor.GaussianBlur
+
+extension ImageProcessor {
+    /// Blurs image using CIGaussianBlur filter.
+    public struct GaussianBlur: ImageProcessing, Hashable {
+
+        private let radius: Int
+
+        /// Initializes the receiver with a blur radius.
+        public init(radius: Int = 8) {
+            self.radius = radius
+        }
+
+        /// Applies `CIGaussianBlur` filter to the image.
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            let filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius" : radius])
+            return CoreImageFilter.apply(filter: filter, to: image)
+        }
+
+        public var identifier: String {
+            return "GaussianBlur\(radius)"
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+    }
+}
+
+#endif
+
 // MARK: - ImageDecompressor (Internal)
 
 struct ImageDecompressor: ImageProcessing, Hashable {

@@ -146,8 +146,6 @@ ImageRequest(url: url).process(key: "circularAvatar") {
 
 All those APIs are built on top of `ImageProcessing` protocol which you can also use to implement custom processors.
 
-> See [Core Image Integration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Core%20Image%20Integration%20Guide.md) for info about using Core Image with Nuke
-
 <br/>
 
 <img src="https://user-images.githubusercontent.com/1567433/57884716-9b89c380-7829-11e9-888f-8fac8280fccf.png" align="right" height="290" vspace="20px" hspace="20px"/>
