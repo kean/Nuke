@@ -272,7 +272,7 @@ class ImagePipelineTests: XCTestCase {
 
             XCTAssertTrue(output === image)
 
-            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: output)
+            let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: output)
             XCTAssertEqual(isDecompressionNeeded, true)
         }
         wait()
@@ -298,7 +298,7 @@ class ImagePipelineTests: XCTestCase {
 
             XCTAssertTrue(output !== image)
 
-            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: output)
+            let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: output)
             XCTAssertEqual(isDecompressionNeeded, false)
         }
         wait()
@@ -307,13 +307,13 @@ class ImagePipelineTests: XCTestCase {
     func testDecompressionNotPerformedWhenProcessorWasApplied() {
         // Given request with scaling processor
         var request = Test.request
-        request.processor = ImageScalingProcessor(targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+        request.processor = ImageProcessor.Scale(size: CGSize(width: 40, height: 40), contentMode: .aspectFit)
 
         expect(pipeline).toLoadImage(with: request) { result in
             let image = result.value!.image
 
             // Expect decompression to not be performed
-            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
+            let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: image)
             XCTAssertNil(isDecompressionNeeded)
         }
         wait()
@@ -328,7 +328,7 @@ class ImagePipelineTests: XCTestCase {
             let image = result.value!.image
 
             // Expect decompression to be performed (processor was applied but it did nothing)
-            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
+            let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: image)
             XCTAssertEqual(isDecompressionNeeded, false)
         }
         wait()

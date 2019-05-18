@@ -97,7 +97,89 @@ struct AnonymousImageProcessor: ImageProcessing {
 #if !os(macOS)
 import UIKit
 
-struct ImageDecompression: ImageProcessing, Hashable {
+#if os(watchOS)
+import WatchKit
+#endif
+
+// MARK: - ImageProcessor
+
+public enum ImageProcessor {
+
+    public enum Unit {
+        case points
+        case pixels
+    }
+}
+
+// MARK: - ImageProcessor.Scale
+
+extension ImageProcessor {
+
+    public struct Scale: ImageProcessing, Hashable {
+
+        private let size: CGSize
+        private let contentMode: ContentMode
+        private let upscale: Bool
+
+        /// An option for how to resize the image.
+        public enum ContentMode {
+            /// Scales the image so that it completely fills the target size.
+            /// Doesn't clip images.
+            case aspectFill
+
+            /// Scales the image so that it fits the target size.
+            case aspectFit
+        }
+
+        public init(size: CGSize, unit: Unit = .points, contentMode: ContentMode = .aspectFill, upscale: Bool = false) {
+            self.size = CGSize(size: size, unit: unit)
+            self.contentMode = contentMode
+            self.upscale = upscale
+        }
+
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            return ImageProcessor.scale(image, targetSize: size, contentMode: contentMode, upscale: upscale)
+        }
+
+        public var identifier: String {
+            return "ImageProcessor.Scale(\(size)-\(contentMode)-\(upscale))"
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+    }
+}
+
+// MARK: - ImageProcessor.Resize
+
+extension ImageProcessor {
+
+    public struct Resize: ImageProcessing, Hashable {
+
+        private let size: CGSize
+
+        public init(size: CGSize, unit: Unit = .points) {
+            self.size = CGSize(size: size, unit: unit)
+        }
+
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            return ImageProcessor.resize(image, size: size)
+        }
+
+        public var identifier: String {
+            return "ImageProcessor.Resize(\(size))"
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+    }
+}
+
+// MARK: - ImageDecompressor (Internal)
+
+struct ImageDecompressor: ImageProcessing, Hashable {
     let identifier: String = "ImageDecompressor"
 
     var hashableIdentifier: AnyHashable {
@@ -105,15 +187,15 @@ struct ImageDecompression: ImageProcessing, Hashable {
     }
 
     func process(image: Image, context: ImageProcessingContext) -> Image? {
-        guard ImageDecompression.isDecompressionNeeded(for: image) ?? false else {
+        guard ImageDecompressor.isDecompressionNeeded(for: image) ?? false else {
             return image // Image doesn't require decompression
         }
-        let output = ImageUlitities.decompress(image)
-        ImageDecompression.setDecompressionNeeded(false, for: output)
+        let output = ImageProcessor.decompress(image)
+        ImageDecompressor.setDecompressionNeeded(false, for: output)
         return output
     }
 
-    public static func == (lhs: ImageDecompression, rhs: ImageDecompression) -> Bool {
+    public static func == (lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
         return true
     }
 
@@ -130,80 +212,12 @@ struct ImageDecompression: ImageProcessing, Hashable {
     }
 }
 
-// Deprecated in Nuke 8.0. Remove by January 2020.
-@available(*, deprecated, message: "Please use ImageScalingProcessor to resize images and ImagePipeline.Configuration.isDecompressionEnabled to control decompression (enabled by default)")
-public typealias ImageDecompressor = ImageScalingProcessor
+// MARK: - ImageProcessor Utilities
 
-/// Scales down the input images. Maintains original aspect ratio.
-public struct ImageScalingProcessor: ImageProcessing, Hashable {
-
-    public var identifier: String {
-        return "ImageScalingProcessor\(targetSize)\(contentMode)\(upscale)"
-    }
-
-    public var hashableIdentifier: AnyHashable {
-        return self
-    }
-
-    /// An option for how to resize the image.
-    public enum ContentMode {
-        /// Scales the image so that it completely fills the target size.
-        /// Doesn't clip images.
-        case aspectFill
-
-        /// Scales the image so that it fits the target size.
-        case aspectFit
-    }
-
-    /// Size to pass to disable resizing.
-    public static let MaximumSize = CGSize(
-        width: CGFloat.greatestFiniteMagnitude,
-        height: CGFloat.greatestFiniteMagnitude
-    )
-
-    private let targetSize: CGSize
-    private let contentMode: ContentMode
-    private let upscale: Bool
-
-    /// Initializes `Decompressor` with the given parameters.
-    /// - parameter targetSize: Size in pixels. `MaximumSize` by default.
-    /// - parameter contentMode: An option for how to resize the image to the
-    /// target size. `.aspectFill` by default.
-    /// - parameter upscale: If disabled, will never upscale the input images.
-    /// `false` by default.
-    public init(targetSize: CGSize = MaximumSize, contentMode: ContentMode = .aspectFill, upscale: Bool = false) {
-        self.targetSize = targetSize
-        self.contentMode = contentMode
-        self.upscale = upscale
-    }
-
-    /// Decompresses and scales the image.
-    public func process(image: Image, context: ImageProcessingContext) -> Image? {
-        return ImageUlitities.scale(image, targetSize: targetSize, contentMode: contentMode, upscale: upscale)
-    }
-
-    #if !os(watchOS)
-    /// Returns target size in pixels for the given view. Takes main screen
-    /// scale into the account.
-    public static func targetSize(for view: UIView) -> CGSize { // in pixels
-        let scale = UIScreen.main.scale
-        let size = view.bounds.size
-        return CGSize(width: size.width * scale, height: size.height * scale)
-    }
-    #endif
-}
-
-extension CGSize: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(width)
-        hasher.combine(height)
-    }
-}
-
-enum ImageUlitities {
+extension ImageProcessor {
     static func scale(_ image: UIImage,
                       targetSize: CGSize,
-                      contentMode: ImageScalingProcessor.ContentMode,
+                      contentMode: ImageProcessor.Scale.ContentMode,
                       upscale: Bool) -> UIImage {
         guard let cgImage = image.cgImage else {
             return image
@@ -222,6 +236,10 @@ enum ImageUlitities {
             height: round(scale * CGFloat(cgImage.height))
         )
         return draw(image, targetSize: targetSize)
+    }
+
+    static func resize(_ image: UIImage, size: CGSize) -> UIImage {
+        return draw(image, targetSize: size)
     }
 
     /// Draws the input image in a new `CGContext` with a given size. If the target
@@ -268,6 +286,30 @@ enum ImageUlitities {
         return !isOpaque(image)
     }
 }
+
+extension CGSize: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(width)
+        hasher.combine(height)
+    }
+}
+
+extension CGSize {
+    init(size: CGSize, unit: ImageProcessor.Unit) {
+        switch unit {
+        case .pixels:
+            self = size
+        case .points:
+            #if os(watchOS)
+            let scale = WKInterfaceDevice.current().screenScale
+            #else
+            let scale = UIScreen.main.scale
+            #endif
+            self = CGSize(width: size.width * scale, height: size.height * scale)
+        }
+    }
+}
+
 #endif
 
 // A special version of `==` which is optimized to not create hashable identifiers
