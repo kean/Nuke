@@ -106,36 +106,22 @@ public struct ImageRequest {
     // MARK: Initializers
 
     /// Initializes a request with the given URL.
-    public init(url: URL) {
-        ref = Container(resource: Resource.url(url))
-        ref.urlString = url.absoluteString
+    /// - parameter processor: Custom image processer.
+    public init(url: URL, processors: [ImageProcessing] = []) {
+        self.ref = Container(resource: Resource.url(url), processors: processors)
+        self.ref.urlString = url.absoluteString
         // creating `.absoluteString` takes 50% of time of Request creation,
         // it's still faster than using URLs as cache keys
-    }
-
-    /// Initializes a request with the given request.
-    public init(urlRequest: URLRequest) {
-        ref = Container(resource: Resource.urlRequest(urlRequest))
-        ref.urlString = urlRequest.url?.absoluteString
-    }
-
-    #if !os(macOS)
-
-    /// Initializes a request with the given URL.
-    /// - parameter processor: Custom image processer.
-    public init(url: URL, processors: [ImageProcessing]) {
-        self.init(url: url)
         self.processors = processors
     }
 
     /// Initializes a request with the given request.
     /// - parameter processor: Custom image processer.
-    public init(urlRequest: URLRequest, processors: [ImageProcessing]) {
-        self.init(urlRequest: urlRequest)
+    public init(urlRequest: URLRequest, processors: [ImageProcessing] = []) {
+        self.ref = Container(resource: Resource.urlRequest(urlRequest), processors: processors)
+        self.ref.urlString = urlRequest.url?.absoluteString
         self.processors = processors
     }
-
-    #endif
 
     // CoW:
 
@@ -161,9 +147,9 @@ public struct ImageRequest {
         var userInfo: Any?
 
         /// Creates a resource with a default processor.
-        init(resource: Resource) {
+        init(resource: Resource, processors: [ImageProcessing]) {
             self.resource = resource
-            self.processors = [] // TODO: impr perf
+            self.processors = processors
         }
 
         /// Creates a copy.
