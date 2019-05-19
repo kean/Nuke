@@ -375,7 +375,7 @@ public /* final */ class ImagePipeline {
         }
         #if !os(macOS)
         if configuration.isDecompressionEnabled {
-            processors.append(ImageDecompression())
+            processors.append(ImageDecompressor())
         }
         #endif
         return processors.isEmpty ? nil : ImageProcessorComposition(processors)
@@ -449,7 +449,7 @@ public /* final */ class ImagePipeline {
             }
             #if !os(macOS)
             if let image = image {
-                ImageDecompression.setDecompressionNeeded(true, for: image)
+                ImageDecompressor.setDecompressionNeeded(true, for: image)
             }
             #endif
 

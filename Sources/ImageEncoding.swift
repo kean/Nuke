@@ -32,7 +32,7 @@ public struct ImageEncoder: ImageEncoding {
         guard let cgImage = image.cgImage else {
             return nil
         }
-        if ImageUlitities.isTransparent(cgImage) {
+        if ImageProcessor.isTransparent(cgImage) {
             return image.pngData()
         } else {
             return image.jpegData(compressionQuality: compressionQuality)

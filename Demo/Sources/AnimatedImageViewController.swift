@@ -84,7 +84,7 @@ final class AnimatedImageViewController: UICollectionViewController, UICollectio
                 with: imageURLs[indexPath.row],
                 options: ImageLoadingOptions(transition: .fadeIn(duration: 0.33)),
                 into: cell.imageView,
-                completion: { [weak cell] _, _ in
+                completion: { [weak cell] _ in
                     cell?.activityIndicator.stopAnimating()
             })
 

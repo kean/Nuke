@@ -97,7 +97,224 @@ struct AnonymousImageProcessor: ImageProcessing {
 #if !os(macOS)
 import UIKit
 
-struct ImageDecompression: ImageProcessing, Hashable {
+#if os(watchOS)
+import WatchKit
+#endif
+
+// MARK: - ImageProcessor
+
+public enum ImageProcessor {
+
+    public enum Unit {
+        case points
+        case pixels
+    }
+}
+
+// MARK: - ImageProcessor.Resize
+
+extension ImageProcessor {
+
+    public struct Resize: ImageProcessing, Hashable {
+
+        private let size: CGSize
+        private let contentMode: ContentMode
+        private let crop: Bool
+        private let upscale: Bool
+
+        /// An option for how to resize the image.
+        public enum ContentMode {
+            /// Scales the image so that it completely fills the target size.
+            /// Doesn't clip images.
+            case aspectFill
+
+            /// Scales the image so that it fits the target size.
+            case aspectFit
+        }
+
+        /// Initializes the resizing image processor.
+        ///
+        /// - parameter size: The target reference size.
+        /// - parameter unit:
+        public init(size: CGSize, unit: Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
+            self.size = CGSize(size: size, unit: unit)
+            self.contentMode = contentMode
+            self.crop = crop
+            self.upscale = upscale
+        }
+
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            return ImageProcessor.resize(image, targetSize: size, contentMode: contentMode, crop: crop, upscale: upscale)
+        }
+
+        public var identifier: String {
+            return "ImageProcessor.Resize(\(size)\(contentMode)\(crop)\(upscale))"
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+    }
+}
+
+// MARK: - ImageProcessor.Circle
+
+extension ImageProcessor {
+
+    public struct Circle: ImageProcessing, Hashable {
+        public init() {}
+
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            return ImageProcessor.drawInCircle(image)
+        }
+
+        public var identifier: String {
+            return "ImageProcessor.Circle"
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+    }
+}
+
+// MARK: - ImageProcessor.RoundedCorners
+
+extension ImageProcessor {
+
+    public struct RoundedCorners: ImageProcessing, Hashable {
+        private let radius: CGFloat
+
+        public init(radius: CGFloat, unit: Unit = .points) {
+            switch unit {
+            case .pixels:
+                self.radius = radius
+            case .points:
+                self.radius = radius * ImageProcessor.screenScale
+            }
+        }
+
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            return ImageProcessor.addRoundedCorners(image, radius: radius)
+        }
+
+        public var identifier: String {
+            return "ImageProcessor.RoundedCorners(\(radius))"
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+    }
+}
+
+#if os(iOS) || os(tvOS)
+
+// MARK: - ImageProcessor.CoreImageFilter
+
+import CoreImage
+
+extension ImageProcessor {
+
+    /// Applies Core Image filter `CIFilter` to the image.
+    ///
+    /// # Performance Considerations.
+    ///
+    /// Prefer chaining multiple `CIFilter` objects using `Core Image` facilities
+    /// instead of using multiple instances of `ImageProcessor.CoreImageFilter`.
+    ///
+    /// # References
+    ///
+    /// - [Core Image Programming Guide](https://developer.apple.com/library/ios/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html)
+    /// - [Core Image Filter Reference](https://developer.apple.com/library/prerelease/ios/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html)
+    public struct CoreImageFilter: ImageProcessing {
+        private let name: String
+        private let parameters: [String: Any]
+
+        public init(name: String, parameters: [String: Any]) {
+            self.name = name
+            self.parameters = parameters
+        }
+
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            let filter = CIFilter(name: name, parameters: parameters)
+            return CoreImageFilter.apply(filter: filter, to: image)
+        }
+
+        public var identifier: String {
+            return "ImageProcessor.CoreImageFilter(\(name))\(parameters))" }
+
+        // MARK: - Apply Filter
+
+        /// A default context shared between all Core Image filters. The context
+        /// has `.priorityRequestLow` option set to `true`.
+        public static var context = CIContext(options: [.priorityRequestLow: true])
+
+        static func applyFilter(to image: UIImage, context: CIContext = context, closure: (CoreImage.CIImage) -> CoreImage.CIImage?) -> UIImage? {
+            let ciImage: CoreImage.CIImage? = {
+                if let image = image.ciImage {
+                    return image
+                }
+                if let image = image.cgImage {
+                    return CoreImage.CIImage(cgImage: image)
+                }
+                return nil
+            }()
+            guard let inputImage = ciImage, let outputImage = closure(inputImage) else {
+                return nil
+            }
+            guard let imageRef = context.createCGImage(outputImage, from: inputImage.extent) else {
+                return nil
+            }
+            return UIImage(cgImage: imageRef, scale: image.scale, orientation: image.imageOrientation)
+        }
+
+        static func apply(filter: CIFilter?, to image: UIImage) -> UIImage? {
+            guard let filter = filter else {
+                return nil
+            }
+            return applyFilter(to: image) {
+                filter.setValue($0, forKey: kCIInputImageKey)
+                return filter.outputImage
+            }
+        }
+    }
+}
+
+// MARK: - ImageProcessor.GaussianBlur
+
+extension ImageProcessor {
+    /// Blurs image using CIGaussianBlur filter.
+    public struct GaussianBlur: ImageProcessing, Hashable {
+
+        private let radius: Int
+
+        /// Initializes the receiver with a blur radius.
+        public init(radius: Int = 8) {
+            self.radius = radius
+        }
+
+        /// Applies `CIGaussianBlur` filter to the image.
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            let filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius" : radius])
+            return CoreImageFilter.apply(filter: filter, to: image)
+        }
+
+        public var identifier: String {
+            return "GaussianBlur\(radius)"
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+    }
+}
+
+#endif
+
+// MARK: - ImageDecompressor (Internal)
+
+struct ImageDecompressor: ImageProcessing, Hashable {
     let identifier: String = "ImageDecompressor"
 
     var hashableIdentifier: AnyHashable {
@@ -105,15 +322,15 @@ struct ImageDecompression: ImageProcessing, Hashable {
     }
 
     func process(image: Image, context: ImageProcessingContext) -> Image? {
-        guard ImageDecompression.isDecompressionNeeded(for: image) ?? false else {
+        guard ImageDecompressor.isDecompressionNeeded(for: image) ?? false else {
             return image // Image doesn't require decompression
         }
-        let output = ImageUlitities.decompress(image)
-        ImageDecompression.setDecompressionNeeded(false, for: output)
+        let output = ImageProcessor.decompress(image)
+        ImageDecompressor.setDecompressionNeeded(false, for: output)
         return output
     }
 
-    public static func == (lhs: ImageDecompression, rhs: ImageDecompression) -> Bool {
+    public static func == (lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
         return true
     }
 
@@ -130,84 +347,22 @@ struct ImageDecompression: ImageProcessing, Hashable {
     }
 }
 
-// Deprecated in Nuke 8.0. Remove by January 2020.
-@available(*, deprecated, message: "Please use ImageScalingProcessor to resize images and ImagePipeline.Configuration.isDecompressionEnabled to control decompression (enabled by default)")
-public typealias ImageDecompressor = ImageScalingProcessor
+// MARK: - ImageProcessor Utilities
 
-/// Scales down the input images. Maintains original aspect ratio.
-public struct ImageScalingProcessor: ImageProcessing, Hashable {
-
-    public var identifier: String {
-        return "ImageScalingProcessor\(targetSize)\(contentMode)\(upscale)"
-    }
-
-    public var hashableIdentifier: AnyHashable {
-        return self
-    }
-
-    /// An option for how to resize the image.
-    public enum ContentMode {
-        /// Scales the image so that it completely fills the target size.
-        /// Doesn't clip images.
-        case aspectFill
-
-        /// Scales the image so that it fits the target size.
-        case aspectFit
-    }
-
-    /// Size to pass to disable resizing.
-    public static let MaximumSize = CGSize(
-        width: CGFloat.greatestFiniteMagnitude,
-        height: CGFloat.greatestFiniteMagnitude
-    )
-
-    private let targetSize: CGSize
-    private let contentMode: ContentMode
-    private let upscale: Bool
-
-    /// Initializes `Decompressor` with the given parameters.
-    /// - parameter targetSize: Size in pixels. `MaximumSize` by default.
-    /// - parameter contentMode: An option for how to resize the image to the
-    /// target size. `.aspectFill` by default.
-    /// - parameter upscale: If disabled, will never upscale the input images.
-    /// `false` by default.
-    public init(targetSize: CGSize = MaximumSize, contentMode: ContentMode = .aspectFill, upscale: Bool = false) {
-        self.targetSize = targetSize
-        self.contentMode = contentMode
-        self.upscale = upscale
-    }
-
-    /// Decompresses and scales the image.
-    public func process(image: Image, context: ImageProcessingContext) -> Image? {
-        return ImageUlitities.scale(image, targetSize: targetSize, contentMode: contentMode, upscale: upscale)
-    }
-
-    #if !os(watchOS)
-    /// Returns target size in pixels for the given view. Takes main screen
-    /// scale into the account.
-    public static func targetSize(for view: UIView) -> CGSize { // in pixels
-        let scale = UIScreen.main.scale
-        let size = view.bounds.size
-        return CGSize(width: size.width * scale, height: size.height * scale)
-    }
-    #endif
-}
-
-extension CGSize: Hashable {
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(width)
-        hasher.combine(height)
-    }
-}
-
-enum ImageUlitities {
-    static func scale(_ image: UIImage,
-                      targetSize: CGSize,
-                      contentMode: ImageScalingProcessor.ContentMode,
-                      upscale: Bool) -> UIImage {
+extension ImageProcessor {
+    static func resize(_ image: UIImage,
+                       targetSize: CGSize,
+                       contentMode: ImageProcessor.Resize.ContentMode,
+                       crop: Bool,
+                       upscale: Bool) -> UIImage? {
         guard let cgImage = image.cgImage else {
-            return image
+            return nil
         }
+        // A special case in which scaling is irrelevant, we just fill and crop
+        if crop && contentMode == .aspectFill {
+            return ImageProcessor.crop(image: image, size: targetSize)
+        }
+
         let scale: CGFloat = {
             let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
             let scaleHor = targetSize.width / bitmapSize.width
@@ -217,11 +372,30 @@ enum ImageUlitities {
         guard scale < 1 || upscale else {
             return image // The image doesn't require scaling
         }
-        let targetSize = CGSize(
+        let size = CGSize(
             width: round(scale * CGFloat(cgImage.width)),
             height: round(scale * CGFloat(cgImage.height))
         )
-        return draw(image, targetSize: targetSize)
+        return draw(image, targetSize: size)
+    }
+
+    private static func crop(image: UIImage, size targetSize: CGSize) -> UIImage? {
+        guard let cgImage = image.cgImage else {
+            return nil
+        }
+
+        // Example:
+        //
+        // target size: 40 x 40 (square cell)
+        // image sise: 120 x 80 (horizontal image)
+        // draw size: 40 x 40 (square context)
+        // draw rect: x: -20, y: 0, width: 80, height: 40 (to draw cropped)
+        let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+        let drawRect = CGRect(origin: .zero, size: imageSize).offsetBy(
+            dx: min(0, -(imageSize.width - targetSize.width) / 2),
+            dy: min(0, -(imageSize.height - targetSize.height) / 2)
+        )
+        return draw(image, size: targetSize, in: drawRect)
     }
 
     /// Draws the input image in a new `CGContext` with a given size. If the target
@@ -230,8 +404,16 @@ enum ImageUlitities {
         guard let cgImage = image.cgImage else {
             return image
         }
-
         let size = targetSize ?? CGSize(width: cgImage.width, height: cgImage.height)
+        return draw(image, size: size, in: CGRect(origin: CGPoint.zero, size: size))
+    }
+
+    /// Draws the input image in a new `CGContext` with a given size. If the target
+    /// size is `nil`, uses the image's original size.
+    private static func draw(_ image: UIImage, size: CGSize, in rect: CGRect) -> UIImage {
+        guard let cgImage = image.cgImage else {
+            return image
+        }
 
         // For more info see:
         // - Quartz 2D Programming Guide
@@ -247,7 +429,7 @@ enum ImageUlitities {
             bitmapInfo: alphaInfo.rawValue) else {
                 return image
         }
-        ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: size))
+        ctx.draw(cgImage, in: rect)
         guard let decompressed = ctx.makeImage() else {
             return image
         }
@@ -267,7 +449,80 @@ enum ImageUlitities {
     static func isTransparent(_ image: CGImage) -> Bool {
         return !isOpaque(image)
     }
+
+    static func drawInCircle(_ image: UIImage) -> UIImage? {
+        guard let cgImage = image.cgImage else {
+            return nil
+        }
+        let input: UIImage
+        if cgImage.width == cgImage.height {
+            input = image // Already is a square
+        } else {
+            // Need to crop first
+            let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+            let side = min(cgImage.width, cgImage.height)
+            let targetSize = CGSize(width: side, height: side)
+            let drawRect = CGRect(origin: .zero, size: targetSize).offsetBy(
+                dx: max(0, (imageSize.width - targetSize.width) / 2),
+                dy: max(0, (imageSize.height - targetSize.height) / 2)
+            )
+            guard let cropped = cgImage.cropping(to: drawRect) else {
+                return nil
+            }
+            input = UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
+        }
+        return addRoundedCorners(input, radius: CGFloat(cgImage.width) / 2.0)
+    }
+
+    static func addRoundedCorners(_ image: UIImage, radius: CGFloat) -> UIImage {
+        guard let cgImage = image.cgImage else {
+            return image
+        }
+        let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+        UIGraphicsBeginImageContextWithOptions(imageSize, false, 1.0)
+
+        let clippingPath = UIBezierPath(roundedRect: CGRect(origin: CGPoint.zero, size: imageSize), cornerRadius: radius)
+        clippingPath.addClip()
+
+        image.draw(in: CGRect(origin: CGPoint.zero, size: imageSize))
+
+        guard let roundedImage = UIGraphicsGetImageFromCurrentImageContext()?.cgImage else {
+            return image
+        }
+        UIGraphicsEndImageContext()
+        return UIImage(cgImage: roundedImage, scale: image.scale, orientation: image.imageOrientation)
+    }
 }
+
+extension CGSize: Hashable {
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(width)
+        hasher.combine(height)
+    }
+}
+
+extension CGSize {
+    init(size: CGSize, unit: ImageProcessor.Unit) {
+        switch unit {
+        case .pixels:
+            self = size
+        case .points:
+            let scale = ImageProcessor.screenScale
+            self = CGSize(width: size.width * scale, height: size.height * scale)
+        }
+    }
+}
+
+extension ImageProcessor {
+    static var screenScale: CGFloat {
+        #if os(watchOS)
+        return WKInterfaceDevice.current().screenScale
+        #else
+        return UIScreen.main.scale
+        #endif
+    }
+}
+
 #endif
 
 // A special version of `==` which is optimized to not create hashable identifiers

@@ -149,15 +149,15 @@ class ImageProcessingTests: XCTestCase {
     // MARK: - Decompression
 
     func testTwoDifferentDecompressorsAreEqual() {
-        XCTAssertEqual(ImageDecompression().hashValue, ImageDecompression().hashValue)
-        XCTAssertEqual(ImageDecompression(), ImageDecompression())
+        XCTAssertEqual(ImageDecompressor().hashValue, ImageDecompressor().hashValue)
+        XCTAssertEqual(ImageDecompressor(), ImageDecompressor())
     }
 
     // MARK: - Resizing
 
     func testUsingProcessorRequestParameter() {
         // Given
-        let processor = ImageScalingProcessor(targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit, upscale: false)
+        let processor = ImageProcessor.Resize(size: CGSize(width: 40, height: 40), contentMode: .aspectFit, upscale: false)
 
         // When
         let request = ImageRequest(url: Test.url, processor: processor)
