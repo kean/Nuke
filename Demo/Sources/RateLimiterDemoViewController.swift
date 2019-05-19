@@ -70,7 +70,7 @@ final class RateLimiterDemoViewController: UICollectionViewController {
         options.pipeline = pipeline
 
         var request = ImageRequest(url: photos[indexPath.row])
-        request.processor = ImageProcessor.Scale(size: imageView.bounds.size)
+        request.processors = [ImageProcessor.Resize(size: imageView.bounds.size)]
 
         Nuke.loadImage(with: request, options: options, into: imageView)
         

@@ -6,7 +6,7 @@ import XCTest
 @testable import Nuke
 
 class ImageViewPerformanceTests: XCTestCase {
-    private let dummyCacheRequest = ImageRequest(url: URL(string: "http://test.com/9999999)")!, targetSize: CGSize(width: 2, height: 2), contentMode: .aspectFill)
+    private let dummyCacheRequest = ImageRequest(url: URL(string: "http://test.com/9999999)")!, processors: [ImageProcessor.Resize(size: CGSize(width: 2, height: 2))])
 
     override func setUp() {
         // Store something in memory cache to avoid going through an optimized empty Dictionary path
@@ -39,7 +39,7 @@ class ImageViewPerformanceTests: XCTestCase {
 
         measure {
             for url in urls {
-                let request = ImageRequest(url: url, targetSize: CGSize(width: 0, height: 0), contentMode: .aspectFill)
+                let request = ImageRequest(url: url, processors: [ImageProcessor.Resize(size: CGSize(width: 1, height: 1))])
                 Nuke.loadImage(with: request, into: view)
             }
         }
@@ -52,7 +52,7 @@ class ImageViewPerformanceTests: XCTestCase {
 
         measure {
             for url in urls {
-                let request = ImageRequest(url: url, targetSize: CGSize(width: 0, height: 0), contentMode: .aspectFill)
+                let request = ImageRequest(url: url, processors: [ImageProcessor.Resize(size: CGSize(width: 1, height: 1))])
                 Nuke.loadImage(with: request, into: view)
             }
         }
@@ -84,7 +84,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             var finished: Int = 0
             for url in urls {
                 var request = ImageRequest(url: url)
-                request.processor = nil // Remove processing time from equation
+                request.processors = [] // Remove processing time from equation
 
                 loader.loadImage(with: url) { _ in
                     finished += 1
@@ -173,7 +173,7 @@ class RequestPerformanceTests: XCTestCase {
 
 class ImageProcessingPerformanceTests: XCTestCase {
     func testCreatingProcessorIdentifiers() {
-        let decompressor = ImageScalingProcessor(targetSize: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)
+        let decompressor = ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)
 
         measure {
             for _ in 0..<25_000 {
@@ -184,8 +184,8 @@ class ImageProcessingPerformanceTests: XCTestCase {
 
     func testComparingTwoProcessorCompositions() {
 
-        let lhs = ImageProcessorComposition([MockImageProcessor(id: "123"), ImageScalingProcessor(targetSize: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
-        let rhs = ImageProcessorComposition([MockImageProcessor(id: "124"), ImageScalingProcessor(targetSize: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
+        let lhs = ImageProcessorComposition([MockImageProcessor(id: "123"), ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
+        let rhs = ImageProcessorComposition([MockImageProcessor(id: "124"), ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
 
         measure {
             for _ in 0..<25_000 {

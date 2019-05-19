@@ -61,7 +61,7 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
         options.transition = .fadeIn(duration: 0.25)
 
         Nuke.loadImage(
-            with: ImageRequest(url: url).processed(with: _ProgressiveBlurImageProcessor()),
+            with: ImageRequest(url: url, processors: [_ProgressiveBlurImageProcessor()]),
             options: options,
             into: imageView,
             progress: { completed, total in
