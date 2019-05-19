@@ -80,29 +80,29 @@ class ImageProcessingTests: XCTestCase {
 
     func testAnonymousProcessorsHaveDifferentIdentifiers() {
         XCTAssertEqual(
-            ImageProcessor.Anonymous("1", { $0 }).identifier,
-            ImageProcessor.Anonymous("1", { $0 }).identifier
+            ImageProcessor.Anonymous(id: "1", { $0 }).identifier,
+            ImageProcessor.Anonymous(id: "1", { $0 }).identifier
         )
         XCTAssertNotEqual(
-            ImageProcessor.Anonymous("1", { $0 }).identifier,
-            ImageProcessor.Anonymous("2", { $0 }).identifier
+            ImageProcessor.Anonymous(id: "1", { $0 }).identifier,
+            ImageProcessor.Anonymous(id: "2", { $0 }).identifier
         )
     }
 
     func testAnonymousProcessorsHaveDifferentHashableIdentifiers() {
         XCTAssertEqual(
-            ImageProcessor.Anonymous("1", { $0 }).hashableIdentifier,
-            ImageProcessor.Anonymous("1", { $0 }).hashableIdentifier
+            ImageProcessor.Anonymous(id: "1", { $0 }).hashableIdentifier,
+            ImageProcessor.Anonymous(id: "1", { $0 }).hashableIdentifier
         )
         XCTAssertNotEqual(
-            ImageProcessor.Anonymous("1", { $0 }).hashableIdentifier,
-            ImageProcessor.Anonymous("2", { $0 }).hashableIdentifier
+            ImageProcessor.Anonymous(id: "1", { $0 }).hashableIdentifier,
+            ImageProcessor.Anonymous(id: "2", { $0 }).hashableIdentifier
         )
     }
 
     func testAnonymousProcessorIsApplied() {
         // Given
-        let processor = ImageProcessor.Anonymous("1") {
+        let processor = ImageProcessor.Anonymous(id: "1") {
             $0.nk_test_processorIDs = ["1"]
             return $0
         }

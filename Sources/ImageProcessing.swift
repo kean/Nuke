@@ -73,6 +73,28 @@ struct ImageProcessorComposition: ImageProcessing, Hashable {
     }
 }
 
+// MARK: - ImageProcessor
+
+public enum ImageProcessor {}
+
+// MARK: - ImageProcessor.Anonymous
+
+extension ImageProcessor {
+    public struct Anonymous: ImageProcessing {
+        public let identifier: String
+        private let closure: (Image) -> Image?
+
+        init(id: String, _ closure: @escaping (Image) -> Image?) {
+            self.identifier = id
+            self.closure = closure
+        }
+
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            return self.closure(image)
+        }
+    }
+}
+
 #if !os(macOS)
 import UIKit
 
@@ -80,19 +102,14 @@ import UIKit
 import WatchKit
 #endif
 
-// MARK: - ImageProcessor
+// MARK: - ImageProcessor.Resize
 
-public enum ImageProcessor {
+extension ImageProcessor {
 
     public enum Unit {
         case points
         case pixels
     }
-}
-
-// MARK: - ImageProcessor.Resize
-
-extension ImageProcessor {
 
     public struct Resize: ImageProcessing, Hashable {
 
@@ -290,24 +307,6 @@ extension ImageProcessor {
 }
 
 #endif
-
-// MARK: - ImageProcessor.Anonymous
-
-extension ImageProcessor {
-    public struct Anonymous: ImageProcessing {
-        public let identifier: String
-        private let closure: (Image) -> Image?
-
-        init(_ identifier: String, _ closure: @escaping (Image) -> Image?) {
-            self.identifier = identifier
-            self.closure = closure
-        }
-
-        public func process(image: Image, context: ImageProcessingContext) -> Image? {
-            return self.closure(image)
-        }
-    }
-}
 
 // MARK: - ImageDecompressor (Internal)
 

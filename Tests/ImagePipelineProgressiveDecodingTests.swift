@@ -182,7 +182,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         }
 
 
-        let request = ImageRequest(url: Test.url, processors: [ImageProcessor.Anonymous("1", { $0 })])
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessor.Anonymous(id: "1", { $0 })])
         pipeline.imageTask(with: request, delegate: delegate).start()
 
         wait()

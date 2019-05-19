@@ -91,7 +91,7 @@ class ImagePipelineTests: XCTestCase {
             (Test.data(name: "cat", extension: "gif"), Test.urlResponse)
         )
 
-        let processor = ImageProcessor.Anonymous("1") { _ in
+        let processor = ImageProcessor.Anonymous(id: "1") { _ in
             XCTFail()
             return nil
         }
@@ -160,7 +160,7 @@ class ImagePipelineTests: XCTestCase {
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
 
-        let request = ImageRequest(url: Test.url, processors: [ImageProcessor.Anonymous("1", { $0 })])
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessor.Anonymous(id: "1", { $0 })])
         XCTAssertEqual(request.priority, .normal)
 
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
@@ -226,7 +226,7 @@ class ImagePipelineTests: XCTestCase {
 
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        let processor = ImageProcessor.Anonymous("1") {
+        let processor = ImageProcessor.Anonymous(id: "1") {
             XCTFail()
             return $0
         }
