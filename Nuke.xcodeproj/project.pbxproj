@@ -367,9 +367,9 @@
 		0CDB92761DAF9BA500002905 /* Documentation */ = {
 			isa = PBXGroup;
 			children = (
+				0CDB927E1DAF9BA500002905 /* README.md */,
 				0CDB92771DAF9BA500002905 /* Guides */,
 				0CDB927C1DAF9BA500002905 /* Migrations */,
-				0CDB927E1DAF9BA500002905 /* README.md */,
 			);
 			path = Documentation;
 			sourceTree = "<group>";
@@ -399,9 +399,9 @@
 		0CDB927F1DAF9BA900002905 /* Metadata */ = {
 			isa = PBXGroup;
 			children = (
+				0CDB92821DAF9BC600002905 /* README.md */,
 				0CDB92801DAF9BB900002905 /* CHANGELOG.md */,
 				0CDB92811DAF9BC000002905 /* Nuke.podspec */,
-				0CDB92821DAF9BC600002905 /* README.md */,
 				0CDB92831DAF9BCB00002905 /* Package.swift */,
 				0CA301701DAF9CD1000B9105 /* .travis.yml */,
 				0C179C772282AC50008AB488 /* .swiftlint.yml */,
