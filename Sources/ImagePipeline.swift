@@ -369,10 +369,7 @@ public /* final */ class ImagePipeline {
         if Configuration.isAnimatedImageDataEnabled && image.animatedImageData != nil {
             return nil // Don't process animated images.
         }
-        var processors = [ImageProcessing]()
-        if let processor = request.processor {
-            processors.append(processor)
-        }
+        var processors = request.processors
         #if !os(macOS)
         if configuration.isDecompressionEnabled {
             processors.append(ImageDecompressor())

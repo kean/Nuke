@@ -29,9 +29,9 @@ public struct ImageRequest {
     }
 
     /// Processor to be applied to the image. `nil` by default.
-    public var processor: ImageProcessing? {
-        get { return ref.processor }
-        set { mutate { $0.processor = newValue } }
+    public var processors: [ImageProcessing] {
+        get { return ref.processors }
+        set { mutate { $0.processors = newValue } }
     }
 
     /// The policy to use when reading or writing images to the memory cache.
@@ -123,32 +123,16 @@ public struct ImageRequest {
 
     /// Initializes a request with the given URL.
     /// - parameter processor: Custom image processer.
-    public init(url: URL, processor: ImageProcessing) {
+    public init(url: URL, processors: [ImageProcessing]) {
         self.init(url: url)
-        self.processor = processor
+        self.processors = processors
     }
 
     /// Initializes a request with the given request.
     /// - parameter processor: Custom image processer.
-    public init(urlRequest: URLRequest, processor: ImageProcessing) {
+    public init(urlRequest: URLRequest, processors: [ImageProcessing]) {
         self.init(urlRequest: urlRequest)
-        self.processor = processor
-    }
-
-    /// Initializes a request with the given URL.
-    /// - parameter targetSize: Size in pixels.
-    /// - parameter contentMode: An option for how to resize the image
-    /// to the target size.
-    public init(url: URL, targetSize: CGSize, contentMode: ImageProcessor.Resize.ContentMode, upscale: Bool = false) {
-        self.init(url: url, processor: ImageProcessor.Resize(size: targetSize, unit: .pixels, contentMode: contentMode, upscale: upscale))
-    }
-
-    /// Initializes a request with the given request.
-    /// - parameter targetSize: Size in pixels.
-    /// - parameter contentMode: An option for how to resize the image
-    /// to the target size.
-    public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: ImageProcessor.Resize.ContentMode, upscale: Bool = false) {
-        self.init(urlRequest: urlRequest, processor: ImageProcessor.Resize(size: targetSize, unit: .pixels, contentMode: contentMode, upscale: upscale))
+        self.processors = processors
     }
 
     #endif
@@ -169,7 +153,7 @@ public struct ImageRequest {
     private class Container {
         var resource: Resource
         var urlString: String? // memoized absoluteString
-        var processor: ImageProcessing?
+        var processors: [ImageProcessing]
         var memoryCacheOptions = MemoryCacheOptions()
         var priority: ImageRequest.Priority = .normal
         var cacheKey: AnyHashable?
@@ -179,13 +163,14 @@ public struct ImageRequest {
         /// Creates a resource with a default processor.
         init(resource: Resource) {
             self.resource = resource
+            self.processors = [] // TODO: impr perf
         }
 
         /// Creates a copy.
         init(container ref: Container) {
             self.resource = ref.resource
             self.urlString = ref.urlString
-            self.processor = ref.processor
+            self.processors = ref.processors
             self.memoryCacheOptions = ref.memoryCacheOptions
             self.priority = ref.priority
             self.cacheKey = ref.cacheKey
@@ -205,39 +190,6 @@ public struct ImageRequest {
             case let .urlRequest(urlRequest): return urlRequest
             }
         }
-    }
-}
-
-public extension ImageRequest {
-    /// Appends a processor to the request. You can append arbitrary number of
-    /// processors to the request.
-    mutating func process(with processor: ImageProcessing) {
-        guard let existing = self.processor else {
-            self.processor = processor
-            return
-        }
-        // Chain new processor and the existing one.
-        self.processor = ImageProcessorComposition([existing, processor])
-    }
-
-    /// Appends a processor to the request. You can append arbitrary number of
-    /// processors to the request.
-    func processed(with processor: ImageProcessing) -> ImageRequest {
-        var request = self
-        request.process(with: processor)
-        return request
-    }
-
-    /// Appends a processor to the request. You can append arbitrary number of
-    /// processors to the request.
-    mutating func process(key: String, _ closure: @escaping (Image) -> Image?) {
-        process(with: AnonymousImageProcessor(key, closure))
-    }
-
-    /// Appends a processor to the request. You can append arbitrary number of
-    /// processors to the request.
-    func processed(key: String, _ closure: @escaping (Image) -> Image?) -> ImageRequest {
-        return processed(with: AnonymousImageProcessor(key, closure))
     }
 }
 
@@ -263,7 +215,7 @@ extension ImageRequest {
                 return false
             }
 
-            return lhs.processor == rhs.processor
+            return lhs.processors == rhs.processors
         }
     }
 

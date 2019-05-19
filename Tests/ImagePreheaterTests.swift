@@ -40,8 +40,8 @@ class ImagePreheaterTests: XCTestCase {
         // but different processors (different cacheKey).
         expect(pipeline.queue).toFinishWithEnqueuedOperationCount(2)
 
-        preheater.startPreheating(with: [Test.request.processed(key: "1") { $0 }])
-        preheater.startPreheating(with: [Test.request.processed(key: "2") { $0 }])
+        preheater.startPreheating(with: [ImageRequest(url: Test.url, processors: [ImageProcessor.Anonymous("1", { $0 })])])
+        preheater.startPreheating(with: [ImageRequest(url: Test.url, processors: [ImageProcessor.Anonymous("2", { $0 })])])
 
         wait()
     }
