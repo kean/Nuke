@@ -188,6 +188,7 @@
 		0CE5F78720A22ABF00BC3283 /* Nuke 6 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 6 Migration Guide.md"; sourceTree = "<group>"; };
 		0CE5F78820A22ABF00BC3283 /* Nuke 7 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 7 Migration Guide.md"; sourceTree = "<group>"; };
 		0CE745741D4767B900123F65 /* MockImageDecoder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockImageDecoder.swift; sourceTree = "<group>"; };
+		0CE8A1C32291C43F0065AAEA /* Image Pipeline.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Image Pipeline.md"; sourceTree = "<group>"; };
 		0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheater.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -367,6 +368,7 @@
 			isa = PBXGroup;
 			children = (
 				0CDB927E1DAF9BA500002905 /* README.md */,
+				0CE8A1C22291C43F0065AAEA /* Docs */,
 				0CDB92771DAF9BA500002905 /* Guides */,
 				0CDB927C1DAF9BA500002905 /* Migrations */,
 			);
@@ -405,6 +407,14 @@
 				0C179C772282AC50008AB488 /* .swiftlint.yml */,
 			);
 			name = Metadata;
+			sourceTree = "<group>";
+		};
+		0CE8A1C22291C43F0065AAEA /* Docs */ = {
+			isa = PBXGroup;
+			children = (
+				0CE8A1C32291C43F0065AAEA /* Image Pipeline.md */,
+			);
+			path = Docs;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

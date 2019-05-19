@@ -5,6 +5,10 @@
 - [Third Party Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md)
 - [Latest API Reference](https://kean.github.io/Nuke/reference/7.3/index.html)
 
+## Documentation
+
+- [Image Pipeline](https://github.com/kean/Nuke/blob/8.0/Documentation/Guides/Performance%20Guide.md)
+
 ## Guides
 
 - [Image Caching Guide](https://kean.github.io/post/image-caching)
