@@ -158,13 +158,13 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         // WARNING This is legacy behaviour, don't use it
         let request1 = ImageRequest(
             url: Test.url,
-            options: .init(loadKey: Test.url.absoluteString + "processor=1"),
-            processors: [MockImageProcessor(id: "1")]
+            processors: [MockImageProcessor(id: "1")],
+            options: .init(loadKey: Test.url.absoluteString + "processor=1")
         )
         let request2 = ImageRequest(
             url: Test.url,
-            options: .init(loadKey: Test.url.absoluteString + "processor=2"),
-            processors: [MockImageProcessor(id: "2")]
+            processors: [MockImageProcessor(id: "2")],
+            options: .init(loadKey: Test.url.absoluteString + "processor=2")
         )
 
         // Then both images are loaded and processors are applied
@@ -369,7 +369,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         // Given
         let operations = expect(queue).toEnqueueOperationsWithCount(1)
 
-        pipeline.loadImage(with: ImageRequest(url: Test.url, priority: .low, processors: [MockImageProcessor(id: "1")]))
+        pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low))
 
         dataLoader.queue.isSuspended = false
         wait { _ in
@@ -378,7 +378,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // When/Then
         expect(operations.operations.first!).toUpdatePriority(from: .low, to: .high)
-        let task = pipeline.loadImage(with: ImageRequest(url: Test.url, priority: .high, processors: [MockImageProcessor(id: "1")]))
+        let task = pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .high))
         wait()
 
         // When/Then
@@ -395,7 +395,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // Given
         let operations = expect(queue).toEnqueueOperationsWithCount(1)
-        pipeline.loadImage(with: ImageRequest(url: Test.url, priority: .low, processors: [MockImageProcessor(id: "1")]))
+        pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low))
         dataLoader.queue.isSuspended = false
         wait()
 
@@ -403,7 +403,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         // Note: adding a second task separately because we should guarantee
         // that both are subscribed by the time we start our test.
         expect(operations.operations.first!).toUpdatePriority(from: .low, to: .high)
-        let task = pipeline.loadImage(with: ImageRequest(url: Test.url, priority: .high, processors: [MockImageProcessor(id: "1")]))
+        let task = pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .high))
         wait()
 
         // When/Then

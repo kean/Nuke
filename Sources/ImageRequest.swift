@@ -67,10 +67,10 @@ public struct ImageRequest {
     /// - parameter options: Advanced image loading options.
     /// - parameter processors: Image processors to be applied after the image is loaded.
     public init(url: URL,
+                processors: [ImageProcessing] = [],
                 priority: ImageRequest.Priority = .normal,
-                options: ImageRequestOptions = .init(),
-                processors: [ImageProcessing] = []) {
-        self.ref = Container(resource: Resource.url(url), priority: priority, options: options, processors: processors)
+                options: ImageRequestOptions = .init()) {
+        self.ref = Container(resource: Resource.url(url), processors: processors, priority: priority, options: options)
         self.ref.urlString = url.absoluteString
         // creating `.absoluteString` takes 50% of time of Request creation,
         // it's still faster than using URLs as cache keys
@@ -81,10 +81,10 @@ public struct ImageRequest {
     /// - parameter options: Advanced image loading options.
     /// - parameter processors: Image processors to be applied after the image is loaded.
     public init(urlRequest: URLRequest,
+                processors: [ImageProcessing] = [],
                 priority: ImageRequest.Priority = .normal,
-                options: ImageRequestOptions = .init(),
-                processors: [ImageProcessing] = []) {
-        self.ref = Container(resource: Resource.urlRequest(urlRequest), priority: priority, options: options, processors: processors)
+                options: ImageRequestOptions = .init()) {
+        self.ref = Container(resource: Resource.urlRequest(urlRequest), processors: processors, priority: priority, options: options)
         self.ref.urlString = urlRequest.url?.absoluteString
     }
 
@@ -113,7 +113,7 @@ public struct ImageRequest {
         var processors: [ImageProcessing]
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, priority: Priority, options: ImageRequestOptions, processors: [ImageProcessing]) {
+        init(resource: Resource, processors: [ImageProcessing], priority: Priority, options: ImageRequestOptions) {
             self.resource = resource
             self.priority = priority
             self.options = options
