@@ -225,7 +225,7 @@ public /* final */ class ImagePipeline {
 
         // Fast memory cache lookup. We do this asynchronously because we
         // expect users to check memory cache synchronously if needed.
-        if task.request.memoryCacheOptions.isReadAllowed,
+        if task.request.options.memoryCacheOptions.isReadAllowed,
             let response = self.configuration.imageCache?.cachedResponse(for: task.request) {
             DispatchQueue.main.async {
                 guard let delegate = task.delegate else { return }
@@ -244,7 +244,7 @@ public /* final */ class ImagePipeline {
 
             // Store response in memory cache if allowed.
             let request = task.request
-            if case let .value(response, isCompleted) = event, isCompleted && request.memoryCacheOptions.isWriteAllowed {
+            if case let .value(response, isCompleted) = event, isCompleted && request.options.memoryCacheOptions.isWriteAllowed {
                 self.configuration.imageCache?.storeResponse(response, for: request)
             }
 
