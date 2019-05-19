@@ -111,11 +111,11 @@ public enum ImageProcessor {
     }
 }
 
-// MARK: - ImageProcessor.Scale
+// MARK: - ImageProcessor.Resize
 
 extension ImageProcessor {
 
-    public struct Scale: ImageProcessing, Hashable {
+    public struct Resize: ImageProcessing, Hashable {
 
         private let size: CGSize
         private let contentMode: ContentMode
@@ -132,7 +132,10 @@ extension ImageProcessor {
             case aspectFit
         }
 
-        // TODO: document
+        /// Initializes the resizing image processor.
+        ///
+        /// - parameter size: The target reference size.
+        /// - parameter unit:
         public init(size: CGSize, unit: Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
             self.size = CGSize(size: size, unit: unit)
             self.contentMode = contentMode
@@ -141,37 +144,11 @@ extension ImageProcessor {
         }
 
         public func process(image: Image, context: ImageProcessingContext) -> Image? {
-            return ImageProcessor.scale(image, targetSize: size, contentMode: contentMode, crop: crop, upscale: upscale)
+            return ImageProcessor.resize(image, targetSize: size, contentMode: contentMode, crop: crop, upscale: upscale)
         }
 
         public var identifier: String {
-            return "ImageProcessor.Scale(\(size)\(contentMode)\(crop)\(upscale))"
-        }
-
-        public var hashableIdentifier: AnyHashable {
-            return self
-        }
-    }
-}
-
-// MARK: - ImageProcessor.Resize
-
-extension ImageProcessor {
-
-    public struct Resize: ImageProcessing, Hashable {
-
-        private let size: CGSize
-
-        public init(size: CGSize, unit: Unit = .points) {
-            self.size = CGSize(size: size, unit: unit)
-        }
-
-        public func process(image: Image, context: ImageProcessingContext) -> Image? {
-            return ImageProcessor.resize(image, size: size)
-        }
-
-        public var identifier: String {
-            return "ImageProcessor.Resize(\(size))"
+            return "ImageProcessor.Resize(\(size)\(contentMode)\(crop)\(upscale))"
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -373,11 +350,11 @@ struct ImageDecompressor: ImageProcessing, Hashable {
 // MARK: - ImageProcessor Utilities
 
 extension ImageProcessor {
-    static func scale(_ image: UIImage,
-                      targetSize: CGSize,
-                      contentMode: ImageProcessor.Scale.ContentMode,
-                      crop: Bool,
-                      upscale: Bool) -> UIImage? {
+    static func resize(_ image: UIImage,
+                       targetSize: CGSize,
+                       contentMode: ImageProcessor.Resize.ContentMode,
+                       crop: Bool,
+                       upscale: Bool) -> UIImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -419,10 +396,6 @@ extension ImageProcessor {
             dy: min(0, -(imageSize.height - targetSize.height) / 2)
         )
         return draw(image, size: targetSize, in: drawRect)
-    }
-
-    static func resize(_ image: UIImage, size: CGSize) -> UIImage {
-        return draw(image, targetSize: size)
     }
 
     /// Draws the input image in a new `CGContext` with a given size. If the target

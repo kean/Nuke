@@ -139,16 +139,16 @@ public struct ImageRequest {
     /// - parameter targetSize: Size in pixels.
     /// - parameter contentMode: An option for how to resize the image
     /// to the target size.
-    public init(url: URL, targetSize: CGSize, contentMode: ImageProcessor.Scale.ContentMode, upscale: Bool = false) {
-        self.init(url: url, processor: ImageProcessor.Scale(size: targetSize, unit: .pixels, contentMode: contentMode, upscale: upscale))
+    public init(url: URL, targetSize: CGSize, contentMode: ImageProcessor.Resize.ContentMode, upscale: Bool = false) {
+        self.init(url: url, processor: ImageProcessor.Resize(size: targetSize, unit: .pixels, contentMode: contentMode, upscale: upscale))
     }
 
     /// Initializes a request with the given request.
     /// - parameter targetSize: Size in pixels.
     /// - parameter contentMode: An option for how to resize the image
     /// to the target size.
-    public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: ImageProcessor.Scale.ContentMode, upscale: Bool = false) {
-        self.init(urlRequest: urlRequest, processor: ImageProcessor.Scale(size: targetSize, unit: .pixels, contentMode: contentMode, upscale: upscale))
+    public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: ImageProcessor.Resize.ContentMode, upscale: Bool = false) {
+        self.init(urlRequest: urlRequest, processor: ImageProcessor.Resize(size: targetSize, unit: .pixels, contentMode: contentMode, upscale: upscale))
     }
 
     #endif

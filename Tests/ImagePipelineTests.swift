@@ -307,7 +307,7 @@ class ImagePipelineTests: XCTestCase {
     func testDecompressionNotPerformedWhenProcessorWasApplied() {
         // Given request with scaling processor
         var request = Test.request
-        request.processor = ImageProcessor.Scale(size: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+        request.processor = ImageProcessor.Resize(size: CGSize(width: 40, height: 40), contentMode: .aspectFit)
 
         expect(pipeline).toLoadImage(with: request) { result in
             let image = result.value!.image
