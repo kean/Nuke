@@ -69,28 +69,29 @@ struct ImageProcessorComposition: ImageProcessing, Hashable {
     }
 
     static func == (lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
-        guard lhs.processors.count == rhs.processors.count else {
-            return false
-        }
-        // Lazily creates `hashableIdentifiers` because for some processors the
-        // identifiers might be expensive to compute.
-        return zip(lhs.processors, rhs.processors).allSatisfy {
-            $0.hashableIdentifier == $1.hashableIdentifier
-        }
+        return lhs.processors == rhs.processors
     }
 }
 
-struct AnonymousImageProcessor: ImageProcessing {
-    public let identifier: String
-    private let closure: (Image) -> Image?
+// MARK: - ImageProcessor
 
-    init(_ identifier: String, _ closure: @escaping (Image) -> Image?) {
-        self.identifier = identifier
-        self.closure = closure
-    }
+public enum ImageProcessor {}
 
-    func process(image: Image, context: ImageProcessingContext) -> Image? {
-        return self.closure(image)
+// MARK: - ImageProcessor.Anonymous
+
+extension ImageProcessor {
+    public struct Anonymous: ImageProcessing {
+        public let identifier: String
+        private let closure: (Image) -> Image?
+
+        init(id: String, _ closure: @escaping (Image) -> Image?) {
+            self.identifier = id
+            self.closure = closure
+        }
+
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            return self.closure(image)
+        }
     }
 }
 
@@ -101,19 +102,14 @@ import UIKit
 import WatchKit
 #endif
 
-// MARK: - ImageProcessor
+// MARK: - ImageProcessor.Resize
 
-public enum ImageProcessor {
+extension ImageProcessor {
 
     public enum Unit {
         case points
         case pixels
     }
-}
-
-// MARK: - ImageProcessor.Resize
-
-extension ImageProcessor {
 
     public struct Resize: ImageProcessing, Hashable {
 
@@ -532,5 +528,16 @@ func == (lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
     case (.none, .none): return true
     case let (.some(lhs), .some(rhs)): return lhs.hashableIdentifier == rhs.hashableIdentifier
     default: return false
+    }
+}
+
+func == (lhs: [ImageProcessing], rhs: [ImageProcessing]) -> Bool {
+    guard lhs.count == rhs.count else {
+        return false
+    }
+    // Lazily creates `hashableIdentifiers` because for some processors the
+    // identifiers might be expensive to compute.
+    return zip(lhs, rhs).allSatisfy {
+        $0.hashableIdentifier == $1.hashableIdentifier
     }
 }

@@ -91,10 +91,11 @@ class ImagePipelineTests: XCTestCase {
             (Test.data(name: "cat", extension: "gif"), Test.urlResponse)
         )
 
-        let request = Test.request.processed(key: "1") { _ in
+        let processor = ImageProcessor.Anonymous(id: "1") { _ in
             XCTFail()
             return nil
         }
+        let request = ImageRequest(url: Test.url, processors: [processor])
 
         // Then
         expect(pipeline).toLoadImage(with: request) { result in
@@ -159,7 +160,7 @@ class ImagePipelineTests: XCTestCase {
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
 
-        let request = Test.request.processed(key: "1") { $0 }
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessor.Anonymous(id: "1", { $0 })])
         XCTAssertEqual(request.priority, .normal)
 
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
@@ -225,10 +226,11 @@ class ImagePipelineTests: XCTestCase {
 
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        let request = Test.request.processed(key: "1") {
+        let processor = ImageProcessor.Anonymous(id: "1") {
             XCTFail()
             return $0
         }
+        let request = ImageRequest(url: Test.url, processors: [processor])
 
         let task = pipeline.loadImage(with: request) { _ in
             XCTFail()
@@ -306,8 +308,9 @@ class ImagePipelineTests: XCTestCase {
 
     func testDecompressionNotPerformedWhenProcessorWasApplied() {
         // Given request with scaling processor
-        var request = Test.request
-        request.processor = ImageProcessor.Resize(size: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+        let request = ImageRequest(url: Test.url, processors: [
+            ImageProcessor.Resize(size: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+        ])
 
         expect(pipeline).toLoadImage(with: request) { result in
             let image = result.value!.image
@@ -321,8 +324,7 @@ class ImagePipelineTests: XCTestCase {
 
     func testDecompressionPerformedWhenProcessorIsAppliedButDoesnNothing() {
         // Given request with scaling processor
-        var request = Test.request
-        request.processor = MockEmptyImageProcessor()
+        let request = ImageRequest(url: Test.url, processors: [MockEmptyImageProcessor()])
 
         expect(pipeline).toLoadImage(with: request) { result in
             let image = result.value!.image
@@ -386,9 +388,8 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func testCacheWriteDisabled() {
         // Given
-        let request = Test.request.mutated {
-            $0.memoryCacheOptions.isWriteAllowed = false
-        }
+        var request = Test.request
+        request.options.memoryCacheOptions.isWriteAllowed = false
 
         // When
         expect(pipeline).toLoadImage(with: request)
@@ -403,9 +404,8 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
         // Given
         cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil, scanNumber: nil), for: Test.request)
 
-        let request = Test.request.mutated {
-            $0.memoryCacheOptions.isReadAllowed = false
-        }
+        var request = Test.request
+        request.options.memoryCacheOptions.isReadAllowed = false
 
         // When
         expect(pipeline).toLoadImage(with: request)
@@ -456,7 +456,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
             return
         }
 
-        let request = Test.request.processed(with: MockFailingProcessor())
+        let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
 
         // When/Then
         expect(pipeline).toFailRequest(request, with: .processingFailed)

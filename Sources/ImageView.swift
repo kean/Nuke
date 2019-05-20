@@ -300,7 +300,7 @@ private final class ImageViewController: ImageTaskDelegate {
         let pipeline = options.pipeline ?? ImagePipeline.shared
 
         // Quick synchronous memory cache lookup
-        if request.memoryCacheOptions.isReadAllowed,
+        if request.options.memoryCacheOptions.isReadAllowed,
             let imageCache = pipeline.configuration.imageCache,
             let response = imageCache.cachedResponse(for: request) {
             handle(result: .success(response), fromMemCache: true, options: options)

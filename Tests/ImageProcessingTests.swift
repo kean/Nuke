@@ -31,24 +31,8 @@ class ImageProcessingTests: XCTestCase {
 
     func testThatImageIsProcessed() {
         // Given
-        let request = Test.request.processed(with: MockImageProcessor(id: "processor1"))
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "processor1")])
 
-        // When
-        expect(pipeline).toLoadImage(with: request) { result in
-            // Then
-            let image = result.value?.image
-            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["processor1"])
-        }
-        wait()
-    }
-
-    func testReplacingDefaultProcessor() {
-        // Given
-        var request = Test.request
-        request.processor = nil
-        request.process(with: MockImageProcessor(id: "processor1"))
-
-        // When
         // When
         expect(pipeline).toLoadImage(with: request) { result in
             // Then
@@ -62,9 +46,13 @@ class ImageProcessingTests: XCTestCase {
 
     func testApplyingMultipleProcessors() {
         // Given
-        let request = Test.request
-            .processed(with: MockImageProcessor(id: "processor1"))
-            .processed(with: MockImageProcessor(id: "processor2"))
+        let request = ImageRequest(
+            url: Test.url,
+            processors: [
+                MockImageProcessor(id: "processor1"),
+                MockImageProcessor(id: "processor2")
+            ]
+        )
 
         // When
         expect(pipeline).toLoadImage(with: request) { result in
@@ -77,8 +65,7 @@ class ImageProcessingTests: XCTestCase {
 
     func testPerformingRequestWithoutProcessors() {
         // Given
-        var request = Test.request
-        request.processor = nil
+        let request = ImageRequest(url: Test.url, processors: [])
 
         // When
         expect(pipeline).toLoadImage(with: request) { result in
@@ -93,52 +80,37 @@ class ImageProcessingTests: XCTestCase {
 
     func testAnonymousProcessorsHaveDifferentIdentifiers() {
         XCTAssertEqual(
-            Test.request.processed(key: "1", { $0 }).processor?.identifier,
-            Test.request.processed(key: "1", { $0 }).processor?.identifier
+            ImageProcessor.Anonymous(id: "1", { $0 }).identifier,
+            ImageProcessor.Anonymous(id: "1", { $0 }).identifier
         )
         XCTAssertNotEqual(
-            Test.request.processed(key: "1", { $0 }).processor?.identifier,
-            Test.request.processed(key: "2", { $0 }).processor?.identifier
+            ImageProcessor.Anonymous(id: "1", { $0 }).identifier,
+            ImageProcessor.Anonymous(id: "2", { $0 }).identifier
         )
     }
 
     func testAnonymousProcessorsHaveDifferentHashableIdentifiers() {
         XCTAssertEqual(
-            Test.request.processed(key: "1", { $0 }).processor?.hashableIdentifier,
-            Test.request.processed(key: "1", { $0 }).processor?.hashableIdentifier
+            ImageProcessor.Anonymous(id: "1", { $0 }).hashableIdentifier,
+            ImageProcessor.Anonymous(id: "1", { $0 }).hashableIdentifier
         )
         XCTAssertNotEqual(
-            Test.request.processed(key: "1", { $0 }).processor?.hashableIdentifier,
-            Test.request.processed(key: "2", { $0 }).processor?.hashableIdentifier
+            ImageProcessor.Anonymous(id: "1", { $0 }).hashableIdentifier,
+            ImageProcessor.Anonymous(id: "2", { $0 }).hashableIdentifier
         )
     }
 
     func testAnonymousProcessorIsApplied() {
         // Given
-        let request = Test.request.processed(key: "1") {
+        let processor = ImageProcessor.Anonymous(id: "1") {
             $0.nk_test_processorIDs = ["1"]
             return $0
         }
-        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
+        let request = ImageRequest(url: Test.url, processors: [processor])
 
         // When
-        let image = request.processor?.process(image: Image(), context: context)
-
-        // Then
-        XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
-    }
-
-    func testAnonymousProcessorIsApplied2() {
-        // Given
-        var request = Test.request
-        request.process(key: "1") {
-            $0.nk_test_processorIDs = ["1"]
-            return $0
-        }
         let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
-
-        // When
-        let image = request.processor?.process(image: Image(), context: context)
+        let image = processor.process(image: Test.image, context: context)
 
         // Then
         XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
@@ -153,72 +125,6 @@ class ImageProcessingTests: XCTestCase {
         XCTAssertEqual(ImageDecompressor(), ImageDecompressor())
     }
 
-    // MARK: - Resizing
-
-    func testUsingProcessorRequestParameter() {
-        // Given
-        let processor = ImageProcessor.Resize(size: CGSize(width: 40, height: 40), contentMode: .aspectFit, upscale: false)
-
-        // When
-        let request = ImageRequest(url: Test.url, processor: processor)
-
-        // Then
-        XCTAssertEqual(processor.identifier, request.processor?.identifier)
-    }
-
-    func testResizingUsingRequestParameters() {
-        // Given
-        let request = ImageRequest(url: Test.url, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
-        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
-
-        // When
-        let image = request.processor!.process(image: Test.image, context: context)
-
-        // Then
-        XCTAssertEqual(image?.cgImage?.width, 40)
-        XCTAssertEqual(image?.cgImage?.height, 30)
-    }
-
-    func testResizingUsingRequestParametersInitWithURLRequest() {
-        // Given
-        let request = ImageRequest(urlRequest: Test.request.urlRequest, targetSize: CGSize(width: 40, height: 40), contentMode: .aspectFit)
-        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
-
-        // When
-        let image = request.processor!.process(image: Test.image, context: context)
-
-        // Then
-        XCTAssertEqual(image?.cgImage?.width, 40)
-        XCTAssertEqual(image?.cgImage?.height, 30)
-    }
-
-    func testResizingShouldNotUpscaleWithoutParamater() {
-        // Given
-        let targetSize = CGSize(width: 960, height: 720)
-        let request = ImageRequest(url: Test.url, targetSize: targetSize, contentMode: .aspectFit)
-        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
-
-        // When
-        let image = request.processor!.process(image: Test.image, context: context)
-
-        // Then
-        XCTAssertEqual(image?.cgImage?.width, 640)
-        XCTAssertEqual(image?.cgImage?.height, 480)
-    }
-
-    func testResizingShouldUpscaleWithParamater() {
-        // Given
-        let targetSize = CGSize(width: 960, height: 720)
-        let request = ImageRequest(url: Test.url, targetSize: targetSize, contentMode: .aspectFit, upscale: true)
-        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
-
-        // When
-        let image = request.processor!.process(image: Test.image, context: context)
-
-        // Then
-        XCTAssertEqual(image?.cgImage?.width, 960)
-        XCTAssertEqual(image?.cgImage?.height, 720)
-    }
     #endif
 }
 

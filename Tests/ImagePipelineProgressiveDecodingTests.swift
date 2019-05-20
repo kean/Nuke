@@ -91,8 +91,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
         let request = ImageRequest(
             url: Test.url,
-            targetSize: CGSize(width: 45, height: 30),
-            contentMode: .aspectFill
+            processors: [ImageProcessor.Resize(size: CGSize(width: 45, height: 30), unit: .pixels)]
         )
 
         // When/Then
@@ -117,7 +116,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
     func testThatPartialImagesAreProcessed() {
         // Given
-        let request = Test.request.processed(with: MockImageProcessor(id: "_image_processor"))
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "_image_processor")])
 
         // When/Then
         delegate.progressiveResponseHandler = { response in
@@ -182,7 +181,9 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             finalLoaded.fulfill()
         }
 
-        pipeline.imageTask(with: Test.request.processed(key: "1") { $0 }, delegate: delegate).start()
+
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessor.Anonymous(id: "1", { $0 })])
+        pipeline.imageTask(with: request, delegate: delegate).start()
 
         wait()
     }
