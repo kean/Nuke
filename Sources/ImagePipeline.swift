@@ -21,9 +21,9 @@ public /* final */ class ImagePipeline {
 
     private var tasks = [ImageTask: TaskSubscription]()
 
-    private var processingTasks: [AnyHashable: ImageProcessingTask]?
-    private var decodingTasks: [AnyHashable: ImageDecodingTask]?
-    private var dataLoadingTasks: [AnyHashable: ImageDataLoadingTask]?
+    private var processedImageFetchTasks: [AnyHashable: ProcessedImageFetchTask]?
+    private var originalImageFetchTasks: [AnyHashable: OriginalImageFetchTask]?
+    private var originalImageDataFetchTasks: [AnyHashable: OriginalImageDataFetchTask]?
 
     private var nextTaskId = Atomic<Int>(0)
 
@@ -36,90 +36,6 @@ public /* final */ class ImagePipeline {
     /// Guaranteed to be called on the main thread.
     public var didFinishCollectingMetrics: ((ImageTask, ImageTaskMetrics) -> Void)?
 
-    // MARK: - Configuration
-
-    public struct Configuration {
-        /// Image cache used by the pipeline.
-        public var imageCache: ImageCaching?
-
-        /// Data loader used by the pipeline.
-        public var dataLoader: DataLoading
-
-        /// Data loading queue. Default maximum concurrent task count is 6.
-        public var dataLoadingQueue = OperationQueue()
-
-        /// Data cache used by the pipeline.
-        public var dataCache: DataCaching?
-
-        /// Data caching queue. Default maximum concurrent task count is 2.
-        public var dataCachingQueue = OperationQueue()
-
-        /// Default implementation uses shared `ImageDecoderRegistry` to create
-        /// a decoder that matches the context.
-        var imageDecoder: (ImageDecodingContext) -> ImageDecoding = {
-            return ImageDecoderRegistry.shared.decoder(for: $0)
-        }
-
-        /// Image decoding queue. Default maximum concurrent task count is 1.
-        public var imageDecodingQueue = OperationQueue()
-
-        /// Image processing queue. Default maximum concurrent task count is 2.
-        public var imageProcessingQueue = OperationQueue()
-
-        #if !os(macOS)
-        /// Decompresses the loaded images. `true` by default.
-        ///
-        /// Decompressing compressed image formats (such as JPEG) can significantly
-        /// improve drawing performance as it allows a bitmap representation to be
-        /// created in a background rather than on the main thread.
-        public var isDecompressionEnabled = true
-        #endif
-
-        /// `true` by default. If `true` the pipeline will combine the requests
-        /// with the same `loadKey` into a single request. The request only gets
-        /// cancelled when all the registered requests are.
-        public var isDeduplicationEnabled = true
-
-        /// `true` by default. It `true` the pipeline will rate limits the requests
-        /// to prevent trashing of the underlying systems (e.g. `URLSession`).
-        /// The rate limiter only comes into play when the requests are started
-        /// and cancelled at a high rate (e.g. scrolling through a collection view).
-        public var isRateLimiterEnabled = true
-
-        /// `false` by default. If `true` the pipeline will try to produce a new
-        /// image each time it receives a new portion of data from data loader.
-        /// The decoder used by the image loading session determines whether
-        /// to produce a partial image or not.
-        public var isProgressiveDecodingEnabled = false
-
-        /// If the data task is terminated (either because of a failure or a
-        /// cancellation) and the image was partially loaded, the next load will
-        /// resume where it was left off. Supports both validators (`ETag`,
-        /// `Last-Modified`). The resumable downloads are enabled by default.
-        public var isResumableDataEnabled = true
-
-        /// If `true` pipeline will detects GIFs and set `animatedImageData`
-        /// (`UIImage` property). It will also disable processing of such images,
-        /// and alter the way cache cost is calculated. However, this will not
-        /// enable actual animated image rendering. To do that take a look at
-        /// satellite projects (FLAnimatedImage and Gifu plugins for Nuke).
-        /// `false` by default (to preserve resources).
-        public static var isAnimatedImageDataEnabled = false
-
-        /// Creates default configuration.
-        /// - parameter dataLoader: `DataLoader()` by default.
-        /// - parameter imageCache: `Cache.shared` by default.
-        public init(dataLoader: DataLoading = DataLoader(), imageCache: ImageCaching? = ImageCache.shared) {
-            self.dataLoader = dataLoader
-            self.imageCache = imageCache
-
-            self.dataLoadingQueue.maxConcurrentOperationCount = 6
-            self.dataCachingQueue.maxConcurrentOperationCount = 2
-            self.imageDecodingQueue.maxConcurrentOperationCount = 1
-            self.imageProcessingQueue.maxConcurrentOperationCount = 2
-        }
-    }
-
     /// Initializes `ImagePipeline` instance with the given configuration.
     /// - parameter configuration: `Configuration()` by default.
     public init(configuration: Configuration = Configuration()) {
@@ -127,9 +43,9 @@ public /* final */ class ImagePipeline {
         self.rateLimiter = RateLimiter(queue: queue)
 
         if configuration.isDeduplicationEnabled {
-            processingTasks = [:]
-            decodingTasks = [:]
-            dataLoadingTasks = [:]
+            processedImageFetchTasks = [:]
+            originalImageFetchTasks = [:]
+            originalImageDataFetchTasks = [:]
         }
     }
 
@@ -300,42 +216,124 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    // MARK: - Image Processing
+    // MARK: - Get Processed Image
 
-    private typealias ImageProcessingTask = Task<ImageResponse, Error>
+    private typealias ProcessedImageFetchTask = Task<ImageResponse, Error>
 
-    private func getProcessedImage(for request: ImageRequest) -> ImageProcessingTask {
+    private func getProcessedImage(for request: ImageRequest) -> ProcessedImageFetchTask {
         let key = ImageRequest.ImageLoadKey(request: request)
-        if let task = processingTasks?[key] {
+        if let task = processedImageFetchTasks?[key] {
             return task
         }
 
-        let task = ImageProcessingTask(starter: { job in
-            let task = self.getDecodedImage(for: request)
-            job.dependency = task.subscribe { [weak self, weak job] event in
-                guard let self = self, let job = job else { return }
-
-                switch event {
-                case let .value(image, isCompleted):
-                    self.processImage(image, for: job, request: request, isCompleted: isCompleted)
-                case let .progress(progress):
-                    job.send(progress: progress)
-                case let .error(error):
-                    job.send(error: error)
-                }
-            }
+        let task = ProcessedImageFetchTask(starter: { job in
+            self.loadProcessedImage(for: request, job: job)
         })
 
-        processingTasks?[key] = task
+        processedImageFetchTasks?[key] = task
         task.onDisposed = { [weak self] in
-            self?.processingTasks?[key] = nil
+            self?.processedImageFetchTasks?[key] = nil
         }
         return task
     }
 
-    private func processImage(_ response: ImageResponse, for job: ImageProcessingTask.Job, request: ImageRequest, isCompleted: Bool) {
+    private func loadProcessedImage(for request: ImageRequest, job: ProcessedImageFetchTask.Job) {
+        guard !request.processors.isEmpty, let dataCache = configuration.dataCache, configuration.isDataCacheForProcessedDataEnabled else {
+            loadOriginaImage(for: request, job: job)
+            return
+        }
+
+        let key = (request.urlString ?? "") + ImageProcessorComposition(request.processors).identifier
+
+        let operation = BlockOperation { [weak self, weak job] in
+            guard let self = self, let job = job else { return }
+            let data = dataCache.cachedData(for: key)
+            self.queue.async {
+                if let data = data {
+                    self.decodeProcessedImageData(data, for: request, job: job)
+                } else {
+                    self.loadOriginaImage(for: request, job: job)
+                }
+            }
+        }
+        job.operation = operation
+        configuration.dataCachingQueue.addOperation(operation)
+    }
+
+    private func decodeProcessedImageData(_ data: Data, for request: ImageRequest, job: ProcessedImageFetchTask.Job) {
+        guard !job.isDisposed else { return }
+
+        let decoderContext = ImageDecodingContext(request: request, data: data, urlResponse: nil)
+        let decoder = configuration.makeImageDecoder(decoderContext)
+
+        let operation = BlockOperation { [weak self, weak job] in
+            guard let self = self, let job = job else { return }
+            let response = decoder.decode(data, urlResponse: nil, isFinal: true)
+            self.queue.async {
+                if let response = response {
+                    self.decompressProcessedImage(response, isCompleted: true, for: request, job: job)
+                } else {
+                    self.loadOriginaImage(for: request, job: job)
+                }
+            }
+        }
+        job.operation = operation
+        configuration.imageDecodingQueue.addOperation(operation)
+    }
+
+    private func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, job: ProcessedImageFetchTask.Job) {
+        #if os(macOS)
+        job.send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
+        #else
+        guard configuration.isDecompressionEnabled &&
+            ImageDecompressor.isDecompressionNeeded(for: response.image) ?? false &&
+            !(Configuration.isAnimatedImageDataEnabled && response.image.animatedImageData != nil) else {
+            job.send(value: response, isCompleted: isCompleted)
+            return
+        }
+
+        if isCompleted {
+            job.operation?.cancel() // Cancel any potential pending progressive decompression tasks
+        } else if job.operation != nil {
+            return  // Back pressure - already processing another progressive image
+        }
+
+        guard !job.isDisposed else { return }
+
+        let operation = BlockOperation { [weak self, weak job] in
+            guard let self = self, let job = job else { return }
+
+            let response = response.map { ImageDecompressor().decompress(image: $0) } ?? response
+
+            self.queue.async {
+                job.send(value: response, isCompleted: isCompleted)
+            }
+        }
+        job.operation = operation
+        configuration.imageDecompressingQueue.addOperation(operation)
+        #endif
+    }
+
+    private func loadOriginaImage(for request: ImageRequest, job: ProcessedImageFetchTask.Job) {
+        guard !job.isDisposed else { return }
+
+        let task = self.getDecodedImage(for: request)
+        job.dependency = task.subscribe { [weak self, weak job] event in
+            guard let self = self, let job = job else { return }
+            switch event {
+            case let .value(image, isCompleted):
+                self.processImage(image, isCompleted: isCompleted, for: request, job: job)
+            case let .progress(progress):
+                job.send(progress: progress)
+            case let .error(error):
+                job.send(error: error)
+            }
+        }
+    }
+
+    private func processImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, job: ProcessedImageFetchTask.Job) {
         guard let processor = self.processor(for: response.image, request: request) else {
-            job.send(value: response, isCompleted: isCompleted) // No processing needed, send the decoded image
+            decompressProcessedImage(response, isCompleted: isCompleted, for: request, job: job) // No processing needed
             return
         }
 
@@ -358,31 +356,45 @@ public /* final */ class ImagePipeline {
                     } // Ignore when progressive processing fails
                     return
                 }
-                job.send(value: response, isCompleted: isCompleted)
+                if isCompleted {
+                    self.storeProcessedImageInDataCache(response, request: request)
+                }
+                job.operation = nil // Clear operation so that decompression can run
+                self.decompressProcessedImage(response, isCompleted: isCompleted, for: request, job: job)
             }
         }
         job.operation = operation
         configuration.imageProcessingQueue.addOperation(operation)
     }
 
+    private func storeProcessedImageInDataCache(_ response: ImageResponse, request: ImageRequest) {
+        guard let dataCache = configuration.dataCache, configuration.isDataCacheForProcessedDataEnabled else {
+            return
+        }
+        let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
+        let encoder = configuration.makeImageEncoder(context)
+        configuration.imageEncodingQueue.addOperation {
+            guard let data = encoder.encode(image: response.image) else {
+                return
+            }
+            let key = (request.urlString ?? "") + ImageProcessorComposition(request.processors).identifier
+            dataCache.storeData(data, for: key) // This is instant
+        }
+    }
+
     private func processor(for image: Image, request: ImageRequest) -> ImageProcessing? {
         if Configuration.isAnimatedImageDataEnabled && image.animatedImageData != nil {
             return nil // Don't process animated images.
         }
-        var processors = request.processors
-        #if !os(macOS)
-        if configuration.isDecompressionEnabled {
-            processors.append(ImageDecompressor())
-        }
-        #endif
+        let processors = request.processors
         return processors.isEmpty ? nil : ImageProcessorComposition(processors)
     }
 
-    // MARK: - Image Decoding
+    // MARK: - Get Original Image
 
-    private typealias ImageDecodingTask = Task<ImageResponse, Error>
+    private typealias OriginalImageFetchTask = Task<ImageResponse, Error>
 
-    private final class ImageDecodingTaskContext {
+    private final class OriginalImageFetchContext {
         let request: ImageRequest
         var decoder: ImageDecoding?
 
@@ -391,15 +403,15 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func getDecodedImage(for request: ImageRequest) -> ImageDecodingTask {
+    private func getDecodedImage(for request: ImageRequest) -> OriginalImageFetchTask {
         let key = ImageRequest.LoadKey(request: request)
-        if let task = decodingTasks?[key] {
+        if let task = originalImageFetchTasks?[key] {
             return task
         }
 
-        let context = ImageDecodingTaskContext(request: request)
+        let context = OriginalImageFetchContext(request: request)
 
-        let task = ImageDecodingTask(starter: { job in
+        let task = OriginalImageFetchTask(starter: { job in
             let task = self.getImageData(for: request)
             job.dependency = task.subscribe { [weak self, weak job] event in
                 guard let self = self, let job = job else { return }
@@ -415,15 +427,15 @@ public /* final */ class ImagePipeline {
             }
         })
 
-        decodingTasks?[key] = task
+        originalImageFetchTasks?[key] = task
         task.onDisposed = { [weak self] in
-            self?.decodingTasks?[key] = nil
+            self?.originalImageFetchTasks?[key] = nil
         }
 
         return task
     }
 
-    private func decodeData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool, job: ImageDecodingTask.Job, context: ImageDecodingTaskContext) {
+    private func decodeData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool, job: OriginalImageFetchTask.Job, context: OriginalImageFetchContext) {
         if isCompleted {
             job.operation?.cancel() // Cancel any potential pending progressive decoding tasks
         } else if !configuration.isProgressiveDecodingEnabled || job.operation != nil {
@@ -431,31 +443,19 @@ public /* final */ class ImagePipeline {
         }
 
         // Sanity check
-        guard !data.isEmpty, let decoder = self.decoder(for: context, data: data, urlResponse: urlResponse) else {
+        guard !data.isEmpty else {
             if isCompleted {
                 job.send(error: .decodingFailed)
             }
             return
         }
 
+        let decoder = self.decoder(for: context, data: data, urlResponse: urlResponse)
+
         let operation = BlockOperation { [weak self, weak job] in
             guard let self = self, let job = job else { return }
-
-            let image = autoreleasepool {
-                decoder.decode(data: data, isFinal: isCompleted)
-            }
-            #if !os(macOS)
-            if let image = image {
-                ImageDecompressor.setDecompressionNeeded(true, for: image)
-            }
-            #endif
-
-            let scanNumber: Int? = (decoder as? ImageDecoder)?.numberOfScans
-
+            let response = decoder.decode(data, urlResponse: urlResponse, isFinal: isCompleted)
             self.queue.async {
-                let response = image.map {
-                    ImageResponse(image: $0, urlResponse: urlResponse, scanNumber: scanNumber)
-                }
                 if let response = response {
                     job.send(value: response, isCompleted: isCompleted)
                 } else if isCompleted {
@@ -468,23 +468,22 @@ public /* final */ class ImagePipeline {
     }
 
     // Lazily creates decoding for task
-    private func decoder(for context: ImageDecodingTaskContext, data: Data, urlResponse: URLResponse?) -> ImageDecoding? {
+    private func decoder(for context: OriginalImageFetchContext, data: Data, urlResponse: URLResponse?) -> ImageDecoding {
         // Return the existing processor in case it has already been created.
         if let decoder = context.decoder {
             return decoder
         }
-
-        let decoderContext = ImageDecodingContext(request: context.request, urlResponse: urlResponse, data: data)
-        let decoder = configuration.imageDecoder(decoderContext)
+        let decoderContext = ImageDecodingContext(request: context.request, data: data, urlResponse: urlResponse)
+        let decoder = configuration.makeImageDecoder(decoderContext)
         context.decoder = decoder
         return decoder
     }
 
-    // MARK: - Data Loading
+    // MARK: - Get Original Image Data
 
-    private typealias ImageDataLoadingTask = Task<(Data, URLResponse?), Error>
+    private typealias OriginalImageDataFetchTask = Task<(Data, URLResponse?), Error>
 
-    private final class ImageDataLoadingContext {
+    private final class OriginalImageDataFetchContext {
         let request: ImageRequest
         var urlResponse: URLResponse?
         var resumableData: ResumableData?
@@ -496,15 +495,15 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func getImageData(for request: ImageRequest) -> ImageDataLoadingTask {
+    private func getImageData(for request: ImageRequest) -> OriginalImageDataFetchTask {
         let key = ImageRequest.LoadKey(request: request)
-        if let task = dataLoadingTasks?[key] {
+        if let task = originalImageDataFetchTasks?[key] {
             return task
         }
 
-        let context = ImageDataLoadingContext(request: request)
+        let context = OriginalImageDataFetchContext(request: request)
 
-        let task = ImageDataLoadingTask(starter: { task in
+        let task = OriginalImageDataFetchTask(starter: { task in
             if self.configuration.isRateLimiterEnabled {
                 // Rate limiter is synchronized on pipeline's queue. Delayed work is
                 // executed asynchronously also on this same queue.
@@ -520,15 +519,15 @@ public /* final */ class ImagePipeline {
             }
         })
 
-        dataLoadingTasks?[key] = task
+        originalImageDataFetchTasks?[key] = task
         task.onDisposed = { [weak self] in
-            self?.dataLoadingTasks?[key] = nil
+            self?.originalImageDataFetchTasks?[key] = nil
         }
         return task
     }
 
-    private func loadImageDataFromCache(for job: ImageDataLoadingTask.Job, context: ImageDataLoadingContext) {
-        guard let cache = configuration.dataCache, let key = context.request.urlString else {
+    private func loadImageDataFromCache(for job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext) {
+        guard let cache = configuration.dataCache, configuration.isDataCacheForOriginalDataEnabled, let key = context.request.urlString else {
             loadImageData(for: job, context: context) // Skip disk cache lookup, load data
             return
         }
@@ -548,7 +547,7 @@ public /* final */ class ImagePipeline {
         configuration.dataCachingQueue.addOperation(operation)
     }
 
-    private func loadImageData(for job: ImageDataLoadingTask.Job, context: ImageDataLoadingContext) {
+    private func loadImageData(for job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext) {
         // Wrap data request in an operation to limit maximum number of
         // concurrent data tasks.
         let operation = Operation(starter: { [weak self, weak job] finish in
@@ -564,7 +563,7 @@ public /* final */ class ImagePipeline {
     }
 
     // This methods gets called inside data loading operation (Operation).
-    private func loadImageData(for job: ImageDataLoadingTask.Job, context: ImageDataLoadingContext, finish: @escaping () -> Void) {
+    private func loadImageData(for job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext, finish: @escaping () -> Void) {
         guard !job.isDisposed else {
             return finish() // Task was cancelled by the time we got the chance to execute
         }
@@ -606,7 +605,7 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func imageDataLoadingJob(_ job: ImageDataLoadingTask.Job, context: ImageDataLoadingContext, didReceiveData chunk: Data, response: URLResponse) {
+    private func imageDataLoadingJob(_ job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext, didReceiveData chunk: Data, response: URLResponse) {
         // Check if this is the first response.
         if context.urlResponse == nil {
             // See if the server confirmed that we can use the resumable data.
@@ -635,7 +634,7 @@ public /* final */ class ImagePipeline {
         job.send(value: (context.data, response))
     }
 
-    private func imageDataLoadingJob(_ job: ImageDataLoadingTask.Job, context: ImageDataLoadingContext, didFinishLoadingDataWithError error: Swift.Error?) {
+    private func imageDataLoadingJob(_ job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext, didFinishLoadingDataWithError error: Swift.Error?) {
         if let error = error {
             tryToSaveResumableData(for: context)
             job.send(error: .dataLoadingFailed(error))
@@ -649,14 +648,14 @@ public /* final */ class ImagePipeline {
         }
 
         // Store in data cache
-        if let dataCache = configuration.dataCache, let key = context.request.urlString {
+        if let dataCache = configuration.dataCache, configuration.isDataCacheForOriginalDataEnabled, let key = context.request.urlString {
             dataCache.storeData(context.data, for: key)
         }
 
         job.send(value: (context.data, context.urlResponse), isCompleted: true)
     }
 
-    private func tryToSaveResumableData(for context: ImageDataLoadingContext) {
+    private func tryToSaveResumableData(for context: OriginalImageDataFetchContext) {
         // Try to save resumable data in case the task was cancelled
         // (`URLError.cancelled`) or failed to complete with other error.
         if configuration.isResumableDataEnabled,

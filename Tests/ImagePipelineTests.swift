@@ -258,7 +258,7 @@ class ImagePipelineTests: XCTestCase {
         // has decompression disabled
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
-            $0.imageDecoder = { _ in
+            $0.makeImageDecoder = { _ in
                 MockAnonymousImageDecoder { _, _ in
                     return image
                 }
@@ -270,7 +270,9 @@ class ImagePipelineTests: XCTestCase {
 
         // When
         expect(pipeline).toLoadImage(with: Test.request) { result in
-            let output = result.value!.image
+            guard let output = result.value?.image else {
+                return XCTFail("Expected image to be loaded")
+            }
 
             XCTAssertTrue(output === image)
 
@@ -286,7 +288,7 @@ class ImagePipelineTests: XCTestCase {
         // Given the pipeline which returns a predefined image
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
-            $0.imageDecoder = { _ in
+            $0.makeImageDecoder = { _ in
                 MockAnonymousImageDecoder { _, _ in
                     return image
                 }
@@ -296,7 +298,9 @@ class ImagePipelineTests: XCTestCase {
 
         // When
         expect(pipeline).toLoadImage(with: Test.request) { result in
-            let output = result.value!.image
+            guard let output = result.value?.image else {
+                return XCTFail("Expected image to be loaded")
+            }
 
             XCTAssertTrue(output !== image)
 
@@ -313,7 +317,9 @@ class ImagePipelineTests: XCTestCase {
         ])
 
         expect(pipeline).toLoadImage(with: request) { result in
-            let image = result.value!.image
+            guard let image = result.value?.image else {
+                return XCTFail("Expected image to be loaded")
+            }
 
             // Expect decompression to not be performed
             let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: image)
@@ -322,12 +328,14 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
-    func testDecompressionPerformedWhenProcessorIsAppliedButDoesnNothing() {
+    func testDecompressionPerformedWhenProcessorIsAppliedButDoesNothing() {
         // Given request with scaling processor
         let request = ImageRequest(url: Test.url, processors: [MockEmptyImageProcessor()])
 
         expect(pipeline).toLoadImage(with: request) { result in
-            let image = result.value!.image
+            guard let image = result.value?.image else {
+                return XCTFail("Expected image to be loaded")
+            }
 
             // Expect decompression to be performed (processor was applied but it did nothing)
             let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: image)
@@ -438,7 +446,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         // Given
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
-            $0.imageDecoder = { _ in
+            $0.makeImageDecoder = { _ in
                 return MockFailingDecoder()
             }
             $0.imageCache = nil

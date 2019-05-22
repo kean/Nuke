@@ -114,6 +114,23 @@ extension ImageDecoder {
     }
 }
 
+extension ImageDecoding {
+    func decode(_ data: Data, urlResponse: URLResponse?, isFinal: Bool) -> ImageResponse? {
+        func decode() -> Image? {
+            return self.decode(data: data, isFinal: isFinal)
+        }
+        guard let image = autoreleasepool(invoking: decode) else {
+            return nil
+        }
+        #if !os(macOS)
+        ImageDecompressor.setDecompressionNeeded(true, for: image)
+        #endif
+
+        let scanNumber: Int? = (self as? ImageDecoder)?.numberOfScans
+        return ImageResponse(image: image, urlResponse: urlResponse, scanNumber: scanNumber)
+    }
+}
+
 // MARK: - ImageDecoderRegistry
 
 /// A register of image codecs (only decoding).
@@ -147,8 +164,8 @@ public final class ImageDecoderRegistry {
 /// Image decoding context used when selecting which decoder to use.
 public struct ImageDecodingContext {
     public let request: ImageRequest
-    let urlResponse: URLResponse?
     public let data: Data
+    public let urlResponse: URLResponse?
 }
 
 // MARK: - Image Formats

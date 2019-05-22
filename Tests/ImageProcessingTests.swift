@@ -115,17 +115,6 @@ class ImageProcessingTests: XCTestCase {
         // Then
         XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
     }
-
-    #if !os(macOS)
-
-    // MARK: - Decompression
-
-    func testTwoDifferentDecompressorsAreEqual() {
-        XCTAssertEqual(ImageDecompressor().hashValue, ImageDecompressor().hashValue)
-        XCTAssertEqual(ImageDecompressor(), ImageDecompressor())
-    }
-
-    #endif
 }
 
 class ImageProcessorCompositionTest: XCTestCase {
@@ -138,7 +127,7 @@ class ImageProcessorCompositionTest: XCTestCase {
         )
 
         // When
-        let image = processor.process(image: Image(), context: dummyProcessingContext)
+        let image = processor.process(image: Test.image, context: dummyProcessingContext)
 
         // Then
         XCTAssertEqual(image?.nk_test_processorIDs, ["1", "2"])

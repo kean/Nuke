@@ -26,7 +26,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         dataLoader.queue.isSuspended = true
 
         // Given requests with the same URLs and same processors
-        let processors = ProcessorFactory()
+        let processors = MockProcessorFactory()
         let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
 
@@ -55,7 +55,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         dataLoader.queue.isSuspended = true
 
         // Given requests with the same URLs but different processors
-        let processors = ProcessorFactory()
+        let processors = MockProcessorFactory()
         let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
 
@@ -84,8 +84,9 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // Given requests with the same URLs but different processors where one
         // processor is empty
-        let processors = ProcessorFactory()
+        let processors = MockProcessorFactory()
         let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
+
         var request2 = Test.request
         request2.processors = []
 
@@ -196,7 +197,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         // Given
         // Make sure we don't start processing when some requests haven't
         // started yet.
-        let processors = ProcessorFactory()
+        let processors = MockProcessorFactory()
         let queueObserver = OperationQueueObserver(queue: pipeline.configuration.imageProcessingQueue)
 
         // When
@@ -218,7 +219,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
 
-        let processors = ProcessorFactory()
+        let processors = MockProcessorFactory()
         let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
 
@@ -262,7 +263,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         }
 
         // Given requests with the same URLs but different processors
-        let processors = ProcessorFactory()
+        let processors = MockProcessorFactory()
         let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
 
@@ -335,7 +336,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         // When/Then
         let operations = expect(queue).toEnqueueOperationsWithCount(2)
 
-        let processors = ProcessorFactory()
+        let processors = MockProcessorFactory()
         let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
 
@@ -476,28 +477,5 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         wait { _ in
             XCTAssertEqual(self.dataLoader.createdTaskCount, 2)
         }
-    }
-}
-
-/// Helps with counting processors.
-private final class ProcessorFactory {
-    var numberOfProcessorsApplied: Int = 0
-    let lock = NSLock()
-
-    private final class Processor: MockImageProcessor {
-        var factory: ProcessorFactory!
-
-        override func process(image: Image, context: ImageProcessingContext) -> Image? {
-            factory.lock.sync {
-                factory.numberOfProcessorsApplied += 1
-            }
-            return super.process(image: image, context: context)
-        }
-    }
-
-    func make(id: String) -> MockImageProcessor {
-        let processor = Processor(id: id)
-        processor.factory = self
-        return processor
     }
 }
