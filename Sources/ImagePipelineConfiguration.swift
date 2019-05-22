@@ -81,6 +81,29 @@ extension ImagePipeline {
         /// cancelled when all the registered requests are.
         public var isDeduplicationEnabled = true
 
+        /// `false` by default. An experimental feature. When enabled, pipeline
+        /// will avoid any duplicated work when processing images. For example,
+        /// let't take this two requests:
+        ///
+        /// ```swift
+        /// let url = URL(string: "http://example.com/image")
+        /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
+        ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44)),
+        ///     ImageProcessor.GaussianBlur(radius: 8)
+        /// ]))
+        /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
+        ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
+        /// ]))
+        /// ```
+        ///
+        /// Nuke will load the image data only once, resize the image once and
+        /// apply the blur also only once. There is no duplicated work done at
+        /// any stage.
+        ///
+        /// - WARNING: When enabled each intermediate processed image will be
+        /// stored in disk data cache if it is enabled.
+        public var isProcessingDeduplicationEnabled = false
+
         /// `true` by default. It `true` the pipeline will rate limits the requests
         /// to prevent trashing of the underlying systems (e.g. `URLSession`).
         /// The rate limiter only comes into play when the requests are started
