@@ -30,8 +30,15 @@ class MockImageProcessor: ImageProcessing {
     }
     func process(image: Image, context: ImageProcessingContext) -> Image? {
         var processorIDs: [String] = image.nk_test_processorIDs
+        #if os(macOS)
+        let processedImage = image.copy() as! Image
+        #else
+        guard let copy = image.cgImage?.copy() else {
+            return image
+        }
+        let processedImage = Image(cgImage: copy)
+        #endif
         processorIDs.append(identifier)
-        let processedImage = Image()
         processedImage.nk_test_processorIDs = processorIDs
         return processedImage
     }
@@ -60,5 +67,30 @@ class MockEmptyImageProcessor: ImageProcessing {
 
     static func == (lhs: MockEmptyImageProcessor, rhs: MockEmptyImageProcessor) -> Bool {
         return true
+    }
+}
+
+// MARK: - MockProcessorFactory
+
+/// Counts number of applied processors
+final class MockProcessorFactory {
+    var numberOfProcessorsApplied: Int = 0
+    let lock = NSLock()
+
+    private final class Processor: MockImageProcessor {
+        var factory: MockProcessorFactory!
+
+        override func process(image: Image, context: ImageProcessingContext) -> Image? {
+            factory.lock.lock()
+            factory.numberOfProcessorsApplied += 1
+            factory.lock.unlock()
+            return super.process(image: image, context: context)
+        }
+    }
+
+    func make(id: String) -> MockImageProcessor {
+        let processor = Processor(id: id)
+        processor.factory = self
+        return processor
     }
 }

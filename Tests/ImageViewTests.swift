@@ -91,7 +91,8 @@ class ImageViewTests: XCTestCase {
 
     func testViewPreparedForReuseDisabled() {
         // Given an image view displaying an image
-        imageView.image = Test.image
+        let image = Test.image
+        imageView.image = image
 
         // When requesting the new image with prepare for reuse disabled
         var options = ImageLoadingOptions()
@@ -99,20 +100,21 @@ class ImageViewTests: XCTestCase {
         Nuke.loadImage(with: Test.request, options: options, into: imageView)
 
         // Expect the original image to still be displayed
-        XCTAssertEqual(imageView.image, Test.image)
+        XCTAssertEqual(imageView.image, image)
     }
 
     // MARK: - Memory Cache
 
     func testMemoryCacheUsed() {
         // Given the requested image stored in memory cache
-        mockCache[Test.request] = Test.image
+        let image = Test.image
+        mockCache[Test.request] = image
 
         // When requesting the new image
         Nuke.loadImage(with: Test.request, into: imageView)
 
         // Expect image to be displayed immediatelly
-        XCTAssertEqual(imageView.image, Test.image)
+        XCTAssertEqual(imageView.image, image)
     }
 
     func testMemoryCacheDisabled() {

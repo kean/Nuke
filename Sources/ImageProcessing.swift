@@ -310,24 +310,12 @@ extension ImageProcessor {
 
 // MARK: - ImageDecompressor (Internal)
 
-struct ImageDecompressor: ImageProcessing, Hashable {
-    let identifier: String = "ImageDecompressor"
+struct ImageDecompressor {
 
-    var hashableIdentifier: AnyHashable {
-        return self
-    }
-
-    func process(image: Image, context: ImageProcessingContext) -> Image? {
-        guard ImageDecompressor.isDecompressionNeeded(for: image) ?? false else {
-            return image // Image doesn't require decompression
-        }
+    func decompress(image: Image) -> Image {
         let output = ImageProcessor.decompress(image)
         ImageDecompressor.setDecompressionNeeded(false, for: output)
         return output
-    }
-
-    public static func == (lhs: ImageDecompressor, rhs: ImageDecompressor) -> Bool {
-        return true
     }
 
     // MARK: Managing Decompression State
@@ -437,15 +425,6 @@ extension ImageProcessor {
         return draw(image)
     }
 
-    static func isOpaque(_ image: CGImage) -> Bool {
-        let alpha = image.alphaInfo
-        return alpha == .none || alpha == .noneSkipFirst || alpha == .noneSkipLast
-    }
-
-    static func isTransparent(_ image: CGImage) -> Bool {
-        return !isOpaque(image)
-    }
-
     static func drawInCircle(_ image: UIImage) -> UIImage? {
         guard let cgImage = image.cgImage else {
             return nil
@@ -520,6 +499,17 @@ extension ImageProcessor {
 }
 
 #endif
+
+extension ImageProcessor {
+    static func isOpaque(_ image: CGImage) -> Bool {
+        let alpha = image.alphaInfo
+        return alpha == .none || alpha == .noneSkipFirst || alpha == .noneSkipLast
+    }
+
+    static func isTransparent(_ image: CGImage) -> Bool {
+        return !isOpaque(image)
+    }
+}
 
 // A special version of `==` which is optimized to not create hashable identifiers
 // when not necessary (e.g. one processor is `nil` and another one isn't.

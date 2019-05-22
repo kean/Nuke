@@ -75,6 +75,7 @@
 		0CE3992D1D4697CE00A87D47 /* ImagePipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE3992C1D4697CE00A87D47 /* ImagePipelineTests.swift */; };
 		0CE5F6832156386B0046609F /* ResumableDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE5F681215638300046609F /* ResumableDataTests.swift */; };
 		0CE745751D4767B900123F65 /* MockImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE745741D4767B900123F65 /* MockImageDecoder.swift */; };
+		0CF1754C22913F9800A8946E /* ImagePipelineConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */; };
 		0CF4DE7D1D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
 /* End PBXBuildFile section */
 
@@ -188,6 +189,7 @@
 		0CE5F78720A22ABF00BC3283 /* Nuke 6 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 6 Migration Guide.md"; sourceTree = "<group>"; };
 		0CE5F78820A22ABF00BC3283 /* Nuke 7 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 7 Migration Guide.md"; sourceTree = "<group>"; };
 		0CE745741D4767B900123F65 /* MockImageDecoder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockImageDecoder.swift; sourceTree = "<group>"; };
+		0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineConfiguration.swift; sourceTree = "<group>"; };
 		0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheater.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -240,6 +242,7 @@
 				0C0FD5DF1CA47FE1002A78FB /* ImageView.swift */,
 				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
 				0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */,
+				0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */,
 				0C86AB69228B3B5100A81BA1 /* ImageTask.swift */,
 				0C367A9420B9D0D0002342A5 /* ImageTaskMetrics.swift */,
 				0C0FD5D71CA47FE1002A78FB /* ImageCache.swift */,
@@ -664,6 +667,7 @@
 				0C367A9520B9D0D0002342A5 /* ImageTaskMetrics.swift in Sources */,
 				0CB26802208F2565004C83F4 /* DataCache.swift in Sources */,
 				0C0FD6041CA47FE1002A78FB /* ImageRequest.swift in Sources */,
+				0CF1754C22913F9800A8946E /* ImagePipelineConfiguration.swift in Sources */,
 				0C86AB6A228B3B5100A81BA1 /* ImageTask.swift in Sources */,
 				0C7150091FC9724C00B880AC /* Internal.swift in Sources */,
 				0CE2D9BA2084FDDD00934B28 /* ImageDecoding.swift in Sources */,

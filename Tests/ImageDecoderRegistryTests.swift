@@ -58,7 +58,7 @@ final class ImageDecoderRegistryTests: XCTestCase {
 private func _mockImageDecodingContext() -> ImageDecodingContext {
     return ImageDecodingContext(
         request: Test.request,
-        urlResponse: nil,
-        data: Test.data(name: "fixture", extension: "jpeg")
+        data: Test.data(name: "fixture", extension: "jpeg"),
+        urlResponse: nil
     )
 }
