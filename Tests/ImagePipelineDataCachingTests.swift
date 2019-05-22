@@ -90,7 +90,6 @@ class ImagePipelineDataCachingTests: XCTestCase {
     }
 }
 
-#if !os(macOS)
 class ImagePipelineProcessedDataCachingTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var dataCache: MockDataCache!
@@ -132,6 +131,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         XCTAssertEqual(processorFactory.numberOfProcessorsApplied, 0, "Expected no processors to be applied")
     }
 
+    #if !os(macOS)
     func testProcessedImageIsDecompressed() {
         // Given processed image data stored in data cache
         dataLoader.queue.isSuspended = true
@@ -153,7 +153,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         // Given pipeline with decompression disabled
         var configuration = pipeline.configuration
         configuration.isDecompressionEnabled = false
-        let pipeline = ImagePipeline(configuration: configuration)
+        pipeline = ImagePipeline(configuration: configuration)
 
         // Given processed image data stored in data cache
         dataLoader.queue.isSuspended = true
@@ -170,12 +170,13 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         }
         wait()
     }
+    #endif
 
     func testBothProcessedAndOriginalImageDataStoredInDataCache() {
         // When
         pipeline.configuration.imageEncodingQueue.isSuspended = true
-        expect(pipeline).toLoadImage(with: request)
         expect(pipeline.configuration.imageEncodingQueue).toFinishWithEnqueuedOperationCount(1)
+        expect(pipeline).toLoadImage(with: request)
 
         // Then
         wait { _ in
@@ -189,12 +190,12 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         // Given
         var configuration = pipeline.configuration
         configuration.isDataCacheForOriginalDataEnabled = false
-        let pipeline = ImagePipeline(configuration: configuration)
+        pipeline = ImagePipeline(configuration: configuration)
 
         // When
         pipeline.configuration.imageEncodingQueue.isSuspended = true
-        expect(pipeline).toLoadImage(with: request)
         expect(pipeline.configuration.imageEncodingQueue).toFinishWithEnqueuedOperationCount(1)
+        expect(pipeline).toLoadImage(with: request)
 
         // Then
         wait { _ in
@@ -207,7 +208,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         // Given
         var configuration = pipeline.configuration
         configuration.isDataCacheForProcessedDataEnabled = false
-        let pipeline = ImagePipeline(configuration: configuration)
+        pipeline = ImagePipeline(configuration: configuration)
 
         // When
         expect(pipeline).toLoadImage(with: request)
@@ -238,12 +239,12 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         configuration.makeImageEncoder = { _ in
             return encoder
         }
-        let pipeline = ImagePipeline(configuration: configuration)
+        pipeline = ImagePipeline(configuration: configuration)
 
         // When
         pipeline.configuration.imageEncodingQueue.isSuspended = true
-        expect(pipeline).toLoadImage(with: request)
         expect(pipeline.configuration.imageEncodingQueue).toFinishWithEnqueuedOperationCount(1)
+        expect(pipeline).toLoadImage(with: request)
 
         // Then
         wait { _ in
@@ -252,4 +253,3 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         }
     }
 }
-#endif
