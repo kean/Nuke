@@ -364,20 +364,20 @@ private final class ImageViewController: ImageTaskDelegate {
     private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool, options: ImageLoadingOptions) {
         switch result {
         case let .success(response):
-            _display(response.image, options.transition, options.alwaysTransition, fromMemCache, options.contentModes?.success)
+            display(response.image, options.transition, options.alwaysTransition, fromMemCache, options.contentModes?.success)
         case .failure:
             if let failureImage = options.failureImage {
-                _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache, options.contentModes?.failure)
+                display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache, options.contentModes?.failure)
             }
         }
         self.task = nil
     }
 
     private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
-        _display(response.image, options.transition, options.alwaysTransition, false, options.contentModes?.success)
+        display(response.image, options.transition, options.alwaysTransition, false, options.contentModes?.success)
     }
 
-    private func _display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?) {
+    private func display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?) {
         guard let imageView = imageView else {
             return
         }
@@ -385,7 +385,7 @@ private final class ImageViewController: ImageTaskDelegate {
         if !fromMemCache || alwaysTransition, let transition = transition {
             switch transition.style {
             case let .fadeIn(params):
-                _runFadeInTransition(image: image, params: params, contentMode: newContentMode)
+                runFadeInTransition(image: image, params: params, contentMode: newContentMode)
             case let .custom(closure):
                 // The user is reponsible for both displaying an image and performing
                 // animations.
@@ -403,7 +403,7 @@ private final class ImageViewController: ImageTaskDelegate {
     // content modes.
     private lazy var transitionImageView = UIImageView()
 
-    private func _runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters, contentMode: UIView.ContentMode?) {
+    private func runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters, contentMode: UIView.ContentMode?) {
         guard let imageView = imageView else {
             return
         }
@@ -411,13 +411,13 @@ private final class ImageViewController: ImageTaskDelegate {
         // Special case where we animate between content modes, only works
         // on imageView subclasses.
         if let contentMode = contentMode, imageView.contentMode != contentMode, let imageView = imageView as? UIImageView, imageView.image != nil {
-            _runCrossDissolveWithContentMode(imageView: imageView, image: image, params: params)
+            runCrossDissolveWithContentMode(imageView: imageView, image: image, params: params)
         } else {
-            _runSimpleFadeIn(image: image, params: params)
+            runSimpleFadeIn(image: image, params: params)
         }
     }
 
-    private func _runSimpleFadeIn(image: Image, params: ImageLoadingOptions.Transition.Parameters) {
+    private func runSimpleFadeIn(image: Image, params: ImageLoadingOptions.Transition.Parameters) {
         guard let imageView = imageView else {
             return
         }
@@ -436,7 +436,7 @@ private final class ImageViewController: ImageTaskDelegate {
     /// Performs cross-dissolve animation alonside transition to a new content
     /// mode. This isn't natively supported feature and it requires a second
     /// image view. There might be better ways to implement it.
-    private func _runCrossDissolveWithContentMode(imageView: UIImageView, image: Image, params: ImageLoadingOptions.Transition.Parameters) {
+    private func runCrossDissolveWithContentMode(imageView: UIImageView, image: Image, params: ImageLoadingOptions.Transition.Parameters) {
         // Lazily create a transition view.
         let transitionView = self.transitionImageView
 
@@ -473,20 +473,20 @@ private final class ImageViewController: ImageTaskDelegate {
         // NSImageView doesn't support content mode, unfortunately.
         switch result {
         case let .success(response):
-            _display(response.image, options.transition, options.alwaysTransition, fromMemCache)
+            display(response.image, options.transition, options.alwaysTransition, fromMemCache)
         case .failure:
             if let failureImage = options.failureImage {
-                _display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache)
+                display(failureImage, options.failureImageTransition, options.alwaysTransition, fromMemCache)
             }
         }
         self.task = nil
     }
 
     private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
-        _display(response.image, options.transition, options.alwaysTransition, false)
+        display(response.image, options.transition, options.alwaysTransition, false)
     }
 
-    private func _display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool) {
+    private func display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool) {
         guard let imageView = imageView else {
             return
         }
@@ -494,7 +494,7 @@ private final class ImageViewController: ImageTaskDelegate {
         if !fromMemCache || alwaysTransition, let transition = transition {
             switch transition.style {
             case let .fadeIn(params):
-                _runFadeInTransition(image: image, params: params)
+                runFadeInTransition(image: image, params: params)
             case let .custom(closure):
                 // The user is reponsible for both displaying an image and performing
                 // animations.
@@ -505,7 +505,7 @@ private final class ImageViewController: ImageTaskDelegate {
         }
     }
 
-    private func _runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters) {
+    private func runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters) {
         let animation = CABasicAnimation(keyPath: "opacity")
         animation.duration = params.duration
         animation.fromValue = 0

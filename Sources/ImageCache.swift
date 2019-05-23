@@ -51,35 +51,35 @@ public extension ImageCaching {
 /// memory warning. It also automatically removes *most* of cached elements
 /// when the app enters background.
 public final class ImageCache: ImageCaching {
-    private let _impl: Cache<ImageRequest.CacheKey, ImageResponse>
+    private let impl: Cache<ImageRequest.CacheKey, ImageResponse>
 
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int {
-        get { return _impl.costLimit }
-        set { _impl.costLimit = newValue }
+        get { return impl.costLimit }
+        set { impl.costLimit = newValue }
     }
 
     /// The maximum number of items that the cache can hold.
     public var countLimit: Int {
-        get { return _impl.countLimit }
-        set { _impl.countLimit = newValue }
+        get { return impl.countLimit }
+        set { impl.countLimit = newValue }
     }
 
     /// Default TTL (time to live) for each entry. Can be used to make sure that
     /// the entries get validated at some point. `0` (never expire) by default.
     public var ttl: TimeInterval {
-        get { return _impl.ttl }
-        set { _impl.ttl = newValue }
+        get { return impl.ttl }
+        set { impl.ttl = newValue }
     }
 
     /// The total cost of items in the cache.
     public var totalCost: Int {
-        return _impl.totalCost
+        return impl.totalCost
     }
 
     /// The total number of items in the cache.
     public var totalCount: Int {
-        return _impl.totalCount
+        return impl.totalCount
     }
 
     /// Shared `Cache` instance.
@@ -90,7 +90,7 @@ public final class ImageCache: ImageCaching {
     /// calculated based on the amount of the phisical memory available on the device.
     /// - parameter countLimit: `Int.max` by default.
     public init(costLimit: Int = ImageCache.defaultCostLimit(), countLimit: Int = Int.max) {
-        _impl = Cache(costLimit: costLimit, countLimit: countLimit)
+        impl = Cache(costLimit: costLimit, countLimit: countLimit)
     }
 
     /// Returns a recommended cost limit which is computed based on the amount
@@ -104,33 +104,33 @@ public final class ImageCache: ImageCaching {
 
     /// Returns the `ImageResponse` stored in the cache with the given request.
     public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
-        return _impl.value(forKey: ImageRequest.CacheKey(request: request))
+        return impl.value(forKey: ImageRequest.CacheKey(request: request))
     }
 
     /// Stores the given `ImageResponse` in the cache using the given request.
     public func storeResponse(_ response: ImageResponse, for request: ImageRequest) {
-        _impl.set(response, forKey: ImageRequest.CacheKey(request: request), cost: self.cost(for: response.image))
+        impl.set(response, forKey: ImageRequest.CacheKey(request: request), cost: self.cost(for: response.image))
     }
 
     /// Removes response stored with the given request.
     public func removeResponse(for request: ImageRequest) {
-        _impl.removeValue(forKey: ImageRequest.CacheKey(request: request))
+        impl.removeValue(forKey: ImageRequest.CacheKey(request: request))
     }
 
     /// Removes all cached images.
     public func removeAll() {
-        _impl.removeAll()
+        impl.removeAll()
     }
     /// Removes least recently used items from the cache until the total cost
     /// of the remaining items is less than the given cost limit.
     public func trim(toCost limit: Int) {
-        _impl.trim(toCost: limit)
+        impl.trim(toCost: limit)
     }
 
     /// Removes least recently used items from the cache until the total count
     /// of the remaining items is less than the given count limit.
     public func trim(toCount limit: Int) {
-        _impl.trim(toCount: limit)
+        impl.trim(toCount: limit)
     }
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.

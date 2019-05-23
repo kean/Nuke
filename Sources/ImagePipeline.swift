@@ -43,10 +43,11 @@ public /* final */ class ImagePipeline {
         self.configuration = configuration
         self.rateLimiter = RateLimiter(queue: queue)
 
-        self.decompressedImageFetchTasks = TaskPool(isDeduplicationEnabled: configuration.isDeduplicationEnabled)
-        self.processedImageFetchTasks = TaskPool(isDeduplicationEnabled: configuration.isDeduplicationEnabled)
-        self.originalImageFetchTasks = TaskPool(isDeduplicationEnabled: configuration.isDeduplicationEnabled)
-        self.originalImageDataFetchTasks = TaskPool(isDeduplicationEnabled: configuration.isDeduplicationEnabled)
+        let isDeduplicationEnabled = configuration.isDeduplicationEnabled
+        self.decompressedImageFetchTasks = TaskPool(isDeduplicationEnabled: isDeduplicationEnabled)
+        self.processedImageFetchTasks = TaskPool(isDeduplicationEnabled: isDeduplicationEnabled)
+        self.originalImageFetchTasks = TaskPool(isDeduplicationEnabled: isDeduplicationEnabled)
+        self.originalImageDataFetchTasks = TaskPool(isDeduplicationEnabled: isDeduplicationEnabled)
     }
 
     public convenience init(_ configure: (inout ImagePipeline.Configuration) -> Void) {
@@ -181,7 +182,7 @@ public /* final */ class ImagePipeline {
             }
 
             DispatchQueue.main.async {
-                guard let _ = task.delegate else { return }
+                guard task.delegate != nil else { return }
 
                 switch event {
                 case let .value(response, isCompleted):

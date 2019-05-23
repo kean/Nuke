@@ -23,17 +23,17 @@ extension URLSessionTask: Cancellable {}
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading {
     public let session: URLSession
-    private let _impl: _DataLoader
+    private let impl: _DataLoader
 
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
     public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
                 validate: @escaping (URLResponse) -> Swift.Error? = DataLoader.validate) {
-        self._impl = _DataLoader()
-        self.session = URLSession(configuration: configuration, delegate: _impl, delegateQueue: _impl.queue)
-        self._impl.session = self.session
-        self._impl.validate = validate
+        self.impl = _DataLoader()
+        self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: impl.queue)
+        self.impl.session = self.session
+        self.impl.validate = validate
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
@@ -77,7 +77,7 @@ public final class DataLoader: DataLoading {
     public func loadData(with request: URLRequest,
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
                          completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
-        return _impl.loadData(with: request, didReceiveData: didReceiveData, completion: completion)
+        return impl.loadData(with: request, didReceiveData: didReceiveData, completion: completion)
     }
 
     /// Errors produced by `DataLoader`.

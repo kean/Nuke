@@ -130,7 +130,9 @@ extension ImagePipeline {
         /// `false` by default (to preserve resources).
         public static var isAnimatedImageDataEnabled = false
 
-        /// Creates default configuration.
+        /// MARK: - Default Configuration
+
+        /// Creates a default configuration.
         /// - parameter dataLoader: `DataLoader()` by default.
         /// - parameter imageCache: `Cache.shared` by default.
         public init(dataLoader: DataLoading = DataLoader(), imageCache: ImageCaching? = ImageCache.shared) {

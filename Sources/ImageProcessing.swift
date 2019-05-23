@@ -292,7 +292,7 @@ extension ImageProcessor {
 
         /// Applies `CIGaussianBlur` filter to the image.
         public func process(image: Image, context: ImageProcessingContext) -> Image? {
-            let filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius" : radius])
+            let filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": radius])
             return CoreImageFilter.apply(filter: filter, to: image)
         }
 

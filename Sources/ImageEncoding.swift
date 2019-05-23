@@ -77,7 +77,7 @@ extension ImageEncoder {
             return nil
         }
         let rep = NSBitmapImageRep(cgImage: cgImage)
-        return rep.representation(using:.jpeg, properties: [.compressionFactor: compressionQuality])
+        return rep.representation(using: .jpeg, properties: [.compressionFactor: compressionQuality])
     }
 }
 #endif
