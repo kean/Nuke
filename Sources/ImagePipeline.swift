@@ -21,10 +21,10 @@ public /* final */ class ImagePipeline {
 
     private var tasks = [ImageTask: TaskSubscription]()
 
-    private var decompressedImageFetchTasks: [AnyHashable: DecompressedImageFetchTask]?
-    private var processedImageFetchTasks: [AnyHashable: ProcessedImageFetchTask]?
-    private var originalImageFetchTasks: [AnyHashable: OriginalImageFetchTask]?
-    private var originalImageDataFetchTasks: [AnyHashable: OriginalImageDataFetchTask]?
+    private let decompressedImageFetchTasks: TaskPool<ImageResponse, Error>
+    private let processedImageFetchTasks: TaskPool<ImageResponse, Error>
+    private var originalImageFetchTasks: TaskPool<ImageResponse, Error>
+    private var originalImageDataFetchTasks: TaskPool<(Data, URLResponse?), Error>
 
     private var nextTaskId = Atomic<Int>(0)
 
@@ -43,12 +43,10 @@ public /* final */ class ImagePipeline {
         self.configuration = configuration
         self.rateLimiter = RateLimiter(queue: queue)
 
-        if configuration.isDeduplicationEnabled {
-            decompressedImageFetchTasks = [:]
-            processedImageFetchTasks = [:]
-            originalImageFetchTasks = [:]
-            originalImageDataFetchTasks = [:]
-        }
+        self.decompressedImageFetchTasks = TaskPool(isDeduplicationEnabled: configuration.isDeduplicationEnabled)
+        self.processedImageFetchTasks = TaskPool(isDeduplicationEnabled: configuration.isDeduplicationEnabled)
+        self.originalImageFetchTasks = TaskPool(isDeduplicationEnabled: configuration.isDeduplicationEnabled)
+        self.originalImageDataFetchTasks = TaskPool(isDeduplicationEnabled: configuration.isDeduplicationEnabled)
     }
 
     public convenience init(_ configure: (inout ImagePipeline.Configuration) -> Void) {
@@ -175,7 +173,7 @@ public /* final */ class ImagePipeline {
             task.metrics = ImageTaskMetrics(taskId: task.taskId, startDate: Date())
         }
 
-        self.tasks[task] = getImageData(for: task.request) .subscribe(priority: task.priority) { [weak self, weak task] event in
+        self.tasks[task] = getOriginalImageData(for: task.request) .subscribe(priority: task.priority) { [weak self, weak task] event in
             guard let self = self, let task = task else { return }
 
             if event.isCompleted {
@@ -206,19 +204,9 @@ public /* final */ class ImagePipeline {
 
     private func getDecompressedImage(for request: ImageRequest) -> DecompressedImageFetchTask {
         let key = ImageRequest.ImageLoadKey(request: request)
-        if let task = decompressedImageFetchTasks?[key] {
-            return task
-        }
-
-        let task = DecompressedImageFetchTask(starter: { job in
+        return decompressedImageFetchTasks.task(withKey: key) { job in
             self.loadDecompressedImage(for: request, job: job)
-        })
-
-        decompressedImageFetchTasks?[key] = task
-        task.onDisposed = { [weak self] in
-            self?.decompressedImageFetchTasks?[key] = nil
         }
-        return task
     }
 
     private func loadDecompressedImage(for request: ImageRequest, job: DecompressedImageFetchTask.Job) {
@@ -283,23 +271,13 @@ public /* final */ class ImagePipeline {
 
     private func getProcessedImage(for request: ImageRequest) -> ProcessedImageFetchTask {
         guard !request.processors.isEmpty else {
-            return getOriginalImage(for: request)
+            return getOriginalImage(for: request) // No processing needed
         }
 
         let key = ImageRequest.ImageLoadKey(request: request)
-        if let task = processedImageFetchTasks?[key] {
-            return task
-        }
-
-        let task = ProcessedImageFetchTask(starter: { job in
+        return processedImageFetchTasks.task(withKey: key) { job in
             self.loadProcessedImage(for: request, job: job)
-        })
-
-        processedImageFetchTasks?[key] = task
-        task.onDisposed = { [weak self] in
-            self?.processedImageFetchTasks?[key] = nil
         }
-        return task
     }
 
     private func loadProcessedImage(for request: ImageRequest, job: ProcessedImageFetchTask.Job) {
@@ -433,25 +411,13 @@ public /* final */ class ImagePipeline {
 
     private func getOriginalImage(for request: ImageRequest) -> OriginalImageFetchTask {
         let key = ImageRequest.LoadKey(request: request)
-        if let task = originalImageFetchTasks?[key] {
-            return task
-        }
-
-        let context = OriginalImageFetchContext(request: request)
-
-        let task = OriginalImageFetchTask(starter: { job in
-            let task = self.getImageData(for: request)
+        return originalImageFetchTasks.task(withKey: key) { job in
+            let context = OriginalImageFetchContext(request: request)
+            let task = self.getOriginalImageData(for: request)
             job.dependency = task.map(job) { [weak self] value, isCompleted, job in
                 self?.decodeData(value.0, urlResponse: value.1, isCompleted: isCompleted, job: job, context: context)
             }
-        })
-
-        originalImageFetchTasks?[key] = task
-        task.onDisposed = { [weak self] in
-            self?.originalImageFetchTasks?[key] = nil
         }
-
-        return task
     }
 
     private func decodeData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool, job: OriginalImageFetchTask.Job, context: OriginalImageFetchContext) {
@@ -514,35 +480,24 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func getImageData(for request: ImageRequest) -> OriginalImageDataFetchTask {
+    private func getOriginalImageData(for request: ImageRequest) -> OriginalImageDataFetchTask {
         let key = ImageRequest.LoadKey(request: request)
-        if let task = originalImageDataFetchTasks?[key] {
-            return task
-        }
-
-        let context = OriginalImageDataFetchContext(request: request)
-
-        let task = OriginalImageDataFetchTask(starter: { task in
+        return originalImageDataFetchTasks.task(withKey: key) { job in
+            let context = OriginalImageDataFetchContext(request: request)
             if self.configuration.isRateLimiterEnabled {
                 // Rate limiter is synchronized on pipeline's queue. Delayed work is
                 // executed asynchronously also on this same queue.
-                self.rateLimiter.execute { [weak self, weak task] in
-                    guard let self = self, let task = task, !task.isDisposed else {
+                self.rateLimiter.execute { [weak self, weak job] in
+                    guard let self = self, let job = job, !job.isDisposed else {
                         return false
                     }
-                    self.loadImageDataFromCache(for: task, context: context)
+                    self.loadImageDataFromCache(for: job, context: context)
                     return true
                 }
             } else { // Start loading immediately.
-                self.loadImageDataFromCache(for: task, context: context)
+                self.loadImageDataFromCache(for: job, context: context)
             }
-        })
-
-        originalImageDataFetchTasks?[key] = task
-        task.onDisposed = { [weak self] in
-            self?.originalImageDataFetchTasks?[key] = nil
         }
-        return task
     }
 
     private func loadImageDataFromCache(for job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext) {
