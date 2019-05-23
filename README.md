@@ -12,6 +12,8 @@
 
 A powerful **image loading** and **caching** system.
 
+> Not updated for Nuke 8 yet!
+
 - Fast LRU memory cache, native HTTP cache, and aggressive LRU disk cache
 - Progressive image loading (progressive JPEG and WebP)
 - Resumable downloads, request prioritization, deduplication, rate limiting
