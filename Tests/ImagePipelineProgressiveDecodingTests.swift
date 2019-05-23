@@ -135,9 +135,9 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
     func testProgressiveDecodingDisabled() {
         // Given
-        var configuration = pipeline.configuration
-        configuration.isProgressiveDecodingEnabled = false
-        pipeline = ImagePipeline(configuration: configuration)
+        pipeline = pipeline.reconfigured {
+            $0.isProgressiveDecodingEnabled = false
+        }
 
         // When/Then
         let expectFinalImageProduced = self.expectation(description: "Final Image Is Produced")

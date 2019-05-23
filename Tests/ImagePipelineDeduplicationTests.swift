@@ -575,11 +575,12 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
     func testWhenApplingMultipleImageProcessorsIntermediateDataCacheResultsAreUsed() {
         // Given
         let dataCache = MockDataCache()
-        var configuration = pipeline.configuration
-        configuration.dataCache = dataCache
-        configuration.isDataCacheForProcessedDataEnabled = true
-        pipeline = ImagePipeline(configuration: configuration)
         dataCache.store[Test.url.absoluteString + "12"] = Test.data
+
+        pipeline = pipeline.reconfigured {
+            $0.dataCache = dataCache
+            $0.isDataCacheForProcessedDataEnabled = true
+        }
 
         // When
         let factory = MockProcessorFactory()
@@ -600,9 +601,9 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
 
     func testThatProcessingDeduplicationCanBeDisabled() {
         // Given
-        var configuration = pipeline.configuration
-        configuration.isProcessingDeduplicationEnabled = false
-        pipeline = ImagePipeline(configuration: configuration)
+        pipeline = pipeline.reconfigured {
+            $0.isProcessingDeduplicationEnabled = false
+        }
 
         // Given requests with the same URLs but different processors
         let processors = MockProcessorFactory()

@@ -18,6 +18,14 @@ extension ImagePipeline.Error: Equatable {
 }
 
 extension ImagePipeline {
+    func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
+        var configuration = self.configuration
+        configure(&configuration)
+        return ImagePipeline(configuration: configuration)
+    }
+}
+
+extension ImagePipeline {
     private static var stack = [ImagePipeline]()
 
     static func pushShared(_ shared: ImagePipeline) {

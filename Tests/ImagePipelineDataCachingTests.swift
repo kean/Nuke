@@ -151,9 +151,9 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
 
     func testProcessedImageNotDecompressedWhenDecompressionDisabled() {
         // Given pipeline with decompression disabled
-        var configuration = pipeline.configuration
-        configuration.isDecompressionEnabled = false
-        pipeline = ImagePipeline(configuration: configuration)
+        pipeline = pipeline.reconfigured {
+            $0.isDecompressionEnabled = false
+        }
 
         // Given processed image data stored in data cache
         dataLoader.queue.isSuspended = true
@@ -188,9 +188,9 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
 
     func testOriginalDataNotStoredWhenStorageDisabled() {
         // Given
-        var configuration = pipeline.configuration
-        configuration.isDataCacheForOriginalDataEnabled = false
-        pipeline = ImagePipeline(configuration: configuration)
+        pipeline = pipeline.reconfigured {
+            $0.isDataCacheForOriginalDataEnabled = false
+        }
 
         // When
         pipeline.configuration.imageEncodingQueue.isSuspended = true
@@ -206,9 +206,9 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
 
     func testProcessedDataNotStoredWhenStorageDisabled() {
         // Given
-        var configuration = pipeline.configuration
-        configuration.isDataCacheForProcessedDataEnabled = false
-        pipeline = ImagePipeline(configuration: configuration)
+        pipeline = pipeline.reconfigured {
+            $0.isDataCacheForProcessedDataEnabled = false
+        }
 
         // When
         expect(pipeline).toLoadImage(with: request)
@@ -230,16 +230,17 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         }
 
         // Given
-        var configuration = pipeline.configuration
         var isCustomEncoderCalled = false
         let encoder = MockImageEncoder { _ in
             isCustomEncoderCalled = true
             return nil
         }
-        configuration.makeImageEncoder = { _ in
-            return encoder
+
+        pipeline = pipeline.reconfigured {
+            $0.makeImageEncoder = { _ in
+                return encoder
+            }
         }
-        pipeline = ImagePipeline(configuration: configuration)
 
         // When
         pipeline.configuration.imageEncodingQueue.isSuspended = true
