@@ -274,3 +274,34 @@ private protocol TaskSubscriptionDelegate {
 }
 
 private typealias TaskSubscriptionKey = Int
+
+// MARK: - TaskPool
+
+/// Pool of outstanding tasks.
+final class TaskPool<Value, Error> {
+    private let isDeduplicationEnabled: Bool
+    private var map = [AnyHashable: Task<Value, Error>]()
+
+    init(isDeduplicationEnabled: Bool) {
+        self.isDeduplicationEnabled = isDeduplicationEnabled
+    }
+
+    func task(withKey key: AnyHashable, _ starter: @escaping (Task<Value, Error>.Job) -> Void) -> Task<Value, Error> {
+        return task(withKey: key) { Task<Value, Error>(starter: starter) }
+    }
+
+    private func task(withKey key: AnyHashable, _ make: () -> Task<Value, Error>) -> Task<Value, Error> {
+        guard isDeduplicationEnabled else {
+            return make()
+        }
+        if let task = map[key] {
+            return task
+        }
+        let task = make()
+        map[key] = task
+        task.onDisposed = { [weak self] in
+            self?.map[key] = nil
+        }
+        return task
+    }
+}
