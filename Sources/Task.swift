@@ -138,6 +138,22 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
     }
 }
 
+extension Task {
+    func map<NewValue>(_ job: Task<NewValue, Error>.Job, _ transform: @escaping (Value, Bool, Task<NewValue, Error>.Job) -> Void) -> TaskSubscription? {
+        return subscribe { [weak job] event in
+            guard let job = job else { return }
+            switch event {
+            case let .value(value, isCompleted):
+                transform(value, isCompleted, job)
+            case let .progress(progress):
+                job.send(progress: progress)
+            case let .error(error):
+                job.send(error: error)
+            }
+        }
+    }
+}
+
 struct TaskProgress: Hashable {
     let completed: Int64
     let total: Int64

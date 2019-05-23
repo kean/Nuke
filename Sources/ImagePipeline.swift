@@ -21,6 +21,7 @@ public /* final */ class ImagePipeline {
 
     private var tasks = [ImageTask: TaskSubscription]()
 
+    private var decompressedImageFetchTasks: [AnyHashable: DecompressedImageFetchTask]?
     private var processedImageFetchTasks: [AnyHashable: ProcessedImageFetchTask]?
     private var originalImageFetchTasks: [AnyHashable: OriginalImageFetchTask]?
     private var originalImageDataFetchTasks: [AnyHashable: OriginalImageDataFetchTask]?
@@ -43,6 +44,7 @@ public /* final */ class ImagePipeline {
         self.rateLimiter = RateLimiter(queue: queue)
 
         if configuration.isDeduplicationEnabled {
+            decompressedImageFetchTasks = [:]
             processedImageFetchTasks = [:]
             originalImageFetchTasks = [:]
             originalImageDataFetchTasks = [:]
@@ -139,29 +141,11 @@ public /* final */ class ImagePipeline {
             task.metrics = ImageTaskMetrics(taskId: task.taskId, startDate: Date())
         }
 
-        // Fast memory cache lookup. We do this asynchronously because we
-        // expect users to check memory cache synchronously if needed.
-        if task.request.options.memoryCacheOptions.isReadAllowed,
-            let response = self.configuration.imageCache?.cachedResponse(for: task.request) {
-            DispatchQueue.main.async {
-                guard let delegate = task.delegate else { return }
-                delegate.imageTask(task, didCompleteWithResult: .success(response))
-                _ = anonymousDelegate // retain anonymous delegates until we are finished with them
-            }
-            return
-        }
-
-        self.tasks[task] = getProcessedImage(for: task.request).subscribe(priority: task.priority) { [weak self, weak task] event in
+        self.tasks[task] = getDecompressedImage(for: task.request).subscribe(priority: task.priority) { [weak self, weak task] event in
             guard let self = self, let task = task else { return }
 
             if event.isCompleted {
                 self.tasks[task] = nil
-            }
-
-            // Store response in memory cache if allowed.
-            let request = task.request
-            if case let .value(response, isCompleted) = event, isCompleted && request.options.memoryCacheOptions.isWriteAllowed {
-                self.configuration.imageCache?.storeResponse(response, for: request)
             }
 
             DispatchQueue.main.async {
@@ -216,11 +200,92 @@ public /* final */ class ImagePipeline {
         }
     }
 
+    // MARK: - Get Decompressed Image
+
+    private typealias DecompressedImageFetchTask = Task<ImageResponse, Error>
+
+    private func getDecompressedImage(for request: ImageRequest) -> DecompressedImageFetchTask {
+        let key = ImageRequest.ImageLoadKey(request: request)
+        if let task = decompressedImageFetchTasks?[key] {
+            return task
+        }
+
+        let task = DecompressedImageFetchTask(starter: { job in
+            self.loadDecompressedImage(for: request, job: job)
+        })
+
+        decompressedImageFetchTasks?[key] = task
+        task.onDisposed = { [weak self] in
+            self?.decompressedImageFetchTasks?[key] = nil
+        }
+        return task
+    }
+
+    private func loadDecompressedImage(for request: ImageRequest, job: DecompressedImageFetchTask.Job) {
+        if let response = cachedResponse(for: request) {
+            return job.send(value: response, isCompleted: true)
+        }
+
+        job.dependency = getProcessedImage(for: request).map(job) { [weak self] image, isCompleted, job in
+            self?.decompressProcessedImage(image, isCompleted: isCompleted, for: request, job: job)
+        }
+    }
+
+    private func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, job: DecompressedImageFetchTask.Job) {
+        #if os(macOS)
+        storeResponse(response, for: request, isCompleted: isCompleted)
+        job.send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
+        #else
+        guard configuration.isDecompressionEnabled &&
+            ImageDecompressor.isDecompressionNeeded(for: response.image) ?? false &&
+            !(Configuration.isAnimatedImageDataEnabled && response.image.animatedImageData != nil) else {
+                storeResponse(response, for: request, isCompleted: isCompleted)
+                job.send(value: response, isCompleted: isCompleted)
+                return
+        }
+
+        if isCompleted {
+            job.operation?.cancel() // Cancel any potential pending progressive decompression tasks
+        } else if job.operation != nil {
+            return  // Back pressure - already decompressiong another progressive image
+        }
+
+        guard !job.isDisposed else { return }
+
+        let operation = BlockOperation { [weak self, weak job] in
+            guard let self = self, let job = job else { return }
+
+            let response = response.map { ImageDecompressor().decompress(image: $0) } ?? response
+
+            self.queue.async {
+                self.storeResponse(response, for: request, isCompleted: isCompleted)
+                job.send(value: response, isCompleted: isCompleted)
+            }
+        }
+        job.operation = operation
+        configuration.imageDecompressingQueue.addOperation(operation)
+        #endif
+    }
+
+    private func cachedResponse(for request: ImageRequest) -> ImageResponse? {
+        guard request.options.memoryCacheOptions.isReadAllowed else { return nil }
+        return configuration.imageCache?.cachedResponse(for: request)
+    }
+
+    private func storeResponse(_ response: ImageResponse, for request: ImageRequest, isCompleted: Bool) {
+        guard isCompleted, request.options.memoryCacheOptions.isWriteAllowed else { return }
+        configuration.imageCache?.storeResponse(response, for: request)
+    }
+
     // MARK: - Get Processed Image
 
     private typealias ProcessedImageFetchTask = Task<ImageResponse, Error>
 
     private func getProcessedImage(for request: ImageRequest) -> ProcessedImageFetchTask {
+        guard !request.processors.isEmpty else {
+            return getOriginalImage(for: request)
+        }
+
         let key = ImageRequest.ImageLoadKey(request: request)
         if let task = processedImageFetchTasks?[key] {
             return task
@@ -238,9 +303,12 @@ public /* final */ class ImagePipeline {
     }
 
     private func loadProcessedImage(for request: ImageRequest, job: ProcessedImageFetchTask.Job) {
+        if let response = cachedResponse(for: request) {
+            return job.send(value: response, isCompleted: true)
+        }
+
         guard !request.processors.isEmpty, let dataCache = configuration.dataCache, configuration.isDataCacheForProcessedDataEnabled else {
-            loadOriginaImage(for: request, job: job)
-            return
+            return loadOriginaImage(for: request, job: job)
         }
 
         let key = (request.urlString ?? "") + ImageProcessorComposition(request.processors).identifier
@@ -271,7 +339,7 @@ public /* final */ class ImagePipeline {
             let response = decoder.decode(data, urlResponse: nil, isFinal: true)
             self.queue.async {
                 if let response = response {
-                    self.decompressProcessedImage(response, isCompleted: true, for: request, job: job)
+                    job.send(value: response, isCompleted: true)
                 } else {
                     self.loadOriginaImage(for: request, job: job)
                 }
@@ -281,59 +349,28 @@ public /* final */ class ImagePipeline {
         configuration.imageDecodingQueue.addOperation(operation)
     }
 
-    private func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, job: ProcessedImageFetchTask.Job) {
-        #if os(macOS)
-        job.send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
-        #else
-        guard configuration.isDecompressionEnabled &&
-            ImageDecompressor.isDecompressionNeeded(for: response.image) ?? false &&
-            !(Configuration.isAnimatedImageDataEnabled && response.image.animatedImageData != nil) else {
-            job.send(value: response, isCompleted: isCompleted)
-            return
-        }
-
-        if isCompleted {
-            job.operation?.cancel() // Cancel any potential pending progressive decompression tasks
-        } else if job.operation != nil {
-            return  // Back pressure - already processing another progressive image
-        }
-
-        guard !job.isDisposed else { return }
-
-        let operation = BlockOperation { [weak self, weak job] in
-            guard let self = self, let job = job else { return }
-
-            let response = response.map { ImageDecompressor().decompress(image: $0) } ?? response
-
-            self.queue.async {
-                job.send(value: response, isCompleted: isCompleted)
-            }
-        }
-        job.operation = operation
-        configuration.imageDecompressingQueue.addOperation(operation)
-        #endif
-    }
-
     private func loadOriginaImage(for request: ImageRequest, job: ProcessedImageFetchTask.Job) {
-        guard !job.isDisposed else { return }
+        assert(!request.processors.isEmpty)
+        guard !job.isDisposed, !request.processors.isEmpty else { return }
 
-        let task = self.getDecodedImage(for: request)
-        job.dependency = task.subscribe { [weak self, weak job] event in
-            guard let self = self, let job = job else { return }
-            switch event {
-            case let .value(image, isCompleted):
-                self.processImage(image, isCompleted: isCompleted, for: request, job: job)
-            case let .progress(progress):
-                job.send(progress: progress)
-            case let .error(error):
-                job.send(error: error)
+        if configuration.isProcessingDeduplicationEnabled {
+            let processor = request.processors.last!
+            var subRequest = request
+            subRequest.processors = Array(request.processors.dropLast())
+            job.dependency = getProcessedImage(for: subRequest).map(job) { [weak self] image, isCompleted, job in
+                self?.processImage(image, isCompleted: isCompleted, for: request, processor: processor, job: job)
+            }
+        } else {
+            let processor = ImageProcessorComposition(request.processors)
+            job.dependency = getOriginalImage(for: request).map(job) { [weak self] image, isCompleted, job in
+                self?.processImage(image, isCompleted: isCompleted, for: request, processor: processor, job: job)
             }
         }
     }
 
-    private func processImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, job: ProcessedImageFetchTask.Job) {
-        guard let processor = self.processor(for: response.image, request: request) else {
-            decompressProcessedImage(response, isCompleted: isCompleted, for: request, job: job) // No processing needed
+    private func processImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, processor: ImageProcessing, job: ProcessedImageFetchTask.Job) {
+        guard !(Configuration.isAnimatedImageDataEnabled && response.image.animatedImageData != nil) else {
+            job.send(value: response, isCompleted: isCompleted)
             return
         }
 
@@ -359,8 +396,7 @@ public /* final */ class ImagePipeline {
                 if isCompleted {
                     self.storeProcessedImageInDataCache(response, request: request)
                 }
-                job.operation = nil // Clear operation so that decompression can run
-                self.decompressProcessedImage(response, isCompleted: isCompleted, for: request, job: job)
+                job.send(value: response, isCompleted: isCompleted)
             }
         }
         job.operation = operation
@@ -382,14 +418,6 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func processor(for image: Image, request: ImageRequest) -> ImageProcessing? {
-        if Configuration.isAnimatedImageDataEnabled && image.animatedImageData != nil {
-            return nil // Don't process animated images.
-        }
-        let processors = request.processors
-        return processors.isEmpty ? nil : ImageProcessorComposition(processors)
-    }
-
     // MARK: - Get Original Image
 
     private typealias OriginalImageFetchTask = Task<ImageResponse, Error>
@@ -403,7 +431,7 @@ public /* final */ class ImagePipeline {
         }
     }
 
-    private func getDecodedImage(for request: ImageRequest) -> OriginalImageFetchTask {
+    private func getOriginalImage(for request: ImageRequest) -> OriginalImageFetchTask {
         let key = ImageRequest.LoadKey(request: request)
         if let task = originalImageFetchTasks?[key] {
             return task
@@ -413,17 +441,8 @@ public /* final */ class ImagePipeline {
 
         let task = OriginalImageFetchTask(starter: { job in
             let task = self.getImageData(for: request)
-            job.dependency = task.subscribe { [weak self, weak job] event in
-                guard let self = self, let job = job else { return }
-
-                switch event {
-                case let .value((data, urlResponse), isCompleted):
-                    self.decodeData(data, urlResponse: urlResponse, isCompleted: isCompleted, job: job, context: context)
-                case let .progress(progress):
-                    job.send(progress: progress)
-                case let .error(error):
-                    job.send(error: error)
-                }
+            job.dependency = task.map(job) { [weak self] value, isCompleted, job in
+                self?.decodeData(value.0, urlResponse: value.1, isCompleted: isCompleted, job: job, context: context)
             }
         })
 
