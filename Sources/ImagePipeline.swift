@@ -33,10 +33,6 @@ public /* final */ class ImagePipeline {
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
 
-    /// The closure that gets called each time the task is completed (or cancelled).
-    /// Guaranteed to be called on the main thread.
-    public var didFinishCollectingMetrics: ((ImageTask, ImageTaskMetrics) -> Void)?
-
     /// Initializes `ImagePipeline` instance with the given configuration.
     /// - parameter configuration: `Configuration()` by default.
     public init(configuration: Configuration = Configuration()) {
@@ -136,10 +132,6 @@ public /* final */ class ImagePipeline {
         guard task.isStartNeeded else { return }
         task.isStartNeeded = false
 
-        if self.didFinishCollectingMetrics != nil {
-            task.metrics = ImageTaskMetrics(taskId: task.taskId, startDate: Date())
-        }
-
         self.tasks[task] = getDecompressedImage(for: task.request).subscribe(priority: task.priority) { [weak self, weak task] event in
             guard let self = self, let task = task else { return }
 
@@ -170,10 +162,6 @@ public /* final */ class ImagePipeline {
     private func startDataTask(_ task: ImageTask,
                                progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
                                completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
-        if self.didFinishCollectingMetrics != nil {
-            task.metrics = ImageTaskMetrics(taskId: task.taskId, startDate: Date())
-        }
-
         self.tasks[task] = getOriginalImageData(for: task.request) .subscribe(priority: task.priority) { [weak self, weak task] event in
             guard let self = self, let task = task else { return }
 

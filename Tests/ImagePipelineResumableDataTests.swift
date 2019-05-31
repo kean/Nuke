@@ -18,25 +18,6 @@ class ImagePipelineResumableDataTests: XCTestCase {
         }
     }
 
-    // Make sure that ResumableData works correctly in integration with ImagePipeline
-    // TODO: reimplement when we have new metrics
-    func xtestRangeSupported() {
-        expect(pipeline).toFailRequest(Test.request)
-        wait()
-
-        let metricsExpectation = self.expectation(description: "Metrics collected")
-        pipeline.didFinishCollectingMetrics = { _, metrics in
-            // Test that the metrics are collected correctly.
-            XCTAssertEqual(metrics.session!.wasResumed, true)
-            XCTAssertTrue(metrics.session!.resumedDataCount! > 0)
-            XCTAssertEqual(metrics.session!.totalDownloadedDataCount, self.dataLoader.data.count)
-            metricsExpectation.fulfill()
-        }
-
-        expect(pipeline).toLoadImage(with: Test.request)
-        wait()
-    }
-
     func testThatProgressIsReported() {
         // Given an initial request failed mid download
 
