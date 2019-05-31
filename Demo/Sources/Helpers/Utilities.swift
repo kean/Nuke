@@ -82,7 +82,7 @@ struct _ProgressiveBlurImageProcessor: ImageProcessing, Hashable {
         if scanNumber < 5 {
             // Progressively reduce blur as we load more scans.
             let radius = max(2, 14 - scanNumber * 4)
-            return image.applyFilter(filter: CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : radius]))
+            return image.applyFilter(filter: CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius" : radius]))
         }
 
         // Scans 5+ are already good enough not to blur them.

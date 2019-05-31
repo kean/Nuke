@@ -3,14 +3,15 @@
 // Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
+import Nuke
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
-    private func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
-        return true
+    func applicationDidFinishLaunching(_ application: UIApplication) {
+        ImagePipeline.Configuration.isSignpostLoggingEnabled = true
     }
 }
 

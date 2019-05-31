@@ -130,6 +130,13 @@ extension ImagePipeline {
         /// `false` by default (to preserve resources).
         public static var isAnimatedImageDataEnabled = false
 
+        /// `false` by default. If `true`, enables `os_signpost` logging for
+        /// measuring performance. You can visually see all the performance
+        /// metrics in `os_signpost` Instrument. For more information see
+        /// https://developer.apple.com/documentation/os/logging and
+        /// https://developer.apple.com/videos/play/wwdc2018/405/.
+        public static var isSignpostLoggingEnabled = false
+
         /// MARK: - Default Configuration
 
         /// Creates a default configuration.

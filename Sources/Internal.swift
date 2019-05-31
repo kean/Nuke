@@ -401,3 +401,42 @@ extension String {
         return hash.map({ String(format: "%02x", $0) }).joined()
     }
 }
+
+// MARK: - Signpost
+
+import os
+
+enum SignpostType {
+    case begin, event, end
+
+    @available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *)
+    var os: OSSignpostType {
+        switch self {
+        case .begin: return .begin
+        case .event: return .event
+        case .end: return .end
+        }
+    }
+}
+
+final class Signpost {
+    private let log: OSLog
+
+    @available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *)
+    var signpostID: OSSignpostID {
+        return OSSignpostID(log: log, object: self)
+    }
+
+    init(log: OSLog) {
+        self.log = log
+    }
+
+    func log(_ type: SignpostType, name: StaticString) {
+        if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
+            os_signpost(type.os, log: log, name: name, signpostID: signpostID)
+        }
+    }
+
+    // Unfortunately, it's not technically possible to wrap the version which
+    // accepts `CVarArg...` because there is no way to pass them to `os_singpost`
+}
