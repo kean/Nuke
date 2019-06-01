@@ -4,29 +4,6 @@
 
 import Foundation
 
-// MARK: - ImageTaskDelegate
-
-/// All methods of the delegates are called on the main thread.
-public protocol ImageTaskDelegate: class {
-    /// Called when the task finishes loading the image.
-    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>)
-
-    /// Called periodically during the lifetime of a task when progress is updated.
-    func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64)
-
-    /// Called periodically when new scans of progressive image are loaded and
-    /// processed.
-    ///
-    /// To enable progressive image decoding, see `ImagePipeline.Configuration`
-    /// `isProgressiveDecodingEnabled`.
-    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse)
-}
-
-public extension ImageTaskDelegate {
-    func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64) {}
-    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {}
-}
-
 // MARK: - ImageTask
 
 /// A task performed by the `ImagePipeline`. The pipeline maintains a strong
@@ -120,6 +97,29 @@ public /* final */ class ImageTask: Hashable {
     public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
         return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
     }
+}
+
+// MARK: - ImageTaskDelegate
+
+/// All methods of the delegates are called on the main thread.
+public protocol ImageTaskDelegate: class {
+    /// Called when the task finishes loading the image.
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>)
+
+    /// Called periodically during the lifetime of a task when progress is updated.
+    func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64)
+
+    /// Called periodically when new scans of progressive image are loaded and
+    /// processed.
+    ///
+    /// To enable progressive image decoding, see `ImagePipeline.Configuration`
+    /// `isProgressiveDecodingEnabled`.
+    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse)
+}
+
+public extension ImageTaskDelegate {
+    func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64) {}
+    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {}
 }
 
 // MARK: - ImageResponse

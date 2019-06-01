@@ -17,7 +17,7 @@ public protocol ImageProcessing {
     /// The default implementation simply returns `var identifier: String` but
     /// can be overridden as a performance optimization - creating and comparing
     /// strings is _expensive_ so you can opt-in to return something which is
-    /// fast to create and to compare. See `ImageDecompressor` to example.
+    /// fast to create and to compare. See `ImageProcessor.Resize` to example.
     var hashableIdentifier: AnyHashable { get }
 }
 
@@ -45,7 +45,7 @@ extension ImageProcessor {
         public let identifier: String
         private let closure: (Image) -> Image?
 
-        init(id: String, _ closure: @escaping (Image) -> Image?) {
+        public init(id: String, _ closure: @escaping (Image) -> Image?) {
             self.identifier = id
             self.closure = closure
         }
@@ -312,13 +312,13 @@ extension ImageProcessor {
 
 #endif
 
-// MARK: - ImageDecompressor (Internal)
+// MARK: - ImageDecompression (Internal)
 
-struct ImageDecompressor {
+struct ImageDecompression {
 
     func decompress(image: Image) -> Image {
         let output = ImageProcessor.decompress(image)
-        ImageDecompressor.setDecompressionNeeded(false, for: output)
+        ImageDecompression.setDecompressionNeeded(false, for: output)
         return output
     }
 

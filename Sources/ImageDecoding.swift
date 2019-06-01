@@ -123,7 +123,7 @@ extension ImageDecoding {
             return nil
         }
         #if !os(macOS)
-        ImageDecompressor.setDecompressionNeeded(true, for: image)
+        ImageDecompression.setDecompressionNeeded(true, for: image)
         #endif
 
         let scanNumber: Int? = (self as? ImageDecoder)?.numberOfScans
