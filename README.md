@@ -174,7 +174,7 @@ Tasks can be used to monitor download progress, cancel the requests, and dynamic
 
 ```swift
 task.cancel()
-task.setPriority(.high)
+task.priority = .high
 ```
 
 > To learn more about the `ImagePipeline` [see the dedicated section](#h_design).

@@ -43,7 +43,14 @@ public /* final */ class ImageTask: Hashable {
 
     /// The original request with which the task was created.
     public let request: ImageRequest
-    var priority: ImageRequest.Priority
+    var _priority: ImageRequest.Priority // Backing store for access from pipeline
+
+    /// Updates the priority of the task, even if the task is already running.
+    public var priority: ImageRequest.Priority {
+        didSet {
+            pipeline?.imageTaskUpdatePriorityCalled(self, priority: priority)
+        }
+    }
 
     /// The number of bytes that the task has received.
     public internal(set) var completedUnitCount: Int64 = 0
@@ -70,6 +77,7 @@ public /* final */ class ImageTask: Hashable {
     init(taskId: Int, request: ImageRequest) {
         self.taskId = taskId
         self.request = request
+        self._priority = request.priority
         self.priority = request.priority
     }
 
@@ -89,9 +97,9 @@ public /* final */ class ImageTask: Hashable {
         pipeline = nil // Zeroing weak references is always thread-safe
     }
 
-    /// Update s priority of the task even if the task is already running.
+    @available(*, deprecated, message: "Please use `var priority: ImageRequest.Priority`")
     public func setPriority(_ priority: ImageRequest.Priority) {
-        pipeline?.imageTaskUpdatePriorityCalled(self, priority: priority)
+        self.priority = priority
     }
 
     // MARK: - Internal
