@@ -56,9 +56,8 @@ final class AnimatedImageUsingVideoViewController: UICollectionViewController, U
         ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
 
         cell.activityIndicator.startAnimating()
-        Nuke.loadImage(
+        cell.nk.setImage(
             with: imageURLs[indexPath.row],
-            into: cell,
             completion: { [weak cell] _ in
                 cell?.activityIndicator.stopAnimating()
         })
@@ -123,7 +122,7 @@ private extension Image {
 // MARK: - VideoCell
 
 /// - warning: This is proof of concept, please don't use in production.
-private final class VideoCell: UICollectionViewCell, Nuke.ImageDisplaying {
+private final class VideoCell: UICollectionViewCell, Nuke.Nuke_ImageDisplaying {
     private var requestId: Int = 0
     private var videoURL: URL?
     var storage: TemporaryVideoStorage!
@@ -164,7 +163,7 @@ private final class VideoCell: UICollectionViewCell, Nuke.ImageDisplaying {
         player = nil
     }
 
-    func display(image: Image?) {
+    func nuke_display(image: Image?) {
         prepareForReuse()
 
         guard let data = image?.animatedImageData else {

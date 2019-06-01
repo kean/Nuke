@@ -80,10 +80,9 @@ final class AnimatedImageViewController: UICollectionViewController, UICollectio
             ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
 
             cell.activityIndicator.startAnimating()
-            Nuke.loadImage(
+            cell.imageView.nk.setImage(
                 with: imageURLs[indexPath.row],
                 options: ImageLoadingOptions(transition: .fadeIn(duration: 0.33)),
-                into: cell.imageView,
                 completion: { [weak cell] _ in
                     cell?.activityIndicator.stopAnimating()
             })
@@ -130,7 +129,7 @@ final class AnimatedImageCell: UICollectionViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        imageView.display(image: nil)
+        imageView.nuke_display(image: nil)
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -139,7 +138,7 @@ final class AnimatedImageCell: UICollectionViewCell {
 }
 
 extension FLAnimatedImageView {
-    @objc open override func display(image: Image?) {
+    @objc open override func nuke_display(image: Image?) {
         guard image != nil else {
             self.animatedImage = nil
             self.image = nil

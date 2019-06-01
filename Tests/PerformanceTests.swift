@@ -27,7 +27,7 @@ class ImageViewPerformanceTests: XCTestCase {
 
         measure {
             for url in urls {
-                Nuke.loadImage(with: url, into: view)
+                view.nk.setImage(with: url)
             }
         }
     }
@@ -40,7 +40,7 @@ class ImageViewPerformanceTests: XCTestCase {
         measure {
             for url in urls {
                 let request = ImageRequest(url: url, processors: [ImageProcessor.Resize(size: CGSize(width: 1, height: 1))])
-                Nuke.loadImage(with: request, into: view)
+                view.nk.setImage(with: request)
             }
         }
     }
@@ -53,7 +53,7 @@ class ImageViewPerformanceTests: XCTestCase {
         measure {
             for url in urls {
                 let request = ImageRequest(url: url, processors: [ImageProcessor.Resize(size: CGSize(width: 1, height: 1))])
-                Nuke.loadImage(with: request, into: view)
+                view.nk.setImage(with: request)
             }
         }
     }
@@ -64,12 +64,10 @@ class ImagePipelinePerfomanceTests: XCTestCase {
     /// data, decode, and decomperss 50+ images. It's very useful to get a
     /// broad picture about how loader options affect perofmance.
     func testLoaderOverallPerformance() {
-        let dataLoader = MockDataLoader()
-
-        let loader = ImagePipeline {
+        let pipeline = ImagePipeline {
             $0.imageCache = nil
 
-            $0.dataLoader = dataLoader
+            $0.dataLoader = MockDataLoader()
 
             $0.isDecompressionEnabled = false
 
@@ -86,7 +84,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
                 var request = ImageRequest(url: url)
                 request.processors = [] // Remove processing time from equation
 
-                loader.loadImage(with: url) { _ in
+                pipeline.loadImage(with: url) { _ in
                     finished += 1
                     if finished == urls.count {
                         expectation.fulfill()

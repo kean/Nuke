@@ -48,7 +48,7 @@ class ImageViewIntegrationTests: XCTestCase {
     func testImageLoadedWithURL() {
         // When
         let expectation = self.expectation(description: "Image loaded")
-        Nuke.loadImage(with: url, into: imageView) { _ in
+        imageView.nk.setImage(with: url) { _ in
             expectation.fulfill()
         }
         wait()

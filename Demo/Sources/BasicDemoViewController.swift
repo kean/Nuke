@@ -58,7 +58,7 @@ class BasicDemoViewController: UICollectionViewController {
         let request = makeRequest(with: photos[indexPath.row])
         var options = ImageLoadingOptions(transition: .fadeIn(duration: 0.25))
         options.pipeline = self.pipeline
-        Nuke.loadImage(with: request, options: options, into: imageView)
+        imageView.nk.setImage(with: request, options: options)
 
         return cell
     }
