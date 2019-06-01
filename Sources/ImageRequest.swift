@@ -192,9 +192,47 @@ public struct ImageRequestOptions {
     }
 }
 
-// MARK: - ImageRequest (Internal)
+// MARK: - ImageRequestKeys (Internal)
 
 extension ImageRequest {
+
+    // MARK: - Cache Keys
+
+    /// A key for processed image in memory cache.
+    func makeCacheKeyForProcessedImage() -> ImageRequest.CacheKey {
+        return CacheKey(request: self)
+    }
+
+    /// A key for processed image data in disk cache.
+    func makeCacheKeyForProcessedImageData() -> String {
+        let urlString = self.urlString ?? ""
+        let processor = ImageProcessor.Composition(processors)
+        return urlString + processor.identifier
+    }
+
+    /// A key for original image data in disk cache.
+    func makeCacheKeyForOriginalImageData() -> String {
+        return urlString ?? ""
+    }
+
+    // MARK: - Load Keys
+
+    /// A key for deduplicating operations for fetching the processed image.
+    func makeLoadKeyForProcessedImage() -> AnyHashable {
+        return LoadKeyForProcessedImage(cacheKey: makeCacheKeyForProcessedImage(),
+                                        loadKey: makeLoadKeyForOriginalImage())
+    }
+
+    /// A key for deduplicating operations for fetching the original image.
+    func makeLoadKeyForOriginalImage() -> AnyHashable {
+        if let loadKey = self.options.loadKey {
+            return loadKey
+        }
+        return LoadKeyForOriginalImage(request: self)
+    }
+
+    // MARK: - Internals
+
     // Uniquely identifies a cache processed image.
     struct CacheKey: Hashable {
         let request: ImageRequest
@@ -207,54 +245,34 @@ extension ImageRequest {
             }
         }
 
+        /// The implementaion is a bit clever because we want to achieve good
+        /// performance when using memory cache, so we can't simply go with
+        /// `AnyHashable` like we do for load keys.
         static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
             let lhs = lhs.request.ref, rhs = rhs.request.ref
-            if let lhsCustomKey = lhs.options.cacheKey, let rhsCustomKey = rhs.options.cacheKey {
-                return lhsCustomKey == rhsCustomKey
+            if lhs.options.cacheKey != nil || rhs.options.cacheKey != nil {
+                return lhs.options.cacheKey == rhs.options.cacheKey
             }
-            guard lhs.urlString == rhs.urlString else {
-                return false
-            }
-
-            return lhs.processors == rhs.processors
+            return lhs.urlString == rhs.urlString && lhs.processors == rhs.processors
         }
     }
 
     // Uniquely identifies a task of retrieving the processed image.
-    struct ImageLoadKey: Hashable {
+    private struct LoadKeyForProcessedImage: Hashable {
         let cacheKey: CacheKey
-        let loadKey: LoadKey
-
-        init(request: ImageRequest) {
-            self.cacheKey = CacheKey(request: request)
-            self.loadKey = LoadKey(request: request)
-        }
+        let loadKey: AnyHashable
     }
 
-    /// Uniquely identifies a task of loading image data.
-    struct LoadKey: Hashable {
-        let request: ImageRequest
+    private struct LoadKeyForOriginalImage: Hashable {
+        let urlString: String?
+        let cachePolicy: URLRequest.CachePolicy
+        let allowsCellularAccess: Bool
 
-        func hash(into hasher: inout Hasher) {
-            if let customKey = request.ref.options.loadKey {
-                hasher.combine(customKey)
-            } else {
-                hasher.combine(request.ref.urlString?.hashValue ?? 0)
-            }
-        }
-
-        static func == (lhs: LoadKey, rhs: LoadKey) -> Bool {
-            func isEqual(_ lhs: URLRequest, _ rhs: URLRequest) -> Bool {
-                return lhs.cachePolicy == rhs.cachePolicy
-                    && lhs.allowsCellularAccess == rhs.allowsCellularAccess
-            }
-
-            let lhs = lhs.request.ref, rhs = rhs.request.ref
-            if let lhsCustomKey = lhs.options.loadKey, let rhsCustomKey = rhs.options.loadKey {
-                return lhsCustomKey == rhsCustomKey
-            }
-            return lhs.urlString == rhs.urlString
-                && isEqual(lhs.resource.urlRequest, rhs.resource.urlRequest)
+        init(request: ImageRequest) {
+            self.urlString = request.urlString
+            let urlRequest = request.urlRequest
+            self.cachePolicy = urlRequest.cachePolicy
+            self.allowsCellularAccess = urlRequest.allowsCellularAccess
         }
     }
 }

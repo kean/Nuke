@@ -106,6 +106,12 @@ class ImageRequestCacheKeyTests: XCTestCase {
         AssertHashableEqual(CacheKey(request: request1), CacheKey(request: request2))
     }
 
+    func testRequestWithDefaultAndCustomKeysAreNotEquivalent() {
+        let request1 = ImageRequest(url: Test.url)
+        let request2 = ImageRequest(url: Test.url, options: .init(cacheKey: "2"))
+        XCTAssertNotEqual(CacheKey(request: request1), CacheKey(request: request2))
+    }
+
     // MARK: Custom Cache Key
 
     func testRequestsWithSameCustomKeysAreEquivalent() {
@@ -136,37 +142,37 @@ class ImageRequestCacheKeyTests: XCTestCase {
 class ImageRequestLoadKeyTests: XCTestCase {
     func testDefaults() {
         let request = ImageRequest(url: Test.url)
-        AssertHashableEqual(LoadKey(request: request), LoadKey(request: request))
+        AssertHashableEqual(request.makeLoadKeyForOriginalImage(), request.makeLoadKeyForOriginalImage())
     }
 
     func testRequestsWithTheSameURLsAreEquivalent() {
         let request1 = ImageRequest(url: Test.url)
         let request2 = ImageRequest(url: Test.url)
-        AssertHashableEqual(LoadKey(request: request1), LoadKey(request: request2))
+        AssertHashableEqual(request1.makeLoadKeyForOriginalImage(), request2.makeLoadKeyForOriginalImage())
     }
 
     func testRequestsWithDifferentURLsAreNotEquivalent() {
         let request1 = ImageRequest(url: URL(string: "http://test.com/1.png")!)
         let request2 = ImageRequest(url: URL(string: "http://test.com/2.png")!)
-        XCTAssertNotEqual(LoadKey(request: request1), LoadKey(request: request2))
+        XCTAssertNotEqual(request1.makeLoadKeyForOriginalImage(), request2.makeLoadKeyForOriginalImage())
     }
 
     func testRequestsWithTheSameProcessorsAreEquivalent() {
         let request1 = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
         let request2 = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
-        AssertHashableEqual(LoadKey(request: request1), LoadKey(request: request2))
+        AssertHashableEqual(request1.makeLoadKeyForOriginalImage(), request2.makeLoadKeyForOriginalImage())
     }
 
     func testRequestsWithDifferentProcessorsAreEquivalent() {
         let request1 = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
         let request2 = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "2")])
-        AssertHashableEqual(LoadKey(request: request1), LoadKey(request: request2))
+        AssertHashableEqual(request1.makeLoadKeyForOriginalImage(), request2.makeLoadKeyForOriginalImage())
     }
 
     func testRequestWithDifferentURLRequestParametersAreNotEquivalent() {
         let request1 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 50))
         let request2 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
-        XCTAssertNotEqual(LoadKey(request: request1), LoadKey(request: request2))
+        XCTAssertNotEqual(request1.makeLoadKeyForOriginalImage(), request2.makeLoadKeyForOriginalImage())
     }
 
     func testMockImageProcessorCorrectlyImplementsIdentifiers() {
@@ -184,7 +190,7 @@ class ImageRequestLoadKeyTests: XCTestCase {
         request1.options.loadKey = "1"
         var request2 = ImageRequest(url: Test.url)
         request2.options.loadKey = "1"
-        AssertHashableEqual(LoadKey(request: request1), LoadKey(request: request2))
+        AssertHashableEqual(request1.makeLoadKeyForOriginalImage(), request2.makeLoadKeyForOriginalImage())
     }
 
     func testRequestsWithSameCustomKeysButDifferentURLsAreEquivalent() {
@@ -192,7 +198,7 @@ class ImageRequestLoadKeyTests: XCTestCase {
         request1.options.loadKey = "1"
         var request2 = ImageRequest(url: URL(string: "https://example.com/photo2.jpg")!)
         request2.options.loadKey = "1"
-        AssertHashableEqual(LoadKey(request: request1), LoadKey(request: request2))
+        AssertHashableEqual(request1.makeLoadKeyForOriginalImage(), request2.makeLoadKeyForOriginalImage())
     }
 
     func testRequestsWithDifferentCustomKeysAreNotEquivalent() {
@@ -200,12 +206,11 @@ class ImageRequestLoadKeyTests: XCTestCase {
         request1.options.loadKey = "1"
         var request2 = ImageRequest(url: Test.url)
         request2.options.loadKey = "2"
-        XCTAssertNotEqual(LoadKey(request: request1), LoadKey(request: request2))
+        XCTAssertNotEqual(request1.makeLoadKeyForOriginalImage(), request2.makeLoadKeyForOriginalImage())
     }
 }
 
 private typealias CacheKey = ImageRequest.CacheKey
-private typealias LoadKey = ImageRequest.LoadKey
 
 private func AssertHashableEqual<T: Hashable>(_ lhs: T, _ rhs: T, file: StaticString = #file, line: UInt = #line) {
     XCTAssertEqual(lhs.hashValue, rhs.hashValue, file: file, line: line)

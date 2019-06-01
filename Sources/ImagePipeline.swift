@@ -201,7 +201,7 @@ public /* final */ class ImagePipeline {
     private typealias DecompressedImageFetchTask = Task<ImageResponse, Error>
 
     private func getDecompressedImage(for request: ImageRequest) -> DecompressedImageFetchTask {
-        let key = ImageRequest.ImageLoadKey(request: request)
+        let key = request.makeLoadKeyForProcessedImage()
         return decompressedImageFetchTasks.task(withKey: key) { job in
             self.loadDecompressedImage(for: request, job: job)
         }
@@ -277,7 +277,7 @@ public /* final */ class ImagePipeline {
             return getOriginalImage(for: request) // No processing needed
         }
 
-        let key = ImageRequest.ImageLoadKey(request: request)
+        let key = request.makeLoadKeyForProcessedImage()
         return processedImageFetchTasks.task(withKey: key) { job in
             self.loadProcessedImage(for: request, job: job)
         }
@@ -292,7 +292,7 @@ public /* final */ class ImagePipeline {
             return loadOriginaImage(for: request, job: job)
         }
 
-        let key = (request.urlString ?? "") + ImageProcessor.Composition(request.processors).identifier
+        let key = request.makeCacheKeyForProcessedImageData()
 
         let operation = BlockOperation { [weak self, weak job] in
             guard let self = self, let job = job else { return }
@@ -415,7 +415,7 @@ public /* final */ class ImagePipeline {
             signpost.log(.end, name: "Encode Image")
 
             guard let data = encodedData else { return }
-            let key = (request.urlString ?? "") + ImageProcessor.Composition(request.processors).identifier
+            let key = request.makeCacheKeyForProcessedImageData()
             dataCache.storeData(data, for: key) // This is instant
         }
     }
@@ -434,7 +434,7 @@ public /* final */ class ImagePipeline {
     }
 
     private func getOriginalImage(for request: ImageRequest) -> OriginalImageFetchTask {
-        let key = ImageRequest.LoadKey(request: request)
+        let key = request.makeLoadKeyForOriginalImage()
         return originalImageFetchTasks.task(withKey: key) { job in
             let context = OriginalImageFetchContext(request: request)
             let task = self.getOriginalImageData(for: request)
@@ -512,7 +512,7 @@ public /* final */ class ImagePipeline {
     }
 
     private func getOriginalImageData(for request: ImageRequest) -> OriginalImageDataFetchTask {
-        let key = ImageRequest.LoadKey(request: request)
+        let key = request.makeLoadKeyForOriginalImage()
         return originalImageDataFetchTasks.task(withKey: key) { job in
             let context = OriginalImageDataFetchContext(request: request)
             if self.configuration.isRateLimiterEnabled {
@@ -532,11 +532,12 @@ public /* final */ class ImagePipeline {
     }
 
     private func loadImageDataFromCache(for job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext) {
-        guard let cache = configuration.dataCache, configuration.isDataCachingForOriginalImageDataEnabled, let key = context.request.urlString else {
+        guard let cache = configuration.dataCache, configuration.isDataCachingForOriginalImageDataEnabled else {
             loadImageData(for: job, context: context) // Skip disk cache lookup, load data
             return
         }
 
+        let key = context.request.makeCacheKeyForOriginalImageData()
         let operation = BlockOperation { [weak self, weak job] in
             guard let self = self, let job = job else { return }
 
@@ -675,7 +676,8 @@ public /* final */ class ImagePipeline {
         }
 
         // Store in data cache
-        if let dataCache = configuration.dataCache, configuration.isDataCachingForOriginalImageDataEnabled, let key = context.request.urlString {
+        if let dataCache = configuration.dataCache, configuration.isDataCachingForOriginalImageDataEnabled {
+            let key = context.request.makeCacheKeyForOriginalImageData()
             dataCache.storeData(context.data, for: key)
         }
 
