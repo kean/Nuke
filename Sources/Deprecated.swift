@@ -260,3 +260,46 @@ public struct ImageTaskMetrics: CustomDebugStringConvertible {
         }
     }
 }
+
+// MARK: - ImageView Extensions
+
+#if !os(watchOS)
+@available(*, deprecated, message: "Please use `imageView.nk.setImage(with:)` extensions instead.")
+@discardableResult
+public func loadImage(with url: URL,
+                      options: ImageLoadingOptions = ImageLoadingOptions.shared,
+                      into view: ImageDisplayingView,
+                      progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
+                      completion: ((_ response: ImageResponse?, _ error: ImagePipeline.Error?) -> Void)? = nil) -> ImageTask? {
+    return loadImage(with: ImageRequest(url: url), options: options, into: view, progress: progress, completion: completion)
+}
+
+@available(*, deprecated, message: "Please use `imageView.nk.setImage(with:)` extensions instead.")
+@discardableResult
+public func loadImage(with request: ImageRequest,
+                      options: ImageLoadingOptions = ImageLoadingOptions.shared,
+                      into view: ImageDisplayingView,
+                      progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
+                      completion: ((_ response: ImageResponse?, _ error: ImagePipeline.Error?) -> Void)? = nil) -> ImageTask? {
+    return view.nk.setImage(
+        with: request,
+        options: options,
+        progress: { completed, total in
+            progress?(nil, completed, total)
+        },
+        completion: { result in
+            switch result {
+            case let .success(response):
+                completion?(response, nil)
+            case let .failure(error):
+                completion?(nil, error)
+            }
+        }
+    )
+}
+
+@available(*, deprecated, message: "Please use `imageView.nk.cancelImageRequest()` extensions instead.")
+public func cancelRequest(for view: ImageDisplayingView) {
+    view.nk.cancelImageRequest()
+}
+#endif

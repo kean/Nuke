@@ -52,10 +52,10 @@ More information is available in [**Documentation**](https://github.com/kean/Nuk
 
 #### Load Image into Image View
 
-You can load an image into an image view with a single line of code.
+You can load an image and dispay in an image view with a single line of code:
 
 ```swift
-Nuke.loadImage(with: url, into: imageView)
+imageView.nk.setImage(with: url)
 ```
 
 <br/>
@@ -72,7 +72,7 @@ When you request a new image for the view, the previous outstanding request gets
 ```swift
 func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     ...
-    Nuke.loadImage(with: url, into: cell.imageView)
+    cell.imageView.nk.setImage(with: url)
     ...
 }
 ```
@@ -82,13 +82,12 @@ func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath:
 Use an  `options` parameter (`ImageLoadingOptions`)  to customize the way images are loaded and displayed. You can provide a placeholder, select one of the built-in transitions or provide a custom one. When using transitions, be aware that UIKit may keep a reference to the image, preventing it from being removed for long animations or loading many transitions at once.
 
 ```swift
-Nuke.loadImage(
+imageView.nk.setImage(
     with: url,
     options: ImageLoadingOptions(
         placeholder: UIImage(named: "placeholder"),
         transition: .fadeIn(duration: 0.33)
-    ),
-    into: imageView
+    )
 )
 ```
 
@@ -105,7 +104,7 @@ let options = ImageLoadingOptions(
     )
 )
 
-Nuke.loadImage(with: url, options: options, into: imageView)
+imageView.nk.setImage(with: url, options: options)
 ```
 
 To make all image views in the app share the same behavior modify `ImageLoadingOptions.shared`.
@@ -126,7 +125,7 @@ request.memoryCacheOptions.isWriteAllowed = false
 // Update the request priority:
 request.priority = .high
 
-Nuke.loadImage(with: request, into: imageView)
+imageView.nk.setImage(with: request)
 ```
 
 #### Process an Image
@@ -389,7 +388,7 @@ ImagePipeline {
 
 ### Image Pipeline Overview
 
-Here's what happens when you call `Nuke.loadImage(with: url, into: imageView` method.
+Here's what happens when you perform a call like `imageView.nk.setImage(with: url)`.
 
 First, Nuke synchronously checks if the image is available in the memory cache (`pipeline.configuration.imageCache`). If it's not, Nuke calls `pipeline.loadImage(with: request)` method. The pipeline also checks if the image is available in its memory cache, and if not, starts loading it.
 

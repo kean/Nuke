@@ -80,10 +80,9 @@ final class AnimatedImageViewController: UICollectionViewController, UICollectio
             ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
 
             cell.activityIndicator.startAnimating()
-            Nuke.loadImage(
+            cell.imageView.nk.setImage(
                 with: imageURLs[indexPath.row],
                 options: ImageLoadingOptions(transition: .fadeIn(duration: 0.33)),
-                into: cell.imageView,
                 completion: { [weak cell] _ in
                     cell?.activityIndicator.stopAnimating()
             })

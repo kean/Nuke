@@ -56,10 +56,9 @@ final class PrefetchingDemoViewController: UICollectionViewController, UICollect
         let imageView = self.imageView(for: cell)
         let imageURL = photos[indexPath.row]
 
-        Nuke.loadImage(
+        imageView.nk.setImage(
             with: imageURL,
-            options: ImageLoadingOptions(transition: .fadeIn(duration: 0.33)),
-            into: imageView
+            options: ImageLoadingOptions(transition: .fadeIn(duration: 0.33))
         )
 
         return cell

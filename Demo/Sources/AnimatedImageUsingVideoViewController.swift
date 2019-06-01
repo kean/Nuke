@@ -56,9 +56,8 @@ final class AnimatedImageUsingVideoViewController: UICollectionViewController, U
         ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
 
         cell.activityIndicator.startAnimating()
-        Nuke.loadImage(
+        cell.nk.setImage(
             with: imageURLs[indexPath.row],
-            into: cell,
             completion: { [weak cell] _ in
                 cell?.activityIndicator.stopAnimating()
         })

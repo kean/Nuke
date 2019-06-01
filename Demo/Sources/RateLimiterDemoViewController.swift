@@ -72,7 +72,7 @@ final class RateLimiterDemoViewController: UICollectionViewController {
         var request = ImageRequest(url: photos[indexPath.row])
         request.processors = [ImageProcessor.Resize(size: imageView.bounds.size)]
 
-        Nuke.loadImage(with: request, options: options, into: imageView)
+        imageView.nk.setImage(with: request, options: options)
         
         return cell
     }
