@@ -288,7 +288,7 @@ public /* final */ class ImagePipeline {
             return job.send(value: response, isCompleted: true)
         }
 
-        guard !request.processors.isEmpty, let dataCache = configuration.dataCache, configuration.isDataCacheForProcessedDataEnabled else {
+        guard !request.processors.isEmpty, let dataCache = configuration.dataCache, configuration.isDataCachingForProcessedImagesEnabled else {
             return loadOriginaImage(for: request, job: job)
         }
 
@@ -400,7 +400,7 @@ public /* final */ class ImagePipeline {
     }
 
     private func storeProcessedImageInDataCache(_ response: ImageResponse, request: ImageRequest) {
-        guard let dataCache = configuration.dataCache, configuration.isDataCacheForProcessedDataEnabled else {
+        guard let dataCache = configuration.dataCache, configuration.isDataCachingForProcessedImagesEnabled else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
@@ -529,7 +529,7 @@ public /* final */ class ImagePipeline {
     }
 
     private func loadImageDataFromCache(for job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext) {
-        guard let cache = configuration.dataCache, configuration.isDataCacheForOriginalDataEnabled, let key = context.request.urlString else {
+        guard let cache = configuration.dataCache, configuration.isDataCachingForOriginalImageDataEnabled, let key = context.request.urlString else {
             loadImageData(for: job, context: context) // Skip disk cache lookup, load data
             return
         }
@@ -672,7 +672,7 @@ public /* final */ class ImagePipeline {
         }
 
         // Store in data cache
-        if let dataCache = configuration.dataCache, configuration.isDataCacheForOriginalDataEnabled, let key = context.request.urlString {
+        if let dataCache = configuration.dataCache, configuration.isDataCachingForOriginalImageDataEnabled, let key = context.request.urlString {
             dataCache.storeData(context.data, for: key)
         }
 

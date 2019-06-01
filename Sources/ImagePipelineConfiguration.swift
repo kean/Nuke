@@ -67,14 +67,14 @@ extension ImagePipeline {
         ///
         /// If the value is set to `true`, you must also provide `dataCache`
         /// instance in the configuration.
-        public var isDataCacheForOriginalDataEnabled = true
+        public var isDataCachingForOriginalImageDataEnabled = true
 
         /// `false` by default. If `true`, the images for which one or more
         /// processors were specified will be encoded and stored in data cache.
         ///
         /// If the value is set to `true`, you must also provide `dataCache`
         /// instance in the configuration.
-        public var isDataCacheForProcessedDataEnabled = false
+        public var isDataCachingForProcessedImagesEnabled = false
 
         /// `true` by default. If `true` the pipeline will combine the requests
         /// with the same `loadKey` into a single request. The request only gets

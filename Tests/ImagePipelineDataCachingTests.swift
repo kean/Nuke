@@ -106,8 +106,8 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.dataCache = dataCache
-            $0.isDataCacheForOriginalDataEnabled = true
-            $0.isDataCacheForProcessedDataEnabled = true
+            $0.isDataCachingForOriginalImageDataEnabled = true
+            $0.isDataCachingForProcessedImagesEnabled = true
             $0.imageCache = nil
         }
 
@@ -189,7 +189,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
     func testOriginalDataNotStoredWhenStorageDisabled() {
         // Given
         pipeline = pipeline.reconfigured {
-            $0.isDataCacheForOriginalDataEnabled = false
+            $0.isDataCachingForOriginalImageDataEnabled = false
         }
 
         // When
@@ -207,7 +207,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
     func testProcessedDataNotStoredWhenStorageDisabled() {
         // Given
         pipeline = pipeline.reconfigured {
-            $0.isDataCacheForProcessedDataEnabled = false
+            $0.isDataCachingForProcessedImagesEnabled = false
         }
 
         // When
