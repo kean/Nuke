@@ -261,7 +261,7 @@ public struct ImageTaskMetrics: CustomDebugStringConvertible {
     }
 }
 
-// MARK: - ImageView Extensions
+// MARK: - Image View Extensions (Deprecated)
 
 #if !os(watchOS)
 @available(*, deprecated, message: "Please use `imageView.nk.setImage(with:)` extensions instead.")
