@@ -143,7 +143,7 @@ public struct ImageDecompressor: ImageProcessing {
         self.resize = ImageProcessor.Resize(size: targetSize, unit: .pixels, contentMode: .init(contentMode), crop: false, upscale: upscale)
     }
 
-    public func process(image: Image, context: ImageProcessingContext) -> Image? {
+    public func process(image: Image, context: ImageProcessingContext?) -> Image? {
         return resize.process(image: image, context: context)
     }
 

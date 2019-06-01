@@ -127,7 +127,7 @@ class ImageProcessorCompositionTest: XCTestCase {
         )
 
         // When
-        let image = processor.process(image: Test.image, context: dummyProcessingContext)
+        let image = processor.process(image: Test.image)
 
         // Then
         XCTAssertEqual(image?.nk_test_processorIDs, ["1", "2"])

@@ -7,7 +7,7 @@ import Foundation
 /// Performs image processing.
 public protocol ImageProcessing {
     /// Returns processed image.
-    func process(image: Image, context: ImageProcessingContext) -> Image?
+    func process(image: Image, context: ImageProcessingContext?) -> Image?
 
     /// Returns a string which uniquely identifies the processor.
     var identifier: String { get }
@@ -19,6 +19,12 @@ public protocol ImageProcessing {
     /// strings is _expensive_ so you can opt-in to return something which is
     /// fast to create and to compare. See `ImageProcessor.Resize` to example.
     var hashableIdentifier: AnyHashable { get }
+}
+
+extension ImageProcessing {
+    public func process(image: Image) -> Image? {
+        return self.process(image: image, context: nil)
+    }
 }
 
 public extension ImageProcessing {
@@ -50,7 +56,7 @@ extension ImageProcessor {
             self.closure = closure
         }
 
-        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
             return self.closure(image)
         }
     }
@@ -71,7 +77,7 @@ extension ImageProcessor {
         /// Processes the given image by applying each processor in an order in
         /// which they were added. If one of the processors fails to produce
         /// an image the processing stops and `nil` is returned.
-        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
             return processors.reduce(image) { image, processor in
                 return autoreleasepool {
                     image.flatMap { processor.process(image: $0, context: context) }
@@ -143,7 +149,7 @@ extension ImageProcessor {
             self.upscale = upscale
         }
 
-        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
             return ImageProcessor.resize(image, targetSize: size, contentMode: contentMode, crop: crop, upscale: upscale)
         }
 
@@ -164,7 +170,7 @@ extension ImageProcessor {
     public struct Circle: ImageProcessing, Hashable {
         public init() {}
 
-        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
             return ImageProcessor.drawInCircle(image)
         }
 
@@ -194,7 +200,7 @@ extension ImageProcessor {
             }
         }
 
-        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
             return ImageProcessor.addRoundedCorners(image, radius: radius)
         }
 
@@ -236,7 +242,7 @@ extension ImageProcessor {
             self.parameters = parameters
         }
 
-        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
             let filter = CIFilter(name: name, parameters: parameters)
             return CoreImageFilter.apply(filter: filter, to: image)
         }
@@ -295,7 +301,7 @@ extension ImageProcessor {
         }
 
         /// Applies `CIGaussianBlur` filter to the image.
-        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
             let filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": radius])
             return CoreImageFilter.apply(filter: filter, to: image)
         }

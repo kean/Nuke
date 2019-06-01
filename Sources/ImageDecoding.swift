@@ -24,8 +24,8 @@ public protocol ImageDecoding {
     func decode(data: Data, isFinal: Bool) -> Image?
 }
 
-public extension ImageDecoding {
-    func decode(data: Data) -> Image? {
+extension ImageDecoding {
+    public func decode(data: Data) -> Image? {
         return self.decode(data: data, isFinal: true)
     }
 }

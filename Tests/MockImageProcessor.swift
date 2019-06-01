@@ -28,7 +28,7 @@ class MockImageProcessor: ImageProcessing {
     init(id: String) {
         self.identifier = id
     }
-    func process(image: Image, context: ImageProcessingContext) -> Image? {
+    func process(image: Image, context: ImageProcessingContext?) -> Image? {
         var processorIDs: [String] = image.nk_test_processorIDs
         #if os(macOS)
         let processedImage = image.copy() as! Image
@@ -47,7 +47,7 @@ class MockImageProcessor: ImageProcessing {
 // MARK: - MockFailingProcessor
 
 class MockFailingProcessor: ImageProcessing {
-    func process(image: Image, context: ImageProcessingContext) -> Image? {
+    func process(image: Image, context: ImageProcessingContext?) -> Image? {
         return nil
     }
 
@@ -61,7 +61,7 @@ class MockFailingProcessor: ImageProcessing {
 class MockEmptyImageProcessor: ImageProcessing {
     let identifier = "MockEmptyImageProcessor"
 
-    func process(image: Image, context: ImageProcessingContext) -> Image? {
+    func process(image: Image, context: ImageProcessingContext?) -> Image? {
         return image
     }
 
@@ -80,7 +80,7 @@ final class MockProcessorFactory {
     private final class Processor: MockImageProcessor {
         var factory: MockProcessorFactory!
 
-        override func process(image: Image, context: ImageProcessingContext) -> Image? {
+        override func process(image: Image, context: ImageProcessingContext?) -> Image? {
             factory.lock.lock()
             factory.numberOfProcessorsApplied += 1
             factory.lock.unlock()
