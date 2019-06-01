@@ -164,6 +164,11 @@ public struct ImageRequestOptions {
     /// `MemoryCacheOptions()` (read allowed, write allowed) by default.
     public var memoryCacheOptions: MemoryCacheOptions
 
+    /// In some cases your image URLs might contains transient query parameters
+    /// like access tokens which must be ignored when generating cache keys. If
+    /// that's the case, set this property to a URL without the unwanted fields.
+    public var filteredURL: String?
+
     /// Returns a key that compares requests with regards to caching images.
     ///
     /// The default key considers two requests equivalent it they have the same
@@ -182,10 +187,12 @@ public struct ImageRequestOptions {
     public var userInfo: Any?
 
     public init(memoryCacheOptions: MemoryCacheOptions = .init(),
+                filteredURL: String? = nil,
                 cacheKey: AnyHashable? = nil,
                 loadKey: AnyHashable? = nil,
                 userInfo: Any? = nil) {
         self.memoryCacheOptions = memoryCacheOptions
+        self.filteredURL = filteredURL
         self.cacheKey = cacheKey
         self.loadKey = loadKey
         self.userInfo = userInfo
@@ -205,14 +212,16 @@ extension ImageRequest {
 
     /// A key for processed image data in disk cache.
     func makeCacheKeyForProcessedImageData() -> String {
-        let urlString = self.urlString ?? ""
-        let processor = ImageProcessor.Composition(processors)
-        return urlString + processor.identifier
+        return preferredURLString + ImageProcessor.Composition(processors).identifier
     }
 
     /// A key for original image data in disk cache.
     func makeCacheKeyForOriginalImageData() -> String {
-        return urlString ?? ""
+        return preferredURLString
+    }
+
+    private var preferredURLString: String {
+        return options.filteredURL ?? urlString ?? ""
     }
 
     // MARK: - Load Keys
@@ -231,17 +240,17 @@ extension ImageRequest {
         return LoadKeyForOriginalImage(request: self)
     }
 
-    // MARK: - Internals
+    // MARK: - Internals (Keys)
 
     // Uniquely identifies a cache processed image.
     struct CacheKey: Hashable {
         let request: ImageRequest
 
         func hash(into hasher: inout Hasher) {
-            if let customKey = request.ref.options.cacheKey {
+            if let customKey = request.options.cacheKey {
                 hasher.combine(customKey)
             } else {
-                hasher.combine(request.ref.urlString?.hashValue ?? 0)
+                hasher.combine(request.preferredURLString)
             }
         }
 
@@ -249,11 +258,11 @@ extension ImageRequest {
         /// performance when using memory cache, so we can't simply go with
         /// `AnyHashable` like we do for load keys.
         static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
-            let lhs = lhs.request.ref, rhs = rhs.request.ref
+            let lhs = lhs.request, rhs = rhs.request
             if lhs.options.cacheKey != nil || rhs.options.cacheKey != nil {
                 return lhs.options.cacheKey == rhs.options.cacheKey
             }
-            return lhs.urlString == rhs.urlString && lhs.processors == rhs.processors
+            return lhs.preferredURLString == rhs.preferredURLString && lhs.processors == rhs.processors
         }
     }
 
