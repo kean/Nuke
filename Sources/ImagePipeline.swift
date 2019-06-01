@@ -129,7 +129,7 @@ public /* final */ class ImagePipeline {
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
         queue.async {
-            task.priority = priority
+            task._priority = priority
             guard let subscription = self.tasks[task] else { return }
             subscription.setPriority(priority)
         }
@@ -141,7 +141,7 @@ public /* final */ class ImagePipeline {
         guard task.isStartNeeded else { return }
         task.isStartNeeded = false
 
-        self.tasks[task] = getDecompressedImage(for: task.request).subscribe(priority: task.priority) { [weak self, weak task] event in
+        self.tasks[task] = getDecompressedImage(for: task.request).subscribe(priority: task._priority) { [weak self, weak task] event in
             guard let self = self, let task = task else { return }
 
             if event.isCompleted {
@@ -171,7 +171,7 @@ public /* final */ class ImagePipeline {
     private func startDataTask(_ task: ImageTask,
                                progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
                                completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
-        self.tasks[task] = getOriginalImageData(for: task.request) .subscribe(priority: task.priority) { [weak self, weak task] event in
+        self.tasks[task] = getOriginalImageData(for: task.request) .subscribe(priority: task._priority) { [weak self, weak task] event in
             guard let self = self, let task = task else { return }
 
             if event.isCompleted {

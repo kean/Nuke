@@ -384,7 +384,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // When/Then
         expect(operations.operations.first!).toUpdatePriority(from: .high, to: .low)
-        task.setPriority(.low)
+        task.priority = .low
         wait()
     }
 
