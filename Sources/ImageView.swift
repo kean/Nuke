@@ -16,35 +16,39 @@ public typealias Image = NSImage
 
 #if !os(watchOS)
 
-/// Displays images. Adopt this protocol in views to make them compatible with
-/// Nuke APIs.
+/// Displays images. Add the conformance to this protocol to your views to make
+/// them compatible with Nuke image loading extensions.
 ///
-/// The protocol is defined as `@objc` to enable users to override its methods
-/// in extensions (e.g. you can override `display(image:)` in `UIImageView` subclass).
-@objc public protocol ImageDisplaying {
-    @objc
-    func display(image: Image?)
+/// The protocol is defined as `@objc` to make it possible to override its
+/// methods in extensions (e.g. you can override `nuke_display(image:)` in/
+// `UIImageView` subclass like `Gifu.ImageView).
+///
+/// The protocol and its methods have prefixes to make sure they don't clash
+/// with other similar methods and protocol in Objective-C runtime.
+@objc public protocol Nuke_ImageDisplaying {
+    /// Display a given image.
+    @objc func nuke_display(image: Image?)
 }
 
 #if !os(macOS)
 import UIKit
 /// A `UIView` that implements `ImageDisplaying` protocol.
-public typealias ImageDisplayingView = UIView & ImageDisplaying
+public typealias ImageDisplayingView = UIView & Nuke_ImageDisplaying
 
-extension UIImageView: ImageDisplaying {
+extension UIImageView: Nuke_ImageDisplaying {
     /// Displays an image.
-    open func display(image: Image?) {
+    open func nuke_display(image: Image?) {
         self.image = image
     }
 }
 #else
 import Cocoa
 /// An `NSView` that implements `ImageDisplaying` protocol.
-public typealias ImageDisplayingView = NSView & ImageDisplaying
+public typealias ImageDisplayingView = NSView & Nuke_ImageDisplaying
 
-extension NSImageView: ImageDisplaying {
+extension NSImageView: Nuke_ImageDisplaying {
     /// Displays an image.
-    open func display(image: Image?) {
+    open func nuke_display(image: Image?) {
         self.image = image
     }
 }
@@ -310,7 +314,7 @@ private final class ImageViewController: ImageTaskDelegate {
 
         // Display a placeholder.
         if let placeholder = options.placeholder {
-            imageView.display(image: placeholder)
+            imageView.nuke_display(image: placeholder)
             #if !os(macOS)
             if let contentMode = options.contentModes?.placeholder {
                 imageView.contentMode = contentMode
@@ -318,7 +322,7 @@ private final class ImageViewController: ImageTaskDelegate {
             #endif
         } else {
             if options.isPrepareForReuseEnabled {
-                imageView.display(image: nil) // Remove previously displayed images (if any)
+                imageView.nuke_display(image: nil) // Remove previously displayed images (if any)
             }
         }
 
@@ -392,7 +396,7 @@ private final class ImageViewController: ImageTaskDelegate {
                 closure(imageView, image)
             }
         } else {
-            imageView.display(image: image)
+            imageView.nuke_display(image: image)
         }
         if let newContentMode = newContentMode {
             imageView.contentMode = newContentMode
@@ -427,7 +431,7 @@ private final class ImageViewController: ImageTaskDelegate {
             duration: params.duration,
             options: params.options.union(.transitionCrossDissolve),
             animations: {
-                imageView.display(image: image)
+                imageView.nuke_display(image: image)
             },
             completion: nil
         )
@@ -501,7 +505,7 @@ private final class ImageViewController: ImageTaskDelegate {
                 closure(imageView, image)
             }
         } else {
-            imageView.display(image: image)
+            imageView.nuke_display(image: image)
         }
     }
 
@@ -512,7 +516,7 @@ private final class ImageViewController: ImageTaskDelegate {
         animation.toValue = 1
         imageView?.layer?.add(animation, forKey: "imageTransition")
 
-        imageView?.display(image: image)
+        imageView?.nuke_display(image: image)
     }
 
     #endif
