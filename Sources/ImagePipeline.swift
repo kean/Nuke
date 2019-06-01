@@ -223,7 +223,7 @@ public /* final */ class ImagePipeline {
         job.send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
         #else
         guard configuration.isDecompressionEnabled &&
-            ImageDecompressor.isDecompressionNeeded(for: response.image) ?? false &&
+            ImageDecompression.isDecompressionNeeded(for: response.image) ?? false &&
             !(Configuration.isAnimatedImageDataEnabled && response.image.animatedImageData != nil) else {
                 storeResponse(response, for: request, isCompleted: isCompleted)
                 job.send(value: response, isCompleted: isCompleted)
@@ -245,7 +245,7 @@ public /* final */ class ImagePipeline {
             if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
                 os_signpost(.begin, log: self.log, name: "Decompress Image", signpostID: signpost.signpostID, "%{public}s image", "\(isCompleted ? "Final" : "Progressive")")
             }
-            let response = response.map { ImageDecompressor().decompress(image: $0) } ?? response
+            let response = response.map { ImageDecompression().decompress(image: $0) } ?? response
             signpost.log(.end, name: "Decompress Image")
 
             self.queue.async {

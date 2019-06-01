@@ -143,7 +143,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
                 return XCTFail("Expected image to be loaded")
             }
 
-            let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: image)
+            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
             XCTAssertEqual(isDecompressionNeeded, false, "Expected image to be decompressed")
         }
         wait()
@@ -165,7 +165,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
                 return XCTFail("Expected image to be loaded")
             }
 
-            let isDecompressionNeeded = ImageDecompressor.isDecompressionNeeded(for: image)
+            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
             XCTAssertEqual(isDecompressionNeeded, true, "Expected image to still be marked as non decompressed")
         }
         wait()
