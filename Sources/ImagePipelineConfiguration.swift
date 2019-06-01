@@ -74,16 +74,19 @@ extension ImagePipeline {
         ///
         /// If the value is set to `true`, you must also provide `dataCache`
         /// instance in the configuration.
+        //
+        /// - WARNING: When enabled every intermediate processed image will be
+        /// stored in disk data cache if it is enabled. To avoid storing
+        /// unwanted intermediate images, use `ImageProcessor.Composition` to
+        /// compose multiple processors into a single one.
         public var isDataCachingForProcessedImagesEnabled = false
 
-        /// `true` by default. If `true` the pipeline will combine the requests
-        /// with the same `loadKey` into a single request. The request only gets
-        /// cancelled when all the registered requests are.
-        public var isDeduplicationEnabled = true
-
-        /// `false` by default. An experimental feature. When enabled, pipeline
-        /// will avoid any duplicated work when processing images. For example,
-        /// let't take this two requests:
+        /// `true` by default. If `true` the pipeline will try to avoid any
+        /// duplicated work when loading images. The work only gets cancelled
+        /// when all the registered requests are. The pipeline also automatically
+        /// manages the priority of the deduplicated work.
+        ///
+        /// Let't take this two requests for example:
         ///
         /// ```swift
         /// let url = URL(string: "http://example.com/image")
@@ -99,10 +102,7 @@ extension ImagePipeline {
         /// Nuke will load the image data only once, resize the image once and
         /// apply the blur also only once. There is no duplicated work done at
         /// any stage.
-        ///
-        /// - WARNING: When enabled each intermediate processed image will be
-        /// stored in disk data cache if it is enabled.
-        public var isProcessingDeduplicationEnabled = false
+        public var isDeduplicationEnabled = true
 
         /// `true` by default. It `true` the pipeline will rate limits the requests
         /// to prevent trashing of the underlying systems (e.g. `URLSession`).
