@@ -25,7 +25,7 @@ enum Test {
 
     static var image: Image {
         let data = Test.data(name: "fixture", extension: "jpeg")
-        return Nuke.ImageDecoder().decode(data: data, isFinal: true)!
+        return Nuke.ImageDecoder().decode(data: data)!
     }
 
     static let request = ImageRequest(

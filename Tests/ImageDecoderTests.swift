@@ -55,10 +55,10 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertFalse(ImagePipeline.Configuration.isAnimatedImageDataEnabled)
 
         let data = Test.data(name: "cat", extension: "gif")
-        XCTAssertNil(ImageDecoder().decode(data: data, isFinal: true)?.animatedImageData)
+        XCTAssertNil(ImageDecoder().decode(data: data)?.animatedImageData)
 
         ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
-        XCTAssertNotNil(ImageDecoder().decode(data: data, isFinal: true)?.animatedImageData)
+        XCTAssertNotNil(ImageDecoder().decode(data: data)?.animatedImageData)
         ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
     }
 }

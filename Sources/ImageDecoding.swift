@@ -24,6 +24,12 @@ public protocol ImageDecoding {
     func decode(data: Data, isFinal: Bool) -> Image?
 }
 
+public extension ImageDecoding {
+    func decode(data: Data) -> Image? {
+        return self.decode(data: data, isFinal: true)
+    }
+}
+
 // An image decoder that uses native APIs. Supports progressive decoding.
 // The decoder is stateful.
 public final class ImageDecoder: ImageDecoding {
