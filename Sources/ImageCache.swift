@@ -135,7 +135,6 @@ public final class ImageCache: ImageCaching {
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
     func cost(for image: Image) -> Int {
-        #if !os(macOS)
         let dataCost: Int
         if ImagePipeline.Configuration.isAnimatedImageDataEnabled {
             dataCost = image.animatedImageData?.count ?? 0
@@ -150,10 +149,6 @@ public final class ImageCache: ImageCaching {
             return 1 + dataCost
         }
         return cgImage.bytesPerRow * cgImage.height + dataCost
-
-        #else
-        return 1
-        #endif
     }
 }
 
