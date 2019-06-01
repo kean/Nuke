@@ -184,8 +184,8 @@ class ImageProcessingPerformanceTests: XCTestCase {
 
     func testComparingTwoProcessorCompositions() {
 
-        let lhs = ImageProcessorComposition([MockImageProcessor(id: "123"), ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
-        let rhs = ImageProcessorComposition([MockImageProcessor(id: "124"), ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
+        let lhs = ImageProcessor.Composition([MockImageProcessor(id: "123"), ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
+        let rhs = ImageProcessor.Composition([MockImageProcessor(id: "124"), ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
 
         measure {
             for _ in 0..<25_000 {

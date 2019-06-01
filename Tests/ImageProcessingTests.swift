@@ -121,7 +121,7 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testAppliesAllProcessors() {
         // Given
-        let processor = ImageProcessorComposition([
+        let processor = ImageProcessor.Composition([
             MockImageProcessor(id: "1"),
             MockImageProcessor(id: "2")]
         )
@@ -135,8 +135,8 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testIdenfitiers() {
         // Given different processors
-        let lhs = ImageProcessorComposition([MockImageProcessor(id: "1")])
-        let rhs = ImageProcessorComposition([MockImageProcessor(id: "2")])
+        let lhs = ImageProcessor.Composition([MockImageProcessor(id: "1")])
+        let rhs = ImageProcessor.Composition([MockImageProcessor(id: "2")])
 
         // Then
         XCTAssertNotEqual(lhs.identifier, rhs.identifier)
@@ -145,8 +145,8 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testIdentifiersDifferentProcessorCount() {
         // Given processors with different processor count
-        let lhs = ImageProcessorComposition([MockImageProcessor(id: "1")])
-        let rhs = ImageProcessorComposition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+        let lhs = ImageProcessor.Composition([MockImageProcessor(id: "1")])
+        let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
         XCTAssertNotEqual(lhs.identifier, rhs.identifier)
@@ -155,8 +155,8 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testIdenfitiersEqualProcessors() {
         // Given processors with equal processors
-        let lhs = ImageProcessorComposition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
-        let rhs = ImageProcessorComposition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+        let lhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+        let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
         XCTAssertEqual(lhs.identifier, rhs.identifier)
@@ -165,8 +165,8 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testIdentifiersWithSameProcessorsButInDifferentOrder() {
         // Given processors with equal processors but in different order
-        let lhs = ImageProcessorComposition([MockImageProcessor(id: "2"), MockImageProcessor(id: "1")])
-        let rhs = ImageProcessorComposition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+        let lhs = ImageProcessor.Composition([MockImageProcessor(id: "2"), MockImageProcessor(id: "1")])
+        let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
         XCTAssertNotEqual(lhs.identifier, rhs.identifier)
@@ -175,8 +175,8 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testIdenfitiersEmptyProcessors() {
         // Given empty processors
-        let lhs = ImageProcessorComposition([])
-        let rhs = ImageProcessorComposition([])
+        let lhs = ImageProcessor.Composition([])
+        let rhs = ImageProcessor.Composition([])
 
         // Then
         XCTAssertEqual(lhs.identifier, rhs.identifier)

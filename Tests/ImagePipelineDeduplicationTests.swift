@@ -492,7 +492,6 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.isProcessingDeduplicationEnabled = true
         }
     }
 
@@ -602,7 +601,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
     func testThatProcessingDeduplicationCanBeDisabled() {
         // Given
         pipeline = pipeline.reconfigured {
-            $0.isProcessingDeduplicationEnabled = false
+            $0.isDeduplicationEnabled = false
         }
 
         // Given requests with the same URLs but different processors

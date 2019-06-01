@@ -292,7 +292,7 @@ public /* final */ class ImagePipeline {
             return loadOriginaImage(for: request, job: job)
         }
 
-        let key = (request.urlString ?? "") + ImageProcessorComposition(request.processors).identifier
+        let key = (request.urlString ?? "") + ImageProcessor.Composition(request.processors).identifier
 
         let operation = BlockOperation { [weak self, weak job] in
             guard let self = self, let job = job else { return }
@@ -344,18 +344,21 @@ public /* final */ class ImagePipeline {
         assert(!request.processors.isEmpty)
         guard !job.isDisposed, !request.processors.isEmpty else { return }
 
-        if configuration.isProcessingDeduplicationEnabled {
-            let processor = request.processors.last!
-            var subRequest = request
+        let processor: ImageProcessing
+        var subRequest = request
+        if configuration.isDeduplicationEnabled {
+            // Recursively call getProcessedImage until there are no more processors left.
+            // Each time we call getProcessedImage it will try to find an existing
+            // task ("deduplication") to avoid doing any duplicated work.
+            processor = request.processors.last!
             subRequest.processors = Array(request.processors.dropLast())
-            job.dependency = getProcessedImage(for: subRequest).map(job) { [weak self] image, isCompleted, job in
-                self?.processImage(image, isCompleted: isCompleted, for: request, processor: processor, job: job)
-            }
         } else {
-            let processor = ImageProcessorComposition(request.processors)
-            job.dependency = getOriginalImage(for: request).map(job) { [weak self] image, isCompleted, job in
-                self?.processImage(image, isCompleted: isCompleted, for: request, processor: processor, job: job)
-            }
+            // Perform all transformations in one go
+            processor = ImageProcessor.Composition(request.processors)
+            subRequest.processors = []
+        }
+        job.dependency = getProcessedImage(for: subRequest).map(job) { [weak self] image, isCompleted, job in
+            self?.processImage(image, isCompleted: isCompleted, for: request, processor: processor, job: job)
         }
     }
 
@@ -412,7 +415,7 @@ public /* final */ class ImagePipeline {
             signpost.log(.end, name: "Encode Image")
 
             guard let data = encodedData else { return }
-            let key = (request.urlString ?? "") + ImageProcessorComposition(request.processors).identifier
+            let key = (request.urlString ?? "") + ImageProcessor.Composition(request.processors).identifier
             dataCache.storeData(data, for: key) // This is instant
         }
     }

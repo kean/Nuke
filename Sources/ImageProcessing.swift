@@ -34,45 +34,6 @@ public struct ImageProcessingContext {
     public let scanNumber: Int? // need a more general purpose way to implement this
 }
 
-/// Composes multiple processors.
-struct ImageProcessorComposition: ImageProcessing, Hashable {
-    private let processors: [ImageProcessing]
-
-    /// Composes multiple processors.
-    public init(_ processors: [ImageProcessing]) {
-        self.processors = processors
-    }
-
-    /// Processes the given image by applying each processor in an order in
-    /// which they were added. If one of the processors fails to produce
-    /// an image the processing stops and `nil` is returned.
-    func process(image: Image, context: ImageProcessingContext) -> Image? {
-        return processors.reduce(image) { image, processor in
-            return autoreleasepool {
-                image.flatMap { processor.process(image: $0, context: context) }
-            }
-        }
-    }
-
-    var identifier: String {
-        return processors.map({ $0.identifier }).joined()
-    }
-
-    var hashableIdentifier: AnyHashable {
-        return self
-    }
-
-    func hash(into hasher: inout Hasher) {
-        for processor in processors {
-            hasher.combine(processor.hashableIdentifier)
-        }
-    }
-
-    static func == (lhs: ImageProcessorComposition, rhs: ImageProcessorComposition) -> Bool {
-        return lhs.processors == rhs.processors
-    }
-}
-
 // MARK: - ImageProcessor
 
 public enum ImageProcessor {}
@@ -91,6 +52,49 @@ extension ImageProcessor {
 
         public func process(image: Image, context: ImageProcessingContext) -> Image? {
             return self.closure(image)
+        }
+    }
+}
+
+// MARK: - ImageProcessor.Composition
+
+extension ImageProcessor {
+    /// Composes multiple processors.
+    public struct Composition: ImageProcessing, Hashable {
+        let processors: [ImageProcessing]
+
+        /// Composes multiple processors.
+        public init(_ processors: [ImageProcessing]) {
+            self.processors = processors
+        }
+
+        /// Processes the given image by applying each processor in an order in
+        /// which they were added. If one of the processors fails to produce
+        /// an image the processing stops and `nil` is returned.
+        public func process(image: Image, context: ImageProcessingContext) -> Image? {
+            return processors.reduce(image) { image, processor in
+                return autoreleasepool {
+                    image.flatMap { processor.process(image: $0, context: context) }
+                }
+            }
+        }
+
+        public var identifier: String {
+            return processors.map({ $0.identifier }).joined()
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+
+        public func hash(into hasher: inout Hasher) {
+            for processor in processors {
+                hasher.combine(processor.hashableIdentifier)
+            }
+        }
+
+        public static func == (lhs: Composition, rhs: Composition) -> Bool {
+            return lhs.processors == rhs.processors
         }
     }
 }
