@@ -16,7 +16,7 @@ public final class ImagePreheater {
     private let pipeline: ImagePipeline
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
     private let preheatQueue = OperationQueue()
-    private var tasks = [ImageRequest.ImageLoadKey: Task]()
+    private var tasks = [AnyHashable: Task]()
     private let destination: Destination
 
     /// Prefetching destination.
@@ -63,7 +63,7 @@ public final class ImagePreheater {
     }
 
     private func _startPreheating(with request: ImageRequest) {
-        let key = ImageRequest.ImageLoadKey(request: request)
+        let key = request.makeLoadKeyForProcessedImage()
 
         // Check if we we've already started preheating.
         guard tasks[key] == nil else {
@@ -141,7 +141,7 @@ public final class ImagePreheater {
     }
 
     private func _stopPreheating(with request: ImageRequest) {
-        if let task = tasks[ImageRequest.ImageLoadKey(request: request)] {
+        if let task = tasks[request.makeLoadKeyForProcessedImage()] {
             tasks[task.key] = nil
             task.cancel()
         }
@@ -164,13 +164,13 @@ public final class ImagePreheater {
     }
 
     private final class Task {
-        let key: ImageRequest.ImageLoadKey
+        let key: AnyHashable
         let request: ImageRequest
         var isCancelled = false
         var onCancelled: (() -> Void)?
         weak var operation: Operation?
 
-        init(request: ImageRequest, key: ImageRequest.ImageLoadKey) {
+        init(request: ImageRequest, key: AnyHashable) {
             self.request = request
             self.key = key
         }
