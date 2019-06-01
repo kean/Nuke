@@ -458,48 +458,6 @@ Nuke is fully asynchronous and works great under stress. `ImagePipeline` schedul
 
 Another important performance characteristic is memory usage. Nuke uses a custom memory cache with [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm. It has a limit which prevents it from using more than ~20% of available RAM. As a good citizen, `ImageCache` automatically evicts images on memory warnings and removes most of the images when the application enters background.
 
-### Performance Metrics
-
-When optimizing performance, it's important to measure. Nuke collects detailed performance metrics during the execution of each image task:
-
-```swift
-ImagePipeline.shared.didFinishCollectingMetrics = { task, metrics in
-    print(metrics)
-}
-```
-
-![timeline](https://user-images.githubusercontent.com/1567433/39193766-8dfd81b2-47dc-11e8-86b3-f3f69dc73d3a.png)
-
-```
-(lldb) po metrics
-
-Task Information {
-    Task ID - 1
-    Duration - 22:35:16.123 – 22:35:16.475 (0.352s)
-    Was canceled - false
-    Is Memory Cache Hit - false
-    Was Subscribed To Existing Session - false
-}
-Session Information {
-    Session ID - 1
-    Total Duration - 0.351s
-    Was Canceled - false
-}
-Timeline {
-    22:35:16.124 – 22:35:16.475 (0.351s) - Total
-    ------------------------------------
-    nil – nil (nil)                      - Check Disk Cache
-    22:35:16.131 – 22:35:16.410 (0.278s) - Load Data
-    22:35:16.410 – 22:35:16.468 (0.057s) - Decode
-    22:35:16.469 – 22:35:16.474 (0.005s) - Process
-}
-Resumable Data {
-    Was Resumed - nil
-    Resumable Data Count - nil
-    Server Confirmed Resume - nil
-}
-```
-
 <a name="h_plugins"></a>
 # Extensions
 

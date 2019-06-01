@@ -64,9 +64,6 @@ public /* final */ class ImageTask: Hashable {
     /// A progress handler to be called periodically during the lifetime of a task.
     public typealias ProgressHandler = (_ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
 
-    // internal stuff associated with a task
-    var metrics: ImageTaskMetrics?
-
     // `true` is the task is ready to be started
     var isStartNeeded = true
 
