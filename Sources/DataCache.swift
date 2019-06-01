@@ -164,7 +164,13 @@ public final class DataCache: DataCaching {
             let change = staging.add(data: data, for: key)
             wqueue.async {
                 if let url = self.url(for: key) {
-                    try? data.write(to: url)
+                    do {
+                        try data.write(to: url)
+                    } catch let error as NSError {
+                        guard error.code == CocoaError.fileNoSuchFile.rawValue && error.domain == CocoaError.errorDomain else { return }
+                        try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
+                        try? data.write(to: url) // re-create a directory and try again
+                    }
                 }
                 self.lock.sync {
                     self.staging.flushed(change)

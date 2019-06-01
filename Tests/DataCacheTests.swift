@@ -373,6 +373,32 @@ class DataCacheTests: XCTestCase {
         // Depends on the file system.
         XCTAssertTrue(cache.totalAllocatedSize > 0)
     }
+
+    // MARK: Resilience
+
+    func testWhenDirectoryDeletedCacheAutomaticallyRecreatesIt() {
+        cache["1"] = "2".data(using: .utf8)
+        cache.flush()
+
+        do {
+            try FileManager.default.removeItem(at: cache.path)
+        } catch {
+            XCTFail("Fail to remove cache directory")
+        }
+
+        cache["1"] = "2".data(using: .utf8)
+        cache.flush()
+
+        do {
+            guard let url = cache.url(for: "1") else {
+                return XCTFail("Failed to create URL")
+            }
+            let data = try Data(contentsOf: url)
+            XCTAssertEqual(String(data: data, encoding: .utf8), "2")
+        } catch {
+            XCTFail("Failed to read data")
+        }
+    }
 }
 
 extension DataCache {
