@@ -65,7 +65,7 @@ extension UIImage {
 /// Blurs image using CIGaussianBlur filter. Only blurs first scans of the
 /// progressive JPEG.
 struct _ProgressiveBlurImageProcessor: ImageProcessing, Hashable {
-    func process(image: Image, context: ImageProcessingContext) -> Image? {
+    func process(image: Image, context: ImageProcessingContext?) -> Image? {
         // CoreImage is too slow on simulator.
         #if targetEnvironment(simulator)
         return image
