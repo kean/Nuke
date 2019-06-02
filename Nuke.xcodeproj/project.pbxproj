@@ -23,10 +23,8 @@
 		0C1ECA451D52667B009063A9 /* ImageProcessingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06881BCA888800089D7F /* ImageProcessingTests.swift */; };
 		0C1ECA501D52811D009063A9 /* ImageViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C94466D1D47EC0E006DB314 /* ImageViewTests.swift */; };
 		0C2A8CF720970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CF620970B790013FD65 /* ImagePipelineResumableDataTests.swift */; };
-		0C3261F31FEBC232009276AC /* MockImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockImageCache.swift */; };
 		0C3261F41FEBC232009276AC /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
 		0C3261F51FEBC232009276AC /* MockDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockDataLoader.swift */; };
-		0C3261F61FEBC232009276AC /* MockImagePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C01287F1D43E85100668A1F /* MockImagePipeline.swift */; };
 		0C3261F71FEBC232009276AC /* MockImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE745741D4767B900123F65 /* MockImageDecoder.swift */; };
 		0C42D4C722A286260094CB5A /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C42D4C422A283140094CB5A /* Deprecated.swift */; };
 		0C42D4C922A2BB850094CB5A /* DeprecatedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C42D4C822A2BB850094CB5A /* DeprecatedTests.swift */; };
@@ -641,8 +639,6 @@
 				0C3261F71FEBC232009276AC /* MockImageDecoder.swift in Sources */,
 				0C09B16F1FE9A6D800E8FE3B /* Helpers.swift in Sources */,
 				0C3261F41FEBC232009276AC /* MockImageProcessor.swift in Sources */,
-				0C3261F31FEBC232009276AC /* MockImageCache.swift in Sources */,
-				0C3261F61FEBC232009276AC /* MockImagePipeline.swift in Sources */,
 				0CAAB0131E45D6DA00924450 /* NukeExtensions.swift in Sources */,
 				0C3261F51FEBC232009276AC /* MockDataLoader.swift in Sources */,
 				0C8D7BF51D9DC07E00D12EB7 /* PerformanceTests.swift in Sources */,

@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2019 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-@testable import Nuke
+import Nuke
 
 class ImageViewPerformanceTests: XCTestCase {
     private let dummyCacheRequest = ImageRequest(url: URL(string: "http://test.com/9999999)")!, processors: [ImageProcessor.Resize(size: CGSize(width: 2, height: 2))])

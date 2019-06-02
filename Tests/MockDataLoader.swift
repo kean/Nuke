@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2019 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-@testable import Nuke
+import Nuke
 
 private let data: Data = Test.data(name: "fixture", extension: "jpeg")
 
