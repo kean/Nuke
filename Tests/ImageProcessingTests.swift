@@ -168,6 +168,7 @@ class ImageProcessorResizeTests: XCTestCase {
 // MARK: - ImageProcessorCropTests
 
 class ImageProcessorCropTests: XCTestCase {
+
     func testThatImageIsCropped() {
         // Given
         let processor = ImageProcessor.Crop(size: CGSize(width: 400, height: 400), unit: .pixels)
@@ -185,6 +186,56 @@ class ImageProcessorCropTests: XCTestCase {
         XCTAssertEqual(cgImage.height, 400)
     }
 }
+
+// MARK: - ImageProcessorCircleTests
+
+#if os(iOS) || os(tvOS)
+class ImageProcessorCircleTests: XCTestCase {
+
+    func testThatImageIsCroppedToSquareAutomatically() {
+        // Given
+        let processor = ImageProcessor.Circle()
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 480)
+        XCTAssertEqual(cgImage.height, 480)
+    }
+}
+#endif
+
+// MARK: - ImageProcessorRoundedCornersTests
+
+#if os(iOS) || os(tvOS)
+class ImageProcessorRoundedCornersTests: XCTestCase {
+
+    /// We don't check the actual output yet, just that it compiles and that
+    /// _some_ output is produced.
+    func testThatImageIsProduced() {
+        // Given
+        let processor = ImageProcessor.RoundedCorners(radius: 12)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 640)
+        XCTAssertEqual(cgImage.height, 480)
+    }
+}
+#endif
 
 // MARK: - ImageProcessorAnonymousTests
 
@@ -302,6 +353,20 @@ class ImageProcessorCompositionTest: XCTestCase {
         XCTAssertEqual(lhs.hashValue, rhs.hashValue)
         XCTAssertEqual(lhs.identifier, rhs.identifier)
         XCTAssertEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
+    }
+
+    func testThatIdentifiesAreFlattened() {
+        let lhs = ImageProcessor.Composition([
+            ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")]),
+            ImageProcessor.Composition([MockImageProcessor(id: "3"), MockImageProcessor(id: "4")])]
+        )
+        let rhs = ImageProcessor.Composition([
+            MockImageProcessor(id: "1"), MockImageProcessor(id: "2"),
+            MockImageProcessor(id: "3"), MockImageProcessor(id: "4")]
+        )
+
+        // Then
+        XCTAssertEqual(lhs.identifier, rhs.identifier)
     }
 }
 

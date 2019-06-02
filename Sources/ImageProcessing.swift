@@ -58,67 +58,6 @@ public struct ImageProcessingContext {
 
 public enum ImageProcessor {}
 
-// MARK: - ImageProcessor.Anonymous
-
-extension ImageProcessor {
-    public struct Anonymous: ImageProcessing {
-        public let identifier: String
-        private let closure: (Image) -> Image?
-
-        public init(id: String, _ closure: @escaping (Image) -> Image?) {
-            self.identifier = id
-            self.closure = closure
-        }
-
-        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
-            return self.closure(image)
-        }
-    }
-}
-
-// MARK: - ImageProcessor.Composition
-
-extension ImageProcessor {
-    /// Composes multiple processors.
-    public struct Composition: ImageProcessing, Hashable {
-        let processors: [ImageProcessing]
-
-        /// Composes multiple processors.
-        public init(_ processors: [ImageProcessing]) {
-            self.processors = processors
-        }
-
-        /// Processes the given image by applying each processor in an order in
-        /// which they were added. If one of the processors fails to produce
-        /// an image the processing stops and `nil` is returned.
-        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
-            return processors.reduce(image) { image, processor in
-                return autoreleasepool {
-                    image.flatMap { processor.process(image: $0, context: context) }
-                }
-            }
-        }
-
-        public var identifier: String {
-            return processors.map({ $0.identifier }).joined()
-        }
-
-        public var hashableIdentifier: AnyHashable {
-            return self
-        }
-
-        public func hash(into hasher: inout Hasher) {
-            for processor in processors {
-                hasher.combine(processor.hashableIdentifier)
-            }
-        }
-
-        public static func == (lhs: Composition, rhs: Composition) -> Bool {
-            return lhs.processors == rhs.processors
-        }
-    }
-}
-
 extension ImageProcessor {
     public enum Unit {
         case points
@@ -170,7 +109,7 @@ extension ImageProcessor {
         }
 
         public var identifier: String {
-            return "ImageProcessor.Resize(\(size)\(contentMode)\(upscale))"
+            return "Nuke.ImageProcessor." + description
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -178,7 +117,7 @@ extension ImageProcessor {
         }
 
         public var description: String {
-            return "ImageProcessor.Resize(size: \(size) pixels, contentMode: \(contentMode), upscale: \(upscale))"
+            return "Resize(size in pixels: \(size), contentMode: \(contentMode), upscale: \(upscale))"
         }
     }
 }
@@ -207,7 +146,7 @@ extension ImageProcessor {
         }
 
         public var identifier: String {
-            return "ImageProcessor.Crop(\(size)"
+            return "Nuke.ImageProcessor." + description
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -215,7 +154,7 @@ extension ImageProcessor {
         }
 
         public var description: String {
-            return "ImageProcessor.Crop(size: \(size) pixels)"
+            return "Crop(size in pixels: \(size))"
         }
     }
 }
@@ -226,7 +165,8 @@ extension ImageProcessor {
 
 extension ImageProcessor {
 
-    public struct Circle: ImageProcessing, Hashable {
+    /// Rounds the corners of an image into a circle.
+    public struct Circle: ImageProcessing, Hashable, CustomStringConvertible {
         public init() {}
 
         public func process(image: Image, context: ImageProcessingContext?) -> Image? {
@@ -234,11 +174,15 @@ extension ImageProcessor {
         }
 
         public var identifier: String {
-            return "ImageProcessor.Circle"
+            return "Nuke.ImageProcessor." +  description
         }
 
         public var hashableIdentifier: AnyHashable {
             return self
+        }
+
+        public var description: String {
+            return "Circle"
         }
     }
 }
@@ -247,9 +191,14 @@ extension ImageProcessor {
 
 extension ImageProcessor {
 
-    public struct RoundedCorners: ImageProcessing, Hashable {
+    /// Rounds the corners of an image to the specified radius.
+    public struct RoundedCorners: ImageProcessing, Hashable, CustomStringConvertible {
         private let radius: CGFloat
 
+        /// Initializes the processor with the given radius.
+        ///
+        /// - parameter radius: The radius of the corners.
+        /// - parameter unit: Unit of the radius, `.points` by default.
         public init(radius: CGFloat, unit: Unit = .points) {
             switch unit {
             case .pixels:
@@ -264,11 +213,15 @@ extension ImageProcessor {
         }
 
         public var identifier: String {
-            return "ImageProcessor.RoundedCorners(\(radius))"
+            return "Nuke.ImageProcessor." +  description
         }
 
         public var hashableIdentifier: AnyHashable {
             return self
+        }
+
+        public var description: String {
+            return "RoundedCorners(radius in pixels: \(radius))"
         }
     }
 }
@@ -281,7 +234,7 @@ import CoreImage
 
 extension ImageProcessor {
 
-    /// Applies Core Image filter `CIFilter` to the image.
+    /// Applies Core Image filter (`CIFilter`) to the image.
     ///
     /// # Performance Considerations.
     ///
@@ -292,7 +245,7 @@ extension ImageProcessor {
     ///
     /// - [Core Image Programming Guide](https://developer.apple.com/library/ios/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html)
     /// - [Core Image Filter Reference](https://developer.apple.com/library/prerelease/ios/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html)
-    public struct CoreImageFilter: ImageProcessing {
+    public struct CoreImageFilter: ImageProcessing, CustomStringConvertible {
         private let name: String
         private let parameters: [String: Any]
 
@@ -307,7 +260,8 @@ extension ImageProcessor {
         }
 
         public var identifier: String {
-            return "ImageProcessor.CoreImageFilter(\(name))\(parameters))" }
+            return "Nuke.ImageProcessor." +  description
+        }
 
         // MARK: - Apply Filter
 
@@ -343,14 +297,18 @@ extension ImageProcessor {
                 return filter.outputImage
             }
         }
+
+        public var description: String {
+            return "CoreImageFilter(name: \(name), parameters: \(parameters))"
+        }
     }
 }
 
 // MARK: - ImageProcessor.GaussianBlur
 
 extension ImageProcessor {
-    /// Blurs image using CIGaussianBlur filter.
-    public struct GaussianBlur: ImageProcessing, Hashable {
+    /// Blurs an image using `CIGaussianBlur` filter.
+    public struct GaussianBlur: ImageProcessing, Hashable, CustomStringConvertible {
 
         private let radius: Int
 
@@ -366,11 +324,15 @@ extension ImageProcessor {
         }
 
         public var identifier: String {
-            return "GaussianBlur\(radius)"
+            return "Nuke.ImageProcessor." +  description
         }
 
         public var hashableIdentifier: AnyHashable {
             return self
+        }
+
+        public var description: String {
+            return "GaussianBlur(radius: \(radius))"
         }
     }
 }
@@ -401,6 +363,77 @@ struct ImageDecompression {
 }
 
 #endif
+
+// MARK: - ImageProcessor.Composition
+
+extension ImageProcessor {
+    /// Composes multiple processors.
+    public struct Composition: ImageProcessing, Hashable, CustomStringConvertible {
+        let processors: [ImageProcessing]
+
+        /// Composes multiple processors.
+        public init(_ processors: [ImageProcessing]) {
+            // note: multiple compositions are not flatten by default.
+            self.processors = processors
+        }
+
+        /// Processes the given image by applying each processor in an order in
+        /// which they were added. If one of the processors fails to produce
+        /// an image the processing stops and `nil` is returned.
+        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
+            return processors.reduce(image) { image, processor in
+                return autoreleasepool {
+                    image.flatMap { processor.process(image: $0, context: context) }
+                }
+            }
+        }
+
+        public var identifier: String {
+            return processors.map({ $0.identifier }).joined()
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+
+        public func hash(into hasher: inout Hasher) {
+            for processor in processors {
+                hasher.combine(processor.hashableIdentifier)
+            }
+        }
+
+        public static func == (lhs: Composition, rhs: Composition) -> Bool {
+            return lhs.processors == rhs.processors
+        }
+
+        public var description: String {
+            return "Composition(processors: \(processors))"
+        }
+    }
+}
+
+// MARK: - ImageProcessor.Anonymous
+
+extension ImageProcessor {
+    /// Processed an image using a specified closure.
+    public struct Anonymous: ImageProcessing, CustomStringConvertible {
+        public let identifier: String
+        private let closure: (Image) -> Image?
+
+        public init(id: String, _ closure: @escaping (Image) -> Image?) {
+            self.identifier = id
+            self.closure = closure
+        }
+
+        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
+            return self.closure(image)
+        }
+
+        public var description: String {
+            return "AnonymousProcessor(identifier: \(identifier)"
+        }
+    }
+}
 
 // MARK: - Image Processing (Internal)
 
