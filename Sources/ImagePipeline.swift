@@ -76,20 +76,11 @@ public /* final */ class ImagePipeline {
     public func loadImage(with request: ImageRequest,
                           progress: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        let delegate = ImageTaskAnonymousDelegate(progress: progress, completion: completion)
-        let task = imageTask(with: request, delegate: delegate)
-        queue.async {
-            self.startImageTask(task, delegate: delegate)
-        }
-        return task
-    }
-
-    /// Creates a task with the given request and delegate. After the task
-    /// is created, it needs to be started by calling `task.start()`.
-    public func imageTask(with request: ImageRequest, delegate: ImageTaskDelegate) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId.increment(), request: request)
         task.pipeline = self
-        task.delegate = delegate
+        queue.async {
+            self.startImageTask(task, progress: progress, completion: completion)
+        }
         return task
     }
 
@@ -99,29 +90,18 @@ public /* final */ class ImagePipeline {
     public func loadData(with request: ImageRequest,
                          progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
-        let task = imageTask(with: request, delegate: dataTaskDummyDelegate)
+        let task = ImageTask(taskId: nextTaskId.increment(), request: request)
+        task.pipeline = self
         queue.async {
             self.startDataTask(task, progress: progress, completion: completion)
         }
         return task
     }
 
-    // This is a bit of a hack to support new `loadData` feature. By setting delegate
-    // to nil we indicate that the task is cancelled and no events must by delivered
-    // to the client. We use the same logic for data tasks.
-    private var dataTaskDummyDelegate = ImageTaskAnonymousDelegate(progress: nil, completion: nil)
-
     // MARK: - Image Task Events
-
-    func imageTaskStartCalled(_ task: ImageTask) {
-        queue.async {
-            self.startImageTask(task, delegate: nil)
-        }
-    }
 
     func imageTaskCancelCalled(_ task: ImageTask) {
         queue.async {
-            task.isStartNeeded = false
             guard let subscription = self.tasks.removeValue(forKey: task) else { return }
             subscription.unsubscribe()
         }
@@ -137,10 +117,12 @@ public /* final */ class ImagePipeline {
 
     // MARK: - Starting Image Tasks
 
-    private func startImageTask(_ task: ImageTask, delegate anonymousDelegate: ImageTaskAnonymousDelegate?) {
-        guard task.isStartNeeded else { return }
-        task.isStartNeeded = false
+    private struct ImageTaskCallbacks {
+        let progress: ImageTask.ProgressHandler?
+        let completion: ImageTask.Completion?
+    }
 
+    private func startImageTask(_ task: ImageTask, progress progressHandler: ImageTask.ProgressHandler?, completion: ImageTask.Completion?) {
         self.tasks[task] = getDecompressedImage(for: task.request).subscribe(priority: task._priority) { [weak self, weak task] event in
             guard let self = self, let task = task else { return }
 
@@ -149,21 +131,20 @@ public /* final */ class ImagePipeline {
             }
 
             DispatchQueue.main.async {
-                guard let delegate = task.delegate else { return }
+                guard !task.isCancelled.value else { return }
                 switch event {
                 case let .value(response, isCompleted):
                     if isCompleted {
-                        delegate.imageTask(task, didCompleteWithResult: .success(response))
+                        completion?(.success(response))
                     } else {
-                        delegate.imageTask(task, didProduceProgressiveResponse: response)
+                        progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
                     }
                 case let .progress(progress):
                     task.setProgress(progress)
-                    delegate.imageTask(task, didUpdateProgress: progress.completed, totalUnitCount: progress.total)
+                    progressHandler?(nil, task.completedUnitCount, task.totalUnitCount)
                 case let .error(error):
-                    delegate.imageTask(task, didCompleteWithResult: .failure(error))
+                    completion?(.failure(error))
                 }
-                _ = anonymousDelegate // retain anonymous delegates until we are finished with them
             }
         }
     }
@@ -179,7 +160,7 @@ public /* final */ class ImagePipeline {
             }
 
             DispatchQueue.main.async {
-                guard task.delegate != nil else { return }
+                guard !task.isCancelled.value else { return }
 
                 switch event {
                 case let .value(response, isCompleted):

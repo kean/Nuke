@@ -99,10 +99,6 @@ public struct ImageRequest {
         closure(ref)
     }
 
-    var urlString: String? {
-        return ref.urlString
-    }
-
     /// Just like many Swift built-in types, `ImageRequest` uses CoW approach to
     /// avoid memberwise retain/releases when `ImageRequest` is passed around.
     private class Container {
@@ -127,6 +123,10 @@ public struct ImageRequest {
             self.processors = ref.processors
             self.options = ref.options
             self.priority = ref.priority
+        }
+
+        var preferredURLString: String {
+            return options.filteredURL ?? urlString ?? ""
         }
     }
 
@@ -212,16 +212,12 @@ extension ImageRequest {
 
     /// A key for processed image data in disk cache.
     func makeCacheKeyForProcessedImageData() -> String {
-        return preferredURLString + ImageProcessor.Composition(processors).identifier
+        return ref.preferredURLString + ImageProcessor.Composition(processors).identifier
     }
 
     /// A key for original image data in disk cache.
     func makeCacheKeyForOriginalImageData() -> String {
-        return preferredURLString
-    }
-
-    private var preferredURLString: String {
-        return options.filteredURL ?? urlString ?? ""
+        return ref.preferredURLString
     }
 
     // MARK: - Load Keys
@@ -247,10 +243,10 @@ extension ImageRequest {
         let request: ImageRequest
 
         func hash(into hasher: inout Hasher) {
-            if let customKey = request.options.cacheKey {
+            if let customKey = request.ref.options.cacheKey {
                 hasher.combine(customKey)
             } else {
-                hasher.combine(request.preferredURLString)
+                hasher.combine(request.ref.preferredURLString)
             }
         }
 
@@ -258,7 +254,7 @@ extension ImageRequest {
         /// performance when using memory cache, so we can't simply go with
         /// `AnyHashable` like we do for load keys.
         static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
-            let lhs = lhs.request, rhs = rhs.request
+            let lhs = lhs.request.ref, rhs = rhs.request.ref
             if lhs.options.cacheKey != nil || rhs.options.cacheKey != nil {
                 return lhs.options.cacheKey == rhs.options.cacheKey
             }
@@ -278,7 +274,7 @@ extension ImageRequest {
         let allowsCellularAccess: Bool
 
         init(request: ImageRequest) {
-            self.urlString = request.urlString
+            self.urlString = request.ref.urlString
             let urlRequest = request.urlRequest
             self.cachePolicy = urlRequest.cachePolicy
             self.allowsCellularAccess = urlRequest.allowsCellularAccess

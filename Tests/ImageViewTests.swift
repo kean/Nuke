@@ -174,7 +174,7 @@ class ImageViewTests: XCTestCase {
         // When loading an image into a view
         imageView.nk.setImage(
             with: Test.request,
-            progress: { completed, total in
+            progress: { _, completed, total in
                 // Expect progress to be reported, on the main thread
                 XCTAssertTrue(Thread.isMainThread)
                 expectedProgress.received((completed, total))

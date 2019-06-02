@@ -263,7 +263,7 @@ public final class DataCache: DataCaching {
 
     /// Synchronously waits on the caller's thread until all outstanding disk IO
     /// operations are finished.
-    func flush() {
+    public func flush() {
         wqueue.sync {}
     }
 

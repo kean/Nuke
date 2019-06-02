@@ -15,7 +15,6 @@ public /* final */ class ImageTask: Hashable {
     /// unique within this pipeline.
     public let taskId: Int
 
-    weak var delegate: ImageTaskDelegate?
     weak var pipeline: ImagePipeline?
 
     /// The original request with which the task was created.
@@ -42,14 +41,13 @@ public /* final */ class ImageTask: Hashable {
     }
     private(set) var _progress: Progress?
 
+    let isCancelled = Atomic(false)
+
     /// A completion handler to be called when task finishes or fails.
     public typealias Completion = (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
 
     /// A progress handler to be called periodically during the lifetime of a task.
-    public typealias ProgressHandler = (_ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
-
-    // `true` is the task is ready to be started
-    var isStartNeeded = true
+    public typealias ProgressHandler = (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
 
     init(taskId: Int, request: ImageRequest) {
         self.taskId = taskId
@@ -58,20 +56,15 @@ public /* final */ class ImageTask: Hashable {
         self.priority = request.priority
     }
 
-    /// Starts executing the task.
-    public func start() {
-        pipeline?.imageTaskStartCalled(self)
-    }
-
     /// Marks task as being cancelled.
     ///
     /// The pipeline will immediately cancel any work associated with a task
     /// unless there is an equivalent outstanding task running (see
     /// `ImagePipeline.Configuration.isDeduplicationEnabled` for more info).
     public func cancel() {
-        delegate = nil // Zeroing weak references is always thread-safe
-        pipeline?.imageTaskCancelCalled(self)
-        pipeline = nil // Zeroing weak references is always thread-safe
+        if isCancelled.swap(to: true, ifEqual: false) {
+            pipeline?.imageTaskCancelCalled(self)
+        }
     }
 
     @available(*, deprecated, message: "Please use `var priority: ImageRequest.Priority`")
@@ -99,29 +92,6 @@ public /* final */ class ImageTask: Hashable {
     }
 }
 
-// MARK: - ImageTaskDelegate
-
-/// All methods of the delegates are called on the main thread.
-public protocol ImageTaskDelegate: class {
-    /// Called when the task finishes loading the image.
-    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>)
-
-    /// Called periodically during the lifetime of a task when progress is updated.
-    func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64)
-
-    /// Called periodically when new scans of progressive image are loaded and
-    /// processed.
-    ///
-    /// To enable progressive image decoding, see `ImagePipeline.Configuration`
-    /// `isProgressiveDecodingEnabled`.
-    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse)
-}
-
-public extension ImageTaskDelegate {
-    func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64) {}
-    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {}
-}
-
 // MARK: - ImageResponse
 
 /// Represents an image response.
@@ -145,25 +115,5 @@ public final class ImageResponse {
             }
             return ImageResponse(image: output, urlResponse: urlResponse, scanNumber: scanNumber)
         }
-    }
-}
-
-// MARK: - ImageTaskAnonymousDelegate
-
-final class ImageTaskAnonymousDelegate: ImageTaskDelegate {
-    let completionHandler: ImageTask.Completion?
-    let progressHandler: ImageTask.ProgressHandler?
-
-    init(progress: ImageTask.ProgressHandler?, completion: ImageTask.Completion?) {
-        self.progressHandler = progress
-        self.completionHandler = completion
-    }
-
-    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
-        completionHandler?(result)
-    }
-
-    func imageTask(_ task: ImageTask, didUpdateProgress completedUnitCount: Int64, totalUnitCount: Int64) {
-        progressHandler?(completedUnitCount, totalUnitCount)
     }
 }
