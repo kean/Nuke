@@ -4,6 +4,20 @@
 
 import Foundation
 
+#if os(iOS) || os(tvOS) || os(watchOS)
+import UIKit
+#endif
+
+#if os(watchOS)
+import WatchKit
+#endif
+
+#if os(macOS)
+import Cocoa
+#endif
+
+// MARK: - ImageProcessing
+
 /// Performs image processing.
 public protocol ImageProcessing {
     /// Returns processed image.
@@ -105,13 +119,6 @@ extension ImageProcessor {
     }
 }
 
-#if os(watchOS)
-import WatchKit
-#endif
-
-#if os(iOS) || os(tvOS) || os(watchOS)
-import UIKit
-
 extension ImageProcessor {
     public enum Unit {
         case points
@@ -164,6 +171,8 @@ extension ImageProcessor {
         }
     }
 }
+
+#if os(iOS) || os(tvOS) || os(watchOS)
 
 // MARK: - ImageProcessor.Crop
 
@@ -372,6 +381,8 @@ struct ImageDecompression {
     }
 }
 
+#endif
+
 // MARK: - Image Processing (Internal)
 
 extension Image {
@@ -384,7 +395,7 @@ extension Image {
     /// in a square by centering it in the canvas.
     ///
     /// - parameter drawRect: `nil` by default. If `nil` will use the canvas rect.
-    func draw(inCanvasWithSize canvasSize: CGSize, drawRect: CGRect? = nil) -> UIImage? {
+    func draw(inCanvasWithSize canvasSize: CGSize, drawRect: CGRect? = nil) -> Image? {
         guard let cgImage = cgImage else {
             return nil
         }
@@ -407,7 +418,7 @@ extension Image {
         guard let outputCGImage = ctx.makeImage() else {
             return nil
         }
-        return UIImage(cgImage: outputCGImage, scale: scale, orientation: imageOrientation)
+        return Image.make(cgImage: outputCGImage, source: self)
     }
 
     /// Decompresses the input image by drawing in the the `CGContext`.
@@ -430,7 +441,7 @@ struct ImageProcessingExtensions {
 
     func byResizing(to targetSize: CGSize,
                     contentMode: ImageProcessor.Resize.ContentMode,
-                    upscale: Bool) -> UIImage? {
+                    upscale: Bool) -> Image? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -446,7 +457,7 @@ struct ImageProcessingExtensions {
 
     /// Crops the input image to the given size and resizes it if needed.
     /// - note: this method will always upscale.
-    func byResizingAndCropping(to targetSize: CGSize) -> UIImage? {
+    func byResizingAndCropping(to targetSize: CGSize) -> Image? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -457,7 +468,9 @@ struct ImageProcessingExtensions {
         return image.draw(inCanvasWithSize: targetSize, drawRect: drawRect)
     }
 
-    func byDrawingInCircle() -> UIImage? {
+    #if os(iOS) || os(tvOS) || os(watchOS)
+
+    func byDrawingInCircle() -> Image? {
         guard let squared = byCroppingToSquare(), let cgImage = squared.cgImage else {
             return nil
         }
@@ -467,7 +480,7 @@ struct ImageProcessingExtensions {
 
     /// Draws an image in square by preserving an aspect ratio and filling the
     /// square if needed. If the image is already a square, returns an original image.
-    func byCroppingToSquare() -> UIImage? {
+    func byCroppingToSquare() -> Image? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -486,7 +499,7 @@ struct ImageProcessingExtensions {
         guard let cropped = cgImage.cropping(to: cropRect) else {
             return nil
         }
-        return UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
+        return Image(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
     }
 
     /// Adds rounded corners with the given radius to the image.
@@ -511,8 +524,9 @@ struct ImageProcessingExtensions {
         }
         return UIImage(cgImage: roundedImage, scale: image.scale, orientation: image.imageOrientation)
     }
+
+    #endif
 }
-#endif
 
 // MARK: - CoreGraphics Helpers (Internal)
 
@@ -520,6 +534,14 @@ extension Image {
     #if os(macOS)
     var cgImage: CGImage? {
         return cgImage(forProposedRect: nil, context: nil, hints: nil)
+    }
+
+    static func make(cgImage: CGImage, source: NSImage) -> NSImage {
+        return NSImage(cgImage: cgImage, size: .zero)
+    }
+    #else
+    static func make(cgImage: CGImage, source: UIImage) -> UIImage {
+        return UIImage(cgImage: cgImage, scale: source.scale, orientation: source.imageOrientation)
     }
     #endif
 }
@@ -544,7 +566,6 @@ extension CGSize: Hashable { // For some reason `CGSize` isn't `Hashable`
 }
 
 extension CGSize {
-    #if os(iOS) || os(tvOS) || os(watchOS)
     /// Creates the size in pixels by scaling to the input size to the screen scale
     /// if needed.
     init(size: CGSize, unit: ImageProcessor.Unit) {
@@ -553,7 +574,6 @@ extension CGSize {
         case .points: self = size.scaled(by: Screen.scale)
         }
     }
-    #endif
 
     func scaled(by scale: CGFloat) -> CGSize {
         return CGSize(width: width * scale, height: height * scale)
@@ -623,6 +643,11 @@ struct Screen {
     /// Returns the current screen scale.
     static var scale: CGFloat {
         return WKInterfaceDevice.current().screenScale
+    }
+    #elseif os(macOS)
+    /// Always returns 1.
+    static var scale: CGFloat {
+        return 1
     }
     #endif
 }

@@ -79,7 +79,6 @@ class ImageProcessingTests: XCTestCase {
 
 // MARK: - ImageProcessorResizeTests
 
-#if os(iOS) || os(tvOS)
 class ImageProcessorResizeTests: XCTestCase {
 
     func testThatImageIsResizedToFill() {
@@ -150,6 +149,7 @@ class ImageProcessorResizeTests: XCTestCase {
         XCTAssertEqual(cgImage.height, 360)
     }
 
+    #if os(iOS) || os(tvOS)
     func testThatScalePreserved() {
         // Given
         let processor = ImageProcessor.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
@@ -162,8 +162,8 @@ class ImageProcessorResizeTests: XCTestCase {
         // Then
         XCTAssertEqual(image.scale, Test.image.scale)
     }
+    #endif
 }
-#endif
 
 // MARK: - ImageProcessorAnonymousTests
 
