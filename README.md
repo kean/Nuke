@@ -11,7 +11,7 @@
 
 A powerful **image loading** and **caching** system.
 
-> [**Nuke 8** beta](https://github.com/kean/Nuke/releases/tag/8.0-beta.1) is out!
+> [**Nuke 8** beta](https://github.com/kean/Nuke/releases/tag/8.0-beta.2) is out!
 
 - Fast LRU memory cache, native HTTP disk cache, and custom aggressive LRU disk cache
 - Progressive image loading (progressive JPEG and WebP)
