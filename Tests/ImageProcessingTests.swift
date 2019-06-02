@@ -165,6 +165,27 @@ class ImageProcessorResizeTests: XCTestCase {
     #endif
 }
 
+// MARK: - ImageProcessorCropTests
+
+class ImageProcessorCropTests: XCTestCase {
+    func testThatImageIsCropped() {
+        // Given
+        let processor = ImageProcessor.Crop(size: CGSize(width: 400, height: 400), unit: .pixels)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 400)
+        XCTAssertEqual(cgImage.height, 400)
+    }
+}
+
 // MARK: - ImageProcessorAnonymousTests
 
 class ImageProcessorAnonymousTests: XCTestCase {

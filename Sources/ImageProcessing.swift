@@ -130,13 +130,13 @@ extension ImageProcessor {
 
 extension ImageProcessor {
     /// Scales an image to a specified size.
-    public struct Resize: ImageProcessing, Hashable {
+    public struct Resize: ImageProcessing, Hashable, CustomStringConvertible {
         private let size: CGSize
         private let contentMode: ContentMode
         private let upscale: Bool
 
         /// An option for how to resize the image.
-        public enum ContentMode {
+        public enum ContentMode: CustomStringConvertible {
             /// Scales the image so that it completely fills the target area.
             /// Maintains the aspect ratio of the original image.
             case aspectFill
@@ -144,6 +144,13 @@ extension ImageProcessor {
             /// Scales the image so that it fits the target size. Maintains the
             /// aspect ratio of the original image.
             case aspectFit
+
+            public var description: String {
+                switch self {
+                case .aspectFill: return ".aspectFill"
+                case .aspectFit: return ".aspectFill"
+                }
+            }
         }
 
         /// Initializes the processor with the given size.
@@ -169,22 +176,28 @@ extension ImageProcessor {
         public var hashableIdentifier: AnyHashable {
             return self
         }
+
+        public var description: String {
+            return "ImageProcessor.Resize(size: \(size) pixels, contentMode: \(contentMode), upscale: \(upscale))"
+        }
     }
 }
-
-#if os(iOS) || os(tvOS) || os(watchOS)
 
 // MARK: - ImageProcessor.Crop
 
 extension ImageProcessor {
 
-    public struct Crop: ImageProcessing, Hashable {
+    /// Crops an image to a specified target size. The image first gets resized
+    /// to fill the target size area, maintaining the original image aspect ratio.
+    /// The cropped image is centered in the target area.
+    public struct Crop: ImageProcessing, Hashable, CustomStringConvertible {
 
         private let size: CGSize
 
-        /// Initializes the cropping image processor. Crops the image to the given
-        /// size by resizing the image to fill the canvas maintaining its aspect
-        /// ratio. The cropped image is centered in the canvas.
+        /// Initializes the processor with the given size.
+        ///
+        /// - parameter size: The target size.
+        /// - parameter unit: Unit of the target size, `.points` by default.
         public init(size: CGSize, unit: Unit = .points) {
             self.size = CGSize(size: size, unit: unit)
         }
@@ -200,8 +213,14 @@ extension ImageProcessor {
         public var hashableIdentifier: AnyHashable {
             return self
         }
+
+        public var description: String {
+            return "ImageProcessor.Crop(size: \(size) pixels)"
+        }
     }
 }
+
+#if os(iOS) || os(tvOS) || os(watchOS)
 
 // MARK: - ImageProcessor.Circle
 
