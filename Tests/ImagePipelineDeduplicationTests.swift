@@ -444,7 +444,7 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
             pipeline.loadImage(
                 with: request,
-                progress: { completed, total in
+                progress: { _, completed, total in
                     XCTAssertTrue(Thread.isMainThread)
                     expectedProgress.received((completed, total))
                 }

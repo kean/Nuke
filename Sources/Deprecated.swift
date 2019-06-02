@@ -284,8 +284,8 @@ public func loadImage(with request: ImageRequest,
     return view.nk.setImage(
         with: request,
         options: options,
-        progress: { completed, total in
-            progress?(nil, completed, total)
+        progress: { response, completed, total in
+            progress?(response, completed, total)
         },
         completion: { result in
             switch result {

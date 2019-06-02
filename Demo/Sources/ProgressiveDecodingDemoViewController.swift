@@ -63,7 +63,7 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
         imageView.nk.setImage(
             with: ImageRequest(url: url, processors: [_ProgressiveBlurImageProcessor()]),
             options: options,
-            progress: { completed, total in
+            progress: { _, completed, total in
                 container.updateProgress(completed: completed, total: total)
         })
     }
