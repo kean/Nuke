@@ -31,10 +31,10 @@ public struct ImageEncoder: ImageEncoding {
         guard let cgImage = image.cgImage else {
             return nil
         }
-        if ImageProcessor.isTransparent(cgImage) {
-            return ImageEncoder.pngData(from: image)
-        } else {
+        if cgImage.isOpaque {
             return ImageEncoder.jpegData(from: image, compressionQuality: compressionQuality)
+        } else {
+            return ImageEncoder.pngData(from: image)
         }
     }
 }
@@ -57,12 +57,6 @@ extension ImageEncoder {
     }
 }
 #else
-extension Image {
-    var cgImage: CGImage? {
-        return cgImage(forProposedRect: nil, context: nil, hints: nil)
-    }
-}
-
 extension ImageEncoder {
     static func pngData(from image: Image) -> Data? {
         guard let cgImage = image.cgImage else {

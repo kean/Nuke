@@ -114,7 +114,7 @@ extension ImageDecoder {
             #if os(macOS)
             return NSImage(data: data)
             #else
-            return UIImage(data: data, scale: ImageProcessor.screenScale)
+            return UIImage(data: data, scale: Screen.scale)
             #endif
         }
     }

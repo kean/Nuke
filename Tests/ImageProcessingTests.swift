@@ -117,6 +117,8 @@ class ImageProcessingTests: XCTestCase {
     }
 }
 
+// MARK: - ImageProcessorCompositionTest
+
 class ImageProcessorCompositionTest: XCTestCase {
 
     func testAppliesAllProcessors() {
@@ -184,4 +186,71 @@ class ImageProcessorCompositionTest: XCTestCase {
     }
 }
 
-private let dummyProcessingContext = ImageProcessingContext(request: Test.request, isFinal: true, scanNumber: nil)
+// MARK: - CoreGraphics Extensions Tests (Internal)
+
+class CoreGraphicsExtensionsTests: XCTestCase {
+    func testScaleToFill() {
+        XCTAssertEqual(1, CGSize(width: 10, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.5, CGSize(width: 20, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 5, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(1, CGSize(width: 20, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(1, CGSize(width: 10, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.5, CGSize(width: 30, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.5, CGSize(width: 20, height: 30).scaleToFill(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(2, CGSize(width: 5, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 10, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 5, height: 8).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 8, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(2, CGSize(width: 30, height: 10).scaleToFill(CGSize(width: 10, height: 20)))
+        XCTAssertEqual(2, CGSize(width: 10, height: 30).scaleToFill(CGSize(width: 20, height: 10)))
+    }
+
+    func testScaleToFit() {
+        XCTAssertEqual(1, CGSize(width: 10, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.5, CGSize(width: 20, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 5, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(0.5, CGSize(width: 20, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.5, CGSize(width: 10, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.25, CGSize(width: 40, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.25, CGSize(width: 20, height: 40).scaleToFit(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(1, CGSize(width: 5, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(1, CGSize(width: 10, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 2, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 5, height: 2).scaleToFit(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(0.25, CGSize(width: 40, height: 10).scaleToFit(CGSize(width: 10, height: 20)))
+        XCTAssertEqual(0.25, CGSize(width: 10, height: 40).scaleToFit(CGSize(width: 20, height: 10)))
+    }
+
+    func testCenteredInRectWithSize() {
+        XCTAssertEqual(
+            CGSize(width: 10, height: 10).centeredInRectWithSize(CGSize(width: 10, height: 10)),
+            CGRect(x: 0, y: 0, width: 10, height: 10)
+        )
+        XCTAssertEqual(
+            CGSize(width: 20, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 10)),
+            CGRect(x: -5, y: -5, width: 20, height: 20)
+        )
+        XCTAssertEqual(
+            CGSize(width: 20, height: 10).centeredInRectWithSize(CGSize(width: 10, height: 10)),
+            CGRect(x: -5, y: 0, width: 20, height: 10)
+        )
+        XCTAssertEqual(
+            CGSize(width: 10, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 10)),
+            CGRect(x: 0, y: -5, width: 10, height: 20)
+        )
+        XCTAssertEqual(
+            CGSize(width: 10, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 20)),
+            CGRect(x: 0, y: 0, width: 10, height: 20)
+        )
+        XCTAssertEqual(
+            CGSize(width: 10, height: 40).centeredInRectWithSize(CGSize(width: 10, height: 20)),
+            CGRect(x: 0, y: -10, width: 10, height: 40)
+        )
+    }
+}

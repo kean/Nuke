@@ -105,12 +105,13 @@ extension ImageProcessor {
     }
 }
 
-#if !os(macOS)
-import UIKit
 
 #if os(watchOS)
 import WatchKit
 #endif
+
+#if os(iOS) || os(tvOS) || os(watchOS)
+import UIKit
 
 // MARK: - ImageProcessor.Resize
 
@@ -125,7 +126,6 @@ extension ImageProcessor {
 
         private let size: CGSize
         private let contentMode: ContentMode
-        private let crop: Bool
         private let upscale: Bool
 
         /// An option for how to resize the image.
@@ -141,20 +141,49 @@ extension ImageProcessor {
         /// Initializes the resizing image processor.
         ///
         /// - parameter size: The target reference size.
-        /// - parameter unit:
-        public init(size: CGSize, unit: Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
+        /// - parameter unit: `.points` by default.
+        /// - parameter upscale: `false` by default.
+        public init(size: CGSize, unit: Unit = .points, contentMode: ContentMode = .aspectFill, upscale: Bool = false) {
             self.size = CGSize(size: size, unit: unit)
             self.contentMode = contentMode
-            self.crop = crop
             self.upscale = upscale
         }
 
         public func process(image: Image, context: ImageProcessingContext?) -> Image? {
-            return ImageProcessor.resize(image, targetSize: size, contentMode: contentMode, crop: crop, upscale: upscale)
+            return image.processed.byResizing(to: size, contentMode: contentMode, upscale: upscale)
         }
 
         public var identifier: String {
-            return "ImageProcessor.Resize(\(size)\(contentMode)\(crop)\(upscale))"
+            return "ImageProcessor.Resize(\(size)\(contentMode)\(upscale))"
+        }
+
+        public var hashableIdentifier: AnyHashable {
+            return self
+        }
+    }
+}
+
+// MARK: - ImageProcessor.Crop
+
+extension ImageProcessor {
+
+    public struct Crop: ImageProcessing, Hashable {
+
+        private let size: CGSize
+
+        /// Initializes the cropping image processor. Crops the image to the given
+        /// size by resizing the image to fill the canvas maintaining its aspect
+        /// ratio. The cropped image is centered in the canvas.
+        public init(size: CGSize, unit: Unit = .points) {
+            self.size = CGSize(size: size, unit: unit)
+        }
+
+        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
+            return image.processed.byResizingAndCropping(to: size)
+        }
+
+        public var identifier: String {
+            return "ImageProcessor.Crop(\(size)"
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -171,7 +200,7 @@ extension ImageProcessor {
         public init() {}
 
         public func process(image: Image, context: ImageProcessingContext?) -> Image? {
-            return ImageProcessor.drawInCircle(image)
+            return image.processed.byDrawingInCircle()
         }
 
         public var identifier: String {
@@ -196,12 +225,12 @@ extension ImageProcessor {
             case .pixels:
                 self.radius = radius
             case .points:
-                self.radius = radius * ImageProcessor.screenScale
+                self.radius = radius * Screen.scale
             }
         }
 
         public func process(image: Image, context: ImageProcessingContext?) -> Image? {
-            return ImageProcessor.addRoundedCorners(image, radius: radius)
+            return image.processed.byAddingRoundedCorners(radius: radius)
         }
 
         public var identifier: String {
@@ -323,7 +352,7 @@ extension ImageProcessor {
 struct ImageDecompression {
 
     func decompress(image: Image) -> Image {
-        let output = ImageProcessor.decompress(image)
+        let output = image.decompressed() ?? image
         ImageDecompression.setDecompressionNeeded(false, for: output)
         return output
     }
@@ -341,130 +370,134 @@ struct ImageDecompression {
     }
 }
 
-// MARK: - ImageProcessor Utilities
+// MARK: - Image Processing (Internal)
 
-extension ImageProcessor {
-    static func resize(_ image: UIImage,
-                       targetSize: CGSize,
-                       contentMode: ImageProcessor.Resize.ContentMode,
-                       crop: Bool,
-                       upscale: Bool) -> UIImage? {
-        guard let cgImage = image.cgImage else {
+extension Image {
+    /// Draws the image in a `CGContext` in a canvas with the given size using
+    /// the specified draw rect.
+    ///
+    /// For example, if the canvas size is `CGSize(width: 10, height: 10)` and
+    /// the draw rect is `CGRect(x: -5, y: 0, width: 20, height: 10)` it would
+    /// draw the input image (which is horizonal based on the known draw rect)
+    /// in a square by centering it in the canvas.
+    ///
+    /// - parameter drawRect: `nil` by default. If `nil` will use the canvas rect.
+    func draw(inCanvasWithSize canvasSize: CGSize, drawRect: CGRect? = nil) -> UIImage? {
+        guard let cgImage = cgImage else {
             return nil
-        }
-        // A special case in which scaling is irrelevant, we just fill and crop
-        if crop && contentMode == .aspectFill {
-            return ImageProcessor.crop(image: image, size: targetSize)
-        }
-
-        let scale: CGFloat = {
-            let bitmapSize = CGSize(width: cgImage.width, height: cgImage.height)
-            let scaleHor = targetSize.width / bitmapSize.width
-            let scaleVert = targetSize.height / bitmapSize.height
-            return contentMode == .aspectFill ? max(scaleHor, scaleVert) : min(scaleHor, scaleVert)
-        }()
-        guard scale < 1 || upscale else {
-            return image // The image doesn't require scaling
-        }
-        let size = CGSize(
-            width: round(scale * CGFloat(cgImage.width)),
-            height: round(scale * CGFloat(cgImage.height))
-        )
-        return draw(image, targetSize: size)
-    }
-
-    private static func crop(image: UIImage, size targetSize: CGSize) -> UIImage? {
-        guard let cgImage = image.cgImage else {
-            return nil
-        }
-
-        // Example:
-        //
-        // target size: 40 x 40 (square cell)
-        // image sise: 120 x 80 (horizontal image)
-        // draw size: 40 x 40 (square context)
-        // draw rect: x: -20, y: 0, width: 80, height: 40 (to draw cropped)
-        let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
-        let drawRect = CGRect(origin: .zero, size: imageSize).offsetBy(
-            dx: min(0, -(imageSize.width - targetSize.width) / 2),
-            dy: min(0, -(imageSize.height - targetSize.height) / 2)
-        )
-        return draw(image, size: targetSize, in: drawRect)
-    }
-
-    /// Draws the input image in a new `CGContext` with a given size. If the target
-    /// size is `nil`, uses the image's original size.
-    private static func draw(_ image: UIImage, targetSize: CGSize? = nil) -> UIImage {
-        guard let cgImage = image.cgImage else {
-            return image
-        }
-        let size = targetSize ?? CGSize(width: cgImage.width, height: cgImage.height)
-        return draw(image, size: size, in: CGRect(origin: CGPoint.zero, size: size))
-    }
-
-    /// Draws the input image in a new `CGContext` with a given size. If the target
-    /// size is `nil`, uses the image's original size.
-    private static func draw(_ image: UIImage, size: CGSize, in rect: CGRect) -> UIImage {
-        guard let cgImage = image.cgImage else {
-            return image
         }
 
         // For more info see:
         // - Quartz 2D Programming Guide
         // - https://github.com/kean/Nuke/issues/35
         // - https://github.com/kean/Nuke/issues/57
-        let alphaInfo: CGImageAlphaInfo = isOpaque(cgImage) ? .noneSkipLast : .premultipliedLast
+        let alphaInfo: CGImageAlphaInfo = cgImage.isOpaque ? .noneSkipLast : .premultipliedLast
 
         guard let ctx = CGContext(
             data: nil,
-            width: Int(size.width), height: Int(size.height),
+            width: Int(canvasSize.width), height: Int(canvasSize.height),
             bitsPerComponent: 8, bytesPerRow: 0,
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: alphaInfo.rawValue) else {
-                return image
+                return nil
         }
-        ctx.draw(cgImage, in: rect)
-        guard let decompressed = ctx.makeImage() else {
-            return image
+        ctx.draw(cgImage, in: drawRect ?? CGRect(origin: .zero, size: canvasSize))
+        guard let outputCGImage = ctx.makeImage() else {
+            return nil
         }
-        return UIImage(cgImage: decompressed, scale: image.scale, orientation: image.imageOrientation)
+        return UIImage(cgImage: outputCGImage, scale: scale, orientation: imageOrientation)
     }
 
-    /// Draws the image in a `CGContext` to force image data decompression.
-    static func decompress(_ image: UIImage) -> UIImage {
-        return draw(image)
+    /// Decompresses the input image by drawing in the the `CGContext`.
+    func decompressed() -> Image? {
+        guard let cgImage = cgImage else {
+            return nil
+        }
+        return draw(inCanvasWithSize: cgImage.size, drawRect: CGRect(origin: .zero, size: cgImage.size))
     }
+}
 
-    static func drawInCircle(_ image: UIImage) -> UIImage? {
+extension Image {
+    var processed: ImageProcessingExtensions {
+        return ImageProcessingExtensions(image: self)
+    }
+}
+
+struct ImageProcessingExtensions {
+    let image: Image
+
+    func byResizing(to targetSize: CGSize,
+                    contentMode: ImageProcessor.Resize.ContentMode,
+                    upscale: Bool) -> UIImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
-        let input: UIImage
-        if cgImage.width == cgImage.height {
-            input = image // Already is a square
-        } else {
-            // Need to crop first
-            let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
-            let side = min(cgImage.width, cgImage.height)
-            let targetSize = CGSize(width: side, height: side)
-            let drawRect = CGRect(origin: .zero, size: targetSize).offsetBy(
-                dx: max(0, (imageSize.width - targetSize.width) / 2),
-                dy: max(0, (imageSize.height - targetSize.height) / 2)
-            )
-            guard let cropped = cgImage.cropping(to: drawRect) else {
-                return nil
-            }
-            input = UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
+        let scale = contentMode == .aspectFill ?
+            cgImage.size.scaleToFill(targetSize) :
+            cgImage.size.scaleToFit(targetSize)
+        guard scale < 1 || upscale else {
+            return image // The image doesn't require scaling
         }
-        return addRoundedCorners(input, radius: CGFloat(cgImage.width) / 2.0)
+        let size = cgImage.size.scaled(by: scale).rounded()
+        return image.draw(inCanvasWithSize: size)
     }
 
-    static func addRoundedCorners(_ image: UIImage, radius: CGFloat) -> UIImage {
+    /// Crops the input image to the given size and resizes it if needed.
+    /// - note: this method will always upscale.
+    func byResizingAndCropping(to targetSize: CGSize) -> UIImage? {
         guard let cgImage = image.cgImage else {
-            return image
+            return nil
         }
-        let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+
+        let imageSize = cgImage.size
+        let scaledSize = imageSize.scaled(by: cgImage.size.scaleToFill(targetSize))
+        let drawRect = scaledSize.centeredInRectWithSize(targetSize)
+        return image.draw(inCanvasWithSize: targetSize, drawRect: drawRect)
+    }
+
+    func byDrawingInCircle() -> UIImage? {
+        guard let squared = byCroppingToSquare(), let cgImage = squared.cgImage else {
+            return nil
+        }
+        let radius = CGFloat(cgImage.width) / 2.0 // Can use any dimenstion since image is a square
+        return squared.processed.byAddingRoundedCorners(radius: radius)
+    }
+
+    /// Draws an image in square by preserving an aspect ratio and filling the
+    /// square if needed. If the image is already a square, returns an original image.
+    func byCroppingToSquare() -> UIImage? {
+        guard let cgImage = image.cgImage else {
+            return nil
+        }
+
+        guard cgImage.width != cgImage.height else {
+            return image // Already a square
+        }
+
+        let imageSize = cgImage.size
+        let side = min(cgImage.width, cgImage.height)
+        let targetSize = CGSize(width: side, height: side)
+        let cropRect = CGRect(origin: .zero, size: targetSize).offsetBy(
+            dx: max(0, (imageSize.width - targetSize.width) / 2),
+            dy: max(0, (imageSize.height - targetSize.height) / 2)
+        )
+        guard let cropped = cgImage.cropping(to: cropRect) else {
+            return nil
+        }
+        return UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
+    }
+
+    /// Adds rounded corners with the given radius to the image.
+    /// - parameter radius: Radius in pixels.
+    func byAddingRoundedCorners(radius: CGFloat) -> Image? {
+        guard let cgImage = image.cgImage else {
+            return nil
+        }
+
+        let imageSize = cgImage.size
+
         UIGraphicsBeginImageContextWithOptions(imageSize, false, 1.0)
+        defer { UIGraphicsEndImageContext() }
 
         let clippingPath = UIBezierPath(roundedRect: CGRect(origin: CGPoint.zero, size: imageSize), cornerRadius: radius)
         clippingPath.addClip()
@@ -472,14 +505,38 @@ extension ImageProcessor {
         image.draw(in: CGRect(origin: CGPoint.zero, size: imageSize))
 
         guard let roundedImage = UIGraphicsGetImageFromCurrentImageContext()?.cgImage else {
-            return image
+            return nil
         }
-        UIGraphicsEndImageContext()
         return UIImage(cgImage: roundedImage, scale: image.scale, orientation: image.imageOrientation)
     }
 }
+#endif
 
-extension CGSize: Hashable {
+// MARK: - UI(NS)Image and CGImage Extensions (Internal)
+
+extension Image {
+    #if os(macOS)
+    var cgImage: CGImage? {
+        return cgImage(forProposedRect: nil, context: nil, hints: nil)
+    }
+    #endif
+}
+
+extension CGImage {
+    /// Returns `true` if the image doesn't contain alpha channel.
+    var isOpaque: Bool {
+        let alpha = alphaInfo
+        return alpha == .none || alpha == .noneSkipFirst || alpha == .noneSkipLast
+    }
+
+    var size: CGSize {
+        return CGSize(width: width, height: height)
+    }
+}
+
+// MARK: - CoreGraphics Helpers (Internal)
+
+extension CGSize: Hashable { // For some reason `CGSize` isn't `Hashable`
     public func hash(into hasher: inout Hasher) {
         hasher.combine(width)
         hasher.combine(height)
@@ -487,39 +544,51 @@ extension CGSize: Hashable {
 }
 
 extension CGSize {
+    #if os(iOS) || os(tvOS) || os(watchOS)
+    /// Creates the size in pixels by scaling to the input size to the screen scale
+    /// if needed.
     init(size: CGSize, unit: ImageProcessor.Unit) {
         switch unit {
-        case .pixels:
-            self = size
-        case .points:
-            let scale = ImageProcessor.screenScale
-            self = CGSize(width: size.width * scale, height: size.height * scale)
+        case .pixels: self = size // The size is already in pixels
+        case .points: self = size.scaled(by: Screen.scale)
         }
     }
-}
+    #endif
 
-extension ImageProcessor {
-    static var screenScale: CGFloat {
-        #if os(watchOS)
-        return WKInterfaceDevice.current().screenScale
-        #else
-        return UIScreen.main.scale
-        #endif
+    func scaled(by scale: CGFloat) -> CGSize {
+        return CGSize(width: width * scale, height: height * scale)
+    }
+
+    func rounded() -> CGSize {
+        return CGSize(width: CGFloat(round(width)), height: CGFloat(round(height)))
     }
 }
 
-#endif
-
-extension ImageProcessor {
-    static func isOpaque(_ image: CGImage) -> Bool {
-        let alpha = image.alphaInfo
-        return alpha == .none || alpha == .noneSkipFirst || alpha == .noneSkipLast
+extension CGSize {
+    func scaleToFill(_ targetSize: CGSize) -> CGFloat {
+        let scaleHor = targetSize.width / width
+        let scaleVert = targetSize.height / height
+        return max(scaleHor, scaleVert)
     }
 
-    static func isTransparent(_ image: CGImage) -> Bool {
-        return !isOpaque(image)
+    func scaleToFit(_ targetSize: CGSize) -> CGFloat {
+        let scaleHor = targetSize.width / width
+        let scaleVert = targetSize.height / height
+        return min(scaleHor, scaleVert)
+    }
+
+    /// Caclulates a rect such that the ouput rect will be in the center of
+    /// the rect of the input size (assuming origin: .zero)
+    func centeredInRectWithSize(_ targetSize: CGSize) -> CGRect {
+        // First we need to resize the original size to fill the target size.
+        return CGRect(origin: .zero, size: self).offsetBy(
+            dx: -(width - targetSize.width) / 2,
+            dy: -(height - targetSize.height) / 2
+        )
     }
 }
+
+// MARK: - ImageProcessing Extensions (Internal)
 
 // A special version of `==` which is optimized to not create hashable identifiers
 // when not necessary (e.g. one processor is `nil` and another one isn't.
@@ -540,4 +609,20 @@ func == (lhs: [ImageProcessing], rhs: [ImageProcessing]) -> Bool {
     return zip(lhs, rhs).allSatisfy {
         $0.hashableIdentifier == $1.hashableIdentifier
     }
+}
+
+// MARK: - Misc (Internal)
+
+struct Screen {
+    #if os(iOS) || os(tvOS)
+    /// Returns the current screen scale.
+    static var scale: CGFloat {
+        return UIScreen.main.scale
+    }
+    #elseif os(watchOS)
+    /// Returns the current screen scale.
+    static var scale: CGFloat {
+        return WKInterfaceDevice.current().screenScale
+    }
+    #endif
 }
