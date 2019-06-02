@@ -105,7 +105,6 @@ extension ImageProcessor {
     }
 }
 
-
 #if os(watchOS)
 import WatchKit
 #endif
@@ -113,35 +112,38 @@ import WatchKit
 #if os(iOS) || os(tvOS) || os(watchOS)
 import UIKit
 
-// MARK: - ImageProcessor.Resize
-
 extension ImageProcessor {
-
     public enum Unit {
         case points
         case pixels
     }
+}
 
+// MARK: - ImageProcessor.Resize
+
+extension ImageProcessor {
+    /// Scales an image to a specified size.
     public struct Resize: ImageProcessing, Hashable {
-
         private let size: CGSize
         private let contentMode: ContentMode
         private let upscale: Bool
 
         /// An option for how to resize the image.
         public enum ContentMode {
-            /// Scales the image so that it completely fills the target size.
-            /// Doesn't clip images.
+            /// Scales the image so that it completely fills the target area.
+            /// Maintains the aspect ratio of the original image.
             case aspectFill
 
-            /// Scales the image so that it fits the target size.
+            /// Scales the image so that it fits the target size. Maintains the
+            /// aspect ratio of the original image.
             case aspectFit
         }
 
-        /// Initializes the resizing image processor.
+        /// Initializes the processor with the given size.
         ///
-        /// - parameter size: The target reference size.
-        /// - parameter unit: `.points` by default.
+        /// - parameter size: The target size.
+        /// - parameter unit: Unit of the target size, `.points` by default.
+        /// - parameter contentMode: `.aspectFill` by default.
         /// - parameter upscale: `false` by default.
         public init(size: CGSize, unit: Unit = .points, contentMode: ContentMode = .aspectFill, upscale: Bool = false) {
             self.size = CGSize(size: size, unit: unit)
@@ -512,7 +514,7 @@ struct ImageProcessingExtensions {
 }
 #endif
 
-// MARK: - UI(NS)Image and CGImage Extensions (Internal)
+// MARK: - CoreGraphics Helpers (Internal)
 
 extension Image {
     #if os(macOS)
@@ -533,8 +535,6 @@ extension CGImage {
         return CGSize(width: width, height: height)
     }
 }
-
-// MARK: - CoreGraphics Helpers (Internal)
 
 extension CGSize: Hashable { // For some reason `CGSize` isn't `Hashable`
     public func hash(into hasher: inout Hasher) {

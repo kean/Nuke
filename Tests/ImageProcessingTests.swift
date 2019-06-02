@@ -75,8 +75,99 @@ class ImageProcessingTests: XCTestCase {
         }
         wait()
     }
+}
 
-    // MARK: - Anonymous Processor
+// MARK: - ImageProcessorResizeTests
+
+#if os(iOS) || os(tvOS)
+class ImageProcessorResizeTests: XCTestCase {
+
+    func testThatImageIsResizedToFill() {
+        // Given
+        let processor = ImageProcessor.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 533)
+        XCTAssertEqual(cgImage.height, 400)
+    }
+
+    func testThatImageIsntUpscaledByDefault() {
+        // Given
+        let processor = ImageProcessor.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 640)
+        XCTAssertEqual(cgImage.height, 480)
+    }
+
+    func testThatImageIsUpscaledIfOptionIsEnabled() {
+        // Given
+        let processor = ImageProcessor.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill, upscale: true)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 1280)
+        XCTAssertEqual(cgImage.height, 960)
+    }
+
+    func testThatContentModeCanBeChangeToAspectFit() {
+        // Given
+        let processor = ImageProcessor.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 480)
+        XCTAssertEqual(cgImage.height, 360)
+    }
+
+    func testThatScalePreserved() {
+        // Given
+        let processor = ImageProcessor.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+
+        // Then
+        XCTAssertEqual(image.scale, Test.image.scale)
+    }
+}
+#endif
+
+// MARK: - ImageProcessorAnonymousTests
+
+class ImageProcessorAnonymousTests: XCTestCase {
 
     func testAnonymousProcessorsHaveDifferentIdentifiers() {
         XCTAssertEqual(
@@ -141,6 +232,7 @@ class ImageProcessorCompositionTest: XCTestCase {
         let rhs = ImageProcessor.Composition([MockImageProcessor(id: "2")])
 
         // Then
+        XCTAssertNotEqual(lhs, rhs)
         XCTAssertNotEqual(lhs.identifier, rhs.identifier)
         XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
     }
@@ -151,6 +243,7 @@ class ImageProcessorCompositionTest: XCTestCase {
         let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
+        XCTAssertNotEqual(lhs, rhs)
         XCTAssertNotEqual(lhs.identifier, rhs.identifier)
         XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
     }
@@ -161,6 +254,8 @@ class ImageProcessorCompositionTest: XCTestCase {
         let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
+        XCTAssertEqual(lhs, rhs)
+        XCTAssertEqual(lhs.hashValue, rhs.hashValue)
         XCTAssertEqual(lhs.identifier, rhs.identifier)
         XCTAssertEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
     }
@@ -171,6 +266,7 @@ class ImageProcessorCompositionTest: XCTestCase {
         let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
+        XCTAssertNotEqual(lhs, rhs)
         XCTAssertNotEqual(lhs.identifier, rhs.identifier)
         XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
     }
@@ -181,6 +277,8 @@ class ImageProcessorCompositionTest: XCTestCase {
         let rhs = ImageProcessor.Composition([])
 
         // Then
+        XCTAssertEqual(lhs, rhs)
+        XCTAssertEqual(lhs.hashValue, rhs.hashValue)
         XCTAssertEqual(lhs.identifier, rhs.identifier)
         XCTAssertEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
     }
