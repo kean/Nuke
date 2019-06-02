@@ -140,7 +140,7 @@ public struct ImageDecompressor: ImageProcessing {
     /// - parameter contentMode: An option for how to resize the image
     /// to the target size. `.aspectFill` by default.
     public init(targetSize: CGSize = MaximumSize, contentMode: ContentMode = .aspectFill, upscale: Bool = false) {
-        self.resize = ImageProcessor.Resize(size: targetSize, unit: .pixels, contentMode: .init(contentMode), crop: false, upscale: upscale)
+        self.resize = ImageProcessor.Resize(size: targetSize, unit: .pixels, contentMode: .init(contentMode), upscale: upscale)
     }
 
     public func process(image: Image, context: ImageProcessingContext?) -> Image? {

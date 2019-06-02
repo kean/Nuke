@@ -75,8 +75,171 @@ class ImageProcessingTests: XCTestCase {
         }
         wait()
     }
+}
 
-    // MARK: - Anonymous Processor
+// MARK: - ImageProcessorResizeTests
+
+class ImageProcessorResizeTests: XCTestCase {
+
+    func testThatImageIsResizedToFill() {
+        // Given
+        let processor = ImageProcessor.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 533)
+        XCTAssertEqual(cgImage.height, 400)
+    }
+
+    func testThatImageIsntUpscaledByDefault() {
+        // Given
+        let processor = ImageProcessor.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 640)
+        XCTAssertEqual(cgImage.height, 480)
+    }
+
+    func testThatImageIsUpscaledIfOptionIsEnabled() {
+        // Given
+        let processor = ImageProcessor.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill, upscale: true)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 1280)
+        XCTAssertEqual(cgImage.height, 960)
+    }
+
+    func testThatContentModeCanBeChangeToAspectFit() {
+        // Given
+        let processor = ImageProcessor.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 480)
+        XCTAssertEqual(cgImage.height, 360)
+    }
+
+    #if os(iOS) || os(tvOS)
+    func testThatScalePreserved() {
+        // Given
+        let processor = ImageProcessor.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+
+        // Then
+        XCTAssertEqual(image.scale, Test.image.scale)
+    }
+    #endif
+}
+
+// MARK: - ImageProcessorCropTests
+
+class ImageProcessorCropTests: XCTestCase {
+
+    func testThatImageIsCropped() {
+        // Given
+        let processor = ImageProcessor.Crop(size: CGSize(width: 400, height: 400), unit: .pixels)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 400)
+        XCTAssertEqual(cgImage.height, 400)
+    }
+}
+
+// MARK: - ImageProcessorCircleTests
+
+#if os(iOS) || os(tvOS)
+class ImageProcessorCircleTests: XCTestCase {
+
+    func testThatImageIsCroppedToSquareAutomatically() {
+        // Given
+        let processor = ImageProcessor.Circle()
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 480)
+        XCTAssertEqual(cgImage.height, 480)
+    }
+}
+#endif
+
+// MARK: - ImageProcessorRoundedCornersTests
+
+#if os(iOS) || os(tvOS)
+class ImageProcessorRoundedCornersTests: XCTestCase {
+
+    /// We don't check the actual output yet, just that it compiles and that
+    /// _some_ output is produced.
+    func testThatImageIsProduced() {
+        // Given
+        let processor = ImageProcessor.RoundedCorners(radius: 12)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 640)
+        XCTAssertEqual(cgImage.height, 480)
+    }
+}
+#endif
+
+// MARK: - ImageProcessorAnonymousTests
+
+class ImageProcessorAnonymousTests: XCTestCase {
 
     func testAnonymousProcessorsHaveDifferentIdentifiers() {
         XCTAssertEqual(
@@ -117,6 +280,8 @@ class ImageProcessingTests: XCTestCase {
     }
 }
 
+// MARK: - ImageProcessorCompositionTest
+
 class ImageProcessorCompositionTest: XCTestCase {
 
     func testAppliesAllProcessors() {
@@ -139,6 +304,7 @@ class ImageProcessorCompositionTest: XCTestCase {
         let rhs = ImageProcessor.Composition([MockImageProcessor(id: "2")])
 
         // Then
+        XCTAssertNotEqual(lhs, rhs)
         XCTAssertNotEqual(lhs.identifier, rhs.identifier)
         XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
     }
@@ -149,6 +315,7 @@ class ImageProcessorCompositionTest: XCTestCase {
         let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
+        XCTAssertNotEqual(lhs, rhs)
         XCTAssertNotEqual(lhs.identifier, rhs.identifier)
         XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
     }
@@ -159,6 +326,8 @@ class ImageProcessorCompositionTest: XCTestCase {
         let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
+        XCTAssertEqual(lhs, rhs)
+        XCTAssertEqual(lhs.hashValue, rhs.hashValue)
         XCTAssertEqual(lhs.identifier, rhs.identifier)
         XCTAssertEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
     }
@@ -169,6 +338,7 @@ class ImageProcessorCompositionTest: XCTestCase {
         let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
+        XCTAssertNotEqual(lhs, rhs)
         XCTAssertNotEqual(lhs.identifier, rhs.identifier)
         XCTAssertNotEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
     }
@@ -179,9 +349,92 @@ class ImageProcessorCompositionTest: XCTestCase {
         let rhs = ImageProcessor.Composition([])
 
         // Then
+        XCTAssertEqual(lhs, rhs)
+        XCTAssertEqual(lhs.hashValue, rhs.hashValue)
         XCTAssertEqual(lhs.identifier, rhs.identifier)
         XCTAssertEqual(lhs.hashableIdentifier, rhs.hashableIdentifier)
     }
+
+    func testThatIdentifiesAreFlattened() {
+        let lhs = ImageProcessor.Composition([
+            ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")]),
+            ImageProcessor.Composition([MockImageProcessor(id: "3"), MockImageProcessor(id: "4")])]
+        )
+        let rhs = ImageProcessor.Composition([
+            MockImageProcessor(id: "1"), MockImageProcessor(id: "2"),
+            MockImageProcessor(id: "3"), MockImageProcessor(id: "4")]
+        )
+
+        // Then
+        XCTAssertEqual(lhs.identifier, rhs.identifier)
+    }
 }
 
-private let dummyProcessingContext = ImageProcessingContext(request: Test.request, isFinal: true, scanNumber: nil)
+// MARK: - CoreGraphics Extensions Tests (Internal)
+
+class CoreGraphicsExtensionsTests: XCTestCase {
+    func testScaleToFill() {
+        XCTAssertEqual(1, CGSize(width: 10, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.5, CGSize(width: 20, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 5, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(1, CGSize(width: 20, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(1, CGSize(width: 10, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.5, CGSize(width: 30, height: 20).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.5, CGSize(width: 20, height: 30).scaleToFill(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(2, CGSize(width: 5, height: 10).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 10, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 5, height: 8).scaleToFill(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 8, height: 5).scaleToFill(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(2, CGSize(width: 30, height: 10).scaleToFill(CGSize(width: 10, height: 20)))
+        XCTAssertEqual(2, CGSize(width: 10, height: 30).scaleToFill(CGSize(width: 20, height: 10)))
+    }
+
+    func testScaleToFit() {
+        XCTAssertEqual(1, CGSize(width: 10, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.5, CGSize(width: 20, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 5, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(0.5, CGSize(width: 20, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.5, CGSize(width: 10, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.25, CGSize(width: 40, height: 20).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(0.25, CGSize(width: 20, height: 40).scaleToFit(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(1, CGSize(width: 5, height: 10).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(1, CGSize(width: 10, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 2, height: 5).scaleToFit(CGSize(width: 10, height: 10)))
+        XCTAssertEqual(2, CGSize(width: 5, height: 2).scaleToFit(CGSize(width: 10, height: 10)))
+
+        XCTAssertEqual(0.25, CGSize(width: 40, height: 10).scaleToFit(CGSize(width: 10, height: 20)))
+        XCTAssertEqual(0.25, CGSize(width: 10, height: 40).scaleToFit(CGSize(width: 20, height: 10)))
+    }
+
+    func testCenteredInRectWithSize() {
+        XCTAssertEqual(
+            CGSize(width: 10, height: 10).centeredInRectWithSize(CGSize(width: 10, height: 10)),
+            CGRect(x: 0, y: 0, width: 10, height: 10)
+        )
+        XCTAssertEqual(
+            CGSize(width: 20, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 10)),
+            CGRect(x: -5, y: -5, width: 20, height: 20)
+        )
+        XCTAssertEqual(
+            CGSize(width: 20, height: 10).centeredInRectWithSize(CGSize(width: 10, height: 10)),
+            CGRect(x: -5, y: 0, width: 20, height: 10)
+        )
+        XCTAssertEqual(
+            CGSize(width: 10, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 10)),
+            CGRect(x: 0, y: -5, width: 10, height: 20)
+        )
+        XCTAssertEqual(
+            CGSize(width: 10, height: 20).centeredInRectWithSize(CGSize(width: 10, height: 20)),
+            CGRect(x: 0, y: 0, width: 10, height: 20)
+        )
+        XCTAssertEqual(
+            CGSize(width: 10, height: 40).centeredInRectWithSize(CGSize(width: 10, height: 20)),
+            CGRect(x: 0, y: -10, width: 10, height: 40)
+        )
+    }
+}

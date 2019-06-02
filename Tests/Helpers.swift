@@ -23,6 +23,7 @@ enum Test {
 
     static let data: Data = Test.data(name: "fixture", extension: "jpeg")
 
+    // Test.image size is 640 x 480 pixels
     static var image: Image {
         let data = Test.data(name: "fixture", extension: "jpeg")
         return Nuke.ImageDecoder().decode(data: data)!
