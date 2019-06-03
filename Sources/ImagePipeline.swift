@@ -117,11 +117,6 @@ public /* final */ class ImagePipeline {
 
     // MARK: - Starting Image Tasks
 
-    private struct ImageTaskCallbacks {
-        let progress: ImageTask.ProgressHandler?
-        let completion: ImageTask.Completion?
-    }
-
     private func startImageTask(_ task: ImageTask, progress progressHandler: ImageTask.ProgressHandler?, completion: ImageTask.Completion?) {
         self.tasks[task] = getDecompressedImage(for: task.request).subscribe(priority: task._priority) { [weak self, weak task] event in
             guard let self = self, let task = task else { return }
