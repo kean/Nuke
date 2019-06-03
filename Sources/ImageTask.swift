@@ -67,11 +67,6 @@ public /* final */ class ImageTask: Hashable {
         }
     }
 
-    @available(*, deprecated, message: "Please use `var priority: ImageRequest.Priority`")
-    public func setPriority(_ priority: ImageRequest.Priority) {
-        self.priority = priority
-    }
-
     // MARK: - Internal
 
     func setProgress(_ progress: TaskProgress) {

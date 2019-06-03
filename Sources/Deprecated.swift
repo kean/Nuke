@@ -303,3 +303,12 @@ public func cancelRequest(for view: ImageDisplayingView) {
     view.nk.cancelImageRequest()
 }
 #endif
+
+// MARK: - ImageTask (Deprecated)
+
+extension ImageTask {
+    @available(*, deprecated, message: "Please use `var priority: ImageRequest.Priority`")
+    public func setPriority(_ priority: ImageRequest.Priority) {
+        self.priority = priority
+    }
+}
