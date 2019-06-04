@@ -230,7 +230,7 @@ extension ImageProcessor {
         private let name: String
         private let parameters: [String: Any]
 
-        public init(name: String, parameters: [String: Any]) {
+        public init(name: String, parameters: [String: Any] = [:]) {
             self.name = name
             self.parameters = parameters
         }

@@ -122,6 +122,8 @@ extension ImagePipeline {
         /// `Last-Modified`). The resumable downloads are enabled by default.
         public var isResumableDataEnabled = true
 
+        // MARK: - Options (Shared)
+
         /// If `true` pipeline will detects GIFs and set `animatedImageData`
         /// (`UIImage` property). It will also disable processing of such images,
         /// and alter the way cache cost is calculated. However, this will not
@@ -137,7 +139,7 @@ extension ImagePipeline {
         /// https://developer.apple.com/videos/play/wwdc2018/405/.
         public static var isSignpostLoggingEnabled = false
 
-        /// MARK: - Default Configuration
+        // MARK: - Initializer
 
         /// Creates a default configuration.
         /// - parameter dataLoader: `DataLoader()` by default.
