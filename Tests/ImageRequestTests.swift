@@ -12,7 +12,7 @@ class ImageRequestTests: XCTestCase {
         // Given
         let url1 =  URL(string: "http://test.com/1.png")!
         let url2 = URL(string: "http://test.com/2.png")!
-        var request = ImageRequest(url: url1)
+        let request = ImageRequest(url: url1)
 
         // When
         var copy = request

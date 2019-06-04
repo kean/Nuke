@@ -24,6 +24,8 @@ public protocol ImageProcessing {
     func process(image: Image, context: ImageProcessingContext?) -> Image?
 
     /// Returns a string which uniquely identifies the processor.
+    ///
+    /// Consider using the reverse DNS notation.
     var identifier: String { get }
 
     /// Returns a unique processor identifier.
@@ -56,22 +58,30 @@ public struct ImageProcessingContext {
 
 // MARK: - ImageProcessor
 
+/// A namespace for types related to `ImageProcessing` protocol.
 public enum ImageProcessor {}
-
-extension ImageProcessor {
-    public enum Unit {
-        case points
-        case pixels
-    }
-}
 
 // MARK: - ImageProcessor.Resize
 
 extension ImageProcessor {
+    public enum Unit: CustomStringConvertible {
+        case points
+        case pixels
+
+        public var description: String {
+            switch self {
+            case .points: return "points"
+            case .pixels: return "pixels"
+            }
+        }
+    }
+
     /// Scales an image to a specified size.
     public struct Resize: ImageProcessing, Hashable, CustomStringConvertible {
         private let size: CGSize
+        private let unit: Unit
         private let contentMode: ContentMode
+        private let crop: Bool
         private let upscale: Bool
 
         /// An option for how to resize the image.
@@ -92,24 +102,35 @@ extension ImageProcessor {
             }
         }
 
+        private var sizeInPixels: CGSize {
+            return CGSize(size: size, unit: unit)
+        }
+
         /// Initializes the processor with the given size.
         ///
         /// - parameter size: The target size.
         /// - parameter unit: Unit of the target size, `.points` by default.
         /// - parameter contentMode: `.aspectFill` by default.
+        /// - parameter crop: If `true` will crop the image to match the target size. `false` by default.
         /// - parameter upscale: `false` by default.
-        public init(size: CGSize, unit: Unit = .points, contentMode: ContentMode = .aspectFill, upscale: Bool = false) {
-            self.size = CGSize(size: size, unit: unit)
+        public init(size: CGSize, unit: Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
+            self.size = size
+            self.unit = unit
             self.contentMode = contentMode
+            self.crop = crop
             self.upscale = upscale
         }
 
         public func process(image: Image, context: ImageProcessingContext?) -> Image? {
-            return image.processed.byResizing(to: size, contentMode: contentMode, upscale: upscale)
+            if crop && contentMode == .aspectFill {
+                return image.processed.byResizingAndCropping(to: sizeInPixels)
+            } else {
+                return image.processed.byResizing(to: sizeInPixels, contentMode: contentMode, upscale: upscale)
+            }
         }
 
         public var identifier: String {
-            return "Nuke.ImageProcessor." + description
+            return "com.github.kean/nuke/resize?s=\(sizeInPixels),cm=\(contentMode),crop=\(crop),upscale=\(upscale)"
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -117,44 +138,7 @@ extension ImageProcessor {
         }
 
         public var description: String {
-            return "Resize(size in pixels: \(size), contentMode: \(contentMode), upscale: \(upscale))"
-        }
-    }
-}
-
-// MARK: - ImageProcessor.Crop
-
-extension ImageProcessor {
-
-    /// Crops an image to a specified target size. The image first gets resized
-    /// to fill the target size area, maintaining the original image aspect ratio.
-    /// The cropped image is centered in the target area.
-    public struct Crop: ImageProcessing, Hashable, CustomStringConvertible {
-
-        private let size: CGSize
-
-        /// Initializes the processor with the given size.
-        ///
-        /// - parameter size: The target size.
-        /// - parameter unit: Unit of the target size, `.points` by default.
-        public init(size: CGSize, unit: Unit = .points) {
-            self.size = CGSize(size: size, unit: unit)
-        }
-
-        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
-            return image.processed.byResizingAndCropping(to: size)
-        }
-
-        public var identifier: String {
-            return "Nuke.ImageProcessor." + description
-        }
-
-        public var hashableIdentifier: AnyHashable {
-            return self
-        }
-
-        public var description: String {
-            return "Crop(size in pixels: \(size))"
+            return "Resize(size in \(unit): \(size), contentMode: \(contentMode), crop: \(crop), upscale: \(upscale))"
         }
     }
 }
@@ -174,7 +158,7 @@ extension ImageProcessor {
         }
 
         public var identifier: String {
-            return "Nuke.ImageProcessor." +  description
+            return "com.github.kean/nuke/circle"
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -194,26 +178,23 @@ extension ImageProcessor {
     /// Rounds the corners of an image to the specified radius.
     public struct RoundedCorners: ImageProcessing, Hashable, CustomStringConvertible {
         private let radius: CGFloat
+        private let unit: Unit
 
         /// Initializes the processor with the given radius.
         ///
         /// - parameter radius: The radius of the corners.
         /// - parameter unit: Unit of the radius, `.points` by default.
         public init(radius: CGFloat, unit: Unit = .points) {
-            switch unit {
-            case .pixels:
-                self.radius = radius
-            case .points:
-                self.radius = radius * Screen.scale
-            }
+            self.radius = radius
+            self.unit = unit
         }
 
         public func process(image: Image, context: ImageProcessingContext?) -> Image? {
-            return image.processed.byAddingRoundedCorners(radius: radius)
+            return image.processed.byAddingRoundedCorners(radius: radius.converted(to: unit))
         }
 
         public var identifier: String {
-            return "Nuke.ImageProcessor." +  description
+            return "com.github.kean/nuke/rounded_corners?radius=\(radius.converted(to: unit))"
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -221,7 +202,7 @@ extension ImageProcessor {
         }
 
         public var description: String {
-            return "RoundedCorners(radius in pixels: \(radius))"
+            return "RoundedCorners(radius in \(unit): \(radius))"
         }
     }
 }
@@ -260,7 +241,7 @@ extension ImageProcessor {
         }
 
         public var identifier: String {
-            return "Nuke.ImageProcessor." +  description
+            return "com.github.kean/nuke/core_image?name=\(name),params=\(parameters)"
         }
 
         // MARK: - Apply Filter
@@ -309,7 +290,6 @@ extension ImageProcessor {
 extension ImageProcessor {
     /// Blurs an image using `CIGaussianBlur` filter.
     public struct GaussianBlur: ImageProcessing, Hashable, CustomStringConvertible {
-
         private let radius: Int
 
         /// Initializes the receiver with a blur radius.
@@ -324,7 +304,7 @@ extension ImageProcessor {
         }
 
         public var identifier: String {
-            return "Nuke.ImageProcessor." +  description
+            return "com.github.kean/nuke/gaussian_blur?radius=\(radius)"
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -607,6 +587,15 @@ extension CGImage {
 
     var size: CGSize {
         return CGSize(width: width, height: height)
+    }
+}
+
+extension CGFloat {
+    func converted(to unit: ImageProcessor.Unit) -> CGFloat {
+        switch unit {
+        case .pixels: return self
+        case .points: return self * Screen.scale
+        }
     }
 }
 
