@@ -15,14 +15,11 @@ Powerful **image loading** and **caching** system
 
 > Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Migrations).
 
-An exceptionally simple and efficient way to download and display images in your app. Behind a concise, carefully designed API there is an architecture with virtually unlimited opportunities for customization, powering incredible set of features:
+Nuke provides an exceptionally simple and efficient way to download and display images in your app. Behind its straightforward and concise API is an architecture with virtually unlimited opportunities for customization, powering its unique set of features.
 
-- Fast custom LRU memory cache and disk cache, native HTTP cache
-- Background image processing and decompression
-- Resumable downloads, request prioritization, deduplication, rate limiting
-- Progressive image loading (progressive JPEG and WebP)
-- [Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [WebP](https://github.com/ryokosuge/Nuke-WebP-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) extensions
-- [RxNuke](https://github.com/kean/RxNuke) - [RxSwift](https://github.com/ReactiveX/RxSwift) extensions for reactive programming
+> **Fast LRU Memory and Disk Cache** · **Smart Background Decompression** · **Rich Image Processing** · **Resumable Downloads** · **Intelligent Deduplication** · **Request Prioritization** · **Rate Limiting** · **Progressive Decoding (JPEG, WebP)** · **Animated Images** · **[Alamofire](https://github.com/kean/Nuke-Alamofire-Plugin), [WebP](https://github.com/ryokosuge/Nuke-WebP-Plugin), [Gifu](https://github.com/kean/Nuke-Gifu-Plugin), [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) Integrations** · **os_signpost** · **Prefetching** · **[RxNuke](https://github.com/kean/RxNuke), Reactive Extensions**
+
+<br/>
 
 # <a name="h_getting_started"></a>Getting Started
 
