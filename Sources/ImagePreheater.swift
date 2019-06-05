@@ -27,7 +27,7 @@ public final class ImagePreheater {
         case memoryCache
 
         /// Prefetches image data and stores in disk cache. Will no decode
-        /// the image data and will therefore useless less CPU.
+        /// the image data and will therefore use less CPU.
         case diskCache
     }
 
