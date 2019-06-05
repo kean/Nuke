@@ -12,7 +12,7 @@ import Foundation
 ///
 /// The job performed by the task is represented using `Task.Job`. The job has
 /// built-in support for operations (`Foundation.Operation`) – it automatically
-/// cancels them, updates the priority, etc. Most steps the image pipeline are
+/// cancels them, updates the priority, etc. Most steps in the image pipeline are
 /// represented using Operation to take advantage of these features.
 ///
 /// - warning: Must be thread-confined, including jobs.
@@ -128,7 +128,7 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
         if state == .cancelled {
             job.cancel()
         }
-        onDisposed?() // All states except for `execiting` are final
+        onDisposed?() // All states except for `executing` are final
     }
 
     // MARK: - Priority
