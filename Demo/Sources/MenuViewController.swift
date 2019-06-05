@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2019 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
 import Nuke
@@ -42,15 +42,15 @@ final class MenuViewController: UITableViewController {
             navigationItem.largeTitleDisplayMode = .automatic
         }
 
-        sections.append(MenuSection(title: "Basic", items: {
+        sections.append(MenuSection(title: "General", items: {
             var items = [MenuItem]()
 
             items.append(MenuItem(
-                title: "Basic",
-                subtitle: "Zero config",
-                action: { [weak self] in
+                title: "Image Pipeline",
+                subtitle: "The image pipeline is configurable at runtime",
+                action: { [weak self] _ in
                     let controller = BasicDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-                    controller.title = $0.title
+                    controller.title = "Image Pipeline"
                     self?.push(controller)
             }))
 
