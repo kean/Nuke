@@ -128,7 +128,7 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
         if state == .cancelled {
             job.cancel()
         }
-        onDisposed?() // All states except for `execiting` are final
+        onDisposed?() // All states except for `executing` are final
     }
 
     // MARK: - Priority
