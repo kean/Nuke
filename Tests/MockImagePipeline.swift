@@ -7,13 +7,14 @@ import Foundation
 
 private class MockImageTask: ImageTask {
     fileprivate var onCancel: () -> Void = {}
+    var __isCancelled = false
 
     init(request: ImageRequest) {
         super.init(taskId: 0, request: request)
     }
 
     override func cancel() {
-        isCancelled.value = true
+        __isCancelled = true
         onCancel()
     }
 }
@@ -32,8 +33,7 @@ class MockImagePipeline: ImagePipeline {
         return queue
     }()
 
-    @discardableResult
-    override func loadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
+    override func loadImage(with request: ImageRequest, isMainThreadConfined: Bool, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
         let task = MockImageTask(request: request)
 
         createdTaskCount += 1
@@ -43,14 +43,14 @@ class MockImagePipeline: ImagePipeline {
         let operation = BlockOperation {
             for (completed, total) in [(10, 20), (20, 20)] as [(Int64, Int64)] {
                 DispatchQueue.main.async {
-                    if !task.isCancelled.value {
+                    if !task.__isCancelled {
                         progress?(nil, completed, total)
                     }
                 }
             }
 
             DispatchQueue.main.async {
-                if !task.isCancelled.value {
+                if !task.__isCancelled {
                     completion?(.success(Test.response))
                 }
                 _ = task // Retain task

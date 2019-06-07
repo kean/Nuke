@@ -359,6 +359,7 @@ private final class ImageViewController {
 
         self.task = pipeline.loadImage(
             with: request,
+            isMainThreadConfined: true,
             progress: { [weak self] response, completed, total in
                 if let response = response {
                     self?.handle(partialImage: response, options: options)

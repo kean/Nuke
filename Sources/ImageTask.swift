@@ -41,7 +41,13 @@ public /* final */ class ImageTask: Hashable {
     }
     private(set) var _progress: Progress?
 
-    let isCancelled = Atomic(false)
+    var isCancelled: Bool {
+        lock?.lock()
+        defer { lock?.unlock() }
+        return _isCancelled
+    }
+    private(set) var _isCancelled = false
+    private let lock: NSLock?
 
     /// A completion handler to be called when task finishes or fails.
     public typealias Completion = (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
@@ -49,11 +55,12 @@ public /* final */ class ImageTask: Hashable {
     /// A progress handler to be called periodically during the lifetime of a task.
     public typealias ProgressHandler = (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
 
-    init(taskId: Int, request: ImageRequest) {
+    init(taskId: Int, request: ImageRequest, isMainThreadConfined: Bool = false) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
         self.priority = request.priority
+        lock = isMainThreadConfined ? nil : NSLock()
     }
 
     /// Marks task as being cancelled.
@@ -62,7 +69,19 @@ public /* final */ class ImageTask: Hashable {
     /// unless there is an equivalent outstanding task running (see
     /// `ImagePipeline.Configuration.isDeduplicationEnabled` for more info).
     public func cancel() {
-        if isCancelled.swap(to: true, ifEqual: false) {
+        if let lock = lock {
+            lock.lock()
+            defer { lock.unlock() }
+            _cancel()
+        } else {
+            assert(Thread.isMainThread, "Must be cancelled only from the main thread")
+            _cancel()
+        }
+    }
+
+    private func _cancel() {
+        if !_isCancelled {
+            _isCancelled = true
             pipeline?.imageTaskCancelCalled(self)
         }
     }

@@ -76,7 +76,16 @@ public /* final */ class ImagePipeline {
     public func loadImage(with request: ImageRequest,
                           progress: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request)
+        return loadImage(with: request, isMainThreadConfined: false, progress: progress, completion: completion)
+    }
+
+    /// - parameter isMainThreadConfined: Enables some performance optimizations like
+    /// lock-free `ImageTask`.
+    func loadImage(with request: ImageRequest,
+                          isMainThreadConfined: Bool,
+                          progress: ImageTask.ProgressHandler? = nil,
+                          completion: ImageTask.Completion? = nil) -> ImageTask {
+        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isMainThreadConfined: isMainThreadConfined)
         task.pipeline = self
         queue.async {
             self.startImageTask(task, progress: progress, completion: completion)
@@ -126,7 +135,7 @@ public /* final */ class ImagePipeline {
             }
 
             DispatchQueue.main.async {
-                guard !task.isCancelled.value else { return }
+                guard !task.isCancelled else { return }
                 switch event {
                 case let .value(response, isCompleted):
                     if isCompleted {
@@ -155,7 +164,7 @@ public /* final */ class ImagePipeline {
             }
 
             DispatchQueue.main.async {
-                guard !task.isCancelled.value else { return }
+                guard !task.isCancelled else { return }
 
                 switch event {
                 case let .value(response, isCompleted):
