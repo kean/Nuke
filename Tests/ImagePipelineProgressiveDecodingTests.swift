@@ -145,8 +145,9 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         let expectedFinalLoaded = self.expectation(description: "Final Image Produced")
 
         // When/Then
-        imageView.nk.setImage(
+        Nuke.loadImage(
             with: Test.request,
+            into: imageView,
             progress: { response, _, _ in
                 if let image = response?.image {
                     XCTAssertTrue(imageView.image === image)
