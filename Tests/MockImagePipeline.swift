@@ -33,7 +33,7 @@ class MockImagePipeline: ImagePipeline {
         return queue
     }()
 
-    override func loadImage(with request: ImageRequest, isMainThreadConfined: Bool, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
+    override func loadImage(with request: ImageRequest, isMainThreadConfined: Bool, observer: @escaping (ImageTask, Task<ImageResponse, ImagePipeline.Error>.Event) -> Void) -> ImageTask {
         let task = MockImageTask(request: request)
 
         createdTaskCount += 1
@@ -44,14 +44,16 @@ class MockImagePipeline: ImagePipeline {
             for (completed, total) in [(10, 20), (20, 20)] as [(Int64, Int64)] {
                 DispatchQueue.main.async {
                     if !task.__isCancelled {
-                        progress?(nil, completed, total)
+                        task.completedUnitCount = completed
+                        task.totalUnitCount = total
+                        observer(task, .progress(TaskProgress(completed: completed, total: total)))
                     }
                 }
             }
 
             DispatchQueue.main.async {
                 if !task.__isCancelled {
-                    completion?(.success(Test.response))
+                    observer(task, .value(Test.response, isCompleted: true))
                 }
                 _ = task // Retain task
                 NotificationCenter.default.post(name: MockImagePipeline.DidFinishTask, object: self)

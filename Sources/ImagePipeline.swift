@@ -74,21 +74,34 @@ public /* final */ class ImagePipeline {
     /// Loads an image for the given request using image loading pipeline.
     @discardableResult
     public func loadImage(with request: ImageRequest,
-                          progress: ImageTask.ProgressHandler? = nil,
+                          progress progressHandler: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        return loadImage(with: request, isMainThreadConfined: false, progress: progress, completion: completion)
+        return loadImage(with: request, isMainThreadConfined: false) { task, event in
+            switch event {
+            case let .value(response, isCompleted):
+                if isCompleted {
+                    completion?(.success(response))
+                } else {
+                    progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
+                }
+            case let .progress(progress):
+                task.setProgress(progress)
+                progressHandler?(nil, task.completedUnitCount, task.totalUnitCount)
+            case let .error(error):
+                completion?(.failure(error))
+            }
+        }
     }
 
     /// - parameter isMainThreadConfined: Enables some performance optimizations like
     /// lock-free `ImageTask`.
     func loadImage(with request: ImageRequest,
                           isMainThreadConfined: Bool,
-                          progress: ImageTask.ProgressHandler? = nil,
-                          completion: ImageTask.Completion? = nil) -> ImageTask {
+                          observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId.increment(), request: request, isMainThreadConfined: isMainThreadConfined)
         task.pipeline = self
         queue.async {
-            self.startImageTask(task, progress: progress, completion: completion)
+            self.startImageTask(task, observer: observer)
         }
         return task
     }
@@ -126,7 +139,7 @@ public /* final */ class ImagePipeline {
 
     // MARK: - Starting Image Tasks
 
-    private func startImageTask(_ task: ImageTask, progress progressHandler: ImageTask.ProgressHandler?, completion: ImageTask.Completion?) {
+    private func startImageTask(_ task: ImageTask, observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) {
         self.tasks[task] = getDecompressedImage(for: task.request).subscribe(priority: task._priority) { [weak self, weak task] event in
             guard let self = self, let task = task else { return }
 
@@ -136,19 +149,7 @@ public /* final */ class ImagePipeline {
 
             DispatchQueue.main.async {
                 guard !task.isCancelled else { return }
-                switch event {
-                case let .value(response, isCompleted):
-                    if isCompleted {
-                        completion?(.success(response))
-                    } else {
-                        progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
-                    }
-                case let .progress(progress):
-                    task.setProgress(progress)
-                    progressHandler?(nil, task.completedUnitCount, task.totalUnitCount)
-                case let .error(error):
-                    completion?(.failure(error))
-                }
+                observer(task, event)
             }
         }
     }
