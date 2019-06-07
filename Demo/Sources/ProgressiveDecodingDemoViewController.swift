@@ -60,12 +60,14 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
         options.pipeline = pipeline
         options.transition = .fadeIn(duration: 0.25)
 
-        imageView.nk.setImage(
+        loadImage(
             with: ImageRequest(url: url, processors: [_ProgressiveBlurImageProcessor()]),
             options: options,
+            into: imageView,
             progress: { _, completed, total in
                 container.updateProgress(completed: completed, total: total)
-        })
+            }
+        )
     }
 
     @objc func _segmentedControlValueChanged(_ segmentedControl: UISegmentedControl) {

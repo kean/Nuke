@@ -60,9 +60,10 @@ struct TestExpectationImagePipeline {
 extension XCTestCase {
     func expectToFinishLoadingImage(with request: ImageRequest, options: ImageLoadingOptions = ImageLoadingOptions.shared, into imageView: ImageDisplayingView, completion: ImageTask.Completion? = nil) {
         let expectation = self.expectation(description: "Image loaded for \(request)")
-        imageView.nk.setImage(
+        Nuke.loadImage(
             with: request,
             options: options,
+            into: imageView,
             completion: { result in
                 XCTAssertTrue(Thread.isMainThread)
                 completion?(result)

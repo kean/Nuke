@@ -39,12 +39,6 @@ extension UIImageView: Nuke_ImageDisplaying {
         self.image = image
     }
 }
-
-extension Nuke_ImageDisplaying where Self: UIView {
-    public var nk: ImageViewExtensions {
-        return ImageViewExtensions(self)
-    }
-}
 #elseif os(macOS)
 import Cocoa
 /// An `NSView` that implements `ImageDisplaying` protocol.
@@ -54,12 +48,6 @@ extension NSImageView: Nuke_ImageDisplaying {
     /// Displays an image.
     open func nuke_display(image: Image?) {
         self.image = image
-    }
-}
-
-extension Nuke_ImageDisplaying where Self: NSView {
-    public var nk: ImageViewExtensions {
-        return ImageViewExtensions(self)
     }
 }
 #elseif os(watchOS)
@@ -74,86 +62,74 @@ extension WKInterfaceImage: Nuke_ImageDisplaying {
         self.setImage(image)
     }
 }
-
-extension Nuke_ImageDisplaying where Self: WKInterfaceObject {
-    public var nk: ImageViewExtensions {
-        return ImageViewExtensions(self)
-    }
-}
 #endif
 
-// MARK: - ImageViewExtensions
+// MARK: - ImageView Extensions
 
-public struct ImageViewExtensions {
-    let view: ImageDisplayingView
+/// Loads an image with the given URL and displays it in the view.
+///
+/// Before loading the new image prepares the view for reuse by cancelling any
+/// outstanding requests and removing previously displayed images (if any).
+///
+/// If the image is stored in memory cache, the image is displayed immediately.
+/// If not, the image is loaded using an image pipeline. Displays a `placeholder`
+/// if it was provided. When the request completes the loaded image is displayed
+/// (or `failureImage` in case of an error).
+///
+/// Nuke keeps a weak reference to the view. If the view is deallocated
+/// the associated request automatically gets cancelled.
+///
+/// - parameter options: `ImageLoadingOptions.shared` by default.
+/// - parameter progress: A closure to be called periodically on the main thread
+/// when the progress is updated. `nil` by default.
+/// - parameter completion: A closure to be called on the main thread when the
+/// request is finished. Gets called synchronously if the response was found in
+/// memory cache. `nil` by default.
+/// - returns: An image task of `nil` if the image was found in memory cache.
+@discardableResult
+public func loadImage(with url: URL,
+                      options: ImageLoadingOptions = ImageLoadingOptions.shared,
+                      into view: ImageDisplayingView,
+                      progress: ImageTask.ProgressHandler? = nil,
+                      completion: ImageTask.Completion? = nil) -> ImageTask? {
+    return loadImage(with: ImageRequest(url: url), options: options, into: view, progress: progress, completion: completion)
+}
 
-    public init(_ view: ImageDisplayingView) {
-        self.view = view
-    }
+/// Loads an image with the given request and displays it in the view.
+///
+/// Before loading the new image, prepares the view for reuse by cancelling any
+/// outstanding requests and removing previously displayed images (if any).
+///
+/// If the image is stored in memory cache, the image is displayed immediately.
+/// If not, the image is loaded using an image pipeline. Displays a `placeholder`
+/// if it was provided. When the request completes the loaded image is displayed
+/// (or `failureImage` in case of an error).
+///
+/// Nuke keeps a weak reference to the view. If the view is deallocated
+/// the associated request automatically gets cancelled.
+///
+/// - parameter options: `ImageLoadingOptions.shared` by default.
+/// - parameter progress: A closure to be called periodically on the main thread
+/// when the progress is updated. `nil` by default.
+/// - parameter completion: A closure to be called on the main thread when the
+/// request is finished. Gets called synchronously if the response was found in
+/// memory cache. `nil` by default.
+/// - returns: An image task of `nil` if the image was found in memory cache.
+@discardableResult
+public func loadImage(with request: ImageRequest,
+                      options: ImageLoadingOptions = ImageLoadingOptions.shared,
+                      into view: ImageDisplayingView,
+                      progress: ImageTask.ProgressHandler? = nil,
+                      completion: ImageTask.Completion? = nil) -> ImageTask? {
+    assert(Thread.isMainThread)
+    let controller = ImageViewController.controller(for: view)
+    return controller.loadImage(with: request, options: options, progress: progress, completion: completion)
+}
 
-    /// Loads an image with the given URL and displays it in the view.
-    ///
-    /// Before loading the new image prepares the view for reuse by cancelling any
-    /// outstanding requests and removing previously displayed images (if any).
-    ///
-    /// If the image is stored in memory cache, the image is displayed immediately.
-    /// If not, the image is loaded using an image pipeline. Displays a `placeholder`
-    /// if it was provided. When the request completes the loaded image is displayed
-    /// (or `failureImage` in case of an error).
-    ///
-    /// Nuke keeps a weak reference to the view. If the view is deallocated
-    /// the associated request automatically gets cancelled.
-    ///
-    /// - parameter options: `ImageLoadingOptions.shared` by default.
-    /// - parameter progress: A closure to be called periodically on the main thread
-    /// when the progress is updated. `nil` by default.
-    /// - parameter completion: A closure to be called on the main thread when the
-    /// request is finished. Gets called synchronously if the response was found in
-    /// memory cache. `nil` by default.
-    /// - returns: An image task of `nil` if the image was found in memory cache.
-    @discardableResult
-    public func setImage(with url: URL,
-                         options: ImageLoadingOptions = ImageLoadingOptions.shared,
-                         progress: ImageTask.ProgressHandler? = nil,
-                         completion: ImageTask.Completion? = nil) -> ImageTask? {
-        return setImage(with: ImageRequest(url: url), options: options, progress: progress, completion: completion)
-    }
-
-    /// Loads an image with the given request and displays it in the view.
-    ///
-    /// Before loading the new image, prepares the view for reuse by cancelling any
-    /// outstanding requests and removing previously displayed images (if any).
-    ///
-    /// If the image is stored in memory cache, the image is displayed immediately.
-    /// If not, the image is loaded using an image pipeline. Displays a `placeholder`
-    /// if it was provided. When the request completes the loaded image is displayed
-    /// (or `failureImage` in case of an error).
-    ///
-    /// Nuke keeps a weak reference to the view. If the view is deallocated
-    /// the associated request automatically gets cancelled.
-    ///
-    /// - parameter options: `ImageLoadingOptions.shared` by default.
-    /// - parameter progress: A closure to be called periodically on the main thread
-    /// when the progress is updated. `nil` by default.
-    /// - parameter completion: A closure to be called on the main thread when the
-    /// request is finished. Gets called synchronously if the response was found in
-    /// memory cache. `nil` by default.
-    /// - returns: An image task of `nil` if the image was found in memory cache.
-    @discardableResult
-    public func setImage(with request: ImageRequest,
-                         options: ImageLoadingOptions = ImageLoadingOptions.shared,
-                         progress: ImageTask.ProgressHandler? = nil,
-                         completion: ImageTask.Completion? = nil) -> ImageTask? {
-        assert(Thread.isMainThread)
-        let controller = ImageViewController.controller(for: view)
-        return controller.loadImage(with: request, options: options, progress: progress, completion: completion)
-    }
-
-    /// Cancels an outstanding request associated with the view.
-    public func cancelImageRequest() {
-        assert(Thread.isMainThread)
-        ImageViewController.controller(for: view).cancelOutstandingTask()
-    }
+/// Cancels an outstanding request associated with the view.
+public func cancelRequest(for view: ImageDisplayingView) {
+    assert(Thread.isMainThread)
+    ImageViewController.controller(for: view).cancelOutstandingTask()
 }
 
 // MARK: - ImageLoadingOptions

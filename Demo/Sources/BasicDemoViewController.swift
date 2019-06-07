@@ -59,7 +59,7 @@ class BasicDemoViewController: UICollectionViewController, ImagePipelineSettings
         let request = makeRequest(with: photos[indexPath.row], imageView: imageView)
         var options = makeImageLoadingOptions()
         options.pipeline = self.pipeline
-        imageView.nk.setImage(with: request, options: options)
+        loadImage(with: request, options: options, into: imageView)
 
         return cell
     }
