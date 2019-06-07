@@ -85,8 +85,7 @@ public /* final */ class ImagePipeline {
                     progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
                 }
             case let .progress(progress):
-                task.setProgress(progress)
-                progressHandler?(nil, task.completedUnitCount, task.totalUnitCount)
+                progressHandler?(nil, progress.completed, progress.total)
             case let .error(error):
                 completion?(.failure(error))
             }
@@ -149,6 +148,9 @@ public /* final */ class ImagePipeline {
 
             DispatchQueue.main.async {
                 guard !task.isCancelled else { return }
+                if case let .progress(progress) = event {
+                    task.setProgress(progress)
+                }
                 observer(task, event)
             }
         }
