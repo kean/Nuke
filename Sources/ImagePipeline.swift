@@ -234,7 +234,9 @@ public /* final */ class ImagePipeline {
         #endif
     }
 
-    private func cachedResponse(for request: ImageRequest) -> ImageResponse? {
+    /// Returns a cached response from the memory cache. Returns `nil` if the request disables
+    /// memory cache reads.
+    public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
         guard request.options.memoryCacheOptions.isReadAllowed else { return nil }
         return configuration.imageCache?.cachedResponse(for: request)
     }
