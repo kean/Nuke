@@ -318,7 +318,7 @@ private final class ImageViewController {
 
     func loadImage(with request: ImageRequest,
                    options: ImageLoadingOptions,
-                   progress: ImageTask.ProgressHandler? = nil,
+                   progress progressHandler: ImageTask.ProgressHandler? = nil,
                    completion: ImageTask.Completion? = nil) -> ImageTask? {
         cancelOutstandingTask()
 
@@ -357,17 +357,30 @@ private final class ImageViewController {
             }
         }
 
+        // We use the special internal API for performance reasons, it doesn't
+        // attribute for more than 25% performance improvement, the public
+        // ImagePipeline APIs are almost as fast.
         self.task = pipeline.loadImage(
             with: request,
-            progress: { [weak self] response, completed, total in
-                if let response = response {
-                    self?.handle(partialImage: response, options: options)
+            isMainThreadConfined: true,
+            observer: { [weak self] task, event in
+                switch event {
+                case .progress:
+                    progressHandler?(nil, task.completedUnitCount, task.totalUnitCount)
+                case let .value(response, isCompleted):
+                    if isCompleted {
+                        self?.handle(result: .success(response), fromMemCache: false, options: options)
+                        completion?(.success(response))
+                    } else {
+                        self?.handle(partialImage: response, options: options)
+                        progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
+                    }
+                case let .error(error):
+                    self?.handle(result: .failure(error), fromMemCache: false, options: options)
+                    completion?(.failure(error))
                 }
-                progress?(response, completed, total)
-            }, completion: { [weak self] result in
-                self?.handle(result: result, fromMemCache: false, options: options)
-                completion?(result)
-            })
+            }
+        )
         return self.task
     }
 
