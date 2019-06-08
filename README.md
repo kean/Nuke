@@ -25,7 +25,7 @@ Nuke is easy to learn and use. Here is an overview of its APIs and features:
 
 - **Image View Extensions** ‣ [Load and Display Image](#image-view-extensions) | [Placeholders, Transitions, Content Modes](#placeholders-transitions-content-modes) | [`ImageRequest`](#imagerequest)
 - **Image Processing** ‣ [`Resize`](#resize) | [`GaussianBlur`, Core Image](#gaussianblur-core-image) | [Custom Processors](#custom-processors) | [Smart Decompression](#smart-decompression)
-- **Image Pipeline** ‣ [Load Image](#image-pipeline) | [`ImageTask`](#imagetask) | [Default Image Pipeline](#default-image-pipeline) | [Customize Image Pipeline](#customize-image-pipeline)
+- **Image Pipeline** ‣ [Load Image](#image-pipeline) | [`ImageTask`](#imagetask) | [Customize Image Pipeline](#customize-image-pipeline) | [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) | [HTTP Disk Cache](#http-disk-cache) | [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
 - **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [Animated Images](#animated-images) | [WebP](#webp) | [RxNuke](#rxnuke)
 
@@ -199,6 +199,40 @@ task.cancel()
 task.priority = .high
 ```
 
+### Customize Image Pipeline
+
+If you want to build a system that fits your specific needs, you won't be disappointed. There are a _lot of things_ to tweak. You can set custom data loaders and caches, configure image encoders and decoders, change the number of concurrent operations for each individual stage, disable and enable features like deduplication and rate limiting, and more.
+
+> To learn more see the inline documentation for `ImagePipeline.Configuration` and [Image Pipeline Overview](#h_design).
+
+Here are some of the protocols which can be used for customization:
+
+<img align="right" src="https://user-images.githubusercontent.com/1567433/59148462-94f60280-8a09-11e9-906a-6c7209b8f8c8.png" width="360"/>
+
+- `DataLoading` – Download (or return cached) image data
+- `DataCaching` – Store image data on disk
+- `ImageDecoding` – Convert data into images
+- `ImageEncoding` - Convert images into data
+- `ImageProcessing` – Apply image transformations
+- `ImageCaching` – Store images into memory cache
+
+The entire configuration is described by `ImagePipeline.Configuration` struct. To create a pipeline with a custom configuration either call `ImagePipeline(configuration:)` initializer or use the convenience one:
+
+```swift
+let pipeline = ImagePipeline {
+    $0.dataLoader = ...
+    $0.dataLoadingQueue = ...
+    $0.imageCache = ...
+    ...
+}
+```
+
+And then set the new pipeline as a default one:
+
+```swift
+ImagePipeline.shared = pipeline
+```
+
 ### Default Image Pipeline
 
 The default image pipeline is initialized with the following dependencies:
@@ -263,40 +297,6 @@ ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
 // Enable to start using `os_signpost` to monitor the pipeline
 // performance using Instruments.
 ImagePipeline.Configuration.isSignpostLoggingEnabled = false
-```
-
-### Customize Image Pipeline
-
-If you want to build a system that fits your specific needs, you won't be disappointed.
-
-The pipeline configuration is described by `ImagePipeline.Configuration` struct. And there are a lot of things to tweak. You can set custom data loaders and caches, configure image encoders and decoders, change the number of concurrent operations for each individual pipeline stage, disable and enable features like deduplication and rate limiting.
-
-<img align="right" src="https://user-images.githubusercontent.com/1567433/59148462-94f60280-8a09-11e9-906a-6c7209b8f8c8.png" width="360"/>
-
-- `DataLoading` – Download (or return cached) image data
-- `DataCaching` – Store image data on disk
-- `ImageDecoding` – Convert data into images
-- `ImageEncoding` - Convert images into data
-- `ImageProcessing` – Apply image transformations
-- `ImageCaching` – Store images into memory cache
-
-> To learn more about these options see the inline documentation for `ImagePipeline.Configuration` and also [Image Pipeline Overview](#h_design) section.
-
-When you know what settings to change, it's easy to do so with the convenience `ImagePipeline` initializer:
-
-```swift
-let pipeline = ImagePipeline {
-    $0.dataLoader = ...
-    $0.dataLoadingQueue = ...
-    $0.imageCache = ...
-    ...
-}
-```
-
-And then set the new pipeline as a default one:
-
-```swift
-ImagePipeline.shared = pipeline
 ```
 
 <br/>
