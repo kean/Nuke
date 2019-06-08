@@ -10,6 +10,7 @@
 		0B98D5CE1B9819314854DE35 /* Pods_NukeDemo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 47F87C8718596F423A33598C /* Pods_NukeDemo.framework */; };
 		0C3ADAA32087D23C00FFA275 /* progressive.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C3ADAA12087D23C00FFA275 /* progressive.jpeg */; };
 		0C3ADAA42087D23C00FFA275 /* baseline.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C3ADAA22087D23C00FFA275 /* baseline.jpeg */; };
+		0C4388A822AC060F007906A7 /* ImageProcessingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4388A722AC060F007906A7 /* ImageProcessingDemoViewController.swift */; };
 		0C4878AA22A84E9700CFCFE7 /* ImagePipelineSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4878A922A84E9700CFCFE7 /* ImagePipelineSettingsViewController.swift */; };
 		0C4878AC22A84EF900CFCFE7 /* ImagePipelineSettingsViewController.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0C4878AB22A84EF900CFCFE7 /* ImagePipelineSettingsViewController.storyboard */; };
 		0CBBB09B20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBBB09A20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift */; };
@@ -32,6 +33,7 @@
 /* Begin PBXFileReference section */
 		0C3ADAA12087D23C00FFA275 /* progressive.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = progressive.jpeg; sourceTree = "<group>"; };
 		0C3ADAA22087D23C00FFA275 /* baseline.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = baseline.jpeg; sourceTree = "<group>"; };
+		0C4388A722AC060F007906A7 /* ImageProcessingDemoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessingDemoViewController.swift; sourceTree = "<group>"; };
 		0C4878A922A84E9700CFCFE7 /* ImagePipelineSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineSettingsViewController.swift; sourceTree = "<group>"; };
 		0C4878AB22A84EF900CFCFE7 /* ImagePipelineSettingsViewController.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = ImagePipelineSettingsViewController.storyboard; sourceTree = "<group>"; };
 		0CBBB09A20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedImageUsingVideoViewController.swift; sourceTree = "<group>"; };
@@ -96,6 +98,7 @@
 				0CCC188D209EDCCF003D7172 /* AppDelegate.swift */,
 				0CCC1892209EDCCF003D7172 /* MenuViewController.swift */,
 				0CCC1887209EDCCF003D7172 /* BasicDemoViewController.swift */,
+				0C4388A722AC060F007906A7 /* ImageProcessingDemoViewController.swift */,
 				0CCC18A2209EE0A6003D7172 /* AnimatedImageViewController.swift */,
 				0CBBB09A20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift */,
 				0CCC18A7209EE341003D7172 /* AlamofireIntegrationDemoViewController.swift */,
@@ -299,6 +302,7 @@
 				0CCC1898209EDCCF003D7172 /* DataCachingDemoViewController.swift in Sources */,
 				0CBBB09B20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift in Sources */,
 				0CCC189D209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift in Sources */,
+				0C4388A822AC060F007906A7 /* ImageProcessingDemoViewController.swift in Sources */,
 				0CCC1894209EDCCF003D7172 /* BasicDemoViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

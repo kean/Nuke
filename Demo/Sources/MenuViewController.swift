@@ -55,6 +55,15 @@ final class MenuViewController: UITableViewController {
             }))
 
             items.append(MenuItem(
+                title: "Image Processing",
+                subtitle: "Showcase some of the built-in image processors",
+                action: { [weak self] in
+                    let controller = ImageProcessingDemoViewController()
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
+
+            items.append(MenuItem(
                 title: "Disk Cache",
                 subtitle: "Aggressive disk caching",
                 action: { [weak self] in

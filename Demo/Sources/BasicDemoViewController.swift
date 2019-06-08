@@ -13,6 +13,14 @@ class BasicDemoViewController: UICollectionViewController, ImagePipelineSettings
     var pipeline = Nuke.ImagePipeline.shared
     var itemsPerRow: Int = 4
 
+    init(collectionViewLayout: UICollectionViewFlowLayout = UICollectionViewFlowLayout()) {
+        super.init(collectionViewLayout: UICollectionViewFlowLayout())
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -95,12 +103,7 @@ class BasicDemoViewController: UICollectionViewController, ImagePipelineSettings
     }
 
     @objc func buttonShowSettingsTapped() {
-        let navigationVC = UIStoryboard(name: "ImagePipelineSettingsViewController", bundle: nil).instantiateInitialViewController() as! UINavigationController
-        let settingsVC = navigationVC.viewControllers[0] as! ImagePipelineSettingsViewController
-        settingsVC.configuration = pipeline.configuration
-        settingsVC.delegate = self
-
-        present(navigationVC, animated: true, completion: nil)
+        ImagePipelineSettingsViewController.show(from: self, pipeline: pipeline)
     }
 
     // MARK: - ImagePipelineSettingsViewControllerDelegate

@@ -229,10 +229,19 @@ extension ImageProcessor {
     public struct CoreImageFilter: ImageProcessing, CustomStringConvertible {
         private let name: String
         private let parameters: [String: Any]
+        public let identifier: String
 
-        public init(name: String, parameters: [String: Any] = [:]) {
+        /// - parameter identifier: Uniquely identifies the processor.
+        public init(name: String, parameters: [String: Any], identifier: String) {
             self.name = name
             self.parameters = parameters
+            self.identifier = identifier
+        }
+
+        public init(name: String) {
+            self.name = name
+            self.parameters = [:]
+            self.identifier = "com.github.kean/nuke/core_image?name=\(name))"
         }
 
         public func process(image: Image, context: ImageProcessingContext?) -> Image? {
@@ -240,15 +249,21 @@ extension ImageProcessor {
             return CoreImageFilter.apply(filter: filter, to: image)
         }
 
-        public var identifier: String {
-            return "com.github.kean/nuke/core_image?name=\(name),params=\(parameters)"
-        }
-
         // MARK: - Apply Filter
 
         /// A default context shared between all Core Image filters. The context
         /// has `.priorityRequestLow` option set to `true`.
         public static var context = CIContext(options: [.priorityRequestLow: true])
+
+        public static func apply(filter: CIFilter?, to image: UIImage) -> UIImage? {
+            guard let filter = filter else {
+                return nil
+            }
+            return applyFilter(to: image) {
+                filter.setValue($0, forKey: kCIInputImageKey)
+                return filter.outputImage
+            }
+        }
 
         static func applyFilter(to image: UIImage, context: CIContext = context, closure: (CoreImage.CIImage) -> CoreImage.CIImage?) -> UIImage? {
             let ciImage: CoreImage.CIImage? = {
@@ -263,20 +278,10 @@ extension ImageProcessor {
             guard let inputImage = ciImage, let outputImage = closure(inputImage) else {
                 return nil
             }
-            guard let imageRef = context.createCGImage(outputImage, from: inputImage.extent) else {
+            guard let imageRef = context.createCGImage(outputImage, from: outputImage.extent) else {
                 return nil
             }
             return UIImage(cgImage: imageRef, scale: image.scale, orientation: image.imageOrientation)
-        }
-
-        static func apply(filter: CIFilter?, to image: UIImage) -> UIImage? {
-            guard let filter = filter else {
-                return nil
-            }
-            return applyFilter(to: image) {
-                filter.setValue($0, forKey: kCIInputImageKey)
-                return filter.outputImage
-            }
         }
 
         public var description: String {

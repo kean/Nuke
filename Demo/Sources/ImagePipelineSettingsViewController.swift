@@ -58,6 +58,14 @@ final class ImagePipelineSettingsViewController: UITableViewController {
     @IBOutlet weak var queueDecompressionValueLabel: UILabel!
     @IBOutlet weak var queueDecompressionStepper: UIStepper!
 
+    static func show(from presentingViewController: UIViewController & ImagePipelineSettingsViewControllerDelegate, pipeline: ImagePipeline) {
+        let navigationVC = UIStoryboard(name: "ImagePipelineSettingsViewController", bundle: nil).instantiateInitialViewController() as! UINavigationController
+        let settingsVC = navigationVC.viewControllers[0] as! ImagePipelineSettingsViewController
+        settingsVC.configuration = pipeline.configuration
+        settingsVC.delegate = presentingViewController
+        presentingViewController.present(navigationVC, animated: true, completion: nil)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
