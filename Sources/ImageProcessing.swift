@@ -263,7 +263,7 @@ extension ImageProcessor {
             guard let inputImage = ciImage, let outputImage = closure(inputImage) else {
                 return nil
             }
-            guard let imageRef = context.createCGImage(outputImage, from: inputImage.extent) else {
+            guard let imageRef = context.createCGImage(outputImage, from: outputImage.extent) else {
                 return nil
             }
             return UIImage(cgImage: imageRef, scale: image.scale, orientation: image.imageOrientation)
