@@ -82,7 +82,8 @@ class ImageProcessingDemoViewController: UIViewController, ImagePipelineSettings
             ImageProcessor.RoundedCorners(radius: 8),
             ImageProcessor.CoreImageFilter(name: "CIColorMonochrome",
                                            parameters: ["inputIntensity": 1,
-                                                        "inputColor": CIColor(color: .white)])
+                                                        "inputColor": CIColor(color: .white)],
+                                           identifier: "nuke.demo.monochrome")
         ])
 
         loadImage(view: views[2][0], title: "Circle", processors: [
