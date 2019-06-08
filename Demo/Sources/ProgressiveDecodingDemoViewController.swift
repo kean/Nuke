@@ -75,7 +75,9 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
     }
 
     @objc func _refresh() {
-        _start(with: urls[segmentedControl.selectedSegmentIndex])
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(2)) {
+            self._start(with: self.urls[self.segmentedControl.selectedSegmentIndex])
+        }
     }
 }
 
