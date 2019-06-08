@@ -39,7 +39,9 @@ If you'd like to contribute to Nuke see [**Contributing**](#h_contribute).
  
 <br/>
 
-## Image View Extensions
+# Image View Extensions
+
+<img align="right" src="https://user-images.githubusercontent.com/1567433/59150381-d34beb80-8a22-11e9-8d9a-6b1527ffc9e1.png" width="360"/>
 
 ### Load Image into Image View
 
@@ -58,7 +60,8 @@ Nuke will check if the image exists in the memory cache, and if it does, will in
 When requesting a new image for the existing view, the previous outstanding request gets canceled automatically and the view is prepared for reuse, making it extremely easy to load images in lists.
 
 ```swift
-func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+func collectionView(_ collectionView: UICollectionView,
+                    cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
     ...
     Nuke.loadImage(with: url, into: cell.imageView)
     ...
@@ -125,7 +128,9 @@ let request = ImageRequest(
 
 <br/>
 
-## Image Processing
+# Image Processing
+
+<img align="right" src="https://user-images.githubusercontent.com/1567433/59151404-cb944300-8a32-11e9-9c58-dbed9789080f.png" width="360"/>
 
 Nuke features a powerful and efficient image processing infrastructure with quite a few built-in image processors and the ability to add more.
 
@@ -180,7 +185,7 @@ When you instantiate `UIImage` with `Data`, the data can be in compressed format
 
 <br/>
 
-## Image Pipeline
+# Image Pipeline
 
 ### Load Image
 
@@ -282,6 +287,8 @@ If you want to build a system that fits your specific needs, you won't be disapp
 
 The pipeline configuration is described by `ImagePipeline.Configuration` struct. And there are a lot of things to tweak. You can set custom data loaders and caches, configure image encoders and decoders, change the number of concurrent operations for each individual pipeline stage, disable and enable features like deduplication and rate limiting.
 
+<img align="right" src="https://user-images.githubusercontent.com/1567433/59148462-94f60280-8a09-11e9-906a-6c7209b8f8c8.png" width="360"/>
+
 - `DataLoading` – Download (or return cached) image data
 - `DataCaching` – Store image data on disk
 - `ImageDecoding` – Convert data into images
@@ -310,7 +317,7 @@ ImagePipeline.shared = pipeline
 
 <br/>
 
-## Caching
+# Caching
 
 ### LRU Memory Cache
 
@@ -369,7 +376,7 @@ By default, the pipeline will only store original image data in the data cache. 
 
 <br/>
 
-## Advanced Features
+# Advanced Features
 
 ### Image Preheating
 
@@ -397,6 +404,8 @@ On iOS, you can use [prefetching APIs](https://developer.apple.com/reference/uik
 ### Progressive Decoding
 
 To enable progressive image decoding set `isProgressiveDecodingEnabled` configuration option to `true`.
+
+<img align="right" width="360" alt="Progressive JPEG" src="https://user-images.githubusercontent.com/1567433/59148764-3af73c00-8a0d-11e9-9d49-ded2d509380a.png">
 
 ```swift
 let pipeline = ImagePipeline {
@@ -513,6 +522,8 @@ pipeline.loadImage(with: ImageRequest(url: url, processors: [
 ```
 
 Nuke will load the image data only once, resize the image once and apply the blur also only once. There is no duplicated work done at any stage. The work only gets cancelled when all the registered requests are and the priority is based on the highest priority of the registerd requests.
+
+<img align="right" src="https://user-images.githubusercontent.com/1567433/59148850-1059b300-8a0e-11e9-95d5-0d4b4ffeaabc.png" width="360"/>
 
 > Deduplication can be disabled using `isDeduplicationEnabled` configuration option.
 
