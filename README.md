@@ -59,7 +59,8 @@ When you request a new image for the existing view, Nuke will prepare it for reu
 
 ```swift
 func collectionView(_ collectionView: UICollectionView,
-                    cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+                    cellForItemAt indexPath: IndexPath)
+                    -> UICollectionViewCell {
     Nuke.loadImage(with: url, into: cell.imageView)
 }
 ```
