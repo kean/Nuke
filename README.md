@@ -491,11 +491,11 @@ pipeline.loadImage(with: ImageRequest(url: url, processors: [
 
 Nuke will load the data only once, resize the image once and blur it also only once. There is no duplicated work done. The work only gets cancelled when all the registered requests are, and the priority is based on the highest priority of the registerd requests.
 
-<img align="right" src="https://user-images.githubusercontent.com/1567433/59148850-1059b300-8a0e-11e9-95d5-0d4b4ffeaabc.png" width="360"/>
-
 > Deduplication can be disabled using `isDeduplicationEnabled` configuration option.
 
 ### Performance
+
+<img align="right" src="https://user-images.githubusercontent.com/1567433/59148850-1059b300-8a0e-11e9-95d5-0d4b4ffeaabc.png" width="360"/>
 
 Nuke is tuned to do as little work on the main thread as possible. It uses multiple optimization techniques to achieve that: reducing number of allocations, reducing dynamic dispatch, backing some structs by reference typed storage to reduce ARC overhead, etc.
 
