@@ -205,9 +205,9 @@ If you want to build a system that fits your specific needs, you won't be disapp
 
 > To learn more see the inline documentation for `ImagePipeline.Configuration` and [Image Pipeline Overview](#h_design).
 
-Here are some of the protocols which can be used for customization:
-
 <img align="right" src="https://user-images.githubusercontent.com/1567433/59148462-94f60280-8a09-11e9-906a-6c7209b8f8c8.png" width="360"/>
+
+Here are some of the protocols which can be used for customization:
 
 - `DataLoading` – Download (or return cached) image data
 - `DataCaching` – Store image data on disk
@@ -351,12 +351,13 @@ If HTTP caching is not your cup of tea, you can try using a custom LRU disk cach
 ```swift
 ImagePipeline {
     $0.dataCache = try! DataCache(name: "com.myapp.datacache")
+    
+    // Also consider disabling the native HTTP cache, see `DataLoader`.
 }
 ```
 
-By default, the pipeline will only store the original image data. To also store the processed images set `isDataCachingForProcessedImagesEnabled` option to `true`.
+By default, the pipeline stores only the original image data. To store the processed images set `isDataCachingForProcessedImagesEnabled` to `true` and consider disabling `isDataCachingForOriginalImageDataEnabled`. Every intermediate processed image will be stored in disk data cache. To avoid storing unwanted images, compose the processors into one, `ImageProcessor.Composition` is an easy way to do so.
 
-> If you enable aggressive disk cache, make sure to disable native URL cache (see `DataLoader`).
 
 <br/>
 
