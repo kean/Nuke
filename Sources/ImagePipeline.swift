@@ -11,7 +11,10 @@ import os
 /// See [Nuke's README](https://github.com/kean/Nuke) for a detailed overview of
 /// the image pipeline and all of the related classes.
 ///
-/// `ImagePipeline` is created with a configuration (`Configuration`).
+/// If you want to build a system that fits your specific needs, see `ImagePipeline.Configuration`
+/// for a list of the available options. You can set custom data loaders and caches, configure
+/// image encoders and decoders, change the number of concurrent operations for each
+/// individual stage, disable and enable features like deduplication and rate limiting, and more.
 ///
 /// `ImagePipeline` is thread-safe.
 public /* final */ class ImagePipeline {
@@ -37,6 +40,7 @@ public /* final */ class ImagePipeline {
     public static var shared = ImagePipeline()
 
     /// Initializes `ImagePipeline` instance with the given configuration.
+    ///
     /// - parameter configuration: `Configuration()` by default.
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
@@ -64,6 +68,45 @@ public /* final */ class ImagePipeline {
     // MARK: - Loading Images
 
     /// Loads an image with the given url.
+    ///
+    /// The pipeline first checks if the image or image data exists in any of its caches.
+    /// It checks if the processed image exists in the memory cache, then if the processed
+    /// image data exists in the custom data cache (disabled by default), then if the data
+    /// cache contains the original image data. Only if there is no cached data, the pipeline
+    /// will start loading the data. When the data is loaded the pipeline decodes it, applies
+    /// the processors, and decompresses the image in the background.
+    ///
+    /// To learn more about the pipeine, see the [README](https://github.com/kean/Nuke).
+    ///
+    /// # Deduplication
+    ///
+    /// The pipeline avoids doing any duplicated work when loading images. For example,
+    /// let's take these two requests:
+    ///
+    /// ```swift
+    /// let url = URL(string: "http://example.com/image")
+    /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
+    ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44)),
+    ///     ImageProcessor.GaussianBlur(radius: 8)
+    /// ]))
+    /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
+    ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
+    /// ]))
+    /// ```
+    ///
+    /// Nuke will load the data only once, resize the image once and blur it also only once.
+    /// There is no duplicated work done. The work only gets canceled when all the registered
+    /// requests are, and the priority is based on the highest priority of the registered requests.
+    ///
+    /// # Configuration
+    ///
+    /// See `ImagePipeline.Configuration` to learn more about the pipeline features and
+    /// how to enable/disable them.
+    ///
+    /// - parameter progress: A closure to be called periodically on the main thread
+    /// when the progress is updated. `nil` by default.
+    /// - parameter completion: A closure to be called on the main thread when the
+    /// request is finished. `nil` by default.
     @discardableResult
     public func loadImage(with url: URL,
                           progress: ImageTask.ProgressHandler? = nil,
@@ -72,6 +115,44 @@ public /* final */ class ImagePipeline {
     }
 
     /// Loads an image for the given request using image loading pipeline.
+    ///
+    /// The pipeline first checks if the image or image data exists in any of its caches.
+    /// It checks if the processed image exists in the memory cache, then if the processed
+    /// image data exists in the custom data cache (disabled by default), then if the data
+    /// cache contains the original image data. Only if there is no cached data, the pipeline
+    /// will start loading the data. When the data is loaded the pipeline decodes it, applies
+    /// the processors, and decompresses the image in the background.
+    ///
+    /// To learn more about the pipeine, see the [README](https://github.com/kean/Nuke).
+    ///
+    /// # Deduplication
+    ///
+    /// The pipeline avoids doing any duplicated work when loading images. For example,
+    /// let's take these two requests:
+    ///
+    /// ```swift
+    /// let url = URL(string: "http://example.com/image")
+    /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
+    ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44)),
+    ///     ImageProcessor.GaussianBlur(radius: 8)
+    /// ]))
+    /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
+    ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
+    /// ]))
+    /// ```
+    ///
+    /// Nuke will load the data only once, resize the image once and blur it also only once.
+    /// There is no duplicated work done. The work only gets canceled when all the registered
+    /// requests are, and the priority is based on the highest priority of the registered requests.
+    ///
+    /// # Configuration
+    ///
+    /// See `ImagePipeline.Configuration` to learn more about the pipeline features and
+    /// how to enable/disable them.
+    /// - parameter progress: A closure to be called periodically on the main thread
+    /// when the progress is updated. `nil` by default.
+    /// - parameter completion: A closure to be called on the main thread when the
+    /// request is finished. `nil` by default.
     @discardableResult
     public func loadImage(with request: ImageRequest,
                           progress progressHandler: ImageTask.ProgressHandler? = nil,
@@ -107,6 +188,16 @@ public /* final */ class ImagePipeline {
 
     // MARK: - Loading Image Data
 
+    /// Loads the image data for the given request. The data doesn't get decoded or processed in any
+    /// other way.
+    ///
+    /// You can call `loadImage(:)` for the request at any point after calling `loadData(:)`, the
+    /// pipeline will use the same operation to load the data, no duplicated work will be performed.
+    ///
+    /// - parameter progress: A closure to be called periodically on the main thread
+    /// when the progress is updated. `nil` by default.
+    /// - parameter completion: A closure to be called on the main thread when the
+    /// request is finished.
     @discardableResult
     public func loadData(with request: ImageRequest,
                          progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,

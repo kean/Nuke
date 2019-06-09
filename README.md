@@ -93,7 +93,7 @@ let options = ImageLoadingOptions(
 
 ### `ImageRequest`
 
-`ImageRequest` struct allows you to set image processors, change the request priority and more:
+`ImageRequest` allows you to set image processors, change the request priority and more:
 
 ```swift
 let request = ImageRequest(
@@ -103,7 +103,7 @@ let request = ImageRequest(
 )
 ```
 
-The advanced options available via `ImageRequestOptions` struct. For example, you can provide a `filteredURL` to be used as a key for caching in case the URL contains some transient query parameters.
+The advanced options available via `ImageRequestOptions`. For example, you can provide a `filteredURL` to be used as a key for caching in case the URL contains transient query parameters.
 
 ```swift
 let request = ImageRequest(
@@ -123,6 +123,8 @@ let request = ImageRequest(
 <img align="right" src="https://user-images.githubusercontent.com/1567433/59151404-cb944300-8a32-11e9-9c58-dbed9789080f.png" width="360"/>
 
 Nuke features a powerful and efficient image processing infrastructure with multiple built-in processors including `ImageProcessor.Resize`, `.Circle`, `.RoundedCorners`, `.CoreImageFilter`, `.GaussianBlur`.
+
+> This and other screenshots are from the demo project included in the repo.
 
 ### `Resize`
 
@@ -215,7 +217,7 @@ Here are some of the protocols which can be used for customization:
 - `ImageDecoding` – Convert data into images
 - `ImageEncoding` - Convert images into data
 - `ImageProcessing` – Apply image transformations
-- `ImageCaching` – Store images into memory cache
+- `ImageCaching` – Store images into a memory cache
 
 The entire configuration is described by `ImagePipeline.Configuration` struct. To create a pipeline with a custom configuration either call `ImagePipeline(configuration:)` initializer or use the convenience one:
 
@@ -246,7 +248,7 @@ imageCache = ImageCache.shared
 // with memory capacity 0, and disk capacity 150 MB.
 dataLoader = DataLoader()
 
-// Custom agressive disk cache is disabled by default.
+// Custom aggressive disk cache is disabled by default.
 dataCache = nil
 
 // By default uses the decoder from the global registry and the default encoder.
@@ -278,7 +280,7 @@ isDataCachingForProcessedImagesEnabled = false
 // Avoid doing any duplicated work when loading or processing images.
 isDeduplicationEnabled = true
 
-// Rate limit the requests to prevent trashing of the subsytems.
+// Rate limit the requests to prevent trashing of the subsystems.
 isRateLimiterEnabled = true
 
 // Progressive decoding is an opt-in feature because it is resource intensive.
@@ -357,7 +359,16 @@ ImagePipeline {
 }
 ```
 
-By default, the pipeline stores only the original image data. To store the processed images enable `isDataCachingForProcessedImagesEnabled` and consider disabling `isDataCachingForOriginalImageDataEnabled`. Every intermediate processed image will be stored in cache. To avoid storing unwanted images, compose the processors into one, `ImageProcessor.Composition` is an easy way to do so.
+By default, the pipeline stores only the original image data. To store the processed images enable `isDataCachingForProcessedImagesEnabled` and also consider disabling `isDataCachingForOriginalImageDataEnabled`. Every intermediate processed image will be stored in cache. So in the following scenario, there are going to be two entries in the disk cache (three if original image cache is also enabled):
+
+```swift
+let request = ImageRequest(url: url, processors: [
+    ImageProcessor.Resize(size: imageView.bounds.size),
+    ImageProcessor.CoreImageFilter(name: "CISepiaTone")
+])
+```
+
+To avoid storing unwanted images, compose the processors, `ImageProcessor.Composition` is an easy way to do it.
 
 
 <br/>
@@ -453,11 +464,11 @@ This section describes in detail what happens when you perform a call like `Nuke
 
 First, Nuke synchronously checks if the image is stored in the memory cache. If it's not, Nuke calls `pipeline.loadImage(with: request)` method.
 
-The pipeline first checks if the image or image data exists in any of its caches. It checks if the processsed image exists in the memory cache, then if the processed image data exists in the custom data cache (disabled by default), then if the data cache contains the original image data. Only if there is no cached data, the pipleine will start loading the data. When the data is loaded the pipeline decodes it, applies the processors, and decompresses the image in the background.
+The pipeline first checks if the image or image data exists in any of its caches. It checks if the processed image exists in the memory cache, then if the processed image data exists in the custom data cache (disabled by default), then if the data cache contains the original image data. Only if there is no cached data, the pipeline will start loading the data. When the data is loaded the pipeline decodes it, applies the processors, and decompresses the image in the background.
 
 ### Data Loading and Caching
 
-A `DataLoader` class uses [`URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) to load image data. The data is cached on disk using [`URLCache`](https://developer.apple.com/reference/foundation/urlcache), which by default is initialized with a memory capacity of 0 MB (we only store processed images in memory) and a disk capacity of 150 MB.
+A `DataLoader` class uses [`URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) to load image data. The data is cached on disk using [`URLCache`](https://developer.apple.com/reference/foundation/urlcache), which by default is initialized with memory capacity of 0 MB (we only store processed images in memory) and disk capacity of 150 MB.
 
 > See [Image Caching Guide](https://kean.github.io/post/image-caching) to learn more about HTTP cache.
 
@@ -469,7 +480,7 @@ Most developers either implement their own networking layer or use a third-party
 
 ### Resumable Downloads
 
-If the data task is terminated (either because of a failure or a cancelation) and the image was partially loaded, the next load will resume where it was left off. Resumable downloads require server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators (`ETag` and `Last-Modified`). The resumable downloads are enabled by default.
+If the data task is terminated (either because of a failure or a cancelation) and the image was partially loaded, the next load will resume where it was left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators (`ETag` and `Last-Modified`). The resumable downloads are enabled by default.
 
 ### Memory Cache
 
@@ -490,7 +501,7 @@ pipeline.loadImage(with: ImageRequest(url: url, processors: [
 ]))
 ```
 
-Nuke will load the data only once, resize the image once and blur it also only once. There is no duplicated work done. The work only gets cancelled when all the registered requests are, and the priority is based on the highest priority of the registerd requests.
+Nuke will load the data only once, resize the image once and blur it also only once. There is no duplicated work done. The work only gets cancelled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
 
 > Deduplication can be disabled using `isDeduplicationEnabled` configuration option.
 
@@ -498,7 +509,7 @@ Nuke will load the data only once, resize the image once and blur it also only o
 
 <img align="right" src="https://user-images.githubusercontent.com/1567433/59148850-1059b300-8a0e-11e9-95d5-0d4b4ffeaabc.png" width="360"/>
 
-Nuke is tuned to do as little work on the main thread as possible. It uses multiple optimization techniques to achieve that: reducing number of allocations, reducing dynamic dispatch, backing some structs by reference typed storage to reduce ARC overhead, etc.
+Nuke is tuned to do as little work on the main thread as possible. It uses multiple optimization techniques to achieve that: reducing the number of allocations, reducing dynamic dispatch, backing some structs by reference typed storage to reduce ARC overhead, etc.
 
 Nuke is fully asynchronous and performs well under stress. `ImagePipeline` schedules its operations on dedicated queues. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible. Under the extreme load, `ImagePipeline` will also rate limit the requests to prevent trashing of the underlying systems.
 

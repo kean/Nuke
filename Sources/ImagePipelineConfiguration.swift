@@ -81,10 +81,10 @@ extension ImagePipeline {
         /// compose multiple processors into a single one.
         public var isDataCachingForProcessedImagesEnabled = false
 
-        /// `true` by default. If `true` the pipeline will try to avoid any
-        /// duplicated work when loading images. The work only gets cancelled
-        /// when all the registered requests are. The pipeline also automatically
-        /// manages the priority of the deduplicated work.
+        /// `true` by default. If `true` the pipeline avoids duplicated work when
+        /// loading images. The work only gets cancelled when all the registered
+        /// requests are. The pipeline also automatically manages the priority of the
+        /// deduplicated work.
         ///
         /// Let't take this two requests for example:
         ///

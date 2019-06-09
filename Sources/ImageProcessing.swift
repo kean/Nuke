@@ -176,6 +176,9 @@ extension ImageProcessor {
 extension ImageProcessor {
 
     /// Rounds the corners of an image to the specified radius.
+    ///
+    /// - warning: In order for the corners to be displayed correctly, the image must exactly match the size
+    /// of the image view in which it will be displayed. See `ImageProcessor.Resize` for more info.
     public struct RoundedCorners: ImageProcessing, Hashable, CustomStringConvertible {
         private let radius: CGFloat
         private let unit: Unit

@@ -22,7 +22,8 @@ public struct ImageRequest {
         }
     }
 
-    /// The execution priority of the request.
+    /// The execution priority of the request. The priority affects the order in which the image
+    /// requests are executed.
     public enum Priority: Int, Comparable {
         case veryLow = 0, low, normal, high, veryHigh
 
@@ -41,14 +42,14 @@ public struct ImageRequest {
         }
     }
 
-    /// The relative priority of the operation. This value is used to influence
-    /// the order in which requests are executed. `.normal` by default.
+    /// The relative priority of the operation. The priority affects the order in which the image
+    /// requests are executed.`.normal` by default.
     public var priority: Priority {
         get { return ref.priority }
         set { mutate { $0.priority = newValue } }
     }
 
-    /// The request options.
+    /// The request options. See `ImageRequestOptions` for more info.
     public var options: ImageRequestOptions {
         get { return ref.options }
         set { mutate { $0.options = newValue }}
@@ -63,9 +64,20 @@ public struct ImageRequest {
     // MARK: Initializers
 
     /// Initializes a request with the given URL.
+    ///
     /// - parameter priority: The priority of the request, `.normal` by default.
     /// - parameter options: Advanced image loading options.
     /// - parameter processors: Image processors to be applied after the image is loaded.
+    ///
+    /// `ImageRequest` allows you to set image processors, change the request priority and more:
+    ///
+    /// ```swift
+    /// let request = ImageRequest(
+    ///     url: URL(string: "http://..."),
+    ///     processors: [ImageProcessor.Resize(size: imageView.bounds.size)],
+    ///     priority: .high
+    /// )
+    /// ```
     public init(url: URL,
                 processors: [ImageProcessing] = [],
                 priority: ImageRequest.Priority = .normal,
@@ -77,9 +89,20 @@ public struct ImageRequest {
     }
 
     /// Initializes a request with the given request.
+    ///
     /// - parameter priority: The priority of the request, `.normal` by default.
     /// - parameter options: Advanced image loading options.
     /// - parameter processors: Image processors to be applied after the image is loaded.
+    ///
+    /// `ImageRequest` allows you to set image processors, change the request priority and more:
+    ///
+    /// ```swift
+    /// let request = ImageRequest(
+    ///     url: URL(string: "http://..."),
+    ///     processors: [ImageProcessor.Resize(size: imageView.bounds.size)],
+    ///     priority: .high
+    /// )
+    /// ```
     public init(urlRequest: URLRequest,
                 processors: [ImageProcessing] = [],
                 priority: ImageRequest.Priority = .normal,
@@ -164,9 +187,17 @@ public struct ImageRequestOptions {
     /// `MemoryCacheOptions()` (read allowed, write allowed) by default.
     public var memoryCacheOptions: MemoryCacheOptions
 
-    /// In some cases your image URLs might contains transient query parameters
-    /// like access tokens which must be ignored when generating cache keys. If
-    /// that's the case, set this property to a URL without the unwanted fields.
+    /// Provide a `filteredURL` to be used as a key for caching in case the original URL
+    /// contains transient query parameters.
+    ///
+    /// ```
+    /// let request = ImageRequest(
+    ///     url: URL(string: "http://example.com/image.jpeg?token=123")!,
+    ///     options: ImageRequestOptions(
+    ///         filteredURL: "http://example.com/image.jpeg"
+    ///     )
+    /// )
+    /// ```
     public var filteredURL: String?
 
     /// Returns a key that compares requests with regards to caching images.

@@ -224,7 +224,7 @@ Add new `ImageProcessing` protocol which now takes an extra `ImageProcessingCont
 
 If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. In many use cases resumable downloads are a massive improvement to user experience, especially on the mobile internet. 
 
-Resumable downloads require server support for [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators (`ETag` and `Last-Modified`).
+Resumable downloads require the server support for [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators (`ETag` and `Last-Modified`).
 
 The resumable downloads are enabled by default. The resumable data is automatically stored in efficient memory cache. This is a good default, but future versions might add more customization options.
 

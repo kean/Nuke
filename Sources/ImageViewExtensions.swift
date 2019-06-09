@@ -68,24 +68,23 @@ extension WKInterfaceImage: Nuke_ImageDisplaying {
 
 /// Loads an image with the given URL and displays it in the view.
 ///
-/// Before loading the new image prepares the view for reuse by cancelling any
-/// outstanding requests and removing previously displayed images (if any).
+/// Before loading a new image, the view is prepared for reuse by canceling any
+/// outstanding requests and removing a previously displayed image.
 ///
-/// If the image is stored in memory cache, the image is displayed immediately.
-/// If not, the image is loaded using an image pipeline. Displays a `placeholder`
-/// if it was provided. When the request completes the loaded image is displayed
-/// (or `failureImage` in case of an error).
-///
-/// Nuke keeps a weak reference to the view. If the view is deallocated
-/// the associated request automatically gets cancelled.
+/// If the image is stored in the memory cache, it is displayed immediately. If not,
+/// the image is loaded using an image pipeline. When the image is loading, the provided
+/// `placeholder` is displayed. When the request completes the loaded image is displayed
+/// (or `failureImage` in case of an error) with the provided transition.
 ///
 /// - parameter options: `ImageLoadingOptions.shared` by default.
+/// - parameter view: Nuke keeps a weak reference to the view. If the view is deallocated
+/// the associated request automatically gets canceled.
 /// - parameter progress: A closure to be called periodically on the main thread
 /// when the progress is updated. `nil` by default.
 /// - parameter completion: A closure to be called on the main thread when the
 /// request is finished. Gets called synchronously if the response was found in
-/// memory cache. `nil` by default.
-/// - returns: An image task of `nil` if the image was found in memory cache.
+/// the memory cache. `nil` by default.
+/// - returns: An image task or `nil` if the image was found in the memory cache.
 @discardableResult
 public func loadImage(with url: URL,
                       options: ImageLoadingOptions = ImageLoadingOptions.shared,
@@ -97,24 +96,23 @@ public func loadImage(with url: URL,
 
 /// Loads an image with the given request and displays it in the view.
 ///
-/// Before loading the new image, prepares the view for reuse by cancelling any
-/// outstanding requests and removing previously displayed images (if any).
+/// Before loading a new image, the view is prepared for reuse by canceling any
+/// outstanding requests and removing a previously displayed image.
 ///
-/// If the image is stored in memory cache, the image is displayed immediately.
-/// If not, the image is loaded using an image pipeline. Displays a `placeholder`
-/// if it was provided. When the request completes the loaded image is displayed
-/// (or `failureImage` in case of an error).
-///
-/// Nuke keeps a weak reference to the view. If the view is deallocated
-/// the associated request automatically gets cancelled.
+/// If the image is stored in the memory cache, it is displayed immediately. If not,
+/// the image is loaded using an image pipeline. When the image is loading, the provided
+/// `placeholder` is displayed. When the request completes the loaded image is displayed
+/// (or `failureImage` in case of an error) with the provided transition.
 ///
 /// - parameter options: `ImageLoadingOptions.shared` by default.
+/// - parameter view: Nuke keeps a weak reference to the view. If the view is deallocated
+/// the associated request automatically gets canceled.
 /// - parameter progress: A closure to be called periodically on the main thread
 /// when the progress is updated. `nil` by default.
 /// - parameter completion: A closure to be called on the main thread when the
 /// request is finished. Gets called synchronously if the response was found in
-/// memory cache. `nil` by default.
-/// - returns: An image task of `nil` if the image was found in memory cache.
+/// the memory cache. `nil` by default.
+/// - returns: An image task or `nil` if the image was found in the memory cache.
 @discardableResult
 public func loadImage(with request: ImageRequest,
                       options: ImageLoadingOptions = ImageLoadingOptions.shared,
