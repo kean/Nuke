@@ -121,7 +121,7 @@ let request = ImageRequest(
 
 <img align="right" src="https://user-images.githubusercontent.com/1567433/59151404-cb944300-8a32-11e9-9c58-dbed9789080f.png" width="360"/>
 
-Nuke features a powerful and efficient image processing infrastructure with multiple built-in processors. Here's is an overview of just some of them:
+Nuke features a powerful and efficient image processing infrastructure with multiple built-in processors including `ImageProcessor.Resize`, `.Circle`, `.RoundedCorners`, `.CoreImageFilter`, `.GaussianBlur`.
 
 ### `Resize`
 
@@ -356,7 +356,7 @@ ImagePipeline {
 }
 ```
 
-By default, the pipeline stores only the original image data. To store the processed images set `isDataCachingForProcessedImagesEnabled` to `true` and consider disabling `isDataCachingForOriginalImageDataEnabled`. Every intermediate processed image will be stored in disk data cache. To avoid storing unwanted images, compose the processors into one, `ImageProcessor.Composition` is an easy way to do so.
+By default, the pipeline stores only the original image data. To store the processed images enable `isDataCachingForProcessedImagesEnabled` and consider disabling `isDataCachingForOriginalImageDataEnabled`. Every intermediate processed image will be stored in cache. To avoid storing unwanted images, compose the processors into one, `ImageProcessor.Composition` is an easy way to do so.
 
 
 <br/>
