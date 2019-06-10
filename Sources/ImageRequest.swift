@@ -7,7 +7,7 @@ import Foundation
 // MARK: - ImageRequest
 
 /// Represents an image request.
-public struct ImageRequest {
+public struct ImageRequest: CustomStringConvertible {
 
     // MARK: Parameters of the Request
 
@@ -154,7 +154,7 @@ public struct ImageRequest {
     }
 
     /// Resource representation (either URL or URLRequest).
-    private enum Resource {
+    private enum Resource: CustomStringConvertible {
         case url(URL)
         case urlRequest(URLRequest)
 
@@ -164,6 +164,32 @@ public struct ImageRequest {
             case let .urlRequest(urlRequest): return urlRequest
             }
         }
+
+        var description: String {
+            switch self {
+            case let .url(url):
+                return "\(url)"
+            case let .urlRequest(urlRequest):
+                return "\(urlRequest)"
+            }
+        }
+    }
+
+    public var description: String {
+        return """
+        ImageRequest {
+            resource: \(ref.resource)
+            priority: \(ref.priority)
+            processors: \(ref.processors)
+            options: {
+                memoryCacheOptions: \(ref.options.memoryCacheOptions)
+                filteredURL: \(String(describing: ref.options.filteredURL))
+                cacheKey: \(String(describing: ref.options.cacheKey))
+                loadKey: \(String(describing: ref.options.loadKey))
+                userInfo: \(String(describing: ref.options.userInfo))
+            }
+        }
+        """
     }
 }
 
