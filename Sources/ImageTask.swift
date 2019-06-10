@@ -10,7 +10,7 @@ import Foundation
 /// reference to the task until the request finishes or fails; you do not need
 /// to maintain a reference to the task unless it is useful to do so for your
 /// app’s internal bookkeeping purposes.
-public /* final */ class ImageTask: Hashable {
+public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     /// An identifier uniquely identifies the task within a given pipeline. Only
     /// unique within this pipeline.
     public let taskId: Int
@@ -103,6 +103,20 @@ public /* final */ class ImageTask: Hashable {
 
     public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
         return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+    }
+
+    // MARK: - CustomStringConvertible
+
+    public var description: String {
+        return """
+        ImageTask {
+            id: \(taskId)
+            priority: \(priority)
+            completedUnitCount: \(completedUnitCount)
+            totalUnitCount: \(totalUnitCount)
+            isCancelled: \(isCancelled)
+        }
+        """
     }
 }
 
