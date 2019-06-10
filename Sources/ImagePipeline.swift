@@ -176,8 +176,8 @@ public /* final */ class ImagePipeline {
     /// - parameter isMainThreadConfined: Enables some performance optimizations like
     /// lock-free `ImageTask`.
     func loadImage(with request: ImageRequest,
-                          isMainThreadConfined: Bool,
-                          observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) -> ImageTask {
+                   isMainThreadConfined: Bool,
+                   observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId.increment(), request: request, isMainThreadConfined: isMainThreadConfined)
         task.pipeline = self
         queue.async {

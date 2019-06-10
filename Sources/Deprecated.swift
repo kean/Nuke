@@ -91,7 +91,7 @@ extension ImageRequest {
 
     @available(*, deprecated, message: "Please use the new unified initializer `ImageRequest.init(urlRequest:processors:priority:options:)` with `ImageProcessor.Resize`instead. Target size for `ImageProcessor.Resize` is in points by default, not pixels! For more info see https://github.com/kean/Nuke/pull/229.")
     public init(urlRequest: URLRequest, targetSize: CGSize, contentMode: ImageDecompressor.ContentMode, upscale: Bool = false) {
-        self.init(urlRequest: urlRequest, processor: ImageDecompressor(targetSize: targetSize, contentMode: contentMode,upscale: upscale))
+        self.init(urlRequest: urlRequest, processor: ImageDecompressor(targetSize: targetSize, contentMode: contentMode, upscale: upscale))
     }
 }
 #endif
