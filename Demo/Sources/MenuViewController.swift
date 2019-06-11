@@ -47,7 +47,7 @@ final class MenuViewController: UITableViewController {
 
             items.append(MenuItem(
                 title: "Image Pipeline",
-                subtitle: "The image pipeline is configurable at runtime",
+                subtitle: "The defauly pipeline, configurable at runtime",
                 action: { [weak self] _ in
                     let controller = BasicDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
                     controller.title = "Image Pipeline"
@@ -56,7 +56,7 @@ final class MenuViewController: UITableViewController {
 
             items.append(MenuItem(
                 title: "Image Processing",
-                subtitle: "Showcase some of the built-in image processors",
+                subtitle: "Showcases some of the built-in image processors",
                 action: { [weak self] in
                     let controller = ImageProcessingDemoViewController()
                     controller.title = $0.title
@@ -65,19 +65,10 @@ final class MenuViewController: UITableViewController {
 
             items.append(MenuItem(
                 title: "Disk Cache",
-                subtitle: "Aggressive disk caching",
+                subtitle: "Aggressive disk caching enabled",
                 action: { [weak self] in
                     let controller = DataCachingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
                     controller.title = $0.title
-                    self?.push(controller)
-            }))
-
-            items.append(MenuItem(
-                title: "Progressive Decoding",
-                subtitle: "Progressive and baseline JPEG",
-                action: { [weak self] _ in
-                    let controller = ProgressiveDecodingDemoViewController()
-                    controller.title = "Progressive JPEG"
                     self?.push(controller)
             }))
 
@@ -130,11 +121,11 @@ final class MenuViewController: UITableViewController {
             var items = [MenuItem]()
 
             items.append(MenuItem(
-                title: "MP4 (Experimental)",
-                subtitle: "Replaces GIFs with MP4",
-                action: { [weak self] in
-                    let controller = AnimatedImageUsingVideoViewController(nibName: nil, bundle: nil)
-                    controller.title = $0.title
+                title: "Progressive Decoding",
+                subtitle: "Progressive vs baseline JPEG",
+                action: { [weak self] _ in
+                    let controller = ProgressiveDecodingDemoViewController()
+                    controller.title = "Progressive JPEG"
                     self?.push(controller)
             }))
 
@@ -143,6 +134,15 @@ final class MenuViewController: UITableViewController {
                 subtitle: "Infinite scroll, highlights rate limiter performance",
                 action: { [weak self] in
                     let controller = RateLimiterDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
+
+            items.append(MenuItem(
+                title: "MP4 (Experimental)",
+                subtitle: "Replaces GIFs with MP4",
+                action: { [weak self] in
+                    let controller = AnimatedImageUsingVideoViewController(nibName: nil, bundle: nil)
                     controller.title = $0.title
                     self?.push(controller)
             }))
