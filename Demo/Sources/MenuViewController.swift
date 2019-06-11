@@ -47,7 +47,7 @@ final class MenuViewController: UITableViewController {
 
             items.append(MenuItem(
                 title: "Image Pipeline",
-                subtitle: "The defauly pipeline, configurable at runtime",
+                subtitle: "The default pipeline, configurable at runtime",
                 action: { [weak self] _ in
                     let controller = BasicDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
                     controller.title = "Image Pipeline"
