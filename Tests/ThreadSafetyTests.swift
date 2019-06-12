@@ -164,6 +164,7 @@ final class RandomizedTests: XCTestCase {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
+            $0.isRateLimiterEnabled = false
         }
 
         let queue = OperationQueue()
@@ -179,16 +180,16 @@ final class RandomizedTests: XCTestCase {
             request.priority = every(2) ? .high : .normal
             if every(3) {
                 let size = every(2) ? CGSize(width: 40, height: 40) : CGSize(width: 60, height: 60)
-                request.processor = ImageScalingProcessor(targetSize: size, contentMode: .aspectFit)
+                request.processors = [ImageProcessor.Resize(size: size, contentMode: .aspectFit)]
             }
             if every(10) {
-                request.loadKey = url
+                request.options.loadKey = url
             }
             return request
         }
 
         func randomSleep() {
-            let ms = TimeInterval(arc4random_uniform(200)) / 1000.0
+            let ms = TimeInterval(arc4random_uniform(100)) / 1000.0
             Thread.sleep(forTimeInterval: ms)
         }
 
@@ -221,7 +222,7 @@ final class RandomizedTests: XCTestCase {
                     queue.addOperation {
                         randomSleep()
                         let priority: ImageRequest.Priority = every(2) ? .veryHigh : .veryLow
-                        task.setPriority(priority)
+                        task.priority = priority
                     }
                 }
             }
