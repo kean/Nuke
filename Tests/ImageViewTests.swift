@@ -42,7 +42,7 @@ class ImageViewTests: XCTestCase {
     func testImageLoadedWithURL() {
         // When requesting an image with URL
         let expectation = self.expectation(description: "Image loaded")
-        Nuke.loadImage(with: Test.url, into: imageView) { response, _ in
+        Nuke.loadImage(with: Test.url, into: imageView) { _ in
             expectation.fulfill()
         }
         wait()
@@ -91,7 +91,8 @@ class ImageViewTests: XCTestCase {
 
     func testViewPreparedForReuseDisabled() {
         // Given an image view displaying an image
-        imageView.image = Test.image
+        let image = Test.image
+        imageView.image = image
 
         // When requesting the new image with prepare for reuse disabled
         var options = ImageLoadingOptions()
@@ -99,20 +100,21 @@ class ImageViewTests: XCTestCase {
         Nuke.loadImage(with: Test.request, options: options, into: imageView)
 
         // Expect the original image to still be displayed
-        XCTAssertEqual(imageView.image, Test.image)
+        XCTAssertEqual(imageView.image, image)
     }
 
     // MARK: - Memory Cache
 
     func testMemoryCacheUsed() {
         // Given the requested image stored in memory cache
-        mockCache[Test.request] = Test.image
+        let image = Test.image
+        mockCache[Test.request] = image
 
         // When requesting the new image
         Nuke.loadImage(with: Test.request, into: imageView)
 
         // Expect image to be displayed immediatelly
-        XCTAssertEqual(imageView.image, Test.image)
+        XCTAssertEqual(imageView.image, image)
     }
 
     func testMemoryCacheDisabled() {
@@ -121,7 +123,7 @@ class ImageViewTests: XCTestCase {
 
         // When requesting the image with memory cache read disabled
         var request = Test.request
-        request.memoryCacheOptions.isReadAllowed = false
+        request.options.memoryCacheOptions.isReadAllowed = false
         Nuke.loadImage(with: request, into: imageView)
 
         // Expect image to not be displayed, loaded asyncrounously instead
@@ -136,10 +138,10 @@ class ImageViewTests: XCTestCase {
         Nuke.loadImage(
             with: Test.request,
             into: imageView,
-            completion: { response, _ in
+            completion: { result in
                 // Expect completion to be called  on the main thread
                 XCTAssertTrue(Thread.isMainThread)
-                XCTAssertNotNil(response)
+                XCTAssertTrue(result.isSuccess)
                 didCallCompletion = true
                 expectation.fulfill()
             }
@@ -158,10 +160,10 @@ class ImageViewTests: XCTestCase {
         Nuke.loadImage(
             with: Test.request,
             into: imageView,
-            completion: { response, _ in
+            completion: { result in
                 // Expect completion to be called syncrhonously on the main thread
                 XCTAssertTrue(Thread.isMainThread)
-                XCTAssertNotNil(response)
+                XCTAssertTrue(result.isSuccess)
                 didCallCompletion = true
             }
         )
@@ -246,7 +248,7 @@ class ImageViewTests: XCTestCase {
         mockPipeline.isCancellationEnabled = false
 
         // Given an image view which is in the process of loading the image
-        Nuke.loadImage(with: Test.request, into: imageView) { _, _ in
+        Nuke.loadImage(with: Test.request, into: imageView) { _ in
             // Expect completion to never get called, we're already displaying
             // the image B by that point.
             XCTFail("Enexpected completion")
@@ -278,7 +280,7 @@ class ImageViewTests: XCTestCase {
         mockCache[requestB] = imageB
 
         // Given an image view which is in the process of loading the image A.
-        Nuke.loadImage(with: requestA, into: imageView) { _, _ in
+        Nuke.loadImage(with: requestA, into: imageView) { _ in
             // Expect completion to never get called, we're already displaying
             // the image B by that point.
             XCTFail("Enexpected completion for requestA")

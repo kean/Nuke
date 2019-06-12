@@ -24,13 +24,13 @@ extension NSLock {
 /// The implementation supports quick bursts of requests which can be executed
 /// without any delays when "the bucket is full". This is important to prevent
 /// rate limiter from affecting "normal" requests flow.
-internal final class RateLimiter {
+final class RateLimiter {
     private let bucket: TokenBucket
     private let queue: DispatchQueue
-    private var pending = LinkedList<Task>() // fast append, fast remove first
+    private var pending = LinkedList<Work>() // fast append, fast remove first
     private var isExecutingPendingTasks = false
 
-    private typealias Task = (CancellationToken, () -> Void)
+    typealias Work = () -> Bool
 
     /// Initializes the `RateLimiter` with the given configuration.
     /// - parameter queue: Queue on which to execute pending tasks.
@@ -42,82 +42,79 @@ internal final class RateLimiter {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
-    func execute(token: CancellationToken, _ closure: @escaping () -> Void) {
-        let task = Task(token, closure)
-        if !pending.isEmpty || !_execute(task) {
-            pending.append(task)
-            _setNeedsExecutePendingTasks()
+    /// - parameter closure: Returns `true` if the close was executed, `false`
+    /// if the work was cancelled.
+    func execute( _ work: @escaping Work) {
+        if !pending.isEmpty || !bucket.execute(work) {
+            pending.append(work)
+            setNeedsExecutePendingTasks()
         }
     }
 
-    private func _execute(_ task: Task) -> Bool {
-        guard !task.0.isCancelling else {
-            return true // No need to execute
+    private func setNeedsExecutePendingTasks() {
+        guard !isExecutingPendingTasks else {
+            return
         }
-        return bucket.execute(task.1)
-    }
-
-    private func _setNeedsExecutePendingTasks() {
-        guard !isExecutingPendingTasks else { return }
         isExecutingPendingTasks = true
         // Compute a delay such that by the time the closure is executed the
         // bucket is refilled to a point that is able to execute at least one
         // pending task. With a rate of 100 tasks we expect a refill every 10 ms.
         let delay = Int(1.15 * (1000 / bucket.rate)) // 14 ms for rate 80 (default)
         let bounds = max(100, min(5, delay)) // Make the delay is reasonable
-        queue.asyncAfter(deadline: .now() + .milliseconds(bounds), execute: _executePendingTasks)
+        queue.asyncAfter(deadline: .now() + .milliseconds(bounds), execute: executePendingTasks)
     }
 
-    private func _executePendingTasks() {
-        while let node = pending.first, _execute(node.value) {
+    private func executePendingTasks() {
+        while let node = pending.first, bucket.execute(node.value) {
             pending.remove(node)
         }
         isExecutingPendingTasks = false
         if !pending.isEmpty { // Not all pending items were executed
-            _setNeedsExecutePendingTasks()
+            setNeedsExecutePendingTasks()
         }
     }
+}
 
-    private final class TokenBucket {
-        let rate: Double
-        private let burst: Double // maximum bucket size
-        private var bucket: Double
-        private var timestamp: TimeInterval // last refill timestamp
+private final class TokenBucket {
+    let rate: Double
+    private let burst: Double // maximum bucket size
+    private var bucket: Double
+    private var timestamp: TimeInterval // last refill timestamp
 
-        /// - parameter rate: Rate (tokens/second) at which bucket is refilled.
-        /// - parameter burst: Bucket size (maximum number of tokens).
-        init(rate: Double, burst: Double) {
-            self.rate = rate
-            self.burst = burst
-            self.bucket = burst
-            self.timestamp = CFAbsoluteTimeGetCurrent()
+    /// - parameter rate: Rate (tokens/second) at which bucket is refilled.
+    /// - parameter burst: Bucket size (maximum number of tokens).
+    init(rate: Double, burst: Double) {
+        self.rate = rate
+        self.burst = burst
+        self.bucket = burst
+        self.timestamp = CFAbsoluteTimeGetCurrent()
+    }
+
+    /// Returns `true` if the closure was executed, `false` if dropped.
+    func execute(_ work: () -> Bool) -> Bool {
+        refill()
+        guard bucket >= 1.0 else {
+            return false // bucket is empty
         }
-
-        /// Returns `true` if the closure was executed, `false` if dropped.
-        func execute(_ closure: () -> Void) -> Bool {
-            refill()
-            guard bucket >= 1.0 else {
-                return false // bucket is empty
-            }
-            bucket -= 1.0
-            closure()
-            return true
+        if work() {
+            bucket -= 1.0 // work was cancelled, no need to reduce the bucket
         }
+        return true
+    }
 
-        private func refill() {
-            let now = CFAbsoluteTimeGetCurrent()
-            bucket += rate * max(0, now - timestamp) // rate * (time delta)
-            timestamp = now
-            if bucket > burst { // prevent bucket overflow
-                bucket = burst
-            }
+    private func refill() {
+        let now = CFAbsoluteTimeGetCurrent()
+        bucket += rate * max(0, now - timestamp) // rate * (time delta)
+        timestamp = now
+        if bucket > burst { // prevent bucket overflow
+            bucket = burst
         }
     }
 }
 
 // MARK: - Operation
 
-internal final class Operation: Foundation.Operation {
+final class Operation: Foundation.Operation {
     private var _isExecuting = false
     private var _isFinished = false
     private var isFinishCalled = Atomic(false)
@@ -179,7 +176,7 @@ internal final class Operation: Foundation.Operation {
 // MARK: - LinkedList
 
 /// A doubly linked list.
-internal final class LinkedList<Element> {
+final class LinkedList<Element> {
     // first <-> node <-> ... <-> last
     private(set) var first: Node?
     private(set) var last: Node?
@@ -248,91 +245,11 @@ internal final class LinkedList<Element> {
     }
 }
 
-// MARK: - CancellationTokenSource
-
-/// Manages cancellation tokens and signals them when cancellation is requested.
-///
-/// All `CancellationTokenSource` methods are thread safe.
-internal final class CancellationTokenSource {
-    /// Returns `true` if cancellation has been requested.
-    var isCancelling: Bool {
-        return lock.sync { observers == nil }
-    }
-
-    /// Creates a new token associated with the source.
-    var token: CancellationToken {
-        return CancellationToken(source: self)
-    }
-
-    private var lock = NSLock()
-    private var observers: [() -> Void]? = []
-
-    /// Initializes the `CancellationTokenSource` instance.
-    init() {}
-
-    fileprivate func register(_ closure: @escaping () -> Void) {
-        if !_register(closure) {
-            closure()
-        }
-    }
-
-    private func _register(_ closure: @escaping () -> Void) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-
-        observers?.append(closure)
-        return observers != nil
-    }
-
-    /// Communicates a request for cancellation to the managed tokens.
-    func cancel() {
-        if let observers = _cancel() {
-            observers.forEach { $0() }
-        }
-    }
-
-    private func _cancel() -> [() -> Void]? {
-        lock.lock()
-        defer { lock.unlock() }
-
-        let observers = self.observers
-        self.observers = nil // transition to `isCancelling` state
-        return observers
-    }
-}
-
-/// Enables cooperative cancellation of operations.
-///
-/// You create a cancellation token by instantiating a `CancellationTokenSource`
-/// object and calling its `token` property. You then pass the token to any
-/// number of threads, tasks, or operations that should receive notice of
-/// cancellation. When the owning object calls `cancel()`, the `isCancelling`
-/// property on every copy of the cancellation token is set to `true`.
-/// The registered objects can respond in whatever manner is appropriate.
-///
-/// All `CancellationToken` methods are thread safe.
-internal struct CancellationToken {
-    fileprivate let source: CancellationTokenSource? // no-op when `nil`
-
-    /// Returns `true` if cancellation has been requested for this token.
-    /// Returns `false` if the source was deallocated.
-    var isCancelling: Bool {
-        return source?.isCancelling ?? false
-    }
-
-    /// Registers the closure that will be called when the token is canceled.
-    /// If this token is already cancelled, the closure will be run immediately
-    /// and synchronously.
-    func register(_ closure: @escaping () -> Void) {
-        source?.register(closure)
-    }
-}
-
 // MARK: - ResumableData
 
 /// Resumable data support. For more info see:
 /// - https://developer.apple.com/library/content/qa/qa1761/_index.html
-internal struct ResumableData {
+struct ResumableData {
     let data: Data
     let validator: String // Either Last-Modified or ETag
 
@@ -390,150 +307,21 @@ internal struct ResumableData {
 
     /// Shared between multiple pipelines. Thread safe. In the future version we
     /// might feature more customization options.
-    static var _cache = _Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100) // internal only for testing purposes
+    static var cache = Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100)
+    // internal only for testing purposes
 
     static func removeResumableData(for request: URLRequest) -> ResumableData? {
-        guard let url = request.url?.absoluteString else { return nil }
-        return _cache.removeValue(forKey: url)
+        guard let url = request.url?.absoluteString else {
+            return nil
+        }
+        return cache.removeValue(forKey: url)
     }
 
     static func storeResumableData(_ data: ResumableData, for request: URLRequest) {
-        guard let url = request.url?.absoluteString else { return }
-        _cache.set(data, forKey: url, cost: data.data.count)
-    }
-}
-
-// MARK: - Printer
-
-/// Helper type for printing nice debug descriptions.
-internal struct Printer {
-    private(set) internal var _out = String()
-
-    private let timelineFormatter: DateFormatter
-
-    init(_ string: String = "") {
-        self._out = string
-
-        timelineFormatter = DateFormatter()
-        timelineFormatter.dateFormat = "HH:mm:ss.SSS"
-    }
-
-    func output(indent: Int = 0) -> String {
-        return _out.components(separatedBy: .newlines)
-            .map { $0.isEmpty ? "" : String(repeating: " ", count: indent) + $0 }
-            .joined(separator: "\n")
-    }
-
-    mutating func string(_ str: String) {
-        _out.append(str)
-    }
-
-    mutating func line(_ str: String) {
-        _out.append(str)
-        _out.append("\n")
-    }
-
-    mutating func value(_ key: String, _ value: CustomStringConvertible?) {
-        let val = value.map { String(describing: $0) }
-        line(key + " - " + (val ?? "nil"))
-    }
-
-    /// For producting nicely formatted timelines like this:
-    ///
-    /// 11:45:52.737 - Data Loading Start Date
-    /// 11:45:52.739 - Data Loading End Date
-    /// nil          - Decoding Start Date
-    mutating func timeline(_ key: String, _ date: Date?) {
-        let value = date.map { timelineFormatter.string(from: $0) }
-        self.value((value ?? "nil         "), key) // Swtich key with value
-    }
-
-    mutating func timeline(_ key: String, _ start: Date?, _ end: Date?, isReversed: Bool = true) {
-        let duration = _duration(from: start, to: end)
-        let value = "\(_string(from: start)) – \(_string(from: end)) (\(duration))"
-        if isReversed {
-            self.value(value.padding(toLength: 36, withPad: " ", startingAt: 0), key)
-        } else {
-            self.value(key, value)
+        guard let url = request.url?.absoluteString else {
+            return
         }
-    }
-
-    mutating func section(title: String, _ closure: (inout Printer) -> Void) {
-        _out.append(contentsOf: title)
-        _out.append(" {\n")
-        var printer = Printer()
-        closure(&printer)
-        _out.append(printer.output(indent: 4))
-        _out.append("}\n")
-    }
-
-    // MARK: Formatters
-
-    private func _string(from date: Date?) -> String {
-        return date.map { timelineFormatter.string(from: $0) } ?? "nil"
-    }
-
-    private func _duration(from: Date?, to: Date?) -> String {
-        guard let from = from else { return "nil" }
-        guard let to = to else { return "unknown" }
-        return Printer.duration(to.timeIntervalSince(from)) ?? "nil"
-    }
-
-    static func duration(_ duration: TimeInterval?) -> String? {
-        guard let duration = duration else { return nil }
-
-        let m: Int = Int(duration) / 60
-        let s: Int = Int(duration) % 60
-        let ms: Int = Int(duration * 1000) % 1000
-
-        var output = String()
-        if m > 0 { output.append("\(m):") }
-        output.append(output.isEmpty ? "\(s)." : String(format: "%02d.", s))
-        output.append(String(format: "%03ds", ms))
-        return output
-    }
-}
-
-// MARK: - Misc
-
-struct TaskMetrics {
-    var startDate: Date? = nil
-    var endDate: Date? = nil
-
-    static func started() -> TaskMetrics {
-        var metrics = TaskMetrics()
-        metrics.start()
-        return metrics
-    }
-
-    mutating func start() {
-        startDate = Date()
-    }
-
-    mutating func end() {
-        endDate = Date()
-    }
-}
-
-/// A simple observable property. Not thread safe.
-final class Property<T> {
-    var value: T {
-        didSet {
-            for observer in observers {
-                observer(value)
-            }
-        }
-    }
-
-    init(value: T) {
-        self.value = value
-    }
-
-    private var observers = [(T) -> Void]()
-
-    // For our use-cases we can just ignore unsubscribing for now.
-    func observe(_ closure: @escaping (T) -> Void) {
-        observers.append(closure)
+        cache.set(data, forKey: url, cost: data.data.count)
     }
 }
 
@@ -600,21 +388,55 @@ extension String {
     /// // prints "50334ee0b51600df6397ce93ceed4728c37fee4e"
     /// ```
     var sha1: String? {
-        guard let input = self.data(using: .utf8) else { return nil }
-        
-        #if swift(>=5.0)
+        guard let input = self.data(using: .utf8) else {
+            return nil
+        }
+
         let hash = input.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> [UInt8] in
             var hash = [UInt8](repeating: 0, count: Int(CC_SHA1_DIGEST_LENGTH))
             CC_SHA1(bytes.baseAddress, CC_LONG(input.count), &hash)
             return hash
         }
-        #else
-        var hash = [UInt8](repeating: 0, count: Int(CC_SHA1_DIGEST_LENGTH))
-        input.withUnsafeBytes {
-            _ = CC_SHA1($0, CC_LONG(input.count), &hash)
-        }
-        #endif
-        
+
         return hash.map({ String(format: "%02x", $0) }).joined()
     }
+}
+
+// MARK: - Signpost
+
+import os
+
+enum SignpostType {
+    case begin, event, end
+
+    @available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *)
+    var os: OSSignpostType {
+        switch self {
+        case .begin: return .begin
+        case .event: return .event
+        case .end: return .end
+        }
+    }
+}
+
+final class Signpost {
+    private let log: OSLog
+
+    @available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *)
+    var signpostID: OSSignpostID {
+        return OSSignpostID(log: log, object: self)
+    }
+
+    init(log: OSLog) {
+        self.log = log
+    }
+
+    func log(_ type: SignpostType, name: StaticString) {
+        if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
+            os_signpost(type.os, log: log, name: name, signpostID: signpostID)
+        }
+    }
+
+    // Unfortunately, it's not technically possible to wrap the version which
+    // accepts `CVarArg...` because there is no way to pass them to `os_singpost`
 }

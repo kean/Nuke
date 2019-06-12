@@ -16,7 +16,7 @@ public final class ImagePreheater {
     private let pipeline: ImagePipeline
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
     private let preheatQueue = OperationQueue()
-    private var tasks = [PreheatKey: Task]()
+    private var tasks = [AnyHashable: Task]()
     private let destination: Destination
 
     /// Prefetching destination.
@@ -27,7 +27,7 @@ public final class ImagePreheater {
         case memoryCache
 
         /// Prefetches image data and stores in disk cache. Will no decode
-        /// the image data and will therefore useless less CPU.
+        /// the image data and will therefore use less CPU.
         case diskCache
     }
 
@@ -35,7 +35,9 @@ public final class ImagePreheater {
     /// - parameter manager: `Loader.shared` by default.
     /// - parameter `maxConcurrentRequestCount`: 2 by default.
     /// - parameter destination: `.memoryCache` by default.
-    public init(pipeline: ImagePipeline = ImagePipeline.shared, destination: Destination = .memoryCache, maxConcurrentRequestCount: Int = 2) {
+    public init(pipeline: ImagePipeline = ImagePipeline.shared,
+                destination: Destination = .memoryCache,
+                maxConcurrentRequestCount: Int = 2) {
         self.pipeline = pipeline
         self.destination = destination
         self.preheatQueue.maxConcurrentOperationCount = maxConcurrentRequestCount
@@ -55,16 +57,18 @@ public final class ImagePreheater {
     public func startPreheating(with requests: [ImageRequest]) {
         queue.async {
             for request in requests {
-                self._startPreheating(with: self._updatedRequest(request))
+                self._startPreheating(with: request)
             }
         }
     }
 
     private func _startPreheating(with request: ImageRequest) {
-        let key = PreheatKey(request: request)
+        let key = request.makeLoadKeyForProcessedImage()
 
         // Check if we we've already started preheating.
-        guard tasks[key] == nil else { return }
+        guard tasks[key] == nil else {
+            return
+        }
 
         // Check if the image is already in memory cache.
         guard pipeline.configuration.imageCache?.cachedResponse(for: request) == nil else {
@@ -72,27 +76,49 @@ public final class ImagePreheater {
         }
 
         let task = Task(request: request, key: key)
-        let token = task.cts.token
 
-        let operation = Operation(starter: { [weak self] finish in
-            let task = self?.pipeline.loadImage(with: request) { [weak self] _, _  in
-                self?._remove(task)
-                finish()
+        // Use `Operation` to limit maximum number of concurrent preheating jobs
+        let operation = Operation(starter: { [weak self, weak task] finish in
+            guard let self = self, let task = task else {
+                return finish()
             }
-            token.register {
-                task?.cancel()
-                finish()
+            self.queue.async {
+                self.loadImage(with: request, task: task, finish: finish)
             }
         })
         preheatQueue.addOperation(operation)
-        token.register { [weak operation] in operation?.cancel() }
-
         tasks[key] = task
+    }
+
+    private func loadImage(with request: ImageRequest, task: Task, finish: @escaping () -> Void) {
+        guard !task.isCancelled else {
+            return finish()
+        }
+
+        let imageTask: ImageTask
+        switch destination {
+        case .diskCache:
+            imageTask = pipeline.loadData(with: request) { [weak self] _ in
+                self?._remove(task)
+                finish()
+            }
+        case .memoryCache:
+            imageTask = pipeline.loadImage(with: request) { [weak self] _ in
+                self?._remove(task)
+                finish()
+            }
+        }
+        task.onCancelled = {
+            imageTask.cancel()
+            finish()
+        }
     }
 
     private func _remove(_ task: Task) {
         queue.async {
-            guard self.tasks[task.key] === task else { return }
+            guard self.tasks[task.key] === task else {
+                return
+            }
             self.tasks[task.key] = nil
         }
     }
@@ -109,22 +135,22 @@ public final class ImagePreheater {
     public func stopPreheating(with requests: [ImageRequest]) {
         queue.async {
             for request in requests {
-                self._stopPreheating(with: self._updatedRequest(request))
+                self._stopPreheating(with: request)
             }
         }
     }
 
     private func _stopPreheating(with request: ImageRequest) {
-        if let task = tasks[PreheatKey(request: request)] {
+        if let task = tasks[request.makeLoadKeyForProcessedImage()] {
             tasks[task.key] = nil
-            task.cts.cancel()
+            task.cancel()
         }
     }
 
     /// Stops all preheating tasks.
     public func stopPreheating() {
         queue.async {
-            self.tasks.forEach { $0.1.cts.cancel() }
+            self.tasks.values.forEach { $0.cancel() }
             self.tasks.removeAll()
         }
     }
@@ -137,36 +163,23 @@ public final class ImagePreheater {
         }
     }
 
-    private func _updatedRequest(_ request: ImageRequest) -> ImageRequest {
-        guard destination == .diskCache else {
-            return request // Avoid creating a new copy
-        }
-
-        var request = request
-        // What we do under the hood is we disable decoding for the requests
-        // that are meant to not be stored in memory cache.
-        request.isDecodingDisabled = (destination == .diskCache)
-        return request
-    }
-
     private final class Task {
-        let key: PreheatKey
+        let key: AnyHashable
         let request: ImageRequest
-        let cts = CancellationTokenSource()
+        var isCancelled = false
+        var onCancelled: (() -> Void)?
+        weak var operation: Operation?
 
-        init(request: ImageRequest, key: PreheatKey) {
+        init(request: ImageRequest, key: AnyHashable) {
             self.request = request
             self.key = key
         }
-    }
 
-    private struct PreheatKey: Hashable {
-        let cacheKey: ImageRequest.CacheKey
-        let loadKey: ImageRequest.LoadKey
-
-        init(request: ImageRequest) {
-            self.cacheKey = ImageRequest.CacheKey(request: request)
-            self.loadKey = ImageRequest.LoadKey(request: request)
+        func cancel() {
+            guard !isCancelled else { return }
+            isCancelled = true
+            operation?.cancel()
+            onCancelled?()
         }
     }
 }

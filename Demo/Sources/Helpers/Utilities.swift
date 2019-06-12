@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2019 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
 import Nuke
@@ -64,8 +64,8 @@ extension UIImage {
 
 /// Blurs image using CIGaussianBlur filter. Only blurs first scans of the
 /// progressive JPEG.
-struct _ProgressiveBlurImageProcessor: ImageProcessing {
-    func process(image: Image, context: ImageProcessingContext) -> Image? {
+struct _ProgressiveBlurImageProcessor: ImageProcessing, Hashable {
+    func process(image: Image, context: ImageProcessingContext?) -> Image? {
         // CoreImage is too slow on simulator.
         #if targetEnvironment(simulator)
         return image
@@ -82,7 +82,7 @@ struct _ProgressiveBlurImageProcessor: ImageProcessing {
         if scanNumber < 5 {
             // Progressively reduce blur as we load more scans.
             let radius = max(2, 14 - scanNumber * 4)
-            return image.applyFilter(filter: CIFilter(name: "CIGaussianBlur", withInputParameters: ["inputRadius" : radius]))
+            return image.applyFilter(filter: CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius" : radius]))
         }
 
         // Scans 5+ are already good enough not to blur them.
@@ -90,7 +90,9 @@ struct _ProgressiveBlurImageProcessor: ImageProcessing {
         #endif
     }
 
-    static func == (lhs: _ProgressiveBlurImageProcessor, rhs: _ProgressiveBlurImageProcessor) -> Bool {
-        return true
+    let identifier: String = "_ProgressiveBlurImageProcessor"
+
+    var hashableIdentifier: AnyHashable {
+        return self
     }
 }

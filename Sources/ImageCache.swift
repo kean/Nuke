@@ -32,7 +32,7 @@ public extension ImageCaching {
         }
         set {
             if let newValue = newValue {
-                storeResponse(ImageResponse(image: newValue, urlResponse: nil), for: request)
+                storeResponse(ImageResponse(image: newValue, urlResponse: nil, scanNumber: nil), for: request)
             } else {
                 removeResponse(for: request)
             }
@@ -51,35 +51,35 @@ public extension ImageCaching {
 /// memory warning. It also automatically removes *most* of cached elements
 /// when the app enters background.
 public final class ImageCache: ImageCaching {
-    private let _impl: _Cache<ImageRequest.CacheKey, ImageResponse>
+    private let impl: Cache<ImageRequest.CacheKey, ImageResponse>
 
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int {
-        get { return _impl.costLimit }
-        set { _impl.costLimit = newValue }
+        get { return impl.costLimit }
+        set { impl.costLimit = newValue }
     }
 
     /// The maximum number of items that the cache can hold.
     public var countLimit: Int {
-        get { return _impl.countLimit }
-        set { _impl.countLimit = newValue }
+        get { return impl.countLimit }
+        set { impl.countLimit = newValue }
     }
 
     /// Default TTL (time to live) for each entry. Can be used to make sure that
     /// the entries get validated at some point. `0` (never expire) by default.
     public var ttl: TimeInterval {
-        get { return _impl.ttl }
-        set { _impl.ttl = newValue }
+        get { return impl.ttl }
+        set { impl.ttl = newValue }
     }
 
     /// The total cost of items in the cache.
     public var totalCost: Int {
-        return _impl.totalCost
+        return impl.totalCost
     }
 
     /// The total number of items in the cache.
     public var totalCount: Int {
-        return _impl.totalCount
+        return impl.totalCount
     }
 
     /// Shared `Cache` instance.
@@ -90,7 +90,7 @@ public final class ImageCache: ImageCaching {
     /// calculated based on the amount of the phisical memory available on the device.
     /// - parameter countLimit: `Int.max` by default.
     public init(costLimit: Int = ImageCache.defaultCostLimit(), countLimit: Int = Int.max) {
-        _impl = _Cache(costLimit: costLimit, countLimit: countLimit)
+        impl = Cache(costLimit: costLimit, countLimit: countLimit)
     }
 
     /// Returns a recommended cost limit which is computed based on the amount
@@ -104,39 +104,43 @@ public final class ImageCache: ImageCaching {
 
     /// Returns the `ImageResponse` stored in the cache with the given request.
     public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
-        return _impl.value(forKey: ImageRequest.CacheKey(request: request))
+        return impl.value(forKey: request.makeCacheKeyForProcessedImage())
     }
 
     /// Stores the given `ImageResponse` in the cache using the given request.
     public func storeResponse(_ response: ImageResponse, for request: ImageRequest) {
-        _impl.set(response, forKey: ImageRequest.CacheKey(request: request), cost: self.cost(for: response.image))
+        impl.set(response, forKey: request.makeCacheKeyForProcessedImage(), cost: self.cost(for: response.image))
     }
 
     /// Removes response stored with the given request.
     public func removeResponse(for request: ImageRequest) {
-        _impl.removeValue(forKey: ImageRequest.CacheKey(request: request))
+        impl.removeValue(forKey: request.makeCacheKeyForProcessedImage())
     }
 
     /// Removes all cached images.
     public func removeAll() {
-        _impl.removeAll()
+        impl.removeAll()
     }
     /// Removes least recently used items from the cache until the total cost
     /// of the remaining items is less than the given cost limit.
     public func trim(toCost limit: Int) {
-        _impl.trim(toCost: limit)
+        impl.trim(toCost: limit)
     }
 
     /// Removes least recently used items from the cache until the total count
     /// of the remaining items is less than the given count limit.
     public func trim(toCount limit: Int) {
-        _impl.trim(toCount: limit)
+        impl.trim(toCount: limit)
     }
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
     func cost(for image: Image) -> Int {
-        #if !os(macOS)
-        let dataCost = ImagePipeline.Configuration.isAnimatedImageDataEnabled ? (image.animatedImageData?.count ?? 0) : 0
+        let dataCost: Int
+        if ImagePipeline.Configuration.isAnimatedImageDataEnabled {
+            dataCost = image.animatedImageData?.count ?? 0
+        } else {
+            dataCost = 0
+        }
 
         // bytesPerRow * height gives a rough estimation of how much memory
         // image uses in bytes. In practice this algorithm combined with a
@@ -145,14 +149,10 @@ public final class ImageCache: ImageCaching {
             return 1 + dataCost
         }
         return cgImage.bytesPerRow * cgImage.height + dataCost
-
-        #else
-        return 1
-        #endif
     }
 }
 
-internal final class _Cache<Key: Hashable, Value> {
+final class Cache<Key: Hashable, Value> {
     // We don't use `NSCache` because it's not LRU
 
     private var map = [Key: LinkedList<Entry>.Node]()
@@ -178,8 +178,13 @@ internal final class _Cache<Key: Hashable, Value> {
         self.costLimit = costLimit
         self.countLimit = countLimit
         #if os(iOS) || os(tvOS)
-        NotificationCenter.default.addObserver(self, selector: #selector(removeAll), name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
+        let center = NotificationCenter.default
+        center.addObserver(self, selector: #selector(removeAll),
+                           name: UIApplication.didReceiveMemoryWarningNotification,
+                           object: nil)
+        center.addObserver(self, selector: #selector(didEnterBackground),
+                           name: UIApplication.didEnterBackgroundNotification,
+                           object: nil)
         #endif
     }
 
@@ -222,7 +227,9 @@ internal final class _Cache<Key: Hashable, Value> {
     func removeValue(forKey key: Key) -> Value? {
         lock.lock(); defer { lock.unlock() }
 
-        guard let node = map[key] else { return nil }
+        guard let node = map[key] else {
+            return nil
+        }
         _remove(node: node)
         return node.value.value
     }
@@ -241,7 +248,8 @@ internal final class _Cache<Key: Hashable, Value> {
         totalCost -= node.value.cost
     }
 
-    @objc dynamic func removeAll() {
+    @objc
+    dynamic func removeAll() {
         lock.sync {
             map.removeAll()
             list.removeAll()
@@ -254,7 +262,8 @@ internal final class _Cache<Key: Hashable, Value> {
         _trim(toCount: countLimit)
     }
 
-    @objc private dynamic func didEnterBackground() {
+    @objc
+    private dynamic func didEnterBackground() {
         // Remove most of the stored items when entering background.
         // This behavior is similar to `NSCache` (which removes all
         // items). This feature is not documented and may be subject
@@ -293,7 +302,9 @@ internal final class _Cache<Key: Hashable, Value> {
         let cost: Int
         let expiration: Date?
         var isExpired: Bool {
-            guard let expiration = expiration else { return false }
+            guard let expiration = expiration else {
+                return false
+            }
             return expiration.timeIntervalSinceNow < 0
         }
     }

@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2019 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-@testable import Nuke
+import Nuke
 
 private let data: Data = Test.data(name: "fixture", extension: "jpeg")
 
@@ -60,7 +60,7 @@ class MockDataLoader: DataLoading {
 // MARK: - Result
 
 // we're still using Result internally, but don't pollute user's space
-internal enum _Result<T, Error: Swift.Error> {
+enum _Result<T, Error: Swift.Error> {
     case success(T), failure(Error)
 
     /// Returns a `value` if the result is success.

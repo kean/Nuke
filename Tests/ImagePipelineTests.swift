@@ -23,7 +23,7 @@ class ImagePipelineTests: XCTestCase {
 
     func testCompletionCalledAsynchronouslyOnMainThread() {
         var isCompleted = false
-        expect(pipeline).toLoadImage(with: Test.request) { _, _ in
+        expect(pipeline).toLoadImage(with: Test.request) { _ in
             XCTAssert(Thread.isMainThread)
             isCompleted = true
         }
@@ -66,7 +66,7 @@ class ImagePipelineTests: XCTestCase {
 
         // When
         let expectTaskFinished = self.expectation(description: "Task finished")
-        let task = pipeline.loadImage(with: request) { _, _ in
+        let task = pipeline.loadImage(with: request) { _ in
             expectTaskFinished.fulfill()
         }
 
@@ -81,26 +81,6 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
-    // MARK: - Configuration
-
-    func testOverridingProcessor() {
-        // Given
-        let pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageProcessor = { _, _ in
-                AnyImageProcessor(MockImageProcessor(id: "processorFromOptions"))
-            }
-        }
-        let request = Test.request.processed(with: MockImageProcessor(id: "processorFromRequest"))
-
-        // Then
-        expect(pipeline).toLoadImage(with: request) { response, _ in
-            XCTAssertEqual(response?.image.nk_test_processorIDs.count, 1)
-            XCTAssertEqual(response?.image.nk_test_processorIDs.first, "processorFromOptions")
-        }
-        wait()
-    }
-
     // MARK: - Animated Images
 
     func testAnimatedImagesArentProcessed() {
@@ -111,14 +91,16 @@ class ImagePipelineTests: XCTestCase {
             (Test.data(name: "cat", extension: "gif"), Test.urlResponse)
         )
 
-        let request = Test.request.processed(key: "1") { _ in
+        let processor = ImageProcessor.Anonymous(id: "1") { _ in
             XCTFail()
             return nil
         }
+        let request = ImageRequest(url: Test.url, processors: [processor])
 
         // Then
-        expect(pipeline).toLoadImage(with: request) { response, _ in
-            XCTAssertNotNil(response?.image.animatedImageData)
+        expect(pipeline).toLoadImage(with: request) { result in
+            let image = result.value?.image
+            XCTAssertNotNil(image?.animatedImageData)
         }
         wait()
 
@@ -141,8 +123,11 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till the operation is created.
 
         // When/Then
-        expect(observer.operations.first!).toUpdatePriority()
-        task.setPriority(.high)
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        expect(operation).toUpdatePriority()
+        task.priority = .high
 
         wait()
     }
@@ -161,8 +146,11 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till the operation is created.
 
         // When/Then
-        expect(observer.operations.first!).toUpdatePriority()
-        task.setPriority(.high)
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        expect(operation).toUpdatePriority()
+        task.priority = .high
 
         wait()
     }
@@ -172,7 +160,7 @@ class ImagePipelineTests: XCTestCase {
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
 
-        let request = Test.request.processed(key: "1") { $0 }
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessor.Anonymous(id: "1", { $0 })])
         XCTAssertEqual(request.priority, .normal)
 
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
@@ -181,8 +169,11 @@ class ImagePipelineTests: XCTestCase {
         wait() // Wait till the operation is created.
 
         // When/Then
-        expect(observer.operations.first!).toUpdatePriority()
-        task.setPriority(.high)
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        expect(operation).toUpdatePriority()
+        task.priority = .high
 
         wait()
     }
@@ -193,7 +184,7 @@ class ImagePipelineTests: XCTestCase {
         dataLoader.queue.isSuspended = true
 
         expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-        let task = pipeline.loadImage(with: Test.request) { (_, _) in
+        let task = pipeline.loadImage(with: Test.request) { _ in
             XCTFail()
         }
         wait() // Wait till operation is created
@@ -212,15 +203,16 @@ class ImagePipelineTests: XCTestCase {
 
         let request = Test.request
 
-        let task = pipeline.loadImage(with: request) { (_, _) in
+        let task = pipeline.loadImage(with: request) { _ in
             XCTFail()
         }
         wait() // Wait till operation is created
 
         // When/Then
-        let operation = observer.operations.first
-        XCTAssertNotNil(operation)
-        expect(operation!).toCancel()
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        expect(operation).toCancel()
 
         task.cancel()
 
@@ -234,12 +226,13 @@ class ImagePipelineTests: XCTestCase {
 
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        let request = Test.request.processed(key: "1") {
+        let processor = ImageProcessor.Anonymous(id: "1") {
             XCTFail()
             return $0
         }
+        let request = ImageRequest(url: Test.url, processors: [processor])
 
-        let task = pipeline.loadImage(with: request) { (_, _) in
+        let task = pipeline.loadImage(with: request) { _ in
             XCTFail()
         }
         wait() // Wait till operation is created
@@ -254,29 +247,104 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
-    // MARK: Disabling Decoding
+    // MARK: Decompression
 
-    func testDisablingDecoding() {
-        // Given the pipeline successfully returning image data
+    #if !os(macOS)
+
+    func testDisablingDecompression() {
+        let image = Test.image
+
+        // Given the pipeline which returns a predefined image and which
+        // has decompression disabled
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
-            $0.imageDecoder = { _ in
-                XCTFail("The pipeline tried to decode the image data")
-                return ImageDecoder()
+            $0.makeImageDecoder = { _ in
+                MockAnonymousImageDecoder { _, _ in
+                    return image
+                }
+            }
+            $0.imageCache = nil
+
+            $0.isDecompressionEnabled = false
+        }
+
+        // When
+        expect(pipeline).toLoadImage(with: Test.request) { result in
+            guard let output = result.value?.image else {
+                return XCTFail("Expected image to be loaded")
+            }
+
+            XCTAssertTrue(output === image)
+
+            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: output)
+            XCTAssertEqual(isDecompressionNeeded, true)
+        }
+        wait()
+    }
+
+    func testDecompression() {
+        let image = Test.image
+
+        // Given the pipeline which returns a predefined image
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+            $0.makeImageDecoder = { _ in
+                MockAnonymousImageDecoder { _, _ in
+                    return image
+                }
             }
             $0.imageCache = nil
         }
 
-        // Given the request with disabled decoding
-        let request = Test.request.mutated {
-            $0.isDecodingDisabled = true
-        }
+        // When
+        expect(pipeline).toLoadImage(with: Test.request) { result in
+            guard let output = result.value?.image else {
+                return XCTFail("Expected image to be loaded")
+            }
 
-        // When the image data is loaded
-        // Expect pipeline to skip decoding and return .decodingFailded error
-        expect(pipeline).toFailRequest(request, with: .decodingFailed)
+            XCTAssertTrue(output !== image)
+
+            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: output)
+            XCTAssertEqual(isDecompressionNeeded, false)
+        }
         wait()
     }
+
+    func testDecompressionNotPerformedWhenProcessorWasApplied() {
+        // Given request with scaling processor
+        let request = ImageRequest(url: Test.url, processors: [
+            ImageProcessor.Resize(size: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+        ])
+
+        expect(pipeline).toLoadImage(with: request) { result in
+            guard let image = result.value?.image else {
+                return XCTFail("Expected image to be loaded")
+            }
+
+            // Expect decompression to not be performed
+            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
+            XCTAssertNil(isDecompressionNeeded)
+        }
+        wait()
+    }
+
+    func testDecompressionPerformedWhenProcessorIsAppliedButDoesNothing() {
+        // Given request with scaling processor
+        let request = ImageRequest(url: Test.url, processors: [MockEmptyImageProcessor()])
+
+        expect(pipeline).toLoadImage(with: request) { result in
+            guard let image = result.value?.image else {
+                return XCTFail("Expected image to be loaded")
+            }
+
+            // Expect decompression to be performed (processor was applied but it did nothing)
+            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
+            XCTAssertEqual(isDecompressionNeeded, false)
+        }
+        wait()
+    }
+
+    #endif
 }
 
 /// Test how well image pipeline interacts with memory cache.
@@ -315,7 +383,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func testCacheRead() {
         // Given
-        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil), for: Test.request)
+        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil, scanNumber: nil), for: Test.request)
 
         // When
         expect(pipeline).toLoadImage(with: Test.request)
@@ -328,9 +396,8 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func testCacheWriteDisabled() {
         // Given
-        let request = Test.request.mutated {
-            $0.memoryCacheOptions.isWriteAllowed = false
-        }
+        var request = Test.request
+        request.options.memoryCacheOptions.isWriteAllowed = false
 
         // When
         expect(pipeline).toLoadImage(with: request)
@@ -343,11 +410,10 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func testCacheReadDisabled() {
         // Given
-        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil), for: Test.request)
+        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil, scanNumber: nil), for: Test.request)
 
-        let request = Test.request.mutated {
-            $0.memoryCacheOptions.isReadAllowed = false
-        }
+        var request = Test.request
+        request.options.memoryCacheOptions.isReadAllowed = false
 
         // When
         expect(pipeline).toLoadImage(with: request)
@@ -380,7 +446,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
         // Given
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
-            $0.imageDecoder = { _ in
+            $0.makeImageDecoder = { _ in
                 return MockFailingDecoder()
             }
             $0.imageCache = nil
@@ -398,7 +464,7 @@ class ImagePipelineErrorHandlingTests: XCTestCase {
             return
         }
 
-        let request = Test.request.processed(with: MockFailingProcessor())
+        let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
 
         // When/Then
         expect(pipeline).toFailRequest(request, with: .processingFailed)

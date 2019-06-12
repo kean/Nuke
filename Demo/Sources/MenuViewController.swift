@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2019 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
 import Nuke
@@ -42,21 +42,30 @@ final class MenuViewController: UITableViewController {
             navigationItem.largeTitleDisplayMode = .automatic
         }
 
-        sections.append(MenuSection(title: "Basic", items: {
+        sections.append(MenuSection(title: "General", items: {
             var items = [MenuItem]()
 
             items.append(MenuItem(
-                title: "Basic",
-                subtitle: "Zero config",
-                action: { [weak self] in
+                title: "Image Pipeline",
+                subtitle: "The default pipeline, configurable at runtime",
+                action: { [weak self] _ in
                     let controller = BasicDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = "Image Pipeline"
+                    self?.push(controller)
+            }))
+
+            items.append(MenuItem(
+                title: "Image Processing",
+                subtitle: "Showcases some of the built-in image processors",
+                action: { [weak self] in
+                    let controller = ImageProcessingDemoViewController()
                     controller.title = $0.title
                     self?.push(controller)
             }))
 
             items.append(MenuItem(
                 title: "Disk Cache",
-                subtitle: "Aggressive disk caching",
+                subtitle: "Aggressive disk caching enabled",
                 action: { [weak self] in
                     let controller = DataCachingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
                     controller.title = $0.title
@@ -64,33 +73,13 @@ final class MenuViewController: UITableViewController {
             }))
 
             items.append(MenuItem(
-                title: "Progressive Decoding",
-                subtitle: "Progressive and baseline JPEG",
-                action: { [weak self] _ in
-                    let controller = ProgressiveDecodingDemoViewController()
-                    controller.title = "Progressive JPEG"
+                title: "Prefetching",
+                subtitle: "UICollectionView Prefetching",
+                action: { [weak self] in
+                    let controller = PrefetchingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
                     self?.push(controller)
             }))
-
-            if #available(iOS 10.0, *) {
-                items.append(MenuItem(
-                    title: "Prefetching",
-                    subtitle: "UICollectionView Prefetching",
-                    action: { [weak self] in
-                        let controller = PrefetchingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-                        controller.title = $0.title
-                        self?.push(controller)
-                }))
-            } else {
-                items.append(MenuItem(
-                    title: "Preheating",
-                    subtitle: "Uses Preheat library",
-                    action: { [weak self] in
-                        let controller = PreheatingDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
-                        controller.title = $0.title
-                        self?.push(controller)
-                }))
-            }
 
             return items
         }()))
@@ -132,11 +121,11 @@ final class MenuViewController: UITableViewController {
             var items = [MenuItem]()
 
             items.append(MenuItem(
-                title: "MP4 (Experimental)",
-                subtitle: "Replaces GIFs with MP4",
-                action: { [weak self] in
-                    let controller = AnimatedImageUsingVideoViewController(nibName: nil, bundle: nil)
-                    controller.title = $0.title
+                title: "Progressive Decoding",
+                subtitle: "Progressive vs baseline JPEG",
+                action: { [weak self] _ in
+                    let controller = ProgressiveDecodingDemoViewController()
+                    controller.title = "Progressive JPEG"
                     self?.push(controller)
             }))
 
@@ -145,6 +134,15 @@ final class MenuViewController: UITableViewController {
                 subtitle: "Infinite scroll, highlights rate limiter performance",
                 action: { [weak self] in
                     let controller = RateLimiterDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
+
+            items.append(MenuItem(
+                title: "MP4 (Experimental)",
+                subtitle: "Replaces GIFs with MP4",
+                action: { [weak self] in
+                    let controller = AnimatedImageUsingVideoViewController(nibName: nil, bundle: nil)
                     controller.title = $0.title
                     self?.push(controller)
             }))

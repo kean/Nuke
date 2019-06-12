@@ -23,17 +23,17 @@ extension URLSessionTask: Cancellable {}
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading {
     public let session: URLSession
-    private let _impl: _DataLoader
+    private let impl: _DataLoader
 
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
     public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
                 validate: @escaping (URLResponse) -> Swift.Error? = DataLoader.validate) {
-        self._impl = _DataLoader()
-        self.session = URLSession(configuration: configuration, delegate: _impl, delegateQueue: _impl.queue)
-        self._impl.session = self.session
-        self._impl.validate = validate
+        self.impl = _DataLoader()
+        self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: impl.queue)
+        self.impl.session = self.session
+        self.impl.validate = validate
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
@@ -47,7 +47,9 @@ public final class DataLoader: DataLoading {
     /// Validates `HTTP` responses by checking that the status code is 2xx. If
     /// it's not returns `DataLoader.Error.statusCodeUnacceptable`.
     public static func validate(response: URLResponse) -> Swift.Error? {
-        guard let response = response as? HTTPURLResponse else { return nil }
+        guard let response = response as? HTTPURLResponse else {
+            return nil
+        }
         return (200..<300).contains(response.statusCode) ? nil : Error.statusCodeUnacceptable(response.statusCode)
     }
 
@@ -72,22 +74,21 @@ public final class DataLoader: DataLoading {
         diskPath: cachePath
     )
 
-    public func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
-        return _impl.loadData(with: request, didReceiveData: didReceiveData, completion: completion)
+    public func loadData(with request: URLRequest,
+                         didReceiveData: @escaping (Data, URLResponse) -> Void,
+                         completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
+        return impl.loadData(with: request, didReceiveData: didReceiveData, completion: completion)
     }
 
     /// Errors produced by `DataLoader`.
     public enum Error: Swift.Error, CustomDebugStringConvertible {
         /// Validation failed.
         case statusCodeUnacceptable(Int)
-        /// Either the response or body was empty.
-        @available(*, deprecated, message: "This error case is not used any more")
-        case responseEmpty
 
         public var debugDescription: String {
             switch self {
-            case let .statusCodeUnacceptable(code): return "Response status code was unacceptable: " + code.description // compiles faster than interpolation
-            case .responseEmpty: return "Either the response or body was empty."
+            case let .statusCodeUnacceptable(code):
+                return "Response status code was unacceptable: \(code.description)"
             }
         }
     }
@@ -108,7 +109,9 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     }
 
     /// Loads data with the given request.
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    func loadData(with request: URLRequest,
+                  didReceiveData: @escaping (Data, URLResponse) -> Void,
+                  completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = session.dataTask(with: request)
         let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
         queue.addOperation { // `URLSession` is configured to use this same queue
@@ -120,7 +123,10 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
 
     // MARK: URLSessionDelegate
 
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+    func urlSession(_ session: URLSession,
+                    dataTask: URLSessionDataTask,
+                    didReceive response: URLResponse,
+                    completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         guard let handler = handlers[dataTask] else {
             completionHandler(.cancel)
             return
@@ -135,7 +141,9 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        guard let handler = handlers[task] else { return }
+        guard let handler = handlers[task] else {
+            return
+        }
         handlers[task] = nil
         handler.completion(error)
     }
@@ -143,7 +151,9 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     // MARK: URLSessionDataDelegate
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        guard let handler = handlers[dataTask], let response = dataTask.response else { return }
+        guard let handler = handlers[dataTask], let response = dataTask.response else {
+            return
+        }
         // We don't store data anywhere, just send it to the pipeline.
         handler.didReceiveData(data, response)
     }

@@ -5,24 +5,6 @@
 import Foundation
 import Nuke
 
-extension ImageRequest {
-    func mutated(_ closure: (inout ImageRequest) -> Void) -> ImageRequest {
-        var request = self
-        closure(&request)
-        return request
-    }
-
-    func with(processorId: String) -> ImageRequest {
-        return processed(with: MockImageProcessor(id: processorId))
-    }
-
-    func with(priority: Priority) -> ImageRequest {
-        var request = self
-        request.priority = priority
-        return request
-    }
-}
-
 extension ImagePipeline.Error: Equatable {
     public static func == (lhs: ImagePipeline.Error, rhs: ImagePipeline.Error) -> Bool {
         switch (lhs, rhs) {
@@ -32,6 +14,14 @@ extension ImagePipeline.Error: Equatable {
         case (.processingFailed, .processingFailed): return true
         default: return false
         }
+    }
+}
+
+extension ImagePipeline {
+    func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
+        var configuration = self.configuration
+        configure(&configuration)
+        return ImagePipeline(configuration: configuration)
     }
 }
 

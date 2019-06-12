@@ -6,5 +6,4 @@ target 'NukeDemo' do
 	pod 'DFCache'
 	pod 'FLAnimatedImage'
 	pod 'Alamofire'
-	pod 'Preheat', '~>3.0'
 end

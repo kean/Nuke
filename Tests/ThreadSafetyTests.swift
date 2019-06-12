@@ -45,7 +45,7 @@ class ThreadSafetyTests: XCTestCase {
                 let request = ImageRequest(url: URL(string: "\(Test.url)/\(rnd(30))")!)
                 let shouldCancel = rnd(3) == 0
 
-                let task = pipeline.loadImage(with: request) { _, _ in
+                let task = pipeline.loadImage(with: request) { _ in
                     if shouldCancel {
                         // do nothing, we don't expect completion on cancel
                     } else {
@@ -81,87 +81,6 @@ class ThreadSafetyTests: XCTestCase {
             }
         }
         queue.waitUntilAllOperationsAreFinished()
-    }
-
-    func testCancellationTokenThreadSafety() {
-        for _ in 0..<100 {
-            let cts = CancellationTokenSource()
-
-            for _ in 0...100 {
-                let expectation = self.expectation(description: "Finished")
-                DispatchQueue.global().async {
-                    if rnd(4) == 0 {
-                        cts.cancel()
-                        expectation.fulfill()
-                    } else {
-                        cts.token.register {
-                            expectation.fulfill()
-                        }
-                    }
-                }
-            }
-        }
-
-        wait(20)
-    }
-
-    func testRateLimiterThreadSafety() {
-        let limiter = RateLimiter(queue: DispatchQueue(label: "RateLimiterTests.testThreadSafety"), rate: 10000, burst: 1000)
-
-        // can't figure out how to put closures that accept
-        // escaping closures as parameters directly in the array
-        struct Op {
-            let closure: (@escaping () -> Void) -> Void
-        }
-
-        var ops = [Op]()
-
-        ops.append(Op() { fulfill in
-            let cts = CancellationTokenSource()
-            limiter.execute(token: cts.token) {
-                DispatchQueue.global().async {
-                    fulfill()
-                }
-            }
-        })
-
-        ops.append(Op() { fulfill in
-            // cancel after executing
-            let cts = CancellationTokenSource()
-            limiter.execute(token: cts.token) {
-                return
-            }
-            cts.cancel()
-            fulfill() // we don't except fulfil
-        })
-
-        ops.append(Op() { fulfill in
-            // cancel immediately
-            let cts = CancellationTokenSource()
-            cts.cancel()
-            limiter.execute(token: cts.token) {
-                XCTFail() // must not be executed
-            }
-            fulfill()
-        })
-
-        for _ in 0..<5000 {
-            let expectation = self.expectation(description: "Finished")
-            let queue = OperationQueue()
-
-            // RateLimiter is not designed (unlike user-facing classes) to
-            // handle unlimited pressure from the outside, thus we limit
-            // the number of concurrent ops
-            queue.maxConcurrentOperationCount = 40
-
-            queue.addOperation {
-                ops.randomItem().closure {
-                    expectation.fulfill()
-                }
-            }
-        }
-
-        wait(20)
     }
 
     func testImageCacheThreadSafety() {
@@ -245,6 +164,7 @@ final class RandomizedTests: XCTestCase {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
+            $0.isRateLimiterEnabled = false
         }
 
         let queue = OperationQueue()
@@ -260,18 +180,16 @@ final class RandomizedTests: XCTestCase {
             request.priority = every(2) ? .high : .normal
             if every(3) {
                 let size = every(2) ? CGSize(width: 40, height: 40) : CGSize(width: 60, height: 60)
-                request.processor = AnyImageProcessor(
-                    ImageDecompressor(targetSize: size, contentMode: .aspectFit)
-                )
+                request.processors = [ImageProcessor.Resize(size: size, contentMode: .aspectFit)]
             }
             if every(10) {
-                request.loadKey = url
+                request.options.loadKey = url
             }
             return request
         }
 
         func randomSleep() {
-            let ms = TimeInterval(arc4random_uniform(200)) / 1000.0
+            let ms = TimeInterval(arc4random_uniform(100)) / 1000.0
             Thread.sleep(forTimeInterval: ms)
         }
 
@@ -284,7 +202,7 @@ final class RandomizedTests: XCTestCase {
 
                 let shouldCancel = every(3)
 
-                let task = pipeline.loadImage(with: request) { _, _ in
+                let task = pipeline.loadImage(with: request) { _ in
                     if shouldCancel {
                         // do nothing, we don't expect completion on cancel
                     } else {
@@ -304,7 +222,7 @@ final class RandomizedTests: XCTestCase {
                     queue.addOperation {
                         randomSleep()
                         let priority: ImageRequest.Priority = every(2) ? .veryHigh : .veryLow
-                        task.setPriority(priority)
+                        task.priority = priority
                     }
                 }
             }

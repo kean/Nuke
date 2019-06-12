@@ -22,12 +22,7 @@ final class MockProgressiveDataLoader: DataLoading {
     private var completion: (Error?) -> Void = { _ in }
 
     init() {
-        self.urlResponse = HTTPURLResponse(
-            url: Test.url,
-            mimeType: "jpeg",
-            expectedContentLength: data.count,
-            textEncodingName: nil
-        )
+        self.urlResponse = HTTPURLResponse(url: Test.url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Length": "\(data.count)"])!
         self.chunks = Array(_createChunks(for: data, size: data.count / 3))
     }
 

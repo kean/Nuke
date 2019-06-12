@@ -67,7 +67,7 @@ class DataCacheTests: XCTestCase {
     // MARK: Add
 
     func testAdd() {
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             // When
             cache["key"] = blob
 
@@ -77,7 +77,7 @@ class DataCacheTests: XCTestCase {
     }
 
     func testWhenAddContentNotFlushedImmediately() {
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             // When
             cache["key"] = blob
 
@@ -88,7 +88,7 @@ class DataCacheTests: XCTestCase {
 
     func testAddAndFlush() {
         // Given
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             cache["key"] = blob
         }
 
@@ -102,7 +102,7 @@ class DataCacheTests: XCTestCase {
     }
 
     func testReplace() {
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             // Given
             cache["key"] = blob
 
@@ -119,7 +119,7 @@ class DataCacheTests: XCTestCase {
         cache["key"] = blob
         cache.flush()
 
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             cache["key"] = otherBlob
             XCTAssertEqual(cache.contents.count, 1)
             // Test that before flush we still have the old blob on disk,
@@ -144,7 +144,7 @@ class DataCacheTests: XCTestCase {
 
     // - Remove + write (new) staged -> remove from staging
     func testRemoveFromStaging() {
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             cache["key"] = blob
             cache["key"] = nil
             XCTAssertNil(cache["key"])
@@ -155,7 +155,7 @@ class DataCacheTests: XCTestCase {
 
     // - Remove + write (new) staged -> remove from staging
     func testRemoveReplaced() {
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             cache["key"] = blob
             cache["key"] = otherBlob
             cache["key"] = nil
@@ -170,7 +170,7 @@ class DataCacheTests: XCTestCase {
         cache["key"] = blob
         cache.flush()
 
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             cache["key"] = otherBlob
             cache["key"] = nil
             XCTAssertNil(cache["key"])
@@ -187,7 +187,7 @@ class DataCacheTests: XCTestCase {
         cache["key"] = blob
         cache.flush()
 
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             cache["key"] = nil
             XCTAssertNil(cache["key"])
             // Still have data in cache
@@ -236,7 +236,7 @@ class DataCacheTests: XCTestCase {
     // MARK: Remove All
 
     func testRemoveAll() {
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             // Given
             cache["key"] = blob
 
@@ -254,7 +254,7 @@ class DataCacheTests: XCTestCase {
         cache.flush()
 
         // When
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             cache.removeAll()
             XCTAssertNil(cache["key"])
         }
@@ -276,7 +276,7 @@ class DataCacheTests: XCTestCase {
 
     func testRemoveAllAndAdd() {
         // Given
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             cache["key"] = blob
 
             // When
@@ -290,7 +290,7 @@ class DataCacheTests: XCTestCase {
 
     func testRemoveAllTwice() {
         // Given
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             cache["key"] = blob
 
             // When
@@ -309,7 +309,7 @@ class DataCacheTests: XCTestCase {
         // Given
         cache.flush() // Index is loaded
 
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             // Given
             cache["key"] = blob
 
@@ -333,7 +333,7 @@ class DataCacheTests: XCTestCase {
 
     func testFlush() {
         // Given
-        cache._withSuspendedIO {
+        cache.withSuspendedIO {
             cache["key"] = blob
         }
 
@@ -373,6 +373,32 @@ class DataCacheTests: XCTestCase {
         // Depends on the file system.
         XCTAssertTrue(cache.totalAllocatedSize > 0)
     }
+
+    // MARK: Resilience
+
+    func testWhenDirectoryDeletedCacheAutomaticallyRecreatesIt() {
+        cache["1"] = "2".data(using: .utf8)
+        cache.flush()
+
+        do {
+            try FileManager.default.removeItem(at: cache.path)
+        } catch {
+            XCTFail("Fail to remove cache directory")
+        }
+
+        cache["1"] = "2".data(using: .utf8)
+        cache.flush()
+
+        do {
+            guard let url = cache.url(for: "1") else {
+                return XCTFail("Failed to create URL")
+            }
+            let data = try Data(contentsOf: url)
+            XCTAssertEqual(String(data: data, encoding: .utf8), "2")
+        } catch {
+            XCTFail("Failed to read data")
+        }
+    }
 }
 
 extension DataCache {
@@ -380,9 +406,9 @@ extension DataCache {
         return try! FileManager.default.contentsOfDirectory(at: self.path, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
     }
 
-    func _withSuspendedIO(_ closure: () -> Void) {
-        _wqueue.suspend()
+    func withSuspendedIO(_ closure: () -> Void) {
+        wqueue.suspend()
         closure()
-        _wqueue.resume()
+        wqueue.resume()
     }
 }

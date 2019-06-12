@@ -16,30 +16,43 @@ struct TestExpectationImagePipeline {
     let test: XCTestCase
     let pipeline: ImagePipeline
 
-    func toLoadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ((ImageResponse?, ImagePipeline.Error?) -> Void)? = nil) {
+    func toLoadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
         let expectation = test.expectation(description: "Image loaded for \(request)")
-        pipeline.loadImage(with: request, progress: progress)  { response, error in
-            completion?(response, error)
+        pipeline.loadImage(with: request, progress: progress) { result in
+            completion?(result)
             XCTAssertTrue(Thread.isMainThread)
-            XCTAssertNotNil(response)
+            XCTAssertTrue(result.isSuccess)
             expectation.fulfill()
         }
     }
 
-    func toFailRequest(_ request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ((ImageResponse?, ImagePipeline.Error?) -> Void)? = nil) {
+    func toFailRequest(_ request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
         let expectation = test.expectation(description: "Image request failed \(request)")
-        pipeline.loadImage(with: request, progress: progress) { response, error in
-            completion?(response, error)
+        pipeline.loadImage(with: request, progress: progress) { result in
+            completion?(result)
             XCTAssertTrue(Thread.isMainThread)
-            XCTAssertNil(response)
-            XCTAssertNotNil(error)
+            XCTAssertTrue(result.isFailure)
             expectation.fulfill()
         }
     }
 
     func toFailRequest(_ request: ImageRequest, with expectedError: ImagePipeline.Error, file: StaticString = #file, line: UInt = #line) {
-        toFailRequest(request) { (_, error) in
-            XCTAssertEqual(error, expectedError, file: file, line: line)
+        toFailRequest(request) { result in
+            XCTAssertEqual(result.error, expectedError, file: file, line: line)
+        }
+    }
+
+    func toLoadData(with request: ImageRequest) {
+        let expectation = test.expectation(description: "Data loaded for \(request)")
+        pipeline.loadData(with: request, progress: nil) { result in
+            XCTAssertTrue(Thread.isMainThread)
+            switch result {
+            case .success:
+                break
+            case let .failure(error):
+                XCTFail("Failed to load data with error: \(error)")
+            }
+            expectation.fulfill()
         }
     }
 }
@@ -51,17 +64,16 @@ extension XCTestCase {
             with: request,
             options: options,
             into: imageView,
-            completion: { response, error in
+            completion: { result in
                 XCTAssertTrue(Thread.isMainThread)
-                completion?(response, error)
+                completion?(result)
                 expectation.fulfill()
         })
     }
 
     func expectToLoadImage(with request: ImageRequest, options: ImageLoadingOptions = ImageLoadingOptions.shared, into imageView: ImageDisplayingView) {
-        expectToFinishLoadingImage(with: request, options: options, into: imageView) { response, error in
-            XCTAssertNotNil(response)
-            XCTAssertNil(error)
+        expectToFinishLoadingImage(with: request, options: options, into: imageView) { result in
+            XCTAssertTrue(result.isSuccess)
         }
     }
 }

@@ -23,10 +23,11 @@ enum Test {
 
     static let data: Data = Test.data(name: "fixture", extension: "jpeg")
 
-    static let image: Image = {
+    // Test.image size is 640 x 480 pixels
+    static var image: Image {
         let data = Test.data(name: "fixture", extension: "jpeg")
-        return Nuke.ImageDecoder().decode(data: data, isFinal: true)!
-    }()
+        return Nuke.ImageDecoder().decode(data: data)!
+    }
 
     static let request = ImageRequest(
         url: Test.url
@@ -41,7 +42,8 @@ enum Test {
 
     static let response = ImageResponse(
         image: Test.image,
-        urlResponse: urlResponse
+        urlResponse: urlResponse,
+        scanNumber: nil
     )
 }
 
@@ -72,4 +74,34 @@ func _createChunks(for data: Data, size: Int) -> [Data] {
         chunks.append(chunk)
     }
     return chunks
+}
+
+// MARK: - Result extension
+
+extension Result {
+    var isSuccess: Bool {
+        return value != nil
+    }
+
+    var isFailure: Bool {
+        return error != nil
+    }
+
+    var value: Success? {
+        switch self {
+        case let .success(value):
+            return value
+        case .failure:
+            return nil
+        }
+    }
+
+    var error: Failure? {
+        switch self {
+        case .success:
+            return nil
+        case let .failure(error):
+            return error
+        }
+    }
 }

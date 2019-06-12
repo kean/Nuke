@@ -11,29 +11,11 @@ class ImagePipelineResumableDataTests: XCTestCase {
 
     override func setUp() {
         dataLoader = _MockResumableDataLoader()
-        ResumableData._cache.removeAll()
+        ResumableData.cache.removeAll()
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
         }
-    }
-
-    // Make sure that ResumableData works correctly in integration with ImagePipeline
-    func testRangeSupported() {
-        expect(pipeline).toFailRequest(Test.request)
-        wait()
-
-        let metricsExpectation = self.expectation(description: "Metrics collected")
-        pipeline.didFinishCollectingMetrics = { _, metrics in
-            // Test that the metrics are collected correctly.
-            XCTAssertEqual(metrics.session!.wasResumed, true)
-            XCTAssertTrue(metrics.session!.resumedDataCount! > 0)
-            XCTAssertEqual(metrics.session!.totalDownloadedDataCount, self.dataLoader.data.count)
-            metricsExpectation.fulfill()
-        }
-
-        expect(pipeline).toLoadImage(with: Test.request)
-        wait()
     }
 
     func testThatProgressIsReported() {
@@ -43,7 +25,7 @@ class ImagePipelineResumableDataTests: XCTestCase {
         let expectedProgressInitial = expectProgress(
             [(3799, 22789), (7598, 22789), (11397, 22789)]
         )
-        expect(pipeline).toFailRequest(Test.request, progress: { (_, completed, total) in
+        expect(pipeline).toFailRequest(Test.request, progress: { _, completed, total in
             expectedProgressInitial.received((completed, total))
         })
         wait()
@@ -53,7 +35,7 @@ class ImagePipelineResumableDataTests: XCTestCase {
         let expectedProgersRemaining = expectProgress(
             [(15196, 22789), (18995, 22789), (22789, 22789)]
         )
-        expect(pipeline).toLoadImage(with: Test.request, progress: { (_, completed, total) in
+        expect(pipeline).toLoadImage(with: Test.request, progress: { _, completed, total in
             expectedProgersRemaining.received((completed, total))
         })
         wait()

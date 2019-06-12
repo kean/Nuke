@@ -10,16 +10,17 @@
 		0B98D5CE1B9819314854DE35 /* Pods_NukeDemo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 47F87C8718596F423A33598C /* Pods_NukeDemo.framework */; };
 		0C3ADAA32087D23C00FFA275 /* progressive.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C3ADAA12087D23C00FFA275 /* progressive.jpeg */; };
 		0C3ADAA42087D23C00FFA275 /* baseline.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C3ADAA22087D23C00FFA275 /* baseline.jpeg */; };
+		0C4388A822AC060F007906A7 /* ImageProcessingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4388A722AC060F007906A7 /* ImageProcessingDemoViewController.swift */; };
+		0C4878AA22A84E9700CFCFE7 /* ImagePipelineSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4878A922A84E9700CFCFE7 /* ImagePipelineSettingsViewController.swift */; };
+		0C4878AC22A84EF900CFCFE7 /* ImagePipelineSettingsViewController.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0C4878AB22A84EF900CFCFE7 /* ImagePipelineSettingsViewController.storyboard */; };
 		0CBBB09B20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBBB09A20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift */; };
 		0CCC1883209EDAF9003D7172 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0CCC1882209EDAF9003D7172 /* Images.xcassets */; };
 		0CCC1894209EDCCF003D7172 /* BasicDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1887209EDCCF003D7172 /* BasicDemoViewController.swift */; };
-		0CCC1895209EDCCF003D7172 /* PreheatingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1888209EDCCF003D7172 /* PreheatingDemoViewController.swift */; };
 		0CCC1896209EDCCF003D7172 /* RateLimiterDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1889209EDCCF003D7172 /* RateLimiterDemoViewController.swift */; };
 		0CCC1897209EDCCF003D7172 /* CustomCacheDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC188A209EDCCF003D7172 /* CustomCacheDemoViewController.swift */; };
 		0CCC1898209EDCCF003D7172 /* DataCachingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC188B209EDCCF003D7172 /* DataCachingDemoViewController.swift */; };
 		0CCC1899209EDCCF003D7172 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC188D209EDCCF003D7172 /* AppDelegate.swift */; };
 		0CCC189A209EDCCF003D7172 /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC188F209EDCCF003D7172 /* Utilities.swift */; };
-		0CCC189B209EDCCF003D7172 /* SHA1.m in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1890209EDCCF003D7172 /* SHA1.m */; };
 		0CCC189C209EDCCF003D7172 /* MenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1892209EDCCF003D7172 /* MenuViewController.swift */; };
 		0CCC189D209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC1893209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift */; };
 		0CCC18A3209EE0A6003D7172 /* AnimatedImageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCC18A2209EE0A6003D7172 /* AnimatedImageViewController.swift */; };
@@ -32,19 +33,18 @@
 /* Begin PBXFileReference section */
 		0C3ADAA12087D23C00FFA275 /* progressive.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = progressive.jpeg; sourceTree = "<group>"; };
 		0C3ADAA22087D23C00FFA275 /* baseline.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = baseline.jpeg; sourceTree = "<group>"; };
+		0C4388A722AC060F007906A7 /* ImageProcessingDemoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessingDemoViewController.swift; sourceTree = "<group>"; };
+		0C4878A922A84E9700CFCFE7 /* ImagePipelineSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineSettingsViewController.swift; sourceTree = "<group>"; };
+		0C4878AB22A84EF900CFCFE7 /* ImagePipelineSettingsViewController.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = ImagePipelineSettingsViewController.storyboard; sourceTree = "<group>"; };
 		0CBBB09A20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedImageUsingVideoViewController.swift; sourceTree = "<group>"; };
 		0CCC1882209EDAF9003D7172 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		0CCC1884209EDC01003D7172 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0CCC1887209EDCCF003D7172 /* BasicDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BasicDemoViewController.swift; sourceTree = "<group>"; };
-		0CCC1888209EDCCF003D7172 /* PreheatingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreheatingDemoViewController.swift; sourceTree = "<group>"; };
 		0CCC1889209EDCCF003D7172 /* RateLimiterDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RateLimiterDemoViewController.swift; sourceTree = "<group>"; };
 		0CCC188A209EDCCF003D7172 /* CustomCacheDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomCacheDemoViewController.swift; sourceTree = "<group>"; };
 		0CCC188B209EDCCF003D7172 /* DataCachingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataCachingDemoViewController.swift; sourceTree = "<group>"; };
-		0CCC188C209EDCCF003D7172 /* NukeDemo-Bridging-Header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NukeDemo-Bridging-Header.h"; sourceTree = "<group>"; };
 		0CCC188D209EDCCF003D7172 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		0CCC188F209EDCCF003D7172 /* Utilities.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
-		0CCC1890209EDCCF003D7172 /* SHA1.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHA1.m; sourceTree = "<group>"; };
-		0CCC1891209EDCCF003D7172 /* SHA1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHA1.h; sourceTree = "<group>"; };
 		0CCC1892209EDCCF003D7172 /* MenuViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MenuViewController.swift; sourceTree = "<group>"; };
 		0CCC1893209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProgressiveDecodingDemoViewController.swift; sourceTree = "<group>"; };
 		0CCC18A2209EE0A6003D7172 /* AnimatedImageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedImageViewController.swift; sourceTree = "<group>"; };
@@ -95,19 +95,20 @@
 		0CCC1886209EDCCF003D7172 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				0CCC188C209EDCCF003D7172 /* NukeDemo-Bridging-Header.h */,
 				0CCC188D209EDCCF003D7172 /* AppDelegate.swift */,
 				0CCC1892209EDCCF003D7172 /* MenuViewController.swift */,
 				0CCC1887209EDCCF003D7172 /* BasicDemoViewController.swift */,
+				0C4388A722AC060F007906A7 /* ImageProcessingDemoViewController.swift */,
 				0CCC18A2209EE0A6003D7172 /* AnimatedImageViewController.swift */,
 				0CBBB09A20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift */,
 				0CCC18A7209EE341003D7172 /* AlamofireIntegrationDemoViewController.swift */,
-				0CCC1888209EDCCF003D7172 /* PreheatingDemoViewController.swift */,
 				0CE5F686215688590046609F /* PrefetchingDemoViewController.swift */,
 				0CCC1889209EDCCF003D7172 /* RateLimiterDemoViewController.swift */,
 				0CCC188A209EDCCF003D7172 /* CustomCacheDemoViewController.swift */,
 				0CCC188B209EDCCF003D7172 /* DataCachingDemoViewController.swift */,
 				0CCC1893209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift */,
+				0C4878A922A84E9700CFCFE7 /* ImagePipelineSettingsViewController.swift */,
+				0C4878AB22A84EF900CFCFE7 /* ImagePipelineSettingsViewController.storyboard */,
 				0CCC188E209EDCCF003D7172 /* Helpers */,
 			);
 			path = Sources;
@@ -117,8 +118,6 @@
 			isa = PBXGroup;
 			children = (
 				0CCC188F209EDCCF003D7172 /* Utilities.swift */,
-				0CCC1890209EDCCF003D7172 /* SHA1.m */,
-				0CCC1891209EDCCF003D7172 /* SHA1.h */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -227,6 +226,7 @@
 				0C3ADAA32087D23C00FFA275 /* progressive.jpeg in Resources */,
 				607FACE01AFB9204008FA782 /* LaunchScreen.xib in Resources */,
 				0C3ADAA42087D23C00FFA275 /* baseline.jpeg in Resources */,
+				0C4878AC22A84EF900CFCFE7 /* ImagePipelineSettingsViewController.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -263,12 +263,11 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-frameworks.sh",
 				"${BUILT_PRODUCTS_DIR}/Alamofire/Alamofire.framework",
 				"${BUILT_PRODUCTS_DIR}/DFCache/DFCache.framework",
 				"${BUILT_PRODUCTS_DIR}/FLAnimatedImage/FLAnimatedImage.framework",
 				"${BUILT_PRODUCTS_DIR}/Nuke/Nuke.framework",
-				"${BUILT_PRODUCTS_DIR}/Preheat/Preheat.framework",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
@@ -278,11 +277,10 @@
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/DFCache.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/FLAnimatedImage.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Nuke.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Preheat.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-NukeDemo/Pods-NukeDemo-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -293,8 +291,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				0CCC18A3209EE0A6003D7172 /* AnimatedImageViewController.swift in Sources */,
+				0C4878AA22A84E9700CFCFE7 /* ImagePipelineSettingsViewController.swift in Sources */,
 				0CCC1899209EDCCF003D7172 /* AppDelegate.swift in Sources */,
-				0CCC1895209EDCCF003D7172 /* PreheatingDemoViewController.swift in Sources */,
 				0CCC189A209EDCCF003D7172 /* Utilities.swift in Sources */,
 				0CCC1897209EDCCF003D7172 /* CustomCacheDemoViewController.swift in Sources */,
 				0CE5F687215688590046609F /* PrefetchingDemoViewController.swift in Sources */,
@@ -303,8 +301,8 @@
 				0CCC18A8209EE341003D7172 /* AlamofireIntegrationDemoViewController.swift in Sources */,
 				0CCC1898209EDCCF003D7172 /* DataCachingDemoViewController.swift in Sources */,
 				0CBBB09B20A8116C007474D2 /* AnimatedImageUsingVideoViewController.swift in Sources */,
-				0CCC189B209EDCCF003D7172 /* SHA1.m in Sources */,
 				0CCC189D209EDCCF003D7172 /* ProgressiveDecodingDemoViewController.swift in Sources */,
+				0C4388A822AC060F007906A7 /* ImageProcessingDemoViewController.swift in Sources */,
 				0CCC1894209EDCCF003D7172 /* BasicDemoViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -450,7 +448,6 @@
 				MODULE_NAME = ExampleApp;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = NukeDemo_Example;
-				SWIFT_OBJC_BRIDGING_HEADER = "Sources/NukeDemo-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
@@ -470,7 +467,6 @@
 				MODULE_NAME = ExampleApp;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = NukeDemo_Example;
-				SWIFT_OBJC_BRIDGING_HEADER = "Sources/NukeDemo-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};

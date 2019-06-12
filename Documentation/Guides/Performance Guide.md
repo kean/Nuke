@@ -1,6 +1,6 @@
 ### Create `URL`s in a Background
 
-`URL` initializer is expensive because it parses the input string. It might take more time than the call to `Nuke.loadImage(with:into)` itself. Make sure to create the `URL` objects in a background. For example, it might be a good idea to create `URL` when parsing JSON to create your model objects.
+`URL` initializer is expensive because it parses the input string. It might take more time than the call to `Nuke.loadImage(with:into:)` itself. Make sure to create the `URL` objects in a background. For example, it might be a good idea to create `URL` when parsing JSON to create your model objects.
 
 
 ### Avoiding Decompression on the Main Thread

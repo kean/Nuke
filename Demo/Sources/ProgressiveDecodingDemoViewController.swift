@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2019 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
 import Nuke
@@ -60,13 +60,14 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
         options.pipeline = pipeline
         options.transition = .fadeIn(duration: 0.25)
 
-        Nuke.loadImage(
-            with: ImageRequest(url: url).processed(with: _ProgressiveBlurImageProcessor()),
+        loadImage(
+            with: ImageRequest(url: url, processors: [_ProgressiveBlurImageProcessor()]),
             options: options,
             into: imageView,
             progress: { _, completed, total in
                 container.updateProgress(completed: completed, total: total)
-        })
+            }
+        )
     }
 
     @objc func _segmentedControlValueChanged(_ segmentedControl: UISegmentedControl) {
@@ -74,7 +75,9 @@ final class ProgressiveDecodingDemoViewController: UIViewController {
     }
 
     @objc func _refresh() {
-        _start(with: urls[segmentedControl.selectedSegmentIndex])
+        DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(2)) {
+            self._start(with: self.urls[self.segmentedControl.selectedSegmentIndex])
+        }
     }
 }
 

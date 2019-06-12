@@ -3,19 +3,57 @@
 // Copyright (c) 2015-2019 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-@testable import Nuke
+import Nuke
 
 class ImageViewPerformanceTests: XCTestCase {
+    private let dummyCacheRequest = ImageRequest(url: URL(string: "http://test.com/9999999)")!, processors: [ImageProcessor.Resize(size: CGSize(width: 2, height: 2))])
+
+    override func setUp() {
+        // Store something in memory cache to avoid going through an optimized empty Dictionary path
+        let response = ImageResponse(image: Image(), urlResponse: nil)
+        ImagePipeline.shared.configuration.imageCache?.storeResponse(response, for: dummyCacheRequest)
+    }
+
+    override func tearDown() {
+        ImagePipeline.shared.configuration.imageCache?.removeResponse(for: dummyCacheRequest)
+    }
+
     // This is the primary use case that we are optimizing for - loading images
     // into target, the API that majoriy of the apps are going to use.
     func testImageViewMainThreadPerformance() {
         let view = _ImageView()
 
-        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/\(rnd(5000))")! }
-        
+        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/1)")! }
+
         measure {
             for url in urls {
-                Nuke.loadImage(with: url, into: view)
+                loadImage(with: url, into: view)
+            }
+        }
+    }
+
+    func testImageViewMainThreadPerformanceWithProcessor() {
+        let view = _ImageView()
+
+        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/1)")! }
+
+        measure {
+            for url in urls {
+                let request = ImageRequest(url: url, processors: [ImageProcessor.Resize(size: CGSize(width: 1, height: 1))])
+                loadImage(with: request, into: view)
+            }
+        }
+    }
+
+    func testImageViewMainThreadPerformanceWithProcessorAndSimilarImageInCache() {
+        let view = _ImageView()
+
+        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/9999999)")! }
+
+        measure {
+            for url in urls {
+                let request = ImageRequest(url: url, processors: [ImageProcessor.Resize(size: CGSize(width: 1, height: 1))])
+                loadImage(with: request, into: view)
             }
         }
     }
@@ -26,27 +64,27 @@ class ImagePipelinePerfomanceTests: XCTestCase {
     /// data, decode, and decomperss 50+ images. It's very useful to get a
     /// broad picture about how loader options affect perofmance.
     func testLoaderOverallPerformance() {
-        let dataLoader = MockDataLoader()
+        let pipeline = ImagePipeline {
+            $0.imageCache = nil
 
-        let loader = ImagePipeline {
-            $0.dataLoader = dataLoader
+            $0.dataLoader = MockDataLoader()
+
+            $0.isDecompressionEnabled = false
 
             // This must be off for this test, because rate limiter is optimized for
             // the actual loading in the apps and not the syntetic tests like this.
             $0.isRateLimiterEnabled = false
-
-            $0.isDeduplicationEnabled = false
-
-            // Disables processing which takes a bulk of time.
-            $0.imageProcessor = { (_, _)  in nil }
         }
 
-        let urls = (0...3_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
+        let urls = (0...3_000).map { URL(string: "http://test.com/\($0)")! }
         measure {
             let expectation = self.expectation(description: "Image loaded")
             var finished: Int = 0
             for url in urls {
-                loader.loadImage(with: url) { _, _ in
+                var request = ImageRequest(url: url)
+                request.processors = [] // Remove processing time from equation
+
+                pipeline.loadImage(with: url) { _ in
                     finished += 1
                     if finished == urls.count {
                         expectation.fulfill()
@@ -131,14 +169,37 @@ class RequestPerformanceTests: XCTestCase {
     }
 }
 
+class ImageProcessingPerformanceTests: XCTestCase {
+    func testCreatingProcessorIdentifiers() {
+        let decompressor = ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)
+
+        measure {
+            for _ in 0..<25_000 {
+                _ = decompressor.identifier
+            }
+        }
+    }
+
+    func testComparingTwoProcessorCompositions() {
+
+        let lhs = ImageProcessor.Composition([MockImageProcessor(id: "123"), ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
+        let rhs = ImageProcessor.Composition([MockImageProcessor(id: "124"), ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
+
+        measure {
+            for _ in 0..<25_000 {
+                if lhs.hashableIdentifier == rhs.hashableIdentifier {
+                    // do nothing
+                }
+            }
+        }
+    }
+}
+
 class DataCachePeformanceTests: XCTestCase {
     var cache: DataCache!
 
     override func setUp() {
-        cache = try! DataCache(name: UUID().uuidString, filenameGenerator: {
-            guard let data = $0.cString(using: .utf8) else { return "" }
-            return _nuke_sha1(data, UInt32(data.count))
-        })
+        cache = try! DataCache(name: UUID().uuidString)
         _ = cache["key"] // Wait till index is loaded.
     }
 

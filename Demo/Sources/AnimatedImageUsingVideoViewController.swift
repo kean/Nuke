@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2018 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2019 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
 import Nuke
@@ -56,12 +56,13 @@ final class AnimatedImageUsingVideoViewController: UICollectionViewController, U
         ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
 
         cell.activityIndicator.startAnimating()
-        Nuke.loadImage(
+        loadImage(
             with: imageURLs[indexPath.row],
             into: cell,
-            completion: { [weak cell] _, _ in
+            completion: { [weak cell] _ in
                 cell?.activityIndicator.stopAnimating()
-        })
+            }
+        )
 
         return cell
     }
@@ -123,7 +124,7 @@ private extension Image {
 // MARK: - VideoCell
 
 /// - warning: This is proof of concept, please don't use in production.
-private final class VideoCell: UICollectionViewCell, Nuke.ImageDisplaying {
+private final class VideoCell: UICollectionViewCell, Nuke.Nuke_ImageDisplaying {
     private var requestId: Int = 0
     private var videoURL: URL?
     var storage: TemporaryVideoStorage!
@@ -164,7 +165,7 @@ private final class VideoCell: UICollectionViewCell, Nuke.ImageDisplaying {
         player = nil
     }
 
-    func display(image: Image?) {
+    func nuke_display(image: Image?) {
         prepareForReuse()
 
         guard let data = image?.animatedImageData else {
@@ -186,9 +187,7 @@ private final class VideoCell: UICollectionViewCell, Nuke.ImageDisplaying {
         let playerItem = AVPlayerItem(url: url)
         let player = AVQueuePlayer(playerItem: playerItem)
         let playerLayer = AVPlayerLayer(player: player)
-        if #available(iOS 10.0, *) {
-            self.playerLooper = AVPlayerLooper(player: player, templateItem: playerItem)
-        }
+        self.playerLooper = AVPlayerLooper(player: player, templateItem: playerItem)
 
         contentView.layer.addSublayer(playerLayer)
         playerLayer.frame = contentView.bounds

@@ -6,72 +6,100 @@ import XCTest
 @testable import Nuke
 
 class RateLimiterTests: XCTestCase {
-    let queue = DispatchQueue(label: "RateLimiterTests")
+    var queue: DispatchQueue!
+    var queueKey: DispatchSpecificKey<Void>!
     var rateLimiter: RateLimiter!
 
     override func setUp() {
-        rateLimiter = RateLimiter(queue: queue, rate: 3, burst: 2)
+        queue = DispatchQueue(label: "com.github.kean.rate-limiter-tests")
+
+        queueKey = DispatchSpecificKey<Void>()
+        queue.setSpecific(key: queueKey, value: ())
+
+        // Note: we set very short rate to avoid bucket form being refilled too quickly
+        rateLimiter = RateLimiter(queue: queue, rate: 10, burst: 2)
     }
 
     func testThatBurstIsExecutedImmediatelly() {
         // Given
-        let cts = CancellationTokenSource()
+        var isExecuted = Array(repeating: false, count: 4)
+
+        // When
+        for i in isExecuted.indices {
+            queue.sync {
+                rateLimiter.execute {
+                    isExecuted[i] = true
+                    return true
+                }
+            }
+        }
+
+        // Then
+        XCTAssertEqual(isExecuted, [true, true, false, false], "Expect first 2 items to be executed immediatelly")
+    }
+
+    func testThatNotExecutedItemDoesntExtractFromBucket() {
+        // Given
+        var isExecuted = Array(repeating: false, count: 4)
+
+        // When
+        for i in isExecuted.indices {
+            queue.sync {
+                rateLimiter.execute {
+                    isExecuted[i] = true
+                    return i != 1 // important!
+                }
+            }
+        }
+
+        // Then
+        XCTAssertEqual(isExecuted, [true, true, true, false], "Expect first 2 items to be executed immediatelly")
+    }
+
+    func testOverflow() {
+        // Given
         var isExecuted = Array(repeating: false, count: 3)
 
         // When
-        rateLimiter.execute(token: cts.token) {
-            isExecuted[0] = true
+        let expectation = self.expectation(description: "All work executed")
+        expectation.expectedFulfillmentCount = isExecuted.count
+
+        queue.sync {
+            for i in isExecuted.indices {
+                rateLimiter.execute {
+                    isExecuted[i] = true
+                    expectation.fulfill()
+                    return true
+                }
+            }
         }
 
-        rateLimiter.execute(token: cts.token) {
-            isExecuted[1] = true
-        }
-
-        rateLimiter.execute(token: cts.token) {
-            isExecuted[2] = true
-        }
+        // When time is passed
+        wait()
 
         // Then
-        XCTAssertEqual(isExecuted, [true, true, false])
+        queue.sync {
+            XCTAssertEqual(isExecuted, [true, true, true], "Expect 3rd item to be executed after a short delay")
+        }
     }
 
-    // MARK: - Cancellation
-
-    func testThatCancelledTaskIsNotExecuted() {
+    func testOverflowItemsExecutedOnSpecificQueue() {
         // Given
-        let cts = CancellationTokenSource()
-        var isExecuted = false
+        let isExecuted = Array(repeating: false, count: 3)
 
-        cts.cancel()
+        let expectation = self.expectation(description: "All work executed")
+        expectation.expectedFulfillmentCount = isExecuted.count
 
-        // When
-        rateLimiter.execute(token: cts.token) {
-            isExecuted = true
+        queue.sync {
+            for _ in isExecuted.indices {
+                rateLimiter.execute {
+                    expectation.fulfill()
+                    // Then delayed task also executed on queue
+                    XCTAssertNotNil(DispatchQueue.getSpecific(key: self.queueKey))
+                    return true
+                }
+            }
         }
-
-        // Then
-        XCTAssertFalse(isExecuted)
-    }
-
-    func testThatCancelledPendingTaskIsNotExecuted() {
-        rateLimiter.execute(token: token) {}
-        rateLimiter.execute(token: token) {}
-
-        let cts = CancellationTokenSource()
-        rateLimiter.execute(token: cts.token) {
-            XCTFail()
-        }
-        cts.cancel()
-
-        let expectation = self.expectation(description: "")
-        rateLimiter.execute(token: token) {
-            expectation.fulfill()
-        }
-
         wait()
     }
-}
-
-private var token: CancellationToken {
-    return CancellationTokenSource().token
 }

@@ -65,7 +65,7 @@ public final class DataCache: DataCaching {
     /// the remaining items is lower than or equal to `sizeLimit * trimRatio` and
     /// the total count is lower than or equal to `countLimit * trimRatio`. `0.7`
     /// by default.
-    internal var trimRatio = 0.7
+    var trimRatio = 0.7
 
     /// The path for the directory managed by the cache.
     public let path: URL
@@ -83,10 +83,10 @@ public final class DataCache: DataCaching {
     private var initialSweepDelay: TimeInterval = 15
 
     // Staging
-    private let _lock = NSLock()
-    private var _staging = Staging()
+    private let lock = NSLock()
+    private var staging = Staging()
 
-    /* testable */ let _wqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue")
+    /* testable */ let wqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue")
 
     /// A function which generates a filename for the given key. A good candidate
     /// for a filename generator is a _cryptographic_ hash function like SHA1.
@@ -96,13 +96,14 @@ public final class DataCache: DataCaching {
     /// in AFPS) and do not allow certain characters to be used in filenames.
     public typealias FilenameGenerator = (_ key: String) -> String?
 
-    private let _filenameGenerator: FilenameGenerator
+    private let filenameGenerator: FilenameGenerator
 
     /// Creates a cache instance with a given `name`. The cache creates a directory
     /// with the given `name` in a `.cachesDirectory` in `.userDomainMask`.
     /// - parameter filenameGenerator: Generates a filename for the given URL.
     /// The default implementation generates a filename using SHA1 hash function.
-    public convenience init(name: String, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
+    public convenience init(name: String,
+                            filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
         guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
         }
@@ -114,8 +115,8 @@ public final class DataCache: DataCaching {
     /// The default implementation generates a filename using SHA1 hash function.
     public init(path: URL, filenameGenerator: @escaping (String) -> String? = DataCache.filename(for:)) throws {
         self.path = path
-        self._filenameGenerator = filenameGenerator
-        try self._didInit()
+        self.filenameGenerator = filenameGenerator
+        try self.didInit()
     }
 
     /// A `FilenameGenerator` implementation which uses SHA1 hash function to
@@ -124,9 +125,9 @@ public final class DataCache: DataCaching {
         return key.sha1
     }
 
-    private func _didInit() throws {
+    private func didInit() throws {
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
-        _wqueue.asyncAfter(deadline: .now() + initialSweepDelay) { [weak self] in
+        wqueue.asyncAfter(deadline: .now() + initialSweepDelay) { [weak self] in
             self?._performAndScheduleSweep()
         }
     }
@@ -136,10 +137,10 @@ public final class DataCache: DataCaching {
     /// Retrieves data for the given key. The completion will be called
     /// syncrhonously if there is no cached data for the given key.
     public func cachedData(for key: Key) -> Data? {
-        _lock.lock()
+        lock.lock()
 
-        if let change = _staging.change(for: key) {
-            _lock.unlock()
+        if let change = staging.change(for: key) {
+            lock.unlock()
             switch change {
             case let .add(data):
                 return data
@@ -148,9 +149,9 @@ public final class DataCache: DataCaching {
             }
         }
 
-        _lock.unlock()
+        lock.unlock()
 
-        guard let url = _url(for: key) else {
+        guard let url = self.url(for: key) else {
             return nil
         }
         return try? Data(contentsOf: url)
@@ -159,14 +160,20 @@ public final class DataCache: DataCaching {
     /// Stores data for the given key. The method returns instantly and the data
     /// is written asynchronously.
     public func storeData(_ data: Data, for key: Key) {
-        _lock.sync {
-            let change = _staging.add(data: data, for: key)
-            _wqueue.async {
-                if let url = self._url(for: key) {
-                    try? data.write(to: url)
+        lock.sync {
+            let change = staging.add(data: data, for: key)
+            wqueue.async {
+                if let url = self.url(for: key) {
+                    do {
+                        try data.write(to: url)
+                    } catch let error as NSError {
+                        guard error.code == CocoaError.fileNoSuchFile.rawValue && error.domain == CocoaError.errorDomain else { return }
+                        try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
+                        try? data.write(to: url) // re-create a directory and try again
+                    }
                 }
-                self._lock.sync {
-                    self._staging.flushed(change)
+                self.lock.sync {
+                    self.staging.flushed(change)
                 }
             }
         }
@@ -175,14 +182,14 @@ public final class DataCache: DataCaching {
     /// Removes data for the given key. The method returns instantly, the data
     /// is removed asynchronously.
     public func removeData(for key: Key) {
-        _lock.sync {
-            let change = _staging.removeData(for: key)
-            _wqueue.async {
-                if let url = self._url(for: key) {
+        lock.sync {
+            let change = staging.removeData(for: key)
+            wqueue.async {
+                if let url = self.url(for: key) {
                     try? FileManager.default.removeItem(at: url)
                 }
-                self._lock.sync {
-                    self._staging.flushed(change)
+                self.lock.sync {
+                    self.staging.flushed(change)
                 }
             }
         }
@@ -191,13 +198,13 @@ public final class DataCache: DataCaching {
     /// Removes all items. The method returns instantly, the data is removed
     /// asynchronously.
     public func removeAll() {
-        _lock.sync {
-            let change = _staging.removeAll()
-            _wqueue.async {
+        lock.sync {
+            let change = staging.removeAll()
+            wqueue.async {
                 try? FileManager.default.removeItem(at: self.path)
                 try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
-                self._lock.sync {
-                    self._staging.flushed(change)
+                self.lock.sync {
+                    self.staging.flushed(change)
                 }
             }
         }
@@ -242,10 +249,10 @@ public final class DataCache: DataCaching {
     /// Uses the `FilenameGenerator` that the cache was initialized with to
     /// generate and return a filename for the given key.
     public func filename(for key: Key) -> String? {
-        return _filenameGenerator(key)
+        return filenameGenerator(key)
     }
 
-    /* testable */ func _url(for key: Key) -> URL? {
+    /* testable */ func url(for key: Key) -> URL? {
         guard let filename = self.filename(for: key) else {
             return nil
         }
@@ -256,22 +263,22 @@ public final class DataCache: DataCaching {
 
     /// Synchronously waits on the caller's thread until all outstanding disk IO
     /// operations are finished.
-    func flush() {
-        _wqueue.sync {}
+    public func flush() {
+        wqueue.sync {}
     }
 
     // MARK: Sweep
 
     private func _performAndScheduleSweep() {
         _sweep()
-        _wqueue.asyncAfter(deadline: .now() + sweepInterval) { [weak self] in
+        wqueue.asyncAfter(deadline: .now() + sweepInterval) { [weak self] in
             self?._performAndScheduleSweep()
         }
     }
 
     /// Schedules a cache sweep to be performed immediately.
     public func sweep() {
-        _wqueue.async {
+        wqueue.async {
             self._sweep()
         }
     }
@@ -316,9 +323,9 @@ public final class DataCache: DataCaching {
         guard let urls = try? FileManager.default.contentsOfDirectory(at: path, includingPropertiesForKeys: keys, options: .skipsHiddenFiles) else {
             return []
         }
-        let _keys = Set(keys)
+        let keys = Set(keys)
         return urls.compactMap {
-            guard let meta = try? $0.resourceValues(forKeys: _keys) else {
+            guard let meta = try? $0.resourceValues(forKeys: keys) else {
                 return nil
             }
             return Entry(url: $0, meta: meta)
@@ -401,14 +408,14 @@ public final class DataCache: DataCaching {
         // MARK: Register Changes
 
         func add(data: Data, for key: String) -> Change {
-            return _makeChange(.add(data), for: key)
+            return makeChange(.add(data), for: key)
         }
 
         func removeData(for key: String) -> Change {
-            return _makeChange(.remove, for: key)
+            return makeChange(.remove, for: key)
         }
 
-        private func _makeChange(_ type: ChangeType, for key: String) -> Change {
+        private func makeChange(_ type: ChangeType, for key: String) -> Change {
             nextChangeId += 1
             let change = Change(key: key, id: nextChangeId, type: type)
             changes[key] = change
