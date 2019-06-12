@@ -507,7 +507,7 @@ Nuke will load the data only once, resize the image once and blur it also only o
 
 ### Performance
 
-<img align="right" src="https://user-images.githubusercontent.com/1567433/59148850-1059b300-8a0e-11e9-95d5-0d4b4ffeaabc.png" width="360"/>
+<img align="right" src="https://user-images.githubusercontent.com/1567433/59372512-f7bc0680-8d47-11e9-865e-f739f013ad49.png" width="360"/>
 
 Nuke is tuned to do as little work on the main thread as possible. It uses multiple optimization techniques to achieve that: reducing the number of allocations, reducing dynamic dispatch, backing some structs by reference typed storage to reduce ARC overhead, etc.
 
