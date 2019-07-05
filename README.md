@@ -36,7 +36,7 @@ To learn about the image pipeline itself, see the dedicated section:
 - **Image Pipeline** ‣ [Overview](#h_design) | [Data Loading and Caching](#data-loading-and-caching) | [Resumable Downloads](#resumable-downloads) | [Memory Cache](#memory-cache) | [Deduplication](#deduplication) | [Performance](#performance) | [Extensions](#h_plugins)
 
 If you'd like to contribute to Nuke see [**Contributing**](#h_contribute).
- 
+
 <br/>
 
 # Image View Extensions
@@ -55,7 +55,7 @@ Nuke will check if the image exists in the memory cache, and if it does, will in
 
 ### In a List
 
-When you request a new image for the existing view, Nuke will prepare it for reuse and cancel any outstanding requests for the view, making it extremely easy to manages images in lists.
+When you request a new image for the existing view, Nuke will prepare it for reuse and cancel any outstanding requests for the view. Mangaging images in lists has never been easier.
 
 ```swift
 func collectionView(_ collectionView: UICollectionView,
@@ -177,7 +177,7 @@ When you instantiate `UIImage` with `Data`, the data can be in a compressed form
 
 # Image Pipeline
 
-At the core of Nuke is `ImagePipeline` class. Use the pipeline directly to load images without displaying them:
+At the core of Nuke is the `ImagePipeline` class. Use the pipeline directly to load images without displaying them:
 
 ```swift
 let task = ImagePipeline.shared.loadImage(
@@ -219,7 +219,7 @@ Here are some of the protocols which can be used for customization:
 - `ImageProcessing` – Apply image transformations
 - `ImageCaching` – Store images into a memory cache
 
-The entire configuration is described by `ImagePipeline.Configuration` struct. To create a pipeline with a custom configuration either call `ImagePipeline(configuration:)` initializer or use the convenience one:
+The entire configuration is described by the `ImagePipeline.Configuration` struct. To create a pipeline with a custom configuration either call the `ImagePipeline(configuration:)` initializer or use the convenience one:
 
 ```swift
 let pipeline = ImagePipeline {
@@ -230,7 +230,7 @@ let pipeline = ImagePipeline {
 }
 ```
 
-And then set the new pipeline as a default one:
+And then set the new pipeline as default:
 
 ```swift
 ImagePipeline.shared = pipeline
@@ -308,7 +308,7 @@ ImagePipeline.Configuration.isSignpostLoggingEnabled = false
 
 ### LRU Memory Cache
 
-Default Nuke's `ImagePipeline` has two cache layers.
+Nuke's default `ImagePipeline` has two cache layers.
 
 First, there is a memory cache for storing processed images which are ready for display.
 
@@ -327,11 +327,11 @@ let image = ImageCache.shared[request]
 ImageCache.shared.removeAll()
 ```
 
-`ImageCache` uses LRU algorithm – least recently used entries are removed first during the sweep.
+`ImageCache` uses the [LRU](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU)) algorithm – least recently used entries are removed first during the sweep.
 
 ### HTTP Disk Cache
 
-To store unprocessed image data Nuke uses a `URLCache` instance.
+Unprocessed image data is stored with `URLCache`.
 
 ```swift
 // Configure cache
@@ -354,7 +354,7 @@ If HTTP caching is not your cup of tea, you can try using a custom LRU disk cach
 ```swift
 ImagePipeline {
     $0.dataCache = try! DataCache(name: "com.myapp.datacache")
-    
+
     // Also consider disabling the native HTTP cache, see `DataLoader`.
 }
 ```
@@ -369,7 +369,6 @@ let request = ImageRequest(url: url, processors: [
 ```
 
 To avoid storing unwanted images, compose the processors, `ImageProcessor.Composition` is an easy way to do it.
-
 
 <br/>
 
@@ -387,7 +386,7 @@ preheater.startPreheating(with: urls)
 preheater.stopPreheating(with: urls)
 ```
 
-Keep in mind that prefetching takes up users' data and puts extra pressure on CPU and memory. To reduce the CPU and memory usage you have an option to choose only the disk cache as a prefetching destination:
+Keep in mind that prefetching takes up users' data and puts extra pressure on CPU and memory. To reduce the CPU and memory usage, you have an option to choose only the disk cache as a prefetching destination:
 
 ```swift
 // The preheater with `.diskCache` destination will skip image data decoding
@@ -429,7 +428,7 @@ let task = ImagePipeline.shared.loadImage(
 
 ### Animated Images
 
-Nuke extends `UIImage` with `animatedImageData` property. To enable it, set `ImagePipeline.Configuration.isAnimatedImageDataEnabled` to `true`. If you do, then the pipeline will start attaching the original image data to the animated images.
+Nuke extends `UIImage` with an `animatedImageData` property. To enable it, set `ImagePipeline.Configuration.isAnimatedImageDataEnabled` to `true`. If you do, the pipeline will start attaching the original image data to the animated images.
 
 There is no built-in way to render those images, but there are two extensions available: [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) and [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) which are both fast and efficient.
 
@@ -462,7 +461,7 @@ This section describes in detail what happens when you perform a call like `Nuke
 
 > As a visual aid, use this [Block Diagram](https://github.com/kean/Nuke/blob/master/Documentation/Assets/image-pipeline.svg).
 
-First, Nuke synchronously checks if the image is stored in the memory cache. If it's not, Nuke calls `pipeline.loadImage(with: request)` method.
+First, Nuke synchronously checks if the image is stored in the memory cache. If the image is not in memory, Nuke calls `pipeline.loadImage(with: request)`.
 
 The pipeline first checks if the image or image data exists in any of its caches. It checks if the processed image exists in the memory cache, then if the processed image data exists in the custom data cache (disabled by default), then if the data cache contains the original image data. Only if there is no cached data, the pipeline will start loading the data. When the data is loaded the pipeline decodes it, applies the processors, and decompresses the image in the background.
 
@@ -484,7 +483,7 @@ If the data task is terminated (either because of a failure or a cancelation) an
 
 ### Memory Cache
 
-The processed images are stored in a fast in-memory cache (`ImageCache`). It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a limit of ~20% of available RAM. `ImageCache` automatically evicts images on memory warnings and removes a portion of its contents when the application enters background.
+The processed images are stored in a fast in-memory cache (`ImageCache`). It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a limit of ~20% of available RAM. `ImageCache` automatically evicts images on memory warnings and removes a portion of its contents when the application enters background mode.
 
 ### Deduplication
 
@@ -511,9 +510,9 @@ Nuke will load the data only once, resize the image once and blur it also only o
 
 Nuke is tuned to do as little work on the main thread as possible. It uses multiple optimization techniques to achieve that: reducing the number of allocations, reducing dynamic dispatch, backing some structs by reference typed storage to reduce ARC overhead, etc.
 
-Nuke is fully asynchronous and performs well under stress. `ImagePipeline` schedules its operations on dedicated queues. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible. Under the extreme load, `ImagePipeline` will also rate limit the requests to prevent trashing of the underlying systems.
+Nuke is fully asynchronous and performs well under stress. `ImagePipeline` schedules its operations on dedicated queues. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible. Under the extreme load, `ImagePipeline` will also rate limit the requests to prevent saturation of the underlying systems.
 
-If you want to see visually how the system behaves, how long each operation takes, and how many are performed in parallel, enable the `isSignpostLoggingEnabled` option and use `os_signpost` Instrument. For more information see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
+If you want to see how the system behaves, how long each operation takes, and how many are performed in parallel, enable the `isSignpostLoggingEnabled` option and use the `os_signpost` Instrument. For more information see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
 
 <a name="h_plugins"></a>
 ### Extensions
@@ -542,7 +541,7 @@ There is a variety of extensions available for Nuke:
 |-------------------|-------------------|--------------------|---------------------------------------------------|
 | Nuke 8            | Swift 5.0         | Xcode 10.2         | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
 | Nuke 7.6 – 7.6.3  | Swift 4.2 – 5.0   | Xcode 10.1 – 10.2  | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
-| Nuke 7.2 – 7.5.2  | Swift 4.0 – 4.2   | Xcode 9.2 – 10.1   | iOS 9.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0    | 
+| Nuke 7.2 – 7.5.2  | Swift 4.0 – 4.2   | Xcode 9.2 – 10.1   | iOS 9.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0    |
 
 # License
 
