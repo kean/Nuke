@@ -174,30 +174,51 @@ extension ImageProcessor {
 // MARK: - ImageProcessor.RoundedCorners
 
 extension ImageProcessor {
-
+  
     /// Rounds the corners of an image to the specified radius.
     ///
     /// - warning: In order for the corners to be displayed correctly, the image must exactly match the size
     /// of the image view in which it will be displayed. See `ImageProcessor.Resize` for more info.
     public struct RoundedCorners: ImageProcessing, Hashable, CustomStringConvertible {
+      public struct Border: Hashable {
+          let color: UIColor
+          let width: CGFloat
+        
+          public init(color: UIColor, width: CGFloat = 1) {
+              self.color = color
+              self.width = width
+          }
+        
+          public var description: String {
+              return "Border(color: \(color), width: \(width))"
+          }
+        }
+      
         private let radius: CGFloat
         private let unit: Unit
+        private let border: Border?
 
         /// Initializes the processor with the given radius.
         ///
         /// - parameter radius: The radius of the corners.
         /// - parameter unit: Unit of the radius, `.points` by default.
-        public init(radius: CGFloat, unit: Unit = .points) {
+        /// - parameter border: An optional border drawn around the image.
+        public init(radius: CGFloat, unit: Unit = .points, border: Border? = nil) {
             self.radius = radius
             self.unit = unit
+            self.border = border
         }
 
         public func process(image: Image, context: ImageProcessingContext?) -> Image? {
-            return image.processed.byAddingRoundedCorners(radius: radius.converted(to: unit))
+            return image.processed.byAddingRoundedCorners(radius: radius.converted(to: unit), color: border?.color)
         }
 
         public var identifier: String {
+          if let border = self.border {
+            return "com.github.kean/nuke/rounded_corners?radius=\(radius.converted(to: unit)),border=\(border)"
+          } else {
             return "com.github.kean/nuke/rounded_corners?radius=\(radius.converted(to: unit))"
+          }
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -544,7 +565,8 @@ struct ImageProcessingExtensions {
 
     /// Adds rounded corners with the given radius to the image.
     /// - parameter radius: Radius in pixels.
-    func byAddingRoundedCorners(radius: CGFloat) -> Image? {
+    /// - parameter color: Pass a color to stroke a border.
+    func byAddingRoundedCorners(radius: CGFloat, color: UIColor? = nil) -> Image? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -554,14 +576,24 @@ struct ImageProcessingExtensions {
         UIGraphicsBeginImageContextWithOptions(imageSize, false, 1.0)
         defer { UIGraphicsEndImageContext() }
 
-        let clippingPath = UIBezierPath(roundedRect: CGRect(origin: CGPoint.zero, size: imageSize), cornerRadius: radius)
+        let rect = CGRect(origin: CGPoint.zero, size: imageSize)
+        let clippingPath = UIBezierPath(roundedRect: rect, cornerRadius: radius)
+      
         clippingPath.addClip()
-
         image.draw(in: CGRect(origin: CGPoint.zero, size: imageSize))
+        
+        if let cgColor = color?.cgColor {
+            UIGraphicsGetCurrentContext()?.setStrokeColor(cgColor)
+          
+            let border = UIBezierPath(roundedRect: rect, cornerRadius: radius)
+          
+            border.stroke()
+        }
 
         guard let roundedImage = UIGraphicsGetImageFromCurrentImageContext()?.cgImage else {
             return nil
         }
+      
         return UIImage(cgImage: roundedImage, scale: image.scale, orientation: image.imageOrientation)
     }
 
