@@ -459,7 +459,7 @@ Observable.concat(pipeline.loadImage(with: lowResUrl).orEmpty,
 
 This section describes in detail what happens when you perform a call like `Nuke.loadImage(with: url, into: view)`.
 
-> As a visual aid, use this [Block Diagram](https://github.com/kean/Nuke/blob/master/Documentation/Assets/image-pipeline.svg).
+> As a visual aid, use this [Block Diagram](https://github.com/kean/Nuke/blob/8.0/Documentation/Assets/image-pipeline.svg).
 
 First, Nuke synchronously checks if the image is stored in the memory cache. If the image is not in memory, Nuke calls `pipeline.loadImage(with: request)`.
 
@@ -475,7 +475,7 @@ The `URLSession` class natively supports the following URL schemes: `data`, `fil
 
 Most developers either implement their own networking layer or use a third-party framework. Nuke supports both of these workflows. You can integrate your custom networking layer by implementing `DataLoading` protocol.
 
-> See [Third Party Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries) guide to learn more. See also [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin).
+> See [Third Party Libraries](https://github.com/kean/Nuke/blob/8.0/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries) guide to learn more. See also [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin).
 
 ### Resumable Downloads
 

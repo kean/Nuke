@@ -1,3 +1,159 @@
+# Nuke 8
+
+## Nuke 8.0
+
+*July 8, 2019*
+
+Nuke 8 is the most powerful, performant, and refined release yet. It contains major advancements it some areas and brings some great new features. One of the highlights of this release is the documentation which was rewritten from the ground up.
+
+> **Cache processed images on disk** · **New built-in image processors** · **ImagePipeline v2** · **Up to 30% faster main thread performance** · **`Result` type** · **Improved deduplication** · **`os_signpost` integration** · **Refined ImageRequest API** · **Smart decompression** · **Entirely new documentation**
+
+Most of the Nuke APIs are source compatible with Nuke 7. There is also a [Nuke 8 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%208%20Migration%20Guide.md) to help with migration.
+
+### Image Processing
+
+#### [#227 Cache Processed Images on Disk](https://github.com/kean/Nuke/pull/227)
+
+`ImagePipeline` now supports caching of processed images on disk. To enable this feature set `isDataCacheForProcessedDataEnabled` to `true` in the pipeline configuration and provide a `dataCache`. You can use a built-in `DataCache` introduced in [Nuke 7.3](https://github.com/kean/Nuke/releases/tag/7.3) or write a custom one.
+
+Image cache can significantly improve the user experience in the apps that use heavy image processors like Gaussian Blur.
+
+#### [#243 New Image Processors](https://github.com/kean/Nuke/pull/243)
+
+Nuke now ships with a bunch of built-in image processors including:
+
+-  `ImageProcessor.Resize`
+-  `ImageProcessor.RoundedCorners`
+-  `ImageProcessor.Circle`
+-  `ImageProcessor.GaussianBlur`
+-  `ImageProcessor.CoreImageFilter`
+
+There are also `ImageProcessor.Anonymous` to create one-off processors from closures and `ImageProcessor.Composition` to combine two or more processors.
+
+#### [#245 Simplified Processing API](https://github.com/kean/Nuke/pull/245)
+
+Previously Nuke offered multiple different ways to add processors to the request. Now there is only one, which is also better than all of the previous versions:
+
+```swift
+let request = ImageRequest(
+    url: URL(string: "http://..."),
+    processors: [
+        ImageProcessor.Resize(size: CGSize(width: 44, height: 44), crop: true),
+        ImageProcessor.RoundedCorners(radius: 16)
+    ]
+)
+```
+
+> Processors can also be set using a respective mutable `processors` property.
+
+> Notice that `AnyImageProcessor` is gone! You can simply use `ImageProcessing` protocol directly in places where previously you had to use a type-erased version.
+
+
+#### [#229 Smart Decompression](https://github.com/kean/Nuke/pull/229)
+
+In the previous versions, decompression was part of the processing API and `ImageDecompressor` was the default processor set for each image request. This was mostly done to simplify implementation but it was confusing for the users.
+
+In the new version, decompression runs automatically and it no longer a "processor". The new decompression is also _smarter_. It runs only when needed – when we know that image is still in a compressed format and wasn't decompressed by one of the image processors.
+
+Decompression runs on a new separate `imageDecompressingQueue`. To disable decompression you can set a new `isDecompressionEnabled` pipeline configuration option to `false`.
+
+#### [#247 Avoiding Duplicated Work when Applying Processors](https://github.com/kean/Nuke/pull/247)
+
+The pipeline avoids doing any duplicated work when loading images. Now it also avoids applying the same processors more than once. For example, let's take these two requests:
+        
+```swift
+let url = URL(string: "http://example.com/image")
+pipeline.loadImage(with: ImageRequest(url: url, processors: [
+    ImageProcessor.Resize(size: CGSize(width: 44, height: 44)),
+    ImageProcessor.GaussianBlur(radius: 8)
+]))
+pipeline.loadImage(with: ImageRequest(url: url, processors: [
+    ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
+]))
+```
+        
+Nuke will load the image data only once, resize the image once and apply the blur also only once. There is no duplicated work done at any stage. If any of the intermediate results are available in the data cache, they will be used.
+
+### ImagePipeline v2
+
+Nuke 8 introduced a [major new iteration](https://github.com/kean/Nuke/pull/235) of the `ImagePipeline` class. The class was introduced in Nuke 7 and it contained a lot of incidental complexity due to addition of progressive decoding and some other new features. In Nuke 8 it was rewritten to fully embrace progressive decoding. The new pipeline is smaller, simpler, easier to maintain, and more reliable.
+
+It is also faster.
+
+#### +30% Main Thread Performance
+
+The image pipeline spends even less time on the main thread than any of the previous versions. It's up to 30% faster than Nuke 7.
+
+#### [#239 Load Image Data](https://github.com/kean/Nuke/pull/239)
+
+Add a new `ImagePipeline` method to fetch original image data:
+
+```swift
+@discardableResult
+public func loadData(with request: ImageRequest,
+                     progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
+                     completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask
+```
+
+This method now powers `ImagePreheater` with destination `.diskCache` introduced in [Nuke 7.4](https://github.com/kean/Nuke/releases/tag/7.4) (previously it was powered by a hacky internal API).
+
+#### [#245 Improved ImageRequest API](https://github.com/kean/Nuke/pull/245)
+
+The rarely used options were extracted into the new `ImageRequestOptions` struct and the request initializer can now be used to customize _all_ of the request parameters.
+
+#### [#255 `filteredURL`](https://github.com/kean/Nuke/pull/255)
+
+You can now provide a `filteredURL` to be used as a key for caching in case the URL contains transient query parameters:
+
+```swift
+let request = ImageRequest(
+    url: URL(string: "http://example.com/image.jpeg?token=123")!,
+    options: ImageRequestOptions(
+        filteredURL: "http://example.com/image.jpeg"
+    )
+)
+```
+
+#### [#241 Adopt `Result` type](https://github.com/kean/Nuke/pull/241)
+
+Adopt the `Result` type introduced in Swift 5. So instead of having a separate `response` and `error` parameters, the completion closure now has only one parameter - `result`.
+
+```swift
+public typealias Completion = (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
+```
+
+### Performance
+
+Apart from the general performance improvements Nuke now also offers a great way to measure performance and gain visiblity into how the system behaves when loading images.
+
+#### [#250 Integrate `os_signpost`](https://github.com/kean/Nuke/pull/250)
+
+Integrate [os_signpost](https://developer.apple.com/documentation/os/logging) logs for measuring performance. To enable the logs set `ImagePipeline.Configuration.isSignpostLoggingEnabled` (static property) to `true` before accessing the `shared` pipeline.
+
+With these logs, you have visibility into the image pipeline. For more information see [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/) which explains `os_signpost` in a great detail.
+
+<img width="1375" alt="Screenshot 2019-06-01 at 10 46 52" src="https://user-images.githubusercontent.com/1567433/58753519-8adf7b80-84c0-11e9-806a-eac24ddaa2dd.png">
+
+### Documentation
+
+All the documentation for Nuke was rewritten from scratch in Nuke 8. It's now more concise, clear, and it even features some fantastic illustrations:
+
+<img width="1158" alt="Screenshot 2019-06-11 at 22 31 18" src="https://user-images.githubusercontent.com/1567433/59304491-aacd2700-8c98-11e9-9630-293d27545b1a.png">
+
+The screenshots come the the **reworked demo** project. It gained new demos including *Image Processing* demo and also a way to change `ImagePipeline` configuration in runtime.
+
+### Misc
+
+- Add a cleaner way to set `ImageTask` priority using a new `priority` property – [#251](https://github.com/kean/Nuke/pull/251)
+- [macOS] Implement image cost calculation for `ImageCache` – [#236](https://github.com/kean/Nuke/issues/236)
+- [watchOS] Add `WKInterfaceImage` support
+- Future-proof Objective-C `ImageDisplaying` protocol by adding `nuke_` prefixes to avoid clashes in Objective-C runtime
+- Add convenience `func decode(data: Data) -> Image?` method with a default `isFinal` argument to `ImageDecoding` protocol – [e3ca5e](https://github.com/kean/Nuke/commit/e3ca5e646ddc1939d05a121de20cf88e2c8220cc)
+- Add convenience `func process(image: Image) -> Image?` method to `ImageProcessing` protocol
+- `DataCache` will now automatically re-create its root directory if it was deleted underneath it
+- Add public `flush` method to `DataCache` 
+
+
 # Nuke 7
 
 ## Nuke 7.6.3
