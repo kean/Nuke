@@ -94,29 +94,13 @@ public final class ImageDecoder: ImageDecoding {
     }
 }
 
-// Image initializers are documented as fully-thread safe:
-//
-// > The immutable nature of image objects also means that they are safe
-//   to create and use from any thread.
-//
-// However, there are some versions of iOS which violated this. The
-// `UIImage` is supposably fully thread safe again starting with iOS 10.
-//
-// The `queue.sync` call below prevents the majority of the potential
-// crashes that could happen on the previous versions of iOS.
-//
-// See also https://github.com/AFNetworking/AFNetworking/issues/2572
-private let _queue = DispatchQueue(label: "com.github.kean.Nuke.DataDecoder")
-
 extension ImageDecoder {
     static func decode(_ data: Data) -> Image? {
-        return _queue.sync {
-            #if os(macOS)
-            return NSImage(data: data)
-            #else
-            return UIImage(data: data, scale: Screen.scale)
-            #endif
-        }
+        #if os(macOS)
+        return NSImage(data: data)
+        #else
+        return UIImage(data: data, scale: Screen.scale)
+        #endif
     }
 }
 
