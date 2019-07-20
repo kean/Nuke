@@ -936,7 +936,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 0CCDB8D121D576F00032518B /* Nuke.xcconfig */;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				BITCODE_GENERATION_MODE = marker;
 				CLANG_ENABLE_OBJC_WEAK = YES;
@@ -954,7 +953,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 0CCDB8D121D576F00032518B /* Nuke.xcconfig */;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				BITCODE_GENERATION_MODE = bitcode;
 				CLANG_ENABLE_OBJC_WEAK = YES;
