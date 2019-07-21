@@ -1,5 +1,12 @@
 # Nuke 8
 
+## Nuke 8.0.1
+
+*July 21, 2019*
+
+- Remove synchronization in `ImageDecoder` which is no longer needed – [#277](https://github.com/kean/Nuke/issues/277)
+
+
 ## Nuke 8.0
 
 *July 8, 2019*
