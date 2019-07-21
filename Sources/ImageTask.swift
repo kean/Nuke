@@ -19,7 +19,6 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
 
     /// The original request with which the task was created.
     public let request: ImageRequest
-    var _priority: ImageRequest.Priority // Backing store for access from pipeline
 
     /// Updates the priority of the task, even if the task is already running.
     public var priority: ImageRequest.Priority {
@@ -27,6 +26,7 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
             pipeline?.imageTaskUpdatePriorityCalled(self, priority: priority)
         }
     }
+    var _priority: ImageRequest.Priority // Backing store for access from pipeline
 
     /// The number of bytes that the task has received.
     public internal(set) var completedUnitCount: Int64 = 0

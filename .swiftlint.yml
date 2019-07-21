@@ -1,5 +1,6 @@
 disabled_rules:
     - line_length
+    - identifier_name
 
 nesting:
     type_level:
@@ -13,8 +14,8 @@ file_length:
     error: 1500
 
 type_body_length:
-    warning: 400
-    error: 800
+    warning: 600
+    error: 1000
 
 identifier_name:
     min_length:

@@ -268,7 +268,7 @@ final class TaskSubscription {
     }
 }
 
-private protocol TaskSubscriptionDelegate {
+private protocol TaskSubscriptionDelegate: class {
     func unsubsribe(key: TaskSubscriptionKey)
     func setPriority(_ priority: TaskPriority, for observer: TaskSubscriptionKey)
 }
