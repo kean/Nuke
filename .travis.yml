@@ -27,12 +27,17 @@ jobs:
     - stage: test
       name: Build (watchOS, Xcode 10.2)
       osx_image: xcode10.2
-      script: Scripts/test.sh -d "OS=4.2,name=Apple Watch - 42mm"
+      script: Scripts/build.sh -d "OS=4.2,name=Apple Watch - 42mm"
 
     - stage: test
       name: Run Unit Tests (iOS, Xcode 11)
       osx_image: xcode11
       script: Scripts/test.sh -d "OS=13.0,name=iPhone Xs"
+
+    - stage: test
+      name: Run Thread Safety Tests
+      osx_image: xcode11
+      script: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=13.0,name=iPhone Xs"
 
     - stage: test
       name: Build Demo Project
