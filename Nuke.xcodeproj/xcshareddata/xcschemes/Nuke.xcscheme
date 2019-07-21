@@ -26,18 +26,9 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
       codeCoverageEnabled = "YES"
-      onlyGenerateCoverageForSpecifiedTargets = "YES">
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0C91748F1BAE99EE004A7905"
-            BuildableName = "Nuke.framework"
-            BlueprintName = "Nuke"
-            ReferencedContainer = "container:Nuke.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
+      onlyGenerateCoverageForSpecifiedTargets = "YES"
+      shouldUseLaunchSchemeArgsEnv = "YES">
       <CodeCoverageTargets>
          <BuildableReference
             BuildableIdentifier = "primary"
@@ -53,12 +44,23 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0C7C06761BCA882A00089D7F"
-               BuildableName = "Nuke Tests.xctest"
-               BlueprintName = "Nuke Tests"
+               BuildableName = "Nuke Unit Tests.xctest"
+               BlueprintName = "Nuke Unit Tests"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "0C91748F1BAE99EE004A7905"
+            BuildableName = "Nuke.framework"
+            BlueprintName = "Nuke"
+            ReferencedContainer = "container:Nuke.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
+      <AdditionalOptions>
+      </AdditionalOptions>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -79,6 +81,8 @@
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
+      <AdditionalOptions>
+      </AdditionalOptions>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
