@@ -33,15 +33,20 @@ class ThreadSafetyTests: XCTestCase {
             _testPipelineThreadSafety(pipeline)
         }
 
-        wait(20) { _ in
+        wait(60) { _ in
             _ = (pipelines)
         }
     }
 
     func _testPipelineThreadSafety(_ pipeline: ImagePipeline) {
+        let expectation = self.expectation(description: "Finished")
+        expectation.expectedFulfillmentCount = 1000
+
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 16
+
         for _ in 0..<1000 {
-            let expectation = self.expectation(description: "Finished")
-            DispatchQueue.global().async {
+            queue.addOperation {
                 let request = ImageRequest(url: URL(string: "\(Test.url)/\(rnd(30))")!)
                 let shouldCancel = rnd(3) == 0
 
@@ -193,8 +198,10 @@ final class RandomizedTests: XCTestCase {
             Thread.sleep(forTimeInterval: ms)
         }
 
+        let expectation = self.expectation(description: "Finished")
+        expectation.expectedFulfillmentCount = 1000
+
         for _ in 0..<1000 {
-            let expectation = self.expectation(description: "Finished")
             queue.addOperation {
                 randomSleep()
 
