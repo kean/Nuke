@@ -474,6 +474,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0C9174981BAE99EE004A7905 /* Build configuration list for PBXNativeTarget "Nuke" */;
 			buildPhases = (
+				0C06C96F22E47FD1000AA0A6 /* Lint */,
 				0C91748B1BAE99EE004A7905 /* Sources */,
 				0C91748C1BAE99EE004A7905 /* Frameworks */,
 				0C91748D1BAE99EE004A7905 /* Headers */,
@@ -495,7 +496,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0800;
-				LastUpgradeCheck = 1020;
+				LastUpgradeCheck = 1100;
 				ORGANIZATIONNAME = "Alexander Grebenyuk";
 				TargetAttributes = {
 					0C7C06761BCA882A00089D7F = {
@@ -582,6 +583,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		0C06C96F22E47FD1000AA0A6 /* Lint */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = Lint;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "Scripts/lint.sh\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0C7C06731BCA882A00089D7F /* Sources */ = {

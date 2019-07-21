@@ -174,7 +174,6 @@ extension ImageProcessor {
 // MARK: - ImageProcessor.RoundedCorners
 
 extension ImageProcessor {
-  
     /// Rounds the corners of an image to the specified radius.
     ///
     /// - warning: In order for the corners to be displayed correctly, the image must exactly match the size
@@ -183,17 +182,17 @@ extension ImageProcessor {
       public struct Border: Hashable {
           let color: UIColor
           let width: CGFloat
-        
+
           public init(color: UIColor, width: CGFloat = 1) {
               self.color = color
               self.width = width
           }
-        
+
           public var description: String {
               return "Border(color: \(color), width: \(width))"
           }
         }
-      
+
         private let radius: CGFloat
         private let unit: Unit
         private let border: Border?
@@ -578,22 +577,22 @@ struct ImageProcessingExtensions {
 
         let rect = CGRect(origin: CGPoint.zero, size: imageSize)
         let clippingPath = UIBezierPath(roundedRect: rect, cornerRadius: radius)
-      
+
         clippingPath.addClip()
         image.draw(in: CGRect(origin: CGPoint.zero, size: imageSize))
-        
+
         if let cgColor = color?.cgColor {
             UIGraphicsGetCurrentContext()?.setStrokeColor(cgColor)
-          
+
             let border = UIBezierPath(roundedRect: rect, cornerRadius: radius)
-          
+
             border.stroke()
         }
 
         guard let roundedImage = UIGraphicsGetImageFromCurrentImageContext()?.cgImage else {
             return nil
         }
-      
+
         return UIImage(cgImage: roundedImage, scale: image.scale, orientation: image.imageOrientation)
     }
 

@@ -358,27 +358,23 @@ private final class ImageViewController {
         // We use the special internal API for performance reasons, it doesn't
         // attribute for more than 25% performance improvement, the public
         // ImagePipeline APIs are almost as fast.
-        self.task = pipeline.loadImage(
-            with: request,
-            isMainThreadConfined: true,
-            observer: { [weak self] task, event in
-                switch event {
-                case .progress:
-                    progressHandler?(nil, task.completedUnitCount, task.totalUnitCount)
-                case let .value(response, isCompleted):
-                    if isCompleted {
-                        self?.handle(result: .success(response), fromMemCache: false, options: options)
-                        completion?(.success(response))
-                    } else {
-                        self?.handle(partialImage: response, options: options)
-                        progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
-                    }
-                case let .error(error):
-                    self?.handle(result: .failure(error), fromMemCache: false, options: options)
-                    completion?(.failure(error))
+        self.task = pipeline.loadImage(with: request, isMainThreadConfined: true) { [weak self] task, event in
+            switch event {
+            case .progress:
+                progressHandler?(nil, task.completedUnitCount, task.totalUnitCount)
+            case let .value(response, isCompleted):
+                if isCompleted {
+                    self?.handle(result: .success(response), fromMemCache: false, options: options)
+                    completion?(.success(response))
+                } else {
+                    self?.handle(partialImage: response, options: options)
+                    progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
                 }
+            case let .error(error):
+                self?.handle(result: .failure(error), fromMemCache: false, options: options)
+                completion?(.failure(error))
             }
-        )
+        }
         return self.task
     }
 

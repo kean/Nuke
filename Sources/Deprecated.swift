@@ -185,7 +185,7 @@ public struct AnyImageProcessor {}
 extension ImagePipeline {
     @available(*, deprecated, message: "Please use os_signposts instead. For more info see `ImagePipeline.Configuration.isSignpostLoggingEnabled`")
     public var didFinishCollectingMetrics: ((ImageTask, ImageTaskMetrics) -> Void)? {
-        set {}
+        set {} // swiftlint:disable:this unused_setter_value
         get { return nil }
     }
 }
