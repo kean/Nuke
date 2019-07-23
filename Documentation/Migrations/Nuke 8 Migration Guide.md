@@ -128,7 +128,7 @@ struct GaussianBlur: ImageProcessing, Hashable {
 
 > **Affects you if you are using `ImageDisplaying` protocol directly.**
 
-`ImageDisplaying` protocol was a pure @objc protocol which din't have any prefixes which meant that it could result in collisions with other methods/protocols in ObjC runtime. In order to reduce the change of collision, the `Nuke_` prefixes were added in Nuke 8.
+`ImageDisplaying` protocol was a pure @objc protocol which didn't have any prefixes which meant that it could result in collisions with other methods/protocols in ObjC runtime. In order to reduce the change of collision, the `Nuke_` prefixes were added in Nuke 8.
 
 **Before:**
 
