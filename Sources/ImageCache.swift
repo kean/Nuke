@@ -12,7 +12,7 @@ import Cocoa
 /// In-memory image cache.
 ///
 /// The implementation must be thread safe.
-public protocol ImageCaching: class {
+public protocol ImageCaching: AnyObject {
     /// Returns the `ImageResponse` stored in the cache with the given request.
     func cachedResponse(for request: ImageRequest) -> ImageResponse?
 

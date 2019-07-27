@@ -4,7 +4,7 @@
 
 import Foundation
 
-public protocol Cancellable: class {
+public protocol Cancellable: AnyObject {
     func cancel()
 }
 
