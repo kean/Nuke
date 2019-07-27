@@ -23,7 +23,7 @@ class ImageViewPerformanceTests: XCTestCase {
     func testImageViewMainThreadPerformance() {
         let view = _ImageView()
 
-        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/1)")! }
+        let urls = (0..<20_000).map { _ in return URL(string: "http://test.com/1)")! }
 
         measure {
             for url in urls {
@@ -35,7 +35,7 @@ class ImageViewPerformanceTests: XCTestCase {
     func testImageViewMainThreadPerformanceWithProcessor() {
         let view = _ImageView()
 
-        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/1)")! }
+        let urls = (0..<20_000).map { _ in return URL(string: "http://test.com/1)")! }
 
         measure {
             for url in urls {
@@ -48,7 +48,7 @@ class ImageViewPerformanceTests: XCTestCase {
     func testImageViewMainThreadPerformanceWithProcessorAndSimilarImageInCache() {
         let view = _ImageView()
 
-        let urls = (0..<25_000).map { _ in return URL(string: "http://test.com/9999999)")! }
+        let urls = (0..<20_000).map { _ in return URL(string: "http://test.com/9999999)")! }
 
         measure {
             for url in urls {
@@ -76,7 +76,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             $0.isRateLimiterEnabled = false
         }
 
-        let urls = (0...3_000).map { URL(string: "http://test.com/\($0)")! }
+        let urls = (0...700).map { URL(string: "http://test.com/\($0)")! }
         measure {
             let expectation = self.expectation(description: "Image loaded")
             var finished: Int = 0

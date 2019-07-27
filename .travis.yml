@@ -40,6 +40,11 @@ jobs:
       script: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=13.0,name=iPhone Xs"
 
     - stage: test
+      name: Run Performance Tests
+      osx_image: xcode11
+      script: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=13.0,name=iPhone Xs"
+
+    - stage: test
       name: Build Demo Project
       osx_image: xcode11
       script: Scripts/validate_demo.sh
