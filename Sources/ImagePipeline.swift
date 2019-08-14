@@ -21,7 +21,7 @@ public /* final */ class ImagePipeline {
     public let configuration: Configuration
 
     // This is a queue on which we access the sessions.
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInteractive))
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
 
     private var tasks = [ImageTask: TaskSubscription]()
 
