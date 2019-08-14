@@ -14,7 +14,7 @@ import Foundation
 /// All `Preheater` methods are thread-safe.
 public final class ImagePreheater {
     private let pipeline: ImagePipeline
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater")
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.Preheater", target: .global(qos: .userInitiated))
     private let preheatQueue = OperationQueue()
     private var tasks = [AnyHashable: Task]()
     private let destination: Destination
