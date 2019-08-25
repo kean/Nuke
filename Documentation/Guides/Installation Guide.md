@@ -1,3 +1,13 @@
+# Swift Package Manager
+
+[Swift Package Manager](https://swift.org/package-manager/) is a dependency manager built into Xcode.
+
+If you are using Xcode 11 or higher, go to **File / Swift Packages / Add Package Dependency...** and enter package repository URL **https://github.com/kean/Nuke.git**, then follow the instructions.
+
+To remove the dependency, select the project and open **Swift Packages** (which is next to **Build Settings**). You can add and remove packages from this tab.
+
+> Swift Package Manager can also be used [from the command line](https://swift.org/package-manager/).
+
 # CocoaPods
 
 [CocoaPods](http://cocoapods.org) is a dependency manager for Cocoa projects. You can install it with the following command:
@@ -6,17 +16,15 @@
 $ gem install cocoapods
 ```
 
-> CocoaPods 1.1.0+ is required to build Nuke 6.
-
 To integrate Nuke into your Xcode project using CocoaPods, specify it in your `Podfile`:
 
 ```ruby
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '9.0'
+platform :ios, '10.0'
 use_frameworks!
 
 target '<Your Target Name>' do
-    pod 'Nuke', '~> 7.0'
+    pod 'Nuke', '~> 8.0'
 end
 ```
 
@@ -40,7 +48,7 @@ $ brew install carthage
 To integrate Nuke into your Xcode project using Carthage, specify it in your `Cartfile`:
 
 ```ogdl
-github "kean/Nuke" ~> 7.0
+github "kean/Nuke" ~> 8.0
 ```
 
 Run `carthage update` to build the framework and drag the built `Nuke.framework` into your Xcode project.
@@ -76,9 +84,5 @@ $ git submodule add https://github.com/kean/Nuke.git
 > It does not matter which `Products` folder you choose from, but it does matter whether you choose the top or bottom `Nuke.framework`.
 
 - Select the top `Nuke.framework` for iOS and the bottom one for OS X.
-
-> You can verify which one you selected by inspecting the build log for your project. The build target for `Nuke` will be listed as either `Nuke iOS`, `Nuke macOS`, `Nuke tvOS` or `Nuke watchOS`.
-
-- And that's it!
 
 > The `Nuke.framework` is automagically added as a target dependency, linked framework and embedded framework in a copy files build phase which is all you need to build on the simulator and a device.
