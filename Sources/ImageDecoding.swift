@@ -156,6 +156,12 @@ public struct ImageDecodingContext {
     public let request: ImageRequest
     public let data: Data
     public let urlResponse: URLResponse?
+
+    public init(request: ImageRequest, data: Data, urlResponse: URLResponse?) {
+        self.request = request
+        self.data = data
+        self.urlResponse = urlResponse
+    }
 }
 
 // MARK: - Image Formats

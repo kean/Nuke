@@ -54,6 +54,12 @@ public struct ImageProcessingContext {
     public let request: ImageRequest
     public let isFinal: Bool
     public let scanNumber: Int? // need a more general purpose way to implement this
+
+    public init(request: ImageRequest, isFinal: Bool, scanNumber: Int?) {
+        self.request = request
+        self.isFinal = isFinal
+        self.scanNumber = scanNumber
+    }
 }
 
 // MARK: - ImageProcessor
