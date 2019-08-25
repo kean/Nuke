@@ -307,9 +307,6 @@ extension ImageRequest {
             }
         }
 
-        /// The implementaion is a bit clever because we want to achieve good
-        /// performance when using memory cache, so we can't simply go with
-        /// `AnyHashable` like we do for load keys.
         static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
             let lhs = lhs.request.ref, rhs = rhs.request.ref
             if lhs.options.cacheKey != nil || rhs.options.cacheKey != nil {

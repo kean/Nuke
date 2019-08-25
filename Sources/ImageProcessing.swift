@@ -686,7 +686,7 @@ extension CGSize {
     /// Caclulates a rect such that the ouput rect will be in the center of
     /// the rect of the input size (assuming origin: .zero)
     func centeredInRectWithSize(_ targetSize: CGSize) -> CGRect {
-        // First we need to resize the original size to fill the target size.
+        // First, resize the original size to fill the target size.
         return CGRect(origin: .zero, size: self).offsetBy(
             dx: -(width - targetSize.width) / 2,
             dy: -(height - targetSize.height) / 2

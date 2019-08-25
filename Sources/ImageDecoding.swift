@@ -38,7 +38,7 @@ public final class ImageDecoder: ImageDecoding {
     // Number of scans that the decoder has found so far. The last scan might be
     // incomplete at this point.
     private(set) var numberOfScans = 0
-    private var lastStartOfScan: Int = 0 // Index of the last Start of Scan that we found
+    private var lastStartOfScan: Int = 0 // Index of the last found Start of Scan
     private var scannedIndex: Int = -1 // Index at which previous scan was finished
 
     public init() { }
@@ -55,7 +55,7 @@ public final class ImageDecoder: ImageDecoding {
             return image
         }
 
-        // Determined (if we haven't yet) whether the image supports progressive
+        // Determined (if haven't determined yet) whether the image supports progressive
         // decoding or not (only proressive JPEG is allowed for now, but you can
         // add support for other formats by implementing your own decoder).
         isProgressive = isProgressive ?? format?.isProgressive
@@ -68,7 +68,7 @@ public final class ImageDecoder: ImageDecoding {
             return nil
         }
 
-        // Start scaning from the where we left off previous time.
+        // Start scaning from the where it left off previous time.
         var index = (scannedIndex + 1)
         var numberOfScans = self.numberOfScans
         while index < (data.count - 1) {

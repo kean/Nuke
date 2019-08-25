@@ -65,14 +65,12 @@ public final class ImagePreheater {
     private func _startPreheating(with request: ImageRequest) {
         let key = request.makeLoadKeyForProcessedImage()
 
-        // Check if we we've already started preheating.
         guard tasks[key] == nil else {
-            return
+            return // Already started prefetching
         }
 
-        // Check if the image is already in memory cache.
         guard pipeline.configuration.imageCache?.cachedResponse(for: request) == nil else {
-            return // already in memory cache
+            return // The image is already in memory cache
         }
 
         let task = Task(request: request, key: key)

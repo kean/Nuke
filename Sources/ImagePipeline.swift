@@ -20,7 +20,7 @@ import os
 public /* final */ class ImagePipeline {
     public let configuration: Configuration
 
-    // This is a queue on which we access the sessions.
+    // The queue in which the entire subsystem is synchronized.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
 
     private var tasks = [ImageTask: TaskSubscription]()
@@ -429,7 +429,7 @@ public /* final */ class ImagePipeline {
         var subRequest = request
         if configuration.isDeduplicationEnabled {
             // Recursively call getProcessedImage until there are no more processors left.
-            // Each time we call getProcessedImage it will try to find an existing
+            // Each time getProcessedImage is called it tries to find an existing
             // task ("deduplication") to avoid doing any duplicated work.
             processor = request.processors.last!
             subRequest.processors = Array(request.processors.dropLast())
@@ -657,7 +657,7 @@ public /* final */ class ImagePipeline {
     // This methods gets called inside data loading operation (Operation).
     private func loadImageData(for job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext, finish: @escaping () -> Void) {
         guard !job.isDisposed else {
-            return finish() // Task was cancelled by the time we got the chance to execute
+            return finish() // Task was cancelled by the time it got the chance to start
         }
 
         var urlRequest = context.request.urlRequest
@@ -668,8 +668,8 @@ public /* final */ class ImagePipeline {
             let resumableData = ResumableData.removeResumableData(for: urlRequest) {
             // Update headers to add "Range" and "If-Range" headers
             resumableData.resume(request: &urlRequest)
-            // Save resumable data so that we could use it later (we need to
-            // verify that server returns "206 Partial Content" before using it.
+            // Save resumable data to be used later (before using it, the pipeline
+            // verifies that the server returns "206 Partial Content")
             context.resumableData = resumableData
         }
 
@@ -714,7 +714,7 @@ public /* final */ class ImagePipeline {
     private func imageDataLoadingJob(_ job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext, didReceiveData chunk: Data, response: URLResponse, signpost: Signpost) {
         // Check if this is the first response.
         if context.urlResponse == nil {
-            // See if the server confirmed that we can use the resumable data.
+            // See if the server confirmed that the resumable data can be used
             if let resumableData = context.resumableData {
                 if ResumableData.isResumedResponse(response) {
                     context.data = resumableData.data
@@ -734,10 +734,9 @@ public /* final */ class ImagePipeline {
         let progress = TaskProgress(completed: Int64(context.data.count), total: response.expectedContentLength + context.resumedDataCount)
         job.send(progress: progress)
 
-        // Check if we haven't loaded an entire image yet. We give decoder
-        // an opportunity to decide whether to decode this chunk or not.
-        // In case `expectedContentLength` is undetermined (e.g. 0) we
-        // don't allow progressive decoding.
+        // If the image hasn't been fully loaded yet, give decoder a change
+        // to decode the data chunk. In case `expectedContentLength` is `0`,
+        // progressive decoding doesn't run.
         guard context.data.count < response.expectedContentLength else { return }
 
         job.send(value: (context.data, response))

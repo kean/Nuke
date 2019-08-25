@@ -304,7 +304,7 @@ public final class DataCache: DataCaching {
             ($0.meta.contentAccessDate ?? past) > ($1.meta.contentAccessDate ?? past)
         }
 
-        // Remove the items until we satisfy both size and count limits.
+        // Remove the items until it satisfies both size and count limits.
         while (size > sizeLimit || count > countLimit), let item = items.popLast() {
             size -= (item.meta.totalFileAllocatedSize ?? 0)
             count -= 1

@@ -94,7 +94,7 @@ public final class DataLoader: DataLoading {
     }
 }
 
-// Actual data loader implementation. We hide NSObject inheritance, hide
+// Actual data loader implementation. Hide NSObject inheritance, hide
 // URLSessionDataDelegate conformance, and break retain cycle between URLSession
 // and URLSessionDataDelegate.
 private final class _DataLoader: NSObject, URLSessionDataDelegate {
@@ -131,7 +131,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
             completionHandler(.cancel)
             return
         }
-        // Validate response as soon as we receive it can cancel the request if necessary
         if let error = validate(response) {
             handler.completion(error)
             completionHandler(.cancel)
@@ -154,7 +153,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         guard let handler = handlers[dataTask], let response = dataTask.response else {
             return
         }
-        // We don't store data anywhere, just send it to the pipeline.
+        // Don't store data anywhere, just send it to the pipeline.
         handler.didReceiveData(data, response)
     }
 

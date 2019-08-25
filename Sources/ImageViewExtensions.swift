@@ -355,9 +355,8 @@ private final class ImageViewController {
             }
         }
 
-        // We use the special internal API for performance reasons, it doesn't
-        // attribute for more than 25% performance improvement, the public
-        // ImagePipeline APIs are almost as fast.
+        // Uses a special internal API (`isMainThreadConfined`) for performance
+        // reasons, it attributes for about than 20% performance improvement.
         self.task = pipeline.loadImage(with: request, isMainThreadConfined: true) { [weak self] task, event in
             switch event {
             case .progress:
@@ -434,7 +433,7 @@ private final class ImageViewController {
             return
         }
 
-        // Special case where we animate between content modes, only works
+        // Special case where it animates between content modes, only works
         // on imageView subclasses.
         if let contentMode = contentMode, imageView.contentMode != contentMode, let imageView = imageView as? UIImageView, imageView.image != nil {
             runCrossDissolveWithContentMode(imageView: imageView, image: image, params: params)

@@ -193,7 +193,7 @@ let task = ImagePipeline.shared.loadImage(
 )
 ```
 
-> In some cases, you only want to download the data without doing any expensive decoding or processing. You can do that with `loadData(with:progress:completion:)`.
+> To download the data without doing any expensive decoding or processing, use `loadData(with:progress:completion:)`.
 
 ### `ImageTask`
 
@@ -212,7 +212,7 @@ If you want to build a system that fits your specific needs, you won't be disapp
 
 <img align="right" src="https://user-images.githubusercontent.com/1567433/59148462-94f60280-8a09-11e9-906a-6c7209b8f8c8.png" width="360"/>
 
-Here are some of the protocols which can be used for customization:
+Here are the protocols which can be used for customization:
 
 - `DataLoading` – Download (or return cached) image data
 - `DataCaching` – Store image data on disk
@@ -442,7 +442,7 @@ WebP support is provided by [Nuke WebP Plugin](https://github.com/ryokosuge/Nuke
 
 ### RxNuke
 
-[RxNuke](https://github.com/kean/RxNuke) adds [RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke and enables some common use cases: [Going from low to high resolution](https://github.com/kean/RxNuke#going-from-low-to-high-resolution) | [Loading the first available image](https://github.com/kean/RxNuke#loading-the-first-available-image) | [Showing stale image while validating it](https://github.com/kean/RxNuke#showing-stale-image-while-validating-it) | [Load multiple images, display all at once](https://github.com/kean/RxNuke#load-multiple-images-display-all-at-once) | [Auto retry on failures](https://github.com/kean/RxNuke#auto-retry) | [And more](https://github.com/kean/RxNuke#use-cases)
+[RxNuke](https://github.com/kean/RxNuke) adds [RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke and enables common use cases: [Going from low to high resolution](https://github.com/kean/RxNuke#going-from-low-to-high-resolution) | [Loading the first available image](https://github.com/kean/RxNuke#loading-the-first-available-image) | [Showing stale image while validating it](https://github.com/kean/RxNuke#showing-stale-image-while-validating-it) | [Load multiple images, display all at once](https://github.com/kean/RxNuke#load-multiple-images-display-all-at-once) | [Auto retry on failures](https://github.com/kean/RxNuke#auto-retry) | [And more](https://github.com/kean/RxNuke#use-cases)
 
 To get a taste of what you can do with this extension, take a look at how easy it is to load the low resolution image first and then switch to high resolution:
 
@@ -469,7 +469,7 @@ The pipeline first checks if the image or image data exists in any of its caches
 
 ### Data Loading and Caching
 
-A `DataLoader` class uses [`URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) to load image data. The data is cached on disk using [`URLCache`](https://developer.apple.com/reference/foundation/urlcache), which by default is initialized with memory capacity of 0 MB (we only store processed images in memory) and disk capacity of 150 MB.
+A `DataLoader` class uses [`URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) to load image data. The data is cached on disk using [`URLCache`](https://developer.apple.com/reference/foundation/urlcache), which by default is initialized with memory capacity of 0 MB (only stores processed images in memory) and disk capacity of 150 MB.
 
 > See [Image Caching Guide](https://kean.github.io/post/image-caching) to learn more about HTTP cache.
 
@@ -510,7 +510,7 @@ Nuke will load the data only once, resize the image once and blur it also only o
 
 <img align="right" src="https://user-images.githubusercontent.com/1567433/59372512-f7bc0680-8d47-11e9-865e-f739f013ad49.png" width="360"/>
 
-Nuke is tuned to do as little work on the main thread as possible. It uses multiple optimization techniques to achieve that: reducing the number of allocations, reducing dynamic dispatch, backing some structs by reference typed storage to reduce ARC overhead, etc.
+Nuke is tuned to do as little work on the main thread as possible. It uses multiple optimization techniques to achieve that: reducing the number of allocations, reducing dynamic dispatch, CoW, etc.
 
 Nuke is fully asynchronous and performs well under stress. `ImagePipeline` schedules its operations on dedicated queues. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible. Under the extreme load, `ImagePipeline` will also rate limit the requests to prevent saturation of the underlying systems.
 
