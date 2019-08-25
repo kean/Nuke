@@ -1,5 +1,15 @@
 # Nuke 8
 
+## Nuke 8.1
+
+*August 25, 2019*
+
+- Configure dispatch queues with proper QoS – [#291](https://github.com/kean/Nuke/pull/291)
+- Remove synchronization points in `ImageDecoder` which is not needed starting from iOS 10 – [#277](https://github.com/kean/Nuke/pull/277)
+- Add Swift Package Manager to Installation Guides
+- Improve Travis CI setup: run tests on multiple Xcode versions, run thread safety tests, run SwiftLint validations, build demo project, validate Swift package – [#279](https://github.com/kean/Nuke/pull/279), [#280](https://github.com/kean/Nuke/pull/280), [#281](https://github.com/kean/Nuke/pull/281), [#284](https://github.com/kean/Nuke/pull/284), [#285](https://github.com/kean/Nuke/pull/285)
+
+
 ## Nuke 8.0.1
 
 *July 21, 2019*
