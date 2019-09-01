@@ -1,5 +1,11 @@
 # Nuke 8
 
+## Nuke 8.1.1
+
+*September 1, 2019*
+
+- Switch to a versioning scheme which is compatible with Swift Package Manager
+
 ## Nuke 8.1
 
 *August 25, 2019*
