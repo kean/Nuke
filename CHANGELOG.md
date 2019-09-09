@@ -1,10 +1,23 @@
 # Nuke 8
 
+## Nuke 8.2.0
+
+*September 20, 2019*
+
+- Add support for Mac Catalyst – [#299](https://github.com/kean/Nuke/pull/299), [Jonathan Downing](https://github.com/JonathanDowning))
+
+## Nuke 8.1.1
+
+*September 1, 2019*
+
+- Switch to a versioning scheme which is compatible with Swift Package Manager
+
+
 ## Nuke 8.1
 
 *August 25, 2019*
 
-- Configure dispatch queues with proper QoS – [#291](https://github.com/kean/Nuke/pull/291)
+- Configure dispatch queues with proper QoS – [#291](https://github.com/kean/Nuke/pull/291), [Michael Nisi](https://github.com/michaelnisi))
 - Remove synchronization points in `ImageDecoder` which is not needed starting from iOS 10 – [#277](https://github.com/kean/Nuke/pull/277)
 - Add Swift Package Manager to Installation Guides
 - Improve Travis CI setup: run tests on multiple Xcode versions, run thread safety tests, run SwiftLint validations, build demo project, validate Swift package – [#279](https://github.com/kean/Nuke/pull/279), [#280](https://github.com/kean/Nuke/pull/280), [#281](https://github.com/kean/Nuke/pull/281), [#284](https://github.com/kean/Nuke/pull/284), [#285](https://github.com/kean/Nuke/pull/285)
