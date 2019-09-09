@@ -53,7 +53,7 @@ public final class DataLoader: DataLoading {
         return (200..<300).contains(response.statusCode) ? nil : Error.statusCodeUnacceptable(response.statusCode)
     }
 
-#if !os(macOS)
+#if !os(macOS) && !targetEnvironment(macCatalyst)
     private static let cachePath = "com.github.kean.Nuke.Cache"
 #else
     private static let cachePath: String = {
@@ -68,11 +68,14 @@ public final class DataLoader: DataLoading {
 
     /// Shared url cached used by a default `DataLoader`. The cache is
     /// initialized with 0 MB memory capacity and 150 MB disk capacity.
-    public static let sharedUrlCache = URLCache(
-        memoryCapacity: 0,
-        diskCapacity: 150 * 1024 * 1024, // 150 MB
-        diskPath: cachePath
-    )
+    public static let sharedUrlCache: URLCache = {
+        let diskCapacity = 150 * 1024 * 1024 // 150 MB
+        #if targetEnvironment(macCatalyst)
+        return URLCache(memoryCapacity: 0, diskCapacity: diskCapacity, directory: URL(fileURLWithPath: cachePath))
+        #else
+        return URLCache(memoryCapacity: 0, diskCapacity: diskCapacity, diskPath: cachePath)
+        #endif
+    }()
 
     public func loadData(with request: URLRequest,
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
