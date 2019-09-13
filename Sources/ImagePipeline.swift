@@ -178,6 +178,10 @@ public /* final */ class ImagePipeline {
     func loadImage(with request: ImageRequest,
                    isMainThreadConfined: Bool,
                    observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) -> ImageTask {
+
+        var request = request
+        request.inheritProcessorsIfEmpty(from: self)
+
         let task = ImageTask(taskId: nextTaskId.increment(), request: request, isMainThreadConfined: isMainThreadConfined)
         task.pipeline = self
         queue.async {
@@ -341,6 +345,10 @@ public /* final */ class ImagePipeline {
     /// memory cache reads.
     public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
         guard request.options.memoryCacheOptions.isReadAllowed else { return nil }
+
+        var request = request
+        request.inheritProcessorsIfEmpty(from: self)
+
         return configuration.imageCache?.cachedResponse(for: request)
     }
 
@@ -792,5 +800,22 @@ public /* final */ class ImagePipeline {
             case .processingFailed: return "Failed to process the image"
             }
         }
+    }
+}
+
+// MARK: - ImageRequest manipulation
+
+private extension ImageRequest {
+
+    /// Use the pipeline's own processors if the receiver doesn't have any.
+    ///
+    /// - Parameter pipeline: The pipeline to inherit processors from. The
+    ///   pipeline isn't required to have processors set.
+    /// - Returns: The possible new `ImageRequest`.
+    mutating func inheritProcessorsIfEmpty(from pipeline: ImagePipeline) {
+        // Do not manipulate is the request has some processors already.
+        guard processors.isEmpty else { return }
+
+        processors = pipeline.configuration.processors
     }
 }
