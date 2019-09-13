@@ -50,6 +50,15 @@ extension ImagePipeline {
         public var imageDecompressingQueue = OperationQueue()
         #endif
 
+        // MARK: - Processors
+
+        /// Processors to be applied by default to all images loaded by the
+        /// pipeline.
+        /// If a request has a non-empty processors list, the pipeline won't
+        /// apply its own processors, leaving the request as is.
+        /// This lets clients have an override point on request basis.
+        public var processors: [ImageProcessing] = []
+
         // MARK: - Options
 
         #if !os(macOS)
