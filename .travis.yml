@@ -32,17 +32,17 @@ jobs:
     - stage: test
       name: Run Unit Tests (iOS, Xcode 11)
       osx_image: xcode11
-      script: Scripts/test.sh -d "OS=13.0,name=iPhone Xs"
+      script: Scripts/test.sh -d "OS=13.0,name=iPhone 11"
 
     - stage: test
       name: Run Thread Safety Tests (TSan Enabled)
       osx_image: xcode11
-      script: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=13.0,name=iPhone Xs"
+      script: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=13.0,name=iPhone 11"
 
     - stage: test
       name: Run Performance Tests
       osx_image: xcode11
-      script: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=13.0,name=iPhone Xs"
+      script: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=13.0,name=iPhone 11"
 
     - stage: test
       name: Run Validations (SwiftLint)
