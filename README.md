@@ -105,6 +105,8 @@ let request = ImageRequest(
 )
 ```
 
+> Another way to apply processors is by setting the default `processors` on `ImagePipeline.Configuration`. These processors will be applied to all images loaded by the pipeline. If the request has a non-empty array of `processors`, they are going to be applied instead.
+
 The advanced options available via `ImageRequestOptions`. For example, you can provide a `filteredURL` to be used as a key for caching in case the URL contains transient query parameters.
 
 ```swift
@@ -236,28 +238,6 @@ And then set the new pipeline as default:
 
 ```swift
 ImagePipeline.shared = pipeline
-```
-
-### Image processors
-
-Image pipelines support image processors, which will be applied to all image requests when those do not have any processor set beforehand.
-This makes it convenient to create specific pipelines which load the same kind of images; for example you might want to create a pipeline to load user profile pictures: this would load images and then scale them down to a given size, applying rounded corners. To achieve this behavior you have to pass the `processors` array to the `ImageRequest` constructor, but in some cases this could break encapsulation or could make your objects responsibilities too broad.
-To make things more flexible, you can opt-in and configure a pipeline to have a default `processors` list:
-
-```swift
-let pipeline = ImagePipeline {
-    $0.dataLoader = ...
-    $0.processors = [ImageProcessor.Resize(size: CGSize(width: 40, height: 40))]
-}
-```
-
-The pipeline will then apply the configured `processors` when loading all requests. If an image request has a non-empty `processors` array, the pipeline will apply just the request's processors, ignoring its own. 
-
-**Note**: at the moment it's not possible to have a request not processed. If your pipeline has a `processors` list configured and you want a request not to be processed, the only solution is to set an empty processor *on the request*:
-
-```swift
-let noop = ImageProcessor.Anonymous(id: "noop") { $0 }
-let imageReq = ImageRequest(url: targetURL, processors: [noop])
 ```
 
 ### Default Image Pipeline
