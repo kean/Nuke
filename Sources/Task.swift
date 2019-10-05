@@ -277,17 +277,19 @@ private typealias TaskSubscriptionKey = Int
 
 // MARK: - TaskPool
 
-/// Pool of outstanding tasks.
+/// Contains the tasks which haven't completed yet.
 final class TaskPool<Value, Error> {
     private let isDeduplicationEnabled: Bool
     private var map = [AnyHashable: Task<Value, Error>]()
 
-    init(isDeduplicationEnabled: Bool) {
+    init(_ isDeduplicationEnabled: Bool) {
         self.isDeduplicationEnabled = isDeduplicationEnabled
     }
 
     func task(withKey key: AnyHashable, _ starter: @escaping (Task<Value, Error>.Job) -> Void) -> Task<Value, Error> {
-        return task(withKey: key) { Task<Value, Error>(starter: starter) }
+        return task(withKey: key) {
+            Task<Value, Error>(starter: starter)
+        }
     }
 
     private func task(withKey key: AnyHashable, _ make: () -> Task<Value, Error>) -> Task<Value, Error> {

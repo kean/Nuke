@@ -5,8 +5,8 @@
 import Foundation
 import os
 
-/// `ImagePipeline` will load and decode image data, process loaded images and
-/// store them in caches.
+/// `ImagePipeline` loads and decodes image data, processes loaded images and
+/// stores them in caches.
 ///
 /// See [Nuke's README](https://github.com/kean/Nuke) for a detailed overview of
 /// the image pipeline and all of the related classes.
@@ -16,19 +16,19 @@ import os
 /// image encoders and decoders, change the number of concurrent operations for each
 /// individual stage, disable and enable features like deduplication and rate limiting, and more.
 ///
-/// `ImagePipeline` is thread-safe.
+/// `ImagePipeline` is fully thread-safe.
 public /* final */ class ImagePipeline {
     public let configuration: Configuration
 
-    // The queue in which the entire subsystem is synchronized.
+    // The queue on which the entire subsystem is synchronized.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
 
     private var tasks = [ImageTask: TaskSubscription]()
 
     private let decompressedImageFetchTasks: TaskPool<ImageResponse, Error>
     private let processedImageFetchTasks: TaskPool<ImageResponse, Error>
-    private var originalImageFetchTasks: TaskPool<ImageResponse, Error>
-    private var originalImageDataFetchTasks: TaskPool<(Data, URLResponse?), Error>
+    private let originalImageFetchTasks: TaskPool<ImageResponse, Error>
+    private let originalImageDataFetchTasks: TaskPool<(Data, URLResponse?), Error>
 
     private var nextTaskId = Atomic<Int>(0)
 
@@ -47,10 +47,10 @@ public /* final */ class ImagePipeline {
         self.rateLimiter = RateLimiter(queue: queue)
 
         let isDeduplicationEnabled = configuration.isDeduplicationEnabled
-        self.decompressedImageFetchTasks = TaskPool(isDeduplicationEnabled: isDeduplicationEnabled)
-        self.processedImageFetchTasks = TaskPool(isDeduplicationEnabled: isDeduplicationEnabled)
-        self.originalImageFetchTasks = TaskPool(isDeduplicationEnabled: isDeduplicationEnabled)
-        self.originalImageDataFetchTasks = TaskPool(isDeduplicationEnabled: isDeduplicationEnabled)
+        self.decompressedImageFetchTasks = TaskPool(isDeduplicationEnabled)
+        self.processedImageFetchTasks = TaskPool(isDeduplicationEnabled)
+        self.originalImageFetchTasks = TaskPool(isDeduplicationEnabled)
+        self.originalImageDataFetchTasks = TaskPool(isDeduplicationEnabled)
 
         if Configuration.isSignpostLoggingEnabled {
             self.log = OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading")
@@ -178,10 +178,7 @@ public /* final */ class ImagePipeline {
     func loadImage(with request: ImageRequest,
                    isMainThreadConfined: Bool,
                    observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) -> ImageTask {
-
-        var request = request
-        request.inheritProcessorsIfEmpty(from: self)
-
+        let request = inheritOptions(request)
         let task = ImageTask(taskId: nextTaskId.increment(), request: request, isMainThreadConfined: isMainThreadConfined)
         task.pipeline = self
         queue.async {
@@ -234,48 +231,50 @@ public /* final */ class ImagePipeline {
     // MARK: - Starting Image Tasks
 
     private func startImageTask(_ task: ImageTask, observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) {
-        self.tasks[task] = getDecompressedImage(for: task.request).subscribe(priority: task._priority) { [weak self, weak task] event in
-            guard let self = self, let task = task else { return }
+        self.tasks[task] = getDecompressedImage(for: task.request)
+            .subscribe(priority: task._priority) { [weak self, weak task] event in
+                guard let self = self, let task = task else { return }
 
-            if event.isCompleted {
-                self.tasks[task] = nil
-            }
-
-            DispatchQueue.main.async {
-                guard !task.isCancelled else { return }
-                if case let .progress(progress) = event {
-                    task.setProgress(progress)
+                if event.isCompleted {
+                    self.tasks[task] = nil
                 }
-                observer(task, event)
-            }
+
+                DispatchQueue.main.async {
+                    guard !task.isCancelled else { return }
+                    if case let .progress(progress) = event {
+                        task.setProgress(progress)
+                    }
+                    observer(task, event)
+                }
         }
     }
 
     private func startDataTask(_ task: ImageTask,
                                progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
                                completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
-        self.tasks[task] = getOriginalImageData(for: task.request) .subscribe(priority: task._priority) { [weak self, weak task] event in
-            guard let self = self, let task = task else { return }
+        self.tasks[task] = getOriginalImageData(for: task.request)
+            .subscribe(priority: task._priority) { [weak self, weak task] event in
+                guard let self = self, let task = task else { return }
 
-            if event.isCompleted {
-                self.tasks[task] = nil
-            }
-
-            DispatchQueue.main.async {
-                guard !task.isCancelled else { return }
-
-                switch event {
-                case let .value(response, isCompleted):
-                    if isCompleted {
-                        completion(.success(response))
-                    }
-                case let .progress(progress):
-                    task.setProgress(progress)
-                    progressHandler?(progress.completed, progress.total)
-                case let .error(error):
-                    completion(.failure(error))
+                if event.isCompleted {
+                    self.tasks[task] = nil
                 }
-            }
+
+                DispatchQueue.main.async {
+                    guard !task.isCancelled else { return }
+
+                    switch event {
+                    case let .value(response, isCompleted):
+                        if isCompleted {
+                            completion(.success(response))
+                        }
+                    case let .progress(progress):
+                        task.setProgress(progress)
+                        progressHandler?(progress.completed, progress.total)
+                    case let .error(error):
+                        completion(.failure(error))
+                    }
+                }
         }
     }
 
@@ -346,9 +345,7 @@ public /* final */ class ImagePipeline {
     public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
         guard request.options.memoryCacheOptions.isReadAllowed else { return nil }
 
-        var request = request
-        request.inheritProcessorsIfEmpty(from: self)
-
+        let request = inheritOptions(request)
         return configuration.imageCache?.cachedResponse(for: request)
     }
 
@@ -801,21 +798,16 @@ public /* final */ class ImagePipeline {
             }
         }
     }
-}
 
-// MARK: - ImageRequest manipulation
+    // MARK: - Misc
 
-private extension ImageRequest {
-
-    /// Use the pipeline's own processors if the receiver doesn't have any.
-    ///
-    /// - Parameter pipeline: The pipeline to inherit processors from. The
-    ///   pipeline isn't required to have processors set.
-    /// - Returns: The possible new `ImageRequest`.
-    mutating func inheritProcessorsIfEmpty(from pipeline: ImagePipeline) {
+    /// Inherits some of the pipeline configuration options like processors.
+    private func inheritOptions(_ request: ImageRequest) -> ImageRequest {
         // Do not manipulate is the request has some processors already.
-        guard processors.isEmpty else { return }
+        guard request.processors.isEmpty, !configuration.processors.isEmpty else { return request }
 
-        processors = pipeline.configuration.processors
+        var request = request
+        request.processors = configuration.processors
+        return request
     }
 }
