@@ -123,6 +123,44 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     }
 }
 
+// MARK: - DataFetchResult
+
+enum DataFetchResult {
+    case chunk(Data, URLResponse?)
+    case result(DataResponse)
+
+    var data: Data {
+        switch self {
+        case .chunk(let data, _):
+            return data
+        case .result(let response):
+            return response.data
+        }
+    }
+
+    var urlResponse: URLResponse? {
+        switch self {
+        case .chunk(_, let response):
+            return response
+        case .result(let response):
+            return response.urlResponse
+        }
+    }
+}
+
+// MARK: - DataResponse
+
+/// Represents data response.
+public final class DataResponse {
+    public let data: Data
+    public let urlResponse: URLResponse?
+
+    public init(data: Data, urlResponse: URLResponse? = nil) {
+        self.data = data
+        self.urlResponse = urlResponse
+    }
+}
+
 // MARK: - ImageResponse
 
 /// Represents an image response.

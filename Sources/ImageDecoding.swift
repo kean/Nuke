@@ -105,9 +105,9 @@ extension ImageDecoder {
 }
 
 extension ImageDecoding {
-    func decode(_ data: Data, urlResponse: URLResponse?, isFinal: Bool) -> ImageResponse? {
+    func decode(_ fetchResult: DataFetchResult, isFinal: Bool) -> ImageResponse? {
         func decode() -> Image? {
-            return self.decode(data: data, isFinal: isFinal)
+            return self.decode(data: fetchResult.data, isFinal: isFinal)
         }
         guard let image = autoreleasepool(invoking: decode) else {
             return nil
@@ -117,7 +117,8 @@ extension ImageDecoding {
         #endif
 
         let scanNumber: Int? = (self as? ImageDecoder)?.numberOfScans
-        return ImageResponse(image: image, urlResponse: urlResponse, scanNumber: scanNumber)
+
+        return ImageResponse(image: image, urlResponse: fetchResult.urlResponse, scanNumber: scanNumber)
     }
 }
 

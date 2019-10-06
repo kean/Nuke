@@ -28,7 +28,7 @@ public /* final */ class ImagePipeline {
     private let decompressedImageFetchTasks: TaskPool<ImageResponse, Error>
     private let processedImageFetchTasks: TaskPool<ImageResponse, Error>
     private let originalImageFetchTasks: TaskPool<ImageResponse, Error>
-    private let originalImageDataFetchTasks: TaskPool<(Data, URLResponse?), Error>
+    private let originalImageDataFetchTasks: TaskPool<DataFetchResult, Error>
 
     private var nextTaskId = Atomic<Int>(0)
 
@@ -213,7 +213,7 @@ public /* final */ class ImagePipeline {
     public func loadData(with request: ImageRequest,
                          queue: DispatchQueue? = nil,
                          progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
-                         completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
+                         completion: @escaping (Result<DataResponse, ImagePipeline.Error>) -> Void) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId.increment(), request: request, queue: queue)
         task.pipeline = self
         self.queue.async {
@@ -262,7 +262,7 @@ public /* final */ class ImagePipeline {
 
     private func startDataTask(_ task: ImageTask,
                                progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
-                               completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
+                               completion: @escaping (Result<DataResponse, ImagePipeline.Error>) -> Void) {
         self.tasks[task] = getOriginalImageData(for: task.request)
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
@@ -275,9 +275,9 @@ public /* final */ class ImagePipeline {
                     guard !task.isCancelled else { return }
 
                     switch event {
-                    case let .value(response, isCompleted):
-                        if isCompleted {
-                            completion(.success(response))
+                    case let .value(fetchResult, isCompleted):
+                        if case .result(let dataResponse) = fetchResult, isCompleted {
+                            completion(.success(dataResponse))
                         }
                     case let .progress(progress):
                         task.setProgress(progress)
@@ -422,7 +422,7 @@ public /* final */ class ImagePipeline {
 
             let signpost = Signpost(log: self.log)
             signpost.log(.begin, name: "Decode Cached Processed Image Data")
-            let response = decoder.decode(data, urlResponse: nil, isFinal: true)
+            let response = decoder.decode(.result(.init(data: data)), isFinal: true)
             signpost.log(.end, name: "Decode Cached Processed Image Data")
 
             self.queue.async {
@@ -536,12 +536,12 @@ public /* final */ class ImagePipeline {
             let context = OriginalImageFetchContext(request: request)
             let task = self.getOriginalImageData(for: request)
             job.dependency = task.map(job) { [weak self] value, isCompleted, job in
-                self?.decodeData(value.0, urlResponse: value.1, isCompleted: isCompleted, job: job, context: context)
+                self?.decodeData(value, isCompleted: isCompleted, job: job, context: context)
             }
         }
     }
 
-    private func decodeData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool, job: OriginalImageFetchTask.Job, context: OriginalImageFetchContext) {
+    private func decodeData(_ fetchResult: DataFetchResult, isCompleted: Bool, job: OriginalImageFetchTask.Job, context: OriginalImageFetchContext) {
         if isCompleted {
             job.operation?.cancel() // Cancel any potential pending progressive decoding tasks
         } else if !configuration.isProgressiveDecodingEnabled || job.operation != nil {
@@ -549,14 +549,14 @@ public /* final */ class ImagePipeline {
         }
 
         // Sanity check
-        guard !data.isEmpty else {
+        guard !fetchResult.data.isEmpty else {
             if isCompleted {
                 job.send(error: .decodingFailed)
             }
             return
         }
 
-        let decoder = self.decoder(for: context, data: data, urlResponse: urlResponse)
+        let decoder = self.decoder(for: context, data: fetchResult.data, urlResponse: fetchResult.urlResponse)
 
         let operation = BlockOperation { [weak self, weak job] in
             guard let self = self, let job = job else { return }
@@ -565,7 +565,7 @@ public /* final */ class ImagePipeline {
             if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
                 os_signpost(.begin, log: self.log, name: "Decode Image Data", signpostID: signpost.signpostID, "%{public}s image", "\(isCompleted ? "Final" : "Progressive")")
             }
-            let response = decoder.decode(data, urlResponse: urlResponse, isFinal: isCompleted)
+            let response = decoder.decode(fetchResult, isFinal: isCompleted)
             signpost.log(.end, name: "Decode Image Data")
 
             self.queue.async {
@@ -594,7 +594,7 @@ public /* final */ class ImagePipeline {
 
     // MARK: - Get Original Image Data
 
-    private typealias OriginalImageDataFetchTask = Task<(Data, URLResponse?), Error>
+    private typealias OriginalImageDataFetchTask = Task<DataFetchResult, Error>
 
     private final class OriginalImageDataFetchContext {
         let request: ImageRequest
@@ -645,7 +645,7 @@ public /* final */ class ImagePipeline {
 
             self.queue.async {
                 if let data = data {
-                    job.send(value: (data, nil), isCompleted: true)
+                    job.send(value: .result(.init(data: data)), isCompleted: true)
                 } else {
                     self.loadImageData(for: job, context: context)
                 }
@@ -755,7 +755,7 @@ public /* final */ class ImagePipeline {
         // progressive decoding doesn't run.
         guard context.data.count < response.expectedContentLength else { return }
 
-        job.send(value: (context.data, response))
+        job.send(value: .chunk(context.data, response))
     }
 
     private func imageDataLoadingJob(_ job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext, didFinishLoadingDataWithError error: Swift.Error?) {
@@ -777,7 +777,7 @@ public /* final */ class ImagePipeline {
             dataCache.storeData(context.data, for: key)
         }
 
-        job.send(value: (context.data, context.urlResponse), isCompleted: true)
+        job.send(value: .result(.init(data: context.data, urlResponse: context.urlResponse)), isCompleted: true)
     }
 
     private func tryToSaveResumableData(for context: OriginalImageDataFetchContext) {
