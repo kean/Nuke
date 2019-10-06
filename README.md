@@ -543,6 +543,7 @@ There is a variety of extensions available for Nuke:
 
 | Nuke              | Swift             | Xcode              | Platforms                                         |
 |-------------------|-------------------|--------------------|---------------------------------------------------|
+| Nuke 8.1 – 8.3    | Swift 5.0 – 5.1   | Xcode 10.2 – 11    | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
 | Nuke 8            | Swift 5.0         | Xcode 10.2         | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
 | Nuke 7.6 – 7.6.3  | Swift 4.2 – 5.0   | Xcode 10.1 – 10.2  | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
 | Nuke 7.2 – 7.5.2  | Swift 4.0 – 4.2   | Xcode 9.2 – 10.1   | iOS 9.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0    |

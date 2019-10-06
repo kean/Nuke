@@ -1,10 +1,20 @@
 # Nuke 8
 
+## Nuke 8.3.0
+
+*October 06, 2019*
+ 
+ - Add `processors` option to `ImagePipeline.Configuration`  – [300](https://github.com/kean/Nuke/pull/300), [Alessandro Vendruscolo](https://github.com/vendruscolo)
+ - Add `queue` option to `loadImage` and `loadData` methods of `ImagePipeline` – [304](https://github.com/kean/Nuke/pull/304)
+ - Add `callbackQueue` option to `ImagePipeline.Configuration` – [304](https://github.com/kean/Nuke/pull/304)
+
+
 ## Nuke 8.2.0
 
 *September 20, 2019*
 
 - Add support for Mac Catalyst – [#299](https://github.com/kean/Nuke/pull/299), [Jonathan Downing](https://github.com/JonathanDowning))
+
 
 ## Nuke 8.1.1
 
