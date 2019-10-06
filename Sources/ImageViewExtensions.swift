@@ -357,7 +357,7 @@ private final class ImageViewController {
 
         // Uses a special internal API (`isMainThreadConfined`) for performance
         // reasons, it attributes for about than 20% performance improvement.
-        self.task = pipeline.loadImage(with: request, isMainThreadConfined: true) { [weak self] task, event in
+        self.task = pipeline.loadImage(with: request, isMainThreadConfined: true, queue: .main) { [weak self] task, event in
             switch event {
             case .progress:
                 progressHandler?(nil, task.completedUnitCount, task.totalUnitCount)

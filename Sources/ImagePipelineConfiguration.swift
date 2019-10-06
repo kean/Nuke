@@ -61,6 +61,10 @@ extension ImagePipeline {
 
         // MARK: - Options
 
+        /// A queue on which all callbacks, like `progress` and `completion`
+        /// callbacks are called. `.main` by default.
+        public var callbackQueue = DispatchQueue.main
+
         #if !os(macOS)
         /// Decompresses the loaded images. `true` by default.
         ///
