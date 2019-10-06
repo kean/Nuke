@@ -103,15 +103,18 @@ public /* final */ class ImagePipeline {
     /// See `ImagePipeline.Configuration` to learn more about the pipeline features and
     /// how to enable/disable them.
     ///
+    /// - parameter queue: A queue on which to execute `progress` and `completion`
+    /// callbacks. By default, the pipeline uses `.main` queue.
     /// - parameter progress: A closure to be called periodically on the main thread
     /// when the progress is updated. `nil` by default.
     /// - parameter completion: A closure to be called on the main thread when the
     /// request is finished. `nil` by default.
     @discardableResult
     public func loadImage(with url: URL,
+                          queue: DispatchQueue? = nil,
                           progress: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        return loadImage(with: ImageRequest(url: url), progress: progress, completion: completion)
+        return loadImage(with: ImageRequest(url: url), queue: queue, progress: progress, completion: completion)
     }
 
     /// Loads an image for the given request using image loading pipeline.
@@ -149,15 +152,19 @@ public /* final */ class ImagePipeline {
     ///
     /// See `ImagePipeline.Configuration` to learn more about the pipeline features and
     /// how to enable/disable them.
+    ///
+    /// - parameter queue: A queue on which to execute `progress` and `completion`
+    /// callbacks. By default, the pipeline uses `.main` queue.
     /// - parameter progress: A closure to be called periodically on the main thread
     /// when the progress is updated. `nil` by default.
     /// - parameter completion: A closure to be called on the main thread when the
     /// request is finished. `nil` by default.
     @discardableResult
     public func loadImage(with request: ImageRequest,
+                          queue: DispatchQueue? = nil,
                           progress progressHandler: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        return loadImage(with: request, isMainThreadConfined: false) { task, event in
+        return loadImage(with: request, isMainThreadConfined: false, queue: queue) { task, event in
             switch event {
             case let .value(response, isCompleted):
                 if isCompleted {
@@ -177,11 +184,12 @@ public /* final */ class ImagePipeline {
     /// lock-free `ImageTask`.
     func loadImage(with request: ImageRequest,
                    isMainThreadConfined: Bool,
+                   queue: DispatchQueue?,
                    observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) -> ImageTask {
         let request = inheritOptions(request)
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isMainThreadConfined: isMainThreadConfined)
+        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isMainThreadConfined: isMainThreadConfined, queue: queue)
         task.pipeline = self
-        queue.async {
+        self.queue.async {
             self.startImageTask(task, observer: observer)
         }
         return task
@@ -195,17 +203,20 @@ public /* final */ class ImagePipeline {
     /// You can call `loadImage(:)` for the request at any point after calling `loadData(:)`, the
     /// pipeline will use the same operation to load the data, no duplicated work will be performed.
     ///
+    /// - parameter queue: A queue on which to execute `progress` and `completion`
+    /// callbacks. By default, the pipeline uses `.main` queue.
     /// - parameter progress: A closure to be called periodically on the main thread
     /// when the progress is updated. `nil` by default.
     /// - parameter completion: A closure to be called on the main thread when the
     /// request is finished.
     @discardableResult
     public func loadData(with request: ImageRequest,
+                         queue: DispatchQueue? = nil,
                          progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request)
+        let task = ImageTask(taskId: nextTaskId.increment(), request: request, queue: queue)
         task.pipeline = self
-        queue.async {
+        self.queue.async {
             self.startDataTask(task, progress: progress, completion: completion)
         }
         return task
@@ -239,7 +250,7 @@ public /* final */ class ImagePipeline {
                     self.tasks[task] = nil
                 }
 
-                DispatchQueue.main.async {
+                (task.queue ?? self.configuration.callbackQueue).async {
                     guard !task.isCancelled else { return }
                     if case let .progress(progress) = event {
                         task.setProgress(progress)
@@ -260,7 +271,7 @@ public /* final */ class ImagePipeline {
                     self.tasks[task] = nil
                 }
 
-                DispatchQueue.main.async {
+                (task.queue ?? self.configuration.callbackQueue).async {
                     guard !task.isCancelled else { return }
 
                     switch event {

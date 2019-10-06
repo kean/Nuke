@@ -10,7 +10,7 @@ private class MockImageTask: ImageTask {
     var __isCancelled = false
 
     init(request: ImageRequest) {
-        super.init(taskId: 0, request: request)
+        super.init(taskId: 0, request: request, queue: nil)
     }
 
     override func cancel() {
@@ -33,7 +33,7 @@ class MockImagePipeline: ImagePipeline {
         return queue
     }()
 
-    override func loadImage(with request: ImageRequest, isMainThreadConfined: Bool, observer: @escaping (ImageTask, Task<ImageResponse, ImagePipeline.Error>.Event) -> Void) -> ImageTask {
+    override func loadImage(with request: ImageRequest, isMainThreadConfined: Bool, queue: DispatchQueue?, observer: @escaping (ImageTask, Task<ImageResponse, ImagePipeline.Error>.Event) -> Void) -> ImageTask {
         let task = MockImageTask(request: request)
 
         createdTaskCount += 1

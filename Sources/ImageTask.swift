@@ -49,17 +49,20 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     private(set) var _isCancelled = false
     private let lock: NSLock?
 
+    let queue: DispatchQueue?
+
     /// A completion handler to be called when task finishes or fails.
     public typealias Completion = (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
 
     /// A progress handler to be called periodically during the lifetime of a task.
     public typealias ProgressHandler = (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
 
-    init(taskId: Int, request: ImageRequest, isMainThreadConfined: Bool = false) {
+    init(taskId: Int, request: ImageRequest, isMainThreadConfined: Bool = false, queue: DispatchQueue?) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
         self.priority = request.priority
+        self.queue = queue
         lock = isMainThreadConfined ? nil : NSLock()
     }
 
