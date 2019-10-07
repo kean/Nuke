@@ -17,12 +17,12 @@ import Foundation
 /// - warning: Must be thread-confined!
 final class Task<Value, Error>: TaskSubscriptionDelegate {
 
-    private struct SubscriptionContext {
+    private struct Subscription {
         let observer: (Event) -> Void
         var priority: TaskPriority
     }
 
-    private var subscriptions = [TaskSubscriptionKey: SubscriptionContext]()
+    private var subscriptions = [TaskSubscriptionKey: Subscription]()
     private var nextSubscriptionId = 0
 
     private enum State {
@@ -90,7 +90,7 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
         let subscriptionKey = nextSubscriptionId
         let subscription = TaskSubscription(task: self, key: subscriptionKey)
 
-        subscriptions[subscriptionKey] = SubscriptionContext(observer: observer, priority: priority)
+        subscriptions[subscriptionKey] = Subscription(observer: observer, priority: priority)
         updatePriority()
 
         starter?(self)
