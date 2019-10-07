@@ -599,6 +599,7 @@ public /* final */ class ImagePipeline {
     private final class OriginalImageDataFetchContext {
         let request: ImageRequest
         var urlResponse: URLResponse?
+        var urlSessionTaskMetrics: URLSessionTaskMetrics?
         var resumableData: ResumableData?
         var resumedDataCount: Int64 = 0
         lazy var data = Data()
@@ -702,6 +703,12 @@ public /* final */ class ImagePipeline {
                     self.imageDataLoadingJob(job, context: context, didReceiveData: data, response: response, signpost: signpost)
                 }
             },
+            didCollectTaskMetrics: { [weak self, weak job] taskMetrics in
+                guard let self = self, let job = job else { return }
+                self.queue.async {
+                    self.imageDataLoadingJob(job, context: context, didCollectTaskMetrics: taskMetrics)
+                }
+            },
             completion: { [weak self, weak job] error in
                 finish() // Finish the operation!
                 guard let self = self, let job = job else { return }
@@ -758,6 +765,10 @@ public /* final */ class ImagePipeline {
         job.send(value: .chunk(context.data, response))
     }
 
+    private func imageDataLoadingJob(_ job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext, didCollectTaskMetrics taskMetrics: URLSessionTaskMetrics) {
+        context.urlSessionTaskMetrics = taskMetrics
+    }
+
     private func imageDataLoadingJob(_ job: OriginalImageDataFetchTask.Job, context: OriginalImageDataFetchContext, didFinishLoadingDataWithError error: Swift.Error?) {
         if let error = error {
             tryToSaveResumableData(for: context)
@@ -777,7 +788,9 @@ public /* final */ class ImagePipeline {
             dataCache.storeData(context.data, for: key)
         }
 
-        job.send(value: .result(.init(data: context.data, urlResponse: context.urlResponse)), isCompleted: true)
+        job.send(value: .result(.init(data: context.data,
+                                      urlResponse: context.urlResponse,
+                                      sessionTaskMetrics: context.urlSessionTaskMetrics)), isCompleted: true)
     }
 
     private func tryToSaveResumableData(for context: OriginalImageDataFetchContext) {

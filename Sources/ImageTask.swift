@@ -146,18 +146,24 @@ enum DataFetchResult {
             return response.urlResponse
         }
     }
+
+    var sessionTaskMetrics: URLSessionTaskMetrics? {
+        guard case .result(let response) = self else { return nil }
+        return response.sessionTaskMetrics
+    }
 }
 
 // MARK: - DataResponse
 
-/// Represents data response.
 public final class DataResponse {
     public let data: Data
     public let urlResponse: URLResponse?
+    public let sessionTaskMetrics: URLSessionTaskMetrics?
 
-    public init(data: Data, urlResponse: URLResponse? = nil) {
+    public init(data: Data, urlResponse: URLResponse? = nil, sessionTaskMetrics: URLSessionTaskMetrics? = nil) {
         self.data = data
         self.urlResponse = urlResponse
+        self.sessionTaskMetrics = sessionTaskMetrics
     }
 }
 
@@ -167,13 +173,15 @@ public final class DataResponse {
 public final class ImageResponse {
     public let image: Image
     public let urlResponse: URLResponse?
+    public let sessionTaskMetrics: URLSessionTaskMetrics?
     // the response is only nil when new disk cache is enabled (it only stores
     // data for now, but this might change in the future).
     public let scanNumber: Int?
 
-    public init(image: Image, urlResponse: URLResponse? = nil, scanNumber: Int? = nil) {
+    public init(image: Image, urlResponse: URLResponse? = nil, sessionTaskMetrics: URLSessionTaskMetrics? = nil, scanNumber: Int? = nil) {
         self.image = image
         self.urlResponse = urlResponse
+        self.sessionTaskMetrics = sessionTaskMetrics
         self.scanNumber = scanNumber
     }
 
@@ -182,7 +190,7 @@ public final class ImageResponse {
             guard let output = transformation(image) else {
                 return nil
             }
-            return ImageResponse(image: output, urlResponse: urlResponse, scanNumber: scanNumber)
+            return ImageResponse(image: output, urlResponse: urlResponse, sessionTaskMetrics: sessionTaskMetrics, scanNumber: scanNumber)
         }
     }
 }

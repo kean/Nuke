@@ -117,8 +117,10 @@ extension ImageDecoding {
         #endif
 
         let scanNumber: Int? = (self as? ImageDecoder)?.numberOfScans
-
-        return ImageResponse(image: image, urlResponse: fetchResult.urlResponse, scanNumber: scanNumber)
+        return ImageResponse(image: image,
+                             urlResponse: fetchResult.urlResponse,
+                             sessionTaskMetrics: fetchResult.sessionTaskMetrics,
+                             scanNumber: scanNumber)
     }
 }
 

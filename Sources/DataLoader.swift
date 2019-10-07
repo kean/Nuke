@@ -11,10 +11,12 @@ public protocol Cancellable: AnyObject {
 public protocol DataLoading {
     /// - parameter didReceiveData: Can be called multiple times if streaming
     /// is supported.
+    /// - parameter didCollectTaskMetrics: Should be called once session finished collecting metrics for the task. See `urlSession(_:task:didFinishCollecting:)` of `URLSessionTaskDelegate` for details.
     /// - parameter completion: Must be called once after all (or none in case
     /// of an error) `didReceiveData` closures have been called.
     func loadData(with request: URLRequest,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
+                  didCollectTaskMetrics: @escaping (URLSessionTaskMetrics) -> Void,
                   completion: @escaping (Error?) -> Void) -> Cancellable
 }
 
@@ -79,8 +81,12 @@ public final class DataLoader: DataLoading {
 
     public func loadData(with request: URLRequest,
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
+                         didCollectTaskMetrics: @escaping (URLSessionTaskMetrics) -> Void,
                          completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
-        return impl.loadData(with: request, didReceiveData: didReceiveData, completion: completion)
+        return impl.loadData(with: request,
+                             didReceiveData: didReceiveData,
+                             didCollectTaskMetrics: didCollectTaskMetrics,
+                             completion: completion)
     }
 
     /// Errors produced by `DataLoader`.
@@ -114,9 +120,10 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     /// Loads data with the given request.
     func loadData(with request: URLRequest,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
+                  didCollectTaskMetrics: @escaping (URLSessionTaskMetrics) -> Void,
                   completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = session.dataTask(with: request)
-        let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
+        let handler = _Handler(didReceiveData: didReceiveData, didCollectTaskMetrics: didCollectTaskMetrics, completion: completion)
         queue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
@@ -142,6 +149,11 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         completionHandler(.allow)
     }
 
+    func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        guard let handler = handlers[task] else { return }
+        handler.didCollectTaskMetrics(metrics)
+    }
+
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         guard let handler = handlers[task] else {
             return
@@ -162,11 +174,15 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
 
     private final class _Handler {
         let didReceiveData: (Data, URLResponse) -> Void
+        let didCollectTaskMetrics: (URLSessionTaskMetrics) -> Void
         let completion: (Error?) -> Void
 
-        init(didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) {
+        init(didReceiveData: @escaping (Data, URLResponse) -> Void,
+             didCollectTaskMetrics: @escaping (URLSessionTaskMetrics) -> Void,
+             completion: @escaping (Error?) -> Void) {
             self.didReceiveData = didReceiveData
             self.completion = completion
+            self.didCollectTaskMetrics = didCollectTaskMetrics
         }
     }
 }

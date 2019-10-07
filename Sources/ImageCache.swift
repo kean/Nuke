@@ -32,7 +32,7 @@ public extension ImageCaching {
         }
         set {
             if let newValue = newValue {
-                storeResponse(ImageResponse(image: newValue, urlResponse: nil, scanNumber: nil), for: request)
+                storeResponse(ImageResponse(image: newValue, urlResponse: nil, sessionTaskMetrics: nil, scanNumber: nil), for: request)
             } else {
                 removeResponse(for: request)
             }

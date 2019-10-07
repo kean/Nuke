@@ -22,7 +22,10 @@ class MockDataLoader: DataLoading {
     var results = [URL: _Result<(Data, URLResponse), NSError>]()
     let queue = OperationQueue()
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    func loadData(with request: URLRequest,
+                  didReceiveData: @escaping (Data, URLResponse) -> Void,
+                  didCollectTaskMetrics: @escaping (URLSessionTaskMetrics) -> Void,
+                  completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = MockDataTask()
 
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)

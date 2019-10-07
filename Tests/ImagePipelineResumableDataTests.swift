@@ -48,7 +48,10 @@ private class _MockResumableDataLoader: DataLoading {
     let data: Data = Test.data(name: "fixture", extension: "jpeg")
     let eTag: String = "img_01"
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    func loadData(with request: URLRequest,
+                  didReceiveData: @escaping (Data, URLResponse) -> Void,
+                  didCollectTaskMetrics: @escaping (URLSessionTaskMetrics) -> Void,
+                  completion: @escaping (Error?) -> Void) -> Cancellable {
         let headers = request.allHTTPHeaderFields
 
         func sendChunks(_ chunks: [Data], of data: Data, statusCode: Int) {
