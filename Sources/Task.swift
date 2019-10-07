@@ -25,21 +25,13 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
     private var subscriptions = [TaskSubscriptionKey: Subscription]()
     private var nextSubscriptionId = 0
 
-    private enum State {
-        case executing, failed, completed, cancelled
-    }
-
-    private var state: State = .executing
+    /// Returns `true` if the task was either cancelled, or was completed.
+    private(set) var isDisposed = false
 
     /// Gets called when the task is either cancelled, or was completed.
     var onDisposed: (() -> Void)?
 
     var onCancelled: (() -> Void)?
-
-    /// Returns `true` if the task was either cancelled, or was completed.
-    var isDisposed: Bool {
-        return state != .executing
-    }
 
     private var starter: ((Task) -> Void)?
 
@@ -51,7 +43,7 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
         }
     }
 
-    /// Each task might have a dependency. The task automatically unsubscribes
+    /// A task might have a dependency. The task automatically unsubscribes
     /// from the dependency when it gets cancelled, and also updates the
     /// priority of the subscription to the dependency when its own
     /// priority is updated.
@@ -113,7 +105,7 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
         guard !isDisposed else { return }
 
         if subscriptions.isEmpty {
-            transition(to: .cancelled)
+            terminate(reason: .cancelled)
         } else {
             updatePriority()
         }
@@ -139,12 +131,12 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
         switch event {
         case let .value(_, isCompleted):
             if isCompleted {
-                transition(to: .completed)
+                terminate(reason: .finished)
             }
         case .progress:
             break // Simply send the event
         case .error:
-            transition(to: .failed)
+            terminate(reason: .finished)
         }
 
         for context in subscriptions.values {
@@ -152,18 +144,22 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
         }
     }
 
-    // MARK: - State Transition
+    // MARK: - Termination
 
-    private func transition(to state: State) {
+    private enum TerminationReason {
+        case finished, cancelled
+    }
+
+    private func terminate(reason: TerminationReason) {
         guard !isDisposed else { return }
+        isDisposed = true
 
-        self.state = state
-        if state == .cancelled {
+        if reason == .cancelled {
             operation?.cancel()
             dependency?.unsubscribe()
             onCancelled?()
         }
-        onDisposed?() // All states except for `executing` are final
+        onDisposed?()
     }
 
     // MARK: - Priority
