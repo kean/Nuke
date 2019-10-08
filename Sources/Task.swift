@@ -7,72 +7,85 @@ import Foundation
 /// Represents a task with support for multiple observers, cancellation,
 /// progress reporting, dependencies – everything that `ImagePipeline` needs.
 ///
-/// Each `Task` has one or more subscriptions (`TaskSubscription`) which can
+/// A `Task` can have zero or more subscriptions (`TaskSubscription`) which can
 /// be used to later unsubscribe or change the priority of the subscription.
 ///
-/// The job performed by the task is represented using `Task.Job`. The job has
-/// built-in support for operations (`Foundation.Operation`) – it automatically
-/// cancels them, updates the priority, etc. Most steps in the image pipeline are
-/// represented using Operation to take advantage of these features.
+/// The task has built-in support for operations (`Foundation.Operation`) – it
+/// automatically cancels them, updates the priority, etc. Most steps in the
+/// image pipeline are represented using Operation to take advantage of these features.
 ///
-/// - warning: Must be thread-confined, including jobs.
+/// - warning: Must be thread-confined!
 final class Task<Value, Error>: TaskSubscriptionDelegate {
 
-    private struct SubscriptionContext {
+    private struct Subscription {
         let observer: (Event) -> Void
         var priority: TaskPriority
     }
 
-    private var subscriptions = [TaskSubscriptionKey: SubscriptionContext]()
+    private var subscriptions = [TaskSubscriptionKey: Subscription]()
     private var nextSubscriptionId = 0
 
-    private enum State {
-        case executing, failed, completed, cancelled
-    }
-
-    private var state: State = .executing
+    /// Returns `true` if the task was either cancelled, or was completed.
+    private(set) var isDisposed = false
 
     /// Gets called when the task is either cancelled, or was completed.
     var onDisposed: (() -> Void)?
 
-    /// Returns `true` if the task was either cancelled, or was completed.
-    var isDisposed: Bool {
-        return state != .executing
-    }
+    var onCancelled: (() -> Void)?
 
-    private lazy var job = Job(task: self)
-    private var starter: ((Job) -> Void)?
+    private var starter: ((Task) -> Void)?
 
     private var priority: TaskPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
-            job.operation?.queuePriority = priority.queuePriority
-            job.dependency?.setPriority(priority)
+            operation?.queuePriority = priority.queuePriority
+            dependency?.setPriority(priority)
         }
+    }
+
+    /// A task might have a dependency. The task automatically unsubscribes
+    /// from the dependency when it gets cancelled, and also updates the
+    /// priority of the subscription to the dependency when its own
+    /// priority is updated.
+    var dependency: TaskSubscription? {
+        didSet {
+            dependency?.setPriority(priority)
+        }
+    }
+
+    weak var operation: Foundation.Operation? {
+        didSet {
+            operation?.queuePriority = priority.queuePriority
+        }
+    }
+
+    /// Publishes the results of the task.
+    var publisher: Publisher {
+        return Publisher(task: self)
     }
 
     /// Initializes the task with the `starter`.
     /// - parameter starter: The closure which gets called as soon as the first
     /// subscription is added to the task. Only gets called once and is immediatelly
     /// deallocated after it is called.
-    init(starter: @escaping (Job) -> Void) {
+    init(starter: ((Task) -> Void)? = nil) {
         self.starter = starter
     }
 
     // MARK: - Managing Observers
 
     /// - notes: Returns `nil` if the task was disposed.
-    func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
+    fileprivate func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
         guard !isDisposed else { return nil }
 
         nextSubscriptionId += 1
         let subscriptionKey = nextSubscriptionId
         let subscription = TaskSubscription(task: self, key: subscriptionKey)
 
-        subscriptions[subscriptionKey] = SubscriptionContext(observer: observer, priority: priority)
+        subscriptions[subscriptionKey] = Subscription(observer: observer, priority: priority)
         updatePriority()
 
-        starter?(job)
+        starter?(self)
         starter = nil
 
         return subscription
@@ -92,7 +105,7 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
         guard !isDisposed else { return }
 
         if subscriptions.isEmpty {
-            transition(to: .cancelled)
+            terminate(reason: .cancelled)
         } else {
             updatePriority()
         }
@@ -100,18 +113,30 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
 
     // MARK: - Sending Events
 
+    func send(value: Value, isCompleted: Bool = false) {
+        send(event: .value(value, isCompleted: isCompleted))
+    }
+
+    func send(error: Error) {
+        send(event: .error(error))
+    }
+
+    func send(progress: TaskProgress) {
+        send(event: .progress(progress))
+    }
+
     private func send(event: Event) {
         guard !isDisposed else { return }
 
         switch event {
         case let .value(_, isCompleted):
             if isCompleted {
-                transition(to: .completed)
+                terminate(reason: .finished)
             }
         case .progress:
             break // Simply send the event
         case .error:
-            transition(to: .failed)
+            terminate(reason: .finished)
         }
 
         for context in subscriptions.values {
@@ -119,16 +144,22 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
         }
     }
 
-    // MARK: - State Transition
+    // MARK: - Termination
 
-    private func transition(to state: State) {
+    private enum TerminationReason {
+        case finished, cancelled
+    }
+
+    private func terminate(reason: TerminationReason) {
         guard !isDisposed else { return }
+        isDisposed = true
 
-        self.state = state
-        if state == .cancelled {
-            job.cancel()
+        if reason == .cancelled {
+            operation?.cancel()
+            dependency?.unsubscribe()
+            onCancelled?()
         }
-        onDisposed?() // All states except for `executing` are final
+        onDisposed?()
     }
 
     // MARK: - Priority
@@ -138,17 +169,33 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
     }
 }
 
+// MARK: - Task (Publisher)
+
 extension Task {
-    func map<NewValue>(_ job: Task<NewValue, Error>.Job, _ transform: @escaping (Value, Bool, Task<NewValue, Error>.Job) -> Void) -> TaskSubscription? {
-        return subscribe { [weak job] event in
-            guard let job = job else { return }
-            switch event {
-            case let .value(value, isCompleted):
-                transform(value, isCompleted, job)
-            case let .progress(progress):
-                job.send(progress: progress)
-            case let .error(error):
-                job.send(error: error)
+    /// Publishes the results of the task.
+    struct Publisher {
+        let task: Task
+
+        /// Attaches the subscriber to the task.
+        /// - notes: Returns `nil` if the task is already disposed.
+        func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
+            return task.subscribe(priority: priority, observer)
+        }
+
+        /// Attaches the subscriber to the task. Automatically forwards progress
+        /// andd error events to the given task.
+        /// - notes: Returns `nil` if the task is already disposed.
+        func subscribe<NewValue>(_ task: Task<NewValue, Error>, onValue: @escaping (Value, Bool, Task<NewValue, Error>) -> Void) -> TaskSubscription? {
+            return subscribe { [weak task] event in
+                guard let task = task else { return }
+                switch event {
+                case let .value(value, isCompleted):
+                    onValue(value, isCompleted, task)
+                case let .progress(progress):
+                    task.send(progress: progress)
+                case let .error(error):
+                    task.send(error: error)
+                }
             }
         }
     }
@@ -180,60 +227,6 @@ extension Task {
 
 extension Task.Event: Equatable where Value: Equatable, Error: Equatable {}
 
-// MARK: - Task.Job
-
-extension Task {
-    final class Job {
-        private weak var task: Task?
-
-        var onCancelled: (() -> Void)?
-
-        var isDisposed: Bool {
-            return task?.isDisposed ?? true
-        }
-
-        weak var operation: Foundation.Operation? {
-            didSet {
-                guard let task = task else { return }
-                operation?.queuePriority = task.priority.queuePriority
-            }
-        }
-
-        /// Each task might have a dependency. The task automatically unsubscribes
-        /// from the dependency when it gets cancelled, and also updates the
-        /// priority of the subscription to the dependency when its own
-        /// priority is updated.
-        var dependency: TaskSubscription? {
-            didSet {
-                guard let task = task else { return }
-                dependency?.setPriority(task.priority)
-            }
-        }
-
-        fileprivate init(task: Task) {
-            self.task = task
-        }
-
-        func send(value: Value, isCompleted: Bool = false) {
-            task?.send(event: .value(value, isCompleted: isCompleted))
-        }
-
-        func send(error: Error) {
-            task?.send(event: .error(error))
-        }
-
-        func send(progress: TaskProgress) {
-            task?.send(event: .progress(progress))
-        }
-
-        fileprivate func cancel() {
-            operation?.cancel()
-            dependency?.unsubscribe()
-            onCancelled?()
-        }
-    }
-}
-
 // MARK: - TaskSubscription
 
 /// Represents a subscription to a task. The observer must retain a strong
@@ -251,7 +244,7 @@ final class TaskSubscription {
     /// more events from the task.
     ///
     /// If there are no more subscriptions attached to the task, the task gets
-    /// cancelled along with its job and its dependencies. The cancelled task is
+    /// cancelled along with its dependencies. The cancelled task is
     /// marked as disposed.
     func unsubscribe() {
         task.unsubsribe(key: key)
@@ -286,10 +279,10 @@ final class TaskPool<Value, Error> {
         self.isDeduplicationEnabled = isDeduplicationEnabled
     }
 
-    func task(withKey key: AnyHashable, _ starter: @escaping (Task<Value, Error>.Job) -> Void) -> Task<Value, Error> {
+    func publisher(withKey key: AnyHashable, starter: @escaping (Task<Value, Error>) -> Void) -> Task<Value, Error>.Publisher {
         return task(withKey: key) {
             Task<Value, Error>(starter: starter)
-        }
+        }.publisher
     }
 
     private func task(withKey key: AnyHashable, _ make: () -> Task<Value, Error>) -> Task<Value, Error> {

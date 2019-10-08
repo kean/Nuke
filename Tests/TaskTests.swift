@@ -76,11 +76,11 @@ class TaskTests: XCTestCase {
 
     func testWhenSubscriptionAddedEventsAreForwarded() {
         // Given
-        let task = Task<Int, MyError>(starter: { job in
-            job.send(progress: TaskProgress(completed: 1, total: 2))
-            job.send(value: 1)
-            job.send(progress: TaskProgress(completed: 2, total: 2))
-            job.send(value: 2, isCompleted: true)
+        let task = Task<Int, MyError>(starter: {
+            $0.send(progress: TaskProgress(completed: 1, total: 2))
+            $0.send(value: 1)
+            $0.send(progress: TaskProgress(completed: 2, total: 2))
+            $0.send(value: 2, isCompleted: true)
         })
 
         // When
@@ -100,8 +100,7 @@ class TaskTests: XCTestCase {
 
     func testBothSubscriptionsReceiveEvents() {
         // Given
-        var job: Task<Int, MyError>.Job?
-        let task = Task<Int, MyError>(starter: { job = $0 })
+        let task = Task<Int, MyError>()
 
         // When there are two subscriptions
         var eventCount = 0
@@ -114,7 +113,7 @@ class TaskTests: XCTestCase {
             eventCount += 1
         }
 
-        job?.send(value: 1)
+        task.send(value: 1)
 
         // Then
         XCTAssertEqual(eventCount, 2)
@@ -134,12 +133,11 @@ class TaskTests: XCTestCase {
 
     func testCantSubscribeToAlreadySucceededTask() {
         // Given
-        var job: Task<Int, MyError>.Job!
-        let task = Task<Int, MyError>(starter: { job = $0 })
+        let task = Task<Int, MyError>()
         let _ = task.subscribe { _ in }
 
         // When
-        job.send(value: 1, isCompleted: true)
+        task.send(value: 1, isCompleted: true)
 
         // Then
         XCTAssertNil(task.subscribe { _ in })
@@ -147,12 +145,11 @@ class TaskTests: XCTestCase {
 
     func testCantSubscribeToAlreadyFailedTasks() {
         // Given
-        var job: Task<Int, MyError>.Job!
-        let task = Task<Int, MyError>(starter: { job = $0 })
+        let task = Task<Int, MyError>()
         let _ = task.subscribe { _ in }
 
         // When
-        job.send(error: .init(raw: "1"))
+        task.send(error: .init(raw: "1"))
 
         // Then
         XCTAssertNil(task.subscribe { _ in })
@@ -162,40 +159,37 @@ class TaskTests: XCTestCase {
 
     func testWhenSubscriptionIsRemovedNoEventsAreSent() {
         // Given
-        var job: Task<Int, MyError>.Job!
-        let task = Task<Int, MyError>(starter: { job = $0 })
+        let task = Task<Int, MyError>()
         var recordedEvents = [Task<Int, MyError>.Event]()
         let subscription = task.subscribe { recordedEvents.append($0) }
 
         // When
         subscription?.unsubscribe()
-        job.send(value: 1)
+        task.send(value: 1)
 
         // Then
         XCTAssertTrue(recordedEvents.isEmpty, "Expect no events to be received by observer after subscription is removed")
     }
 
-    func testWhenSubscriptionIsRemovedJobBecomesDisposed() {
+    func testWhenSubscriptionIsRemovedTaskBecomesDisposed() {
         // Given
-        var job: Task<Int, MyError>.Job!
-        let task = Task<Int, MyError>(starter: { job = $0 })
+        let task = Task<Int, MyError>()
         let subscription = task.subscribe { _ in }
 
         // When
         subscription?.unsubscribe()
 
         // Then
-        XCTAssertTrue(job.isDisposed, "Expect job to be marked as disposed")
+        XCTAssertTrue(task.isDisposed, "Expect task to be marked as disposed")
     }
 
     func testWhenSubscriptionIsRemovedOnCancelIsCalled() {
         // Given
-        var job: Task<Int, MyError>.Job!
-        let task = Task<Int, MyError>(starter: { job = $0 })
+        let task = Task<Int, MyError>()
         let subscription = task.subscribe { _ in }
 
         var onCancelledIsCalled = false
-        job?.onCancelled = {
+        task.onCancelled = {
             onCancelledIsCalled = true
         }
 
@@ -206,7 +200,7 @@ class TaskTests: XCTestCase {
         XCTAssertTrue(onCancelledIsCalled)
     }
 
-    func testWhenSubscriptionIsRemovedJobOperationIsCancelled() {
+    func testWhenSubscriptionIsRemovedOperationIsCancelled() {
         // Given
         let operation = Foundation.Operation()
         let task = Task<Int, MyError>(starter: { $0.operation = operation })
@@ -220,7 +214,7 @@ class TaskTests: XCTestCase {
         XCTAssertTrue(operation.isCancelled)
     }
 
-    func testWhenSubscriptionIsRemovedJobDependencyIsCancelled() {
+    func testWhenSubscriptionIsRemovedDependencyIsCancelled() {
         // Given
         let operation = Foundation.Operation()
         let dependency = Task<Int, MyError>(starter: { $0.operation = operation })
@@ -264,21 +258,6 @@ class TaskTests: XCTestCase {
         XCTAssertTrue(operation.isCancelled)
     }
 
-    func testWhenTaskIsDeallocatedJobIsDisposed() {
-        // Deallocating task without removing a subscription is a programmatic error.
-
-        // Given
-        var job: Task<Int, MyError>.Job!
-        var task: Task<Int, MyError>? = Task<Int, MyError>(starter: { job = $0 })
-        _ = task?.subscribe { _ in }
-
-        // When
-        task = nil
-
-        // Then
-        XCTAssertTrue(job.isDisposed)
-    }
-
     // MARK: - Priority
 
     func testWhenPriorityIsUpdatedOperationPriorityAlsoUpdated() {
@@ -294,16 +273,15 @@ class TaskTests: XCTestCase {
         XCTAssertEqual(operation.queuePriority, .high)
     }
 
-    func testWhenJobChangesOperationPriorityUpdated() { // Or sets operation later
+    func testWhenTaskChangesOperationPriorityUpdated() { // Or sets operation later
         // Given
-        var job: Task<Int, MyError>.Job!
-        let task = Task<Int, MyError>(starter: { job = $0 })
+        let task = Task<Int, MyError>()
         let subscription = task.subscribe { _ in }
 
         // When
         subscription?.setPriority(.high)
         let operation = Foundation.Operation()
-        job.operation = operation
+        task.operation = operation
 
         // Then
         XCTAssertEqual(operation.queuePriority, .high)
@@ -387,14 +365,13 @@ class TaskTests: XCTestCase {
 
     func testExecutingTaskIsntDisposed() {
         // Given
-        var job: Task<Int, MyError>.Job!
-        let task = Task<Int, MyError>(starter: { job = $0 })
+        let task = Task<Int, MyError>()
         var isDisposeCalled = false
         task.onDisposed = { isDisposeCalled = true }
         let _ = task.subscribe { _ in }
 
         // When
-        job.send(value: 1) // Casually sending value
+        task.send(value: 1) // Casually sending value
 
         // Then
         XCTAssertFalse(isDisposeCalled)
@@ -418,14 +395,13 @@ class TaskTests: XCTestCase {
 
     func testThatTaskIsDisposedWhenCompletedWithSuccess() {
         // Given
-        var job: Task<Int, MyError>.Job!
-        let task = Task<Int, MyError>(starter: { job = $0 })
+        let task = Task<Int, MyError>()
         var isDisposeCalled = false
         task.onDisposed = { isDisposeCalled = true }
         let _ = task.subscribe { _ in }
 
         // When
-        job.send(value: 1, isCompleted: true)
+        task.send(value: 1, isCompleted: true)
 
         // Then
         XCTAssertTrue(isDisposeCalled)
@@ -434,14 +410,13 @@ class TaskTests: XCTestCase {
 
     func testThatTaskIsDisposedWhenCompletedWithFailure() {
         // Given
-        var job: Task<Int, MyError>.Job!
-        let task = Task<Int, MyError>(starter: { job = $0 })
+        let task = Task<Int, MyError>()
         var isDisposeCalled = false
         task.onDisposed = { isDisposeCalled = true }
         let _ = task.subscribe { _ in }
 
         // When
-        job.send(error: .init(raw: "1"))
+        task.send(error: .init(raw: "1"))
 
         // Then
         XCTAssertTrue(isDisposeCalled)
@@ -453,4 +428,10 @@ class TaskTests: XCTestCase {
 
 private struct MyError: Equatable {
     let raw: String
+}
+
+extension Task {
+    func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
+        return publisher.subscribe(priority: priority, observer)
+    }
 }
