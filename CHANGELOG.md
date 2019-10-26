@@ -1,5 +1,11 @@
 # Nuke 8
 
+## Nuke 8.3.1
+
+*October 26, 2019*
+
+- Add dark mode support to the demo project – [#307](https://github.com/kean/Nuke/pull/307), [Li Yu](https://github.com/yurited)
+
 ## Nuke 8.3.0
 
 *October 06, 2019*
