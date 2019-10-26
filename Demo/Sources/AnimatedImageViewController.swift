@@ -25,7 +25,12 @@ final class AnimatedImageViewController: UICollectionViewController, UICollectio
 
         collectionView?.register(UICollectionViewCell.self, forCellWithReuseIdentifier: textViewCellReuseID)
         collectionView?.register(AnimatedImageCell.self, forCellWithReuseIdentifier: imageCellReuseID)
-        collectionView?.backgroundColor = UIColor.white
+
+        if #available(iOS 13.0, *) {
+            collectionView?.backgroundColor = UIColor.systemBackground
+        } else {
+            collectionView?.backgroundColor = UIColor.white
+        }
 
         let layout = collectionViewLayout as! UICollectionViewFlowLayout
         layout.sectionInset = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
@@ -60,7 +65,11 @@ final class AnimatedImageViewController: UICollectionViewController, UICollectio
             var textView: UITextView! = cell.viewWithTag(14) as? UITextView
             if textView == nil {
                 textView = UITextView()
-                textView.textColor = UIColor.black
+                if #available(iOS 13.0, *) {
+                    textView.textColor = UIColor.label
+                } else {
+                    textView.textColor = UIColor.black
+                }
                 textView.font = UIFont.systemFont(ofSize: 16)
                 textView.isEditable = false
                 textView.textAlignment = .center

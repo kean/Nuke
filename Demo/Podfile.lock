@@ -2,7 +2,7 @@ PODS:
   - Alamofire (4.8.2)
   - DFCache (4.0.2)
   - FLAnimatedImage (1.0.12)
-  - Nuke (8.0)
+  - Nuke (8.3.0)
 
 DEPENDENCIES:
   - Alamofire
@@ -24,8 +24,8 @@ SPEC CHECKSUMS:
   Alamofire: ae5c501addb7afdbb13687d7f2f722c78734c2d3
   DFCache: 29f9c20605ae91a951c161326e41a016128d6259
   FLAnimatedImage: 4a0b56255d9b05f18b6dd7ee06871be5d3b89e31
-  Nuke: 8d90f1dbf88d27a7ba6ff3934de01693812e5adb
+  Nuke: 775e35cf3c12cde80b3bff5fc7a77abb0cf29d0b
 
-PODFILE CHECKSUM: 57052dfe9aa7405e262c8326360b4cb6a4255371
+PODFILE CHECKSUM: 0ac463510fd979855f6c7f6d4793d3bc5bb72ec9
 
-COCOAPODS: 1.7.3
+COCOAPODS: 1.7.5

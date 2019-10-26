@@ -31,7 +31,11 @@ final class AnimatedImageUsingVideoViewController: UICollectionViewController, U
         ]
 
         collectionView?.register(VideoCell.self, forCellWithReuseIdentifier: imageCellReuseID)
-        collectionView?.backgroundColor = UIColor.white
+        if #available(iOS 13.0, *) {
+            collectionView.backgroundColor = UIColor.systemBackground
+        } else {
+            collectionView.backgroundColor = UIColor.white
+        }
 
         let layout = collectionViewLayout as! UICollectionViewFlowLayout
         layout.sectionInset = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
