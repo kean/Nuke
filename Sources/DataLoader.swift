@@ -104,7 +104,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     weak var session: URLSession! // This is safe.
     var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
     let queue = OperationQueue()
-
+    private let speedManager = SpeedManager()
     private var handlers = [URLSessionTask: _Handler]()
 
     override init() {
@@ -146,6 +146,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         guard let handler = handlers[task] else {
             return
         }
+        speedManager.update(with: nil, didCompleteWithError: error)
         handlers[task] = nil
         handler.completion(error)
     }
@@ -156,6 +157,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         guard let handler = handlers[dataTask], let response = dataTask.response else {
             return
         }
+        speedManager.update(with: data, didCompleteWithError: nil)
         // Don't store data anywhere, just send it to the pipeline.
         handler.didReceiveData(data, response)
     }
