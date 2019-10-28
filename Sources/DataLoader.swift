@@ -104,7 +104,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     weak var session: URLSession! // This is safe.
     var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
     let queue = OperationQueue()
-    private let speedManager = SpeedManager()
+    private var speedManager: SpeedManager!
     private var handlers = [URLSessionTask: _Handler]()
 
     override init() {
@@ -120,6 +120,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         queue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
+        speedManager = SpeedManager()
         task.resume()
         return task
     }
