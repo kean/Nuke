@@ -24,7 +24,7 @@ extension URLSessionTask: Cancellable {}
 public final class DataLoader: DataLoading {
     public let session: URLSession
     private let impl: _DataLoader
-
+    var didReciveData: ((_ data: Data?, _ error: Error?)->())?
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
@@ -104,9 +104,8 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     weak var session: URLSession! // This is safe.
     var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
     let queue = OperationQueue()
-    private var speedManager: SpeedManager!
     private var handlers = [URLSessionTask: _Handler]()
-
+    var didReciveData: ((_ data: Data?, _ error: Error?)->())?
     override init() {
         self.queue.maxConcurrentOperationCount = 1
     }
@@ -120,7 +119,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         queue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
-        speedManager = SpeedManager()
         task.resume()
         return task
     }
@@ -147,7 +145,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         guard let handler = handlers[task] else {
             return
         }
-        speedManager.update(with: nil, didCompleteWithError: error)
+        didReciveData?(nil, error)
         handlers[task] = nil
         handler.completion(error)
     }
@@ -158,7 +156,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         guard let handler = handlers[dataTask], let response = dataTask.response else {
             return
         }
-        speedManager.update(with: data, didCompleteWithError: nil)
+        didReciveData?(data, nil)
         // Don't store data anywhere, just send it to the pipeline.
         handler.didReceiveData(data, response)
     }

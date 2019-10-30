@@ -93,7 +93,6 @@
 		0CF1754C22913F9800A8946E /* ImagePipelineConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */; };
 		0CF4DE7D1D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
 		2DFD93B0233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DFD93AF233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift */; };
-		A9642A2D2366E91B00657ECD /* SpeedManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9642A2C2366E91B00657ECD /* SpeedManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -208,7 +207,6 @@
 		0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineConfiguration.swift; sourceTree = "<group>"; };
 		0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheater.swift; sourceTree = "<group>"; };
 		2DFD93AF233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineProcessorTests.swift; sourceTree = "<group>"; };
-		A9642A2C2366E91B00657ECD /* SpeedManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SpeedManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -265,7 +263,6 @@
 		0C096C7B1BAE9ADD007FE380 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				A9642A2C2366E91B00657ECD /* SpeedManager.swift */,
 				0C0FD5DF1CA47FE1002A78FB /* ImageViewExtensions.swift */,
 				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
 				0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */,
@@ -781,7 +778,6 @@
 				0C0FD61C1CA47FE1002A78FB /* ImageViewExtensions.swift in Sources */,
 				0CB26802208F2565004C83F4 /* DataCache.swift in Sources */,
 				0C0FD6041CA47FE1002A78FB /* ImageRequest.swift in Sources */,
-				A9642A2D2366E91B00657ECD /* SpeedManager.swift in Sources */,
 				0CF1754C22913F9800A8946E /* ImagePipelineConfiguration.swift in Sources */,
 				0C86AB6A228B3B5100A81BA1 /* ImageTask.swift in Sources */,
 				0C7150091FC9724C00B880AC /* Internal.swift in Sources */,
