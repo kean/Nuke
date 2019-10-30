@@ -24,7 +24,7 @@ extension URLSessionTask: Cancellable {}
 public final class DataLoader: DataLoading {
     public let session: URLSession
     private let impl: _DataLoader
-    public var didReciveData: ((_ data: Data?, _ error: Swift.Error?)->())?
+    public var didReceiveData: ((_ data: Data?, _ error: Swift.Error?)->())?
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
@@ -34,9 +34,9 @@ public final class DataLoader: DataLoading {
         self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: impl.queue)
         self.impl.session = self.session
         self.impl.validate = validate
-        self.impl.didReciveData = {[weak self] data, error in
+        self.impl.didReceiveData = {[weak self] data, error in
             guard let _strongSelf = self else { return }
-            _strongSelf.didReciveData?(data, error)
+            _strongSelf.didReceiveData?(data, error)
         }
     }
 
@@ -109,7 +109,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
     let queue = OperationQueue()
     private var handlers = [URLSessionTask: _Handler]()
-    var didReciveData: ((_ data: Data?, _ error: Error?)->())?
+    var didReceiveData: ((_ data: Data?, _ error: Error?)->())?
     override init() {
         self.queue.maxConcurrentOperationCount = 1
     }
@@ -149,7 +149,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         guard let handler = handlers[task] else {
             return
         }
-        didReciveData?(nil, error)
+        didReceiveData?(nil, error)
         handlers[task] = nil
         handler.completion(error)
     }
@@ -160,7 +160,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         guard let handler = handlers[dataTask], let response = dataTask.response else {
             return
         }
-        didReciveData?(data, nil)
+        didReceiveData?(data, nil)
         // Don't store data anywhere, just send it to the pipeline.
         handler.didReceiveData(data, response)
     }
