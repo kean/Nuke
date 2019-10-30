@@ -24,7 +24,7 @@ extension URLSessionTask: Cancellable {}
 public final class DataLoader: DataLoading {
     public let session: URLSession
     private let impl: _DataLoader
-    var didReciveData: ((_ data: Data?, _ error: Error?)->())?
+    public var didReciveData: ((_ data: Data?, _ error: Error?)->())?
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
@@ -34,6 +34,9 @@ public final class DataLoader: DataLoading {
         self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: impl.queue)
         self.impl.session = self.session
         self.impl.validate = validate
+        self.didReciveData = {[weak self] data, error in
+            self?.impl.didReciveData?(data, error)
+        }
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
