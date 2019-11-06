@@ -7,6 +7,10 @@ git:
 stages:
   - name: test
 
+branches:
+  only:
+  - master
+
 jobs:
   include:
     - stage: test
