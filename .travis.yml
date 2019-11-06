@@ -35,6 +35,11 @@ jobs:
       script: Scripts/test.sh -d "OS=13.0,name=iPhone 11"
 
     - stage: test
+      name: Run Unit Tests (iOS, Xcode 11.2)
+      osx_image: xcode11
+      script: Scripts/test.sh -d "OS=13.0,name=iPhone 11"
+
+    - stage: test
       name: Run Thread Safety Tests (TSan Enabled)
       osx_image: xcode11
       script: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=13.0,name=iPhone 11"

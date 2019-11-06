@@ -24,7 +24,7 @@ extension URLSessionTask: Cancellable {}
 public final class DataLoader: DataLoading {
     public let session: URLSession
     private let impl: _DataLoader
-    public var didReceiveData: ((_ data: Data?, _ error: Swift.Error?)->Void)?
+    public var didReceiveData: ((_ data: Data?, _ error: Swift.Error?) -> Void)?
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
@@ -109,7 +109,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
     let queue = OperationQueue()
     private var handlers = [URLSessionTask: _Handler]()
-    var didReceiveData: ((_ data: Data?, _ error: Error?)->Void)?
+    var didReceiveData: ((_ data: Data?, _ error: Error?) -> Void)?
     override init() {
         self.queue.maxConcurrentOperationCount = 1
     }
