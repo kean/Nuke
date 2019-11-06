@@ -1,7 +1,6 @@
 #!/bin/sh
 
-gem install cocoapods -v 1.7.3
 cd Demo
-pod install
+carthage update --platform ios
 
-xcodebuild -workspace NukeDemo.xcworkspace -scheme NukeDemo -destination  "OS=13.0,name=iPhone Xs" | xcpretty
+xcodebuild -workspace NukeDemo.xcworkspace -scheme NukeDemo -destination  "OS=13.0,name=iPhone 11" | xcpretty

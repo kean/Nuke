@@ -1,25 +1,14 @@
 #!/bin/sh
 
-# 1. SwiftLint
-###############################################################
-
 # Install SwiftLint
-#
-# Unfortunately, CocoaPods seem to be the only relatively
-# straighforward way to install a specific SwiftLint version
 
-gem install cocoapods -v 1.7.3
-
-echo "
-source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '10.0'
-
-target 'Nuke' do
-	pod 'SwiftLint', '0.30.0'
-end
-" >> Podfile
-
-pod install
+# -L to enable redirects
+curl -L 'https://github.com/realm/SwiftLint/releases/download/0.36.0/portable_swiftlint.zip' -o swiftlint.zip
+mkdir temp
+unzip swiftlint.zip -d temp
+rm -f swiftlint.zip
 
 # Perform the actual validation
-Pods/SwiftLint/swiftlint lint --strict
+
+./temp/swiftlint lint --strict
+rm -rf temp

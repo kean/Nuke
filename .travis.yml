@@ -7,6 +7,10 @@ git:
 stages:
   - name: test
 
+branches:
+  only:
+  - master
+
 jobs:
   include:
     - stage: test
@@ -31,6 +35,11 @@ jobs:
 
     - stage: test
       name: Run Unit Tests (iOS, Xcode 11)
+      osx_image: xcode11
+      script: Scripts/test.sh -d "OS=13.0,name=iPhone 11"
+
+    - stage: test
+      name: Run Unit Tests (iOS, Xcode 11.2)
       osx_image: xcode11
       script: Scripts/test.sh -d "OS=13.0,name=iPhone 11"
 

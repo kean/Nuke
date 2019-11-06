@@ -139,6 +139,11 @@
 		0C0FD5DF1CA47FE1002A78FB /* ImageViewExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewExtensions.swift; sourceTree = "<group>"; };
 		0C179C772282AC50008AB488 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text; path = .swiftlint.yml; sourceTree = "<group>"; };
 		0C179C7A2283597F008AB488 /* ImageEncoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEncoding.swift; sourceTree = "<group>"; };
+		0C1E59662372EBBC00674B63 /* lint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = lint.sh; path = Scripts/lint.sh; sourceTree = "<group>"; };
+		0C1E59672372EBBC00674B63 /* validate_demo.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = validate_demo.sh; path = Scripts/validate_demo.sh; sourceTree = "<group>"; };
+		0C1E59682372EBBC00674B63 /* validate.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = validate.sh; path = Scripts/validate.sh; sourceTree = "<group>"; };
+		0C1E59692372EBBC00674B63 /* build.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = build.sh; path = Scripts/build.sh; sourceTree = "<group>"; };
+		0C1E596A2372EBBC00674B63 /* test.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = test.sh; path = Scripts/test.sh; sourceTree = "<group>"; };
 		0C1E620A1D6F817700AD5CF5 /* ImageRequestTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestTests.swift; sourceTree = "<group>"; };
 		0C2A8CF620970B790013FD65 /* ImagePipelineResumableDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineResumableDataTests.swift; sourceTree = "<group>"; };
 		0C2A8CFA20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineProgressiveDecodingTests.swift; sourceTree = "<group>"; };
@@ -294,6 +299,18 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		0C1E59652372EBA600674B63 /* Scripts */ = {
+			isa = PBXGroup;
+			children = (
+				0C1E59692372EBBC00674B63 /* build.sh */,
+				0C1E59662372EBBC00674B63 /* lint.sh */,
+				0C1E596A2372EBBC00674B63 /* test.sh */,
+				0C1E59672372EBBC00674B63 /* validate_demo.sh */,
+				0C1E59682372EBBC00674B63 /* validate.sh */,
+			);
+			name = Scripts;
+			sourceTree = "<group>";
+		};
 		0C4F8FE722E4B7260070ECFD /* TheadSafety */ = {
 			isa = PBXGroup;
 			children = (
@@ -391,6 +408,7 @@
 				0C9174911BAE99EE004A7905 /* Products */,
 				0CDB92761DAF9BA500002905 /* Documentation */,
 				0CDB927F1DAF9BA900002905 /* Metadata */,
+				0C1E59652372EBA600674B63 /* Scripts */,
 				0C4F900222E4C4FB0070ECFD /* Frameworks */,
 			);
 			sourceTree = "<group>";
