@@ -67,7 +67,7 @@ class ImageViewTests: XCTestCase {
     func testTaskIsNilWhenImageInMemoryCache() {
         // When the requested image is stored in memory cache
         let request = Test.request
-        mockCache[request] = Image()
+        mockCache[request] = PlatformImage()
 
         // When requesting an image
         let task = Nuke.loadImage(with: request, into: imageView)
@@ -276,7 +276,7 @@ class ImageViewTests: XCTestCase {
         mockPipeline.isCancellationEnabled = false
 
         // Given an image A not stored in cache and image B - stored.
-        let imageB = Image()
+        let imageB = PlatformImage()
         mockCache[requestB] = imageB
 
         // Given an image view which is in the process of loading the image A.
@@ -365,7 +365,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     func testPlaceholderDisplayed() {
         // Given
         var options = ImageLoadingOptions()
-        let placeholder = Image()
+        let placeholder = PlatformImage()
         options.placeholder = placeholder
 
         // When
@@ -384,7 +384,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         )
 
         var options = ImageLoadingOptions()
-        let failureImage = Image()
+        let failureImage = PlatformImage()
         options.failureImage = failureImage
 
         // When
@@ -402,7 +402,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         )
 
         var options = ImageLoadingOptions()
-        let failureImage = Image()
+        let failureImage = PlatformImage()
         options.failureImage = failureImage
 
         // Given
@@ -435,7 +435,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
             failure: .center,
             placeholder: .center
         )
-        options.placeholder = Image()
+        options.placeholder = PlatformImage()
 
         // When
         expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
@@ -472,7 +472,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
             failure: .center,
             placeholder: .center
         )
-        options.failureImage = Image()
+        options.failureImage = PlatformImage()
 
         dataLoader.results[Test.url] = .failure(
             NSError(domain: "t", code: 42, userInfo: nil)
@@ -517,7 +517,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     func testSharedOptionsUsed() {
         // Given
         var options = ImageLoadingOptions.shared
-        let placeholder = Image()
+        let placeholder = PlatformImage()
         options.placeholder = placeholder
 
         ImageLoadingOptions.pushShared(options)

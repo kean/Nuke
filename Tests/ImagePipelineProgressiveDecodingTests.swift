@@ -43,7 +43,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     func testThatFailedPartialImagesAreIgnored() {
         // Given
         class FailingPartialsDecoder: ImageDecoding {
-            func decode(data: Data, isFinal: Bool) -> Image? {
+            func decode(data: Data, isFinal: Bool) -> PlatformImage? {
                 if isFinal {
                     return ImageDecoder().decode(data: data, isFinal: isFinal)
                 }
@@ -80,7 +80,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     #if !os(macOS)
     func testThatPartialImagesAreResized() {
         // Given
-        let image = Image(data: dataLoader.data)
+        let image = PlatformImage(data: dataLoader.data)
         XCTAssertEqual(image?.cgImage?.width, 450)
         XCTAssertEqual(image?.cgImage?.height, 300)
 

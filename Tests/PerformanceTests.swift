@@ -10,7 +10,7 @@ class ImageViewPerformanceTests: XCTestCase {
 
     override func setUp() {
         // Store something in memory cache to avoid going through an optimized empty Dictionary path
-        let response = ImageResponse(image: Image(), urlResponse: nil)
+        let response = ImageResponse(image: PlatformImage(), urlResponse: nil)
         ImagePipeline.shared.configuration.imageCache?.storeResponse(response, for: dummyCacheRequest)
     }
 
@@ -99,7 +99,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
 class ImageCachePerformanceTests: XCTestCase {
     func testCacheWrite() {
         let cache = ImageCache()
-        let response = ImageResponse(image: Image(), urlResponse: nil)
+        let response = ImageResponse(image: PlatformImage(), urlResponse: nil)
 
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
         let requests = urls.map { ImageRequest(url: $0) }
@@ -113,7 +113,7 @@ class ImageCachePerformanceTests: XCTestCase {
 
     func testCacheHit() {
         let cache = ImageCache()
-        let response = ImageResponse(image: Image(), urlResponse: nil)
+        let response = ImageResponse(image: PlatformImage(), urlResponse: nil)
         
         for index in 0..<200 {
             cache.storeResponse(response, for: ImageRequest(url: URL(string: "http://test.com/\(index)")!))

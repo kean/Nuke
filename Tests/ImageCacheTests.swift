@@ -199,7 +199,7 @@ class ImageCacheTests: XCTestCase {
     func testGIFCost() {
         // Given
         let data = Test.data(name: "cat", extension: "gif")
-        let image = Image(data: data)!
+        let image = PlatformImage(data: data)!
         image.animatedImageData = data
 
         // Then
@@ -266,7 +266,7 @@ class ImageCacheTests: XCTestCase {
     #if os(iOS) || os(tvOS)
     func testThatImagesAreRemovedOnMemoryWarnings() {
         // Given
-        cache[Test.request] = Image()
+        cache[Test.request] = PlatformImage()
 
         // When
         NotificationCenter.default.post(name: UIApplication.didReceiveMemoryWarningNotification, object: nil)

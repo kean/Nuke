@@ -5,7 +5,7 @@
 import Foundation
 import Nuke
 
-extension Image {
+extension PlatformImage {
     var nk_test_processorIDs: [String] {
         get {
             return (objc_getAssociatedObject(self, &AssociatedKeys.ProcessorIDs) as? [String]) ?? [String]()
@@ -28,7 +28,7 @@ class MockImageProcessor: ImageProcessing {
     init(id: String) {
         self.identifier = id
     }
-    func process(image: Image, context: ImageProcessingContext?) -> Image? {
+    func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
         var processorIDs: [String] = image.nk_test_processorIDs
         #if os(macOS)
         let processedImage = image.copy() as! Image
@@ -36,7 +36,7 @@ class MockImageProcessor: ImageProcessing {
         guard let copy = image.cgImage?.copy() else {
             return image
         }
-        let processedImage = Image(cgImage: copy)
+        let processedImage = PlatformImage(cgImage: copy)
         #endif
         processorIDs.append(identifier)
         processedImage.nk_test_processorIDs = processorIDs
@@ -47,7 +47,7 @@ class MockImageProcessor: ImageProcessing {
 // MARK: - MockFailingProcessor
 
 class MockFailingProcessor: ImageProcessing {
-    func process(image: Image, context: ImageProcessingContext?) -> Image? {
+    func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
         return nil
     }
 
@@ -61,7 +61,7 @@ class MockFailingProcessor: ImageProcessing {
 class MockEmptyImageProcessor: ImageProcessing {
     let identifier = "MockEmptyImageProcessor"
 
-    func process(image: Image, context: ImageProcessingContext?) -> Image? {
+    func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
         return image
     }
 
@@ -80,7 +80,7 @@ final class MockProcessorFactory {
     private final class Processor: MockImageProcessor {
         var factory: MockProcessorFactory!
 
-        override func process(image: Image, context: ImageProcessingContext?) -> Image? {
+        override func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
             factory.lock.lock()
             factory.numberOfProcessorsApplied += 1
             factory.lock.unlock()
