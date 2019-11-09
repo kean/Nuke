@@ -354,12 +354,10 @@ private extension ImagePipeline {
         let operation = BlockOperation { [weak self, weak task] in
             guard let self = self, let task = task else { return }
 
-            let signpost = Signpost(log: self.log)
-            if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
-                os_signpost(.begin, log: self.log, name: "Decompress Image", signpostID: signpost.signpostID, "%{public}s image", "\(isCompleted ? "Final" : "Progressive")")
-            }
-            let response = response.map { ImageDecompression().decompress(image: $0) } ?? response
-            signpost.log(.end, name: "Decompress Image")
+            let log = Log(self.log, "Decompress Image")
+            log.signpost(.begin, isCompleted ? "Final image" : "Progressive image")
+            let response = response.map(ImageDecompression().decompress(image:)) ?? response
+            log.signpost(.end)
 
             self.queue.async {
                 self.storeResponse(response, for: request, isCompleted: isCompleted)
@@ -408,10 +406,10 @@ private extension ImagePipeline {
         let operation = BlockOperation { [weak self, weak task] in
             guard let self = self, let task = task else { return }
 
-            let signpost = Signpost(log: self.log)
-            signpost.log(.begin, name: "Read Cached Processed Image Data")
+            let log = Log(self.log, "Read Cached Processed Image Data")
+            log.signpost(.begin)
             let data = dataCache.cachedData(for: key)
-            signpost.log(.end, name: "Read Cached Processed Image Data")
+            log.signpost(.end)
 
             self.queue.async {
                 if let data = data {
@@ -434,10 +432,10 @@ private extension ImagePipeline {
         let operation = BlockOperation { [weak self, weak task] in
             guard let self = self, let task = task else { return }
 
-            let signpost = Signpost(log: self.log)
-            signpost.log(.begin, name: "Decode Cached Processed Image Data")
+            let log = Log(self.log, "Decode Cached Processed Image Data")
+            log.signpost(.begin)
             let response = decoder.decode(data, urlResponse: nil, isFinal: true)
-            signpost.log(.end, name: "Decode Cached Processed Image Data")
+            log.signpost(.end)
 
             self.queue.async {
                 if let response = response {
@@ -488,13 +486,11 @@ private extension ImagePipeline {
         let operation = BlockOperation { [weak self, weak task] in
             guard let self = self, let task = task else { return }
 
-            let signpost = Signpost(log: self.log)
-            if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
-                os_signpost(.begin, log: self.log, name: "Process Image", signpostID: signpost.signpostID, "%{public}s, %{public}s image", "\(processor)", "\(isCompleted ? "final" : "progressive")")
-            }
+            let log = Log(self.log, "Process Image")
+            log.signpost(.begin, "\(processor), \(isCompleted ? "final" : "progressive") image")
             let context = ImageProcessingContext(request: request, isFinal: isCompleted, scanNumber: response.scanNumber)
             let response = response.map { processor.process(image: $0, context: context) }
-            signpost.log(.end, name: "Process Image")
+            log.signpost(.end)
 
             self.queue.async {
                 guard let response = response else {
@@ -520,10 +516,10 @@ private extension ImagePipeline {
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = configuration.makeImageEncoder(context)
         configuration.imageEncodingQueue.addOperation {
-            let signpost = Signpost(log: self.log)
-            signpost.log(.begin, name: "Encode Image")
+            let log = Log(self.log, "Encode Image")
+            log.signpost(.begin)
             let encodedData = encoder.encode(image: response.image)
-            signpost.log(.end, name: "Encode Image")
+            log.signpost(.end)
 
             guard let data = encodedData else { return }
             let key = request.makeCacheKeyForProcessedImageData()
@@ -577,12 +573,10 @@ private extension ImagePipeline {
         let operation = BlockOperation { [weak self, weak task] in
             guard let self = self, let task = task else { return }
 
-            let signpost = Signpost(log: self.log)
-            if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
-                os_signpost(.begin, log: self.log, name: "Decode Image Data", signpostID: signpost.signpostID, "%{public}s image", "\(isCompleted ? "Final" : "Progressive")")
-            }
+            let log = Log(self.log, "Decode Image Data")
+            log.signpost(.begin, "\(isCompleted ? "Final" : "Progressive") image")
             let response = decoder.decode(data, urlResponse: urlResponse, isFinal: isCompleted)
-            signpost.log(.end, name: "Decode Image Data")
+            log.signpost(.end)
 
             self.queue.async {
                 if let response = response {
@@ -656,10 +650,10 @@ private extension ImagePipeline {
         let operation = BlockOperation { [weak self, weak task] in
             guard let self = self, let task = task else { return }
 
-            let signpost = Signpost(log: self.log)
-            signpost.log(.begin, name: "Read Cached Image Data")
+            let log = Log(self.log, "Read Cached Image Data")
+            log.signpost(.begin)
             let data = cache.cachedData(for: key)
-            signpost.log(.end, name: "Read Cached Image Data")
+            log.signpost(.end)
 
             self.queue.async {
                 if let data = data {
@@ -707,26 +701,22 @@ private extension ImagePipeline {
             context.resumableData = resumableData
         }
 
-        let signpost = Signpost(log: self.log)
-        if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
-            os_signpost(.begin, log: self.log, name: "Load Image Data", signpostID: signpost.signpostID, "URL: %s, resumable data: %{xcode:size-in-bytes}d", urlRequest.url?.absoluteString ?? "", context.resumableData?.data.count ?? 0)
-        }
+        let log = Log(self.log, "Load Image Data")
+        log.signpost(.begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Log.bytes(context.resumableData?.data.count ?? 0))")
 
         let dataTask = configuration.dataLoader.loadData(
             with: urlRequest,
             didReceiveData: { [weak self, weak task] data, response in
                 guard let self = self, let task = task else { return }
                 self.queue.async {
-                    self.imageDataLoadingTask(task, context: context, didReceiveData: data, response: response, signpost: signpost)
+                    self.imageDataLoadingTask(task, context: context, didReceiveData: data, response: response, log: log)
                 }
             },
             completion: { [weak self, weak task] error in
                 finish() // Finish the operation!
                 guard let self = self, let task = task else { return }
                 self.queue.async {
-                    if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
-                        os_signpost(.end, log: self.log, name: "Load Image Data", signpostID: signpost.signpostID, "Finished with size %{xcode:size-in-bytes}d", context.data.count)
-                    }
+                    log.signpost(.end, "Finished with size \(Log.bytes(context.data.count))")
                     self.imageDataLoadingTask(task, context: context, didFinishLoadingDataWithError: error)
                 }
         })
@@ -734,10 +724,7 @@ private extension ImagePipeline {
         task.onCancelled = { [weak self] in
             guard let self = self else { return }
 
-            if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
-                os_signpost(.end, log: self.log, name: "Load Image Data", signpostID: signpost.signpostID, "Cancelled")
-            }
-
+            log.signpost(.end, "Cancelled")
             dataTask.cancel()
             finish() // Finish the operation!
 
@@ -745,16 +732,14 @@ private extension ImagePipeline {
         }
     }
 
-    func imageDataLoadingTask(_ task: OriginalImageDataTask, context: OriginalImageDataTaskContext, didReceiveData chunk: Data, response: URLResponse, signpost: Signpost) {
+    func imageDataLoadingTask(_ task: OriginalImageDataTask, context: OriginalImageDataTaskContext, didReceiveData chunk: Data, response: URLResponse, log: Log) {
         // Check if this is the first response.
         if context.urlResponse == nil {
             // See if the server confirmed that the resumable data can be used
             if let resumableData = context.resumableData, ResumableData.isResumedResponse(response) {
                 context.data = resumableData.data
                 context.resumedDataCount = Int64(resumableData.data.count)
-                if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
-                    os_signpost(.event, log: self.log, name: "Load Image Data", signpostID: signpost.signpostID, "Resumed with data %{xcode:size-in-bytes}d", context.resumedDataCount)
-                }
+                log.signpost(.event, "Resumed with data \(Log.bytes(context.resumedDataCount))")
             }
             context.resumableData = nil // Get rid of resumable data
         }
