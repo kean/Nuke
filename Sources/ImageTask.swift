@@ -4,6 +4,12 @@
 
 import Foundation
 
+#if !os(macOS)
+import UIKit.UIImage
+#else
+import AppKit.NSImage
+#endif
+
 // MARK: - ImageTask
 
 /// A task performed by the `ImagePipeline`. The pipeline maintains a strong
@@ -127,19 +133,19 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
 
 /// Represents an image response.
 public final class ImageResponse {
-    public let image: Image
+    public let image: PlatformImage
     public let urlResponse: URLResponse?
     // the response is only nil when new disk cache is enabled (it only stores
     // data for now, but this might change in the future).
     public let scanNumber: Int?
 
-    public init(image: Image, urlResponse: URLResponse? = nil, scanNumber: Int? = nil) {
+    public init(image: PlatformImage, urlResponse: URLResponse? = nil, scanNumber: Int? = nil) {
         self.image = image
         self.urlResponse = urlResponse
         self.scanNumber = scanNumber
     }
 
-    func map(_ transformation: (Image) -> Image?) -> ImageResponse? {
+    func map(_ transformation: (PlatformImage) -> PlatformImage?) -> ImageResponse? {
         return autoreleasepool {
             guard let output = transformation(image) else {
                 return nil

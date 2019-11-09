@@ -15,7 +15,7 @@ import WatchKit
 // MARK: - ImageEncoding
 
 public protocol ImageEncoding {
-    func encode(image: Image) -> Data?
+    func encode(image: PlatformImage) -> Data?
 }
 
 // MARK: - ImageEncoder
@@ -27,7 +27,7 @@ public struct ImageEncoder: ImageEncoding {
         self.compressionQuality =  compressionQuality
     }
 
-    public func encode(image: Image) -> Data? {
+    public func encode(image: PlatformImage) -> Data? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -42,23 +42,23 @@ public struct ImageEncoder: ImageEncoding {
 /// Image encoding context used when selecting which encoder to use.
 public struct ImageEncodingContext {
     public let request: ImageRequest
-    public let image: Image
+    public let image: PlatformImage
     public let urlResponse: URLResponse?
 }
 
 #if !os(macOS)
 extension ImageEncoder {
-    static func pngData(from image: Image) -> Data? {
+    static func pngData(from image: UIImage) -> Data? {
         return image.pngData()
     }
 
-    static func jpegData(from image: Image, compressionQuality: CGFloat) -> Data? {
+    static func jpegData(from image: UIImage, compressionQuality: CGFloat) -> Data? {
         return image.jpegData(compressionQuality: compressionQuality)
     }
 }
 #else
 extension ImageEncoder {
-    static func pngData(from image: Image) -> Data? {
+    static func pngData(from image: NSImage) -> Data? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -66,7 +66,7 @@ extension ImageEncoder {
         return rep.representation(using: .png, properties: [:])
     }
 
-    static func jpegData(from image: Image, compressionQuality: CGFloat) -> Data? {
+    static func jpegData(from image: NSImage, compressionQuality: CGFloat) -> Data? {
         guard let cgImage = image.cgImage else {
             return nil
         }

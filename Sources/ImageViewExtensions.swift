@@ -7,11 +7,11 @@ import Foundation
 #if !os(macOS)
 import UIKit.UIImage
 /// Alias for `UIImage`.
-public typealias Image = UIImage
+public typealias PlatformImage = UIImage
 #else
 import AppKit.NSImage
 /// Alias for `NSImage`.
-public typealias Image = NSImage
+public typealias PlatformImage = NSImage
 #endif
 
 /// Displays images. Add the conformance to this protocol to your views to make
@@ -25,7 +25,7 @@ public typealias Image = NSImage
 /// with other similar methods and protocol in Objective-C runtime.
 @objc public protocol Nuke_ImageDisplaying {
     /// Display a given image.
-    @objc func nuke_display(image: Image?)
+    @objc func nuke_display(image: PlatformImage?)
 }
 
 #if os(iOS) || os(tvOS)
@@ -35,7 +35,7 @@ public typealias ImageDisplayingView = UIView & Nuke_ImageDisplaying
 
 extension UIImageView: Nuke_ImageDisplaying {
     /// Displays an image.
-    open func nuke_display(image: Image?) {
+    open func nuke_display(image: UIImage?) {
         self.image = image
     }
 }
@@ -46,7 +46,7 @@ public typealias ImageDisplayingView = NSView & Nuke_ImageDisplaying
 
 extension NSImageView: Nuke_ImageDisplaying {
     /// Displays an image.
-    open func nuke_display(image: Image?) {
+    open func nuke_display(image: NSImage?) {
         self.image = image
     }
 }
@@ -58,7 +58,7 @@ public typealias ImageDisplayingView = WKInterfaceObject & Nuke_ImageDisplaying
 
 extension WKInterfaceImage: Nuke_ImageDisplaying {
     /// Displays an image.
-    open func nuke_display(image: Image?) {
+    open func nuke_display(image: UIImage?) {
         self.setImage(image)
     }
 }
@@ -138,10 +138,10 @@ public struct ImageLoadingOptions {
     public static var shared = ImageLoadingOptions()
 
     /// Placeholder to be displayed when the image is loading. `nil` by default.
-    public var placeholder: Image?
+    public var placeholder: PlatformImage?
 
     /// Image to be displayed when the request fails. `nil` by default.
-    public var failureImage: Image?
+    public var failureImage: PlatformImage?
 
     #if os(iOS) || os(tvOS) || os(macOS)
 
@@ -206,7 +206,7 @@ public struct ImageLoadingOptions {
     /// performed when displaying a failure image. `.nil` by default.
     /// - parameter contentModes: Content modes to be used for each image type
     /// (placeholder, success, failure). `nil` by default (don't change content mode).
-    public init(placeholder: Image? = nil, transition: Transition? = nil, failureImage: Image? = nil, failureImageTransition: Transition? = nil, contentModes: ContentModes? = nil) {
+    public init(placeholder: UIImage? = nil, transition: Transition? = nil, failureImage: UIImage? = nil, failureImageTransition: Transition? = nil, contentModes: ContentModes? = nil) {
         self.placeholder = placeholder
         self.transition = transition
         self.failureImage = failureImage
@@ -216,7 +216,7 @@ public struct ImageLoadingOptions {
 
     #elseif os(macOS)
 
-    public init(placeholder: Image? = nil, transition: Transition? = nil, failureImage: Image? = nil, failureImageTransition: Transition? = nil) {
+    public init(placeholder: NSImage? = nil, transition: Transition? = nil, failureImage: NSImage? = nil, failureImageTransition: Transition? = nil) {
         self.placeholder = placeholder
         self.transition = transition
         self.failureImage = failureImage
@@ -225,14 +225,14 @@ public struct ImageLoadingOptions {
 
     #elseif os(watchOS)
 
-    public init(placeholder: Image? = nil, failureImage: Image? = nil) {
+    public init(placeholder: UIImage? = nil, failureImage: UIImage? = nil) {
         self.placeholder = placeholder
         self.failureImage = failureImage
     }
 
     #endif
 
-    #if os(iOS) || os(tvOS) || os(macOS)
+    #if os(iOS) || os(tvOS)
 
     /// An animated image transition.
     public struct Transition {
@@ -240,10 +240,9 @@ public struct ImageLoadingOptions {
 
         enum Style { // internal representation
             case fadeIn(parameters: Parameters)
-            case custom((ImageDisplayingView, Image) -> Void)
+            case custom((ImageDisplayingView, UIImage) -> Void)
         }
 
-        #if os(iOS) || os(tvOS)
         struct Parameters { // internal representation
             let duration: TimeInterval
             let options: UIView.AnimationOptions
@@ -254,7 +253,24 @@ public struct ImageLoadingOptions {
         public static func fadeIn(duration: TimeInterval, options: UIView.AnimationOptions = .allowUserInteraction) -> Transition {
             return Transition(style: .fadeIn(parameters:  Parameters(duration: duration, options: options)))
         }
-        #else
+
+        /// Custom transition. Only runs when the image was not found in memory cache.
+        public static func custom(_ closure: @escaping (ImageDisplayingView, UIImage) -> Void) -> Transition {
+            return Transition(style: .custom(closure))
+        }
+    }
+
+    #elseif os(macOS)
+
+    /// An animated image transition.
+    public struct Transition {
+        var style: Style
+
+        enum Style { // internal representation
+            case fadeIn(parameters: Parameters)
+            case custom((ImageDisplayingView, NSImage) -> Void)
+        }
+
         struct Parameters { // internal representation
             let duration: TimeInterval
         }
@@ -263,10 +279,9 @@ public struct ImageLoadingOptions {
         public static func fadeIn(duration: TimeInterval) -> Transition {
             return Transition(style: .fadeIn(parameters:  Parameters(duration: duration)))
         }
-        #endif
 
         /// Custom transition. Only runs when the image was not found in memory cache.
-        public static func custom(_ closure: @escaping (ImageDisplayingView, Image) -> Void) -> Transition {
+        public static func custom(_ closure: @escaping (ImageDisplayingView, NSImage) -> Void) -> Transition {
             return Transition(style: .custom(closure))
         }
     }
@@ -400,7 +415,7 @@ private final class ImageViewController {
         display(response.image, options.transition, options.alwaysTransition, false, options.contentModes?.success)
     }
 
-    private func display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?) {
+    private func display(_ image: UIImage, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?) {
         guard let imageView = imageView else {
             return
         }
@@ -426,7 +441,7 @@ private final class ImageViewController {
     // content modes.
     private lazy var transitionImageView = UIImageView()
 
-    private func runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters, contentMode: UIView.ContentMode?) {
+    private func runFadeInTransition(image: UIImage, params: ImageLoadingOptions.Transition.Parameters, contentMode: UIView.ContentMode?) {
         guard let imageView = imageView else {
             return
         }
@@ -440,7 +455,7 @@ private final class ImageViewController {
         }
     }
 
-    private func runSimpleFadeIn(image: Image, params: ImageLoadingOptions.Transition.Parameters) {
+    private func runSimpleFadeIn(image: UIImage, params: ImageLoadingOptions.Transition.Parameters) {
         guard let imageView = imageView else {
             return
         }
@@ -459,7 +474,7 @@ private final class ImageViewController {
     /// Performs cross-dissolve animation alonside transition to a new content
     /// mode. This isn't natively supported feature and it requires a second
     /// image view. There might be better ways to implement it.
-    private func runCrossDissolveWithContentMode(imageView: UIImageView, image: Image, params: ImageLoadingOptions.Transition.Parameters) {
+    private func runCrossDissolveWithContentMode(imageView: UIImageView, image: UIImage, params: ImageLoadingOptions.Transition.Parameters) {
         // Lazily create a transition view.
         let transitionView = self.transitionImageView
 
