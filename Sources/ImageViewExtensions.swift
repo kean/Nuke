@@ -349,15 +349,13 @@ private final class ImageViewController {
                 imageView.contentMode = contentMode
             }
             #endif
-        } else {
-            if options.isPrepareForReuseEnabled {
-                imageView.nuke_display(image: nil) // Remove previously displayed images (if any)
-            }
+        } else if options.isPrepareForReuseEnabled {
+            imageView.nuke_display(image: nil) // Remove previously displayed images (if any)
         }
 
         // Uses a special internal API (`isMainThreadConfined`) for performance
         // reasons, it attributes for about than 20% performance improvement.
-        self.task = pipeline.loadImage(with: request, isMainThreadConfined: true, queue: .main) { [weak self] task, event in
+        task = pipeline.loadImage(with: request, isMainThreadConfined: true, queue: .main) { [weak self] task, event in
             switch event {
             case .progress:
                 progressHandler?(nil, task.completedUnitCount, task.totalUnitCount)
@@ -374,7 +372,7 @@ private final class ImageViewController {
                 completion?(.failure(error))
             }
         }
-        return self.task
+        return task
     }
 
     func cancelOutstandingTask() {
