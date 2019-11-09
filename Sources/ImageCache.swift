@@ -26,7 +26,7 @@ public protocol ImageCaching: AnyObject {
 /// Convenience subscript.
 public extension ImageCaching {
     /// Accesses the image associated with the given request.
-    subscript(request: ImageRequest) -> Image? {
+    subscript(request: ImageRequest) -> PlatformImage? {
         get {
             return cachedResponse(for: request)?.image
         }
@@ -134,7 +134,7 @@ public final class ImageCache: ImageCaching {
     }
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
-    func cost(for image: Image) -> Int {
+    func cost(for image: PlatformImage) -> Int {
         let dataCost: Int
         if ImagePipeline.Configuration.isAnimatedImageDataEnabled {
             dataCost = image.animatedImageData?.count ?? 0

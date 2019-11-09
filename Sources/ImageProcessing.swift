@@ -21,7 +21,7 @@ import Cocoa
 /// Performs image processing.
 public protocol ImageProcessing {
     /// Returns processed image.
-    func process(image: Image, context: ImageProcessingContext?) -> Image?
+    func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage?
 
     /// Returns a string which uniquely identifies the processor.
     ///
@@ -38,7 +38,7 @@ public protocol ImageProcessing {
 }
 
 extension ImageProcessing {
-    public func process(image: Image) -> Image? {
+    public func process(image: PlatformImage) -> PlatformImage? {
         return self.process(image: image, context: nil)
     }
 }
@@ -127,7 +127,7 @@ extension ImageProcessor {
             self.upscale = upscale
         }
 
-        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
+        public func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
             if crop && contentMode == .aspectFill {
                 return image.processed.byResizingAndCropping(to: sizeInPixels)
             } else {
@@ -159,7 +159,7 @@ extension ImageProcessor {
     public struct Circle: ImageProcessing, Hashable, CustomStringConvertible {
         public init() {}
 
-        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
+        public func process(image: UIImage, context: ImageProcessingContext?) -> UIImage? {
             return image.processed.byDrawingInCircle()
         }
 
@@ -214,7 +214,7 @@ extension ImageProcessor {
             self.border = border
         }
 
-        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
+        public func process(image: UIImage, context: ImageProcessingContext?) -> UIImage? {
             return image.processed.byAddingRoundedCorners(radius: radius.converted(to: unit), color: border?.color)
         }
 
@@ -273,7 +273,7 @@ extension ImageProcessor {
             self.identifier = "com.github.kean/nuke/core_image?name=\(name))"
         }
 
-        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
+        public func process(image: UIImage, context: ImageProcessingContext?) -> UIImage? {
             let filter = CIFilter(name: name, parameters: parameters)
             return CoreImageFilter.apply(filter: filter, to: image)
         }
@@ -332,7 +332,7 @@ extension ImageProcessor {
         }
 
         /// Applies `CIGaussianBlur` filter to the image.
-        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
+        public func process(image: UIImage, context: ImageProcessingContext?) -> UIImage? {
             let filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": radius])
             return CoreImageFilter.apply(filter: filter, to: image)
         }
@@ -357,7 +357,7 @@ extension ImageProcessor {
 
 struct ImageDecompression {
 
-    func decompress(image: Image) -> Image {
+    func decompress(image: UIImage) -> UIImage {
         let output = image.decompressed() ?? image
         ImageDecompression.setDecompressionNeeded(false, for: output)
         return output
@@ -367,11 +367,11 @@ struct ImageDecompression {
 
     static var isDecompressionNeededAK = "ImageDecompressor.isDecompressionNeeded.AssociatedKey"
 
-    static func setDecompressionNeeded(_ isDecompressionNeeded: Bool, for image: Image) {
+    static func setDecompressionNeeded(_ isDecompressionNeeded: Bool, for image: UIImage) {
         objc_setAssociatedObject(image, &isDecompressionNeededAK, isDecompressionNeeded, .OBJC_ASSOCIATION_RETAIN)
     }
 
-    static func isDecompressionNeeded(for image: Image) -> Bool? {
+    static func isDecompressionNeeded(for image: UIImage) -> Bool? {
         return objc_getAssociatedObject(image, &isDecompressionNeededAK) as? Bool
     }
 }
@@ -394,7 +394,7 @@ extension ImageProcessor {
         /// Processes the given image by applying each processor in an order in
         /// which they were added. If one of the processors fails to produce
         /// an image the processing stops and `nil` is returned.
-        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
+        public func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
             return processors.reduce(image) { image, processor in
                 return autoreleasepool {
                     image.flatMap { processor.process(image: $0, context: context) }
@@ -432,14 +432,14 @@ extension ImageProcessor {
     /// Processed an image using a specified closure.
     public struct Anonymous: ImageProcessing, CustomStringConvertible {
         public let identifier: String
-        private let closure: (Image) -> Image?
+        private let closure: (PlatformImage) -> PlatformImage?
 
-        public init(id: String, _ closure: @escaping (Image) -> Image?) {
+        public init(id: String, _ closure: @escaping (PlatformImage) -> PlatformImage?) {
             self.identifier = id
             self.closure = closure
         }
 
-        public func process(image: Image, context: ImageProcessingContext?) -> Image? {
+        public func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
             return self.closure(image)
         }
 
@@ -451,7 +451,7 @@ extension ImageProcessor {
 
 // MARK: - Image Processing (Internal)
 
-extension Image {
+extension PlatformImage {
     /// Draws the image in a `CGContext` in a canvas with the given size using
     /// the specified draw rect.
     ///
@@ -461,7 +461,7 @@ extension Image {
     /// in a square by centering it in the canvas.
     ///
     /// - parameter drawRect: `nil` by default. If `nil` will use the canvas rect.
-    func draw(inCanvasWithSize canvasSize: CGSize, drawRect: CGRect? = nil) -> Image? {
+    func draw(inCanvasWithSize canvasSize: CGSize, drawRect: CGRect? = nil) -> PlatformImage? {
         guard let cgImage = cgImage else {
             return nil
         }
@@ -484,11 +484,11 @@ extension Image {
         guard let outputCGImage = ctx.makeImage() else {
             return nil
         }
-        return Image.make(cgImage: outputCGImage, source: self)
+        return PlatformImage.make(cgImage: outputCGImage, source: self)
     }
 
     /// Decompresses the input image by drawing in the the `CGContext`.
-    func decompressed() -> Image? {
+    func decompressed() -> PlatformImage? {
         guard let cgImage = cgImage else {
             return nil
         }
@@ -496,18 +496,18 @@ extension Image {
     }
 }
 
-extension Image {
+extension PlatformImage {
     var processed: ImageProcessingExtensions {
         return ImageProcessingExtensions(image: self)
     }
 }
 
 struct ImageProcessingExtensions {
-    let image: Image
+    let image: PlatformImage
 
     func byResizing(to targetSize: CGSize,
                     contentMode: ImageProcessor.Resize.ContentMode,
-                    upscale: Bool) -> Image? {
+                    upscale: Bool) -> PlatformImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -523,7 +523,7 @@ struct ImageProcessingExtensions {
 
     /// Crops the input image to the given size and resizes it if needed.
     /// - note: this method will always upscale.
-    func byResizingAndCropping(to targetSize: CGSize) -> Image? {
+    func byResizingAndCropping(to targetSize: CGSize) -> PlatformImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -536,7 +536,7 @@ struct ImageProcessingExtensions {
 
     #if os(iOS) || os(tvOS) || os(watchOS)
 
-    func byDrawingInCircle() -> Image? {
+    func byDrawingInCircle() -> UIImage? {
         guard let squared = byCroppingToSquare(), let cgImage = squared.cgImage else {
             return nil
         }
@@ -546,7 +546,7 @@ struct ImageProcessingExtensions {
 
     /// Draws an image in square by preserving an aspect ratio and filling the
     /// square if needed. If the image is already a square, returns an original image.
-    func byCroppingToSquare() -> Image? {
+    func byCroppingToSquare() -> UIImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -565,13 +565,13 @@ struct ImageProcessingExtensions {
         guard let cropped = cgImage.cropping(to: cropRect) else {
             return nil
         }
-        return Image(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
+        return UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
     }
 
     /// Adds rounded corners with the given radius to the image.
     /// - parameter radius: Radius in pixels.
     /// - parameter color: Pass a color to stroke a border.
-    func byAddingRoundedCorners(radius: CGFloat, color: UIColor? = nil) -> Image? {
+    func byAddingRoundedCorners(radius: CGFloat, color: UIColor? = nil) -> UIImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -607,8 +607,8 @@ struct ImageProcessingExtensions {
 
 // MARK: - CoreGraphics Helpers (Internal)
 
-extension Image {
-    #if os(macOS)
+#if os(macOS)
+extension NSImage {
     var cgImage: CGImage? {
         return cgImage(forProposedRect: nil, context: nil, hints: nil)
     }
@@ -616,12 +616,14 @@ extension Image {
     static func make(cgImage: CGImage, source: NSImage) -> NSImage {
         return NSImage(cgImage: cgImage, size: .zero)
     }
-    #else
+}
+#else
+extension UIImage {
     static func make(cgImage: CGImage, source: UIImage) -> UIImage {
         return UIImage(cgImage: cgImage, scale: source.scale, orientation: source.imageOrientation)
     }
-    #endif
 }
+#endif
 
 extension CGImage {
     /// Returns `true` if the image doesn't contain alpha channel.

@@ -21,11 +21,11 @@ public protocol ImageDecoding {
     /// progressive decoding enabled, the `decode(data:isFinal:)` method gets
     /// called each time the data buffer has new data available. The decoder may
     /// decide whether or not to produce a new image based on the previous scans.
-    func decode(data: Data, isFinal: Bool) -> Image?
+    func decode(data: Data, isFinal: Bool) -> PlatformImage?
 }
 
 extension ImageDecoding {
-    public func decode(data: Data) -> Image? {
+    public func decode(data: Data) -> PlatformImage? {
         return self.decode(data: data, isFinal: true)
     }
 }
@@ -43,7 +43,7 @@ public final class ImageDecoder: ImageDecoding {
 
     public init() { }
 
-    public func decode(data: Data, isFinal: Bool) -> Image? {
+    public func decode(data: Data, isFinal: Bool) -> PlatformImage? {
         let format = ImageFormat.format(for: data)
 
         guard !isFinal else { // Just decode the data.
@@ -95,7 +95,7 @@ public final class ImageDecoder: ImageDecoding {
 }
 
 extension ImageDecoder {
-    static func decode(_ data: Data) -> Image? {
+    static func decode(_ data: Data) -> PlatformImage? {
         #if os(macOS)
         return NSImage(data: data)
         #else
@@ -106,7 +106,7 @@ extension ImageDecoder {
 
 extension ImageDecoding {
     func decode(_ data: Data, urlResponse: URLResponse?, isFinal: Bool) -> ImageResponse? {
-        func decode() -> Image? {
+        func decode() -> PlatformImage? {
             return self.decode(data: data, isFinal: isFinal)
         }
         guard let image = autoreleasepool(invoking: decode) else {
@@ -234,7 +234,7 @@ enum ImageFormat: Equatable {
 
 private var _animatedImageDataAK = "Nuke.AnimatedImageData.AssociatedKey"
 
-extension Image {
+extension PlatformImage {
     // Animated image data. Only not `nil` when image data actually contains
     // an animated image.
     public var animatedImageData: Data? {

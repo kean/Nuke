@@ -269,3 +269,8 @@ extension ImageTask {
         self.priority = priority
     }
 }
+
+// MARK: - Image (Deprecated)
+
+@available(*, deprecated, message: "Deprecated to avoid name clashes with SwiftUI. Please use `PlatformImage` instead.")
+public typealias Image = PlatformImage
