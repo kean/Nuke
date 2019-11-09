@@ -1,3 +1,13 @@
+opt_in_rules:
+    - closure_spacing
+    - empty_count
+    - fatal_error_message
+    - operator_usage_whitespace
+    - overridden_super_call
+    - pattern_matching_keywords
+    - prohibited_super_call
+    - vertical_parameter_alignment_on_call
+
 disabled_rules:
     - line_length
     - identifier_name

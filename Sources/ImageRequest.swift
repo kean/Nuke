@@ -52,7 +52,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// The request options. See `ImageRequestOptions` for more info.
     public var options: ImageRequestOptions {
         get { return ref.options }
-        set { mutate { $0.options = newValue }}
+        set { mutate { $0.options = newValue } }
     }
 
     /// Processor to be applied to the image. `nil` by default.

@@ -24,7 +24,7 @@ public struct ImageEncoder: ImageEncoding {
     private let compressionQuality: CGFloat
 
     init(compressionQuality: CGFloat = 0.8) {
-        self.compressionQuality =  compressionQuality
+        self.compressionQuality = compressionQuality
     }
 
     public func encode(image: PlatformImage) -> Data? {
