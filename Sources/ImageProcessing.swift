@@ -180,25 +180,25 @@ extension ImageProcessor {
 // MARK: - ImageProcessor.RoundedCorners
 
 extension ImageProcessor {
+    public struct Border: Hashable {
+        let color: UIColor
+        let width: CGFloat
+
+        public init(color: UIColor, width: CGFloat = 1) {
+            self.color = color
+            self.width = width
+        }
+
+        public var description: String {
+            return "Border(color: \(color), width: \(width))"
+        }
+    }
+
     /// Rounds the corners of an image to the specified radius.
     ///
     /// - warning: In order for the corners to be displayed correctly, the image must exactly match the size
     /// of the image view in which it will be displayed. See `ImageProcessor.Resize` for more info.
     public struct RoundedCorners: ImageProcessing, Hashable, CustomStringConvertible {
-      public struct Border: Hashable {
-          let color: UIColor
-          let width: CGFloat
-
-          public init(color: UIColor, width: CGFloat = 1) {
-              self.color = color
-              self.width = width
-          }
-
-          public var description: String {
-              return "Border(color: \(color), width: \(width))"
-          }
-        }
-
         private let radius: CGFloat
         private let unit: Unit
         private let border: Border?
@@ -215,7 +215,7 @@ extension ImageProcessor {
         }
 
         public func process(image: UIImage, context: ImageProcessingContext?) -> UIImage? {
-            return image.processed.byAddingRoundedCorners(radius: radius.converted(to: unit), color: border?.color)
+            return image.processed.byAddingRoundedCorners(radius: radius.converted(to: unit), border: border)
         }
 
         public var identifier: String {
@@ -570,8 +570,8 @@ struct ImageProcessingExtensions {
 
     /// Adds rounded corners with the given radius to the image.
     /// - parameter radius: Radius in pixels.
-    /// - parameter color: Pass a color to stroke a border.
-    func byAddingRoundedCorners(radius: CGFloat, color: UIColor? = nil) -> UIImage? {
+    /// - parameter border: Optional stroke border.
+    func byAddingRoundedCorners(radius: CGFloat, border: ImageProcessor.Border? = nil) -> UIImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -587,12 +587,13 @@ struct ImageProcessingExtensions {
         clippingPath.addClip()
         image.draw(in: CGRect(origin: CGPoint.zero, size: imageSize))
 
-        if let cgColor = color?.cgColor {
-            UIGraphicsGetCurrentContext()?.setStrokeColor(cgColor)
+        if let border = border, let context = UIGraphicsGetCurrentContext() {
+            context.setStrokeColor(border.color.cgColor)
 
-            let border = UIBezierPath(roundedRect: rect, cornerRadius: radius)
+            let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
+            path.lineWidth = border.width
 
-            border.stroke()
+            path.stroke()
         }
 
         guard let roundedImage = UIGraphicsGetImageFromCurrentImageContext()?.cgImage else {
