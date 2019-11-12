@@ -187,6 +187,7 @@
 		0C94466D1D47EC0E006DB314 /* ImageViewTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewTests.swift; sourceTree = "<group>"; };
 		0C9B6E7520B9F3E2001924B8 /* ImagePipelineDeduplicationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDeduplicationTests.swift; sourceTree = "<group>"; };
 		0CA301701DAF9CD1000B9105 /* .travis.yml */ = {isa = PBXFileReference; lastKnownFileType = text; path = .travis.yml; sourceTree = "<group>"; };
+		0CA82BDC237AE09F00338375 /* install_swiftlint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = install_swiftlint.sh; path = Scripts/install_swiftlint.sh; sourceTree = "<group>"; };
 		0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NukeExtensions.swift; sourceTree = "<group>"; };
 		0CB26801208F2565004C83F4 /* DataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataCache.swift; sourceTree = "<group>"; };
 		0CB26806208F25C2004C83F4 /* DataCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataCacheTests.swift; sourceTree = "<group>"; };
@@ -304,6 +305,7 @@
 			children = (
 				0C1E59692372EBBC00674B63 /* build.sh */,
 				0C1E59662372EBBC00674B63 /* lint.sh */,
+				0CA82BDC237AE09F00338375 /* install_swiftlint.sh */,
 				0C1E596A2372EBBC00674B63 /* test.sh */,
 				0C1E59672372EBBC00674B63 /* validate_demo.sh */,
 				0C1E59682372EBBC00674B63 /* validate.sh */,
