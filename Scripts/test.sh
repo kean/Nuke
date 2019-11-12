@@ -14,6 +14,7 @@ shift $((OPTIND -1))
 echo "scheme = ${scheme}"
 echo "destinations = ${destinations[@]}"
 
+instruments -s devices
 
 set -o pipefail
 xcodebuild -version

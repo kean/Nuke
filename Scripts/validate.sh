@@ -2,6 +2,8 @@
 
 # Install SwiftLint
 
+swiftlint version
+
 # -L to enable redirects
 curl -L 'https://github.com/realm/SwiftLint/releases/download/0.36.0/portable_swiftlint.zip' -o swiftlint.zip
 mkdir temp
