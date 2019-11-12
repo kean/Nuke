@@ -157,14 +157,22 @@ extension ImageProcessor {
 
     /// Rounds the corners of an image into a circle.
     public struct Circle: ImageProcessing, Hashable, CustomStringConvertible {
-        public init() {}
+        private let border: Border?
+
+        public init(border: Border? = nil) {
+            self.border = border
+        }
 
         public func process(image: UIImage, context: ImageProcessingContext?) -> UIImage? {
-            return image.processed.byDrawingInCircle()
+            return image.processed.byDrawingInCircle(border: border)
         }
 
         public var identifier: String {
-            return "com.github.kean/nuke/circle"
+            if let border = self.border {
+                return "com.github.kean/nuke/circle?border=\(border)"
+            } else {
+                return "com.github.kean/nuke/circle"
+            }
         }
 
         public var hashableIdentifier: AnyHashable {
@@ -536,12 +544,12 @@ struct ImageProcessingExtensions {
 
     #if os(iOS) || os(tvOS) || os(watchOS)
 
-    func byDrawingInCircle() -> UIImage? {
+    func byDrawingInCircle(border: ImageProcessor.Border?) -> UIImage? {
         guard let squared = byCroppingToSquare(), let cgImage = squared.cgImage else {
             return nil
         }
         let radius = CGFloat(cgImage.width) / 2.0 // Can use any dimenstion since image is a square
-        return squared.processed.byAddingRoundedCorners(radius: radius)
+        return squared.processed.byAddingRoundedCorners(radius: radius, border: border)
     }
 
     /// Draws an image in square by preserving an aspect ratio and filling the
