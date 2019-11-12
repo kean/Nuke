@@ -13,57 +13,46 @@ branches:
 
 jobs:
   include:
-    - stage: test
-      name: Run Unit Tests (iOS, Xcode 10.2)
+    - name: Run Unit Tests (iOS, Xcode 10.2)
       osx_image: xcode10.2
       script: Scripts/test.sh -d "OS=12.2,name=iPhone X" -d "OS=11.4,name=iPhone X" -d "OS=10.3.1,name=iPhone SE"
 
-    - stage: test
-      name: Run Unit Tests (macOS, Xcode 10.2)
+    - name: Run Unit Tests (macOS, Xcode 10.2)
       osx_image: xcode10.2
       script: Scripts/test.sh -d "arch=x86_64"
 
-    - stage: test
-      name: Run Unit Tests (tvOS, Xcode 10.2)
+    - name: Run Unit Tests (tvOS, Xcode 10.2)
       osx_image: xcode10.2
       script: Scripts/test.sh -d "OS=12.2,name=Apple TV 4K" -d "OS=11.3,name=Apple TV 4K"
 
-    - stage: test
-      name: Build (watchOS, Xcode 10.2)
+    - name: Build (watchOS, Xcode 10.2)
       osx_image: xcode10.2
       script: Scripts/build.sh -d "OS=4.2,name=Apple Watch - 42mm"
 
-    - stage: test
-      name: Run Unit Tests (iOS, Xcode 11)
+    - name: Run Unit Tests (iOS, Xcode 11)
       osx_image: xcode11
       script: Scripts/test.sh -d "OS=13.0,name=iPhone 11"
 
-    - stage: test
-      name: Run Unit Tests (iOS, Xcode 11.2)
+    - name: Run Unit Tests (iOS, Xcode 11.2)
       osx_image: xcode11
       script: Scripts/test.sh -d "OS=13.0,name=iPhone 11"
 
-    - stage: test
-      name: Run Thread Safety Tests (TSan Enabled)
+    - name: Run Thread Safety Tests (TSan Enabled)
       osx_image: xcode11
       script: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=13.0,name=iPhone 11"
 
-    - stage: test
-      name: Run Performance Tests
+    - name: Run Performance Tests
       osx_image: xcode11
       script: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=13.0,name=iPhone 11"
 
-    - stage: test
-      name: Run Validations (SwiftLint)
+    - name: Run Validations (SwiftLint)
       osx_image: xcode11
       script: Scripts/validate.sh
 
-    - stage: test
-      name: Build Demo Project
+    - name: Build Demo Project
       osx_image: xcode11
       script: Scripts/validate_demo.sh
 
-    - stage: test
-      name: Swift Build (Swift Package Manager)
+    - name: Swift Build (Swift Package Manager)
       osx_image: xcode11
       script: swift build
