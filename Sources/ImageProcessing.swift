@@ -209,14 +209,14 @@ extension ImageProcessor {
     public struct RoundedCorners: ImageProcessing, Hashable, CustomStringConvertible {
         private let radius: CGFloat
         private let unit: Unit
-        private let border: Border?
+        private let border: ImageProcessor.Border?
 
         /// Initializes the processor with the given radius.
         ///
         /// - parameter radius: The radius of the corners.
         /// - parameter unit: Unit of the radius, `.points` by default.
         /// - parameter border: An optional border drawn around the image.
-        public init(radius: CGFloat, unit: Unit = .points, border: Border? = nil) {
+        public init(radius: CGFloat, unit: Unit = .points, border: ImageProcessor.Border? = nil) {
             self.radius = radius
             self.unit = unit
             self.border = border

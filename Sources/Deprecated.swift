@@ -272,5 +272,16 @@ extension ImageTask {
 
 // MARK: - Image (Deprecated)
 
+// Deprecated in 8.4
 @available(*, deprecated, message: "Deprecated to avoid name clashes with SwiftUI. Please use `PlatformImage` instead.")
 public typealias Image = PlatformImage
+
+// MARK: - ImageProcessor.RoundedCorners.Border (Deprecated)
+
+// Deprecated in 8.4
+#if !os(macOS)
+public extension ImageProcessor.RoundedCorners {
+    @available(*, deprecated, message: "Please use `ImageProcessor.Border` instead.")
+    typealias Border = ImageProcessor.Border
+}
+#endif
