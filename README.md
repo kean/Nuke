@@ -29,7 +29,7 @@ Nuke is easy to learn and use. Here is an overview of its APIs and features:
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) | [HTTP Disk Cache](#http-disk-cache) | [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
 - **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [Animated Images](#animated-images) | [WebP](#webp) | [RxNuke](#rxnuke)
 
-To learn more see a full [**API Reference**](https://kean.github.io/Nuke/reference/8.0/index.html), and check out the demo project included in the repository. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms.
+To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/8.0/index.html), and check out the demo project included in the repository. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms.
 
 <img src="https://img.shields.io/badge/supports-Swift%20Package%20Manager%2C%20CocoaPods%2C%20Carthage-green.svg">
 
