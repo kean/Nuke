@@ -17,6 +17,26 @@ extension ImagePipeline.Error: Equatable {
     }
 }
 
+extension ImageTaskEvent: Equatable {
+    public static func == (lhs: ImageTaskEvent, rhs: ImageTaskEvent) -> Bool {
+        switch (lhs, rhs) {
+        case (.started, .started): return true
+        case (.cancelled, .cancelled): return true
+        case let (.priorityUpdated(lhs), .priorityUpdated(rhs)): return lhs == rhs
+        case let (.intermediateResponseReceived(lhs), .intermediateResponseReceived(rhs)): return lhs == rhs
+        case let (.progressUpdated(lhs), .progressUpdated(rhs)): return lhs == rhs
+        case let (.completed(lhs), .completed(rhs)): return lhs == rhs
+        default: return false
+        }
+    }
+}
+
+extension ImageResponse: Equatable {
+    public static func == (lhs: ImageResponse, rhs: ImageResponse) -> Bool {
+        return lhs === rhs
+    }
+}
+
 extension ImagePipeline {
     func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
         var configuration = self.configuration

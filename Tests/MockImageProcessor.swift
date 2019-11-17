@@ -31,7 +31,7 @@ class MockImageProcessor: ImageProcessing {
     func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
         var processorIDs: [String] = image.nk_test_processorIDs
         #if os(macOS)
-        let processedImage = image.copy() as! Image
+        let processedImage = image.copy() as! PlatformImage
         #else
         guard let copy = image.cgImage?.copy() else {
             return image
