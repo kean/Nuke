@@ -117,15 +117,7 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     // MARK: - CustomStringConvertible
 
     public var description: String {
-        return """
-        ImageTask {
-            id: \(taskId)
-            priority: \(priority)
-            completedUnitCount: \(completedUnitCount)
-            totalUnitCount: \(totalUnitCount)
-            isCancelled: \(isCancelled)
-        }
-        """
+        return "ImageTask(id: \(taskId), priority: \(priority), completedUnitCount: \(completedUnitCount), totalUnitCount: \(totalUnitCount), isCancelled: \(isCancelled))"
     }
 }
 
