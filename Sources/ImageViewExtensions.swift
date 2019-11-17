@@ -524,7 +524,7 @@ private final class ImageViewController {
         display(response.image, options.transition, options.alwaysTransition, false)
     }
 
-    private func display(_ image: Image, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool) {
+    private func display(_ image: NSImage, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool) {
         guard let imageView = imageView else {
             return
         }
@@ -543,7 +543,7 @@ private final class ImageViewController {
         }
     }
 
-    private func runFadeInTransition(image: Image, params: ImageLoadingOptions.Transition.Parameters) {
+    private func runFadeInTransition(image: NSImage, params: ImageLoadingOptions.Transition.Parameters) {
         let animation = CABasicAnimation(keyPath: "opacity")
         animation.duration = params.duration
         animation.fromValue = 0
