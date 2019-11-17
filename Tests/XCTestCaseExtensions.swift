@@ -258,3 +258,10 @@ extension Array {
         return self[index]
     }
 }
+
+func XCTUnwrap<T>(_ value: T?) throws -> T {
+    guard let value = value else {
+        throw NSError(domain: "XCTest", code: -32, userInfo: [NSLocalizedDescriptionKey: "Failed to unwrap value"])
+    }
+    return value
+}

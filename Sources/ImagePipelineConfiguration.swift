@@ -4,6 +4,8 @@
 
 import Foundation
 
+// MARK: - ImagePipeline.Configuration
+
 extension ImagePipeline {
     public struct Configuration {
         // MARK: - Dependencies
@@ -169,6 +171,41 @@ extension ImagePipeline {
             #if !os(macOS)
             self.imageDecompressingQueue.maxConcurrentOperationCount = 2
             #endif
+        }
+    }
+}
+
+// MARK: - ImagePipelineObserving
+
+public enum ImageTaskEvent {
+    case started
+    case cancelled
+    case priorityUpdated(priority: ImageRequest.Priority)
+    case intermediateResponseReceived(response: ImageResponse)
+    case progressUpdated(completedUnitCount: Int64, totalUnitCount: Int64)
+    case completed(result: Result<ImageResponse, ImagePipeline.Error>)
+}
+
+/// Allows you to tap into internal events of the image pipeline. Events are
+/// delivered on the internal serial dispatch queue.
+public protocol ImagePipelineObserving {
+    /// Delivers the events produced by the image tasks started via `loadImage` method.
+    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent)
+}
+
+extension ImageTaskEvent {
+    init(_ event: Task<ImageResponse, ImagePipeline.Error>.Event) {
+        switch event {
+        case let .error(error):
+            self = .completed(result: .failure(error))
+        case let .value(response, isCompleted):
+            if isCompleted {
+                self = .completed(result: .success(response))
+            } else {
+                self = .intermediateResponseReceived(response: response)
+            }
+        case let .progress(progress):
+            self = .progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total)
         }
     }
 }
