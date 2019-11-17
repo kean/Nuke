@@ -32,7 +32,7 @@ let sharedCIContext = CIContext()
 
 extension UIImage {
     func applyFilter(context: CIContext = sharedCIContext, closure: (CoreImage.CIImage) -> CoreImage.CIImage?) -> UIImage? {
-        func inputImageForImage(_ image: Image) -> CoreImage.CIImage? {
+        func inputImageForImage(_ image: UIImage) -> CoreImage.CIImage? {
             if let image = image.cgImage {
                 return CoreImage.CIImage(cgImage: image)
             }
@@ -65,7 +65,7 @@ extension UIImage {
 /// Blurs image using CIGaussianBlur filter. Only blurs first scans of the
 /// progressive JPEG.
 struct _ProgressiveBlurImageProcessor: ImageProcessing, Hashable {
-    func process(image: Image, context: ImageProcessingContext?) -> Image? {
+    func process(image: UIImage, context: ImageProcessingContext?) -> UIImage? {
         // CoreImage is too slow on simulator.
         #if targetEnvironment(simulator)
         return image

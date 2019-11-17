@@ -149,7 +149,7 @@ final class AnimatedImageCell: UICollectionViewCell {
 }
 
 extension FLAnimatedImageView {
-    @objc open override func nuke_display(image: Image?) {
+    @objc open override func nuke_display(image: UIImage?) {
         guard image != nil else {
             self.animatedImage = nil
             self.image = nil

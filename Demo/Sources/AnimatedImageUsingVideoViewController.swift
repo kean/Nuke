@@ -81,10 +81,10 @@ final class AnimatedImageUsingVideoViewController: UICollectionViewController, U
 // MARK: - MP4Decoder
 
 final class MP4Decoder: ImageDecoding {
-    func decode(data: Data, isFinal: Bool) -> Image? {
+    func decode(data: Data, isFinal: Bool) -> UIImage? {
         guard isFinal else { return nil }
 
-        let image = Image()
+        let image = UIImage()
         image.animatedImageData = data
         image.mimeType = "video/mp4"
         return image
@@ -117,7 +117,7 @@ final class MP4Decoder: ImageDecoding {
 
 private var _imageFormatAK = "Nuke.ImageFormat.AssociatedKey"
 
-private extension Image {
+private extension UIImage {
     // At some point going to be available in the main repo.
     var mimeType: String? {
         get { return objc_getAssociatedObject(self, &_imageFormatAK) as? String }
@@ -169,7 +169,7 @@ private final class VideoCell: UICollectionViewCell, Nuke.Nuke_ImageDisplaying {
         player = nil
     }
 
-    func nuke_display(image: Image?) {
+    func nuke_display(image: UIImage?) {
         prepareForReuse()
 
         guard let data = image?.animatedImageData else {
