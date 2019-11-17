@@ -19,6 +19,7 @@ import os
 /// `ImagePipeline` is fully thread-safe.
 public /* final */ class ImagePipeline {
     public let configuration: Configuration
+    public var observer: ImagePipelineObserving?
 
     // The queue on which the entire subsystem is synchronized.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
@@ -187,7 +188,7 @@ public /* final */ class ImagePipeline {
                    queue: DispatchQueue?,
                    observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) -> ImageTask {
         let request = inheritOptions(request)
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isMainThreadConfined: isMainThreadConfined, queue: queue)
+        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isMainThreadConfined: isMainThreadConfined, isDataTask: false, queue: queue)
         task.pipeline = self
         self.queue.async {
             self.startImageTask(task, observer: observer)
@@ -214,7 +215,7 @@ public /* final */ class ImagePipeline {
                          queue: DispatchQueue? = nil,
                          progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request, queue: queue)
+        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isDataTask: true, queue: queue)
         task.pipeline = self
         self.queue.async {
             self.startDataTask(task, progress: progress, completion: completion)
@@ -227,6 +228,9 @@ public /* final */ class ImagePipeline {
     func imageTaskCancelCalled(_ task: ImageTask) {
         queue.async {
             guard let subscription = self.tasks.removeValue(forKey: task) else { return }
+            if !task.isDataTask {
+                self.send(.cancelled, task)
+            }
             subscription.unsubscribe()
         }
     }
@@ -235,6 +239,9 @@ public /* final */ class ImagePipeline {
         queue.async {
             task._priority = priority
             guard let subscription = self.tasks[task] else { return }
+            if !task.isDataTask {
+                self.send(.priorityUpdated(priority: priority), task)
+            }
             subscription.setPriority(priority)
         }
     }
@@ -260,9 +267,13 @@ public /* final */ class ImagePipeline {
 
 private extension ImagePipeline {
     func startImageTask(_ task: ImageTask, observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) {
+        self.send(.started, task)
+
         tasks[task] = getDecompressedImage(for: task.request)
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
+
+                self.send(ImageTaskEvent(event), task)
 
                 if event.isCompleted {
                     self.tasks[task] = nil
@@ -803,6 +814,10 @@ private extension ImagePipeline {
         var request = request
         request.processors = configuration.processors
         return request
+    }
+
+    func send(_ event: ImageTaskEvent, _ task: ImageTask) {
+        observer?.pipeline(self, imageTask: task, didReceiveEvent: event)
     }
 }
 

@@ -21,6 +21,8 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     /// unique within this pipeline.
     public let taskId: Int
 
+    let isDataTask: Bool
+
     weak var pipeline: ImagePipeline?
 
     /// The original request with which the task was created.
@@ -63,11 +65,12 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     /// A progress handler to be called periodically during the lifetime of a task.
     public typealias ProgressHandler = (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
 
-    init(taskId: Int, request: ImageRequest, isMainThreadConfined: Bool = false, queue: DispatchQueue?) {
+    init(taskId: Int, request: ImageRequest, isMainThreadConfined: Bool = false, isDataTask: Bool, queue: DispatchQueue?) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
         self.priority = request.priority
+        self.isDataTask = isDataTask
         self.queue = queue
         lock = isMainThreadConfined ? nil : NSLock()
     }

@@ -16,9 +16,10 @@ struct TestExpectationImagePipeline {
     let test: XCTestCase
     let pipeline: ImagePipeline
 
-    func toLoadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
+    @discardableResult
+    func toLoadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
         let expectation = test.expectation(description: "Image loaded for \(request)")
-        pipeline.loadImage(with: request, progress: progress) { result in
+        return pipeline.loadImage(with: request, progress: progress) { result in
             completion?(result)
             XCTAssertTrue(Thread.isMainThread)
             XCTAssertTrue(result.isSuccess)
@@ -26,9 +27,10 @@ struct TestExpectationImagePipeline {
         }
     }
 
-    func toFailRequest(_ request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
+    @discardableResult
+    func toFailRequest(_ request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
         let expectation = test.expectation(description: "Image request failed \(request)")
-        pipeline.loadImage(with: request, progress: progress) { result in
+        return pipeline.loadImage(with: request, progress: progress) { result in
             completion?(result)
             XCTAssertTrue(Thread.isMainThread)
             XCTAssertTrue(result.isFailure)

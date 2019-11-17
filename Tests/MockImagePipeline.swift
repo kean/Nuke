@@ -10,7 +10,7 @@ private class MockImageTask: ImageTask {
     var __isCancelled = false
 
     init(request: ImageRequest) {
-        super.init(taskId: 0, request: request, queue: nil)
+        super.init(taskId: 0, request: request, isDataTask: false, queue: nil)
     }
 
     override func cancel() {
