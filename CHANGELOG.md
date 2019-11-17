@@ -1,5 +1,16 @@
 # Nuke 8
 
+## Nuke 8.4.0
+
+*November 17, 2019*
+
+- Fix an issue with `RoundedCorners` image processor not respecting the `Border` parameter – [327](https://github.com/kean/Nuke/pull/327), [Eric Jensen](https://github.com/ejensen)
+- Add an optional `border` parameter to the `Circle` processor – [327](https://github.com/kean/Nuke/pull/327), [Eric Jensen](https://github.com/ejensen)
+- Add `ImagePipelineObserving` and `DataLoaderObserving` protocols to allow users to tap into the internal events of the subsystems to enable logging and other features – [322](https://github.com/kean/Nuke/pull/322)
+- Deprecate `Nuke.Image` to avoid name clashes with `SwiftUI.Image` in the future , add `PlatformImage` instead – [321](https://github.com/kean/Nuke/pull/321) 
+- Make `ImagePipeline` more readable – [320](https://github.com/kean/Nuke/pull/320)
+- Update demo project to use Swift Package Manager instead of CocoaPods – [319](https://github.com/kean/Nuke/pull/319)
+
 ## Nuke 8.3.1
 
 *October 26, 2019*
