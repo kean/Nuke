@@ -536,7 +536,7 @@ There is a variety of extensions available for Nuke:
 <a name="h_contribute"></a>
 # Contribution
 
-[Nuke's roadmap](https://trello.com/b/Us4rHryT/nuke) is managed in Trello and is publically available. If you'd like to contribute, please feel free to create a PR.
+[Nuke's roadmap](https://trello.com/b/Us4rHryT/nuke) is managed in Trello and is publicly available. If you'd like to contribute, please feel free to create a PR.
 
 <a name="h_requirements"></a>
 # Requirements
