@@ -421,7 +421,7 @@ let task = ImagePipeline.shared.loadImage(
     with: url,
     progress: { response, _, _ in
         if let response = response {
-            imageView.image = response?.image
+            imageView.image = response.image
         }
     },
     completion: { result in
