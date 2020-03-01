@@ -599,7 +599,7 @@ struct ImageProcessingExtensions {
             context.setStrokeColor(border.color.cgColor)
 
             let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
-            path.lineWidth = border.width
+            path.lineWidth = border.width * (Screen.scale + image.scale)
 
             path.stroke()
         }
