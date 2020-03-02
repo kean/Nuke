@@ -12,6 +12,8 @@ Pod::Spec.new do |s|
     s.social_media_url = 'https://twitter.com/a_grebenyuk'
     s.source           = { :git => 'https://github.com/kean/Nuke.git', :tag => s.version.to_s }
 
+    s.swift_versions = ['5.0', '5.1']
+
     s.ios.deployment_target = '10.0'
     s.watchos.deployment_target = '3.0'
     s.osx.deployment_target = '10.12'
