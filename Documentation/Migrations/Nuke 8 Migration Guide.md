@@ -37,21 +37,21 @@ You need to update all the place where you were using the completion closures.
 ```swift
 // Before:
 pipeline.loadImage(with: url) { response, error in
-	if let response = response {
-		// handle response
-	} else {
-		// handle error (optional)
-	}
+    if let response = response {
+        // handle response
+    } else {
+        // handle error (optional)
+    }
 }
 
 // After:
 pipeline.loadImage(with: url) { result in
-	switch result {
-	case let .success(response):
-		// handle response
-	cae let .failure(error):
-		// handle error (non optional)
-	}
+    switch result {
+    case let .success(response):
+        // handle response
+    case let .failure(error):
+        // handle error (non optional)
+    }
 }
 ```
 
@@ -93,7 +93,7 @@ An example of migrating a custom processors.
 
 ```swift
 struct GaussianBlur: ImageProcessing {
-	let radius: Int
+    let radius: Int
 
     func process(image: Image, context: ImageProcessingContext) -> Image? {
     	return /* create blurred image */
@@ -105,13 +105,13 @@ struct GaussianBlur: ImageProcessing {
 
 ```swift
 struct GaussianBlur: ImageProcessing, Hashable {
-	let radius: Int
+    let radius: Int
 
     func process(image: Image, context: ImageProcessingContext?) -> Image? {
     	return /* create blurred image */
     }
 
-	// Prefer to use reverse DNS notation.
+    // Prefer to use reverse DNS notation.
     var identifier: String { return "com.youdomain.processor.gaussianblur-\(radius)" }
     var hashableIdentifier: AnyHashable { return self }
 }
