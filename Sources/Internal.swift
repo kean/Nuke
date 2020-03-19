@@ -405,7 +405,7 @@ extension String {
 
 // MARK: - Log
 
-class Log {
+final class Log {
     private let log: OSLog
     private let name: StaticString
     private let signpostsEnabled: Bool
