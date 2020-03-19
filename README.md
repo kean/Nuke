@@ -122,7 +122,7 @@ let request = ImageRequest(
 
 ### SwiftUI
 
-[`FetchImage`](https://gist.github.com/kean/c40df0a9fef31c377757882ac30296dc) makes it easy to download images using Nuke and display them in SwiftUI apps. For more info, see the [introductory post](https://kean.github.io/post/introducing-fetch-image). 
+[`FetchImage`](https://github.com/kean/FetchImage) is a Swift package that makes it easy to download images using Nuke and display them in SwiftUI apps. For more info, see the [introductory post](https://kean.github.io/post/introducing-fetch-image). 
 
 > **Note**: This is an API preview, it might change in the future.
 
@@ -143,7 +143,7 @@ public struct ImageView: View {
 
 ### Low Data Mode
 
-[`FetchImage`](https://gist.github.com/kean/c40df0a9fef31c377757882ac30296dc) also offers built-in support for low-data mode via a special initializer:
+[`FetchImage`](https://github.com/kean/FetchImage) also offers built-in support for low-data mode via a special initializer:
 
 ```swift
 FetchImage(regularUrl: highQualityUrl, lowDataUrl: lowQualityUrl)
@@ -555,6 +555,7 @@ There is a variety of extensions available for Nuke:
 |Name|Description|
 |--|--|
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples of common use cases solved by Rx|
+|[**FetchImage**](https://github.com/kean/FetchImage)|SwiftUI integration|
 |[**Alamofire**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks|
 |[**WebP**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **[Community]** [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
 |[**Gifu**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
