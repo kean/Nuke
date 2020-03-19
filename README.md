@@ -23,7 +23,7 @@ Nuke provides a simple and efficient way to download and display images in your 
 
 Nuke is easy to learn and use. Here is an overview of its APIs and features:
 
-- **Image View Extensions** ‣ [Load and Display Image](#image-view-extensions) | [Placeholders, Transitions, Content Modes](#placeholders-transitions-content-modes) | [`ImageRequest`](#imagerequest)
+- **Image View Extensions** ‣ [Load and Display Image](#image-view-extensions) | [SwiftUI](#swiftui) | [Placeholders, Transitions](#placeholders-transitions-content-modes) | [`ImageRequest`](#imagerequest)
 - **Image Processing** ‣ [`Resize`](#resize) | [`GaussianBlur`, Core Image](#gaussianblur-core-image) | [Custom Processors](#custom-processors) | [Smart Decompression](#smart-decompression)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) | [`ImageTask`](#imagetask) | [Customize Image Pipeline](#customize-image-pipeline) | [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) | [HTTP Disk Cache](#http-disk-cache) | [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
@@ -68,6 +68,25 @@ func collectionView(_ collectionView: UICollectionView,
 ```
 
 > The requests also get canceled automatically when the views are deallocated. Call `Nuke.cancelRequest(for: imageView)` to cancel the request manually.
+
+### SwiftUI
+
+[`FetchImage`](https://gist.github.com/kean/c40df0a9fef31c377757882ac30296dc) makes it easy to download images using Nuke and display them in SwiftUI apps. For more info, see the [introductory post](https://kean.github.io/post/introducing-fetch-image). 
+
+```swift
+public struct ImageView: View {
+    @ObservedObject var image: FetchImage
+
+    public var body: some View {
+        ZStack {
+            Rectangle().fill(Color.gray)
+            image.view?
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+        }
+    }
+}
+```
 
 ### Placeholders, Transitions, Content Modes
 
