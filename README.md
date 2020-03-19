@@ -461,9 +461,35 @@ let task = ImagePipeline.shared.loadImage(
 
 ### Animated Images
 
-Nuke extends `UIImage` with an `animatedImageData` property. To enable it, set `ImagePipeline.Configuration.isAnimatedImageDataEnabled` to `true`. If you do, the pipeline will start attaching the original image data to the animated images.
+To enable animated image support, set `ImagePipeline.Configuration.isAnimatedImageDataEnabled` to `true`. If enabled, Nuke will attach `animatedImageData` to the downloaded animated images. You going to need data to render the images.
 
-There is no built-in way to render those images, but there are two extensions available: [FLAnimatedImage](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) and [Gifu](https://github.com/kean/Nuke-Gifu-Plugin) which are both fast and efficient.
+There is no built-in way to render animated images, but there are multiple options available.
+
+**Option 1**. Install [FLAnimatedImage Plugin](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) and follow the instructions.
+
+**Option 2**. Install [Gifu](https://github.com/kaishin/Gifu) directly. To configure Gifu to work with Nuke, all you need to do is add these lines in your project:
+
+```swift
+ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
+
+extension Gifu.GIFImageView {
+    public override func nuke_display(image: Image?) {
+        prepareForReuse()
+        if let data = image?.animatedImageData {
+            animate(withGIFData: data)
+        } else {
+            self.image = image
+        }
+    }
+}
+```
+
+You can now start using Gifu.GIFImageView:
+
+```swift
+let view = Gifu.GIFImageView()
+Nuke.loadImage(with: URL(string: "http://.../cat.gif")!, into: view)
+```
 
 > `GIF` is not the most efficient format for transferring and displaying animated images. The current best practice is to [use short videos instead of GIFs](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/) (e.g. `MP4`, `WebM`). There is a PoC available in the demo project which uses Nuke to load, cache and display an `MP4` video.
 
