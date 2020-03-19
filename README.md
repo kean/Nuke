@@ -23,7 +23,7 @@ Nuke provides a simple and efficient way to download and display images in your 
 
 Nuke is easy to learn and use. Here is an overview of its APIs and features:
 
-- **Image View Extensions** ‣ [Load and Display Image](#image-view-extensions) | [Placeholders, Transitions](#placeholders-transitions-content-modes) | [`ImageRequest`](#imagerequest) | [SwiftUI](#swiftui) | [Low Data Mode](#low-data-mode)
+- **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) | [Placeholders, Transitions](#placeholders-transitions-content-modes) | [`ImageRequest`](#imagerequest) | [SwiftUI](#swiftui) | [Low Data Mode](#low-data-mode)
 - **Image Processing** ‣ [`Resize`](#resize) | [`GaussianBlur`, Core Image](#gaussianblur-core-image) | [Custom Processors](#custom-processors) | [Smart Decompression](#smart-decompression)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) | [`ImageTask`](#imagetask) | [Customize Image Pipeline](#customize-image-pipeline) | [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) | [HTTP Disk Cache](#http-disk-cache) | [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
