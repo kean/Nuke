@@ -71,7 +71,9 @@ func collectionView(_ collectionView: UICollectionView,
 
 ### SwiftUI
 
-[`FetchImage`](https://gist.github.com/kean/c40df0a9fef31c377757882ac30296dc) (preview) makes it easy to download images using Nuke and display them in SwiftUI apps. For more info, see the [introductory post](https://kean.github.io/post/introducing-fetch-image). 
+[`FetchImage`](https://gist.github.com/kean/c40df0a9fef31c377757882ac30296dc) makes it easy to download images using Nuke and display them in SwiftUI apps. For more info, see the [introductory post](https://kean.github.io/post/introducing-fetch-image). 
+
+> **Note**: This is an API preview, it might change in the future.
 
 ```swift
 public struct ImageView: View {
