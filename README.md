@@ -27,7 +27,7 @@ Nuke is easy to learn and use. Here is an overview of its APIs and features:
 - **Image Processing** ‣ [`Resize`](#resize) | [`GaussianBlur`, Core Image](#gaussianblur-core-image) | [Custom Processors](#custom-processors) | [Smart Decompression](#smart-decompression)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) | [`ImageTask`](#imagetask) | [Customize Image Pipeline](#customize-image-pipeline) | [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) | [HTTP Disk Cache](#http-disk-cache) | [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
-- **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [Animated Images](#animated-images) | [WebP](#webp) | [RxNuke](#rxnuke)
+- **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [Animated Images](#animated-images) | [WebP](#webp) | [Combine](#combine) | [RxNuke](#rxnuke)
 
 To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/8.0/index.html), and check out the demo project included in the repository. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms.
 
@@ -485,6 +485,10 @@ Observable.concat(pipeline.loadImage(with: lowResUrl).orEmpty,
     .disposed(by: disposeBag)
 ```
 
+### Combine
+
+[ImagePublisher](https://github.com/kean/ImagePublisher) adds Combine publishers for Nuke and, just like [RxNuke](https://github.com/kean/RxNuke), enables a variety of powerful use cases.
+
 <br/>
 
 <a name="h_design"></a>
@@ -556,6 +560,7 @@ There is a variety of extensions available for Nuke:
 |--|--|
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples of common use cases solved by Rx|
 |[**FetchImage**](https://github.com/kean/FetchImage)|SwiftUI integration|
+|[**ImagePublisher**](https://github.com/kean/ImagePublisher)|Combine publishers for Nuke|
 |[**Alamofire**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks|
 |[**WebP**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **[Community]** [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
 |[**Gifu**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
