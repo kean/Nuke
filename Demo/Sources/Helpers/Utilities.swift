@@ -70,7 +70,7 @@ struct _ProgressiveBlurImageProcessor: ImageProcessing, Hashable {
         #if targetEnvironment(simulator)
         return image
         #else
-        guard !context.isFinal else {
+        guard let context = context, !context.isFinal else {
             return image // No processing.
         }
 
