@@ -23,7 +23,7 @@ extension URLSessionTask: Cancellable {}
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading, _DataLoaderObserving {
     public let session: URLSession
-    private let impl: _DataLoader
+    private let impl = _DataLoader()
 
     public var observer: DataLoaderObserving?
 
@@ -32,11 +32,9 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
     public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
                 validate: @escaping (URLResponse) -> Swift.Error? = DataLoader.validate) {
-        self.impl = _DataLoader()
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 1
         self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: queue)
-        self.impl.session = self.session
         self.impl.validate = validate
         self.impl.observer = self
     }
@@ -85,7 +83,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     public func loadData(with request: URLRequest,
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
                          completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
-        return impl.loadData(with: request, didReceiveData: didReceiveData, completion: completion)
+        return impl.loadData(with: request, session: session, didReceiveData: didReceiveData, completion: completion)
     }
 
     /// Errors produced by `DataLoader`.
@@ -103,8 +101,8 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
 
     // MARK: _DataLoaderObserving
 
-    func urlSession(_ urlSession: URLSession, dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent) {
-        observer?.dataLoader(self, urlSession: urlSession, dataTask: dataTask, didReceiveEvent: event)
+    func dataTask(_ dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent) {
+        observer?.dataLoader(self, urlSession: session, dataTask: dataTask, didReceiveEvent: event)
     }
 }
 
@@ -112,13 +110,13 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
 // URLSessionDataDelegate conformance, and break retain cycle between URLSession
 // and URLSessionDataDelegate.
 private final class _DataLoader: NSObject, URLSessionDataDelegate {
-    weak var session: URLSession! // This is safe.
     var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
     private var handlers = [URLSessionTask: _Handler]()
     weak var observer: _DataLoaderObserving?
 
     /// Loads data with the given request.
     func loadData(with request: URLRequest,
+                  session: URLSession,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
                   completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = session.dataTask(with: request)
@@ -179,7 +177,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     // MARK: Internal
 
     private func send(_ dataTask: URLSessionDataTask, _ event: DataTaskEvent) {
-        observer?.urlSession(session, dataTask: dataTask, didReceiveEvent: event)
+        observer?.dataTask(dataTask, didReceiveEvent: event)
     }
 
     private final class _Handler {
@@ -209,5 +207,5 @@ public protocol DataLoaderObserving {
 }
 
 protocol _DataLoaderObserving: class {
-    func urlSession(_ urlSession: URLSession, dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent)
+    func dataTask(_ dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent)
 }
