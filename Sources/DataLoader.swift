@@ -33,7 +33,9 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
                 validate: @escaping (URLResponse) -> Swift.Error? = DataLoader.validate) {
         self.impl = _DataLoader()
-        self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: impl.queue)
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 1
+        self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: queue)
         self.impl.session = self.session
         self.impl.validate = validate
         self.impl.observer = self
@@ -112,13 +114,8 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
 private final class _DataLoader: NSObject, URLSessionDataDelegate {
     weak var session: URLSession! // This is safe.
     var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
-    let queue = OperationQueue()
     private var handlers = [URLSessionTask: _Handler]()
     weak var observer: _DataLoaderObserving?
-
-    override init() {
-        self.queue.maxConcurrentOperationCount = 1
-    }
 
     /// Loads data with the given request.
     func loadData(with request: URLRequest,
@@ -126,7 +123,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
                   completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = session.dataTask(with: request)
         let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
-        queue.addOperation { // `URLSession` is configured to use this same queue
+        session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
         task.resume()
