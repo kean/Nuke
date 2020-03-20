@@ -1,5 +1,22 @@
 # Nuke 8
 
+## Nuke 8.4.1
+
+*March 19, 2020*
+
+- Podspec now explicitly specifies supported Swift versions - [340](https://github.com/kean/Nuke/pull/340), [Richard Lee](https://github.com/dlackty)
+- Fix a memory leak when the URLSession wasn't deallocated correctly - [336](https://github.com/kean/Nuke/issues/336)
+
+### Announcements
+
+There are two new Swift packages available in Nuke ecosystem:
+
+- [**FetchImage**](https://github.com/kean/FetchImage) that makes it easy to download images using Nuke and display them in SwiftUI apps. One of the notable features of `FetchImage` is support for iOS 13 Low Data mode.
+- [**ImagePublisher**](https://github.com/kean/ImagePublisher) that provides [Combine](https://developer.apple.com/documentation/combine) publishers for some of the Nuke APIs.
+
+Both are distributed exclusively via [Swift Package Manager](https://swift.org/package-manager/). And both are API _previews_. Please, try them out, and feel free to [contact me](https://twitter.com/a_grebenyuk) with any feedback that you have. 
+
+
 ## Nuke 8.4.0
 
 *November 17, 2019*
