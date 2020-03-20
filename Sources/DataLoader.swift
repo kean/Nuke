@@ -27,6 +27,10 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
 
     public var observer: DataLoaderObserving?
 
+    deinit {
+        session.invalidateAndCancel()
+    }
+
     /// Initializes `DataLoader` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
