@@ -591,6 +591,7 @@ There is a variety of extensions available for Nuke:
 |[**WebP Plugin**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **[Community]** [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
 |[**Gifu Plugin**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
 |[**FLAnimatedImage Plugin**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
+|[**Xamarin NuGet**](https://github.com/roubachof/Xamarin.Forms.Nuke)|Makes it possible to use Nuke from Xamarin|
 
 <br/>
 
