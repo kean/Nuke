@@ -163,19 +163,30 @@ public final class DataCache: DataCaching {
         lock.sync {
             let change = staging.add(data: data, for: key)
             wqueue.async {
-                if let url = self.url(for: key) {
-                    do {
-                        try data.write(to: url)
-                    } catch let error as NSError {
-                        guard error.code == CocoaError.fileNoSuchFile.rawValue && error.domain == CocoaError.errorDomain else { return }
-                        try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
-                        try? data.write(to: url) // re-create a directory and try again
-                    }
-                }
+                self.perform(change)
                 self.lock.sync {
                     self.staging.flushed(change)
                 }
             }
+        }
+    }
+
+    /// Performs the IO for the given change.
+    private func perform(_ change: Staging.Change) {
+        guard let url = self.url(for: change.key) else {
+            return
+        }
+        switch change.type {
+        case let .add(data):
+            do {
+                try data.write(to: url)
+            } catch let error as NSError {
+                guard error.code == CocoaError.fileNoSuchFile.rawValue && error.domain == CocoaError.errorDomain else { return }
+                try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
+                try? data.write(to: url) // re-create a directory and try again
+            }
+        case .remove:
+            try? FileManager.default.removeItem(at: url)
         }
     }
 
@@ -185,9 +196,7 @@ public final class DataCache: DataCaching {
         lock.sync {
             let change = staging.removeData(for: key)
             wqueue.async {
-                if let url = self.url(for: key) {
-                    try? FileManager.default.removeItem(at: url)
-                }
+                self.perform(change)
                 self.lock.sync {
                     self.staging.flushed(change)
                 }

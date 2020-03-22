@@ -245,8 +245,11 @@ public /* final */ class ImagePipeline {
             subscription.setPriority(priority)
         }
     }
+}
 
-    // MARK: - Cache
+// MARK: - Image Cache
+
+public extension ImagePipeline {
 
     /// Returns a cached response from the memory cache. Returns `nil` if the request disables
     /// memory cache reads.
@@ -260,6 +263,21 @@ public /* final */ class ImagePipeline {
     private func storeResponse(_ response: ImageResponse, for request: ImageRequest, isCompleted: Bool) {
         guard isCompleted, request.options.memoryCacheOptions.isWriteAllowed else { return }
         configuration.imageCache?.storeResponse(response, for: request)
+    }
+}
+
+// MARK: - Data Cache
+
+public extension ImagePipeline {
+    /// Returns a key used for disk cache (see `DataCaching`).
+    ///
+    /// - parameter isProcessedData: If `true`, returns a key for processed image
+    /// data (see `isDataCachingForProcessedImagesEnabled` for more info). Otherwise
+    /// returns a key for original image data. `false` by default.
+    func cacheKey(for request: ImageRequest, isProcessedData: Bool = false) -> String {
+        return isProcessedData ?
+            request.makeCacheKeyForProcessedImageData() :
+            request.makeCacheKeyForOriginalImageData()
     }
 }
 
