@@ -83,10 +83,16 @@ public final class DataCache: DataCaching {
     private var initialSweepDelay: TimeInterval = 15
 
     // Staging
+
     private let lock = NSLock()
     private var staging = Staging()
 
-    /* testable */ let wqueue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue", target: .global(qos: .utility))
+    /// A queue which is used for disk I/O.
+    ///
+    /// If you perform a request using `ImagePipeline` which completes successfully,
+    /// you can dispatch - preferrable asynchronous - operation to the data cache's
+    /// queue to read the cached data and have a guarantee that it is going to be there.
+    public let queue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue", target: .global(qos: .utility))
 
     /// A function which generates a filename for the given key. A good candidate
     /// for a filename generator is a _cryptographic_ hash function like SHA1.
@@ -127,7 +133,7 @@ public final class DataCache: DataCaching {
 
     private func didInit() throws {
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
-        wqueue.asyncAfter(deadline: .now() + initialSweepDelay) { [weak self] in
+        queue.asyncAfter(deadline: .now() + initialSweepDelay) { [weak self] in
             self?._performAndScheduleSweep()
         }
     }
@@ -162,7 +168,7 @@ public final class DataCache: DataCaching {
     public func storeData(_ data: Data, for key: Key) {
         lock.sync {
             let change = staging.add(data: data, for: key)
-            wqueue.async {
+            queue.async {
                 self.perform(change)
                 self.lock.sync {
                     self.staging.flushed(change)
@@ -195,7 +201,7 @@ public final class DataCache: DataCaching {
     public func removeData(for key: Key) {
         lock.sync {
             let change = staging.removeData(for: key)
-            wqueue.async {
+            queue.async {
                 self.perform(change)
                 self.lock.sync {
                     self.staging.flushed(change)
@@ -209,7 +215,7 @@ public final class DataCache: DataCaching {
     public func removeAll() {
         lock.sync {
             let change = staging.removeAll()
-            wqueue.async {
+            queue.async {
                 try? FileManager.default.removeItem(at: self.path)
                 try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
                 self.lock.sync {
@@ -273,21 +279,21 @@ public final class DataCache: DataCaching {
     /// Synchronously waits on the caller's thread until all outstanding disk IO
     /// operations are finished.
     public func flush() {
-        wqueue.sync {}
+        queue.sync {}
     }
 
     // MARK: Sweep
 
     private func _performAndScheduleSweep() {
         _sweep()
-        wqueue.asyncAfter(deadline: .now() + sweepInterval) { [weak self] in
+        queue.asyncAfter(deadline: .now() + sweepInterval) { [weak self] in
             self?._performAndScheduleSweep()
         }
     }
 
     /// Schedules a cache sweep to be performed immediately.
     public func sweep() {
-        wqueue.async {
+        queue.async {
             self._sweep()
         }
     }

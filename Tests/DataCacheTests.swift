@@ -407,8 +407,8 @@ extension DataCache {
     }
 
     func withSuspendedIO(_ closure: () -> Void) {
-        wqueue.suspend()
+        queue.suspend()
         closure()
-        wqueue.resume()
+        queue.resume()
     }
 }
