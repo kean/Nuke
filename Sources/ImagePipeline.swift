@@ -253,7 +253,7 @@ public extension ImagePipeline {
 
     /// Returns a cached response from the memory cache. Returns `nil` if the request disables
     /// memory cache reads.
-    public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
+    func cachedResponse(for request: ImageRequest) -> ImageResponse? {
         guard request.options.memoryCacheOptions.isReadAllowed else { return nil }
 
         let request = inheritOptions(request)

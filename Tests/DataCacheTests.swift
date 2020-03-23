@@ -390,7 +390,7 @@ class DataCacheTests: XCTestCase {
         cache.flush()
 
         do {
-            guard let url = cache.url(for: "1") else {
+            guard let url = cache.url(forKey: "1") else {
                 return XCTFail("Failed to create URL")
             }
             let data = try Data(contentsOf: url)

@@ -157,7 +157,7 @@ public final class DataCache: DataCaching {
 
         lock.unlock()
 
-        guard let url = self.url(for: key) else {
+        guard let url = url(forKey: key) else {
             return nil
         }
         return try? Data(contentsOf: url)
@@ -179,7 +179,7 @@ public final class DataCache: DataCaching {
 
     /// Performs the IO for the given change.
     private func perform(_ change: Staging.Change) {
-        guard let url = self.url(for: change.key) else {
+        guard let url = url(forKey: change.key) else {
             return
         }
         switch change.type {
@@ -267,7 +267,8 @@ public final class DataCache: DataCaching {
         return filenameGenerator(key)
     }
 
-    /* testable */ func url(for key: Key) -> URL? {
+    /// Returns `url` for the given cache key.
+    public func url(forKey key: Key) -> URL? {
         guard let filename = self.filename(for: key) else {
             return nil
         }
@@ -276,7 +277,7 @@ public final class DataCache: DataCaching {
 
     // MARK: Flush Changes
 
-    /// Synchronously waits on the caller's thread until all outstanding disk IO
+    /// Synchronously waits on the caller's thread until all outstanding disk I/O
     /// operations are finished.
     public func flush() {
         queue.sync {}
