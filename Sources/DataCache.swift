@@ -88,7 +88,7 @@ public final class DataCache: DataCaching {
     private var staging = Staging()
     private var isFlushNeeded = false
     private var isFlushScheduled = false
-    private var flushInterval: DispatchTimeInterval = .seconds(2)
+    var flushInterval: DispatchTimeInterval = .seconds(2)
 
     /// A queue which is used for disk I/O.
     public let queue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue", target: .global(qos: .utility))
@@ -240,6 +240,16 @@ public final class DataCache: DataCaching {
     /// operations are finished.
     public func flush() {
         queue.sync(execute: flushChangesIfNeeded)
+    }
+
+    /// Synchronously waits on the caller's thread until all outstanding disk I/O
+    /// operations for the given key are finished.
+    public func flush(for key: Key) {
+        queue.sync {
+            guard let change = lock.sync({ staging.changes[key] }) else { return }
+            perform(change)
+            lock.sync { staging.flushed(change) }
+        }
     }
 
     private func setNeedsFlushChanges() {
@@ -482,14 +492,14 @@ private struct Staging {
         }
     }
 
-    private mutating func flushed(_ change: Change) {
+    mutating func flushed(_ change: Change) {
         if let index = changes.index(forKey: change.key),
             changes[index].value.id == change.id {
             changes.remove(at: index)
         }
     }
 
-    private mutating func flushed(_ change: ChangeRemoveAll) {
+    mutating func flushed(_ change: ChangeRemoveAll) {
         if changeRemoveAll?.id == change.id {
             changeRemoveAll = nil
         }
