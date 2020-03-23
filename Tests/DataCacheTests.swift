@@ -333,15 +333,39 @@ class DataCacheTests: XCTestCase {
 
     func testFlush() {
         // Given
-        cache.withSuspendedIO {
-            cache["key"] = blob
-        }
+        cache.flushInterval = .seconds(20)
+        cache["key"] = blob
 
         // When
         cache.flush()
 
         // Then
-        XCTAssertEqual(cache.contents.count, 1)
+        XCTAssertEqual(cache.contents, [cache.url(for: "key")])
+    }
+
+    func testFlushForKey() {
+        // Given
+        cache.flushInterval = .seconds(20)
+        cache["key"] = blob
+
+        // When
+        cache.flush(for: "key")
+
+        // Then
+        XCTAssertEqual(cache.contents, [cache.url(for: "key")])
+    }
+
+    func testFlushForKey2() {
+        // Given
+        cache.flushInterval = .seconds(20)
+        cache["key1"] = blob
+        cache["key2"] = blob
+
+        // When
+        cache.flush(for: "key1")
+
+        // Then only flushes content for the specific key
+        XCTAssertEqual(cache.contents, [cache.url(for: "key1")])
     }
 
     // MARK: Inspection
@@ -407,8 +431,8 @@ extension DataCache {
     }
 
     func withSuspendedIO(_ closure: () -> Void) {
-        wqueue.suspend()
+        queue.suspend()
         closure()
-        wqueue.resume()
+        queue.resume()
     }
 }
