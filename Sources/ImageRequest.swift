@@ -263,12 +263,12 @@ extension ImageRequest {
     // MARK: - Cache Keys
 
     /// A key for processed image in memory cache.
-    func makeCacheKeyForProcessedImage() -> ImageRequest.CacheKey {
+    func makeCacheKeyForFinalImage() -> ImageRequest.CacheKey {
         return CacheKey(request: self)
     }
 
     /// A key for processed image data in disk cache.
-    func makeCacheKeyForProcessedImageData() -> String {
+    func makeCacheKeyForFinalImageData() -> String {
         return ref.preferredURLString + ImageProcessor.Composition(processors).identifier
     }
 
@@ -280,9 +280,11 @@ extension ImageRequest {
     // MARK: - Load Keys
 
     /// A key for deduplicating operations for fetching the processed image.
-    func makeLoadKeyForProcessedImage() -> AnyHashable {
-        return LoadKeyForProcessedImage(cacheKey: makeCacheKeyForProcessedImage(),
-                                        loadKey: makeLoadKeyForOriginalImage())
+    func makeLoadKeyForFinalImage() -> AnyHashable {
+        return LoadKeyForProcessedImage(
+            cacheKey: makeCacheKeyForFinalImage(),
+            loadKey: makeLoadKeyForOriginalImage()
+        )
     }
 
     /// A key for deduplicating operations for fetching the original image.

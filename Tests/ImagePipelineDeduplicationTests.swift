@@ -578,7 +578,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
 
         pipeline = pipeline.reconfigured {
             $0.dataCache = dataCache
-            $0.dataCacheOptions.contents = [.originalImageData, .processedImage]
+            $0.dataCacheOptions.storedItems = [.originalImageData, .finalImage]
         }
 
         // When

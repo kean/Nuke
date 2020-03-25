@@ -63,7 +63,7 @@ public final class ImagePreheater {
     }
 
     private func _startPreheating(with request: ImageRequest) {
-        let key = request.makeLoadKeyForProcessedImage()
+        let key = request.makeLoadKeyForFinalImage()
 
         guard tasks[key] == nil else {
             return // Already started prefetching
@@ -139,7 +139,7 @@ public final class ImagePreheater {
     }
 
     private func _stopPreheating(with request: ImageRequest) {
-        if let task = tasks[request.makeLoadKeyForProcessedImage()] {
+        if let task = tasks[request.makeLoadKeyForFinalImage()] {
             tasks[task.key] = nil
             task.cancel()
         }

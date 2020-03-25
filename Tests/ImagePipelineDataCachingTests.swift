@@ -106,7 +106,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.dataCache = dataCache
-            $0.dataCacheOptions.contents = [.originalImageData, .processedImage]
+            $0.dataCacheOptions.storedItems = [.originalImageData, .finalImage]
             $0.imageCache = nil
         }
 
@@ -187,7 +187,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
     func testOriginalDataNotStoredWhenStorageDisabled() {
         // Given
         pipeline = pipeline.reconfigured {
-            $0.dataCacheOptions.contents = [.processedImage]
+            $0.dataCacheOptions.storedItems = [.finalImage]
         }
 
         // When
@@ -197,7 +197,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         wait()
 
         // Then
-        let key = pipeline.cacheKey(for: request, item: .processedImage)
+        let key = pipeline.cacheKey(for: request, item: .finalImage)
         XCTAssertNotNil(dataCache.cachedData(for: key), "Expected processed image data to be stored")
         XCTAssertEqual(dataCache.store.count, 1)
     }
@@ -205,7 +205,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
     func testOriginalImageDataIsStoredIfNoProcessorSpecified() {
         // Given
         pipeline = pipeline.reconfigured {
-            $0.dataCacheOptions.contents = [.processedImage]
+            $0.dataCacheOptions.storedItems = [.finalImage]
         }
 
         // Given request without processors
@@ -226,7 +226,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
     func testProcessedDataNotStoredWhenStorageDisabled() {
         // Given
         pipeline = pipeline.reconfigured {
-            $0.dataCacheOptions.contents = [.originalImageData]
+            $0.dataCacheOptions.storedItems = [.originalImageData]
         }
 
         // When

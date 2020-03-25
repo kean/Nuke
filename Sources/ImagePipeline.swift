@@ -273,7 +273,7 @@ public extension ImagePipeline {
     func cacheKey(for request: ImageRequest, item: DataCacheItem) -> String {
         switch item {
         case .originalImageData: return request.makeCacheKeyForOriginalImageData()
-        case .processedImage: return request.makeCacheKeyForProcessedImageData()
+        case .finalImage: return request.makeCacheKeyForFinalImageData()
         }
     }
 }
@@ -340,7 +340,7 @@ private extension ImagePipeline {
     typealias DecompressedImageTask = Task<ImageResponse, Error>
 
     func getDecompressedImage(for request: ImageRequest) -> DecompressedImageTask.Publisher {
-        let key = request.makeLoadKeyForProcessedImage()
+        let key = request.makeLoadKeyForFinalImage()
         return decompressedImageFetchTasks.publisher(withKey: key, starter: { task in
             self.performDecompressedImageFetchTask(task, request: request)
         })
@@ -351,12 +351,12 @@ private extension ImagePipeline {
             return task.send(value: response, isCompleted: true)
         }
 
-        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.contents.contains(.processedImage) else {
+        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage) else {
             return loadDecompressedImage(for: request, task: task)
         }
 
         // Load processed image from data cache and decompress it.
-        let key = cacheKey(for: request, item: .processedImage)
+        let key = cacheKey(for: request, item: .finalImage)
         let operation = BlockOperation { [weak self, weak task] in
             guard let self = self, let task = task else { return }
 
@@ -456,7 +456,7 @@ private extension ImagePipeline {
     #endif
 
     func storeDecompressedImageInDataCache(_ response: ImageResponse, request: ImageRequest) {
-        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.contents.contains(.processedImage) else {
+        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage) else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
@@ -470,7 +470,7 @@ private extension ImagePipeline {
             log.signpost(.end)
 
             guard let data = encodedData else { return }
-            let key = self.cacheKey(for: request, item: .processedImage)
+            let key = self.cacheKey(for: request, item: .finalImage)
             dataCache.storeData(data, for: key) // This is instant
         }
     }
@@ -486,7 +486,7 @@ private extension ImagePipeline {
             return getOriginalImage(for: request) // No processing needed
         }
 
-        let key = request.makeLoadKeyForProcessedImage()
+        let key = request.makeLoadKeyForFinalImage()
         return processedImageFetchTasks.publisher(withKey: key, starter: { task in
             self.performProcessedImageFetchTask(task, request: request)
         })
@@ -667,7 +667,7 @@ private extension ImagePipeline {
     }
 
     func performOriginalImageeDataTask(_ task: OriginalImageDataTask, context: OriginalImageDataTaskContext) {
-        guard let cache = configuration.dataCache, configuration.dataCacheOptions.contents.contains(.originalImageData) else {
+        guard let cache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData) else {
             loadImageData(for: task, context: context) // Skip disk cache lookup, load data
             return
         }
@@ -799,7 +799,7 @@ private extension ImagePipeline {
         }
 
         // Store in data cache
-        if let dataCache = configuration.dataCache, configuration.dataCacheOptions.contents.contains(.originalImageData) {
+        if let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData) {
             let key = cacheKey(for: context.request, item: .originalImageData)
             dataCache.storeData(context.data, for: key)
         }

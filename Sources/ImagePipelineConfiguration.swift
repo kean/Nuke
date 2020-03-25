@@ -89,7 +89,7 @@ extension ImagePipeline {
             ///
             /// - note: It might be worth enabling `.encodedImages` if you want to
             /// transcode downloaded images into a more efficient format, like HEIF.
-            public var contents: Set<DataCacheItem> = [.originalImageData]
+            public var storedItems: Set<DataCacheItem> = [.originalImageData]
         }
 
         /// `true` by default. If `true` the pipeline avoids duplicated work when
@@ -173,8 +173,8 @@ extension ImagePipeline {
     public enum DataCacheItem {
         /// Originl image data.
         case originalImageData
-        /// Encoded processed image.
-        case processedImage
+        /// Final image with all processors applied.
+        case finalImage
     }
 }
 

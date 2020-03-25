@@ -104,17 +104,17 @@ public final class ImageCache: ImageCaching {
 
     /// Returns the `ImageResponse` stored in the cache with the given request.
     public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
-        return impl.value(forKey: request.makeCacheKeyForProcessedImage())
+        return impl.value(forKey: request.makeCacheKeyForFinalImage())
     }
 
     /// Stores the given `ImageResponse` in the cache using the given request.
     public func storeResponse(_ response: ImageResponse, for request: ImageRequest) {
-        impl.set(response, forKey: request.makeCacheKeyForProcessedImage(), cost: self.cost(for: response.image))
+        impl.set(response, forKey: request.makeCacheKeyForFinalImage(), cost: self.cost(for: response.image))
     }
 
     /// Removes response stored with the given request.
     public func removeResponse(for request: ImageRequest) {
-        impl.removeValue(forKey: request.makeCacheKeyForProcessedImage())
+        impl.removeValue(forKey: request.makeCacheKeyForFinalImage())
     }
 
     /// Removes all cached images.
