@@ -571,14 +571,14 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         }
     }
 
-    func testWhenApplingMultipleImageProcessorsIntermediateDataCacheResultsAreUsed() {
+    func testWhenApplingMultipleImageProcessorsIntermediateDataCacheResultsAreNotUsed() {
         // Given
         let dataCache = MockDataCache()
         dataCache.store[Test.url.absoluteString + "12"] = Test.data
 
         pipeline = pipeline.reconfigured {
             $0.dataCache = dataCache
-            $0.isDataCachingForProcessedImagesEnabled = true
+            $0.dataCacheOptions.contents = [.originalImageData, .processedImage]
         }
 
         // When
@@ -588,13 +588,13 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
             guard let image = result.value?.image else {
                 return XCTFail("Expected image to be loaded successfully")
             }
-            XCTAssertEqual(image.nk_test_processorIDs, ["3"], "Expected only the last processor to be applied")
+            XCTAssertEqual(image.nk_test_processorIDs, ["1", "2", "3"], "Expected only the last processor to be applied")
         }
 
-        // Then
+        // Then we don't expect any intermediate results to be stored in data cache
         wait { _ in
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 0, "Expected no data task to be performed")
-            XCTAssertEqual(factory.numberOfProcessorsApplied, 1, "Expected only one processor to be applied")
+            XCTAssertEqual(self.dataLoader.createdTaskCount, 1, "Expected no data task to be performed")
+            XCTAssertEqual(factory.numberOfProcessorsApplied, 3, "Expected only one processor to be applied")
         }
     }
 

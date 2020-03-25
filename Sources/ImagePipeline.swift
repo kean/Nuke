@@ -270,14 +270,11 @@ public extension ImagePipeline {
 
 public extension ImagePipeline {
     /// Returns a key used for disk cache (see `DataCaching`).
-    ///
-    /// - parameter isProcessedData: If `true`, returns a key for processed image
-    /// data (see `isDataCachingForProcessedImagesEnabled` for more info). Otherwise
-    /// returns a key for original image data. `false` by default.
-    func cacheKey(for request: ImageRequest, isProcessedData: Bool = false) -> String {
-        return isProcessedData ?
-            request.makeCacheKeyForProcessedImageData() :
-            request.makeCacheKeyForOriginalImageData()
+    func cacheKey(for request: ImageRequest, item: DataCacheItem) -> String {
+        switch item {
+        case .originalImageData: return request.makeCacheKeyForOriginalImageData()
+        case .processedImage: return request.makeCacheKeyForProcessedImageData()
+        }
     }
 }
 
@@ -345,16 +342,70 @@ private extension ImagePipeline {
     func getDecompressedImage(for request: ImageRequest) -> DecompressedImageTask.Publisher {
         let key = request.makeLoadKeyForProcessedImage()
         return decompressedImageFetchTasks.publisher(withKey: key, starter: { task in
-            self.loadDecompressedImage(for: request, task: task)
+            self.performDecompressedImageFetchTask(task, request: request)
         })
     }
 
-    func loadDecompressedImage(for request: ImageRequest, task: DecompressedImageTask) {
+    func performDecompressedImageFetchTask(_ task: DecompressedImageTask, request: ImageRequest) {
         if let response = cachedResponse(for: request) {
             return task.send(value: response, isCompleted: true)
         }
 
+        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.contents.contains(.processedImage) else {
+            return loadDecompressedImage(for: request, task: task)
+        }
+
+        // Load processed image from data cache and decompress it.
+        let key = cacheKey(for: request, item: .processedImage)
+        let operation = BlockOperation { [weak self, weak task] in
+            guard let self = self, let task = task else { return }
+
+            let log = Log(self.log, "Read Cached Processed Image Data")
+            log.signpost(.begin)
+            let data = dataCache.cachedData(for: key)
+            log.signpost(.end)
+
+            self.queue.async {
+                if let data = data {
+                    self.decodeProcessedImageData(data, for: request, task: task)
+                } else {
+                    self.loadDecompressedImage(for: request, task: task)
+                }
+            }
+        }
+        task.operation = operation
+        configuration.dataCachingQueue.addOperation(operation)
+    }
+
+    func decodeProcessedImageData(_ data: Data, for request: ImageRequest, task: ProcessedImageTask) {
+        guard !task.isDisposed else { return }
+
+        let decoderContext = ImageDecodingContext(request: request, data: data, urlResponse: nil)
+        let decoder = configuration.makeImageDecoder(decoderContext)
+
+        let operation = BlockOperation { [weak self, weak task] in
+            guard let self = self, let task = task else { return }
+
+            let log = Log(self.log, "Decode Cached Processed Image Data")
+            log.signpost(.begin)
+            let response = decoder.decode(data, urlResponse: nil, isFinal: true)
+            log.signpost(.end)
+
+            self.queue.async {
+                if let response = response {
+                    task.send(value: response, isCompleted: true)
+                } else {
+                    self.loadDecompressedImage(for: request, task: task)
+                }
+            }
+        }
+        task.operation = operation
+        configuration.imageDecodingQueue.addOperation(operation)
+    }
+
+    func loadDecompressedImage(for request: ImageRequest, task: DecompressedImageTask) {
         task.dependency = getProcessedImage(for: request).subscribe(task) { [weak self] image, isCompleted, task in
+            self?.storeDecompressedImageInDataCache(image, request: request)
             self?.decompressProcessedImage(image, isCompleted: isCompleted, for: request, task: task)
         }
     }
@@ -403,6 +454,26 @@ private extension ImagePipeline {
             !(Configuration.isAnimatedImageDataEnabled && response.image.animatedImageData != nil)
     }
     #endif
+
+    func storeDecompressedImageInDataCache(_ response: ImageResponse, request: ImageRequest) {
+        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.contents.contains(.processedImage) else {
+            return
+        }
+        let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
+        let encoder = configuration.makeImageEncoder(context)
+        configuration.imageEncodingQueue.addOperation { [weak self] in
+            guard let self = self else { return }
+
+            let log = Log(self.log, "Encode Image")
+            log.signpost(.begin)
+            let encodedData = encoder.encode(image: response.image)
+            log.signpost(.end)
+
+            guard let data = encodedData else { return }
+            let key = self.cacheKey(for: request, item: .processedImage)
+            dataCache.storeData(data, for: key) // This is instant
+        }
+    }
 }
 
 // MARK: - Get Processed Image (Private)
@@ -417,70 +488,17 @@ private extension ImagePipeline {
 
         let key = request.makeLoadKeyForProcessedImage()
         return processedImageFetchTasks.publisher(withKey: key, starter: { task in
-            self.loadProcessedImage(for: request, task: task)
+            self.performProcessedImageFetchTask(task, request: request)
         })
     }
 
-    func loadProcessedImage(for request: ImageRequest, task: ProcessedImageTask) {
+    func performProcessedImageFetchTask(_ task: ProcessedImageTask, request: ImageRequest) {
+        assert(!request.processors.isEmpty)
+        guard !task.isDisposed, !request.processors.isEmpty else { return }
+
         if let response = cachedResponse(for: request) {
             return task.send(value: response, isCompleted: true)
         }
-
-        guard !request.processors.isEmpty, let dataCache = configuration.dataCache, configuration.isDataCachingForProcessedImagesEnabled else {
-            return loadOriginaImage(for: request, task: task)
-        }
-
-        let key = request.makeCacheKeyForProcessedImageData()
-
-        let operation = BlockOperation { [weak self, weak task] in
-            guard let self = self, let task = task else { return }
-
-            let log = Log(self.log, "Read Cached Processed Image Data")
-            log.signpost(.begin)
-            let data = dataCache.cachedData(for: key)
-            log.signpost(.end)
-
-            self.queue.async {
-                if let data = data {
-                    self.decodeProcessedImageData(data, for: request, task: task)
-                } else {
-                    self.loadOriginaImage(for: request, task: task)
-                }
-            }
-        }
-        task.operation = operation
-        configuration.dataCachingQueue.addOperation(operation)
-    }
-
-    func decodeProcessedImageData(_ data: Data, for request: ImageRequest, task: ProcessedImageTask) {
-        guard !task.isDisposed else { return }
-
-        let decoderContext = ImageDecodingContext(request: request, data: data, urlResponse: nil)
-        let decoder = configuration.makeImageDecoder(decoderContext)
-
-        let operation = BlockOperation { [weak self, weak task] in
-            guard let self = self, let task = task else { return }
-
-            let log = Log(self.log, "Decode Cached Processed Image Data")
-            log.signpost(.begin)
-            let response = decoder.decode(data, urlResponse: nil, isFinal: true)
-            log.signpost(.end)
-
-            self.queue.async {
-                if let response = response {
-                    task.send(value: response, isCompleted: true)
-                } else {
-                    self.loadOriginaImage(for: request, task: task)
-                }
-            }
-        }
-        task.operation = operation
-        configuration.imageDecodingQueue.addOperation(operation)
-    }
-
-    func loadOriginaImage(for request: ImageRequest, task: ProcessedImageTask) {
-        assert(!request.processors.isEmpty)
-        guard !task.isDisposed, !request.processors.isEmpty else { return }
 
         let processor: ImageProcessing
         var subRequest = request
@@ -528,32 +546,11 @@ private extension ImagePipeline {
                     } // Ignore when progressive processing fails
                     return
                 }
-                if isCompleted {
-                    self.storeProcessedImageInDataCache(response, request: request)
-                }
                 task.send(value: response, isCompleted: isCompleted)
             }
         }
         task.operation = operation
         configuration.imageProcessingQueue.addOperation(operation)
-    }
-
-    func storeProcessedImageInDataCache(_ response: ImageResponse, request: ImageRequest) {
-        guard let dataCache = configuration.dataCache, configuration.isDataCachingForProcessedImagesEnabled else {
-            return
-        }
-        let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
-        let encoder = configuration.makeImageEncoder(context)
-        configuration.imageEncodingQueue.addOperation {
-            let log = Log(self.log, "Encode Image")
-            log.signpost(.begin)
-            let encodedData = encoder.encode(image: response.image)
-            log.signpost(.end)
-
-            guard let data = encodedData else { return }
-            let key = request.makeCacheKeyForProcessedImageData()
-            dataCache.storeData(data, for: key) // This is instant
-        }
     }
 }
 
@@ -660,22 +657,22 @@ private extension ImagePipeline {
                     guard let self = self, let task = task, !task.isDisposed else {
                         return false
                     }
-                    self.loadImageDataFromCache(for: task, context: context)
+                    self.performOriginalImageeDataTask(task, context: context)
                     return true
                 }
             } else { // Start loading immediately.
-                self.loadImageDataFromCache(for: task, context: context)
+                self.performOriginalImageeDataTask(task, context: context)
             }
         })
     }
 
-    func loadImageDataFromCache(for task: OriginalImageDataTask, context: OriginalImageDataTaskContext) {
-        guard let cache = configuration.dataCache, configuration.isDataCachingForOriginalImageDataEnabled else {
+    func performOriginalImageeDataTask(_ task: OriginalImageDataTask, context: OriginalImageDataTaskContext) {
+        guard let cache = configuration.dataCache, configuration.dataCacheOptions.contents.contains(.originalImageData) else {
             loadImageData(for: task, context: context) // Skip disk cache lookup, load data
             return
         }
 
-        let key = context.request.makeCacheKeyForOriginalImageData()
+        let key = cacheKey(for: context.request, item: .originalImageData)
         let operation = BlockOperation { [weak self, weak task] in
             guard let self = self, let task = task else { return }
 
@@ -802,8 +799,8 @@ private extension ImagePipeline {
         }
 
         // Store in data cache
-        if let dataCache = configuration.dataCache, configuration.isDataCachingForOriginalImageDataEnabled {
-            let key = context.request.makeCacheKeyForOriginalImageData()
+        if let dataCache = configuration.dataCache, configuration.dataCacheOptions.contents.contains(.originalImageData) {
+            let key = cacheKey(for: context.request, item: .originalImageData)
             dataCache.storeData(context.data, for: key)
         }
 

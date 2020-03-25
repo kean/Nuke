@@ -285,3 +285,30 @@ public extension ImageProcessor.RoundedCorners {
     typealias Border = ImageProcessor.Border
 }
 #endif
+
+// Deprecated in 8.5
+public extension ImagePipeline.Configuration {
+    @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead.")
+    var isDataCachingForOriginalImageDataEnabled: Bool {
+        get { dataCacheOptions.contents.contains(.originalImageData) }
+        set {
+            if newValue {
+                dataCacheOptions.contents.insert(.originalImageData)
+            } else {
+                dataCacheOptions.contents.remove(.originalImageData)
+            }
+        }
+    }
+
+    @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead. Please note that the new behavior is different from the previous versions. Now, instead of storing only processd image, it encodes and stores all downloaded images.")
+    var isDataCachingForProcessedImagesEnabled: Bool {
+        get { dataCacheOptions.contents.contains(.processedImage) }
+        set {
+            if newValue {
+                dataCacheOptions.contents.insert(.processedImage)
+            } else {
+                dataCacheOptions.contents.remove(.processedImage)
+            }
+        }
+    }
+}
