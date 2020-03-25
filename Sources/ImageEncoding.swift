@@ -12,6 +12,8 @@ import Cocoa
 import WatchKit
 #endif
 
+import ImageIO
+
 // MARK: - ImageEncoding
 
 public protocol ImageEncoding {
@@ -23,6 +25,11 @@ public protocol ImageEncoding {
 public struct ImageEncoder: ImageEncoding {
     private let compressionQuality: CGFloat
 
+    /// Set to `true` to switch to HEIF when it is available on the current hardware.
+    ///
+    /// - note: This is an experimental new feature, an API might change in the future.
+    public static var _isHEIFPreferred = false
+
     init(compressionQuality: CGFloat = 0.8) {
         self.compressionQuality = compressionQuality
     }
@@ -31,11 +38,22 @@ public struct ImageEncoder: ImageEncoding {
         guard let cgImage = image.cgImage else {
             return nil
         }
+        let type: ImageType
         if cgImage.isOpaque {
-            return ImageEncoder.jpegData(from: image, compressionQuality: compressionQuality)
+            if #available(iOS 11, macOS 10.13, tvOS 11, watchOS 4, *) {
+                if ImageEncoder._isHEIFPreferred && ImageEncoders.ImageIO.isSupported(type: .heic) {
+                    type = .heic
+                } else {
+                    type = .jpeg
+                }
+            } else {
+                type = .jpeg
+            }
         } else {
-            return ImageEncoder.pngData(from: image)
+            type = .png
         }
+        let encoder = ImageEncoders.ImageIO(type: type, compressionRatio: Float(compressionQuality))
+        return encoder.encode(image: image)
     }
 }
 
@@ -46,32 +64,83 @@ public struct ImageEncodingContext {
     public let urlResponse: URLResponse?
 }
 
-#if !os(macOS)
-extension ImageEncoder {
-    static func pngData(from image: UIImage) -> Data? {
-        return image.pngData()
-    }
+// MARK: - ImageEncoders
 
-    static func jpegData(from image: UIImage, compressionQuality: CGFloat) -> Data? {
-        return image.jpegData(compressionQuality: compressionQuality)
+public enum ImageEncoders {}
+
+// MARK: - ImageEncoders.ImageIO
+
+public extension ImageEncoders {
+    /// An Image I/O based encoder.
+    ///
+    /// Image I/O is a system framework that allows applications to read and
+    /// write most image file formats. This framework offers high efficiency,
+    /// color management, and access to image metadata.
+    struct ImageIO: ImageEncoding {
+        public let type: ImageType
+        public let compressionRatio: Float
+
+        /// - parameter format: The output format. Make sure that the format is
+        /// supported on the current hardware.s
+        /// - parameter compressionRatio: 0.8 by default.
+        public init(type: ImageType, compressionRatio: Float = 0.8) {
+            self.type = type
+            self.compressionRatio = compressionRatio
+        }
+
+        private static let lock = NSLock()
+        private static var availability = [ImageType: Bool]()
+
+        /// Retuns `true` if the encoding is available for the given format on
+        /// the current hardware. Some of the most recent formats might not be
+        /// available so its best to check before using them.
+        public static func isSupported(type: ImageType) -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            if let isAvailable = availability[type] {
+                return isAvailable
+            }
+            let isAvailable = CGImageDestinationCreateWithData(
+                NSMutableData() as CFMutableData, type.rawValue as CFString, 1, nil
+            ) != nil
+            availability[type] = isAvailable
+            return isAvailable
+        }
+
+        public func encode(image: PlatformImage) -> Data? {
+            let data = NSMutableData()
+            let options: NSDictionary = [
+                kCGImageDestinationLossyCompressionQuality: compressionRatio
+            ]
+            guard let source = image.cgImage,
+                let destination = CGImageDestinationCreateWithData(
+                    data as CFMutableData, type.rawValue as CFString, 1, nil
+                ) else {
+                    return nil
+            }
+            CGImageDestinationAddImage(destination, source, options)
+            CGImageDestinationFinalize(destination)
+            return data as Data
+        }
     }
 }
-#else
-extension ImageEncoder {
-    static func pngData(from image: NSImage) -> Data? {
-        guard let cgImage = image.cgImage else {
-            return nil
-        }
-        let rep = NSBitmapImageRep(cgImage: cgImage)
-        return rep.representation(using: .png, properties: [:])
+
+// MARK: - ImageType
+
+/// A uniform type identifier (UTI).
+public struct ImageType: ExpressibleByStringLiteral, Hashable {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
     }
 
-    static func jpegData(from image: NSImage, compressionQuality: CGFloat) -> Data? {
-        guard let cgImage = image.cgImage else {
-            return nil
-        }
-        let rep = NSBitmapImageRep(cgImage: cgImage)
-        return rep.representation(using: .jpeg, properties: [.compressionFactor: compressionQuality])
+    public init(stringLiteral value: String) {
+        self.rawValue = value
     }
+
+    public static let png: ImageType = "public.png"
+    public static let jpeg: ImageType = "public.jpeg"
+    /// HEIF (High Effeciency Image Format) by Apple.
+    public static let heic: ImageType = "public.heic"
 }
-#endif

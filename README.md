@@ -403,6 +403,8 @@ let request = ImageRequest(url: url, processors: [
 
 To avoid storing unwanted images, compose the processors, `ImageProcessor.Composition` is an easy way to do it.
 
+> To save disk space see `ImageEncoders.ImageIO` and a new experimental `ImageEncoder._isHEIFPreferred` option for HEIF support.
+
 <br/>
 
 # Advanced Features
