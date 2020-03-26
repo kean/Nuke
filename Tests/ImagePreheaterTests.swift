@@ -113,4 +113,19 @@ class ImagePreheaterTests: XCTestCase {
         preheater.stopPreheating()
         wait()
     }
+
+    func testThatAllPreheatingRequestsAreStoppedWhenPreheaterIsDeallocated() {
+        pipeline.queue.isSuspended = true
+
+        let request = Test.request
+        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
+        preheater.startPreheating(with: [request])
+        wait()
+
+        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
+        autoreleasepool {
+            preheater = nil
+        }
+        wait()
+    }
 }
