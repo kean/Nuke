@@ -15,7 +15,7 @@
 
 Nuke provides a simple and efficient way to download and display images in your app. Behind its clear and concise API is an advanced architecture which enables its unique features and offers virtually unlimited possibilities for customization.
 
-> **Fast LRU memory and disk cache** · **Smart background decompression** · **Image processing** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG, WebP** · **Animated images** · **Alamofire, WebP, Gifu, FLAnimatedImage integrations** · **Reactive extensions**
+> **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG, WebP** · **Animated images** · **Alamofire, Gifu** · **Combine** · **Reactive extensions**
 
 <br/>
 
@@ -475,7 +475,7 @@ There is no built-in way to render animated images, but there are multiple optio
 ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
 
 extension Gifu.GIFImageView {
-    public override func nuke_display(image: Image?) {
+    @objc open override func nuke_display(image: Image?) {
         prepareForReuse()
         if let data = image?.animatedImageData {
             animate(withGIFData: data)

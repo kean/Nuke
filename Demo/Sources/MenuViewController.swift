@@ -97,7 +97,7 @@ final class MenuViewController: UITableViewController {
             }))
 
             items.append(MenuItem(
-                title: "FLAnimatedImage",
+                title: "Gifu",
                 subtitle: "Display animated GIFs",
                 action: { [weak self] in
                     let controller = AnimatedImageViewController(nibName: nil, bundle: nil)
