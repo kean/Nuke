@@ -4,12 +4,15 @@
 
 import Foundation
 
-/// Prefetches and caches image in order to eliminate delays when you request 
-/// individual images later.
+/// Prefetches and caches image to eliminate delays when requesting the same
+/// images later.
 ///
 /// To start preheating call `startPreheating(with:)` method. When you
-/// need an individual image just start loading an image using `Loading` object.
-/// When preheating is no longer necessary call `stopPreheating(with:)` method.
+/// need an individual image, just start loading them, the pipeline will
+/// automatically reuse the existing tasks and add new obsevers to them instead
+/// of starting the new downloads.
+///
+/// Preheater automatically cancels all of the outstanding tasks when deallocated.
 ///
 /// All `Preheater` methods are thread-safe.
 public final class ImagePreheater {
@@ -41,6 +44,15 @@ public final class ImagePreheater {
         self.pipeline = pipeline
         self.destination = destination
         self.preheatQueue.maxConcurrentOperationCount = maxConcurrentRequestCount
+    }
+
+    deinit {
+        let tasks = self.tasks.values // Make sure we don't retain self
+        queue.async {
+            for task in tasks {
+                task.cancel()
+            }
+        }
     }
 
     /// Starte preheating images for the given urls.

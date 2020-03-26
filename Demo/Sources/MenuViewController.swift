@@ -97,19 +97,10 @@ final class MenuViewController: UITableViewController {
             }))
 
             items.append(MenuItem(
-                title: "FLAnimatedImage",
+                title: "Gifu",
                 subtitle: "Display animated GIFs",
                 action: { [weak self] in
                     let controller = AnimatedImageViewController(nibName: nil, bundle: nil)
-                    controller.title = $0.title
-                    self?.push(controller)
-            }))
-
-            items.append(MenuItem(
-                title: "DFCache",
-                subtitle: "Custom on-disk cache",
-                action: { [weak self] in
-                    let controller = CustomCacheDemoViewController(collectionViewLayout: UICollectionViewFlowLayout())
                     controller.title = $0.title
                     self?.push(controller)
             }))

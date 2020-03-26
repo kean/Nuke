@@ -4,7 +4,7 @@
 
 import UIKit
 import Nuke
-import FLAnimatedImage
+import Gifu
 
 private let textViewCellReuseID = "textViewReuseID"
 private let imageCellReuseID = "imageCellReuseID"
@@ -114,11 +114,11 @@ final class AnimatedImageViewController: UICollectionViewController, UICollectio
 }
 
 final class AnimatedImageCell: UICollectionViewCell {
-    let imageView: FLAnimatedImageView
+    let imageView: GIFImageView
     let activityIndicator: UIActivityIndicatorView
 
     override init(frame: CGRect) {
-        imageView = FLAnimatedImageView()
+        imageView = GIFImageView()
         activityIndicator = UIActivityIndicatorView(style: .gray)
 
         super.init(frame: frame)
@@ -148,28 +148,11 @@ final class AnimatedImageCell: UICollectionViewCell {
     }
 }
 
-extension FLAnimatedImageView {
+extension GIFImageView {
     @objc open override func nuke_display(image: UIImage?) {
-        guard image != nil else {
-            self.animatedImage = nil
-            self.image = nil
-            return
-        }
+        prepareForReuse()
         if let data = image?.animatedImageData {
-            // Display poster image immediately
-            self.image = image
-
-            // Prepare FLAnimatedImage object asynchronously (it takes a
-            // noticeable amount of time), and start playback.
-            DispatchQueue.global().async {
-                let animatedImage = FLAnimatedImage(animatedGIFData: data)
-                DispatchQueue.main.async {
-                    // If view is still displaying the same image
-                    if self.image === image {
-                        self.animatedImage = animatedImage
-                    }
-                }
-            }
+            animate(withGIFData: data)
         } else {
             self.image = image
         }
