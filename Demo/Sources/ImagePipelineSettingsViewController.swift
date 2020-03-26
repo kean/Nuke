@@ -4,7 +4,6 @@
 
 import UIKit
 import Nuke
-import DFCache
 
 protocol ImagePipelineSettingsViewControllerDelegate: class {
     func imagePipelineSettingsViewController(_ vc: ImagePipelineSettingsViewController, didFinishWithConfiguration configuration: ImagePipeline.Configuration)
@@ -122,9 +121,6 @@ final class ImagePipelineSettingsViewController: UITableViewController {
 
         if let _ = configuration.dataCache as? DataCache {
             // Do nothing
-        } else if let _ = configuration.dataCache as? DFCache {
-            dataCacheTitle.text = "Data Cache (DFCache)"
-            dataCacheEnabledSwitch.isEnabled = false
         } else if configuration.dataCache != nil {
             dataCacheTitle.text = "Data Cache (Custom)"
             dataCacheEnabledSwitch.isEnabled = false
@@ -175,17 +171,6 @@ final class ImagePipelineSettingsViewController: UITableViewController {
             formatter.countStyle = .binary
             dataCacheDataUsageCell.detailTextLabel?.text = "\(formatter.string(fromByteCount: Int64(dataCache.totalSize))) / \(formatter.string(fromByteCount: Int64(dataCache.sizeLimit)))"
             dataCacheTotalCountCell.detailTextLabel?.text = "\(dataCache.totalCount) / \(dataCache.countLimit == Int.max ? "Unlimited" : "\(dataCache.countLimit)")"
-        } else if let dataCache = configuration.dataCache as? DFCache {
-            let formatter = ByteCountFormatter()
-            formatter.countStyle = .binary
-
-            if let diskCache = dataCache.diskCache {
-                dataCacheDataUsageCell.detailTextLabel?.text = "\(formatter.string(fromByteCount: Int64(diskCache.contentsSize()))) / \(formatter.string(fromByteCount: Int64(diskCache.capacity)))"
-                dataCacheTotalCountCell.detailTextLabel?.text = "Unlimited"
-            } else {
-                dataCacheDataUsageCell.detailTextLabel?.text = "Disabled"
-                dataCacheTotalCountCell.detailTextLabel?.text = "Disabled"
-            }
         } else if configuration.dataCache != nil {
             dataCacheDataUsageCell.detailTextLabel?.text = "Unknown"
             dataCacheTotalCountCell.detailTextLabel?.text = "Unknown"
@@ -281,8 +266,6 @@ final class ImagePipelineSettingsViewController: UITableViewController {
         if let dataCache = configuration.dataCache as? DataCache {
             dataCache.removeAll()
             dataCache.flush()
-        } else if let dataCache = configuration.dataCache as? DFCache {
-            dataCache.removeAllObjects()
         }
         reloadDataCache()
         DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(1)) {
