@@ -36,7 +36,7 @@ class MockImageProcessor: ImageProcessing {
         guard let copy = image.cgImage?.copy() else {
             return image
         }
-        let processedImage = PlatformImage(cgImage: copy)
+        let finalImage = PlatformImage(cgImage: copy)
         #endif
         processorIDs.append(identifier)
         processedImage.nk_test_processorIDs = processorIDs

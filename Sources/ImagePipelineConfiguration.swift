@@ -76,25 +76,21 @@ extension ImagePipeline {
         public var isDecompressionEnabled = true
         #endif
 
-        /// `true` by default. If `true`, original image data provided by
-        /// `dataLoader` will be stored in a custom `dataCache` provided in the
-        /// configuration.
-        ///
-        /// If the value is set to `true`, you must also provide `dataCache`
-        /// instance in the configuration.
-        public var isDataCachingForOriginalImageDataEnabled = true
+        public var dataCacheOptions = DataCacheOptions()
 
-        /// `false` by default. If `true`, the images for which one or more
-        /// processors were specified will be encoded and stored in data cache.
-        ///
-        /// If the value is set to `true`, you must also provide `dataCache`
-        /// instance in the configuration.
-        //
-        /// - WARNING: When enabled every intermediate processed image will be
-        /// stored in disk data cache if it is enabled. To avoid storing
-        /// unwanted intermediate images, use `ImageProcessor.Composition` to
-        /// compose multiple processors into a single one.
-        public var isDataCachingForProcessedImagesEnabled = false
+        public struct DataCacheOptions {
+            /// Specifies which content to store in the `dataCache`. By default, the
+            /// pipeline only stores the original image data downloaded using `dataLoader`.
+            /// It can be configured to encode and store processed images instead.
+            ///
+            /// - note: If you are creating multiple versions of the same image using
+            /// different processors, it might be worse enabling both `.originalData`
+            /// and `.encodedImages` cache to reuse the same downloaded data.
+            ///
+            /// - note: It might be worth enabling `.encodedImages` if you want to
+            /// transcode downloaded images into a more efficient format, like HEIF.
+            public var storedItems: Set<DataCacheItem> = [.originalImageData]
+        }
 
         /// `true` by default. If `true` the pipeline avoids duplicated work when
         /// loading images. The work only gets cancelled when all the registered
@@ -172,6 +168,13 @@ extension ImagePipeline {
             self.imageDecompressingQueue.maxConcurrentOperationCount = 2
             #endif
         }
+    }
+
+    public enum DataCacheItem {
+        /// Originl image data.
+        case originalImageData
+        /// Final image with all processors applied.
+        case finalImage
     }
 }
 

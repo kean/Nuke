@@ -106,8 +106,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.dataCache = dataCache
-            $0.isDataCachingForOriginalImageDataEnabled = true
-            $0.isDataCachingForProcessedImagesEnabled = true
+            $0.dataCacheOptions.storedItems = [.originalImageData, .finalImage]
             $0.imageCache = nil
         }
 
@@ -177,47 +176,66 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         pipeline.configuration.imageEncodingQueue.isSuspended = true
         expect(pipeline.configuration.imageEncodingQueue).toFinishWithEnqueuedOperationCount(1)
         expect(pipeline).toLoadImage(with: request)
+        wait()
 
         // Then
-        wait { _ in
-            XCTAssertNotNil(self.dataCache.cachedData(for: Test.url.absoluteString), "Expected original image data to be stored")
-            XCTAssertNotNil(self.dataCache.cachedData(for: Test.url.absoluteString + "1"), "Expected processed image data to be stored")
-            XCTAssertEqual(self.dataCache.store.count, 2)
-        }
+        XCTAssertNotNil(dataCache.cachedData(for: Test.url.absoluteString), "Expected original image data to be stored")
+        XCTAssertNotNil(dataCache.cachedData(for: Test.url.absoluteString + "1"), "Expected processed image data to be stored")
+        XCTAssertEqual(dataCache.store.count, 2)
     }
 
     func testOriginalDataNotStoredWhenStorageDisabled() {
         // Given
         pipeline = pipeline.reconfigured {
-            $0.isDataCachingForOriginalImageDataEnabled = false
+            $0.dataCacheOptions.storedItems = [.finalImage]
         }
 
         // When
         pipeline.configuration.imageEncodingQueue.isSuspended = true
         expect(pipeline.configuration.imageEncodingQueue).toFinishWithEnqueuedOperationCount(1)
         expect(pipeline).toLoadImage(with: request)
+        wait()
 
         // Then
-        wait { _ in
-            XCTAssertNotNil(self.dataCache.cachedData(for: Test.url.absoluteString + "1"), "Expected processed image data to be stored")
-            XCTAssertEqual(self.dataCache.store.count, 1)
+        let key = pipeline.cacheKey(for: request, item: .finalImage)
+        XCTAssertNotNil(dataCache.cachedData(for: key), "Expected processed image data to be stored")
+        XCTAssertEqual(dataCache.store.count, 1)
+    }
+
+    func testOriginalImageDataIsStoredIfNoProcessorSpecified() {
+        // Given
+        pipeline = pipeline.reconfigured {
+            $0.dataCacheOptions.storedItems = [.finalImage]
         }
+
+        // Given request without processors
+        let request = ImageRequest(url: Test.url)
+
+        // When
+        pipeline.configuration.imageEncodingQueue.isSuspended = true
+        expect(pipeline.configuration.imageEncodingQueue).toFinishWithEnqueuedOperationCount(1)
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // Then
+        let key = pipeline.cacheKey(for: request, item: .originalImageData)
+        XCTAssertNotNil(dataCache.cachedData(for: key), "Expected processed image data to be stored")
+        XCTAssertEqual(dataCache.store.count, 1)
     }
 
     func testProcessedDataNotStoredWhenStorageDisabled() {
         // Given
         pipeline = pipeline.reconfigured {
-            $0.isDataCachingForProcessedImagesEnabled = false
+            $0.dataCacheOptions.storedItems = [.originalImageData]
         }
 
         // When
         expect(pipeline).toLoadImage(with: request)
+        wait()
 
         // Then
-        wait { _ in
-            XCTAssertNotNil(self.dataCache.cachedData(for: Test.url.absoluteString), "Expected original image data to be stored")
-            XCTAssertEqual(self.dataCache.store.count, 1)
-        }
+        XCTAssertNotNil(dataCache.cachedData(for: Test.url.absoluteString), "Expected original image data to be stored")
+        XCTAssertEqual(dataCache.store.count, 1)
     }
 
     func testSetCustomImageEncoder() {

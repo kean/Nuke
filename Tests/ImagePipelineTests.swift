@@ -381,6 +381,18 @@ class ImagePipelineTests: XCTestCase {
     }
 
     #endif
+
+    // MARK: - CacheKey
+
+    func testCacheKeyForOriginalData() {
+        XCTAssertEqual(pipeline.cacheKey(for: Test.request, item: .originalImageData), Test.url.absoluteString)
+    }
+
+    func testCacheKeyForFinalImage() {
+        var request = Test.request
+        request.processors = [ImageProcessor.Anonymous(id: "1", { $0 })]
+        XCTAssertEqual(pipeline.cacheKey(for: request, item: .finalImage), Test.url.absoluteString + "1")
+    }
 }
 
 /// Test how well image pipeline interacts with memory cache.

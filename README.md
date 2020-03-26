@@ -306,9 +306,8 @@ There is a list of pipeline settings which you can tweak:
 // Automatically decompress images in the background by default.
 isDecompressionEnabled = true
 
-// Configure which images to store in the custom disk cache.
-isDataCachingForOriginalImageDataEnabled = true
-isDataCachingForProcessedImagesEnabled = false
+// Configure what content to store in the custom disk cache.
+dataCacheOptions.storedItems = [.finalImage] // [.originalImageData]
 
 // Avoid doing any duplicated work when loading or processing images.
 isDeduplicationEnabled = true
@@ -392,16 +391,7 @@ ImagePipeline {
 }
 ```
 
-By default, the pipeline stores only the original image data. To store the processed images enable `isDataCachingForProcessedImagesEnabled` and also consider disabling `isDataCachingForOriginalImageDataEnabled`. Every intermediate processed image will be stored in cache. So in the following scenario, there are going to be two entries in the disk cache (three if original image cache is also enabled):
-
-```swift
-let request = ImageRequest(url: url, processors: [
-    ImageProcessor.Resize(size: imageView.bounds.size),
-    ImageProcessor.CoreImageFilter(name: "CISepiaTone")
-])
-```
-
-To avoid storing unwanted images, compose the processors, `ImageProcessor.Composition` is an easy way to do it.
+By default, the pipeline stores only the original image data. To store downloaded and processed images instead, set `dataCacheOptions.storedItems` to `[.finalImage]`. This option is useful if you want to store processed, e.g. downsampled images, or if you want to transcode images to a more efficient format, like HEIF.
 
 > To save disk space see `ImageEncoders.ImageIO` and a new experimental `ImageEncoder._isHEIFPreferred` option for HEIF support.
 
