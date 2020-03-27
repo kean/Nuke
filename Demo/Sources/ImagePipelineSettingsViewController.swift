@@ -115,9 +115,9 @@ final class ImagePipelineSettingsViewController: UITableViewController {
         dataCacheEnabledSwitch.isOn = configuration.dataCache != nil
         dataCacheButtonClear.isEnabled = configuration.dataCache != nil
         dataCacheForOriginalImagesEnabledSwitch.isEnabled = configuration.dataCache != nil
-        dataCacheForOriginalImagesEnabledSwitch.isOn = configuration.isDataCachingForOriginalImageDataEnabled
+        dataCacheForOriginalImagesEnabledSwitch.isOn = configuration.dataCacheOptions.storedItems.contains(.originalImageData)
         dataCacheForProcessedImagesEnabledSwitch.isEnabled = configuration.dataCache != nil
-        dataCacheForProcessedImagesEnabledSwitch.isOn = configuration.isDataCachingForProcessedImagesEnabled
+        dataCacheForProcessedImagesEnabledSwitch.isOn = configuration.dataCacheOptions.storedItems.contains(.finalImage)
 
         if let _ = configuration.dataCache as? DataCache {
             // Do nothing
@@ -255,11 +255,19 @@ final class ImagePipelineSettingsViewController: UITableViewController {
     }
 
     @IBAction func optionDataCacheForOriginalImageDataEnabledValueChanged(_ sender: UISwitch) {
-        configuration.isDataCachingForOriginalImageDataEnabled = sender.isOn
+        if sender.isOn {
+            configuration.dataCacheOptions.storedItems.insert(.originalImageData)
+        } else {
+            configuration.dataCacheOptions.storedItems.remove(.originalImageData)
+        }
     }
 
     @IBAction func optionDataCacheForProcessedImageDataEnabledValueChanged(_ sender: UISwitch) {
-        configuration.isDataCachingForProcessedImagesEnabled = sender.isOn
+        if sender.isOn {
+            configuration.dataCacheOptions.storedItems.insert(.finalImage)
+        } else {
+            configuration.dataCacheOptions.storedItems.remove(.finalImage)
+        }
     }
 
     @IBAction func dataCacheButtonClearTapped(_ sender: Any) {
