@@ -126,6 +126,18 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
 
 // MARK: - ImageResponse
 
+public struct ImageContainer {
+    public let image: PlatformImage
+    public let data: Data?
+    public let userInfo: [AnyHashable: Any]
+
+    public init(image: PlatformImage, data: Data?, userInfo: [AnyHashable: Any]) {
+        self.image = image
+        self.data = data
+        self.userInfo = userInfo
+    }
+}
+
 /// Represents an image response.
 public final class ImageResponse {
     public let image: PlatformImage
