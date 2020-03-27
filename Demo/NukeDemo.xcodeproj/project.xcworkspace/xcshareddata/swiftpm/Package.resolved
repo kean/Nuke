@@ -24,8 +24,17 @@
         "repositoryURL": "https://github.com/kean/Nuke",
         "state": {
           "branch": "master",
-          "revision": "a6ef743afd8284e93f1c4f7fc92ef2025064c8dc",
+          "revision": "e881a95f843ab21bfeaaaf9456c104ca607c5924",
           "version": null
+        }
+      },
+      {
+        "package": "SwiftSVG",
+        "repositoryURL": "https://github.com/mchoe/SwiftSVG.git",
+        "state": {
+          "branch": null,
+          "revision": "c3a8866a25ace169ee8e5c037670ba14aa59606f",
+          "version": "2.3.2"
         }
       }
     ]

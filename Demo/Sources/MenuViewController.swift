@@ -105,6 +105,15 @@ final class MenuViewController: UITableViewController {
                     self?.push(controller)
             }))
 
+            items.append(MenuItem(
+                title: "SwiftSVG",
+                subtitle: "Render vector images",
+                action: { [weak self] in
+                    let controller = SwiftSVGDemoViewController()
+                    controller.title = $0.title
+                    self?.push(controller)
+            }))
+
             return items
         }()))
 
