@@ -318,6 +318,7 @@ enum ImageFormat: Equatable {
 private var _animatedImageDataAK = "Nuke.AnimatedImageData.AssociatedKey"
 
 extension PlatformImage {
+    // Soft-deprecated in Nuke 8.5
     // Animated image data. Only not `nil` when image data actually contains
     // an animated image.
     public var animatedImageData: Data? {
