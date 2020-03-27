@@ -148,6 +148,28 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         wait()
     }
 
+    func testProcessedImageIsStoredInMemoryCache() throws {
+        // Given processed image data stored in data cache
+        let cache = MockImageCache()
+        pipeline = pipeline.reconfigured {
+            $0.imageCache = cache
+        }
+        dataLoader.queue.isSuspended = true
+        dataCache.store[Test.url.absoluteString + "1"] = Test.data
+
+        // When
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // Then decompressed image is stored in disk cache
+        let response = cache.cachedResponse(for: self.request)
+        XCTAssertNotNil(response)
+
+        let image = try XCTUnwrap(response?.image)
+        let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
+        XCTAssertEqual(isDecompressionNeeded, false, "Expected image to be decompressed")
+    }
+
     func testProcessedImageNotDecompressedWhenDecompressionDisabled() {
         // Given pipeline with decompression disabled
         pipeline = pipeline.reconfigured {

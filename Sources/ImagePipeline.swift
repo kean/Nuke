@@ -393,7 +393,7 @@ private extension ImagePipeline {
 
             self.queue.async {
                 if let response = response {
-                    task.send(value: response, isCompleted: true)
+                    self.decompressProcessedImage(response, isCompleted: true, for: request, task: task)
                 } else {
                     self.loadDecompressedImage(for: request, task: task)
                 }
