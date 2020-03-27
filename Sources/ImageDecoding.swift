@@ -30,80 +30,6 @@ extension ImageDecoding {
     }
 }
 
-// An image decoder that uses native APIs. Supports progressive decoding.
-// The decoder is stateful.
-public final class ImageDecoder: ImageDecoding {
-    // `nil` if decoder hasn't detected whether progressive decoding is enabled.
-    private(set) var isProgressive: Bool?
-    // Number of scans that the decoder has found so far. The last scan might be
-    // incomplete at this point.
-    private(set) var numberOfScans = 0
-    private var lastStartOfScan: Int = 0 // Index of the last found Start of Scan
-    private var scannedIndex: Int = -1 // Index at which previous scan was finished
-
-    public init() { }
-
-    public func decode(data: Data, isFinal: Bool) -> PlatformImage? {
-        let format = ImageFormat.format(for: data)
-
-        guard !isFinal else { // Just decode the data.
-            let image = ImageDecoder.decode(data)
-            // Keep original data around in case of GIF
-            if ImagePipeline.Configuration.isAnimatedImageDataEnabled, case .gif? = format {
-                image?.animatedImageData = data
-            }
-            return image
-        }
-
-        // Determined (if haven't determined yet) whether the image supports progressive
-        // decoding or not (only proressive JPEG is allowed for now, but you can
-        // add support for other formats by implementing your own decoder).
-        isProgressive = isProgressive ?? format?.isProgressive
-        guard isProgressive == true else {
-            return nil
-        }
-
-        // Check if there is more data to scan.
-        guard (scannedIndex + 1) < data.count else {
-            return nil
-        }
-
-        // Start scaning from the where it left off previous time.
-        var index = (scannedIndex + 1)
-        var numberOfScans = self.numberOfScans
-        while index < (data.count - 1) {
-            scannedIndex = index
-            // 0xFF, 0xDA - Start Of Scan
-            if data[index] == 0xFF, data[index + 1] == 0xDA {
-                lastStartOfScan = index
-                numberOfScans += 1
-            }
-            index += 1
-        }
-
-        // Found more scans this the previous time
-        guard numberOfScans > self.numberOfScans else {
-            return nil
-        }
-        self.numberOfScans = numberOfScans
-
-        // `> 1` checks that we've received a first scan (SOS) and then received
-        // and also received a second scan (SOS). This way we know that we have
-        // at least one full scan available.
-        return (numberOfScans > 1 && lastStartOfScan > 0) ? ImageDecoder.decode(data[0..<lastStartOfScan]) : nil
-    }
-}
-
-extension ImageDecoder {
-    static func decode(_ data: Data) -> PlatformImage? {
-        #if os(macOS)
-        return NSImage(data: data)
-        #else
-        return UIImage(data: data, scale: Screen.scale)
-        #endif
-    }
-}
-
 extension ImageDecoding {
     func decode(_ data: Data, urlResponse: URLResponse?, isFinal: Bool) -> ImageResponse? {
         func decode() -> ImageContainer? {
@@ -129,14 +55,96 @@ extension ImageDecoding {
         ImageDecompression.setDecompressionNeeded(true, for: container.image)
         #endif
 
-        let scanNumber: Int? = (self as? ImageDecoder)?.numberOfScans
+        let scanNumber: Int? = (self as? ImageDecoders.Default)?.numberOfScans
         return ImageResponse(container: container, urlResponse: urlResponse, scanNumber: scanNumber)
     }
 }
 
+// Soft-deprecated in Nuke 8.5.
+public typealias ImageDecoder = ImageDecoders.Default
+
 // MARK: - ImageDecoders
 
 public enum ImageDecoders {}
+
+// MARK: - ImageDecoders.Default
+
+// An image decoder that uses native APIs. Supports progressive decoding.
+// The decoder is stateful.
+public extension ImageDecoders {
+
+    final class Default: ImageDecoding {
+        // `nil` if decoder hasn't detected whether progressive decoding is enabled.
+        private(set) var isProgressive: Bool?
+        // Number of scans that the decoder has found so far. The last scan might be
+        // incomplete at this point.
+        private(set) var numberOfScans = 0
+        private var lastStartOfScan: Int = 0 // Index of the last found Start of Scan
+        private var scannedIndex: Int = -1 // Index at which previous scan was finished
+
+        public init() { }
+
+        public func decode(data: Data, isFinal: Bool) -> PlatformImage? {
+            let format = ImageFormat.format(for: data)
+
+            guard !isFinal else { // Just decode the data.
+                let image = ImageDecoders.Default.decode(data)
+                // Keep original data around in case of GIF
+                if ImagePipeline.Configuration.isAnimatedImageDataEnabled, case .gif? = format {
+                    image?.animatedImageData = data
+                }
+                return image
+            }
+
+            // Determined (if haven't determined yet) whether the image supports progressive
+            // decoding or not (only proressive JPEG is allowed for now, but you can
+            // add support for other formats by implementing your own decoder).
+            isProgressive = isProgressive ?? format?.isProgressive
+            guard isProgressive == true else {
+                return nil
+            }
+
+            // Check if there is more data to scan.
+            guard (scannedIndex + 1) < data.count else {
+                return nil
+            }
+
+            // Start scaning from the where it left off previous time.
+            var index = (scannedIndex + 1)
+            var numberOfScans = self.numberOfScans
+            while index < (data.count - 1) {
+                scannedIndex = index
+                // 0xFF, 0xDA - Start Of Scan
+                if data[index] == 0xFF, data[index + 1] == 0xDA {
+                    lastStartOfScan = index
+                    numberOfScans += 1
+                }
+                index += 1
+            }
+
+            // Found more scans this the previous time
+            guard numberOfScans > self.numberOfScans else {
+                return nil
+            }
+            self.numberOfScans = numberOfScans
+
+            // `> 1` checks that we've received a first scan (SOS) and then received
+            // and also received a second scan (SOS). This way we know that we have
+            // at least one full scan available.
+            return (numberOfScans > 1 && lastStartOfScan > 0) ? ImageDecoder.decode(data[0..<lastStartOfScan]) : nil
+        }
+    }
+}
+
+extension ImageDecoders.Default {
+    static func decode(_ data: Data) -> PlatformImage? {
+        #if os(macOS)
+        return NSImage(data: data)
+        #else
+        return UIImage(data: data, scale: Screen.scale)
+        #endif
+    }
+}
 
 // MARK: - ImageDecoders.Empty
 

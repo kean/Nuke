@@ -26,7 +26,7 @@ enum Test {
     // Test.image size is 640 x 480 pixels
     static var image: PlatformImage {
         let data = Test.data(name: "fixture", extension: "jpeg")
-        return Nuke.ImageDecoder().decode(data: data)!
+        return Nuke.ImageDecoders.Default().decode(data: data)!
     }
 
     static let request = ImageRequest(
