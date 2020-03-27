@@ -290,7 +290,9 @@ public extension ImageProcessor.RoundedCorners {
 public extension ImagePipeline.Configuration {
     @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead.")
     var isDataCachingForOriginalImageDataEnabled: Bool {
-        get { dataCacheOptions.storedItems.contains(.originalImageData) }
+        get {
+            return dataCacheOptions.storedItems.contains(.originalImageData)
+        }
         set {
             if newValue {
                 dataCacheOptions.storedItems.insert(.originalImageData)
@@ -302,7 +304,9 @@ public extension ImagePipeline.Configuration {
 
     @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead. Please note that the new behavior is different from the previous versions. Now, instead of storing only processd image, it encodes and stores all downloaded images.")
     var isDataCachingForProcessedImagesEnabled: Bool {
-        get { dataCacheOptions.storedItems.contains(.finalImage) }
+        get {
+            return dataCacheOptions.storedItems.contains(.finalImage)
+        }
         set {
             if newValue {
                 dataCacheOptions.storedItems.insert(.finalImage)
