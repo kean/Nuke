@@ -74,7 +74,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// ```swift
     /// let request = ImageRequest(
     ///     url: URL(string: "http://..."),
-    ///     processors: [ImageProcessor.Resize(size: imageView.bounds.size)],
+    ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
     ///     priority: .high
     /// )
     /// ```
@@ -99,7 +99,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// ```swift
     /// let request = ImageRequest(
     ///     url: URL(string: "http://..."),
-    ///     processors: [ImageProcessor.Resize(size: imageView.bounds.size)],
+    ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
     ///     priority: .high
     /// )
     /// ```
@@ -269,7 +269,7 @@ extension ImageRequest {
 
     /// A key for processed image data in disk cache.
     func makeCacheKeyForFinalImageData() -> String {
-        return ref.preferredURLString + ImageProcessor.Composition(processors).identifier
+        return ref.preferredURLString + ImageProcessors.Composition(processors).identifier
     }
 
     /// A key for original image data in disk cache.

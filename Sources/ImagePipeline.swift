@@ -87,11 +87,11 @@ public /* final */ class ImagePipeline {
     /// ```swift
     /// let url = URL(string: "http://example.com/image")
     /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44)),
-    ///     ImageProcessor.GaussianBlur(radius: 8)
+    ///     ImageProcessors.Resize(size: CGSize(width: 44, height: 44)),
+    ///     ImageProcessors.GaussianBlur(radius: 8)
     /// ]))
     /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
+    ///     ImageProcessors.Resize(size: CGSize(width: 44, height: 44))
     /// ]))
     /// ```
     ///
@@ -137,11 +137,11 @@ public /* final */ class ImagePipeline {
     /// ```swift
     /// let url = URL(string: "http://example.com/image")
     /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44)),
-    ///     ImageProcessor.GaussianBlur(radius: 8)
+    ///     ImageProcessors.Resize(size: CGSize(width: 44, height: 44)),
+    ///     ImageProcessors.GaussianBlur(radius: 8)
     /// ]))
     /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
+    ///     ImageProcessors.Resize(size: CGSize(width: 44, height: 44))
     /// ]))
     /// ```
     ///
@@ -510,7 +510,7 @@ private extension ImagePipeline {
             subRequest.processors = Array(request.processors.dropLast())
         } else {
             // Perform all transformations in one go
-            processor = ImageProcessor.Composition(request.processors)
+            processor = ImageProcessors.Composition(request.processors)
             subRequest.processors = []
         }
         task.dependency = getProcessedImage(for: subRequest).subscribe(task) { [weak self] image, isCompleted, task in

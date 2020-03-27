@@ -33,7 +33,7 @@ public protocol ImageProcessing {
     /// The default implementation simply returns `var identifier: String` but
     /// can be overridden as a performance optimization - creating and comparing
     /// strings is _expensive_ so you can opt-in to return something which is
-    /// fast to create and to compare. See `ImageProcessor.Resize` to example.
+    /// fast to create and to compare. See `ImageProcessors.Resize` to example.
     var hashableIdentifier: AnyHashable { get }
 }
 
@@ -64,19 +64,22 @@ public struct ImageProcessingContext {
 
 // MARK: - ImageProcessor
 
-/// A namespace for types related to `ImageProcessing` protocol.
-public enum ImageProcessor {}
+/// Soft-deprecated in Nuke 8.5.s
+public typealias ImageProcessor = ImageProcessors
 
-// MARK: - ImageProcessor.Resize
+/// A namespace for all processors that implement `ImageProcessing` protocol.
+public enum ImageProcessors {}
 
-extension ImageProcessor {
+// MARK: - ImageProcessors.Resize
+
+extension ImageProcessors {
     // Soft-deprecated in Nuke 8.5s
-    public typealias Unit = ImageSizeUnit
+    public typealias Unit = ImageProcessingOptions.Unit
 
     /// Scales an image to a specified size.
     public struct Resize: ImageProcessing, Hashable, CustomStringConvertible {
         private let size: CGSize
-        private let unit: ImageSizeUnit
+        private let unit: ImageProcessingOptions.Unit
         private let contentMode: ContentMode
         private let crop: Bool
         private let upscale: Bool
@@ -110,7 +113,7 @@ extension ImageProcessor {
         /// - parameter contentMode: `.aspectFill` by default.
         /// - parameter crop: If `true` will crop the image to match the target size. `false` by default.
         /// - parameter upscale: `false` by default.
-        public init(size: CGSize, unit: ImageSizeUnit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
+        public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
             self.size = size
             self.unit = unit
             self.contentMode = contentMode
@@ -142,9 +145,9 @@ extension ImageProcessor {
 
 #if os(iOS) || os(tvOS) || os(watchOS)
 
-// MARK: - ImageProcessor.Circle
+// MARK: - ImageProcessors.Circle
 
-extension ImageProcessor {
+extension ImageProcessors {
 
     /// Rounds the corners of an image into a circle.
     public struct Circle: ImageProcessing, Hashable, CustomStringConvertible {
@@ -176,22 +179,11 @@ extension ImageProcessor {
     }
 }
 
-// MARK: - ImageProcessor.RoundedCorners
+// MARK: - ImageProcessors.RoundedCorners
 
-extension ImageProcessor {
-    public struct Border: Hashable {
-        let color: UIColor
-        let width: CGFloat
-
-        public init(color: UIColor, width: CGFloat = 1) {
-            self.color = color
-            self.width = width
-        }
-
-        public var description: String {
-            return "Border(color: \(color), width: \(width))"
-        }
-    }
+extension ImageProcessors {
+    /// Soft-deprecated in Nuke 8.5
+    public typealias Border = ImageProcessingOptions.Border
 
     /// Rounds the corners of an image to the specified radius.
     ///
@@ -199,15 +191,15 @@ extension ImageProcessor {
     /// of the image view in which it will be displayed. See `ImageProcessor.Resize` for more info.
     public struct RoundedCorners: ImageProcessing, Hashable, CustomStringConvertible {
         private let radius: CGFloat
-        private let unit: ImageSizeUnit
-        private let border: ImageProcessor.Border?
+        private let unit: ImageProcessingOptions.Unit
+        private let border: ImageProcessingOptions.Border?
 
         /// Initializes the processor with the given radius.
         ///
         /// - parameter radius: The radius of the corners.
         /// - parameter unit: Unit of the radius, `.points` by default.
         /// - parameter border: An optional border drawn around the image.
-        public init(radius: CGFloat, unit: ImageSizeUnit = .points, border: ImageProcessor.Border? = nil) {
+        public init(radius: CGFloat, unit: ImageProcessingOptions.Unit = .points, border: ImageProcessingOptions.Border? = nil) {
             self.radius = radius
             self.unit = unit
             self.border = border
@@ -237,18 +229,18 @@ extension ImageProcessor {
 
 #if os(iOS) || os(tvOS)
 
-// MARK: - ImageProcessor.CoreImageFilter
+// MARK: - ImageProcessors.CoreImageFilter
 
 import CoreImage
 
-extension ImageProcessor {
+extension ImageProcessors {
 
     /// Applies Core Image filter (`CIFilter`) to the image.
     ///
     /// # Performance Considerations.
     ///
     /// Prefer chaining multiple `CIFilter` objects using `Core Image` facilities
-    /// instead of using multiple instances of `ImageProcessor.CoreImageFilter`.
+    /// instead of using multiple instances of `ImageProcessors.CoreImageFilter`.
     ///
     /// # References
     ///
@@ -318,9 +310,9 @@ extension ImageProcessor {
     }
 }
 
-// MARK: - ImageProcessor.GaussianBlur
+// MARK: - ImageProcessors.GaussianBlur
 
-extension ImageProcessor {
+extension ImageProcessors {
     /// Blurs an image using `CIGaussianBlur` filter.
     public struct GaussianBlur: ImageProcessing, Hashable, CustomStringConvertible {
         private let radius: Int
@@ -377,9 +369,9 @@ struct ImageDecompression {
 
 #endif
 
-// MARK: - ImageProcessor.Composition
+// MARK: - ImageProcessors.Composition
 
-extension ImageProcessor {
+extension ImageProcessors {
     /// Composes multiple processors.
     public struct Composition: ImageProcessing, Hashable, CustomStringConvertible {
         let processors: [ImageProcessing]
@@ -425,9 +417,9 @@ extension ImageProcessor {
     }
 }
 
-// MARK: - ImageProcessor.Anonymous
+// MARK: - ImageProcessors.Anonymous
 
-extension ImageProcessor {
+extension ImageProcessors {
     /// Processed an image using a specified closure.
     public struct Anonymous: ImageProcessing, CustomStringConvertible {
         public let identifier: String
@@ -505,7 +497,7 @@ struct ImageProcessingExtensions {
     let image: PlatformImage
 
     func byResizing(to targetSize: CGSize,
-                    contentMode: ImageProcessor.Resize.ContentMode,
+                    contentMode: ImageProcessors.Resize.ContentMode,
                     upscale: Bool) -> PlatformImage? {
         guard let cgImage = image.cgImage else {
             return nil
@@ -535,7 +527,7 @@ struct ImageProcessingExtensions {
 
     #if os(iOS) || os(tvOS) || os(watchOS)
 
-    func byDrawingInCircle(border: ImageProcessor.Border?) -> UIImage? {
+    func byDrawingInCircle(border: ImageProcessors.Border?) -> UIImage? {
         guard let squared = byCroppingToSquare(), let cgImage = squared.cgImage else {
             return nil
         }
@@ -570,7 +562,7 @@ struct ImageProcessingExtensions {
     /// Adds rounded corners with the given radius to the image.
     /// - parameter radius: Radius in pixels.
     /// - parameter border: Optional stroke border.
-    func byAddingRoundedCorners(radius: CGFloat, border: ImageProcessor.Border? = nil) -> UIImage? {
+    func byAddingRoundedCorners(radius: CGFloat, border: ImageProcessingOptions.Border? = nil) -> UIImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -638,7 +630,7 @@ extension CGImage {
 }
 
 extension CGFloat {
-    func converted(to unit: ImageSizeUnit) -> CGFloat {
+    func converted(to unit: ImageProcessingOptions.Unit) -> CGFloat {
         switch unit {
         case .pixels: return self
         case .points: return self * Screen.scale
@@ -656,7 +648,7 @@ extension CGSize: Hashable { // For some reason `CGSize` isn't `Hashable`
 extension CGSize {
     /// Creates the size in pixels by scaling to the input size to the screen scale
     /// if needed.
-    init(size: CGSize, unit: ImageSizeUnit) {
+    init(size: CGSize, unit: ImageProcessingOptions.Unit) {
         switch unit {
         case .pixels: self = size // The size is already in pixels
         case .points: self = size.scaled(by: Screen.scale)
@@ -719,16 +711,33 @@ func == (lhs: [ImageProcessing], rhs: [ImageProcessing]) -> Bool {
     }
 }
 
-// MARK: - Misc (Public)
+// MARK: - ImageProcessingOptions
 
-public enum ImageSizeUnit: CustomStringConvertible {
-    case points
-    case pixels
+public enum ImageProcessingOptions {
 
-    public var description: String {
-        switch self {
-        case .points: return "points"
-        case .pixels: return "pixels"
+    public enum Unit: CustomStringConvertible {
+        case points
+        case pixels
+
+        public var description: String {
+            switch self {
+            case .points: return "points"
+            case .pixels: return "pixels"
+            }
+        }
+    }
+
+    public struct Border: Hashable {
+        let color: UIColor
+        let width: CGFloat
+
+        public init(color: UIColor, width: CGFloat = 1) {
+            self.color = color
+            self.width = width
+        }
+
+        public var description: String {
+            return "Border(color: \(color), width: \(width))"
         }
     }
 }

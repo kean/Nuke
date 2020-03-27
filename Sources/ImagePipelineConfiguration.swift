@@ -102,11 +102,11 @@ extension ImagePipeline {
         /// ```swift
         /// let url = URL(string: "http://example.com/image")
         /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-        ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44)),
-        ///     ImageProcessor.GaussianBlur(radius: 8)
+        ///     ImageProcessors.Resize(size: CGSize(width: 44, height: 44)),
+        ///     ImageProcessors.GaussianBlur(radius: 8)
         /// ]))
         /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-        ///     ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
+        ///     ImageProcessors.Resize(size: CGSize(width: 44, height: 44))
         /// ]))
         /// ```
         ///
