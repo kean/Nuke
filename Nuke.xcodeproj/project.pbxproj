@@ -69,6 +69,7 @@
 		0C7C06991BCA888800089D7F /* XCTestCaseExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068E1BCA888800089D7F /* XCTestCaseExtensions.swift */; };
 		0C8684FF20BDD578009FF7CC /* ImagePipelineProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CFA20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift */; };
 		0C86AB6A228B3B5100A81BA1 /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C86AB69228B3B5100A81BA1 /* ImageTask.swift */; };
+		0C880532242E7B1500F8C5B3 /* ImagePipelineDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C880531242E7B1500F8C5B3 /* ImagePipelineDecodingTests.swift */; };
 		0C8D7BD31D9DBF1600D12EB7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD21D9DBF1600D12EB7 /* AppDelegate.swift */; };
 		0C8D7BD51D9DBF1600D12EB7 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD41D9DBF1600D12EB7 /* ViewController.swift */; };
 		0C8D7BD81D9DBF1600D12EB7 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD61D9DBF1600D12EB7 /* Main.storyboard */; };
@@ -176,6 +177,7 @@
 		0C7C068D1BCA888800089D7F /* Helpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		0C7C068E1BCA888800089D7F /* XCTestCaseExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = XCTestCaseExtensions.swift; sourceTree = "<group>"; };
 		0C86AB69228B3B5100A81BA1 /* ImageTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTask.swift; sourceTree = "<group>"; };
+		0C880531242E7B1500F8C5B3 /* ImagePipelineDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDecodingTests.swift; sourceTree = "<group>"; };
 		0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
 		0C8D7BD01D9DBF1600D12EB7 /* Nuke Tests Host.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Nuke Tests Host.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C8D7BD21D9DBF1600D12EB7 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -346,6 +348,7 @@
 				0C6D0A8B20E57C810037B68F /* ImagePipelineDataCachingTests.swift */,
 				2DFD93AF233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift */,
 				0C45706A2377874500AB20DD /* ImagePipelineEventsTests.swift */,
+				0C880531242E7B1500F8C5B3 /* ImagePipelineDecodingTests.swift */,
 				0C7C06871BCA888800089D7F /* ImageCacheTests.swift */,
 				0C7C06881BCA888800089D7F /* ImageProcessingTests.swift */,
 				0C70D9772089017500A49DAC /* ImageDecoderTests.swift */,
@@ -736,6 +739,7 @@
 				0C69FA4E1D4E222D00DA9982 /* ImagePreheaterTests.swift in Sources */,
 				0CCBB530217D0B6A0026F552 /* ImageViewIntegrationTests.swift in Sources */,
 				0CB26807208F25C2004C83F4 /* DataCacheTests.swift in Sources */,
+				0C880532242E7B1500F8C5B3 /* ImagePipelineDecodingTests.swift in Sources */,
 				0C7C06991BCA888800089D7F /* XCTestCaseExtensions.swift in Sources */,
 				0CE5F6832156386B0046609F /* ResumableDataTests.swift in Sources */,
 				0CAAB0101E45D6DA00924450 /* NukeExtensions.swift in Sources */,
