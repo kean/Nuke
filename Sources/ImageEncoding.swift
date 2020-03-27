@@ -22,40 +22,8 @@ public protocol ImageEncoding {
 
 // MARK: - ImageEncoder
 
-public struct ImageEncoder: ImageEncoding {
-    private let compressionQuality: CGFloat
-
-    /// Set to `true` to switch to HEIF when it is available on the current hardware.
-    ///
-    /// - note: This is an experimental new feature, an API might change in the future.
-    public static var _isHEIFPreferred = false
-
-    init(compressionQuality: CGFloat = 0.8) {
-        self.compressionQuality = compressionQuality
-    }
-
-    public func encode(image: PlatformImage) -> Data? {
-        guard let cgImage = image.cgImage else {
-            return nil
-        }
-        let type: ImageType
-        if cgImage.isOpaque {
-            if #available(iOS 11, macOS 10.13, tvOS 11, watchOS 4, *) {
-                if ImageEncoder._isHEIFPreferred && ImageEncoders.ImageIO.isSupported(type: .heic) {
-                    type = .heic
-                } else {
-                    type = .jpeg
-                }
-            } else {
-                type = .jpeg
-            }
-        } else {
-            type = .png
-        }
-        let encoder = ImageEncoders.ImageIO(type: type, compressionRatio: Float(compressionQuality))
-        return encoder.encode(image: image)
-    }
-}
+// Soft-deprecated in Nuke 8.5
+public typealias ImageEncoder = ImageEncoders.Default
 
 /// Image encoding context used when selecting which encoder to use.
 public struct ImageEncodingContext {
@@ -67,6 +35,47 @@ public struct ImageEncodingContext {
 // MARK: - ImageEncoders
 
 public enum ImageEncoders {}
+
+// MARK: - ImageEncoders.Default
+
+public extension ImageEncoders {
+    /// A default adaptive encoder which uses best encoder available depending
+    /// on the input image and its configuration.
+    struct Default: ImageEncoding {
+        private let compressionQuality: CGFloat
+
+        /// Set to `true` to switch to HEIF when it is available on the current hardware.
+        ///
+        /// - note: This is an experimental new feature, an API might change in the future.
+        public static var _isHEIFPreferred = false
+
+        init(compressionQuality: CGFloat = 0.8) {
+            self.compressionQuality = compressionQuality
+        }
+
+        public func encode(image: PlatformImage) -> Data? {
+            guard let cgImage = image.cgImage else {
+                return nil
+            }
+            let type: ImageType
+            if cgImage.isOpaque {
+                if #available(iOS 11, macOS 10.13, tvOS 11, watchOS 4, *) {
+                    if ImageEncoders.Default._isHEIFPreferred && ImageEncoders.ImageIO.isSupported(type: .heic) {
+                        type = .heic
+                    } else {
+                        type = .jpeg
+                    }
+                } else {
+                    type = .jpeg
+                }
+            } else {
+                type = .png
+            }
+            let encoder = ImageEncoders.ImageIO(type: type, compressionRatio: Float(compressionQuality))
+            return encoder.encode(image: image)
+        }
+    }
+}
 
 // MARK: - ImageEncoders.ImageIO
 

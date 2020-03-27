@@ -286,7 +286,7 @@ dataCache = nil
 
 // By default uses the decoder from the global registry and the default encoder.
 makeImageDecoder = { context in ImageDecoderRegistry.shared.decoder(for: context) }
-makeImageEncoder = { _ in ImageEncoder() }
+makeImageEncoder = { _ in ImageEncoders.Default() }
 ```
 
 Each operation in the pipeline runs on a dedicated queue:

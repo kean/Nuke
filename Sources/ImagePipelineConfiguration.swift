@@ -25,9 +25,9 @@ extension ImagePipeline {
             return ImageDecoderRegistry.shared.decoder(for: $0)
         }
 
-        /// Returns `ImageEncoder()` by default.
+        /// Returns `ImageEncoders.Default()` by default.
         public var makeImageEncoder: (ImageEncodingContext) -> ImageEncoding = { _ in
-            return ImageEncoder()
+            return ImageEncoders.Default()
         }
 
         // MARK: - Operation Queues
