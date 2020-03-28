@@ -515,7 +515,7 @@ WebP support is provided by [Nuke WebP Plugin](https://github.com/ryokosuge/Nuke
 
 ### SVG
 
-To render SVG, consider using [SwiftSVG](https://github.com/mchoe/SwiftSVG), [SVG](https://github.com/SVGKit/SVGKit), or other frameworks. Here is an example of `SwiftSVG` being used to render vector images:
+To render SVG, consider using [SwiftSVG](https://github.com/mchoe/SwiftSVG), [SVG](https://github.com/SVGKit/SVGKit), or other frameworks. Here is an example of `SwiftSVG` being used to render vector images.
 
 ```swift
 ImageDecoderRegistry.shared.register { context in
@@ -541,6 +541,8 @@ ImagePipeline.shared.loadImage(with: url) { [weak self] result in
     svgView.center = self.view.center
 }
 ```
+
+> Please keep in mind that most of these frameworks are limited in terms of supported SVG features.
 
 ### RxNuke
 
