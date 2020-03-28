@@ -37,7 +37,7 @@ extension ImageDecoding {
                 // If it is the old implementation, call the old method. Otherwise,
                   // call the new APIs.
                 if isFinal {
-                    return newDecoder.decode(data: data)
+                    return newDecoder.decode(data)
                 } else {
                     return newDecoder.decodePartiallyDownloadedData(data)
                 }
@@ -89,14 +89,14 @@ public extension ImageDecoders {
 
         public init() { }
 
-        public func decode(data: Data) -> ImageContainer? {
+        public func decode(_ data: Data) -> ImageContainer? {
             let format = ImageFormat.format(for: data)
 
-            guard let image = ImageDecoders.Default.decode(data) else {
+            guard let image = ImageDecoders.Default._decode(data) else {
                 return nil
             }
             // Keep original data around in case of GIF
-            if ImagePipeline.Configuration._isAnimatedImageDataEnabled, case .gif? = format {
+            if ImagePipeline.Configuration.isAnimatedImageDataEnabled, case .gif? = format {
                 image.animatedImageData = data
             }
             var container = ImageContainer(image: image, data: image.animatedImageData)
@@ -150,7 +150,7 @@ public extension ImageDecoders {
             guard numberOfScans > 1 && lastStartOfScan > 0 else {
                 return nil
             }
-            guard let image = ImageDecoder.decode(data[0..<lastStartOfScan]) else {
+            guard let image = ImageDecoder._decode(data[0..<lastStartOfScan]) else {
                 return nil
             }
             return ImageContainer(image: image, userInfo: [ImageDecoders.Default.scanNumberKey: numberOfScans])
@@ -159,7 +159,7 @@ public extension ImageDecoders {
 }
 
 extension ImageDecoders.Default {
-    static func decode(_ data: Data) -> PlatformImage? {
+    static func _decode(_ data: Data) -> PlatformImage? {
         #if os(macOS)
         return NSImage(data: data)
         #else
@@ -186,7 +186,7 @@ public extension ImageDecoders {
             return isProgressive ? ImageContainer(image: PlatformImage(), data: data, userInfo: [:]) : nil
         }
 
-        public func decode(data: Data) -> ImageContainer? {
+        public func decode(_ data: Data) -> ImageContainer? {
             return ImageContainer(image: PlatformImage(), data: data, userInfo: [:])
         }
     }
@@ -202,7 +202,7 @@ public extension ImageDecoders {
 /// anything that you might need from the `ImageDecodingContext`.
 public protocol _ImageDecoding: ImageDecoding {
     /// Produces an image from the given image data.
-    func decode(data: Data) -> ImageContainer?
+    func decode(_ data: Data) -> ImageContainer?
 
     /// Produces an image from the given partially dowloaded image data.
     /// This method might be called multiple times during a single decoding
@@ -219,7 +219,7 @@ public extension _ImageDecoding {
 
     func decode(data: Data, isFinal: Bool) -> PlatformImage? {
         if isFinal {
-            return self.decode(data: data)?.image
+            return self.decode(data)?.image
         } else {
             return self.decodePartiallyDownloadedData(data)?.image
         }

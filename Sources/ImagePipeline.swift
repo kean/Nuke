@@ -451,7 +451,7 @@ private extension ImagePipeline {
     func isDecompressionNeeded(for response: ImageResponse) -> Bool {
         return configuration.isDecompressionEnabled &&
             ImageDecompression.isDecompressionNeeded(for: response.image) ?? false &&
-            !(Configuration._isAnimatedImageDataEnabled && response.image.animatedImageData != nil)
+            !(Configuration.isAnimatedImageDataEnabled && response.image.animatedImageData != nil)
     }
     #endif
 
@@ -519,7 +519,7 @@ private extension ImagePipeline {
     }
 
     func processImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, processor: ImageProcessing, task: ProcessedImageTask) {
-        guard !(Configuration._isAnimatedImageDataEnabled && response.image.animatedImageData != nil) else {
+        guard !(Configuration.isAnimatedImageDataEnabled && response.image.animatedImageData != nil) else {
             task.send(value: response, isCompleted: isCompleted)
             return
         }

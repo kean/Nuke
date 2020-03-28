@@ -52,15 +52,27 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertEqual(decoder.numberOfScans, 10)
     }
 
-    func testDecodingGIFs() {
-        XCTAssertFalse(ImagePipeline.Configuration._isAnimatedImageDataEnabled)
+    func testDecodingGIFsSoftDeprecated() {
+        XCTAssertFalse(ImagePipeline.Configuration.isAnimatedImageDataEnabled)
 
         let data = Test.data(name: "cat", extension: "gif")
-        XCTAssertNil(ImageDecoder().decode(data: data)?.animatedImageData)
+        XCTAssertNil(ImageDecoders.Default().decode(data: data)?.animatedImageData)
 
-        ImagePipeline.Configuration._isAnimatedImageDataEnabled = true
-        XCTAssertNotNil(ImageDecoder().decode(data: data)?.animatedImageData)
-        ImagePipeline.Configuration._isAnimatedImageDataEnabled = false
+        ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
+        XCTAssertNotNil(ImageDecoders.Default().decode(data: data)?.animatedImageData)
+        ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
+    }
+
+    func testDecodingGIFDataAttached() {
+        let data = Test.data(name: "cat", extension: "gif")
+        XCTAssertNotNil(ImageDecoders.Default().decode(data)?.data)
+    }
+
+    func testDecodingPNGDataNotAttached() {
+        let data = Test.data(name: "fixture", extension: "png")
+        let container = ImageDecoders.Default().decode(data)
+        XCTAssertNotNil(container)
+        XCTAssertNil(container?.data)
     }
 }
 

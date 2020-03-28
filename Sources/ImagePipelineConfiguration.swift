@@ -141,7 +141,12 @@ extension ImagePipeline {
         /// enable actual animated image rendering. To do that take a look at
         /// satellite projects (FLAnimatedImage and Gifu plugins for Nuke).
         /// `false` by default (to preserve resources).
-        static var _isAnimatedImageDataEnabled = false // Deprecated in Nuke 8.5
+        ///
+        /// - warning: Soft-deprecated in Nuke 8.5. Image pipeline now automatically
+        /// attaches image data to ImageContainer when it detects GIFs.
+        /// The decompression of placeholders is no longet disabled,
+        /// there is no technical limitation to do thay anymore.")
+        public static var isAnimatedImageDataEnabled = false // Deprecated in Nuke 8.5
 
         /// `false` by default. If `true`, enables `os_signpost` logging for
         /// measuring performance. You can visually see all the performance

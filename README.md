@@ -351,8 +351,6 @@ isResumableDataEnabled = true
 And also a few global options shared between all pipelines:
 
 ```swift
-ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
-
 // Enable to start using `os_signpost` to monitor the pipeline
 // performance using Instruments.
 ImagePipeline.Configuration.isSignpostLoggingEnabled = false
