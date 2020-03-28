@@ -73,7 +73,7 @@ public enum ImageDecoders {}
 // The decoder is stateful.
 public extension ImageDecoders {
 
-    final class Default: ImageDecoding {
+    final class Default: _ImageDecoding {
         // `nil` if decoder hasn't detected whether progressive decoding is enabled.
         private(set) var isProgressive: Bool?
         // Number of scans that the decoder has found so far. The last scan might be
@@ -84,17 +84,21 @@ public extension ImageDecoders {
 
         public init() { }
 
-        public func decode(data: Data, isFinal: Bool) -> PlatformImage? {
+        public func decode(data: Data) -> ImageContainer? {
             let format = ImageFormat.format(for: data)
 
-            guard !isFinal else { // Just decode the data.
-                let image = ImageDecoders.Default.decode(data)
-                // Keep original data around in case of GIF
-                if ImagePipeline.Configuration.isAnimatedImageDataEnabled, case .gif? = format {
-                    image?.animatedImageData = data
-                }
-                return image
+            guard let image = ImageDecoders.Default.decode(data) else {
+                return nil
             }
+            // Keep original data around in case of GIF
+            if ImagePipeline.Configuration.isAnimatedImageDataEnabled, case .gif? = format {
+                image.animatedImageData = data
+            }
+            return ImageContainer(image: image, data: image.animatedImageData)
+        }
+
+        public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+            let format = ImageFormat.format(for: data)
 
             // Determined (if haven't determined yet) whether the image supports progressive
             // decoding or not (only proressive JPEG is allowed for now, but you can
@@ -131,7 +135,13 @@ public extension ImageDecoders {
             // `> 1` checks that we've received a first scan (SOS) and then received
             // and also received a second scan (SOS). This way we know that we have
             // at least one full scan available.
-            return (numberOfScans > 1 && lastStartOfScan > 0) ? ImageDecoder.decode(data[0..<lastStartOfScan]) : nil
+            guard numberOfScans > 1 && lastStartOfScan > 0 else {
+                return nil
+            }
+            guard let image = ImageDecoder.decode(data[0..<lastStartOfScan]) else {
+                return nil
+            }
+            return ImageContainer(image: image)
         }
     }
 }

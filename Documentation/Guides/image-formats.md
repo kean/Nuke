@@ -69,6 +69,8 @@ The decoder is created once and is reused across a single image decoding session
 >
 > You can also take advantage of `ImageRequestOptions.userInfo` to pass any kind of information that you might want to the decoder. For example, you may pass the target image view size to the SVG decoder to let it know the size of the image to create.  
 
+The decoding is performed in the background on the operation queue provided in `ImagePipeline.Configuration`. There is always only one decoding request at a time. The pipeline is not going to call `decodePariallyDownloadedData(_:)` until you are finished with the previous chuck.
+
 ## Built-In Image Decoders
 
 ### `ImageDecoders.Default`
@@ -87,4 +89,10 @@ Why is it useful? Let's say you want to render SVG using a third party framework
 
 ## Image Encoding Infrastructure
 
+TBD:
 
+## Supported Formats
+
+### GIF
+
+TBD:
