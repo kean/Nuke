@@ -208,17 +208,18 @@ When you instantiate `UIImage` with `Data`, the data can be in a compressed form
 
 ### Builder
 
-Find the default API a bit boring and convoluted? Try [ImageTaskBuilder](https://github.com/kean/ImageTaskBuilder), a fun and convenient way to use Nuke inspired by SwiftUI.
+Find the default API a bit boring? Try [ImageTaskBuilder](https://github.com/kean/ImageTaskBuilder), a fun and convenient way to use Nuke inspired by SwiftUI.
 
 ```swift
 ImagePipeline.shared.image(with: URL(string: "https://")!)
     .fill(width: 320)
     .blur(radius: 10)
     .priority(.high)
-    .schedule(on: .global())
     .start { result in
-        print(result) // Called on a global queue
+        print(result)
     }
+
+// Returns `ImageTask` when started.
 ```
 
 ```swift
