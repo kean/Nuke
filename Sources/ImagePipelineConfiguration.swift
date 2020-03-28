@@ -141,7 +141,7 @@ extension ImagePipeline {
         /// enable actual animated image rendering. To do that take a look at
         /// satellite projects (FLAnimatedImage and Gifu plugins for Nuke).
         /// `false` by default (to preserve resources).
-        public static var isAnimatedImageDataEnabled = false
+        static var _isAnimatedImageDataEnabled = false // Deprecated in Nuke 8.5
 
         /// `false` by default. If `true`, enables `os_signpost` logging for
         /// measuring performance. You can visually see all the performance

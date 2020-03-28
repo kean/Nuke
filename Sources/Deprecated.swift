@@ -315,4 +315,16 @@ public extension ImagePipeline.Configuration {
             }
         }
     }
+
+    /// If `true` pipeline will detects GIFs and set `animatedImageData`
+    /// (`UIImage` property). It will also disable processing of such images,
+    /// and alter the way cache cost is calculated. However, this will not
+    /// enable actual animated image rendering. To do that take a look at
+    /// satellite projects (FLAnimatedImage and Gifu plugins for Nuke).
+    /// `false` by default (to preserve resources).
+    @available(*, deprecated, message: "Image pipeline now automatically attaches image data to ImageContainer when it detects GIFs. The decompression of placeholders is no longet disabled, there is no technical limitation to do thay anymore.")
+    static var isAnimatedImageDataEnabled: Bool {
+        get { return _isAnimatedImageDataEnabled }
+        set { _isAnimatedImageDataEnabled = newValue }
+    }
 }
