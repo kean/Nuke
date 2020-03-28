@@ -24,7 +24,7 @@ Nuke provides a simple and efficient way to download and display images in your 
 Nuke is easy to learn and use. Here is an overview of its APIs and features:
 
 - **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) | [Placeholders, Transitions](#placeholders-transitions-content-modes) | [`ImageRequest`](#imagerequest) | [SwiftUI](#swiftui) | [Low Data Mode](#low-data-mode)
-- **Image Processing** ‣ [`Resize`](#resize) | [`GaussianBlur`, Core Image](#gaussianblur-core-image) | [Custom Processors](#custom-processors) | [Smart Decompression](#smart-decompression)
+- **Image Processing** ‣ [`Resize`](#resize) | [`GaussianBlur`, Core Image](#gaussianblur-core-image) | [Custom Processors](#custom-processors) | [Decompression](#decompression) | [Builder](#builder)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) | [`ImageTask`](#imagetask) | [Customize Image Pipeline](#customize-image-pipeline) | [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) | [HTTP Disk Cache](#http-disk-cache) | [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
 - **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [Animated Images](#animated-images) | [WebP](#webp) | [SVG](#svg) | [Combine](#combine) | [RxNuke](#rxnuke)
@@ -200,11 +200,34 @@ The `process` method is self-explanatory. `identifier: String` is used by disk c
 
 For one-off operations, use `ImageProcessor.Anonymous` to create a processor with a closure.
 
-### Smart Decompression
+### Decompression
 
 When you instantiate `UIImage` with `Data`, the data can be in a compressed format like `JPEG`. `UIImage` does _not_ eagerly decompress this data until you display it. This leads to performance issues like scroll view stuttering. To avoid these it, Nuke automatically decompresses the data in the background. Decompression only runs if needed, it won't run for already processed images.
 
 > See [Image and Graphics Best Practices](https://developer.apple.com/videos/play/wwdc2018/219) to learn more about image decoding and downsampling.
+
+### Builder
+
+Find the default API a bit boring and convoluted? Try [ImageTaskBuilder](https://github.com/kean/ImageTaskBuilder), a fun and convenient way to use Nuke inspired by SwiftUI.
+
+```swift
+ImagePipeline.shared.image(with: URL(string: "https://")!)
+    .fill(width: 320)
+    .blur(radius: 10)
+    .priority(.high)
+    .schedule(on: .global())
+    .start { result in
+        print(result) // Called on a global queue
+    }
+```
+
+```swift
+let imageView: UIImageView
+
+ImagePipeline.shared.image(with: URL(string: "https://")!)
+    .fill(width: imageView.size.width)
+    .display(in: imageView)
+```
 
 <br/>
 
@@ -608,6 +631,7 @@ There is a variety of extensions available for Nuke:
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples of common use cases solved by Rx|
 |[**FetchImage**](https://github.com/kean/FetchImage)|SwiftUI integration|
 |[**ImagePublisher**](https://github.com/kean/ImagePublisher)|Combine publishers for Nuke|
+|[**ImageTaskBuilder**](https://github.com/kean/ImageTaskBuilder)|A fun and convenient way to use Nuke inspired by SwiftUI|
 |[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks|
 |[**WebP Plugin**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **[Community]** [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
 |[**Gifu Plugin**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
