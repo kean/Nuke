@@ -431,7 +431,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func testCacheRead() {
         // Given
-        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil, scanNumber: nil), for: Test.request)
+        cache.storeResponse(ImageResponse(container: .init(image: Test.image), urlResponse: nil), for: Test.request)
 
         // When
         expect(pipeline).toLoadImage(with: Test.request)
@@ -458,7 +458,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func testCacheReadDisabled() {
         // Given
-        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil, scanNumber: nil), for: Test.request)
+        cache.storeResponse(ImageResponse(container: .init(image: Test.image), urlResponse: nil), for: Test.request)
 
         var request = Test.request
         request.options.memoryCacheOptions.isReadAllowed = false

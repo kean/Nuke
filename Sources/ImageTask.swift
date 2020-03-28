@@ -128,7 +128,7 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
 
 public struct ImageContainer {
     public let image: PlatformImage
-    public let data: Data?
+    public var data: Data?
     public var userInfo: [AnyHashable: Any]
 
     public init(image: PlatformImage, data: Data? = nil, userInfo: [AnyHashable: Any] = [:]) {

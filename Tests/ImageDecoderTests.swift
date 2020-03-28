@@ -36,8 +36,8 @@ class ImageDecoderTests: XCTestCase {
             XCTAssertEqual(image.size.width, 450)
             XCTAssertEqual(image.size.height, 300)
             #else
-            XCTAssertEqual(image.size.width * scan1.scale, 450)
-            XCTAssertEqual(image.size.height * scan1.scale, 300)
+            XCTAssertEqual(image.size.width * image.scale, 450)
+            XCTAssertEqual(image.size.height * image.scale, 300)
             #endif
         }
         XCTAssertEqual(decoder.numberOfScans, 2)

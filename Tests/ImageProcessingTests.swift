@@ -298,11 +298,9 @@ class ImageProcessorAnonymousTests: XCTestCase {
             $0.nk_test_processorIDs = ["1"]
             return $0
         }
-        let request = ImageRequest(url: Test.url, processors: [processor])
 
         // When
-        let context = ImageProcessingContext(request: request, isFinal: true, scanNumber: nil)
-        let image = processor.process(image: Test.image, context: context)
+        let image = processor.process(image: Test.image, context: nil)
 
         // Then
         XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])

@@ -77,12 +77,15 @@ public extension ImageDecoders {
         private(set) var isProgressive: Bool?
         // Number of scans that the decoder has found so far. The last scan might be
         // incomplete at this point.
-        private var numberOfScans = 0
+        private(set) var numberOfScans = 0
         private var lastStartOfScan: Int = 0 // Index of the last found Start of Scan
         private var scannedIndex: Int = -1 // Index at which previous scan was finished
 
         /// A user info key to get the scan number (Int).
         public static let scanNumberKey = "ImageDecoders.Default.scanNumberKey"
+
+        // Not sure if this is a useful configuration option and whether it needs to exist.
+        public static var _isAttachingAnimatedImageData: Bool = true
 
         public init() { }
 
@@ -97,6 +100,9 @@ public extension ImageDecoders {
                 image.animatedImageData = data
             }
             var container = ImageContainer(image: image, data: image.animatedImageData)
+            if ImageDecoders.Default._isAttachingAnimatedImageData, case .gif? = format {
+                container.data = data
+            }
             if isProgressive == true {
                 container.userInfo[ImageDecoders.Default.scanNumberKey] = numberOfScans
             }
