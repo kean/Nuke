@@ -741,6 +741,8 @@ public enum ImageProcessingOptions {
         }
     }
 
+    #if os(iOS) || os(tvOS) || os(watchOS)
+
     public struct Border: Hashable {
         let color: UIColor
         let width: CGFloat
@@ -754,6 +756,8 @@ public enum ImageProcessingOptions {
             return "Border(color: \(color), width: \(width))"
         }
     }
+
+    #endif
 }
 
 // MARK: - Misc (Internal)
