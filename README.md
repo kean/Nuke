@@ -409,7 +409,7 @@ If HTTP caching is not your cup of tea, you can try using a custom LRU disk cach
 
 ```swift
 ImagePipeline {
-    $0.dataCache = try! DataCache(name: "com.myapp.datacache")
+    $0.dataCache = try? DataCache(name: "com.myapp.datacache")
 
     // Also consider disabling the native HTTP cache, see `DataLoader`.
 }
