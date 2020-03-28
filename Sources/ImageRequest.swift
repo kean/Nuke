@@ -226,11 +226,11 @@ public struct ImageRequestOptions {
     /// ```
     public var filteredURL: String?
 
-    /// Returns a key that compares requests with regards to caching images.
+    /// The **memory** cache key for final processed images. Set if you are not
+    /// happy with the default behavior.
     ///
-    /// The default key considers two requests equivalent it they have the same
-    /// `URLRequests` and the same processors. `URLRequests` are compared
-    /// just by their `URLs`.
+    /// By default, two requests are considered equivalent if they have the same
+    /// URLs and the same processors.
     public var cacheKey: AnyHashable?
 
     /// Returns a key that compares requests with regards to loading images.
