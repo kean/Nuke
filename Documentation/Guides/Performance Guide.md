@@ -10,10 +10,13 @@ When you create `UIImage` object form data, the data doesn't get decoded immedia
 To prevent decoding happening on the main thread, Nuke perform it in a background for you. But for even better performance it is recommended to downsample the images. To do so create a request with a target view size:
 
 ```swift
-ImageRequest(url: url, targetSize: CGSize(width: 640, height: 320), contentMode: .aspectFill)
+let request = ImageRequest(
+    url: URL(string: "http://..."),
+    processors: [ImageProcessor.Resize(size: imageView.bounds.size)]
+)
 ```
 
-> **Warning:** target size is in pixels!
+> Target size is in points.
 
 > See [Image and Graphics Best Practices](https://developer.apple.com/videos/play/wwdc2018/219) to learn more about image decoding and downsampling.
 
