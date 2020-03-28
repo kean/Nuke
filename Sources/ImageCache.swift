@@ -32,7 +32,8 @@ public extension ImageCaching {
         }
         set {
             if let newValue = newValue {
-                storeResponse(ImageResponse(image: newValue, urlResponse: nil, scanNumber: nil), for: request)
+                let response = ImageResponse(container: .init(image: newValue))
+                storeResponse(response, for: request)
             } else {
                 removeResponse(for: request)
             }

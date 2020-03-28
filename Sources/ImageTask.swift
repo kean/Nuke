@@ -129,7 +129,7 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
 public struct ImageContainer {
     public let image: PlatformImage
     public let data: Data?
-    public let userInfo: [AnyHashable: Any]
+    public var userInfo: [AnyHashable: Any]
 
     public init(image: PlatformImage, data: Data? = nil, userInfo: [AnyHashable: Any] = [:]) {
         self.image = image
@@ -144,10 +144,12 @@ public final class ImageResponse {
     /// A convenience computed property which returns an image from the container.
     public var image: PlatformImage { return container.image }
     public let urlResponse: URLResponse?
+    // Soft-deprecated in Nuke 8.5.
     // the response is only nil when new disk cache is enabled (it only stores
     // data for now, but this might change in the future).
     public let scanNumber: Int?
 
+    @available(*, deprecated, message: "Please use `ImageResponse.init(container:urlResponse:)` instead.")
     public init(image: PlatformImage, urlResponse: URLResponse? = nil, scanNumber: Int? = nil) {
         self.container = ImageContainer(image: image)
         self.urlResponse = urlResponse

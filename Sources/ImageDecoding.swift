@@ -82,6 +82,9 @@ public extension ImageDecoders {
         private var lastStartOfScan: Int = 0 // Index of the last found Start of Scan
         private var scannedIndex: Int = -1 // Index at which previous scan was finished
 
+        /// A user info key to get the scan number (Int).
+        public static let scanNumberKey = "ImageDecoders.Default.scanNumberKey"
+
         public init() { }
 
         public func decode(data: Data) -> ImageContainer? {
@@ -94,7 +97,11 @@ public extension ImageDecoders {
             if ImagePipeline.Configuration.isAnimatedImageDataEnabled, case .gif? = format {
                 image.animatedImageData = data
             }
-            return ImageContainer(image: image, data: image.animatedImageData)
+            var container = ImageContainer(image: image, data: image.animatedImageData)
+            if isProgressive == true {
+                container.userInfo[ImageDecoders.Default.scanNumberKey] = numberOfScans
+            }
+            return container
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
@@ -141,7 +148,7 @@ public extension ImageDecoders {
             guard let image = ImageDecoder.decode(data[0..<lastStartOfScan]) else {
                 return nil
             }
-            return ImageContainer(image: image)
+            return ImageContainer(image: image, userInfo: [ImageDecoders.Default.scanNumberKey: numberOfScans])
         }
     }
 }
