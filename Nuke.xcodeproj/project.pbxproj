@@ -188,6 +188,7 @@
 		0C8D7BDE1D9DBF1600D12EB7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0C8D7BE81D9DC02B00D12EB7 /* Nuke Performance Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke Performance Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C8DC722209B842600084AA6 /* cat.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = cat.gif; sourceTree = "<group>"; };
+		0C8EA64E242F951000E317C9 /* Troubleshooting.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Troubleshooting.md; sourceTree = "<group>"; };
 		0C9174901BAE99EE004A7905 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C94466D1D47EC0E006DB314 /* ImageViewTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewTests.swift; sourceTree = "<group>"; };
 		0C9B6E7520B9F3E2001924B8 /* ImagePipelineDeduplicationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDeduplicationTests.swift; sourceTree = "<group>"; };
@@ -447,6 +448,7 @@
 			isa = PBXGroup;
 			children = (
 				0CDB92791DAF9BA500002905 /* Installation Guide.md */,
+				0C8EA64E242F951000E317C9 /* Troubleshooting.md */,
 				0CDB927A1DAF9BA500002905 /* Performance Guide.md */,
 				0C66879A1E41EF2F00CEBFAE /* Third Party Libraries.md */,
 			);
