@@ -39,7 +39,7 @@ extension ImageDecoding {
                 if isFinal {
                     return newDecoder.decode(data: data)
                 } else {
-                    return newDecoder.decodeProgressively(data: data)
+                    return newDecoder.decodePartiallyDownloadedData(data)
                 }
             } else {
                 guard let image = self.decode(data: data, isFinal: isFinal) else {
@@ -149,7 +149,7 @@ extension ImageDecoders.Default {
 // MARK: - ImageDecoders.Empty
 
 public extension ImageDecoders {
-    /// A decoder which returns an empty placeholder image and attached image
+    /// A decoder which returns an empty placeholder image and attaches image
     /// data to the image container.
     struct Empty: _ImageDecoding {
         public let isProgressive: Bool
@@ -160,7 +160,7 @@ public extension ImageDecoders {
             self.isProgressive = isProgressive
         }
 
-        public func decodeProgressively(data: Data) -> ImageContainer? {
+        public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
             return isProgressive ? ImageContainer(image: PlatformImage(), data: data, userInfo: [:]) : nil
         }
 
@@ -183,15 +183,15 @@ public protocol _ImageDecoding: ImageDecoding {
     func decode(data: Data) -> ImageContainer?
 
     /// Produces an image from the given partially dowloaded image data.
-    /// This method might be called multiple times during the a single decoding
+    /// This method might be called multiple times during a single decoding
     /// session. When the image download is complete, `decode(data:)` method is called.
     ///
     /// - returns: nil by default.
-    func decodeProgressively(data: Data) -> ImageContainer?
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?
 }
 
 public extension _ImageDecoding {
-    func decodeProgressively(data: Data) -> ImageContainer? {
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
         return nil
     }
 
@@ -199,7 +199,7 @@ public extension _ImageDecoding {
         if isFinal {
             return self.decode(data: data)?.image
         } else {
-            return self.decodeProgressively(data: data)?.image
+            return self.decodePartiallyDownloadedData(data)?.image
         }
     }
 }
@@ -220,7 +220,7 @@ public final class ImageDecoderRegistry {
                 return decoder
             }
         }
-        return ImageDecoder() // Return default decoder if couldn't find a custom one.
+        return ImageDecoders.Default() // Return default decoder if couldn't find a custom one.
     }
 
     /// Registers a decoder to be used in a given decoding context. The closure

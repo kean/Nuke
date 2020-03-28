@@ -1,0 +1,90 @@
+# Supported Image Formats
+
+Nuke offers built-in support for basic image formats like `jpeg`, `png`, and `heif`. But it also has infrastructure capable of supporting a variety of image formats and features of these formats, including but not limited to: 
+
+- `gif`
+- `svg`
+- `pdf`
+- [`webp`](https://developers.google.com/speed/webp)
+
+Nuke is capable of driving progressive decoding, animated image rendering, progressive animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
+
+## Image Decoding Infrastructure
+
+At the core of the decoding infrastructure is `ImageDecoding` protocol.
+
+> In Nuke 8.5 this protocol was named `_ImageDecoding`.
+
+```swift
+public protocol ImageDecoding {
+    /// Produces an image from the given image data.
+    func decode(data: Data) -> ImageContainer?
+
+    /// Produces an image from the given partially downloaded image data.
+    /// This method might be called multiple times during a single decoding
+    /// session. When the image download is complete, `decode(data:)` method is called.
+    ///
+    /// - returns: nil by default.
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?
+}
+```
+
+`ImageContainer` is a struct which wraps the decoded image itself along with (optionally) the original data and some additional information. The decoder decides what to attach to the container.
+
+```swift
+public struct ImageContainer {
+    // Either `UIImage` or `NSImage` depending on the platform.
+    public let image: PlatformImage
+    public let data: Data?
+    public let userInfo: [AnyHashable: Any]
+```
+
+When the very first chuck of the image data is loaded, `ImagePipeline` finds a decoder for the given image format.
+
+The pipeline uses `ImageDecoderRegistry` to find the decoder. Use the shared registry to add custom decoders.
+
+```swift
+// Note: ImageDecoders.SVG not included in the framework.
+ImageDecoderRegistry.shared.register { context: ImageDecodingContext in
+    // Replace this with whatever works for. There are no magic numbers
+    // for SVG like are used for other binary formats, it's just XML.
+    let isSVG = context.urlResponse?.url?.absoluteString.hasSuffix(".svg") ?? false
+    return isSVG ? ImageDecoders.SVG() : nil
+}
+```
+
+When you register a decoder, you have access to the entire decoding context for the given decoding session:
+
+```swift
+public struct ImageDecodingContext {
+    public let request: ImageRequest
+    public let data: Data
+    public let urlResponse: URLResponse?
+}
+```
+
+The decoder is created once and is reused across a single image decoding session until the final chuck of data is downloaded. If your decoder supports progressive decoding, make it a `class` if you need to keep some state within a single decoding session. You can also return a shared instance of the decoder if needed.
+
+> Tip: `decode(data:)` method only passes `data` to the decoder. However, if you need any additional information in the decoder, you can pass it when instantiating a decoder. `ImageDecodingContext` provides everything that you might need.
+>
+> You can also take advantage of `ImageRequestOptions.userInfo` to pass any kind of information that you might want to the decoder. For example, you may pass the target image view size to the SVG decoder to let it know the size of the image to create.  
+
+## Built-In Image Decoders
+
+### `ImageDecoders.Default`
+
+This is the decoder that is used by default if none other decoders are found. It uses native `UIImage(data:)` (and `NSImage(data:)`) initializers to create images from data.
+
+> When working with `UIImage`, the decoder automatically sets the scale of the image to match the scale of the screen.
+
+TBD: progressive decoding
+
+### `ImageDecoders.Empty`
+
+This decoders returns an empty placeholder image and attaches image data to the image container. It could also be configured to return partially downloaded data.
+
+Why is it useful? Let's say you want to render SVG using a third party framework directly in a view. Most likely, this framework is not going to use `UIImage` component, it works directly with `Data`. `ImageDecoders.Empty` allows you to pass this data to the rendering framework. 
+
+## Image Encoding Infrastructure
+
+
