@@ -52,13 +52,18 @@ public extension ImageProcessing {
 /// Image processing context used when selecting which processor to use.
 public struct ImageProcessingContext {
     public let request: ImageRequest
+    public let response: ImageResponse
     public let isFinal: Bool
-    public let scanNumber: Int? // need a more general purpose way to implement this
 
-    public init(request: ImageRequest, isFinal: Bool, scanNumber: Int?) {
+    @available(*, deprecated, message: "Please use `container.userInfo[ImageDecoders.Default.scanNumberKey]` instead.") // Deprecated in Nuke 8.5
+    public var scanNumber: Int? {
+        return response.container.userInfo[ImageDecoders.Default.scanNumberKey] as? Int
+    }
+
+    public init(request: ImageRequest, response: ImageResponse, isFinal: Bool) {
         self.request = request
+        self.response = response
         self.isFinal = isFinal
-        self.scanNumber = scanNumber
     }
 }
 

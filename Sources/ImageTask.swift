@@ -144,22 +144,29 @@ public final class ImageResponse {
     /// A convenience computed property which returns an image from the container.
     public var image: PlatformImage { return container.image }
     public let urlResponse: URLResponse?
-    // Soft-deprecated in Nuke 8.5.
     // the response is only nil when new disk cache is enabled (it only stores
     // data for now, but this might change in the future).
-    public let scanNumber: Int?
+    @available(*, deprecated, message: "Please use `container.userInfo[ImageDecoders.Default.scanNumberKey]` instead.") // Deprecated in Nuke 8.5
+    public var scanNumber: Int? {
+        if let number = _scanNumber {
+            return number // Deprecated version
+        }
+        return container.userInfo[ImageDecoders.Default.scanNumberKey] as? Int
+    }
 
-    @available(*, deprecated, message: "Please use `ImageResponse.init(container:urlResponse:)` instead.")
+    private let _scanNumber: Int?
+
+    @available(*, deprecated, message: "Please use `ImageResponse.init(container:urlResponse:)` instead.") // Deprecated in Nuke 8.5
     public init(image: PlatformImage, urlResponse: URLResponse? = nil, scanNumber: Int? = nil) {
         self.container = ImageContainer(image: image)
         self.urlResponse = urlResponse
-        self.scanNumber = scanNumber
+        self._scanNumber = scanNumber
     }
 
-    public init(container: ImageContainer, urlResponse: URLResponse? = nil, scanNumber: Int? = nil) {
+    public init(container: ImageContainer, urlResponse: URLResponse? = nil) {
         self.container = container
         self.urlResponse = urlResponse
-        self.scanNumber = scanNumber
+        self._scanNumber = nil
     }
 
     func map(_ transformation: (PlatformImage) -> PlatformImage?) -> ImageResponse? {
@@ -168,7 +175,7 @@ public final class ImageResponse {
                 return nil
             }
             let container = ImageContainer(image: output, data: self.container.data, userInfo: self.container.userInfo)
-            return ImageResponse(container: container, urlResponse: urlResponse, scanNumber: scanNumber)
+            return ImageResponse(container: container, urlResponse: urlResponse)
         }
     }
 }

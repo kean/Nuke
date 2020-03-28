@@ -55,8 +55,7 @@ extension ImageDecoding {
         ImageDecompression.setDecompressionNeeded(true, for: container.image)
         #endif
 
-        let scanNumber: Int? = (self as? ImageDecoders.Default)?.numberOfScans
-        return ImageResponse(container: container, urlResponse: urlResponse, scanNumber: scanNumber)
+        return ImageResponse(container: container, urlResponse: urlResponse)
     }
 }
 
@@ -78,7 +77,7 @@ public extension ImageDecoders {
         private(set) var isProgressive: Bool?
         // Number of scans that the decoder has found so far. The last scan might be
         // incomplete at this point.
-        private(set) var numberOfScans = 0
+        private var numberOfScans = 0
         private var lastStartOfScan: Int = 0 // Index of the last found Start of Scan
         private var scannedIndex: Int = -1 // Index at which previous scan was finished
 

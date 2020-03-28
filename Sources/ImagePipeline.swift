@@ -535,7 +535,7 @@ private extension ImagePipeline {
 
             let log = Log(self.log, "Process Image")
             log.signpost(.begin, "\(processor), \(isCompleted ? "final" : "progressive") image")
-            let context = ImageProcessingContext(request: request, isFinal: isCompleted, scanNumber: response.scanNumber)
+            let context = ImageProcessingContext(request: request, response: response, isFinal: isCompleted)
             let response = response.map { processor.process(image: $0, context: context) }
             log.signpost(.end)
 
