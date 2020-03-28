@@ -19,45 +19,7 @@ public protocol DataLoading {
 }
 ```
 
-You can use [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) as a starting point. Here how it's actual implementation:
-
-```swift
-/// Implements data loading using Alamofire framework.
-public class AlamofireDataLoader: Nuke.DataLoading {
-    public let manager: Alamofire.SessionManager
-
-    /// Initializes the receiver with a given Alamofire.SessionManager.
-    /// - parameter manager: Alamofire.SessionManager.default by default.
-    public init(manager: Alamofire.SessionManager = Alamofire.SessionManager.default) {
-        self.manager = manager
-    }
-
-    // MARK: DataLoading
-    /// Loads data using Alamofire.SessionManager.
-    public func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
-        // Alamofire.SessionManager automatically starts requests as soon as they are created (see `startRequestsImmediately`)
-        let task = self.manager.request(request)
-        task.stream { [weak task] data in
-            guard let response = task?.response else { return } // Never nil
-            didReceiveData(data, response)
-        }
-        task.response { response in
-            completion(response.error)
-        }
-        return task
-    }
-}
-
-extension Alamofire.DataRequest: Nuke.Cancellable {}
-```
-
-That's it. You can now create an `ImagePipeline` instance with your custom data loader and use it to load images:
-
-```swift
-let pipeline = ImagePipeliner {
-    $0.dataLoader = AlamofireDataLoader()
-}
-```
+You can use [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) as a starting point.
 
 ### Using Other Caching Libraries
 
@@ -83,7 +45,7 @@ extension DFCache: DataCaching {
 }
 ```
 
-2) Configure `Nuke.Manager` to use a new `DFCache`:
+2) Configure `ImagePipeline` to use a new `DFCache`:
 
 ```swift
 ImagePipeline.shared = ImagePipeline {
@@ -92,5 +54,36 @@ ImagePipeline.shared = ImagePipeline {
     $0.dataLoader = DataLoader(configuration: conf)
 
     $0.dataCache = DFCache(name: "com.github.kean.Nuke.DFCache", memoryCache: nil)
+}
+```
+
+> As of Nuke 7, there is now a built-in agressive disk cache available. See `DataCache` for more info.
+
+### Integrating with Vector Images Libraries
+
+To render SVG, consider using [SwiftSVG](https://github.com/mchoe/SwiftSVG), [SVG](https://github.com/SVGKit/SVGKit), or other frameworks. Here is an example of `SwiftSVG` being used to render vector images:
+
+```swift
+ImageDecoderRegistry.shared.register { context in
+    // Replace this with whatever works for. There are no magic numbers
+    // for SVG like are used for other binary formats, it's just XML.
+    let isSVG = context.urlResponse?.url?.absoluteString.hasSuffix(".svg") ?? false
+    return isSVG ? ImageDecoders.Empty() : nil
+}
+
+let url = URL(string: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Swift_logo.svg")!
+ImagePipeline.shared.loadImage(with: url) { [weak self] result in
+    guard let self = self, let data = try? result.get().container.data else {
+        return
+    }
+    // You can render image using whatever size you want, vector!
+    let targetBounds = CGRect(origin: .zero, size: CGSize(width: 300, height: 300))
+    let svgView = UIView(SVGData: data) { layer in
+        layer.fillColor = UIColor.orange.cgColor
+        layer.resizeToFit(targetBounds)
+    }
+    self.view.addSubview(svgView)
+    svgView.bounds = targetBounds
+    svgView.center = self.view.center
 }
 ```
