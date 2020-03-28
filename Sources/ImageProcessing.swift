@@ -121,6 +121,20 @@ extension ImageProcessors {
             self.upscale = upscale
         }
 
+        /// Resizes the image to fill the given width.
+        ///
+        /// - parameter unit: Unit of the target size, `.points` by default.
+        public init(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool = false, upscale: Bool = false) {
+            self.init(size: CGSize(width: width, height: .greatestFiniteMagnitude), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
+        }
+
+        /// Resizes the image to fill the given height.
+        ///
+        /// - parameter unit: Unit of the target size, `.points` by default.
+        public init(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool = false, upscale: Bool = false) {
+            self.init(size: CGSize(width: .greatestFiniteMagnitude, height: height), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
+        }
+
         public func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
             if crop && contentMode == .aspectFill {
                 return image.processed.byResizingAndCropping(to: sizeInPixels)

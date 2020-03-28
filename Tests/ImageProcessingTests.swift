@@ -115,6 +115,40 @@ class ImageProcessorResizeTests: XCTestCase {
         XCTAssertEqual(cgImage.height, 480)
     }
 
+    func testResizeToFitHeight() {
+        // Given
+        let processor = ImageProcessor.Resize(height: 300, unit: .pixels)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 400)
+        XCTAssertEqual(cgImage.height, 300)
+    }
+
+    func testResizeToFitWidth() {
+        // Given
+        let processor = ImageProcessor.Resize(width: 400, unit: .pixels)
+
+        // When
+        guard let image = processor.process(image: Test.image) else {
+            return XCTFail("Fail to process the image")
+        }
+        guard let cgImage = image.cgImage else {
+            return XCTFail("Expected to have CGImage backing the image")
+        }
+
+        // Then
+        XCTAssertEqual(cgImage.width, 400)
+        XCTAssertEqual(cgImage.height, 300)
+    }
+
     func testThatImageIsUpscaledIfOptionIsEnabled() {
         // Given
         let processor = ImageProcessor.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill, upscale: true)
