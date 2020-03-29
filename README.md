@@ -23,11 +23,11 @@ Nuke provides a simple and efficient way to download and display images in your 
 
 Nuke is easy to learn and use. Here is an overview of its APIs and features:
 
-- **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) | [Placeholders, Transitions](#placeholders-transitions-content-modes) | [`ImageRequest`](#imagerequest) | [SwiftUI](#swiftui) | [Low Data Mode](#low-data-mode)
-- **Image Processing** ‣ [`Resize`](#resize) | [`GaussianBlur`, Core Image](#gaussianblur-core-image) | [Custom Processors](#custom-processors) | [Decompression](#decompression) | [Builder](#builder)
-- **Image Pipeline** ‣ [Load Image](#image-pipeline) | [`ImageTask`](#imagetask) | [Customize Image Pipeline](#customize-image-pipeline) | [Default Pipeline](#default-image-pipeline)
-- **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) | [HTTP Disk Cache](#http-disk-cache) | [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
-- **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [Combine](#combine) | [RxNuke](#rxnuke)
+- **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) · [Placeholders, Transitions](#placeholders-transitions-content-modes) · [`ImageRequest`](#imagerequest) · [SwiftUI](#swiftui) · [Low Data Mode](#low-data-mode)
+- **Image Processing** ‣ [`Resize`](#resize) · [`GaussianBlur`, Core Image](#gaussianblur-core-image) · [Custom Processors](#custom-processors) · [Decompression](#decompression) · [Builder](#builder)
+- **Image Pipeline** ‣ [Load Image](#image-pipeline) · [`ImageTask`](#imagetask) · [Customize Image Pipeline](#customize-image-pipeline) · [Default Pipeline](#default-image-pipeline)
+- **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) · [HTTP Disk Cache](#http-disk-cache) · [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
+- **Advanced Features** ‣ [Preheat Images](#image-preheating) · [Progressive Decoding](#progressive-decoding) · [Combine](#combine) · [RxNuke](#rxnuke)
 
 To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/8.0/index.html), and check out the demo project included in the repo. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, the [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Troubleshooting.md) might help. 
 
@@ -35,8 +35,8 @@ To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuk
 
 To learn more about the pipeline and the supported formats, see the dedicated guides.
 
-- [**Image Formats**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) ‣ [Progressive JPEG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#progressive-jpeg) | [HEIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#heif) | [GIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#gif) | [SVG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#svg) | [WebP](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#webp) 
-- **Image Pipeline** ‣ [Overview](#h_design) | [Data Loading and Caching](#data-loading-and-caching) | [Resumable Downloads](#resumable-downloads) | [Memory Cache](#memory-cache) | [Deduplication](#deduplication) | [Performance](#performance) | [Extensions](#h_plugins)
+- [**Image Formats**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) ‣ [Progressive JPEG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#progressive-jpeg) · [HEIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#heif) · [GIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#gif) · [SVG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#svg) · [WebP](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#webp) 
+- **Image Pipeline** ‣ [Overview](#h_design) · [Data Loading and Caching](#data-loading-and-caching) · [Resumable Downloads](#resumable-downloads) · [Memory Cache](#memory-cache) · [Deduplication](#deduplication) · [Performance](#performance) · [Extensions](#h_plugins)
 
 If you'd like to contribute to Nuke see [**Contributing**](#h_contribute).
 
