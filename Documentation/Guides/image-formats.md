@@ -14,6 +14,7 @@ Nuke is capable of driving progressive decoding, animated image rendering, progr
   * [`ImageEncoders.Default`](#-imageencodersdefault-)
   * [`ImageEncoders.ImageIO`](#-imageencodersimageio-)
 - [Supported Formats](#supported-formats)
+  * [Basic Formats (JPEG, PNG, etc)](#basic-image-formats--jpeg--png--etc-)
   * [Progressive JPEG](#progressive-jpeg)
   * [HEIF](#heif)
   * [GIF](#gif)
@@ -164,6 +165,21 @@ let data = encoder.encode(image: image)
 ```
 
 ## Supported Formats
+
+### Basic Image Formats (JPEG, PNG, etc)
+
+Any [format natively supported](https://developer.apple.com/library/archive/documentation/2DDrawing/Conceptual/DrawingPrintingiOS/LoadingImages/LoadingImages.html#//apple_ref/doc/uid/TP40010156-CH17-SW7) by the platform, is also supported by Nuke. This includes:
+
+- PNG
+- TIFF
+- JPEG
+- GIF
+- BMP
+- ICO
+- CUR
+- XBM
+
+You can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage` to render the images of any of the natively supported formats.
 
 ### Progressive JPEG
 
