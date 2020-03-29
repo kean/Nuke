@@ -4,8 +4,8 @@ Nuke offers built-in support for basic image formats like `jpeg`, `png`, and `he
 
 - [`gif`](#gif)
 - [`svg`](#svg)
+- [`webp`](#webp)
 - `pdf`
-- [`webp`](https://developers.google.com/speed/webp)
 
 Nuke is capable of driving progressive decoding, animated image rendering, progressive animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
 
@@ -176,3 +176,7 @@ ImagePipeline.shared.loadImage(with: url) { [weak self] result in
 ```
 
 > Please keep in mind that most of these frameworks are limited in terms of supported SVG features.
+
+### WebP
+
+[WebP](https://developers.google.com/speed/webp) support is provided by [Nuke WebP Plugin](https://github.com/ryokosuge/Nuke-WebP-Plugin) built by [Ryo Kosuge](https://github.com/ryokosuge). Please follow the instructions from the repo.
