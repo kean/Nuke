@@ -41,9 +41,8 @@ enum Test {
     )
 
     static let response = ImageResponse(
-        image: Test.image,
-        urlResponse: urlResponse,
-        scanNumber: nil
+        container: .init(image: Test.image),
+        urlResponse: urlResponse
     )
 }
 

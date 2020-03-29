@@ -1,18 +1,14 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2019 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2020 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
 import Nuke
 import AVKit
 
-private let textViewCellReuseID = "textViewReuseID"
-private let imageCellReuseID = "imageCellReuseID"
+// MARK: - AnimatedImageUsingVideoViewController
 
 final class AnimatedImageUsingVideoViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout {
-    private var imageURLs = [URL]()
-    private let storage = try! TemporaryVideoStorage()
-
     override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         super.init(collectionViewLayout: UICollectionViewFlowLayout())
     }
@@ -24,11 +20,8 @@ final class AnimatedImageUsingVideoViewController: UICollectionViewController, U
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        MP4Decoder.register()
-
-        imageURLs = [
-            URL(string: "https://kean.github.io/videos/cat_video.mp4")!
-        ]
+        TemporaryVideoStorage.shared.removeAll()
+        ImageDecoders.MP4.register()
 
         collectionView?.register(VideoCell.self, forCellWithReuseIdentifier: imageCellReuseID)
         if #available(iOS 13.0, *) {
@@ -54,20 +47,7 @@ final class AnimatedImageUsingVideoViewController: UICollectionViewController, U
 
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: imageCellReuseID, for: indexPath) as! VideoCell
-        cell.storage = storage
-
-        // Do it once somewhere where you configure the app / pipelines.
-        ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
-
-        cell.activityIndicator.startAnimating()
-        loadImage(
-            with: imageURLs[indexPath.row],
-            into: cell,
-            completion: { [weak cell] _ in
-                cell?.activityIndicator.stopAnimating()
-            }
-        )
-
+        cell.setVideo(with: imageURLs[indexPath.row])
         return cell
     }
 
@@ -78,82 +58,76 @@ final class AnimatedImageUsingVideoViewController: UICollectionViewController, U
     }
 }
 
+private let imageCellReuseID = "imageCellReuseID"
+
+private let imageURLs = [
+    URL(string: "https://kean.github.io/videos/cat_video.mp4")!
+]
+
 // MARK: - MP4Decoder
 
-final class MP4Decoder: ImageDecoding {
-    func decode(data: Data, isFinal: Bool) -> UIImage? {
-        guard isFinal else { return nil }
-
-        let image = UIImage()
-        image.animatedImageData = data
-        image.mimeType = "video/mp4"
-        return image
-    }
-
-    private static func _match(_ data: Data, offset: Int = 0, _ numbers: [UInt8]) -> Bool {
-        guard data.count >= numbers.count + offset else { return false }
-        return !zip(numbers.indices, numbers).contains { (index, number) in
-            data[index + offset] != number
+private extension ImageDecoders {
+    final class MP4: _ImageDecoding {
+        func decode(_ data: Data) -> ImageContainer? {
+            var container = ImageContainer(image: UIImage())
+            container.data = data
+            container.userInfo["mime-type"] = "video/mp4"
+            return container
         }
-    }
 
-    private static var isRegistered: Bool = false
-
-    static func register() {
-        guard !isRegistered else { return }
-        isRegistered = true
-        ImageDecoderRegistry.shared.register {
-            // FIXME: these magic numbers are for:
-            // ftypisom - ISO Base Media file (MPEG-4) v1
-            // There are a bunch of other ways to create MP4
-            // https://www.garykessler.net/library/file_sigs.html
-            guard _match($0.data, offset: 4, [0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D]) else {
-                return nil
+        private static func _match(_ data: Data, offset: Int = 0, _ numbers: [UInt8]) -> Bool {
+            guard data.count >= numbers.count + offset else { return false }
+            return !zip(numbers.indices, numbers).contains { (index, number) in
+                data[index + offset] != number
             }
-            return MP4Decoder()
         }
-    }
-}
 
-private var _imageFormatAK = "Nuke.ImageFormat.AssociatedKey"
+        private static var isRegistered: Bool = false
 
-private extension UIImage {
-    // At some point going to be available in the main repo.
-    var mimeType: String? {
-        get { return objc_getAssociatedObject(self, &_imageFormatAK) as? String }
-        set { objc_setAssociatedObject(self, &_imageFormatAK, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+        static func register() {
+            guard !isRegistered else { return }
+            isRegistered = true
+
+            ImageDecoderRegistry.shared.register {
+                // FIXME: these magic numbers are for:
+                // ftypisom - ISO Base Media file (MPEG-4) v1
+                // There are a bunch of other ways to create MP4
+                // https://www.garykessler.net/library/file_sigs.html
+                guard _match($0.data, offset: 4, [0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D]) else {
+                    return nil
+                }
+                return MP4()
+            }
+        }
     }
 }
 
 // MARK: - VideoCell
 
 /// - warning: This is proof of concept, please don't use in production.
-private final class VideoCell: UICollectionViewCell, Nuke.Nuke_ImageDisplaying {
+private final class VideoCell: UICollectionViewCell {
     private var requestId: Int = 0
     private var videoURL: URL?
-    var storage: TemporaryVideoStorage!
+    private var task: ImageTask?
 
+    private let spinner: UIActivityIndicatorView
     private var player: AVPlayer?
     private var playerLayer: AVPlayerLayer?
     private var playerLooper: AnyObject?
-
-    let activityIndicator: UIActivityIndicatorView
 
     deinit {
         prepareForReuse()
     }
 
     override init(frame: CGRect) {
-        activityIndicator = UIActivityIndicatorView(style: .gray)
+        spinner = UIActivityIndicatorView(style: .gray)
 
         super.init(frame: frame)
 
-        self.backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
+        backgroundColor = UIColor(white: 235.0 / 255.0, alpha: 1.0)
 
-        contentView.addSubview(activityIndicator)
-        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addConstraint(NSLayoutConstraint(item: activityIndicator, attribute: .centerX, relatedBy: .equal, toItem: contentView, attribute: .centerX, multiplier: 1.0, constant: 0.0))
-        contentView.addConstraint(NSLayoutConstraint(item: activityIndicator, attribute: .centerY, relatedBy: .equal, toItem: contentView, attribute: .centerY, multiplier: 1.0, constant: 0.0))
+        contentView.addSubview(spinner)
+        spinner.centerInSuperview()
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -163,25 +137,40 @@ private final class VideoCell: UICollectionViewCell, Nuke.Nuke_ImageDisplaying {
     override func prepareForReuse() {
         super.prepareForReuse()
 
-        videoURL.map(storage.removeData(for:))
+        videoURL.map(TemporaryVideoStorage.shared.removeData(for:))
         playerLayer?.removeFromSuperlayer()
         playerLayer = nil
         player = nil
     }
 
-    func nuke_display(image: UIImage?) {
-        prepareForReuse()
+    func setVideo(with url: URL) {
+        let pipeline = ImagePipeline.shared
+        let request = ImageRequest(url: url)
 
-        guard let data = image?.animatedImageData else {
+        if let response = pipeline.cachedResponse(for: request) {
+            return display(response: response)
+        }
+
+        spinner.startAnimating()
+        task = pipeline.loadImage(with: request) { [weak self] result in
+            self?.spinner.stopAnimating()
+            if case let .success(response) = result {
+                self?.display(response: response)
+            }
+        }
+    }
+
+    private func display(response: ImageResponse) {
+        guard let data = response.container.data else {
             return
         }
 
-        assert(image?.mimeType == "video/mp4")
+        assert(response.container.userInfo["mime-type"] as? String == "video/mp4")
 
         self.requestId += 1
         let requestId = self.requestId
 
-        storage.storeData(data) { [weak self] url in
+        TemporaryVideoStorage.shared.storeData(data) { [weak self] url in
             guard self?.requestId == requestId else { return }
             self?._playVideoAtURL(url)
         }
@@ -211,6 +200,9 @@ private final class TemporaryVideoStorage {
     private let path: URL
     private let _queue = DispatchQueue(label: "com.github.kean.Nuke.TemporaryVideoStorage.Queue")
 
+    // Ignoring error handling for simplicity.
+    static let shared = try! TemporaryVideoStorage()
+
     init() throws {
         guard let root = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: nil)
@@ -234,6 +226,14 @@ private final class TemporaryVideoStorage {
     func removeData(for url: URL) {
         _queue.async {
             try? FileManager.default.removeItem(at: url)
+        }
+    }
+
+    func removeAll() {
+        _queue.async {
+            // Clear the contents that could potentially was left from the previous session.
+            try? FileManager.default.removeItem(at: self.path)
+            try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
         }
     }
 }

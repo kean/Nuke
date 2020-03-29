@@ -8,58 +8,71 @@ import XCTest
 class ImageDecoderTests: XCTestCase {
     func testDecodingProgressiveJPEG() {
         let data = Test.data(name: "progressive", extension: "jpeg")
-        let decoder = ImageDecoder()
+        let decoder = ImageDecoders.Default()
 
         // Just before the Start Of Frame
-        XCTAssertNil(decoder.decode(data: data[0...358], isFinal: false))
+        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...358]))
         XCTAssertNil(decoder.isProgressive)
         XCTAssertEqual(decoder.numberOfScans, 0)
 
         // Right after the Start Of Frame
-        XCTAssertNil(decoder.decode(data: data[0...359], isFinal: false))
+        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...359]))
         XCTAssertTrue(decoder.isProgressive!)
         XCTAssertEqual(decoder.numberOfScans, 0) // still haven't finished the first scan
 
         // Just before the first Start Of Scan
-        XCTAssertNil(decoder.decode(data: data[0...438], isFinal: false))
+        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...438]))
         XCTAssertEqual(decoder.numberOfScans, 0) // still haven't finished the first scan
 
         // Found the first Start Of Scan
-        XCTAssertNil(decoder.decode(data: data[0...439], isFinal: false))
+        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...439]))
         XCTAssertEqual(decoder.numberOfScans, 1)
 
         // Found the second Start of Scan
-        let scan1 = decoder.decode(data: data[0...2952], isFinal: false)
+        let scan1 = decoder.decodePartiallyDownloadedData(data[0...2952])
         XCTAssertNotNil(scan1)
-        if let scan1 = scan1 {
+        if let image = scan1?.image {
             #if os(macOS)
-            XCTAssertEqual(scan1.size.width, 450)
-            XCTAssertEqual(scan1.size.height, 300)
+            XCTAssertEqual(image.size.width, 450)
+            XCTAssertEqual(image.size.height, 300)
             #else
-            XCTAssertEqual(scan1.size.width * scan1.scale, 450)
-            XCTAssertEqual(scan1.size.height * scan1.scale, 300)
+            XCTAssertEqual(image.size.width * image.scale, 450)
+            XCTAssertEqual(image.size.height * image.scale, 300)
             #endif
         }
         XCTAssertEqual(decoder.numberOfScans, 2)
+        XCTAssertEqual(scan1?.userInfo[ImageDecoders.Default.scanNumberKey] as? Int, 2)
 
         // Feed all data and see how many scans are there
         // In practice the moment we finish receiving data we call
         // `decode(data: data, isFinal: true)` so we might not scan all the
         // of the bytes and encounter all of the scans (e.g. the final chunk
         // of data that we receive contains multiple scans).
-        XCTAssertNotNil(decoder.decode(data: data, isFinal: false))
+        XCTAssertNotNil(decoder.decodePartiallyDownloadedData(data))
         XCTAssertEqual(decoder.numberOfScans, 10)
     }
 
-    func testDecodingGIFs() {
-        XCTAssertFalse(ImagePipeline.Configuration.isAnimatedImageDataEnabled)
+    func testDecodingGIFsSoftDeprecated() {
+        XCTAssertFalse(ImagePipeline.Configuration._isAnimatedImageDataEnabled)
 
         let data = Test.data(name: "cat", extension: "gif")
-        XCTAssertNil(ImageDecoder().decode(data: data)?.animatedImageData)
+        XCTAssertNil(ImageDecoders.Default().decode(data: data)?.animatedImageData)
 
-        ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
-        XCTAssertNotNil(ImageDecoder().decode(data: data)?.animatedImageData)
-        ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
+        ImagePipeline.Configuration._isAnimatedImageDataEnabled = true
+        XCTAssertNotNil(ImageDecoders.Default().decode(data: data)?.animatedImageData)
+        ImagePipeline.Configuration._isAnimatedImageDataEnabled = false
+    }
+
+    func testDecodingGIFDataAttached() {
+        let data = Test.data(name: "cat", extension: "gif")
+        XCTAssertNotNil(ImageDecoders.Default().decode(data)?.data)
+    }
+
+    func testDecodingPNGDataNotAttached() {
+        let data = Test.data(name: "fixture", extension: "png")
+        let container = ImageDecoders.Default().decode(data)
+        XCTAssertNotNil(container)
+        XCTAssertNil(container?.data)
     }
 }
 

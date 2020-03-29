@@ -52,13 +52,13 @@ public extension ImageProcessing {
 /// Image processing context used when selecting which processor to use.
 public struct ImageProcessingContext {
     public let request: ImageRequest
+    public let response: ImageResponse
     public let isFinal: Bool
-    public let scanNumber: Int? // need a more general purpose way to implement this
 
-    public init(request: ImageRequest, isFinal: Bool, scanNumber: Int?) {
+    public init(request: ImageRequest, response: ImageResponse, isFinal: Bool) {
         self.request = request
+        self.response = response
         self.isFinal = isFinal
-        self.scanNumber = scanNumber
     }
 }
 
@@ -125,14 +125,14 @@ extension ImageProcessors {
         ///
         /// - parameter unit: Unit of the target size, `.points` by default.
         public init(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool = false, upscale: Bool = false) {
-            self.init(size: CGSize(width: width, height: .greatestFiniteMagnitude), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
+            self.init(size: CGSize(width: width, height: 4096), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
         }
 
         /// Resizes the image to fill the given height.
         ///
         /// - parameter unit: Unit of the target size, `.points` by default.
         public init(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool = false, upscale: Bool = false) {
-            self.init(size: CGSize(width: .greatestFiniteMagnitude, height: height), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
+            self.init(size: CGSize(width: 4096, height: height), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
         }
 
         public func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {

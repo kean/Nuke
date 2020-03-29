@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2019 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2020 Alexander Grebenyuk (github.com/kean).
 
 import UIKit
 import Nuke
@@ -8,21 +8,20 @@ import Nuke
 extension UIView {
     func pinToSuperview() {
         translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate(
-            [topAnchor.constraint(equalTo: superview!.topAnchor),
-             bottomAnchor.constraint(equalTo: superview!.bottomAnchor),
-             leftAnchor.constraint(equalTo: superview!.leftAnchor),
-             rightAnchor.constraint(equalTo: superview!.rightAnchor)]
-        )
-
+        NSLayoutConstraint.activate([
+            topAnchor.constraint(equalTo: superview!.topAnchor),
+            bottomAnchor.constraint(equalTo: superview!.bottomAnchor),
+            leftAnchor.constraint(equalTo: superview!.leftAnchor),
+            rightAnchor.constraint(equalTo: superview!.rightAnchor)
+        ])
     }
 
     func centerInSuperview() {
         translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate(
-            [centerXAnchor.constraint(equalTo: superview!.centerXAnchor),
-             centerYAnchor.constraint(equalTo: superview!.centerYAnchor)]
-        )
+        NSLayoutConstraint.activate([
+            centerXAnchor.constraint(equalTo: superview!.centerXAnchor),
+            centerYAnchor.constraint(equalTo: superview!.centerYAnchor)
+        ])
     }
 }
 

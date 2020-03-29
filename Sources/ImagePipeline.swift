@@ -250,6 +250,10 @@ public /* final */ class ImagePipeline {
 // MARK: - Image Cache
 
 public extension ImagePipeline {
+    /// Returns a cached response from the memory cache.
+    func cachedResponse(for url: URL) -> ImageResponse? {
+        return cachedResponse(for: ImageRequest(url: url))
+    }
 
     /// Returns a cached response from the memory cache. Returns `nil` if the request disables
     /// memory cache reads.
@@ -451,7 +455,7 @@ private extension ImagePipeline {
     func isDecompressionNeeded(for response: ImageResponse) -> Bool {
         return configuration.isDecompressionEnabled &&
             ImageDecompression.isDecompressionNeeded(for: response.image) ?? false &&
-            !(Configuration.isAnimatedImageDataEnabled && response.image.animatedImageData != nil)
+            !(Configuration._isAnimatedImageDataEnabled && response.image.animatedImageData != nil)
     }
     #endif
 
@@ -519,7 +523,7 @@ private extension ImagePipeline {
     }
 
     func processImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, processor: ImageProcessing, task: ProcessedImageTask) {
-        guard !(Configuration.isAnimatedImageDataEnabled && response.image.animatedImageData != nil) else {
+        guard !(Configuration._isAnimatedImageDataEnabled && response.image.animatedImageData != nil) else {
             task.send(value: response, isCompleted: isCompleted)
             return
         }
@@ -535,7 +539,7 @@ private extension ImagePipeline {
 
             let log = Log(self.log, "Process Image")
             log.signpost(.begin, "\(processor), \(isCompleted ? "final" : "progressive") image")
-            let context = ImageProcessingContext(request: request, isFinal: isCompleted, scanNumber: response.scanNumber)
+            let context = ImageProcessingContext(request: request, response: response, isFinal: isCompleted)
             let response = response.map { processor.process(image: $0, context: context) }
             log.signpost(.end)
 

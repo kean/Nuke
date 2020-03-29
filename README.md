@@ -15,7 +15,7 @@
 
 Nuke provides a simple and efficient way to download and display images in your app. Behind its clear and concise API is an advanced architecture which enables its unique features and offers virtually unlimited possibilities for customization.
 
-> **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG, WebP, SVG** · **Animated images** · **Alamofire, Gifu** · **Combine** · **Reactive extensions**
+> **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG** · **WebP, SVG, GIF** · **Alamofire** · **Combine** · **Reactive extensions**
 
 <br/>
 
@@ -23,19 +23,20 @@ Nuke provides a simple and efficient way to download and display images in your 
 
 Nuke is easy to learn and use. Here is an overview of its APIs and features:
 
-- **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) | [Placeholders, Transitions](#placeholders-transitions-content-modes) | [`ImageRequest`](#imagerequest) | [SwiftUI](#swiftui) | [Low Data Mode](#low-data-mode)
-- **Image Processing** ‣ [`Resize`](#resize) | [`GaussianBlur`, Core Image](#gaussianblur-core-image) | [Custom Processors](#custom-processors) | [Decompression](#decompression) | [Builder](#builder)
-- **Image Pipeline** ‣ [Load Image](#image-pipeline) | [`ImageTask`](#imagetask) | [Customize Image Pipeline](#customize-image-pipeline) | [Default Pipeline](#default-image-pipeline)
-- **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) | [HTTP Disk Cache](#http-disk-cache) | [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
-- **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [Animated Images](#animated-images) | [WebP](#webp) | [SVG](#svg) | [Combine](#combine) | [RxNuke](#rxnuke)
+- **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) · [Placeholders, Transitions](#placeholders-transitions-content-modes) · [`ImageRequest`](#imagerequest) · [SwiftUI](#swiftui) · [Low Data Mode](#low-data-mode)
+- **Image Processing** ‣ [`Resize`](#resize) · [`GaussianBlur`, Core Image](#gaussianblur-core-image) · [Custom Processors](#custom-processors) · [Decompression](#decompression) · [Builder](#builder)
+- **Image Pipeline** ‣ [Load Image](#image-pipeline) · [`ImageTask`](#imagetask) · [Customize Image Pipeline](#customize-image-pipeline) · [Default Pipeline](#default-image-pipeline)
+- **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) · [HTTP Disk Cache](#http-disk-cache) · [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
+- **Advanced Features** ‣ [Preheat Images](#image-preheating) · [Progressive Decoding](#progressive-decoding) · [Combine](#combine) · [RxNuke](#rxnuke)
 
 To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/8.0/index.html), and check out the demo project included in the repo. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, the [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Troubleshooting.md) might help. 
 
 <img src="https://img.shields.io/badge/supports-Swift%20Package%20Manager%2C%20CocoaPods%2C%20Carthage-green.svg">
 
-To learn about the image pipeline itself, see the dedicated section:
+To learn more about the pipeline and the supported formats, see the dedicated guides.
 
-- **Image Pipeline** ‣ [Overview](#h_design) | [Data Loading and Caching](#data-loading-and-caching) | [Resumable Downloads](#resumable-downloads) | [Memory Cache](#memory-cache) | [Deduplication](#deduplication) | [Performance](#performance) | [Extensions](#h_plugins)
+- [**Image Formats**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) ‣ [Progressive JPEG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#progressive-jpeg) · [HEIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#heif) · [GIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#gif) · [SVG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#svg) · [WebP](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#webp) 
+- **Image Pipeline** ‣ [Overview](#h_design) · [Data Loading and Caching](#data-loading-and-caching) · [Resumable Downloads](#resumable-downloads) · [Memory Cache](#memory-cache) · [Deduplication](#deduplication) · [Performance](#performance) · [Extensions](#h_plugins)
 
 If you'd like to contribute to Nuke see [**Contributing**](#h_contribute).
 
@@ -53,7 +54,7 @@ Nuke.loadImage(with: url, into: imageView)
 
 Nuke will check if the image exists in the memory cache, and if it does, will instantly display it. If not, the image data will be loaded, decoded, processed, and decompressed in the background.
 
-> See [Image Pipeline Overview](#h_design) to learn more.
+> See [Image Pipeline Overview](#h_design) to learn more about how images are downloaded and processed.
 
 ### In a List
 
@@ -92,6 +93,8 @@ let options = ImageLoadingOptions(
 ```
 
 > In case you want all image views to have the same behavior, you can modify `ImageLoadingOptions.shared`.
+
+Please keep in mind that the built-in extensions for image views are designed to get you up and running as quickly as possible. If you want to have more control, or use some of the advanced features, like animated images, it is recommended to use `ImagePipeline` directly in your custom views.
 
 ### `ImageRequest`
 
@@ -351,8 +354,6 @@ isResumableDataEnabled = true
 And also a few global options shared between all pipelines:
 
 ```swift
-ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
-
 // Enable to start using `os_signpost` to monitor the pipeline
 // performance using Instruments.
 ImagePipeline.Configuration.isSignpostLoggingEnabled = false
@@ -474,75 +475,6 @@ let task = ImagePipeline.shared.loadImage(
     }
 )
 ```
-
-### Animated Images
-
-To enable animated image support, set `ImagePipeline.Configuration.isAnimatedImageDataEnabled` to `true`. If enabled, Nuke will attach `animatedImageData` to the downloaded animated images. You going to need data to render the images.
-
-There is no built-in way to render animated images, but there are multiple options available.
-
-**Option 1**. Install [FLAnimatedImage Plugin](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) and follow the instructions.
-
-**Option 2**. Install [Gifu](https://github.com/kaishin/Gifu) directly. To configure Gifu to work with Nuke, all you need to do is add these lines in your project:
-
-```swift
-ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
-
-extension Gifu.GIFImageView {
-    @objc open override func nuke_display(image: Image?) {
-        prepareForReuse()
-        if let data = image?.animatedImageData {
-            animate(withGIFData: data)
-        } else {
-            self.image = image
-        }
-    }
-}
-```
-
-You can now start using Gifu.GIFImageView:
-
-```swift
-let view = Gifu.GIFImageView()
-Nuke.loadImage(with: URL(string: "http://.../cat.gif")!, into: view)
-```
-
-> `GIF` is not the most efficient format for transferring and displaying animated images. The current best practice is to [use short videos instead of GIFs](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/) (e.g. `MP4`, `WebM`). There is a PoC available in the demo project which uses Nuke to load, cache and display an `MP4` video.
-
-### WebP
-
-WebP support is provided by [Nuke WebP Plugin](https://github.com/ryokosuge/Nuke-WebP-Plugin) built by [Ryo Kosuge](https://github.com/ryokosuge). Please follow the instructions from the repo.
-
-### SVG
-
-To render SVG, consider using [SwiftSVG](https://github.com/mchoe/SwiftSVG), [SVG](https://github.com/SVGKit/SVGKit), or other frameworks. Here is an example of `SwiftSVG` being used to render vector images.
-
-```swift
-ImageDecoderRegistry.shared.register { context in
-    // Replace this with whatever works for. There are no magic numbers
-    // for SVG like are used for other binary formats, it's just XML.
-    let isSVG = context.urlResponse?.url?.absoluteString.hasSuffix(".svg") ?? false
-    return isSVG ? ImageDecoders.Empty() : nil
-}
-
-let url = URL(string: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Swift_logo.svg")!
-ImagePipeline.shared.loadImage(with: url) { [weak self] result in
-    guard let self = self, let data = try? result.get().container.data else {
-        return
-    }
-    // You can render image using whatever size you want, vector!
-    let targetBounds = CGRect(origin: .zero, size: CGSize(width: 300, height: 300))
-    let svgView = UIView(SVGData: data) { layer in
-        layer.fillColor = UIColor.orange.cgColor
-        layer.resizeToFit(targetBounds)
-    }
-    self.view.addSubview(svgView)
-    svgView.bounds = targetBounds
-    svgView.center = self.view.center
-}
-```
-
-> Please keep in mind that most of these frameworks are limited in terms of supported SVG features.
 
 ### RxNuke
 

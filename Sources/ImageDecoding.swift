@@ -37,9 +37,9 @@ extension ImageDecoding {
                 // If it is the old implementation, call the old method. Otherwise,
                   // call the new APIs.
                 if isFinal {
-                    return newDecoder.decode(data: data)
+                    return newDecoder.decode(data)
                 } else {
-                    return newDecoder.decodeProgressively(data: data)
+                    return newDecoder.decodePartiallyDownloadedData(data)
                 }
             } else {
                 guard let image = self.decode(data: data, isFinal: isFinal) else {
@@ -55,8 +55,7 @@ extension ImageDecoding {
         ImageDecompression.setDecompressionNeeded(true, for: container.image)
         #endif
 
-        let scanNumber: Int? = (self as? ImageDecoders.Default)?.numberOfScans
-        return ImageResponse(container: container, urlResponse: urlResponse, scanNumber: scanNumber)
+        return ImageResponse(container: container, urlResponse: urlResponse)
     }
 }
 
@@ -73,7 +72,7 @@ public enum ImageDecoders {}
 // The decoder is stateful.
 public extension ImageDecoders {
 
-    final class Default: ImageDecoding {
+    final class Default: _ImageDecoding {
         // `nil` if decoder hasn't detected whether progressive decoding is enabled.
         private(set) var isProgressive: Bool?
         // Number of scans that the decoder has found so far. The last scan might be
@@ -82,19 +81,36 @@ public extension ImageDecoders {
         private var lastStartOfScan: Int = 0 // Index of the last found Start of Scan
         private var scannedIndex: Int = -1 // Index at which previous scan was finished
 
+        /// A user info key to get the scan number (Int).
+        public static let scanNumberKey = "ImageDecoders.Default.scanNumberKey"
+
+        // Not sure if this is a useful configuration option and whether it needs to exist.
+        public static var _isAttachingAnimatedImageData: Bool = true
+
         public init() { }
 
-        public func decode(data: Data, isFinal: Bool) -> PlatformImage? {
+        public func decode(_ data: Data) -> ImageContainer? {
             let format = ImageFormat.format(for: data)
 
-            guard !isFinal else { // Just decode the data.
-                let image = ImageDecoders.Default.decode(data)
-                // Keep original data around in case of GIF
-                if ImagePipeline.Configuration.isAnimatedImageDataEnabled, case .gif? = format {
-                    image?.animatedImageData = data
-                }
-                return image
+            guard let image = ImageDecoders.Default._decode(data) else {
+                return nil
             }
+            // Keep original data around in case of GIF
+            if ImagePipeline.Configuration._isAnimatedImageDataEnabled, case .gif? = format {
+                image.animatedImageData = data
+            }
+            var container = ImageContainer(image: image, data: image.animatedImageData)
+            if ImageDecoders.Default._isAttachingAnimatedImageData, case .gif? = format {
+                container.data = data
+            }
+            if isProgressive == true {
+                container.userInfo[ImageDecoders.Default.scanNumberKey] = numberOfScans
+            }
+            return container
+        }
+
+        public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+            let format = ImageFormat.format(for: data)
 
             // Determined (if haven't determined yet) whether the image supports progressive
             // decoding or not (only proressive JPEG is allowed for now, but you can
@@ -131,13 +147,19 @@ public extension ImageDecoders {
             // `> 1` checks that we've received a first scan (SOS) and then received
             // and also received a second scan (SOS). This way we know that we have
             // at least one full scan available.
-            return (numberOfScans > 1 && lastStartOfScan > 0) ? ImageDecoder.decode(data[0..<lastStartOfScan]) : nil
+            guard numberOfScans > 1 && lastStartOfScan > 0 else {
+                return nil
+            }
+            guard let image = ImageDecoder._decode(data[0..<lastStartOfScan]) else {
+                return nil
+            }
+            return ImageContainer(image: image, userInfo: [ImageDecoders.Default.scanNumberKey: numberOfScans])
         }
     }
 }
 
 extension ImageDecoders.Default {
-    static func decode(_ data: Data) -> PlatformImage? {
+    static func _decode(_ data: Data) -> PlatformImage? {
         #if os(macOS)
         return NSImage(data: data)
         #else
@@ -149,7 +171,7 @@ extension ImageDecoders.Default {
 // MARK: - ImageDecoders.Empty
 
 public extension ImageDecoders {
-    /// A decoder which returns an empty placeholder image and attached image
+    /// A decoder which returns an empty placeholder image and attaches image
     /// data to the image container.
     struct Empty: _ImageDecoding {
         public let isProgressive: Bool
@@ -160,11 +182,11 @@ public extension ImageDecoders {
             self.isProgressive = isProgressive
         }
 
-        public func decodeProgressively(data: Data) -> ImageContainer? {
+        public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
             return isProgressive ? ImageContainer(image: PlatformImage(), data: data, userInfo: [:]) : nil
         }
 
-        public func decode(data: Data) -> ImageContainer? {
+        public func decode(_ data: Data) -> ImageContainer? {
             return ImageContainer(image: PlatformImage(), data: data, userInfo: [:])
         }
     }
@@ -180,26 +202,26 @@ public extension ImageDecoders {
 /// anything that you might need from the `ImageDecodingContext`.
 public protocol _ImageDecoding: ImageDecoding {
     /// Produces an image from the given image data.
-    func decode(data: Data) -> ImageContainer?
+    func decode(_ data: Data) -> ImageContainer?
 
     /// Produces an image from the given partially dowloaded image data.
-    /// This method might be called multiple times during the a single decoding
+    /// This method might be called multiple times during a single decoding
     /// session. When the image download is complete, `decode(data:)` method is called.
     ///
     /// - returns: nil by default.
-    func decodeProgressively(data: Data) -> ImageContainer?
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?
 }
 
 public extension _ImageDecoding {
-    func decodeProgressively(data: Data) -> ImageContainer? {
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
         return nil
     }
 
     func decode(data: Data, isFinal: Bool) -> PlatformImage? {
         if isFinal {
-            return self.decode(data: data)?.image
+            return self.decode(data)?.image
         } else {
-            return self.decodeProgressively(data: data)?.image
+            return self.decodePartiallyDownloadedData(data)?.image
         }
     }
 }
@@ -220,7 +242,7 @@ public final class ImageDecoderRegistry {
                 return decoder
             }
         }
-        return ImageDecoder() // Return default decoder if couldn't find a custom one.
+        return ImageDecoders.Default() // Return default decoder if couldn't find a custom one.
     }
 
     /// Registers a decoder to be used in a given decoding context. The closure

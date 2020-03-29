@@ -32,7 +32,8 @@ public extension ImageCaching {
         }
         set {
             if let newValue = newValue {
-                storeResponse(ImageResponse(image: newValue, urlResponse: nil, scanNumber: nil), for: request)
+                let response = ImageResponse(container: .init(image: newValue))
+                storeResponse(response, for: request)
             } else {
                 removeResponse(for: request)
             }
@@ -109,7 +110,7 @@ public final class ImageCache: ImageCaching {
 
     /// Stores the given `ImageResponse` in the cache using the given request.
     public func storeResponse(_ response: ImageResponse, for request: ImageRequest) {
-        impl.set(response, forKey: request.makeCacheKeyForFinalImage(), cost: self.cost(for: response.image))
+        impl.set(response, forKey: request.makeCacheKeyForFinalImage(), cost: self.cost(for: response.container))
     }
 
     /// Removes response stored with the given request.
@@ -134,18 +135,18 @@ public final class ImageCache: ImageCaching {
     }
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
-    func cost(for image: PlatformImage) -> Int {
+    func cost(for container: ImageContainer) -> Int {
         let dataCost: Int
-        if ImagePipeline.Configuration.isAnimatedImageDataEnabled {
-            dataCost = image.animatedImageData?.count ?? 0
+        if ImagePipeline.Configuration._isAnimatedImageDataEnabled {
+            dataCost = container.image.animatedImageData?.count ?? 0
         } else {
-            dataCost = 0
+            dataCost = container.data?.count ?? 0
         }
 
         // bytesPerRow * height gives a rough estimation of how much memory
         // image uses in bytes. In practice this algorithm combined with a
         // concervative default cost limit works OK.
-        guard let cgImage = image.cgImage else {
+        guard let cgImage = container.image.cgImage else {
             return 1 + dataCost
         }
         return cgImage.bytesPerRow * cgImage.height + dataCost

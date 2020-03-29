@@ -121,7 +121,7 @@ class ImagePipelineTests: XCTestCase {
 
     func testAnimatedImagesArentProcessed() {
         // Given
-        ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
+        ImagePipeline.Configuration._isAnimatedImageDataEnabled = true
 
         dataLoader.results[Test.url] = .success(
             (Test.data(name: "cat", extension: "gif"), Test.urlResponse)
@@ -140,7 +140,7 @@ class ImagePipelineTests: XCTestCase {
         }
         wait()
 
-        ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
+        ImagePipeline.Configuration._isAnimatedImageDataEnabled = false
     }
 
     // MARK: - Updating Priority
@@ -431,7 +431,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func testCacheRead() {
         // Given
-        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil, scanNumber: nil), for: Test.request)
+        cache.storeResponse(ImageResponse(container: .init(image: Test.image), urlResponse: nil), for: Test.request)
 
         // When
         expect(pipeline).toLoadImage(with: Test.request)
@@ -458,7 +458,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
     func testCacheReadDisabled() {
         // Given
-        cache.storeResponse(ImageResponse(image: Test.image, urlResponse: nil, scanNumber: nil), for: Test.request)
+        cache.storeResponse(ImageResponse(container: .init(image: Test.image), urlResponse: nil), for: Test.request)
 
         var request = Test.request
         request.options.memoryCacheOptions.isReadAllowed = false
