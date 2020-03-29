@@ -1,14 +1,24 @@
-# Supported Image Formats
+# Image Formats
 
-Nuke offers built-in support for basic image formats like `jpeg`, `png`, and `heif`. But it also has infrastructure capable of supporting a variety of image formats and features of these formats, including but not limited to: 
-
-- [`Progressive JPEG`](#progressive-jpeg)
-- [`HEIF`](#heif)
-- [`GIF`](#gif)
-- [`SVG`](#svg)
-- [`WebP`](#webp)
+Nuke offers built-in support for basic image formats like `jpeg`, `png`, and `heif`. But it also has infrastructure capable of supporting a variety of image formats and features of these formats.
 
 Nuke is capable of driving progressive decoding, animated image rendering, progressive animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
+
+- [Image Decoding Infrastructure](#image-decoding-infrastructure)
+  * [Progressive Decoding](#progressive-decoding)
+- [Built-In Image Decoders](#built-in-image-decoders)
+  * [`ImageDecoders.Default`](#-imagedecodersdefault-)
+  * [`ImageDecoders.Empty`](#-imagedecodersempty-)
+- [Image Encoding Infrastructure](#image-encoding-infrastructure)
+- [Built-In Image Encoders](#built-in-image-encoders)
+  * [`ImageEncoders.Default`](#-imageencodersdefault-)
+  * [`ImageEncoders.ImageIO`](#-imageencodersimageio-)
+- [Supported Formats](#supported-formats)
+  * [Progressive JPEG](#progressive-jpeg)
+  * [HEIF](#heif)
+  * [GIF](#gif)
+  * [SVG](#svg)
+  * [WebP](#webp)
 
 ## Image Decoding Infrastructure
 
@@ -74,7 +84,7 @@ The decoding is performed in the background on the operation queue provided in `
 
 ### Progressive Decoding
 
-To enable progressive image decoding set `isProgressiveDecodingEnabled` configuration option of hte image pipeline to `true`.
+To enable progressive image decoding set `isProgressiveDecodingEnabled` configuration option of the image pipeline to `true`.
 
 <img align="right" width="360" alt="Progressive JPEG" src="https://user-images.githubusercontent.com/1567433/59148764-3af73c00-8a0d-11e9-9d49-ded2d509380a.png">
 
@@ -101,9 +111,11 @@ let task = ImagePipeline.shared.loadImage(
 )
 ```
 
-### Built-In Image Decoders
+## Built-In Image Decoders
 
-#### `ImageDecoders.Default`
+All decoders live in `ImageDecoders` namespace.
+
+### `ImageDecoders.Default`
 
 This is the decoder that is used by default if none other decoders are found. It uses native `UIImage(data:)` (and `NSImage(data:)`) initializers to create images from data.
 
@@ -111,7 +123,7 @@ This is the decoder that is used by default if none other decoders are found. It
 
 Tthe default `ImageDecoders.Default` also supports progressively decoding JPEG.
 
-#### `ImageDecoders.Empty`
+### `ImageDecoders.Empty`
 
 This decoders returns an empty placeholder image and attaches image data to the image container. It could also be configured to return partially downloaded data.
 
@@ -119,7 +131,37 @@ Why is it useful? Let's say you want to render SVG using a third party framework
 
 ## Image Encoding Infrastructure
 
-TBD:
+To encode images, use types conforming to the following protocol:
+
+```swift
+public protocol ImageEncoding {
+    func encode(image: PlatformImage) -> Data?
+}
+```
+
+There is currently no dedicated `ImageEncoderRegistry`. To change which encoder the pipeline uses to encode downloaded images - in case data caching of final downloaded images is enabled - use the pipeline configuration.
+
+## Built-In Image Encoders
+
+All encooders live in `ImageEncoders` namespace.
+
+### `ImageEncoders.Default`
+
+Encodes opaque images as `jpeg` and images with opacity as `png`. Can be configured to use `heif` instead of `jpeg` using `ImageEncoders.Default._isHEIFPreferred` option.
+
+### `ImageEncoders.ImageIO`
+
+An [Image I/O](https://developer.apple.com/documentation/imageio) based encoder.
+
+Image I/O is a system framework that allows applications to read and write most image file formats. This framework offers high efficiency, color management, and access to image metadata.
+
+Usage:
+
+```swift
+let image: UIImage
+let encoder = ImageEncoders.ImageIO(type: .heif, compressionRatio: 0.8)
+let data = encoder.encode(image: image)
+```
 
 ## Supported Formats
 
@@ -139,6 +181,8 @@ None.
 
 To render the progressive JPEG, you can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage`. The default image view loading extensions also supports displaying progressive scans. 
 
+<hr/>
+
 ### HEIF
 
 **Decoding**
@@ -147,7 +191,7 @@ The default image decoder `ImageDecoders.Default` supports [HEIF](https://en.wik
 
 **Encoding**
 
-The default image encoder `ImageEncoders.Default` supports [HEIF](https://en.wikipedia.org/wiki/High_Efficiency_Image_File_Format), however it doesn't use it by default. To enable it, use a new experimental `ImageEncoder._isHEIFPreferred` option.
+The default image encoder `ImageEncoders.Default` supports [HEIF](https://en.wikipedia.org/wiki/High_Efficiency_Image_File_Format), however it doesn't use it by default. To enable it, use a new experimental `ImageEncoders.Default._isHEIFPreferred` option.
 
 To encode images in HEIF directly, use `ImageEncoders.ImageIO`:
 
@@ -156,11 +200,14 @@ let image: UIImage
 let encoder = ImageEncoders.ImageIO(type: .heif, compressionRatio: 0.8)
 let data = encoder.encode(image: image)
 ```
+
 One of the scenarios in which you may find this option useful is data caching. By default, the pipeline stores only the original image data. To store downloaded and processed images instead, set `dataCacheOptions.storedItems` to `[.finalImage]`. With HEIF encoding enabled, you can save a bit of disk space by transcoding downloaded images into HEIF.
 
 **Rendering**
 
 To render HEIF images, you can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage`.
+
+<hr/>
 
 ### GIF
 
@@ -174,7 +221,7 @@ None.
 
 **Rendering**
 
-To render animated GIFs, please consider using one of the open-souce GIF rendering engines, like [Gifu](https://github.com/kaishin/Gifu), [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage), or other.
+To render animated GIFs, please consider using one of the open-source GIF rendering engines, like [Gifu](https://github.com/kaishin/Gifu), [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage), or other.
 
 **Gifu Example**
 
@@ -223,6 +270,8 @@ To see this code in action, check out the demo project attached in the repo.
 
 > `GIF` is not the most efficient format for transferring and displaying animated images. The current best practice is to [use short videos instead of GIFs](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/) (e.g. `MP4`, `WebM`). There is a PoC available in the demo project which uses Nuke to load, cache and display an `MP4` video.
 
+<hr/>
+
 ### SVG
 
 **Decoding**
@@ -263,6 +312,8 @@ ImagePipeline.shared.loadImage(with: url) { [weak self] result in
 ```
 
 > Please keep in mind that most of these frameworks are limited in terms of supported SVG features.
+
+<hr/>
 
 ### WebP
 

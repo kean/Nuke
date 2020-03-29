@@ -27,7 +27,7 @@ Nuke is easy to learn and use. Here is an overview of its APIs and features:
 - **Image Processing** ‣ [`Resize`](#resize) | [`GaussianBlur`, Core Image](#gaussianblur-core-image) | [Custom Processors](#custom-processors) | [Decompression](#decompression) | [Builder](#builder)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) | [`ImageTask`](#imagetask) | [Customize Image Pipeline](#customize-image-pipeline) | [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) | [HTTP Disk Cache](#http-disk-cache) | [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
-- **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [WebP](#webp) | [Combine](#combine) | [RxNuke](#rxnuke)
+- **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [Combine](#combine) | [RxNuke](#rxnuke)
 
 To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/8.0/index.html), and check out the demo project included in the repo. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, the [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Troubleshooting.md) might help. 
 
