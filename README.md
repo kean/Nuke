@@ -54,7 +54,7 @@ Nuke.loadImage(with: url, into: imageView)
 
 Nuke will check if the image exists in the memory cache, and if it does, will instantly display it. If not, the image data will be loaded, decoded, processed, and decompressed in the background.
 
-> See [Image Pipeline Overview](#h_design) to learn more.
+> See [Image Pipeline Overview](#h_design) to learn more about how images are downloaded and processed.
 
 ### In a List
 
@@ -93,6 +93,8 @@ let options = ImageLoadingOptions(
 ```
 
 > In case you want all image views to have the same behavior, you can modify `ImageLoadingOptions.shared`.
+
+Please keep in mind that the built-in extensions for image views are designed to get you up and running as quickly as possible. If you want to have more control, or use some of the advanced features, like animated images, it is recommended to use `ImagePipeline` directly in your custom views.
 
 ### `ImageRequest`
 
