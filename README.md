@@ -27,14 +27,15 @@ Nuke is easy to learn and use. Here is an overview of its APIs and features:
 - **Image Processing** ‣ [`Resize`](#resize) | [`GaussianBlur`, Core Image](#gaussianblur-core-image) | [Custom Processors](#custom-processors) | [Decompression](#decompression) | [Builder](#builder)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) | [`ImageTask`](#imagetask) | [Customize Image Pipeline](#customize-image-pipeline) | [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) | [HTTP Disk Cache](#http-disk-cache) | [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
-- **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [Animated Images](#animated-images) | [WebP](#webp) | [SVG](#svg) | [Combine](#combine) | [RxNuke](#rxnuke)
+- **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [WebP](#webp) | [SVG](#svg) | [Combine](#combine) | [RxNuke](#rxnuke)
 
 To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/8.0/index.html), and check out the demo project included in the repo. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, the [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Troubleshooting.md) might help. 
 
 <img src="https://img.shields.io/badge/supports-Swift%20Package%20Manager%2C%20CocoaPods%2C%20Carthage-green.svg">
 
-To learn about the image pipeline itself, see the dedicated section:
+To learn more about the pipeline and the supported formats, see the dedicated guides.
 
+- [**Image Formats**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) ‣ [Codecs](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) | [GIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#gif)
 - **Image Pipeline** ‣ [Overview](#h_design) | [Data Loading and Caching](#data-loading-and-caching) | [Resumable Downloads](#resumable-downloads) | [Memory Cache](#memory-cache) | [Deduplication](#deduplication) | [Performance](#performance) | [Extensions](#h_plugins)
 
 If you'd like to contribute to Nuke see [**Contributing**](#h_contribute).
@@ -472,40 +473,6 @@ let task = ImagePipeline.shared.loadImage(
     }
 )
 ```
-
-### Animated Images
-
-To enable animated image support, set `ImagePipeline.Configuration.isAnimatedImageDataEnabled` to `true`. If enabled, Nuke will attach `animatedImageData` to the downloaded animated images. You going to need data to render the images.
-
-There is no built-in way to render animated images, but there are multiple options available.
-
-**Option 1**. Install [FLAnimatedImage Plugin](https://github.com/kean/Nuke-FLAnimatedImage-Plugin) and follow the instructions.
-
-**Option 2**. Install [Gifu](https://github.com/kaishin/Gifu) directly. To configure Gifu to work with Nuke, all you need to do is add these lines in your project:
-
-```swift
-ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
-
-extension Gifu.GIFImageView {
-    @objc open override func nuke_display(image: Image?) {
-        prepareForReuse()
-        if let data = image?.animatedImageData {
-            animate(withGIFData: data)
-        } else {
-            self.image = image
-        }
-    }
-}
-```
-
-You can now start using Gifu.GIFImageView:
-
-```swift
-let view = Gifu.GIFImageView()
-Nuke.loadImage(with: URL(string: "http://.../cat.gif")!, into: view)
-```
-
-> `GIF` is not the most efficient format for transferring and displaying animated images. The current best practice is to [use short videos instead of GIFs](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/) (e.g. `MP4`, `WebM`). There is a PoC available in the demo project which uses Nuke to load, cache and display an `MP4` video.
 
 ### WebP
 
