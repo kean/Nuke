@@ -2,10 +2,10 @@
 
 Nuke offers built-in support for basic image formats like `jpeg`, `png`, and `heif`. But it also has infrastructure capable of supporting a variety of image formats and features of these formats, including but not limited to: 
 
+- [`heif`](#heif)
 - [`gif`](#gif)
 - [`svg`](#svg)
 - [`webp`](#webp)
-- `pdf`
 
 Nuke is capable of driving progressive decoding, animated image rendering, progressive animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
 
@@ -93,9 +93,36 @@ TBD:
 
 ## Supported Formats
 
+### HEIF
+
+**Decoding**
+
+The default image decoder `ImageDecoders.Default` supports [HEIF](https://en.wikipedia.org/wiki/High_Efficiency_Image_File_Format)
+
+**Encoding**
+
+The default image encoder `ImageEncoders.Default` supports [HEIF](https://en.wikipedia.org/wiki/High_Efficiency_Image_File_Format), however it doesn't use it by default. To enable it, use a new experimental `ImageEncoder._isHEIFPreferred` option.
+
+To encode images in HEIF directly, use `ImageEncoders.ImageIO`:
+
+```swift
+let image: UIImage
+let encoder = ImageEncoders.ImageIO(type: .heif, compressionRatio: 0.8)
+let data = encoder.encode(image: image)
+```
+One of the scenarios in which you may find this option useful is data caching. By default, the pipeline stores only the original image data. To store downloaded and processed images instead, set `dataCacheOptions.storedItems` to `[.finalImage]`. With HEIF encoding enabled, you can save a bit of disk space by transcoding downloaded images into HEIF.
+
+**Rendering**
+
+To render HEIF images, you can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage`.
+
 ### GIF
 
+**Decoding**
+
 The default image decoder `ImageDecoders.Default` automatically recognized GIFs. It creates an image container (`ImageContainer`) with the first frame of the GIF as placeholder and attaches the original image data to the container.
+
+**Rendering**
 
 To render animated GIFs, please consider using one of the open-souce GIF rendering engines, like [Gifu](https://github.com/kaishin/Gifu), [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage), or other.
 
@@ -148,6 +175,12 @@ To see this code in action, check out the demo project attached in the repo.
 
 ### SVG
 
+**Decoding**
+
+There is currently no support for decoding SVG images and rendering them into bitmap (`UIImage`/`NSImage`). What you can do instead is use `ImageDecoders.Empty` to pass the original image data to your SVG-enabled view and render is using an external mechanism.
+
+**Rendering**
+
 To render SVG, consider using [SwiftSVG](https://github.com/mchoe/SwiftSVG), [SVG](https://github.com/SVGKit/SVGKit), or other frameworks. Here is an example of `SwiftSVG` being used to render vector images.
 
 ```swift
@@ -178,5 +211,7 @@ ImagePipeline.shared.loadImage(with: url) { [weak self] result in
 > Please keep in mind that most of these frameworks are limited in terms of supported SVG features.
 
 ### WebP
+
+**Decoding**
 
 [WebP](https://developers.google.com/speed/webp) support is provided by [Nuke WebP Plugin](https://github.com/ryokosuge/Nuke-WebP-Plugin) built by [Ryo Kosuge](https://github.com/ryokosuge). Please follow the instructions from the repo.
