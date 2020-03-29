@@ -144,6 +144,7 @@ public final class ImageResponse {
     /// A convenience computed property which returns an image from the container.
     public var image: PlatformImage { return container.image }
     public let urlResponse: URLResponse?
+
     // the response is only nil when new disk cache is enabled (it only stores
     // data for now, but this might change in the future).
     @available(*, deprecated, message: "Please use `container.userInfo[ImageDecoders.Default.scanNumberKey]` instead.") // Deprecated in Nuke 8.5

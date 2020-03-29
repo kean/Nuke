@@ -322,3 +322,10 @@ public extension ImagePipeline.Configuration {
         set { _isAnimatedImageDataEnabled = newValue }
     }
 }
+
+public extension ImageProcessingContext {
+    @available(*, deprecated, message: "Please use `response.container.userInfo[ImageDecoders.Default.scanNumberKey]` instead.") // Deprecated in Nuke 8.5
+    var scanNumber: Int? {
+        return response.container.userInfo[ImageDecoders.Default.scanNumberKey] as? Int
+    }
+}

@@ -55,11 +55,6 @@ public struct ImageProcessingContext {
     public let response: ImageResponse
     public let isFinal: Bool
 
-    @available(*, deprecated, message: "Please use `container.userInfo[ImageDecoders.Default.scanNumberKey]` instead.") // Deprecated in Nuke 8.5
-    public var scanNumber: Int? {
-        return response.container.userInfo[ImageDecoders.Default.scanNumberKey] as? Int
-    }
-
     public init(request: ImageRequest, response: ImageResponse, isFinal: Bool) {
         self.request = request
         self.response = response
