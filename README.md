@@ -35,7 +35,7 @@ To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuk
 
 To learn more about the pipeline and the supported formats, see the dedicated guides.
 
-- [**Image Formats**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) ‣ [Codecs](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) | [HEIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#heif) | [GIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#gif) | [SVG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#svg) | [WebP](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#webp) 
+- [**Image Formats**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) ‣ [Progressive JPEG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#progressive-jpeg) | [HEIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#heif) | [GIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#gif) | [SVG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#svg) | [WebP](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#webp) 
 - **Image Pipeline** ‣ [Overview](#h_design) | [Data Loading and Caching](#data-loading-and-caching) | [Resumable Downloads](#resumable-downloads) | [Memory Cache](#memory-cache) | [Deduplication](#deduplication) | [Performance](#performance) | [Extensions](#h_plugins)
 
 If you'd like to contribute to Nuke see [**Contributing**](#h_contribute).

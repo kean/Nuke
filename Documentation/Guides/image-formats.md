@@ -2,10 +2,11 @@
 
 Nuke offers built-in support for basic image formats like `jpeg`, `png`, and `heif`. But it also has infrastructure capable of supporting a variety of image formats and features of these formats, including but not limited to: 
 
-- [`heif`](#heif)
-- [`gif`](#gif)
-- [`svg`](#svg)
-- [`webp`](#webp)
+- [`Progressive JPEG`](#progressive-jpeg)
+- [`HEIF`](#heif)
+- [`GIF`](#gif)
+- [`SVG`](#svg)
+- [`WebP`](#webp)
 
 Nuke is capable of driving progressive decoding, animated image rendering, progressive animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
 
@@ -71,17 +72,46 @@ The decoder is created once and is reused across a single image decoding session
 
 The decoding is performed in the background on the operation queue provided in `ImagePipeline.Configuration`. There is always only one decoding request at a time. The pipeline is not going to call `decodePariallyDownloadedData(_:)` until you are finished with the previous chuck.
 
-## Built-In Image Decoders
+### Progressive Decoding
 
-### `ImageDecoders.Default`
+To enable progressive image decoding set `isProgressiveDecodingEnabled` configuration option of hte image pipeline to `true`.
+
+<img align="right" width="360" alt="Progressive JPEG" src="https://user-images.githubusercontent.com/1567433/59148764-3af73c00-8a0d-11e9-9d49-ded2d509380a.png">
+
+```swift
+let pipeline = ImagePipeline {
+    $0.isProgressiveDecodingEnabled = true
+}
+```
+
+And that's it, the pipeline will automatically do the right thing and deliver the progressive scans via `progress` closure as they arrive:
+
+```swift
+let imageView = UIImageView()
+let task = ImagePipeline.shared.loadImage(
+    with: url,
+    progress: { response, _, _ in
+        if let response = response {
+            imageView.image = response.image
+        }
+    },
+    completion: { result in
+        // Display the final image
+    }
+)
+```
+
+### Built-In Image Decoders
+
+#### `ImageDecoders.Default`
 
 This is the decoder that is used by default if none other decoders are found. It uses native `UIImage(data:)` (and `NSImage(data:)`) initializers to create images from data.
 
 > When working with `UIImage`, the decoder automatically sets the scale of the image to match the scale of the screen.
 
-TBD: progressive decoding
+Tthe default `ImageDecoders.Default` also supports progressively decoding JPEG.
 
-### `ImageDecoders.Empty`
+#### `ImageDecoders.Empty`
 
 This decoders returns an empty placeholder image and attaches image data to the image container. It could also be configured to return partially downloaded data.
 
@@ -92,6 +122,22 @@ Why is it useful? Let's say you want to render SVG using a third party framework
 TBD:
 
 ## Supported Formats
+
+### Progressive JPEG
+
+**Decoding**
+
+The default image decoder `ImageDecoders.Default` supports progressive JPEG. The decoder will automatically detect when there are new scans available, and produce new images if needed.
+
+> Please note, that to enable progressive decoding in the first place, you need to enable it on the pipeline level. For more information, see [Progressive Decoding](#progressive-decoding)
+
+**Encoding**
+
+None.
+
+**Rendering**
+
+To render the progressive JPEG, you can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage`. The default image view loading extensions also supports displaying progressive scans. 
 
 ### HEIF
 
@@ -121,6 +167,10 @@ To render HEIF images, you can use the basic `UIImageView`/`NSImageView`/`WKInte
 **Decoding**
 
 The default image decoder `ImageDecoders.Default` automatically recognized GIFs. It creates an image container (`ImageContainer`) with the first frame of the GIF as placeholder and attaches the original image data to the container.
+
+**Encoding**
+
+None.
 
 **Rendering**
 
@@ -179,6 +229,10 @@ To see this code in action, check out the demo project attached in the repo.
 
 There is currently no support for decoding SVG images and rendering them into bitmap (`UIImage`/`NSImage`). What you can do instead is use `ImageDecoders.Empty` to pass the original image data to your SVG-enabled view and render is using an external mechanism.
 
+**Encoding**
+
+None.
+
 **Rendering**
 
 To render SVG, consider using [SwiftSVG](https://github.com/mchoe/SwiftSVG), [SVG](https://github.com/SVGKit/SVGKit), or other frameworks. Here is an example of `SwiftSVG` being used to render vector images.
@@ -211,7 +265,5 @@ ImagePipeline.shared.loadImage(with: url) { [weak self] result in
 > Please keep in mind that most of these frameworks are limited in terms of supported SVG features.
 
 ### WebP
-
-**Decoding**
 
 [WebP](https://developers.google.com/speed/webp) support is provided by [Nuke WebP Plugin](https://github.com/ryokosuge/Nuke-WebP-Plugin) built by [Ryo Kosuge](https://github.com/ryokosuge). Please follow the instructions from the repo.
