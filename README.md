@@ -15,7 +15,7 @@
 
 Nuke provides a simple and efficient way to download and display images in your app. Behind its clear and concise API is an advanced architecture which enables its unique features and offers virtually unlimited possibilities for customization.
 
-> **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG** · **WebP, SVG, GIF** · **Alamofire** · **Combine** · **Reactive extensions**
+> **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Elegant builder API** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Low data mode** · **Prefetching** · **Rate limiting** · **Progressive JPEG, HEIF, WebP, SVG, GIF** · **Alamofire** · **Combine** · **Reactive extensions**
 
 <br/>
 
@@ -23,11 +23,12 @@ Nuke provides a simple and efficient way to download and display images in your 
 
 Nuke is easy to learn and use. Here is an overview of its APIs and features:
 
-- **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) · [Placeholders, Transitions](#placeholders-transitions-content-modes) · [`ImageRequest`](#imagerequest) · [SwiftUI](#swiftui) · [Low Data Mode](#low-data-mode)
-- **Image Processing** ‣ [`Resize`](#resize) · [`GaussianBlur`, Core Image](#gaussianblur-core-image) · [Custom Processors](#custom-processors) · [Decompression](#decompression) · [Builder](#builder)
+- **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) · [Table View](#in-a-table-view) · [Placeholders, Transitions](#placeholders-transitions-content-modes) · [`ImageRequest`](#imagerequest)
+- **Image Processing** ‣ [`Resize`](#resize) · [`GaussianBlur`, Core Image](#gaussianblur-core-image) · [Custom Processors](#custom-processors)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) · [`ImageTask`](#imagetask) · [Customize Image Pipeline](#customize-image-pipeline) · [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) · [HTTP Disk Cache](#http-disk-cache) · [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
-- **Advanced Features** ‣ [Preheat Images](#image-preheating) · [Progressive Decoding](#progressive-decoding) · [Combine](#combine) · [RxNuke](#rxnuke)
+- **Advanced Features** ‣ [Preheat Images](#image-preheating) · [Progressive Decoding](#progressive-decoding)
+- [**Extensions**](#h_plugins) ‣ [FetchImage](#fetch-image) · [Builder](#builder) · [Combine](#combine) · [RxNuke](#rxnuke) · [And More](#h_plugins) 
 
 To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/8.0/index.html), and check out the demo project included in the repo. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, the [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Troubleshooting.md) might help. 
 
@@ -36,7 +37,7 @@ To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuk
 To learn more about the pipeline and the supported formats, see the dedicated guides.
 
 - [**Image Formats**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) ‣ [Progressive JPEG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#progressive-jpeg) · [HEIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#heif) · [GIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#gif) · [SVG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#svg) · [WebP](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#webp) 
-- **Image Pipeline** ‣ [Overview](#h_design) · [Data Loading and Caching](#data-loading-and-caching) · [Resumable Downloads](#resumable-downloads) · [Memory Cache](#memory-cache) · [Deduplication](#deduplication) · [Performance](#performance) · [Extensions](#h_plugins)
+- [**Image Pipeline**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md) ‣ [Data Loading](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#data-loading-and-caching) · [Resumable Downloads](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#resumable-downloads) · [Memory Cache](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#memory-cache) · [Deduplication](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#deduplication) · [Decompression](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#decompression) · [Performance](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#performance)
 
 If you'd like to contribute to Nuke see [**Contributing**](#h_contribute).
 
@@ -54,21 +55,20 @@ Nuke.loadImage(with: url, into: imageView)
 
 Nuke will check if the image exists in the memory cache, and if it does, will instantly display it. If not, the image data will be loaded, decoded, processed, and decompressed in the background.
 
-> See [Image Pipeline Overview](#h_design) to learn more about how images are downloaded and processed.
+> See [Image Pipeline Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md) to learn more about how images are downloaded and processed.
 
-### In a List
+### In a Table View
 
 When you request a new image for the existing view, Nuke will prepare it for reuse and cancel any outstanding requests for the view. Mangaging images in lists has never been easier.
 
 ```swift
-func collectionView(_ collectionView: UICollectionView,
-                    cellForItemAt indexPath: IndexPath)
-                    -> UICollectionViewCell {
+func tableView(_ tableView: UITableView, cellForItemAt indexPath: IndexPaths) -> UITableViewCell {
+    /* Create a cell ... */
     Nuke.loadImage(with: url, into: cell.imageView)
 }
 ```
 
-> The requests also get canceled automatically when the views are deallocated. Call `Nuke.cancelRequest(for: imageView)` to cancel the request manually.
+> The requests get canceled automatically when the views are deallocated. Call `Nuke.cancelRequest(for: imageView)` to cancel the request manually.
 
 ### Placeholders, Transitions, Content Modes
 
@@ -123,35 +123,6 @@ let request = ImageRequest(
 
 > There are more options available, to see all of them check the inline documentation for `ImageRequestOptions`.
 
-### SwiftUI
-
-[`FetchImage`](https://github.com/kean/FetchImage) is a Swift package that makes it easy to download images using Nuke and display them in SwiftUI apps. For more info, see the [introductory post](https://kean.github.io/post/introducing-fetch-image). 
-
-> **Note**: This is an API preview, it might change in the future.
-
-```swift
-public struct ImageView: View {
-    @ObservedObject var image: FetchImage
-
-    public var body: some View {
-        ZStack {
-            Rectangle().fill(Color.gray)
-            image.view?
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-        }
-    }
-}
-```
-
-### Low Data Mode
-
-[`FetchImage`](https://github.com/kean/FetchImage) also offers built-in support for low-data mode via a special initializer:
-
-```swift
-FetchImage(regularUrl: highQualityUrl, lowDataUrl: lowQualityUrl)
-```
-
 <br/>
 
 # Image Processing
@@ -203,36 +174,6 @@ The `process` method is self-explanatory. `identifier: String` is used by disk c
 
 For one-off operations, use `ImageProcessor.Anonymous` to create a processor with a closure.
 
-### Decompression
-
-When you instantiate `UIImage` with `Data`, the data can be in a compressed format like `JPEG`. `UIImage` does _not_ eagerly decompress this data until you display it. This leads to performance issues like scroll view stuttering. To avoid these it, Nuke automatically decompresses the data in the background. Decompression only runs if needed, it won't run for already processed images.
-
-> See [Image and Graphics Best Practices](https://developer.apple.com/videos/play/wwdc2018/219) to learn more about image decoding and downsampling.
-
-### Builder
-
-Find the default API a bit boring? Try [ImageTaskBuilder](https://github.com/kean/ImageTaskBuilder), a fun and convenient way to use Nuke.
-
-```swift
-ImagePipeline.shared.image(with: URL(string: "https://")!)
-    .fill(width: 320)
-    .blur(radius: 10)
-    .priority(.high)
-    .start { result in
-        print(result)
-    }
-
-// Returns `ImageTask` when started.
-```
-
-```swift
-let imageView: UIImageView
-
-ImagePipeline.shared.image(with: URL(string: "https://")!)
-    .fill(width: imageView.size.width)
-    .display(in: imageView)
-```
-
 <br/>
 
 # Image Pipeline
@@ -266,7 +207,7 @@ task.priority = .high
 
 If you want to build a system that fits your specific needs, you won't be disappointed. There are a _lot of things_ to tweak. You can set custom data loaders and caches, configure image encoders and decoders, change the number of concurrent operations for each individual stage, disable and enable features like deduplication and rate limiting, and more.
 
-> To learn more see the inline documentation for `ImagePipeline.Configuration` and [Image Pipeline Overview](#h_design).
+> To learn more see the inline documentation for `ImagePipeline.Configuration` and [Image Pipeline Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md).
 
 <img align="right" src="https://user-images.githubusercontent.com/1567433/59148462-94f60280-8a09-11e9-906a-6c7209b8f8c8.png" width="360"/>
 
@@ -476,6 +417,81 @@ let task = ImagePipeline.shared.loadImage(
 )
 ```
 
+<br/>
+
+<a name="h_plugins"></a>
+## Extensions
+
+There is a variety of extensions available for Nuke:
+
+|Name|Description|
+|--|--|
+|[**FetchImage**](https://github.com/kean/FetchImage)|SwiftUI integration|
+|[**ImagePublisher**](https://github.com/kean/ImagePublisher)|Combine publishers for Nuke|
+|[**ImageTaskBuilder**](https://github.com/kean/ImageTaskBuilder)|A fun and convenient way to use Nuke|
+|[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks|
+|[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples of common use cases solved by Rx|
+|[**WebP Plugin**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **[Community]** [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
+|[**Gifu Plugin**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
+|[**FLAnimatedImage Plugin**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
+|[**Xamarin NuGet**](https://github.com/roubachof/Xamarin.Forms.Nuke)| **[Community]** Makes it possible to use Nuke from Xamarin|
+
+<br/>
+
+<a name="fetch-image"></a>
+### [`FetchImage`](https://github.com/kean/FetchImage)
+
+[`FetchImage`](https://github.com/kean/FetchImage) is a Swift package that makes it easy to download images using Nuke and display them in SwiftUI apps. For more info, see the [introductory post](https://kean.github.io/post/introducing-fetch-image). 
+
+> **Note**: This is an API preview, it might change in the future.
+
+```swift
+public struct ImageView: View {
+    @ObservedObject var image: FetchImage
+
+    public var body: some View {
+        ZStack {
+            Rectangle().fill(Color.gray)
+            image.view?
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+        }
+    }
+}
+```
+
+**Low Data Mode**
+
+[`FetchImage`](https://github.com/kean/FetchImage) also offers built-in support for low-data mode via a special initializer:
+
+```swift
+FetchImage(regularUrl: highQualityUrl, lowDataUrl: lowQualityUrl)
+```
+
+### Builder
+
+Find the default API a bit boring? Try [ImageTaskBuilder](https://github.com/kean/ImageTaskBuilder), a fun and convenient way to use Nuke.
+
+```swift
+ImagePipeline.shared.image(with: URL(string: "https://")!)
+    .fill(width: 320)
+    .blur(radius: 10)
+    .priority(.high)
+    .start { result in
+        print(result)
+    }
+
+// Returns `ImageTask` when started.
+```
+
+```swift
+let imageView: UIImageView
+
+ImagePipeline.shared.image(with: URL(string: "https://")!)
+    .fill(width: imageView.size.width)
+    .display(in: imageView)
+```
+
 ### RxNuke
 
 [RxNuke](https://github.com/kean/RxNuke) adds [RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke and enables common use cases: [Going from low to high resolution](https://github.com/kean/RxNuke#going-from-low-to-high-resolution) | [Loading the first available image](https://github.com/kean/RxNuke#loading-the-first-available-image) | [Showing stale image while validating it](https://github.com/kean/RxNuke#showing-stale-image-while-validating-it) | [Load multiple images, display all at once](https://github.com/kean/RxNuke#load-multiple-images-display-all-at-once) | [Auto retry on failures](https://github.com/kean/RxNuke#auto-retry) | [And more](https://github.com/kean/RxNuke#use-cases)
@@ -493,85 +509,6 @@ Observable.concat(pipeline.loadImage(with: lowResUrl).orEmpty,
 ### Combine
 
 [ImagePublisher](https://github.com/kean/ImagePublisher) adds Combine publishers for Nuke and, just like [RxNuke](https://github.com/kean/RxNuke), enables a variety of powerful use cases.
-
-<br/>
-
-<a name="h_design"></a>
-# Image Pipeline Overview
-
-This section describes in detail what happens when you perform a call like `Nuke.loadImage(with: url, into: view)`.
-
-> As a visual aid, use this [Block Diagram](https://github.com/kean/Nuke/blob/8.0/Documentation/Assets/image-pipeline.svg).
-
-First, Nuke synchronously checks if the image is stored in the memory cache. If the image is not in memory, Nuke calls `pipeline.loadImage(with: request)`.
-
-The pipeline first checks if the image or image data exists in any of its caches. It checks if the processed image exists in the memory cache, then if the processed image data exists in the custom data cache (disabled by default), then if the data cache contains the original image data. Only if there is no cached data, the pipeline will start loading the data. When the data is loaded the pipeline decodes it, applies the processors, and decompresses the image in the background.
-
-### Data Loading and Caching
-
-A `DataLoader` class uses [`URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) to load image data. The data is cached on disk using [`URLCache`](https://developer.apple.com/reference/foundation/urlcache), which by default is initialized with memory capacity of 0 MB (only stores processed images in memory) and disk capacity of 150 MB.
-
-> See [Image Caching Guide](https://kean.github.io/post/image-caching) to learn more about HTTP cache.
-
-The `URLSession` class natively supports the following URL schemes: `data`, `file`, `ftp`, `http`, and `https`.
-
-Most developers either implement their own networking layer or use a third-party framework. Nuke supports both of these workflows. You can integrate your custom networking layer by implementing `DataLoading` protocol.
-
-> See [Third Party Libraries](https://github.com/kean/Nuke/blob/8.0/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries) guide to learn more. See also [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin).
-
-### Resumable Downloads
-
-If the data task is terminated (either because of a failure or a cancelation) and the image was partially loaded, the next load will resume where it was left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators (`ETag` and `Last-Modified`). The resumable downloads are enabled by default.
-
-### Memory Cache
-
-The processed images are stored in a fast in-memory cache (`ImageCache`). It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a limit of ~20% of available RAM. `ImageCache` automatically evicts images on memory warnings and removes a portion of its contents when the application enters background mode.
-
-### Deduplication
-
-The pipeline avoids doing any duplicated work when loading images. For example, let's take these two requests:
-
-```swift
-let url = URL(string: "http://example.com/image")
-pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ImageProcessor.Resize(size: CGSize(width: 44, height: 44)),
-    ImageProcessor.GaussianBlur(radius: 8)
-]))
-pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
-]))
-```
-
-Nuke will load the data only once, resize the image once and blur it also only once. There is no duplicated work done. The work only gets cancelled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
-
-> Deduplication can be disabled using `isDeduplicationEnabled` configuration option.
-
-### Performance
-
-<img align="right" src="https://user-images.githubusercontent.com/1567433/59372512-f7bc0680-8d47-11e9-865e-f739f013ad49.png" width="360"/>
-
-Nuke is tuned to do as little work on the main thread as possible. It uses multiple optimization techniques to achieve that: reducing the number of allocations, reducing dynamic dispatch, CoW, etc.
-
-Nuke is fully asynchronous and performs well under stress. `ImagePipeline` schedules its operations on dedicated queues. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible. Under the extreme load, `ImagePipeline` will also rate limit the requests to prevent saturation of the underlying systems.
-
-If you want to see how the system behaves, how long each operation takes, and how many are performed in parallel, enable the `isSignpostLoggingEnabled` option and use the `os_signpost` Instrument. For more information see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
-
-<a name="h_plugins"></a>
-### Extensions
-
-There is a variety of extensions available for Nuke:
-
-|Name|Description|
-|--|--|
-|[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples of common use cases solved by Rx|
-|[**FetchImage**](https://github.com/kean/FetchImage)|SwiftUI integration|
-|[**ImagePublisher**](https://github.com/kean/ImagePublisher)|Combine publishers for Nuke|
-|[**ImageTaskBuilder**](https://github.com/kean/ImageTaskBuilder)|A fun and convenient way to use Nuke|
-|[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks|
-|[**WebP Plugin**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **[Community]** [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
-|[**Gifu Plugin**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
-|[**FLAnimatedImage Plugin**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
-|[**Xamarin NuGet**](https://github.com/roubachof/Xamarin.Forms.Nuke)| **[Community]** Makes it possible to use Nuke from Xamarin|
 
 <br/>
 

@@ -1,4 +1,4 @@
-# Integrating With Third-Party Libraries
+# Integration With Third-Party Libraries
 
 ### Using Other Networking Libraries
 
