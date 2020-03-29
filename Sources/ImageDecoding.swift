@@ -96,7 +96,7 @@ public extension ImageDecoders {
                 return nil
             }
             // Keep original data around in case of GIF
-            if ImagePipeline.Configuration.isAnimatedImageDataEnabled, case .gif? = format {
+            if ImagePipeline.Configuration._isAnimatedImageDataEnabled, case .gif? = format {
                 image.animatedImageData = data
             }
             var container = ImageContainer(image: image, data: image.animatedImageData)

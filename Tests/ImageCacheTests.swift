@@ -203,12 +203,12 @@ class ImageCacheTests: XCTestCase {
         image.animatedImageData = data
 
         // Then
-        XCTAssertFalse(ImagePipeline.Configuration.isAnimatedImageDataEnabled)
+        XCTAssertFalse(ImagePipeline.Configuration._isAnimatedImageDataEnabled)
         XCTAssertEqual(cache.cost(for: ImageContainer(image: image)), 558000)
 
-        ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
+        ImagePipeline.Configuration._isAnimatedImageDataEnabled = true
         XCTAssertEqual(cache.cost(for: ImageContainer(image: image)), 558000 + 427672)
-        ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
+        ImagePipeline.Configuration._isAnimatedImageDataEnabled = false
     }
 
     func testImageContainerWithoutAssociatedDataCost() {

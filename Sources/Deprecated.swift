@@ -288,7 +288,7 @@ public extension ImageProcessor.RoundedCorners {
 
 // Deprecated in 8.5
 public extension ImagePipeline.Configuration {
-    @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead.")
+    @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead.") // Deprecated in 8.5
     var isDataCachingForOriginalImageDataEnabled: Bool {
         get {
             return dataCacheOptions.storedItems.contains(.originalImageData)
@@ -302,7 +302,7 @@ public extension ImagePipeline.Configuration {
         }
     }
 
-    @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead. Please note that the new behavior is different from the previous versions. Now, instead of storing only processd image, it encodes and stores all downloaded images.")
+    @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead. Please note that the new behavior is different from the previous versions. Now, instead of storing only processd image, it encodes and stores all downloaded images.") // Deprecated in 8.5
     var isDataCachingForProcessedImagesEnabled: Bool {
         get {
             return dataCacheOptions.storedItems.contains(.finalImage)
@@ -314,5 +314,11 @@ public extension ImagePipeline.Configuration {
                 dataCacheOptions.storedItems.remove(.finalImage)
             }
         }
+    }
+
+    @available(*, deprecated, message: "The default image decoder now automatically attaches image data to the newly added ImageContainer type. To learn how to implement animated image support using this new type, see the new Image Formats guide https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md") // Deprecated in 8.5
+    static var isAnimatedImageDataEnabled: Bool {
+        get { return _isAnimatedImageDataEnabled }
+        set { _isAnimatedImageDataEnabled = newValue }
     }
 }

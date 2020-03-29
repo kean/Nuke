@@ -146,7 +146,7 @@ extension ImagePipeline {
         /// attaches image data to ImageContainer when it detects GIFs.
         /// The decompression of placeholders is no longet disabled,
         /// there is no technical limitation to do thay anymore.")
-        public static var isAnimatedImageDataEnabled = false // Deprecated in Nuke 8.5
+        static var _isAnimatedImageDataEnabled = false
 
         /// `false` by default. If `true`, enables `os_signpost` logging for
         /// measuring performance. You can visually see all the performance

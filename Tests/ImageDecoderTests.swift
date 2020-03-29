@@ -53,14 +53,14 @@ class ImageDecoderTests: XCTestCase {
     }
 
     func testDecodingGIFsSoftDeprecated() {
-        XCTAssertFalse(ImagePipeline.Configuration.isAnimatedImageDataEnabled)
+        XCTAssertFalse(ImagePipeline.Configuration._isAnimatedImageDataEnabled)
 
         let data = Test.data(name: "cat", extension: "gif")
         XCTAssertNil(ImageDecoders.Default().decode(data: data)?.animatedImageData)
 
-        ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
+        ImagePipeline.Configuration._isAnimatedImageDataEnabled = true
         XCTAssertNotNil(ImageDecoders.Default().decode(data: data)?.animatedImageData)
-        ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
+        ImagePipeline.Configuration._isAnimatedImageDataEnabled = false
     }
 
     func testDecodingGIFDataAttached() {

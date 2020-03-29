@@ -121,7 +121,7 @@ class ImagePipelineTests: XCTestCase {
 
     func testAnimatedImagesArentProcessed() {
         // Given
-        ImagePipeline.Configuration.isAnimatedImageDataEnabled = true
+        ImagePipeline.Configuration._isAnimatedImageDataEnabled = true
 
         dataLoader.results[Test.url] = .success(
             (Test.data(name: "cat", extension: "gif"), Test.urlResponse)
@@ -140,7 +140,7 @@ class ImagePipelineTests: XCTestCase {
         }
         wait()
 
-        ImagePipeline.Configuration.isAnimatedImageDataEnabled = false
+        ImagePipeline.Configuration._isAnimatedImageDataEnabled = false
     }
 
     // MARK: - Updating Priority
