@@ -9,7 +9,7 @@ import Gifu
 // MARK: - AnimatedImageViewController
 
 final class AnimatedImageViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout {
-    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+    override init(nibName nibNameOrNil: String? = nil, bundle nibBundleOrNil: Bundle? = nil) {
         super.init(collectionViewLayout: UICollectionViewFlowLayout())
     }
 

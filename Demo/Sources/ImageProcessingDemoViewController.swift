@@ -5,8 +5,8 @@
 import UIKit
 import Nuke
 
-class ImageProcessingDemoViewController: UIViewController, ImagePipelineSettingsViewControllerDelegate {
-    var pipeline = ImagePipeline.shared
+final class ImageProcessingDemoViewController: UIViewController, ImagePipelineSettingsViewControllerDelegate {
+    private var pipeline = ImagePipeline.shared
 
     private let views: [[ImageProcessingView]] = [
         [ImageProcessingView(), ImageProcessingView()],
@@ -102,7 +102,7 @@ class ImageProcessingDemoViewController: UIViewController, ImagePipelineSettings
         ])
     }
 
-    func loadImage(view: ImageProcessingView, title: String, processors: [ImageProcessing]) {
+    private func loadImage(view: ImageProcessingView, title: String, processors: [ImageProcessing]) {
         let request = ImageRequest(
             url: URL(string: "https://user-images.githubusercontent.com/1567433/59150453-178bbb80-8a24-11e9-94ca-fd8dff6e2a9a.jpeg")!,
             processors: processors
@@ -118,14 +118,14 @@ class ImageProcessingDemoViewController: UIViewController, ImagePipelineSettings
 
     // MARK: - Actions
 
-    @objc func refreshControlValueChanged() {
+    @objc private func refreshControlValueChanged() {
         loadImages()
         DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(1)) {
             self.refreshControl.endRefreshing()
         }
     }
 
-    @objc func buttonShowSettingsTapped() {
+    @objc private func buttonShowSettingsTapped() {
        ImagePipelineSettingsViewController.show(from: self, pipeline: pipeline)
     }
 
@@ -137,7 +137,9 @@ class ImageProcessingDemoViewController: UIViewController, ImagePipelineSettings
     }
 }
 
-class ImageProcessingView: UIView {
+// MARK: - ImageProcessingView
+
+private class ImageProcessingView: UIView {
     let titleLabel = UILabel()
     let imageView = UIImageView()
 

@@ -12,7 +12,6 @@ final class AlamofireIntegrationDemoViewController: BasicDemoViewController {
 
         pipeline = ImagePipeline {
             $0.dataLoader = AlamofireDataLoader()
-
             $0.imageCache = ImageCache()
         }
     }

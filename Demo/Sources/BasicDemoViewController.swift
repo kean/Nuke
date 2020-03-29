@@ -5,12 +5,10 @@
 import UIKit
 import Nuke
 
-private let cellReuseID = "reuseID"
-
+/// A base view controller.
 class BasicDemoViewController: UICollectionViewController, ImagePipelineSettingsViewControllerDelegate {
-    var photos: [URL]!
-
-    var pipeline = Nuke.ImagePipeline.shared
+    var photos: [URL] = []
+    var pipeline = ImagePipeline.shared
     var itemsPerRow: Int = 4
 
     init(collectionViewLayout: UICollectionViewFlowLayout = UICollectionViewFlowLayout()) {
@@ -91,12 +89,12 @@ class BasicDemoViewController: UICollectionViewController, ImagePipelineSettings
     func imageViewForCell(_ cell: UICollectionViewCell) -> UIImageView {
         var imageView: UIImageView! = cell.viewWithTag(15) as? UIImageView
         if imageView == nil {
-            imageView = UIImageView(frame: cell.bounds)
-            imageView.autoresizingMask =  [.flexibleWidth, .flexibleHeight]
+            imageView = UIImageView()
             imageView.tag = 15
             imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
-            cell.addSubview(imageView!)
+            cell.addSubview(imageView)
+            imageView.pinToSuperview()
         }
         return imageView!
     }
@@ -121,3 +119,5 @@ class BasicDemoViewController: UICollectionViewController, ImagePipelineSettings
         vc.dismiss(animated: true) {}
     }
 }
+
+private let cellReuseID = "reuseID"

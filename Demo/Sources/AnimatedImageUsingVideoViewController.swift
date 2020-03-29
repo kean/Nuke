@@ -9,7 +9,7 @@ import AVKit
 // MARK: - AnimatedImageUsingVideoViewController
 
 final class AnimatedImageUsingVideoViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout {
-    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+    override init(nibName nibNameOrNil: String? = nil, bundle nibBundleOrNil: Bundle? = nil) {
         super.init(collectionViewLayout: UICollectionViewFlowLayout())
     }
 

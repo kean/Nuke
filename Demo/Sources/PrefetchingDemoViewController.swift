@@ -9,7 +9,6 @@ private let cellReuseID = "reuseID"
 private var loggingEnabled = false
 
 final class PrefetchingDemoViewController: BasicDemoViewController, UICollectionViewDataSourcePrefetching {
-
     let preheater = ImagePreheater()
 
     override func viewDidLoad() {
