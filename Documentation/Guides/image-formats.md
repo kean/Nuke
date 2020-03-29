@@ -95,4 +95,51 @@ TBD:
 
 ### GIF
 
-TBD:
+The default image decoder `ImageDecoders.Default` automatically recognized GIFs. It creates an image container (`ImageContainer`) with the first frame of the GIF as placeholder and attaches the original image data to the container.
+
+To render animated GIFs, please consider using one of the open-souce GIF rendering engines, like [Gifu](https://github.com/kaishin/Gifu), [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage), or other.
+
+**Gifu Example**
+
+```swift
+/// A custom image view that supports downloading and displaying animated images.
+final class ImageView: UIView {
+    private let imageView: GIFImageView
+    private let spinner: UIActivityIndicatorView
+    private var task: ImageTask?
+
+    /* Initializers skipped */
+
+    func setImage(with url: URL) {
+        prepareForReuse()
+
+        if let response = ImagePipeline.shared.cachedResponse(for: url) {
+            return imageView.display(response: response)
+        }
+
+        spinner.startAnimating()
+        task = ImagePipeline.shared.loadImage(with: url) { [weak self] result in
+            self?.spinner.stopAnimating()
+            if case let .success(response) = result {
+                self?.imageView.display(response: response)
+            }
+        }
+    }
+    
+    private func display(response: ImageResponse) {
+        if let data = response.container.data {
+            animate(withGIFData: data)
+        } else {
+            image = response.image
+        }
+    }
+    
+    private func prepareForReuse() {
+        task?.cancel()
+        spinner.stopAnimating()
+        imageView.prepareForReuse()
+    }
+}
+```
+
+> `GIF` is not the most efficient format for transferring and displaying animated images. The current best practice is to [use short videos instead of GIFs](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/) (e.g. `MP4`, `WebM`). There is a PoC available in the demo project which uses Nuke to load, cache and display an `MP4` video.

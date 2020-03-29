@@ -250,6 +250,10 @@ public /* final */ class ImagePipeline {
 // MARK: - Image Cache
 
 public extension ImagePipeline {
+    /// Returns a cached response from the memory cache.
+    func cachedResponse(for url: URL) -> ImageResponse? {
+        return cachedResponse(for: ImageRequest(url: url))
+    }
 
     /// Returns a cached response from the memory cache. Returns `nil` if the request disables
     /// memory cache reads.

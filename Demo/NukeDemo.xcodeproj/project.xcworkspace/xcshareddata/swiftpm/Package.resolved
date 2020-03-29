@@ -23,8 +23,8 @@
         "package": "Nuke",
         "repositoryURL": "https://github.com/kean/Nuke",
         "state": {
-          "branch": "master",
-          "revision": "e881a95f843ab21bfeaaaf9456c104ca607c5924",
+          "branch": "image-decoding-guide",
+          "revision": "b1b26e148d993deaff5066a4d88a6f4a291b4bab",
           "version": null
         }
       },
