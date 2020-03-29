@@ -27,40 +27,6 @@ extension UIView {
 
 // MARK: Core Image Integrations
 
-let sharedCIContext = CIContext()
-
-extension UIImage {
-    func applyFilter(context: CIContext = sharedCIContext, closure: (CoreImage.CIImage) -> CoreImage.CIImage?) -> UIImage? {
-        func inputImageForImage(_ image: UIImage) -> CoreImage.CIImage? {
-            if let image = image.cgImage {
-                return CoreImage.CIImage(cgImage: image)
-            }
-            if let image = image.ciImage {
-                return image
-            }
-            return nil
-        }
-        guard let inputImage = inputImageForImage(self),
-            let outputImage = closure(inputImage) else {
-            return nil
-        }
-        guard let imageRef = context.createCGImage(outputImage, from: inputImage.extent) else {
-            return nil
-        }
-        return UIImage(cgImage: imageRef, scale: self.scale, orientation: self.imageOrientation)
-    }
-
-    func applyFilter(filter: CIFilter?, context: CIContext = sharedCIContext) -> UIImage? {
-        guard let filter = filter else {
-            return nil
-        }
-        return applyFilter(context: context) {
-            filter.setValue($0, forKey: kCIInputImageKey)
-            return filter.outputImage
-        }
-    }
-}
-
 /// Blurs image using CIGaussianBlur filter. Only blurs first scans of the
 /// progressive JPEG.
 struct _ProgressiveBlurImageProcessor: ImageProcessing, Hashable {
@@ -81,7 +47,8 @@ struct _ProgressiveBlurImageProcessor: ImageProcessing, Hashable {
         if scanNumber < 5 {
             // Progressively reduce blur as we load more scans.
             let radius = max(2, 14 - scanNumber * 4)
-            return image.applyFilter(filter: CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius" : radius]))
+            let filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius" : radius])
+            return ImageProcessors.CoreImageFilter.apply(filter: filter, to: image)
         }
 
         // Scans 5+ are already good enough not to blur them.
