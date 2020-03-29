@@ -15,7 +15,7 @@
 
 Nuke provides a simple and efficient way to download and display images in your app. Behind its clear and concise API is an advanced architecture which enables its unique features and offers virtually unlimited possibilities for customization.
 
-> **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG, WebP, SVG** · **Animated images** · **Alamofire, Gifu** · **Combine** · **Reactive extensions**
+> **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG** · **WebP, SVG, GIF** · **Alamofire** · **Combine** · **Reactive extensions**
 
 <br/>
 
@@ -27,7 +27,7 @@ Nuke is easy to learn and use. Here is an overview of its APIs and features:
 - **Image Processing** ‣ [`Resize`](#resize) | [`GaussianBlur`, Core Image](#gaussianblur-core-image) | [Custom Processors](#custom-processors) | [Decompression](#decompression) | [Builder](#builder)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) | [`ImageTask`](#imagetask) | [Customize Image Pipeline](#customize-image-pipeline) | [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) | [HTTP Disk Cache](#http-disk-cache) | [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
-- **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [WebP](#webp) | [SVG](#svg) | [Combine](#combine) | [RxNuke](#rxnuke)
+- **Advanced Features** ‣ [Preheat Images](#image-preheating) | [Progressive Decoding](#progressive-decoding) | [WebP](#webp) | [Combine](#combine) | [RxNuke](#rxnuke)
 
 To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/8.0/index.html), and check out the demo project included in the repo. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, the [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Troubleshooting.md) might help. 
 
@@ -35,7 +35,7 @@ To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuk
 
 To learn more about the pipeline and the supported formats, see the dedicated guides.
 
-- [**Image Formats**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) ‣ [Codecs](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) | [GIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#gif)
+- [**Image Formats**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) ‣ [Codecs](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) | [GIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#gif) | [SVG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#svg)
 - **Image Pipeline** ‣ [Overview](#h_design) | [Data Loading and Caching](#data-loading-and-caching) | [Resumable Downloads](#resumable-downloads) | [Memory Cache](#memory-cache) | [Deduplication](#deduplication) | [Performance](#performance) | [Extensions](#h_plugins)
 
 If you'd like to contribute to Nuke see [**Contributing**](#h_contribute).
@@ -479,37 +479,6 @@ let task = ImagePipeline.shared.loadImage(
 ### WebP
 
 WebP support is provided by [Nuke WebP Plugin](https://github.com/ryokosuge/Nuke-WebP-Plugin) built by [Ryo Kosuge](https://github.com/ryokosuge). Please follow the instructions from the repo.
-
-### SVG
-
-To render SVG, consider using [SwiftSVG](https://github.com/mchoe/SwiftSVG), [SVG](https://github.com/SVGKit/SVGKit), or other frameworks. Here is an example of `SwiftSVG` being used to render vector images.
-
-```swift
-ImageDecoderRegistry.shared.register { context in
-    // Replace this with whatever works for. There are no magic numbers
-    // for SVG like are used for other binary formats, it's just XML.
-    let isSVG = context.urlResponse?.url?.absoluteString.hasSuffix(".svg") ?? false
-    return isSVG ? ImageDecoders.Empty() : nil
-}
-
-let url = URL(string: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Swift_logo.svg")!
-ImagePipeline.shared.loadImage(with: url) { [weak self] result in
-    guard let self = self, let data = try? result.get().container.data else {
-        return
-    }
-    // You can render image using whatever size you want, vector!
-    let targetBounds = CGRect(origin: .zero, size: CGSize(width: 300, height: 300))
-    let svgView = UIView(SVGData: data) { layer in
-        layer.fillColor = UIColor.orange.cgColor
-        layer.resizeToFit(targetBounds)
-    }
-    self.view.addSubview(svgView)
-    svgView.bounds = targetBounds
-    svgView.center = self.view.center
-}
-```
-
-> Please keep in mind that most of these frameworks are limited in terms of supported SVG features.
 
 ### RxNuke
 

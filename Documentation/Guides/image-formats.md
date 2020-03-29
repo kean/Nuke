@@ -2,8 +2,8 @@
 
 Nuke offers built-in support for basic image formats like `jpeg`, `png`, and `heif`. But it also has infrastructure capable of supporting a variety of image formats and features of these formats, including but not limited to: 
 
-- `gif`
-- `svg`
+- [`gif`](#gif)
+- [`svg`](#svg)
 - `pdf`
 - [`webp`](https://developers.google.com/speed/webp)
 
@@ -145,3 +145,34 @@ final class ImageView: UIView {
 To see this code in action, check out the demo project attached in the repo.
 
 > `GIF` is not the most efficient format for transferring and displaying animated images. The current best practice is to [use short videos instead of GIFs](https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/replace-animated-gifs-with-video/) (e.g. `MP4`, `WebM`). There is a PoC available in the demo project which uses Nuke to load, cache and display an `MP4` video.
+
+### SVG
+
+To render SVG, consider using [SwiftSVG](https://github.com/mchoe/SwiftSVG), [SVG](https://github.com/SVGKit/SVGKit), or other frameworks. Here is an example of `SwiftSVG` being used to render vector images.
+
+```swift
+ImageDecoderRegistry.shared.register { context in
+    // Replace this with whatever works for. There are no magic numbers
+    // for SVG like are used for other binary formats, it's just XML.
+    let isSVG = context.urlResponse?.url?.absoluteString.hasSuffix(".svg") ?? false
+    return isSVG ? ImageDecoders.Empty() : nil
+}
+
+let url = URL(string: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Swift_logo.svg")!
+ImagePipeline.shared.loadImage(with: url) { [weak self] result in
+    guard let self = self, let data = try? result.get().container.data else {
+        return
+    }
+    // You can render image using whatever size you want, vector!
+    let targetBounds = CGRect(origin: .zero, size: CGSize(width: 300, height: 300))
+    let svgView = UIView(SVGData: data) { layer in
+        layer.fillColor = UIColor.orange.cgColor
+        layer.resizeToFit(targetBounds)
+    }
+    self.view.addSubview(svgView)
+    svgView.bounds = targetBounds
+    svgView.center = self.view.center
+}
+```
+
+> Please keep in mind that most of these frameworks are limited in terms of supported SVG features.
