@@ -162,10 +162,10 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         wait()
 
         // Then decompressed image is stored in disk cache
-        let response = cache.cachedResponse(for: self.request)
-        XCTAssertNotNil(response)
+        let container = cache[self.request]
+        XCTAssertNotNil(container)
 
-        let image = try XCTUnwrap(response?.image)
+        let image = try XCTUnwrap(container?.image)
         let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
         XCTAssertEqual(isDecompressionNeeded, false, "Expected image to be decompressed")
     }

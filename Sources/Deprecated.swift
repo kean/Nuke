@@ -4,21 +4,9 @@
 
 import Foundation
 
-// MARK: - Image (Deprecated)
-
 // Deprecated in 8.4
 @available(*, deprecated, message: "Deprecated to avoid name clashes with SwiftUI. Please use `PlatformImage` instead.")
 public typealias Image = PlatformImage
-
-// MARK: - ImageProcessor.RoundedCorners.Border (Deprecated)
-
-// Deprecated in 8.4
-#if !os(macOS)
-public extension ImageProcessor.RoundedCorners {
-    @available(*, deprecated, message: "Please use `ImageProcessor.Border` instead.")
-    typealias Border = ImageProcessor.Border
-}
-#endif
 
 public extension ImagePipeline.Configuration {
     // Deprecated in 9.0
@@ -65,4 +53,18 @@ public extension ImageProcessingContext {
     var scanNumber: Int? {
         return response.container.userInfo[ImageDecoders.Default.scanNumberKey] as? Int
     }
+}
+
+// Deprecated in 9.0
+@available(*, deprecated, message: "Renamed to `ImageProcessors`")
+public typealias ImageProcessor = ImageProcessors
+
+public extension ImageProcessors {
+    // Deprecated in 9.0
+    @available(*, deprecated, message: "Renamed to `ImageProcessingOptions.Unit` to avoid polluting `ImageProcessors` namescape with non-processors.")
+    typealias Unit = ImageProcessingOptions.Unit
+
+    // Deprecated in 9.0
+    @available(*, deprecated, message: "Renamed to `ImageProcessingOptions.Border` to avoid polluting `ImageProcessors` namescape with non-processors.")
+    typealias Border = ImageProcessingOptions.Border
 }

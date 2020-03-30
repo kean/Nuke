@@ -43,11 +43,8 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     func testThatFailedPartialImagesAreIgnored() {
         // Given
         class FailingPartialsDecoder: ImageDecoding {
-            func decode(data: Data, isFinal: Bool) -> PlatformImage? {
-                if isFinal {
-                    return ImageDecoder().decode(data: data, isFinal: isFinal)
-                }
-                return nil // Fail every partial
+            func decode(_ data: Data) -> ImageContainer? {
+                return ImageDecoder().decode(data)
             }
         }
 
@@ -86,7 +83,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
         let request = ImageRequest(
             url: Test.url,
-            processors: [ImageProcessor.Resize(size: CGSize(width: 45, height: 30), unit: .pixels)]
+            processors: [ImageProcessors.Resize(size: CGSize(width: 45, height: 30), unit: .pixels)]
         )
 
         // When/Then
@@ -201,7 +198,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
         let finalLoaded = self.expectation(description: "Final image produced")
 
-        let request = ImageRequest(url: Test.url, processors: [ImageProcessor.Anonymous(id: "1", { $0 })])
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
         pipeline.loadImage(
             with: request,
             progress: { image, _, _ in

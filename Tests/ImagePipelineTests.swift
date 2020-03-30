@@ -127,7 +127,7 @@ class ImagePipelineTests: XCTestCase {
             (Test.data(name: "cat", extension: "gif"), Test.urlResponse)
         )
 
-        let processor = ImageProcessor.Anonymous(id: "1") { _ in
+        let processor = ImageProcessors.Anonymous(id: "1") { _ in
             XCTFail()
             return nil
         }
@@ -196,7 +196,7 @@ class ImagePipelineTests: XCTestCase {
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
 
-        let request = ImageRequest(url: Test.url, processors: [ImageProcessor.Anonymous(id: "1", { $0 })])
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
         XCTAssertEqual(request.priority, .normal)
 
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
@@ -262,7 +262,7 @@ class ImagePipelineTests: XCTestCase {
 
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        let processor = ImageProcessor.Anonymous(id: "1") {
+        let processor = ImageProcessors.Anonymous(id: "1") {
             XCTFail()
             return $0
         }
@@ -349,7 +349,7 @@ class ImagePipelineTests: XCTestCase {
     func testDecompressionNotPerformedWhenProcessorWasApplied() {
         // Given request with scaling processor
         let request = ImageRequest(url: Test.url, processors: [
-            ImageProcessor.Resize(size: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+            ImageProcessors.Resize(size: CGSize(width: 40, height: 40), contentMode: .aspectFit)
         ])
 
         expect(pipeline).toLoadImage(with: request) { result in
@@ -390,7 +390,7 @@ class ImagePipelineTests: XCTestCase {
 
     func testCacheKeyForFinalImage() {
         var request = Test.request
-        request.processors = [ImageProcessor.Anonymous(id: "1", { $0 })]
+        request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
         XCTAssertEqual(pipeline.cacheKey(for: request, item: .finalImage), Test.url.absoluteString + "1")
     }
 }
@@ -426,12 +426,12 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
         // Then
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertNotNil(cache.cachedResponse(for: Test.request))
+        XCTAssertNotNil(cache[Test.request])
     }
 
     func testCacheRead() {
         // Given
-        cache.storeResponse(ImageResponse(container: .init(image: Test.image), urlResponse: nil), for: Test.request)
+        cache[Test.request] = ImageContainer(image: Test.image)
 
         // When
         expect(pipeline).toLoadImage(with: Test.request)
@@ -439,7 +439,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
         // Then
         XCTAssertEqual(dataLoader.createdTaskCount, 0)
-        XCTAssertNotNil(cache.cachedResponse(for: Test.request))
+        XCTAssertNotNil(cache[Test.request])
     }
 
     func testCacheWriteDisabled() {
@@ -453,12 +453,12 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
         // Then
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertNil(cache.cachedResponse(for: Test.request))
+        XCTAssertNil(cache[Test.request])
     }
 
     func testCacheReadDisabled() {
         // Given
-        cache.storeResponse(ImageResponse(container: .init(image: Test.image), urlResponse: nil), for: Test.request)
+        cache[Test.request] = ImageContainer(image: Test.image)
 
         var request = Test.request
         request.options.memoryCacheOptions.isReadAllowed = false
@@ -469,7 +469,7 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
 
         // Then
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertNotNil(cache.cachedResponse(for: Test.request))
+        XCTAssertNotNil(cache[Test.request])
     }
 }
 

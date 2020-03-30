@@ -136,9 +136,17 @@ public struct ImageContainer {
         self.data = data
         self.userInfo = userInfo
     }
+
+    /// Modifies the wrapped image and keeps all of the context.
+    func map(_ closure: (PlatformImage) -> PlatformImage?) -> ImageContainer? {
+        guard let image = closure(self.image) else {
+            return nil
+        }
+        return ImageContainer(image: image, data: data, userInfo: userInfo)
+    }
 }
 
-/// Represents an image response.
+/// Represents a response of a particular image task.
 public final class ImageResponse {
     public let container: ImageContainer
     /// A convenience computed property which returns an image from the container.
@@ -170,13 +178,12 @@ public final class ImageResponse {
         self._scanNumber = nil
     }
 
-    func map(_ transformation: (PlatformImage) -> PlatformImage?) -> ImageResponse? {
+    func map(_ transformation: (ImageContainer) -> ImageContainer?) -> ImageResponse? {
         return autoreleasepool {
-            guard let output = transformation(image) else {
+            guard let output = transformation(container) else {
                 return nil
             }
-            let container = ImageContainer(image: output, data: self.container.data, userInfo: self.container.userInfo)
-            return ImageResponse(container: container, urlResponse: urlResponse)
+            return ImageResponse(container: output, urlResponse: urlResponse)
         }
     }
 }

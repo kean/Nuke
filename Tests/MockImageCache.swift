@@ -8,25 +8,24 @@ import Foundation
 class MockImageCache: ImageCaching {
     let queue = DispatchQueue(label: "com.github.Nuke.MockCache")
     var enabled = true
-    var images = [AnyHashable: ImageResponse]()
+    var images = [AnyHashable: ImageContainer]()
     
     init() {}
 
-    func cachedResponse(for request: ImageRequest) -> ImageResponse? {
-        return queue.sync {
-            enabled ? images[ImageRequest.CacheKey(request: request)] : nil
+    subscript(request: ImageRequest) -> ImageContainer? {
+        get {
+            return queue.sync {
+                enabled ? images[ImageRequest.CacheKey(request: request)] : nil
+            }
         }
-    }
-
-    func storeResponse(_ response: ImageResponse, for request: ImageRequest) {
-        queue.sync {
-            if enabled { images[ImageRequest.CacheKey(request: request)] = response }
-        }
-    }
-
-    func removeResponse(for request: ImageRequest) {
-        queue.sync {
-            images[ImageRequest.CacheKey(request: request)] = nil
+        set {
+            queue.sync {
+                if let image = newValue {
+                    if enabled { images[ImageRequest.CacheKey(request: request)] = image }
+                } else {
+                    images[ImageRequest.CacheKey(request: request)] = nil
+                }
+            }
         }
     }
 }

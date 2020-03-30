@@ -83,10 +83,10 @@ class ImageProcessorResizeTests: XCTestCase {
 
     func testThatImageIsResizedToFill() {
         // Given
-        let processor = ImageProcessor.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
 
         // When
-        guard let image = processor.process(image: Test.image) else {
+        guard let image = processor.process(Test.image) else {
             return XCTFail("Fail to process the image")
         }
         guard let cgImage = image.cgImage else {
@@ -100,10 +100,10 @@ class ImageProcessorResizeTests: XCTestCase {
 
     func testThatImageIsntUpscaledByDefault() {
         // Given
-        let processor = ImageProcessor.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill)
 
         // When
-        guard let image = processor.process(image: Test.image) else {
+        guard let image = processor.process(Test.image) else {
             return XCTFail("Fail to process the image")
         }
         guard let cgImage = image.cgImage else {
@@ -117,10 +117,10 @@ class ImageProcessorResizeTests: XCTestCase {
 
     func testResizeToFitHeight() {
         // Given
-        let processor = ImageProcessor.Resize(height: 300, unit: .pixels)
+        let processor = ImageProcessors.Resize(height: 300, unit: .pixels)
 
         // When
-        guard let image = processor.process(image: Test.image) else {
+        guard let image = processor.process(Test.image) else {
             return XCTFail("Fail to process the image")
         }
         guard let cgImage = image.cgImage else {
@@ -134,10 +134,10 @@ class ImageProcessorResizeTests: XCTestCase {
 
     func testResizeToFitWidth() {
         // Given
-        let processor = ImageProcessor.Resize(width: 400, unit: .pixels)
+        let processor = ImageProcessors.Resize(width: 400, unit: .pixels)
 
         // When
-        guard let image = processor.process(image: Test.image) else {
+        guard let image = processor.process(Test.image) else {
             return XCTFail("Fail to process the image")
         }
         guard let cgImage = image.cgImage else {
@@ -151,10 +151,10 @@ class ImageProcessorResizeTests: XCTestCase {
 
     func testThatImageIsUpscaledIfOptionIsEnabled() {
         // Given
-        let processor = ImageProcessor.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill, upscale: true)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill, upscale: true)
 
         // When
-        guard let image = processor.process(image: Test.image) else {
+        guard let image = processor.process(Test.image) else {
             return XCTFail("Fail to process the image")
         }
         guard let cgImage = image.cgImage else {
@@ -168,10 +168,10 @@ class ImageProcessorResizeTests: XCTestCase {
 
     func testThatContentModeCanBeChangeToAspectFit() {
         // Given
-        let processor = ImageProcessor.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit)
 
         // When
-        guard let image = processor.process(image: Test.image) else {
+        guard let image = processor.process(Test.image) else {
             return XCTFail("Fail to process the image")
         }
         guard let cgImage = image.cgImage else {
@@ -185,10 +185,10 @@ class ImageProcessorResizeTests: XCTestCase {
 
     func testThatImageIsCropped() {
         // Given
-        let processor = ImageProcessor.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, crop: true)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, crop: true)
 
         // When
-        guard let image = processor.process(image: Test.image) else {
+        guard let image = processor.process(Test.image) else {
             return XCTFail("Fail to process the image")
         }
         guard let cgImage = image.cgImage else {
@@ -203,10 +203,10 @@ class ImageProcessorResizeTests: XCTestCase {
     #if os(iOS) || os(tvOS)
     func testThatScalePreserved() {
         // Given
-        let processor = ImageProcessor.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
 
         // When
-        guard let image = processor.process(image: Test.image) else {
+        guard let image = processor.process(Test.image) else {
             return XCTFail("Fail to process the image")
         }
 
@@ -223,10 +223,10 @@ class ImageProcessorCircleTests: XCTestCase {
 
     func testThatImageIsCroppedToSquareAutomatically() {
         // Given
-        let processor = ImageProcessor.Circle()
+        let processor = ImageProcessors.Circle()
 
         // When
-        guard let image = processor.process(image: Test.image) else {
+        guard let image = processor.process(Test.image) else {
             return XCTFail("Fail to process the image")
         }
         guard let cgImage = image.cgImage else {
@@ -249,10 +249,10 @@ class ImageProcessorRoundedCornersTests: XCTestCase {
     /// _some_ output is produced.
     func testThatImageIsProduced() {
         // Given
-        let processor = ImageProcessor.RoundedCorners(radius: 12)
+        let processor = ImageProcessors.RoundedCorners(radius: 12)
 
         // When
-        guard let image = processor.process(image: Test.image) else {
+        guard let image = processor.process(Test.image) else {
             return XCTFail("Fail to process the image")
         }
         guard let cgImage = image.cgImage else {
@@ -272,35 +272,35 @@ class ImageProcessorAnonymousTests: XCTestCase {
 
     func testAnonymousProcessorsHaveDifferentIdentifiers() {
         XCTAssertEqual(
-            ImageProcessor.Anonymous(id: "1", { $0 }).identifier,
-            ImageProcessor.Anonymous(id: "1", { $0 }).identifier
+            ImageProcessors.Anonymous(id: "1", { $0 }).identifier,
+            ImageProcessors.Anonymous(id: "1", { $0 }).identifier
         )
         XCTAssertNotEqual(
-            ImageProcessor.Anonymous(id: "1", { $0 }).identifier,
-            ImageProcessor.Anonymous(id: "2", { $0 }).identifier
+            ImageProcessors.Anonymous(id: "1", { $0 }).identifier,
+            ImageProcessors.Anonymous(id: "2", { $0 }).identifier
         )
     }
 
     func testAnonymousProcessorsHaveDifferentHashableIdentifiers() {
         XCTAssertEqual(
-            ImageProcessor.Anonymous(id: "1", { $0 }).hashableIdentifier,
-            ImageProcessor.Anonymous(id: "1", { $0 }).hashableIdentifier
+            ImageProcessors.Anonymous(id: "1", { $0 }).hashableIdentifier,
+            ImageProcessors.Anonymous(id: "1", { $0 }).hashableIdentifier
         )
         XCTAssertNotEqual(
-            ImageProcessor.Anonymous(id: "1", { $0 }).hashableIdentifier,
-            ImageProcessor.Anonymous(id: "2", { $0 }).hashableIdentifier
+            ImageProcessors.Anonymous(id: "1", { $0 }).hashableIdentifier,
+            ImageProcessors.Anonymous(id: "2", { $0 }).hashableIdentifier
         )
     }
 
     func testAnonymousProcessorIsApplied() {
         // Given
-        let processor = ImageProcessor.Anonymous(id: "1") {
+        let processor = ImageProcessors.Anonymous(id: "1") {
             $0.nk_test_processorIDs = ["1"]
             return $0
         }
 
         // When
-        let image = processor.process(image: Test.image, context: nil)
+        let image = processor.process(Test.image)
 
         // Then
         XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
@@ -313,13 +313,13 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testAppliesAllProcessors() {
         // Given
-        let processor = ImageProcessor.Composition([
+        let processor = ImageProcessors.Composition([
             MockImageProcessor(id: "1"),
             MockImageProcessor(id: "2")]
         )
 
         // When
-        let image = processor.process(image: Test.image)
+        let image = processor.process(Test.image)
 
         // Then
         XCTAssertEqual(image?.nk_test_processorIDs, ["1", "2"])
@@ -327,8 +327,8 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testIdenfitiers() {
         // Given different processors
-        let lhs = ImageProcessor.Composition([MockImageProcessor(id: "1")])
-        let rhs = ImageProcessor.Composition([MockImageProcessor(id: "2")])
+        let lhs = ImageProcessors.Composition([MockImageProcessor(id: "1")])
+        let rhs = ImageProcessors.Composition([MockImageProcessor(id: "2")])
 
         // Then
         XCTAssertNotEqual(lhs, rhs)
@@ -338,8 +338,8 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testIdentifiersDifferentProcessorCount() {
         // Given processors with different processor count
-        let lhs = ImageProcessor.Composition([MockImageProcessor(id: "1")])
-        let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+        let lhs = ImageProcessors.Composition([MockImageProcessor(id: "1")])
+        let rhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
         XCTAssertNotEqual(lhs, rhs)
@@ -349,8 +349,8 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testIdenfitiersEqualProcessors() {
         // Given processors with equal processors
-        let lhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
-        let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+        let lhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+        let rhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
         XCTAssertEqual(lhs, rhs)
@@ -361,8 +361,8 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testIdentifiersWithSameProcessorsButInDifferentOrder() {
         // Given processors with equal processors but in different order
-        let lhs = ImageProcessor.Composition([MockImageProcessor(id: "2"), MockImageProcessor(id: "1")])
-        let rhs = ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
+        let lhs = ImageProcessors.Composition([MockImageProcessor(id: "2"), MockImageProcessor(id: "1")])
+        let rhs = ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")])
 
         // Then
         XCTAssertNotEqual(lhs, rhs)
@@ -372,8 +372,8 @@ class ImageProcessorCompositionTest: XCTestCase {
 
     func testIdenfitiersEmptyProcessors() {
         // Given empty processors
-        let lhs = ImageProcessor.Composition([])
-        let rhs = ImageProcessor.Composition([])
+        let lhs = ImageProcessors.Composition([])
+        let rhs = ImageProcessors.Composition([])
 
         // Then
         XCTAssertEqual(lhs, rhs)
@@ -383,11 +383,11 @@ class ImageProcessorCompositionTest: XCTestCase {
     }
 
     func testThatIdentifiesAreFlattened() {
-        let lhs = ImageProcessor.Composition([
-            ImageProcessor.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")]),
-            ImageProcessor.Composition([MockImageProcessor(id: "3"), MockImageProcessor(id: "4")])]
+        let lhs = ImageProcessors.Composition([
+            ImageProcessors.Composition([MockImageProcessor(id: "1"), MockImageProcessor(id: "2")]),
+            ImageProcessors.Composition([MockImageProcessor(id: "3"), MockImageProcessor(id: "4")])]
         )
-        let rhs = ImageProcessor.Composition([
+        let rhs = ImageProcessors.Composition([
             MockImageProcessor(id: "1"), MockImageProcessor(id: "2"),
             MockImageProcessor(id: "3"), MockImageProcessor(id: "4")]
         )

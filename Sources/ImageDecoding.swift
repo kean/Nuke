@@ -14,47 +14,47 @@ import WatchKit
 
 // MARK: - ImageDecoding
 
-/// Decodes image data.
+/// An image decoder.
+///
+/// A decoder is a one-shot object created for a single image decoding session.
+///
+/// - note: If you need additional information in the decoder, you can pass
+/// anything that you might need from the `ImageDecodingContext`.
 public protocol ImageDecoding {
-    /// Produces an image from the image data. A decoder is a one-shot object
-    /// created for a single image decoding session. If image pipeline has
-    /// progressive decoding enabled, the `decode(data:isFinal:)` method gets
-    /// called each time the data buffer has new data available. The decoder may
-    /// decide whether or not to produce a new image based on the previous scans.
-    func decode(data: Data, isFinal: Bool) -> PlatformImage?
+    /// Produces an image from the given image data.
+    func decode(_ data: Data) -> ImageContainer?
+
+    /// Produces an image from the given partially dowloaded image data.
+    /// This method might be called multiple times during a single decoding
+    /// session. When the image download is complete, `decode(data:)` method is called.
+    ///
+    /// - returns: nil by default.
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?
 }
 
-extension ImageDecoding {
-    public func decode(data: Data) -> PlatformImage? {
-        return self.decode(data: data, isFinal: true)
+public extension ImageDecoding {
+    /// The default implementation which simply returns `nil` (no progressive
+    /// decoding available).
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+        return nil
     }
 }
 
 extension ImageDecoding {
-    func decode(_ data: Data, urlResponse: URLResponse?, isFinal: Bool) -> ImageResponse? {
-        func decode() -> ImageContainer? {
-            if let newDecoder = self as? _ImageDecoding {
-                // If it is the old implementation, call the old method. Otherwise,
-                  // call the new APIs.
-                if isFinal {
-                    return newDecoder.decode(data)
-                } else {
-                    return newDecoder.decodePartiallyDownloadedData(data)
-                }
+    func decode(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool) -> ImageResponse? {
+        func _decode() -> ImageContainer? {
+            if isCompleted {
+                return decode(data)
             } else {
-                guard let image = self.decode(data: data, isFinal: isFinal) else {
-                    return nil
-                }
-                return ImageContainer(image: image, data: image.animatedImageData, userInfo: [:])
+                return decodePartiallyDownloadedData(data)
             }
         }
-        guard let container = autoreleasepool(invoking: decode) else {
+        guard let container = autoreleasepool(invoking: _decode) else {
             return nil
         }
         #if !os(macOS)
         ImageDecompression.setDecompressionNeeded(true, for: container.image)
         #endif
-
         return ImageResponse(container: container, urlResponse: urlResponse)
     }
 }
@@ -72,7 +72,7 @@ public enum ImageDecoders {}
 // The decoder is stateful.
 public extension ImageDecoders {
 
-    final class Default: _ImageDecoding {
+    final class Default: ImageDecoding {
         // `nil` if decoder hasn't detected whether progressive decoding is enabled.
         private(set) var isProgressive: Bool?
         // Number of scans that the decoder has found so far. The last scan might be
@@ -173,7 +173,7 @@ extension ImageDecoders.Default {
 public extension ImageDecoders {
     /// A decoder which returns an empty placeholder image and attaches image
     /// data to the image container.
-    struct Empty: _ImageDecoding {
+    struct Empty: ImageDecoding {
         public let isProgressive: Bool
 
         /// - parameter isProgressive: If `false`, returns nil for every progressive
@@ -188,40 +188,6 @@ public extension ImageDecoders {
 
         public func decode(_ data: Data) -> ImageContainer? {
             return ImageContainer(image: PlatformImage(), data: data, userInfo: [:])
-        }
-    }
-}
-
-// MARK: _ImageDecoding
-
-/// A new experimental image decoder.
-///
-/// A decoder is a one-shot object created for a single image decoding session.
-///
-/// - note: If you need additional information in the decoder, you can pass
-/// anything that you might need from the `ImageDecodingContext`.
-public protocol _ImageDecoding: ImageDecoding {
-    /// Produces an image from the given image data.
-    func decode(_ data: Data) -> ImageContainer?
-
-    /// Produces an image from the given partially dowloaded image data.
-    /// This method might be called multiple times during a single decoding
-    /// session. When the image download is complete, `decode(data:)` method is called.
-    ///
-    /// - returns: nil by default.
-    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?
-}
-
-public extension _ImageDecoding {
-    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-        return nil
-    }
-
-    func decode(data: Data, isFinal: Bool) -> PlatformImage? {
-        if isFinal {
-            return self.decode(data)?.image
-        } else {
-            return self.decodePartiallyDownloadedData(data)?.image
         }
     }
 }

@@ -81,7 +81,7 @@ public final class ImagePreheater {
             return // Already started prefetching
         }
 
-        guard pipeline.configuration.imageCache?.cachedResponse(for: request) == nil else {
+        guard pipeline.configuration.imageCache?[request] == nil else {
             return // The image is already in memory cache
         }
 

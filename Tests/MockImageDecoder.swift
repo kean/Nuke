@@ -6,7 +6,7 @@ import Foundation
 import Nuke
 
 class MockFailingDecoder: Nuke.ImageDecoding {
-    func decode(data: Data, isFinal: Bool) -> PlatformImage? {
+    func decode(_ data: Data) -> ImageContainer? {
         return nil
     }
 }
@@ -20,8 +20,12 @@ class MockImageDecoder: ImageDecoding {
         self.name = name
     }
 
-    func decode(data: Data, isFinal: Bool) -> PlatformImage? {
-        return decoder.decode(data: data, isFinal: isFinal)
+    func decode(_ data: Data) -> ImageContainer? {
+        return decoder.decode(data)
+    }
+
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+        return decoder.decodePartiallyDownloadedData(data)
     }
 }
 
@@ -32,7 +36,11 @@ class MockAnonymousImageDecoder: ImageDecoding {
         self.closure = closure
     }
 
-    func decode(data: Data, isFinal: Bool) -> PlatformImage? {
-        return closure(data, isFinal)
+    func decode(_ data: Data) -> ImageContainer? {
+        return closure(data, true).map { ImageContainer(image: $0) }
+    }
+
+    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+        return closure(data, false).map { ImageContainer(image: $0) }
     }
 }

@@ -25,23 +25,23 @@ class ImageCacheTests: XCTestCase {
 
     func testCacheCreation() {
         XCTAssertEqual(cache.totalCount, 0)
-        XCTAssertNil(cache.cachedResponse(for: Test.request))
+        XCTAssertNil(cache[Test.request])
     }
 
     func testThatImageIsStored() {
         // When
-        cache.storeResponse(Test.response, for: Test.request)
+        cache[Test.request] = Test.container
 
         // Then
         XCTAssertEqual(cache.totalCount, 1)
-        XCTAssertNotNil(cache.cachedResponse(for: Test.request))
+        XCTAssertNotNil(cache[Test.request])
     }
 
     // MARK: - Subscript
 
     func testThatImageIsStoredUsingSubscript() {
         // When
-        cache[Test.request] = Test.image
+        cache[Test.request] = Test.container
 
         // Then
         XCTAssertNotNil(cache[Test.request])
@@ -52,10 +52,10 @@ class ImageCacheTests: XCTestCase {
     func testThatTotalCountChanges() {
         XCTAssertEqual(cache.totalCount, 0)
 
-        cache[request1] = Test.image
+        cache[request1] = Test.container
         XCTAssertEqual(cache.totalCount, 1)
 
-        cache[request2] = Test.image
+        cache[request2] = Test.container
         XCTAssertEqual(cache.totalCount, 2)
 
         cache[request2] = nil
@@ -78,8 +78,8 @@ class ImageCacheTests: XCTestCase {
         cache.countLimit = 1
 
         // When
-        cache[request1] = Test.image
-        cache[request2] = Test.image
+        cache[request1] = Test.container
+        cache[request2] = Test.container
 
         // Then
         XCTAssertNil(cache[request1])
@@ -88,8 +88,8 @@ class ImageCacheTests: XCTestCase {
 
     func testTrimToCount() {
         // Given
-        cache[request1] = Test.image
-        cache[request2] = Test.image
+        cache[request1] = Test.container
+        cache[request2] = Test.container
 
         // When
         cache.trim(toCount: 1)
@@ -103,8 +103,8 @@ class ImageCacheTests: XCTestCase {
         // Givne
         cache.countLimit = 2
 
-        cache[request1] = Test.image
-        cache[request2] = Test.image
+        cache[request1] = Test.container
+        cache[request2] = Test.container
 
         // When
         cache.countLimit = 1
@@ -126,10 +126,10 @@ class ImageCacheTests: XCTestCase {
         let imageCost = cache.cost(for: ImageContainer(image: Test.image))
         XCTAssertEqual(cache.totalCost, 0)
 
-        cache[request1] = Test.image
+        cache[request1] = Test.container
         XCTAssertEqual(cache.totalCost, imageCost)
 
-        cache[request2] = Test.image
+        cache[request2] = Test.container
         XCTAssertEqual(cache.totalCost, 2 * imageCost)
 
         cache[request2] = nil
@@ -156,10 +156,10 @@ class ImageCacheTests: XCTestCase {
         cache.costLimit = Int(Double(cost) * 1.5)
 
         // When/Then
-        cache[request1] = Test.image
+        cache[request1] = Test.container
 
         // LRU item is released
-        cache[request2] = Test.image
+        cache[request2] = Test.container
         XCTAssertNil(cache[request1])
         XCTAssertNotNil(cache[request2])
     }
@@ -168,8 +168,8 @@ class ImageCacheTests: XCTestCase {
         // Given
         cache.costLimit = Int.max
 
-        cache[request1] = Test.image
-        cache[request2] = Test.image
+        cache[request1] = Test.container
+        cache[request2] = Test.container
 
         // When
         let cost = cache.cost(for: ImageContainer(image: Test.image))
@@ -185,8 +185,8 @@ class ImageCacheTests: XCTestCase {
         let cost = cache.cost(for: ImageContainer(image: Test.image))
         cache.costLimit = Int(Double(cost) * 2.5)
 
-        cache[request1] = Test.image
-        cache[request2] = Test.image
+        cache[request1] = Test.container
+        cache[request2] = Test.container
 
         // When
         cache.costLimit = cost
@@ -240,9 +240,9 @@ class ImageCacheTests: XCTestCase {
         let cost = cache.cost(for: ImageContainer(image: Test.image))
         cache.costLimit = Int(Double(cost) * 2.5)
 
-        cache[request1] = Test.image
-        cache[request2] = Test.image
-        cache[request3] = Test.image
+        cache[request1] = Test.container
+        cache[request2] = Test.container
+        cache[request3] = Test.container
 
         // Then
         XCTAssertNil(cache[request1])
@@ -255,12 +255,12 @@ class ImageCacheTests: XCTestCase {
         let cost = cache.cost(for: ImageContainer(image: Test.image))
         cache.costLimit = Int(Double(cost) * 2.5)
 
-        cache[request1] = Test.image
-        cache[request2] = Test.image
+        cache[request1] = Test.container
+        cache[request2] = Test.container
         _ = cache[request1] // Touched image
 
         // When
-        cache[request3] = Test.image
+        cache[request3] = Test.container
 
         // Then
         XCTAssertNotNil(cache[request1])
@@ -272,8 +272,8 @@ class ImageCacheTests: XCTestCase {
 
     func testRemoveAll() {
         // Given
-        cache[request1] = Test.image
-        cache[request2] = Test.image
+        cache[request1] = Test.container
+        cache[request2] = Test.container
 
         // When
         cache.removeAll()
@@ -286,7 +286,7 @@ class ImageCacheTests: XCTestCase {
     #if os(iOS) || os(tvOS)
     func testThatImagesAreRemovedOnMemoryWarnings() {
         // Given
-        cache[Test.request] = PlatformImage()
+        cache[Test.request] = ImageContainer(image: PlatformImage())
 
         // When
         NotificationCenter.default.post(name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
@@ -301,7 +301,7 @@ class ImageCacheTests: XCTestCase {
         cache.countLimit = 10 // 1 out of 10 images should remain
 
         for i in 0..<10 {
-            cache[_request(index: i)] = Test.image
+            cache[_request(index: i)] = Test.container
         }
         XCTAssertEqual(cache.totalCount, 10)
 
@@ -320,7 +320,7 @@ class ImageCacheTests: XCTestCase {
 
         for index in 0..<10 {
             let request = ImageRequest(url: URL(string: "http://example.com/img\(index)")!)
-            cache[request] = Test.image
+            cache[request] = Test.container
         }
         XCTAssertEqual(cache.totalCount, 10)
 

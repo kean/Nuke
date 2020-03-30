@@ -251,22 +251,22 @@ public /* final */ class ImagePipeline {
 
 public extension ImagePipeline {
     /// Returns a cached response from the memory cache.
-    func cachedResponse(for url: URL) -> ImageResponse? {
-        return cachedResponse(for: ImageRequest(url: url))
+    func cachedImage(for url: URL) -> ImageContainer? {
+        return cachedImage(for: ImageRequest(url: url))
     }
 
     /// Returns a cached response from the memory cache. Returns `nil` if the request disables
     /// memory cache reads.
-    func cachedResponse(for request: ImageRequest) -> ImageResponse? {
+    func cachedImage(for request: ImageRequest) -> ImageContainer? {
         guard request.options.memoryCacheOptions.isReadAllowed else { return nil }
 
         let request = inheritOptions(request)
-        return configuration.imageCache?.cachedResponse(for: request)
+        return configuration.imageCache?[request]
     }
 
     private func storeResponse(_ response: ImageResponse, for request: ImageRequest, isCompleted: Bool) {
         guard isCompleted, request.options.memoryCacheOptions.isWriteAllowed else { return }
-        configuration.imageCache?.storeResponse(response, for: request)
+        configuration.imageCache?[request] = response.container
     }
 }
 
@@ -351,8 +351,8 @@ private extension ImagePipeline {
     }
 
     func performDecompressedImageFetchTask(_ task: DecompressedImageTask, request: ImageRequest) {
-        if let response = cachedResponse(for: request) {
-            return task.send(value: response, isCompleted: true)
+        if let image = cachedImage(for: request) {
+            return task.send(value: ImageResponse(container: image), isCompleted: true)
         }
 
         guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage) else {
@@ -392,7 +392,7 @@ private extension ImagePipeline {
 
             let log = Log(self.log, "Decode Cached Processed Image Data")
             log.signpost(.begin)
-            let response = decoder.decode(data, urlResponse: nil, isFinal: true)
+            let response = decoder.decode(data, urlResponse: nil, isCompleted: true)
             log.signpost(.end)
 
             self.queue.async {
@@ -440,7 +440,7 @@ private extension ImagePipeline {
 
             let log = Log(self.log, "Decompress Image")
             log.signpost(.begin, isCompleted ? "Final image" : "Progressive image")
-            let response = response.map(ImageDecompression().decompress(image:)) ?? response
+            let response = response.map { $0.map(ImageDecompression().decompress(image:)) } ?? response
             log.signpost(.end)
 
             self.queue.async {
@@ -500,8 +500,8 @@ private extension ImagePipeline {
         assert(!request.processors.isEmpty)
         guard !task.isDisposed, !request.processors.isEmpty else { return }
 
-        if let response = cachedResponse(for: request) {
-            return task.send(value: response, isCompleted: true)
+        if let image = cachedImage(for: request) {
+            return task.send(value: ImageResponse(container: image), isCompleted: true)
         }
 
         let processor: ImageProcessing
@@ -540,7 +540,7 @@ private extension ImagePipeline {
             let log = Log(self.log, "Process Image")
             log.signpost(.begin, "\(processor), \(isCompleted ? "final" : "progressive") image")
             let context = ImageProcessingContext(request: request, response: response, isFinal: isCompleted)
-            let response = response.map { processor.process(image: $0, context: context) }
+            let response = response.map { processor.process($0, context: context) }
             log.signpost(.end)
 
             self.queue.async {
@@ -605,7 +605,7 @@ private extension ImagePipeline {
 
             let log = Log(self.log, "Decode Image Data")
             log.signpost(.begin, "\(isCompleted ? "Final" : "Progressive") image")
-            let response = decoder.decode(data, urlResponse: urlResponse, isFinal: isCompleted)
+            let response = decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted)
             log.signpost(.end)
 
             self.queue.async {

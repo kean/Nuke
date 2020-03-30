@@ -24,7 +24,7 @@ Nuke provides a simple and efficient way to download and display images in your 
 Nuke is easy to learn and use. Here is an overview of its APIs and features:
 
 - **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) · [Table View](#in-a-table-view) · [Placeholders, Transitions](#placeholders-transitions-content-modes) · [`ImageRequest`](#imagerequest)
-- **Image Processing** ‣ [`Resize`](#resize) · [`GaussianBlur`, Core Image](#gaussianblur-core-image) · [Custom Processors](#custom-processors)
+- **Image Processing** ‣ [`Resize`](#resize) · [`Circle`](#circle) · [`RoundedCorners`](#roundedcorners) · [`GaussianBlur`](#gaussianblur) · [`CoreImageFilter`](#coreimagefilter) · [Custom Processors](#custom-processors)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) · [`ImageTask`](#imagetask) · [Customize Image Pipeline](#customize-image-pipeline) · [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) · [HTTP Disk Cache](#http-disk-cache) · [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
 - **Advanced Features** ‣ [Preheat Images](#image-preheating) · [Progressive Decoding](#progressive-decoding)
@@ -55,7 +55,7 @@ Nuke.loadImage(with: url, into: imageView)
 
 Nuke will check if the image exists in the memory cache, and if it does, will instantly display it. If not, the image data will be loaded, decoded, processed, and decompressed in the background.
 
-> See [Image Pipeline Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md) to learn more about how images are downloaded and processed.
+> See [Image Pipeline Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md) to learn how images are downloaded and processed.
 
 ### In a Table View
 
@@ -129,50 +129,82 @@ let request = ImageRequest(
 
 <img align="right" src="https://user-images.githubusercontent.com/1567433/59151404-cb944300-8a32-11e9-9c58-dbed9789080f.png" width="360"/>
 
-Nuke features a powerful and efficient image processing infrastructure with multiple built-in processors including `ImageProcessor.Resize`, `.Circle`, `.RoundedCorners`, `.CoreImageFilter`, `.GaussianBlur`.
+Nuke features a powerful and efficient image processing infrastructure with multiple built-in processors which you can find in `ImageProcessors` namespace: `.Resize`, `.Circle`, `.RoundedCorners`, `.CoreImageFilter`, `.GaussianBlur`.
 
 > This and other screenshots are from the demo project included in the repo.
 
 ### `Resize`
 
-To resize an image, use `ImageProcessor.Resize`:
+To resize an image, use `ImageProcessors.Resize`:
 
 ```swift
 ImageRequest(url: url, processors: [
-    ImageProcessor.Resize(size: imageView.bounds.size)
+    ImageProcessors.Resize(size: imageView.bounds.size)
 ])
 ```
 
-By default, the target size is in points. When the image is loaded, Nuke will scale it to fill the target area maintaining the aspect ratio. To crop the image set `crop` to `true`.
+By default, the target size is in points. When the image is loaded, Nuke will downscale it to fill the target area maintaining the aspect ratio. To crop the image set `crop` to `true`. For more options, see `ImageProcessor.Resize` documentation.
 
-> There are a few other options available, see `ImageProcessor.Resize` documentation for more info.
+> Use an optional [Builder](#builder) package for a more concise API. 
+>     
+>     pipeline.image(with: URL(string: "https://")!)
+>         .resize(width: 320)
+>         .blur(radius: 10)
 
-### `GaussianBlur`, Core Image
+### `Circle`
 
-`ImageProcessor.GaussianBlur` blurs the input image. It is powered by the native `CoreImage` framework. To apply other filters, use `ImageProcessor.CoreImageFilter`:
+Rounds the corners of an image into a circle with an optional border.
 
 ```swift
-ImageProcessor.CoreImageFilter(name: "CISepiaTone")
+ImageRequest(url: url, processors: [
+    ImageProcessors.Circle()
+])
 ```
 
-> For a complete list of Core Image filters see [Core Image Filter Reference](https://developer.apple.com/library/archive/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html).
+### `RoundedCorners`
+
+Rounds the corners of an image to the specified radius. Make sure you resize the image to exactly match the size of the view in which it gets displayed so that the border appears correctly.s 
+
+```swift
+ImageRequest(url: url, processors: [
+    ImageProcessors.Circle(radius: 16)
+])
+```
+
+### `GaussianBlur`
+
+`ImageProcessors.GaussianBlur` blurs the input image using one of the [Core Image](https://developer.apple.com/library/archive/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html) filters.
+
+### `CoreImageFilter`
+
+Apply any of the vast number [Core Image filters](https://developer.apple.com/library/archive/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html) using `ImageProcessors.CoreImageFilter`:
+
+```swift
+ImageProcessors.CoreImageFilter(name: "CISepiaTone")
+```
 
 ### Custom Processors
 
-Custom processors need to conform to `ImageProcessing` protocol:
+For simple one-off operations, use `ImageProcessors.Anonymous` to create a processor with a closure.
+
+Custom processors need to implement `ImageProcessing` protocol. For the basic image processing needs, implement `process(_:)` method and create an identifier which uniquely identifies the processor. For processors with no input parameters, you can return a static string.
 
 ```swift
 public protocol ImageProcessing {
-    var identifier: String { get }
-    var hashableIdentifier: AnyHashable { get }
-
-    func process(image: Image, context: ImageProcessingContext?) -> Image?
+    func process(image: UIImage) -> UIImage? // NSImage on macOS
+    var identifier: Strings
 }
 ```
 
-The `process` method is self-explanatory. `identifier: String` is used by disk caches, and `hashableIdentifier: AnyHashable` is used by memory caches for which string manipulations would be too slow.
+If your processor needs to manipulate image metadata (`ImageContainer`), or get access to more information via `ImageProcessingContext`, there is an additional method that you can implement in additon to `process(_:)`.
 
-For one-off operations, use `ImageProcessor.Anonymous` to create a processor with a closure.
+```swift
+public protocol ImageProcessing {
+    func process(_ image container: ImageContainer, context: ImageProcessingContext) -> ImageContainer?
+}
+```
+
+In addition to `var identfier: String`, you can implement `var hashableIdentifier: AnyHashable` to be used by the memory cache where strings manipulationos swould be too slow. By default, this method returns String `identifier`.
 
 <br/>
 
@@ -318,7 +350,7 @@ ImageCache.shared.ttl = 120 // Invalidate image after 120 sec
 
 // Read and write images
 let request = ImageRequest(url: url)
-ImageCache.shared[request] = image
+ImageCache.shared[request] = ImageContainer(image: image)
 let image = ImageCache.shared[request]
 
 // Clear cache

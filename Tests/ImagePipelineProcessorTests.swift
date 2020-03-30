@@ -69,12 +69,13 @@ class ImagePipelineProcessorTests: XCTestCase {
         }
 
         let underlyingRequest = ImageRequest(url: Test.url, processors: [mockProcessor])
-        mockImageCache.storeResponse(Test.response, for: underlyingRequest)
+        let image = Test.image
+        mockImageCache[underlyingRequest] = ImageContainer(image: image)
 
         // When
-        let response = pipeline.cachedResponse(for: ImageRequest(url: Test.url))
+        let container = pipeline.cachedImage(for: ImageRequest(url: Test.url))
 
         // Then
-        XCTAssertEqual(response?.image, Test.response.image)
+        XCTAssertEqual(container?.image, image)
     }
 }

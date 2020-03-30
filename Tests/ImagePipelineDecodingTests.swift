@@ -48,7 +48,7 @@ class ImagePipelineDecodingTests: XCTestCase {
     }
 }
 
-private final class MockExperimentalDecoder: _ImageDecoding {
+private final class MockExperimentalDecoder: ImageDecoding {
     var _decode: ((Data) -> ImageContainer?)!
 
     func decode(_ data: Data) -> ImageContainer? {

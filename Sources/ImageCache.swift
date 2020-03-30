@@ -13,32 +13,8 @@ import Cocoa
 ///
 /// The implementation must be thread safe.
 public protocol ImageCaching: AnyObject {
-    /// Returns the `ImageResponse` stored in the cache with the given request.
-    func cachedResponse(for request: ImageRequest) -> ImageResponse?
-
-    /// Stores the given `ImageResponse` in the cache using the given request.
-    func storeResponse(_ response: ImageResponse, for request: ImageRequest)
-
-    /// Remove the response for the given request.
-    func removeResponse(for request: ImageRequest)
-}
-
-/// Convenience subscript.
-public extension ImageCaching {
-    /// Accesses the image associated with the given request.
-    subscript(request: ImageRequest) -> PlatformImage? {
-        get {
-            return cachedResponse(for: request)?.image
-        }
-        set {
-            if let newValue = newValue {
-                let response = ImageResponse(container: .init(image: newValue))
-                storeResponse(response, for: request)
-            } else {
-                removeResponse(for: request)
-            }
-        }
-    }
+    /// Access the image cached for the given request.
+    subscript(request: ImageRequest) -> ImageContainer? { get set }
 }
 
 /// Memory cache with LRU cleanup policy (least recently used are removed first).
@@ -52,7 +28,7 @@ public extension ImageCaching {
 /// memory warning. It also automatically removes *most* of cached elements
 /// when the app enters background.
 public final class ImageCache: ImageCaching {
-    private let impl: Cache<ImageRequest.CacheKey, ImageResponse>
+    private let impl: Cache<ImageRequest.CacheKey, ImageContainer>
 
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int {
@@ -104,18 +80,19 @@ public final class ImageCache: ImageCaching {
     }
 
     /// Returns the `ImageResponse` stored in the cache with the given request.
-    public func cachedResponse(for request: ImageRequest) -> ImageResponse? {
-        return impl.value(forKey: request.makeCacheKeyForFinalImage())
-    }
-
-    /// Stores the given `ImageResponse` in the cache using the given request.
-    public func storeResponse(_ response: ImageResponse, for request: ImageRequest) {
-        impl.set(response, forKey: request.makeCacheKeyForFinalImage(), cost: self.cost(for: response.container))
-    }
-
-    /// Removes response stored with the given request.
-    public func removeResponse(for request: ImageRequest) {
-        impl.removeValue(forKey: request.makeCacheKeyForFinalImage())
+    public subscript(request: ImageRequest) -> ImageContainer? {
+        get {
+            let key = request.makeCacheKeyForFinalImage()
+            return impl.value(forKey: key)
+        }
+        set {
+            let key = request.makeCacheKeyForFinalImage()
+            if let image = newValue {
+                impl.set(image, forKey: key, cost: self.cost(for: image))
+            } else {
+                impl.removeValue(forKey: key)
+            }
+        }
     }
 
     /// Removes all cached images.

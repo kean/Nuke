@@ -281,10 +281,9 @@ class ImagePipelineDeduplicationTests: XCTestCase {
 
         // Then
         XCTAssertNotNil(imageCache[request1])
-        XCTAssertEqual(imageCache[request1
-            ]?.nk_test_processorIDs ?? [], ["1"])
+        XCTAssertEqual(imageCache[request1]?.image.nk_test_processorIDs ?? [], ["1"])
         XCTAssertNotNil(imageCache[request2])
-        XCTAssertEqual(imageCache[request2]?.nk_test_processorIDs ?? [], ["2"])
+        XCTAssertEqual(imageCache[request2]?.image.nk_test_processorIDs ?? [], ["2"])
     }
 
     // MARK: - Cancellation
@@ -538,9 +537,9 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         // Then
         dataLoader.queue.isSuspended = false
         wait { _ in
-            XCTAssertNotNil(cache.cachedResponse(for: request1))
-            XCTAssertNotNil(cache.cachedResponse(for: request2))
-            XCTAssertNil(cache.cachedResponse(for: ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2")])))
+            XCTAssertNotNil(cache[request1])
+            XCTAssertNotNil(cache[request2])
+            XCTAssertNil(cache[ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2")])])
         }
     }
 
@@ -553,7 +552,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         let factory = MockProcessorFactory()
 
         // Given
-        cache[ImageRequest(url: Test.url, processors: [factory.make(id: "1"), factory.make(id: "2")])] = Test.image
+        cache[ImageRequest(url: Test.url, processors: [factory.make(id: "1"), factory.make(id: "2")])] = Test.container
 
         // When
         let request = ImageRequest(url: Test.url, processors: [factory.make(id: "1"), factory.make(id: "2"), factory.make(id: "3")])

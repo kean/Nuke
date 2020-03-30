@@ -19,11 +19,34 @@ import Cocoa
 // MARK: - ImageProcessing
 
 /// Performs image processing.
+///
+/// For the basic processing needs, implement the following method:
+///
+/// ```
+/// func process(image: PlatformImage) -> PlatformImage?
+/// ```
+///
+/// If your processor needs to manipulate image metadata (`ImageContainer`), or
+/// get access to more information via the context (`ImageProcessingContext`),
+/// the is an additional method that allows you to do that:
+///
+/// ```
+/// func process(image container: ImageContainer, context: ImageProcessingContext) -> ImageContainer?
+/// ```
+///
+/// You must implement either one of those methods.
 public protocol ImageProcessing {
-    /// Returns processed image.
-    func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage?
+    /// Returns a processed image. By default, returns `nil`.
+    ///
+    /// - note: Gets called a background queue managed by the pipeline.
+    func process(_ image: PlatformImage) -> PlatformImage?
 
-    /// Returns a string which uniquely identifies the processor.
+    /// Returns a processed image. By default, this calls the basic `process(image:)` method.
+    ///
+    /// - note: Gets called a background queue managed by the pipeline.
+    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer?
+
+    /// Returns a string that uniquely identifies the processor.
     ///
     /// Consider using the reverse DNS notation.
     var identifier: String { get }
@@ -37,13 +60,14 @@ public protocol ImageProcessing {
     var hashableIdentifier: AnyHashable { get }
 }
 
-extension ImageProcessing {
-    public func process(image: PlatformImage) -> PlatformImage? {
-        return self.process(image: image, context: nil)
-    }
-}
-
 public extension ImageProcessing {
+    /// The default implementation which simply calls the basic
+    /// `process(_ image: PlatformImage) -> PlatformImage?` method.
+    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+        return container.map(process)
+    }
+
+    /// The default impleemntation which simply return `var identifier: String`.
     var hashableIdentifier: AnyHashable {
         return identifier
     }
@@ -62,10 +86,7 @@ public struct ImageProcessingContext {
     }
 }
 
-// MARK: - ImageProcessor
-
-/// Soft-deprecated in Nuke 8.5.s
-public typealias ImageProcessor = ImageProcessors
+// MARK: - ImageProcessors
 
 /// A namespace for all processors that implement `ImageProcessing` protocol.
 public enum ImageProcessors {}
@@ -73,9 +94,6 @@ public enum ImageProcessors {}
 // MARK: - ImageProcessors.Resize
 
 extension ImageProcessors {
-    // Soft-deprecated in Nuke 8.5s
-    public typealias Unit = ImageProcessingOptions.Unit
-
     /// Scales an image to a specified size.
     public struct Resize: ImageProcessing, Hashable, CustomStringConvertible {
         private let size: CGSize
@@ -135,7 +153,7 @@ extension ImageProcessors {
             self.init(size: CGSize(width: 4096, height: height), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
         }
 
-        public func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
+        public func process(_ image: PlatformImage) -> PlatformImage? {
             if crop && contentMode == .aspectFill {
                 return image.processed.byResizingAndCropping(to: sizeInPixels)
             } else {
@@ -165,13 +183,13 @@ extension ImageProcessors {
 
     /// Rounds the corners of an image into a circle.
     public struct Circle: ImageProcessing, Hashable, CustomStringConvertible {
-        private let border: Border?
+        private let border: ImageProcessingOptions.Border?
 
-        public init(border: Border? = nil) {
+        public init(border: ImageProcessingOptions.Border? = nil) {
             self.border = border
         }
 
-        public func process(image: UIImage, context: ImageProcessingContext?) -> UIImage? {
+        public func process(_ image: PlatformImage) -> PlatformImage? {
             return image.processed.byDrawingInCircle(border: border)
         }
 
@@ -196,9 +214,6 @@ extension ImageProcessors {
 // MARK: - ImageProcessors.RoundedCorners
 
 extension ImageProcessors {
-    /// Soft-deprecated in Nuke 8.5
-    public typealias Border = ImageProcessingOptions.Border
-
     /// Rounds the corners of an image to the specified radius.
     ///
     /// - warning: In order for the corners to be displayed correctly, the image must exactly match the size
@@ -219,7 +234,7 @@ extension ImageProcessors {
             self.border = border
         }
 
-        public func process(image: UIImage, context: ImageProcessingContext?) -> UIImage? {
+        public func process(_ image: PlatformImage) -> PlatformImage? {
             return image.processed.byAddingRoundedCorners(radius: radius.converted(to: unit), border: border)
         }
 
@@ -278,7 +293,7 @@ extension ImageProcessors {
             self.identifier = "com.github.kean/nuke/core_image?name=\(name))"
         }
 
-        public func process(image: UIImage, context: ImageProcessingContext?) -> UIImage? {
+        public func process(_ image: PlatformImage) -> PlatformImage? {
             let filter = CIFilter(name: name, parameters: parameters)
             return CoreImageFilter.apply(filter: filter, to: image)
         }
@@ -337,7 +352,7 @@ extension ImageProcessors {
         }
 
         /// Applies `CIGaussianBlur` filter to the image.
-        public func process(image: UIImage, context: ImageProcessingContext?) -> UIImage? {
+        public func process(_ image: PlatformImage) -> PlatformImage? {
             let filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": radius])
             return CoreImageFilter.apply(filter: filter, to: image)
         }
@@ -396,13 +411,21 @@ extension ImageProcessors {
             self.processors = processors
         }
 
+        public func process(_ image: PlatformImage) -> PlatformImage? {
+            return processors.reduce(image) { image, processor in
+                return autoreleasepool {
+                    image.flatMap { processor.process($0) }
+                }
+            }
+        }
+
         /// Processes the given image by applying each processor in an order in
         /// which they were added. If one of the processors fails to produce
         /// an image the processing stops and `nil` is returned.
-        public func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
-            return processors.reduce(image) { image, processor in
+        public func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+            return processors.reduce(container) { container, processor in
                 return autoreleasepool {
-                    image.flatMap { processor.process(image: $0, context: context) }
+                    container.flatMap { processor.process($0, context: context) }
                 }
             }
         }
@@ -444,7 +467,7 @@ extension ImageProcessors {
             self.closure = closure
         }
 
-        public func process(image: PlatformImage, context: ImageProcessingContext?) -> PlatformImage? {
+        public func process(_ image: PlatformImage) -> PlatformImage? {
             return self.closure(image)
         }
 
@@ -462,7 +485,7 @@ extension PlatformImage {
     ///
     /// For example, if the canvas size is `CGSize(width: 10, height: 10)` and
     /// the draw rect is `CGRect(x: -5, y: 0, width: 20, height: 10)` it would
-    /// draw the input image (which is horizonal based on the known draw rect)
+    /// draw the input image (which is horizontal based on the known draw rect)
     /// in a square by centering it in the canvas.
     ///
     /// - parameter drawRect: `nil` by default. If `nil` will use the canvas rect.
@@ -500,6 +523,8 @@ extension PlatformImage {
         return draw(inCanvasWithSize: cgImage.size, drawRect: CGRect(origin: .zero, size: cgImage.size))
     }
 }
+
+// MARK: - ImageProcessingExtensions
 
 extension PlatformImage {
     var processed: ImageProcessingExtensions {
@@ -541,11 +566,11 @@ struct ImageProcessingExtensions {
 
     #if os(iOS) || os(tvOS) || os(watchOS)
 
-    func byDrawingInCircle(border: ImageProcessors.Border?) -> UIImage? {
+    func byDrawingInCircle(border: ImageProcessingOptions.Border?) -> UIImage? {
         guard let squared = byCroppingToSquare(), let cgImage = squared.cgImage else {
             return nil
         }
-        let radius = CGFloat(cgImage.width) / 2.0 // Can use any dimenstion since image is a square
+        let radius = CGFloat(cgImage.width) / 2.0 // Can use any dimension since image is a square
         return squared.processed.byAddingRoundedCorners(radius: radius, border: border)
     }
 
@@ -691,7 +716,7 @@ extension CGSize {
         return min(scaleHor, scaleVert)
     }
 
-    /// Caclulates a rect such that the ouput rect will be in the center of
+    /// Calculates a rect such that the output rect will be in the center of
     /// the rect of the input size (assuming origin: .zero)
     func centeredInRectWithSize(_ targetSize: CGSize) -> CGRect {
         // First, resize the original size to fill the target size.
