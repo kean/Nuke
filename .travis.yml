@@ -16,7 +16,7 @@ jobs:
     - stage: test
       name: Run Unit Tests (iOS, Xcode 10.2)
       osx_image: xcode10.2
-      script: Scripts/test.sh -d "OS=12.2,name=iPhone X" -d "OS=11.4,name=iPhone X" -d "OS=10.3.1,name=iPhone SE"
+      script: Scripts/test.sh -d "OS=12.2,name=iPhone X" -d "OS=11.4,name=iPhone X" -d "OS=11.4,name=iPhone SE"
 
     - stage: test
       name: Run Unit Tests (macOS, Xcode 10.2)

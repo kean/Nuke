@@ -64,7 +64,9 @@ public extension ImageProcessors {
     @available(*, deprecated, message: "Renamed to `ImageProcessingOptions.Unit` to avoid polluting `ImageProcessors` namescape with non-processors.")
     typealias Unit = ImageProcessingOptions.Unit
 
+    #if !os(macOS)
     // Deprecated in 9.0
     @available(*, deprecated, message: "Renamed to `ImageProcessingOptions.Border` to avoid polluting `ImageProcessors` namescape with non-processors.")
     typealias Border = ImageProcessingOptions.Border
+    #endif
 }
