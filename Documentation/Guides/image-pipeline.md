@@ -1,24 +1,53 @@
 # Image Pipeline Guide
 
-This guide describes in detail what happens when you perform a call like `Nuke.loadImage(with: url, into: view)` and how the underlying image pipeline work and what feature it has.
+This guide describes in detail what happens when you call `Nuke.loadImage(with: url, into: view)` and how the underlying image pipeline delivers the images to the view.
 
-### `Nuke.loadImage(with:into)`
+- [`Nuke.loadImage(with:into)`](#-nukeloadimage-with-into--)
+- [`ImagePipeline.loadImage(with:completion:)`](#-imagepipelineloadimage-with-completion---)
+- [Under the Hood](#under-the-hood)
+  * [Data Loading and Caching](#data-loading-and-caching)
+  * [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
+  * [Resumable Downloads](#resumable-downloads)
+  * [Memory Cache](#memory-cache)
+  * [Deduplication](#deduplication)
+  * [Decompression](#decompression)
+  * [Progressive Decoding](#progressive-decoding)
+  * [Performance](#performance)
 
-First, Nuke synchronously checks if the image is stored in the memory cache. If the image is not in memory, Nuke calls `pipeline.loadImage(with: request)`.
+## `Nuke.loadImage(with:into)`
+
+This methods loads an image with the given request and displays it in the view.
+
+Before loading a new image, the view is prepared for reuse by cancelling any outstanding requests and removing a previously displayed image.
+
+If the image is stored in the [memory cache](#memory-cache), it is displayed immediately with no animations. If not, the image is loaded using an [image pipeline](#pipeline-fetch-image). When the image is loading, the `placeholder` is displayed. When the request completes the loaded image is displayed (or `failureImage` in case of an error) with the selected animation.
+
+> Don't get caught in thinking that `Nuke.loadImage(with:into)` is the only way to use Nuke. This method is designed to get you up and running as quickly as possible. It is powerful and has a lot of configuration options, but if you need more control, please consider using [`ImagePipeline`](#pipeline-fetch-image) directly.
+
+<a name="pipeline-fetch-image"/></a>
+## `ImagePipeline.loadImage(with:completion:)`
+
+This section describes the basic steps that pipeline performs when delivering an image.
 
 > As a visual aid, use this [Block Diagram](https://github.com/kean/Nuke/blob/8.0/Documentation/Assets/image-pipeline.svg).
 
-As an overview, theses are the basic steps that the pipeline performs to provide the requested image
-
 1. Check if the requested image is already stored in the [memory cache](#memory-cache) and returns it if it does.
-2. Check if the encoded requested image is stored in the disk cache (this feature is disable by default). If yes, decodes it, [decompresses](#decompression) it, stores in the memory cache, and serves to the client.
+2. Check if the encoded requested image is stored in the disk cache (this feature is disable by default). If yes, the image is
+    - Decoded
+    - [Decompressed](#decompression)
+    - Stored in the memory cache
+    - And is finally delivered to the client
 3. Check if the original image data is stored in the disk cache, decodes it, applies image processors, stores the image in the memory cache, and serves it.
 
-> The disk cache described in steps 2 and 3 is disabled by default. To learn how to enable it, see [Aggressive LRU Disk Cache](https://github.com/kean/Nuke/tree/image-pipeline#aggressive-lru-disk-cache).
+> The disk cache described in steps 2 and 3 are disabled by default. The pipeline relies on the HTTP-compliant disk cache on `URLSession` level. To learn how to enable custom disk cache, see [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache).
 
-4. If no caches are found, the pipeline starts loading the image data. Before it does, it checks whether any [resumable data](#resumable-data) was left from the previous equivalent request. When the data is loaded, the pipeline performs all of the steps outlined in step 3.
+4. If all caches are empty, the pipeline starts [loading the image data](#data-loading-and-caching). Before it does, it checks whether any [resumable data](#resumable-data) was left from the previous equivalent request. When the data is loaded, the pipeline performs all of the steps outlined in step 3.
 
-During each of these steps, the pipeline creates and performs operations each of which is performed on its own operation queue with its own configuration. The operations respect the priority of the requests. The priority can be updated dynamically.
+> If the [progressive decoding](#progerssive-decoding) is enabled, the pipeline attemps to produce a preview of any image every time a new chuck of data is loaded.
+
+During each of these steps, the pipeline creates and performs operations each of which is performed on its own operation queue with its own configuration. The operations respect the priority of the requests. The priority can be updated dynamically. 
+
+## Under the Hood
 
 ### Data Loading and Caching
 
@@ -31,6 +60,22 @@ The `URLSession` class natively supports the following URL schemes: `data`, `fil
 Most developers either implement their own networking layer or use a third-party framework. Nuke supports both of these workflows. You can integrate your custom networking layer by implementing `DataLoading` protocol.
 
 > See [Third Party Libraries](https://github.com/kean/Nuke/blob/8.0/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries) guide to learn more. See also [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin).
+
+### Aggressive LRU Disk Cache
+
+If HTTP caching is not your cup of tea, you can try using a custom LRU disk cache for fast and reliable *aggressive* data caching (ignores [HTTP cache control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control)). You can enable it using the pipeline configuration.
+
+```swift
+ImagePipeline {
+    $0.dataCache = try? DataCache(name: "com.myapp.datacache")
+
+    // Also consider disabling the native HTTP cache, see `DataLoader`.
+}
+```
+
+By default, the pipeline stores only the original image data. To store downloaded and processed images instead, set `dataCacheOptions.storedItems` to `[.finalImage]`. This option is useful if you want to store processed, e.g. downsampled images, or if you want to transcode images to a more efficient format, like HEIF.
+
+> To save disk space see `ImageEncoders.ImageIO` and a new experimental `ImageEncoder._isHEIFPreferred` option for HEIF support.
 
 ### Resumable Downloads
 
@@ -64,6 +109,14 @@ Nuke will load the data only once, resize the image once and blur it also only o
 When you instantiate `UIImage` with `Data`, the data can be in a compressed format like `JPEG`. `UIImage` does _not_ eagerly decompress this data until you display it. This leads to performance issues like scroll view stuttering. To avoid these it, Nuke automatically decompresses the data in the background. Decompression only runs if needed, it won't run for already processed images.
 
 > See [Image and Graphics Best Practices](https://developer.apple.com/videos/play/wwdc2018/219) to learn more about image decoding and downsampling.
+
+### Progressive Decoding
+
+If the progressive decoding is enabled, the pipeline attemps to produce a preview of any image every time a new chuck of data is loaded.
+
+When the first chuck of data is downloaded, the pipeline creates an instance of a decoder which it is going to be using for the entire image loading session. When the new chunks of data are loaded, the pipleine passes these chunks to the decoder. The decoder can either produce a preview, or return `nil` if not enough data is downloaded yet.
+
+Every image preview goes throught the same processing and decompression phases that the final images do. The main different here is introduction of back pressure. If one of the stages of the pipeline can't processed the input fast enough, the pipeline waits until the current operation is finished, and then starts the new one with the latest input. When the data is downloaded fully, all of the progressive operations are cancelled to save processing time.
 
 ### Performance
 

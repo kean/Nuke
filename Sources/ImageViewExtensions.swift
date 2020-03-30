@@ -71,10 +71,11 @@ extension WKInterfaceImage: Nuke_ImageDisplaying {
 /// Before loading a new image, the view is prepared for reuse by canceling any
 /// outstanding requests and removing a previously displayed image.
 ///
-/// If the image is stored in the memory cache, it is displayed immediately. If not,
-/// the image is loaded using an image pipeline. When the image is loading, the provided
-/// `placeholder` is displayed. When the request completes the loaded image is displayed
-/// (or `failureImage` in case of an error) with the provided transition.
+/// If the image is stored in the memory cache, it is displayed immediately with
+/// no animations. If not, the image is loaded using an image pipeline. When the
+/// image is loading, the provided `placeholder` is displayed. When the request
+/// completes the loaded image is displayed (or `failureImage` in case of an error)
+/// with the selected animation.
 ///
 /// - parameter options: `ImageLoadingOptions.shared` by default.
 /// - parameter view: Nuke keeps a weak reference to the view. If the view is deallocated
@@ -96,13 +97,14 @@ public func loadImage(with url: URL,
 
 /// Loads an image with the given request and displays it in the view.
 ///
-/// Before loading a new image, the view is prepared for reuse by canceling any
+/// Before loading a new image, the view is prepared for reuse by cancelling any
 /// outstanding requests and removing a previously displayed image.
 ///
-/// If the image is stored in the memory cache, it is displayed immediately. If not,
-/// the image is loaded using an image pipeline. When the image is loading, the provided
-/// `placeholder` is displayed. When the request completes the loaded image is displayed
-/// (or `failureImage` in case of an error) with the provided transition.
+/// If the image is stored in the memory cache, it is displayed immediately with
+/// no animations. If not, the image is loaded using an image pipeline. When the
+/// image is loading, the `placeholder` is displayed. When the request
+/// completes the loaded image is displayed (or `failureImage` in case of an error)
+/// with the selected animation.
 ///
 /// - parameter options: `ImageLoadingOptions.shared` by default.
 /// - parameter view: Nuke keeps a weak reference to the view. If the view is deallocated
