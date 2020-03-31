@@ -59,7 +59,6 @@ extension ImageDecoding {
     }
 }
 
-// Soft-deprecated in Nuke 8.5.
 public typealias ImageDecoder = ImageDecoders.Default
 
 // MARK: - ImageDecoders
@@ -97,9 +96,9 @@ public extension ImageDecoders {
             }
             // Keep original data around in case of GIF
             if ImagePipeline.Configuration._isAnimatedImageDataEnabled, case .gif? = format {
-                image.animatedImageData = data
+                image._animatedImageData = data
             }
-            var container = ImageContainer(image: image, data: image.animatedImageData)
+            var container = ImageContainer(image: image, data: image._animatedImageData)
             if ImageDecoders.Default._isAttachingAnimatedImageData, case .gif? = format {
                 container.data = data
             }
@@ -298,19 +297,5 @@ enum ImageFormat: Equatable {
         return !zip(numbers.indices, numbers).contains { (index, number) in
             data[index] != number
         }
-    }
-}
-
-// MARK: - Animated Images
-
-private var _animatedImageDataAK = "Nuke.AnimatedImageData.AssociatedKey"
-
-extension PlatformImage {
-    // Soft-deprecated in Nuke 8.5
-    // Animated image data. Only not `nil` when image data actually contains
-    // an animated image.
-    public var animatedImageData: Data? {
-        get { objc_getAssociatedObject(self, &_animatedImageDataAK) as? Data }
-        set { objc_setAssociatedObject(self, &_animatedImageDataAK, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 }

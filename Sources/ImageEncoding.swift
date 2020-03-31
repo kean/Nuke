@@ -22,7 +22,6 @@ public protocol ImageEncoding {
 
 // MARK: - ImageEncoder
 
-// Soft-deprecated in Nuke 8.5
 public typealias ImageEncoder = ImageEncoders.Default
 
 /// Image encoding context used when selecting which encoder to use.

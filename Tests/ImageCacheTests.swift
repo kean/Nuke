@@ -200,7 +200,7 @@ class ImageCacheTests: XCTestCase {
         // Given
         let data = Test.data(name: "cat", extension: "gif")
         let image = PlatformImage(data: data)!
-        image.animatedImageData = data
+        image._animatedImageData = data
 
         // Then
         XCTAssertFalse(ImagePipeline.Configuration._isAnimatedImageDataEnabled)

@@ -136,7 +136,7 @@ class ImagePipelineTests: XCTestCase {
         // Then
         expect(pipeline).toLoadImage(with: request) { result in
             let image = result.value?.image
-            XCTAssertNotNil(image?.animatedImageData)
+            XCTAssertNotNil(image?._animatedImageData)
         }
         wait()
 

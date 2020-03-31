@@ -115,7 +115,7 @@ public final class ImageCache: ImageCaching {
     func cost(for container: ImageContainer) -> Int {
         let dataCost: Int
         if ImagePipeline.Configuration._isAnimatedImageDataEnabled {
-            dataCost = container.image.animatedImageData?.count ?? 0
+            dataCost = container.image._animatedImageData?.count ?? 0
         } else {
             dataCost = container.data?.count ?? 0
         }
