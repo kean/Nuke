@@ -149,8 +149,8 @@ extension XCTestCase {
 
 extension XCTestCase {
     class ValuesExpectation<Value> {
-        fileprivate let expectation: XCTestExpectation
-        fileprivate let expected: [Value]
+        private let expectation: XCTestExpectation
+        private let expected: [Value]
         private let isEqual: (Value, Value) -> Bool
         private var _expected: [Value]
         private var _recorded = [Value]()
