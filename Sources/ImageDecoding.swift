@@ -71,9 +71,7 @@ public enum ImageDecoders {}
 // The decoder is stateful.
 public extension ImageDecoders {
 
-    final class Default: ImageDecoding {
-        // `nil` if decoder hasn't detected whether progressive decoding is enabled.
-        private(set) var isProgressive: Bool?
+    final class Default: ImageDecoding, ImageDecoderRegistering {
         // Number of scans that the decoder has found so far. The last scan might be
         // incomplete at this point.
         private(set) var numberOfScans = 0
@@ -86,15 +84,36 @@ public extension ImageDecoders {
         // Not sure if this is a useful configuration option and whether it needs to exist.
         public static var _isAttachingAnimatedImageData: Bool = true
 
+        private var container: ImageContainer?
+
         public init() { }
 
-        public func decode(_ data: Data) -> ImageContainer? {
-            let format = ImageFormat.format(for: data)
+        public init?(data: Data, context: ImageDecodingContext) {
+            guard let container = _decode(data) else {
+                return nil
+            }
+            self.container = container
+        }
 
+        public init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
+            // Determined whether the image supports progressive decoding or not
+            // (only proressive JPEG is allowed for now, but you can add support
+            // for other formats by implementing your own decoder).
+            guard let format = ImageFormat.format(for: data), format.isProgressive ?? false else {
+                return nil
+            }
+        }
+
+        public func decode(_ data: Data) -> ImageContainer? {
+            return container ?? _decode(data)
+        }
+
+        private func _decode(_ data: Data) -> ImageContainer? {
             guard let image = ImageDecoders.Default._decode(data) else {
                 return nil
             }
             // Keep original data around in case of GIF
+            let format = ImageFormat.format(for: data)
             if ImagePipeline.Configuration._isAnimatedImageDataEnabled, case .gif? = format {
                 image._animatedImageData = data
             }
@@ -102,23 +121,13 @@ public extension ImageDecoders {
             if ImageDecoders.Default._isAttachingAnimatedImageData, case .gif? = format {
                 container.data = data
             }
-            if isProgressive == true {
+            if numberOfScans > 0 {
                 container.userInfo[ImageDecoders.Default.scanNumberKey] = numberOfScans
             }
             return container
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-            let format = ImageFormat.format(for: data)
-
-            // Determined (if haven't determined yet) whether the image supports progressive
-            // decoding or not (only proressive JPEG is allowed for now, but you can
-            // add support for other formats by implementing your own decoder).
-            isProgressive = isProgressive ?? format?.isProgressive
-            guard isProgressive == true else {
-                return nil
-            }
-
             // Check if there is more data to scan.
             guard (scannedIndex + 1) < data.count else {
                 return nil
@@ -191,6 +200,32 @@ public extension ImageDecoders {
     }
 }
 
+// MARK: - ImageDecoderRegistering
+
+/// An image decoder which supports automatically registering in the decoder register.
+public protocol ImageDecoderRegistering: ImageDecoding {
+    /// Returns non-nil if the decoder can be used to decode the given data.
+    ///
+    /// - parameter data: The same data is going to be delivered to decoder via
+    /// `decode(_:)` method. The same instance of the decoder is going to be used.
+    init?(data: Data, context: ImageDecodingContext)
+
+    /// Returns non-nil if the decoder can be used to progressively decode the
+    /// given partially downloaded data.
+    ///
+    /// - parameter data: The first and the next data chunks are going to be
+    /// delivered to the decoder via `decodePartiallyDownloadedData(_:)` method.
+    init?(partiallyDownloadedData data: Data, context: ImageDecodingContext)
+}
+
+public extension ImageDecoderRegistering {
+    /// The default implementation which simply returns `nil` (no progressive
+    /// decoding available).
+    init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
+        return nil
+    }
+}
+
 // MARK: - ImageDecoderRegistry
 
 /// A register of image codecs (only decoding).
@@ -200,14 +235,31 @@ public final class ImageDecoderRegistry {
 
     private var matches = [(ImageDecodingContext) -> ImageDecoding?]()
 
+    public init() {
+        self.register(ImageDecoders.Default.self)
+    }
+
     /// Returns a decoder which matches the given context.
-    public func decoder(for context: ImageDecodingContext) -> ImageDecoding {
+    public func decoder(for context: ImageDecodingContext) -> ImageDecoding? {
         for match in matches {
             if let decoder = match(context) {
                 return decoder
             }
         }
-        return ImageDecoders.Default() // Return default decoder if couldn't find a custom one.
+        return nil
+    }
+
+    // MARK: - Registering
+
+    /// Registers the given decoder.
+    public func register<Decoder: ImageDecoderRegistering>(_ decoder: Decoder.Type) {
+        register { context in
+            if context.isCompleted {
+                return decoder.init(data: context.data, context: context)
+            } else {
+                return decoder.init(partiallyDownloadedData: context.data, context: context)
+            }
+        }
     }
 
     /// Registers a decoder to be used in a given decoding context. The closure
@@ -216,7 +268,8 @@ public final class ImageDecoderRegistry {
         matches.insert(match, at: 0)
     }
 
-    func clear() {
+    /// Removes all registered decoders.
+    public func clear() {
         matches = []
     }
 }
@@ -225,11 +278,14 @@ public final class ImageDecoderRegistry {
 public struct ImageDecodingContext {
     public let request: ImageRequest
     public let data: Data
+    /// Returns `true` if the download was completed.
+    public let isCompleted: Bool
     public let urlResponse: URLResponse?
 
-    public init(request: ImageRequest, data: Data, urlResponse: URLResponse?) {
+    public init(request: ImageRequest, data: Data, isCompleted: Bool, urlResponse: URLResponse?) {
         self.request = request
         self.data = data
+        self.isCompleted = isCompleted
         self.urlResponse = urlResponse
     }
 }

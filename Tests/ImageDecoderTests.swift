@@ -12,12 +12,10 @@ class ImageDecoderTests: XCTestCase {
 
         // Just before the Start Of Frame
         XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...358]))
-        XCTAssertNil(decoder.isProgressive)
         XCTAssertEqual(decoder.numberOfScans, 0)
 
         // Right after the Start Of Frame
         XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...359]))
-        XCTAssertTrue(decoder.isProgressive!)
         XCTAssertEqual(decoder.numberOfScans, 0) // still haven't finished the first scan
 
         // Just before the first Start Of Scan

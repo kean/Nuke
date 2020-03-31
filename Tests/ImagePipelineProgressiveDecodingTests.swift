@@ -100,8 +100,14 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             }
         }
 
-        ImageDecoderRegistry.shared.register { _ in
+        let registry = ImageDecoderRegistry()
+
+        registry.register { _ in
             FailingPartialsDecoder()
+        }
+
+        pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = registry.decoder(for:)
         }
 
         // When/Then
@@ -120,8 +126,6 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         )
 
         wait()
-
-        ImageDecoderRegistry.shared.clear()
     }
 
     // MARK: - Image Processing
@@ -146,7 +150,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
                     XCTAssertEqual(image.cgImage?.width, 45, "Expected progressive image to be resized")
                     XCTAssertEqual(image.cgImage?.height, 30, "Expected progressive image to be resized")
                 }
-        },
+            },
             completion: { result in
                 XCTAssertTrue(result.isSuccess, "Expected the final image to be produced")
                 let image = result.value?.image

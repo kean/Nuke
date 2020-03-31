@@ -59,6 +59,7 @@ private func _mockImageDecodingContext() -> ImageDecodingContext {
     return ImageDecodingContext(
         request: Test.request,
         data: Test.data(name: "fixture", extension: "jpeg"),
+        isCompleted: true,
         urlResponse: nil
     )
 }
