@@ -285,7 +285,7 @@ dataLoader = DataLoader()
 dataCache = nil
 
 // By default uses the decoder from the global registry and the default encoder.
-makeImageDecoder = { context in ImageDecoderRegistry.shared.decoder(for: context) }
+makeImageDecoder = ImageDecoderRegistry.shared.decoder(for:)
 makeImageEncoder = { _ in ImageEncoders.Default() }
 ```
 

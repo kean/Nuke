@@ -5,6 +5,8 @@ Nuke offers built-in support for basic image formats like `jpeg`, `png`, and `he
 Nuke is capable of driving progressive decoding, animated image rendering, progressive animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
 
 - [Image Decoding Infrastructure](#image-decoding-infrastructure)
+  * [ImageDecoding Protocol](#imagedecoding-protocol)
+  * [Registering Decoders](#registering-decoders)
   * [Progressive Decoding](#progressive-decoding)
 - [Built-In Image Decoders](#built-in-image-decoders)
   * [`ImageDecoders.Default`](#-imagedecodersdefault-)
@@ -14,7 +16,7 @@ Nuke is capable of driving progressive decoding, animated image rendering, progr
   * [`ImageEncoders.Default`](#-imageencodersdefault-)
   * [`ImageEncoders.ImageIO`](#-imageencodersimageio-)
 - [Supported Formats](#supported-formats)
-  * [Basic Formats (JPEG, PNG, etc)](#basic-image-formats--jpeg--png--etc-)
+  * [Basic Image Formats (JPEG, PNG, etc)](#basic-image-formats--jpeg--png--etc-)
   * [Progressive JPEG](#progressive-jpeg)
   * [HEIF](#heif)
   * [GIF](#gif)
@@ -23,14 +25,14 @@ Nuke is capable of driving progressive decoding, animated image rendering, progr
 
 ## Image Decoding Infrastructure
 
-At the core of the decoding infrastructure is `ImageDecoding` protocol.
+### ImageDecoding Protocol
 
-> In Nuke 8.5 this protocol was named `_ImageDecoding`.
+At the core of the decoding infrastructure is `ImageDecoding` protocol.
 
 ```swift
 public protocol ImageDecoding {
     /// Produces an image from the given image data.
-    func decode(data: Data) -> ImageContainer?
+    func decode(_ data: Data) -> ImageContainer?
 
     /// Produces an image from the given partially downloaded image data.
     /// This method might be called multiple times during a single decoding
@@ -51,9 +53,59 @@ public struct ImageContainer {
     public let userInfo: [AnyHashable: Any]
 ```
 
-When the very first chuck of the image data is loaded, `ImagePipeline` finds a decoder for the given image format.
+When the very first chuck of the image data is loaded, `ImagePipeline` creates a decoder for the given image format.
 
-The pipeline uses `ImageDecoderRegistry` to find the decoder. Use the shared registry to add custom decoders.
+The pipeline uses `ImageDecoderRegistry` to find the decoder.  The decoder is created once and is reused across a single image decoding session until the final chuck of data is downloaded. If your decoder supports progressive decoding, make it a `class` if you need to keep some state within a single decoding session. You can also return a shared instance of the decoder if needed.
+
+> Tip: `decode(_:)` method only passes `data` to the decoder. However, if you need any additional information in the decoder, you can pass it when instantiating a decoder. `ImageDecodingContext` provides everything that you might need.
+>
+> You can also take advantage of `ImageRequestOptions.userInfo` to pass any kind of information that you might want to the decoder. For example, you may pass the target image view size to the SVG decoder to let it know the size of the image to create.  
+
+The decoding is performed in the background on the operation queue provided in `ImagePipeline.Configuration`. There is always only one decoding request at a time. The pipeline is not going to call `decodePariallyDownloadedData(_:)` until you are finished with the previous chuck.
+
+### Registering Decoders
+
+To register the decoders, use `ImageDecoderRegistry`. There are two ways to register the decoder.
+
+The preferred approach is to make sure your decoders implements `ImageDecoderRegistering` protocol.
+
+```swift
+/// An image decoder which supports automatically registering in the decoder register.
+public protocol ImageDecoderRegistering: ImageDecoding {
+    /// Returns non-nil if the decoder can be used to decode the given data.
+    ///
+    /// - parameter data: The same data is going to be delivered to decoder via
+    /// `decode(_:)` method. The same instance of the decoder is going to be used.
+    init?(data: Data, context: ImageDecodingContext)
+
+    /// Returns non-nil if the decoder can be used to progressively decode the
+    /// given partially downloaded data.
+    ///
+    /// - parameter data: The first and the next data chunks are going to be
+    /// delivered to the decoder via `decodePartiallyDownloadedData(_:)` method.
+    init?(partiallyDownloadedData data: Data, context: ImageDecodingContext)
+}
+
+public extension ImageDecoderRegistering {
+    /// The default implementation which simply returns `nil` (no progressive
+    /// decoding available).
+    init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
+        return nil
+    }
+}
+```
+
+By default, the registry is initialzied with a single registered decoder, the default one:
+
+```swift
+public final class ImageDecoderRegistry {
+    public init() {
+        self.register(ImageDecoders.Default.self)
+    }
+}
+```
+
+If for some reason `ImageDecoderRegistering` does not work for you, use another `register(_:)` method version:
 
 ```swift
 // Note: ImageDecoders.SVG not included in the framework.
@@ -74,14 +126,6 @@ public struct ImageDecodingContext {
     public let urlResponse: URLResponse?
 }
 ```
-
-The decoder is created once and is reused across a single image decoding session until the final chuck of data is downloaded. If your decoder supports progressive decoding, make it a `class` if you need to keep some state within a single decoding session. You can also return a shared instance of the decoder if needed.
-
-> Tip: `decode(data:)` method only passes `data` to the decoder. However, if you need any additional information in the decoder, you can pass it when instantiating a decoder. `ImageDecodingContext` provides everything that you might need.
->
-> You can also take advantage of `ImageRequestOptions.userInfo` to pass any kind of information that you might want to the decoder. For example, you may pass the target image view size to the SVG decoder to let it know the size of the image to create.  
-
-The decoding is performed in the background on the operation queue provided in `ImagePipeline.Configuration`. There is always only one decoding request at a time. The pipeline is not going to call `decodePariallyDownloadedData(_:)` until you are finished with the previous chuck.
 
 ### Progressive Decoding
 

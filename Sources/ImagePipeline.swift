@@ -390,8 +390,12 @@ private extension ImagePipeline {
     func decodeProcessedImageData(_ data: Data, for request: ImageRequest, task: ProcessedImageTask) {
         guard !task.isDisposed else { return }
 
-        let decoderContext = ImageDecodingContext(request: request, data: data, urlResponse: nil)
-        let decoder = configuration.makeImageDecoder(decoderContext)
+        let decoderContext = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
+        guard let decoder = configuration.makeImageDecoder(decoderContext) else {
+            // This shouldn't happen in practice unless encoder/decoder pair
+            // for data cache is misconfigured.
+            return self.loadDecompressedImage(for: request, task: task)
+        }
 
         let operation = BlockOperation { [weak self, weak task] in
             guard let self = self, let task = task else { return }
@@ -604,7 +608,12 @@ private extension ImagePipeline {
             return
         }
 
-        let decoder = self.decoder(for: context, data: data, urlResponse: urlResponse)
+        guard let decoder = self.decoder(for: context, data: data, urlResponse: urlResponse, isCompleted: isCompleted) else {
+            if isCompleted {
+                task.send(error: .decodingFailed)
+            } // Try again when more data is downloaded.
+            return
+        }
 
         let operation = BlockOperation { [weak self, weak task] in
             guard let self = self, let task = task else { return }
@@ -627,12 +636,12 @@ private extension ImagePipeline {
     }
 
     // Lazily creates decoding for task
-    func decoder(for context: OriginalImageTaskContext, data: Data, urlResponse: URLResponse?) -> ImageDecoding {
+    func decoder(for context: OriginalImageTaskContext, data: Data, urlResponse: URLResponse?, isCompleted: Bool) -> ImageDecoding? {
         // Return the existing processor in case it has already been created.
         if let decoder = context.decoder {
             return decoder
         }
-        let decoderContext = ImageDecodingContext(request: context.request, data: data, urlResponse: urlResponse)
+        let decoderContext = ImageDecodingContext(request: context.request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
         let decoder = configuration.makeImageDecoder(decoderContext)
         context.decoder = decoder
         return decoder
