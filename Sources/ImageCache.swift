@@ -32,20 +32,20 @@ public final class ImageCache: ImageCaching {
 
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int {
-        get { return impl.costLimit }
+        get { impl.costLimit }
         set { impl.costLimit = newValue }
     }
 
     /// The maximum number of items that the cache can hold.
     public var countLimit: Int {
-        get { return impl.countLimit }
+        get { impl.countLimit }
         set { impl.countLimit = newValue }
     }
 
     /// Default TTL (time to live) for each entry. Can be used to make sure that
     /// the entries get validated at some point. `0` (never expire) by default.
     public var ttl: TimeInterval {
-        get { return impl.ttl }
+        get { impl.ttl }
         set { impl.ttl = newValue }
     }
 

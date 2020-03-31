@@ -22,12 +22,12 @@ extension ImagePipeline {
         /// Default implementation uses shared `ImageDecoderRegistry` to create
         /// a decoder that matches the context.
         public var makeImageDecoder: (ImageDecodingContext) -> ImageDecoding = {
-            return ImageDecoderRegistry.shared.decoder(for: $0)
+            ImageDecoderRegistry.shared.decoder(for: $0)
         }
 
         /// Returns `ImageEncoders.Default()` by default.
         public var makeImageEncoder: (ImageEncodingContext) -> ImageEncoding = { _ in
-            return ImageEncoders.Default()
+            ImageEncoders.Default()
         }
 
         // MARK: - Operation Queues

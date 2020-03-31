@@ -114,13 +114,13 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     }
 
     public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
-        return ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+        ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
     }
 
     // MARK: - CustomStringConvertible
 
     public var description: String {
-        return "ImageTask(id: \(taskId), priority: \(priority), completedUnitCount: \(completedUnitCount), totalUnitCount: \(totalUnitCount), isCancelled: \(isCancelled))"
+        "ImageTask(id: \(taskId), priority: \(priority), completedUnitCount: \(completedUnitCount), totalUnitCount: \(totalUnitCount), isCancelled: \(isCancelled))"
     }
 }
 
@@ -150,7 +150,7 @@ public struct ImageContainer {
 public final class ImageResponse {
     public let container: ImageContainer
     /// A convenience computed property which returns an image from the container.
-    public var image: PlatformImage { return container.image }
+    public var image: PlatformImage { container.image }
     public let urlResponse: URLResponse?
 
     // the response is only nil when new disk cache is enabled (it only stores

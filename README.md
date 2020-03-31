@@ -204,7 +204,7 @@ public protocol ImageProcessing {
 }
 ```
 
-In addition to `var identfier: String`, you can implement `var hashableIdentifier: AnyHashable` to be used by the memory cache where strings manipulationos swould be too slow. By default, this method returns String `identifier`.
+In addition to `var identfier: String`, you can implement `var hashableIdentifier: AnyHashable` to be used by the memory cache where strings manipulationos swould be too slow. By default, this method returns String `identifier`. A common approach is to make your processor `Hashable` and return `self` from `hashableIdentifier`.
 
 <br/>
 

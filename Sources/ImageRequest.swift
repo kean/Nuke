@@ -13,7 +13,7 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// The `URLRequest` used for loading an image.
     public var urlRequest: URLRequest {
-        get { return ref.resource.urlRequest }
+        get { ref.resource.urlRequest }
         set {
             mutate {
                 $0.resource = Resource.urlRequest(newValue)
@@ -38,26 +38,26 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         public static func < (lhs: Priority, rhs: Priority) -> Bool {
-            return lhs.rawValue < rhs.rawValue
+            lhs.rawValue < rhs.rawValue
         }
     }
 
     /// The relative priority of the operation. The priority affects the order in which the image
     /// requests are executed.`.normal` by default.
     public var priority: Priority {
-        get { return ref.priority }
+        get { ref.priority }
         set { mutate { $0.priority = newValue } }
     }
 
     /// The request options. See `ImageRequestOptions` for more info.
     public var options: ImageRequestOptions {
-        get { return ref.options }
+        get { ref.options }
         set { mutate { $0.options = newValue } }
     }
 
     /// Processor to be applied to the image. `nil` by default.
     public var processors: [ImageProcessing] {
-        get { return ref.processors }
+        get { ref.processors }
         set { mutate { $0.processors = newValue } }
     }
 
@@ -149,7 +149,7 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         var preferredURLString: String {
-            return options.filteredURL ?? urlString ?? ""
+            options.filteredURL ?? urlString ?? ""
         }
     }
 
@@ -167,10 +167,8 @@ public struct ImageRequest: CustomStringConvertible {
 
         var description: String {
             switch self {
-            case let .url(url):
-                return "\(url)"
-            case let .urlRequest(urlRequest):
-                return "\(urlRequest)"
+            case let .url(url): return "\(url)"
+            case let .urlRequest(urlRequest): return "\(urlRequest)"
             }
         }
     }
@@ -264,24 +262,24 @@ extension ImageRequest {
 
     /// A key for processed image in memory cache.
     func makeCacheKeyForFinalImage() -> ImageRequest.CacheKey {
-        return CacheKey(request: self)
+        CacheKey(request: self)
     }
 
     /// A key for processed image data in disk cache.
     func makeCacheKeyForFinalImageData() -> String {
-        return ref.preferredURLString + ImageProcessors.Composition(processors).identifier
+        ref.preferredURLString + ImageProcessors.Composition(processors).identifier
     }
 
     /// A key for original image data in disk cache.
     func makeCacheKeyForOriginalImageData() -> String {
-        return ref.preferredURLString
+        ref.preferredURLString
     }
 
     // MARK: - Load Keys
 
     /// A key for deduplicating operations for fetching the processed image.
     func makeLoadKeyForFinalImage() -> AnyHashable {
-        return LoadKeyForProcessedImage(
+        LoadKeyForProcessedImage(
             cacheKey: makeCacheKeyForFinalImage(),
             loadKey: makeLoadKeyForOriginalImage()
         )

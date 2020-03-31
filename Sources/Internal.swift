@@ -9,7 +9,8 @@ import os
 
 extension NSLock {
     func sync<T>(_ closure: () -> T) -> T {
-        lock(); defer { unlock() }
+        lock()
+        defer { unlock() }
         return closure()
     }
 }
@@ -130,7 +131,7 @@ final class Operation: Foundation.Operation {
             didChangeValue(forKey: "isExecuting")
         }
         get {
-            return _isExecuting
+            _isExecuting
         }
     }
     override var isFinished: Bool {
@@ -143,7 +144,7 @@ final class Operation: Foundation.Operation {
             didChangeValue(forKey: "isFinished")
         }
         get {
-            return _isFinished
+            _isFinished
         }
     }
 
@@ -187,7 +188,7 @@ final class LinkedList<Element> {
     }
 
     var isEmpty: Bool {
-        return last == nil
+        last == nil
     }
 
     /// Adds an element to the end of the list.
@@ -301,7 +302,7 @@ struct ResumableData {
     // Check if the server decided to resume the response.
     static func isResumedResponse(_ response: URLResponse) -> Bool {
         // "206 Partial Content" (server accepted "If-Range")
-        return (response as? HTTPURLResponse)?.statusCode == 206
+        (response as? HTTPURLResponse)?.statusCode == 206
     }
 
     // MARK: Storing Resumable Data
@@ -444,7 +445,7 @@ final class Log {
 
     @available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *)
     var signpostID: OSSignpostID {
-        return OSSignpostID(log: log, object: self)
+        OSSignpostID(log: log, object: self)
     }
 }
 
@@ -452,11 +453,11 @@ private let byteFormatter = ByteCountFormatter()
 
 extension Log {
     static func bytes(_ count: Int) -> String {
-        return bytes(Int64(count))
+        bytes(Int64(count))
     }
 
     static func bytes(_ count: Int64) -> String {
-        return byteFormatter.string(fromByteCount: count)
+        byteFormatter.string(fromByteCount: count)
     }
 }
 
