@@ -557,7 +557,7 @@ Observable.concat(pipeline.loadImage(with: lowResUrl).orEmpty,
 | Nuke 9.0      | Swift 5.0       | Xcode 10.2      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
 | Nuke 8.0      | Swift 5.0       | Xcode 10.2      | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
 
-See [Installation Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md#h_requirements) for the remaining versions.
+See [Installation Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md#h_requirements) for older versions.
 
 # License
 
