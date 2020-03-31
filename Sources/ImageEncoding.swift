@@ -17,7 +17,17 @@ import ImageIO
 // MARK: - ImageEncoding
 
 public protocol ImageEncoding {
-    func encode(image: PlatformImage) -> Data?
+    /// Encodes the given image.
+    func encode(_ image: PlatformImage) -> Data?
+
+    /// An optional method which encodes the given image container.
+    func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data?
+}
+
+public extension ImageEncoding {
+    func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data? {
+        self.encode(container.image)
+    }
 }
 
 // MARK: - ImageEncoder
@@ -51,7 +61,7 @@ public extension ImageEncoders {
             self.compressionQuality = compressionQuality
         }
 
-        public func encode(image: PlatformImage) -> Data? {
+        public func encode(_ image: PlatformImage) -> Data? {
             guard let cgImage = image.cgImage else {
                 return nil
             }
@@ -66,7 +76,7 @@ public extension ImageEncoders {
                 type = .png
             }
             let encoder = ImageEncoders.ImageIO(type: type, compressionRatio: Float(compressionQuality))
-            return encoder.encode(image: image)
+            return encoder.encode(image)
         }
     }
 }
@@ -110,7 +120,7 @@ public extension ImageEncoders {
             return isAvailable
         }
 
-        public func encode(image: PlatformImage) -> Data? {
+        public func encode(_ image: PlatformImage) -> Data? {
             let data = NSMutableData()
             let options: NSDictionary = [
                 kCGImageDestinationLossyCompressionQuality: compressionRatio

@@ -264,7 +264,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         struct MockImageEncoder: ImageEncoding {
             let closure: (PlatformImage) -> Data?
 
-            func encode(image: PlatformImage) -> Data? {
+            func encode(_ image: PlatformImage) -> Data? {
                 return closure(image)
             }
         }
