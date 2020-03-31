@@ -470,7 +470,7 @@ private extension ImagePipeline {
 
             let log = Log(self.log, "Encode Image")
             log.signpost(.begin)
-            let encodedData = encoder.encode(image: response.image)
+            let encodedData = encoder.encode(response.container, context: context)
             log.signpost(.end)
 
             guard let data = encodedData else { return }
