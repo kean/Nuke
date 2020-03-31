@@ -92,7 +92,7 @@ $ git submodule add https://github.com/kean/Nuke.git
 
 | Nuke          | Swift           | Xcode           | Platforms                                         |
 |---------------|-----------------|-----------------|---------------------------------------------------|
-| Nuke 9.0      | Swift 5.0       | Xcode 10.2      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
+| Nuke 9.0      | Swift 5.1       | Xcode 11.0      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
 | Nuke 8.0      | Swift 5.0       | Xcode 10.2      | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
 | Nuke 7.6      | Swift 4.2       | Xcode 10.1      | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
 | Nuke 6.0      | Swift 4.0       | Xcode 9.2       | iOS 9.0 / watchOS 2.0 / macOS 10.10 / tvOS 9.0    |

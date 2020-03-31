@@ -264,9 +264,10 @@ public extension ImagePipeline {
         return configuration.imageCache?[request]
     }
 
-    private func storeResponse(_ response: ImageResponse, for request: ImageRequest, isCompleted: Bool) {
-        guard isCompleted, request.options.memoryCacheOptions.isWriteAllowed else { return }
-        configuration.imageCache?[request] = response.container
+    private func storeResponse(_ image: ImageContainer, for request: ImageRequest, isCompleted: Bool) {
+        guard request.options.memoryCacheOptions.isWriteAllowed,
+            !image.isPreview || configuration.isStoringPreviewsInMemoryCache else { return }
+        configuration.imageCache?[request] = image
     }
 }
 
@@ -352,7 +353,12 @@ private extension ImagePipeline {
 
     func performDecompressedImageFetchTask(_ task: DecompressedImageTask, request: ImageRequest) {
         if let image = cachedImage(for: request) {
-            return task.send(value: ImageResponse(container: image), isCompleted: true)
+            let response = ImageResponse(container: image)
+            if image.isPreview {
+                task.send(value: response)
+            } else {
+                return task.send(value: response, isCompleted: true)
+            }
         }
 
         guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage) else {
@@ -416,13 +422,13 @@ private extension ImagePipeline {
 
     #if os(macOS)
     func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, task: DecompressedImageTask) {
-        storeResponse(response, for: request, isCompleted: isCompleted)
+        storeResponse(response.container, for: request, isCompleted: isCompleted)
         task.send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
     }
     #else
     func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, task: DecompressedImageTask) {
         guard isDecompressionNeeded(for: response) else {
-            storeResponse(response, for: request, isCompleted: isCompleted)
+            storeResponse(response.container, for: request, isCompleted: isCompleted)
             task.send(value: response, isCompleted: isCompleted)
             return
         }
@@ -444,7 +450,7 @@ private extension ImagePipeline {
             log.signpost(.end)
 
             self.queue.async {
-                self.storeResponse(response, for: request, isCompleted: isCompleted)
+                self.storeResponse(response.container, for: request, isCompleted: isCompleted)
                 task.send(value: response, isCompleted: isCompleted)
             }
         }
@@ -500,7 +506,7 @@ private extension ImagePipeline {
         assert(!request.processors.isEmpty)
         guard !task.isDisposed, !request.processors.isEmpty else { return }
 
-        if let image = cachedImage(for: request) {
+        if let image = cachedImage(for: request), !image.isPreview {
             return task.send(value: ImageResponse(container: image), isCompleted: true)
         }
 

@@ -127,6 +127,11 @@ extension ImagePipeline {
         /// to produce a partial image or not.
         public var isProgressiveDecodingEnabled = false
 
+        /// `false` by default. If `true`, the pipeline will store all of the
+        /// progressively generated previews in the memory cache. All of the
+        /// previews have `isPreview` flag set to `true`.
+        public var isStoringPreviewsInMemoryCache = false
+
         /// If the data task is terminated (either because of a failure or a
         /// cancellation) and the image was partially loaded, the next load will
         /// resume where it was left off. Supports both validators (`ETag`,

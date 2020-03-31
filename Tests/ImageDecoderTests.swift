@@ -31,6 +31,7 @@ class ImageDecoderTests: XCTestCase {
         // Found the second Start of Scan
         let scan1 = decoder.decodePartiallyDownloadedData(data[0...2952])
         XCTAssertNotNil(scan1)
+        XCTAssertEqual(scan1?.isPreview, true)
         if let image = scan1?.image {
             #if os(macOS)
             XCTAssertEqual(image.size.width, 450)
