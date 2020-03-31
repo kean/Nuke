@@ -391,7 +391,7 @@ ImagePipeline {
 
 By default, the pipeline stores only the original image data. To store downloaded and processed images instead, set `dataCacheOptions.storedItems` to `[.finalImage]`. This option is useful if you want to store processed, e.g. downsampled images, or if you want to transcode images to a more efficient format, like HEIF.
 
-> To save disk space see `ImageEncoders.ImageIO` and a new experimental `ImageEncoder._isHEIFPreferred` option for HEIF support.
+> To save disk space see `ImageEncoders.ImageIO` and  `ImageEncoder.isHEIFPreferred` option for HEIF support.
 
 <br/>
 

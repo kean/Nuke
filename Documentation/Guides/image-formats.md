@@ -148,7 +148,7 @@ All encooders live in `ImageEncoders` namespace.
 
 ### `ImageEncoders.Default`
 
-Encodes opaque images as `jpeg` and images with opacity as `png`. Can be configured to use `heif` instead of `jpeg` using `ImageEncoders.Default._isHEIFPreferred` option.
+Encodes opaque images as `jpeg` and images with opacity as `png`. Can be configured to use `heif` instead of `jpeg` using `ImageEncoders.Default.isHEIFPreferred` option.
 
 ### `ImageEncoders.ImageIO`
 
@@ -207,7 +207,7 @@ The default image decoder `ImageDecoders.Default` supports [HEIF](https://en.wik
 
 **Encoding**
 
-The default image encoder `ImageEncoders.Default` supports [HEIF](https://en.wikipedia.org/wiki/High_Efficiency_Image_File_Format), however it doesn't use it by default. To enable it, use a new experimental `ImageEncoders.Default._isHEIFPreferred` option.
+The default image encoder `ImageEncoders.Default` supports [HEIF](https://en.wikipedia.org/wiki/High_Efficiency_Image_File_Format), however it doesn't use it by default. To enable it, use `ImageEncoders.Default.isHEIFPreferred` option.
 
 To encode images in HEIF directly, use `ImageEncoders.ImageIO`:
 
