@@ -29,7 +29,7 @@ class ImageRequestTests: XCTestCase {
         request.options.memoryCacheOptions.isReadAllowed = false
         request.options.loadKey = "1"
         request.options.cacheKey = "2"
-        request.options.userInfo = "3"
+        request.options.userInfo["key"] = "3"
         request.options.filteredURL = "4"
         request.processors = [MockImageProcessor(id: "4")]
         request.priority = .high
@@ -43,7 +43,7 @@ class ImageRequestTests: XCTestCase {
         XCTAssertEqual(copy.options.memoryCacheOptions.isReadAllowed, false)
         XCTAssertEqual(copy.options.loadKey, "1")
         XCTAssertEqual(copy.options.cacheKey, "2")
-        XCTAssertEqual(copy.options.userInfo as? String, "3")
+        XCTAssertEqual(copy.options.userInfo["key"] as? String, "3")
         XCTAssertEqual(copy.options.filteredURL, "4")
         XCTAssertEqual((copy.processors.first as? MockImageProcessor)?.identifier, "4")
         XCTAssertEqual(copy.priority, .high)

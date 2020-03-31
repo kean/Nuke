@@ -239,13 +239,13 @@ public struct ImageRequestOptions {
     public var loadKey: AnyHashable?
 
     /// Custom info passed alongside the request.
-    public var userInfo: Any?
+    public var userInfo: [AnyHashable: Any]
 
     public init(memoryCacheOptions: MemoryCacheOptions = .init(),
                 filteredURL: String? = nil,
                 cacheKey: AnyHashable? = nil,
                 loadKey: AnyHashable? = nil,
-                userInfo: Any? = nil) {
+                userInfo: [AnyHashable: Any] = [:]) {
         self.memoryCacheOptions = memoryCacheOptions
         self.filteredURL = filteredURL
         self.cacheKey = cacheKey
