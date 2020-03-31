@@ -207,7 +207,7 @@ public final class DataCache: DataCaching {
     ///
     public subscript(key: Key) -> Data? {
         get {
-            return cachedData(for: key)
+            cachedData(for: key)
         }
         set {
             if let data = newValue {
@@ -223,7 +223,7 @@ public final class DataCache: DataCaching {
     /// Uses the `FilenameGenerator` that the cache was initialized with to
     /// generate and return a filename for the given key.
     public func filename(for key: Key) -> String? {
-        return filenameGenerator(key)
+        filenameGenerator(key)
     }
 
     /// Returns `url` for the given cache key.
@@ -394,7 +394,7 @@ public final class DataCache: DataCaching {
     /// The total number of items in the cache.
     /// - warning: Requires disk IO, avoid using from the main thread.
     public var totalCount: Int {
-        return contents().count
+        contents().count
     }
 
     /// The total file size of items written on disk.
@@ -405,7 +405,7 @@ public final class DataCache: DataCaching {
     ///
     /// - warning: Requires disk IO, avoid using from the main thread.
     public var totalSize: Int {
-        return contents(keys: [.fileSizeKey]).reduce(0) {
+        contents(keys: [.fileSizeKey]).reduce(0) {
             $0 + ($1.meta.fileSize ?? 0)
         }
     }
@@ -416,7 +416,7 @@ public final class DataCache: DataCaching {
     ///
     /// - warning: Requires disk IO, avoid using from the main thread.
     public var totalAllocatedSize: Int {
-        return contents(keys: [.totalFileAllocatedSizeKey]).reduce(0) {
+        contents(keys: [.totalFileAllocatedSizeKey]).reduce(0) {
             $0 + ($1.meta.totalFileAllocatedSize ?? 0)
         }
     }

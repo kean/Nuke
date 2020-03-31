@@ -59,12 +59,8 @@ public extension ImageEncoders {
             }
             let type: ImageType
             if cgImage.isOpaque {
-                if #available(iOS 11, macOS 10.13, tvOS 11, watchOS 4, *) {
-                    if ImageEncoders.Default._isHEIFPreferred && ImageEncoders.ImageIO.isSupported(type: .heic) {
-                        type = .heic
-                    } else {
-                        type = .jpeg
-                    }
+                if ImageEncoders.Default._isHEIFPreferred && ImageEncoders.ImageIO.isSupported(type: .heic) {
+                    type = .heic
                 } else {
                     type = .jpeg
                 }

@@ -56,7 +56,10 @@ public protocol ImageProcessing {
     /// The default implementation simply returns `var identifier: String` but
     /// can be overridden as a performance optimization - creating and comparing
     /// strings is _expensive_ so you can opt-in to return something which is
-    /// fast to create and to compare. See `ImageProcessors.Resize` to example.
+    /// fast to create and to compare. See `ImageProcessors.Resize` for an example.
+    ///
+    /// - note: A common approach is to make your processor `Hashable` and return `self`
+    /// from `hashableIdentifier`.
     var hashableIdentifier: AnyHashable { get }
 }
 
@@ -64,13 +67,11 @@ public extension ImageProcessing {
     /// The default implementation which simply calls the basic
     /// `process(_ image: PlatformImage) -> PlatformImage?` method.
     func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
-        return container.map(process)
+        container.map(process)
     }
 
     /// The default impleemntation which simply return `var identifier: String`.
-    var hashableIdentifier: AnyHashable {
-        return identifier
-    }
+    var hashableIdentifier: AnyHashable { identifier }
 }
 
 /// Image processing context used when selecting which processor to use.
@@ -121,7 +122,7 @@ extension ImageProcessors {
         }
 
         private var sizeInPixels: CGSize {
-            return CGSize(size: size, unit: unit)
+            CGSize(size: size, unit: unit)
         }
 
         /// Initializes the processor with the given size.
@@ -162,15 +163,13 @@ extension ImageProcessors {
         }
 
         public var identifier: String {
-            return "com.github.kean/nuke/resize?s=\(sizeInPixels),cm=\(contentMode),crop=\(crop),upscale=\(upscale)"
+            "com.github.kean/nuke/resize?s=\(sizeInPixels),cm=\(contentMode),crop=\(crop),upscale=\(upscale)"
         }
 
-        public var hashableIdentifier: AnyHashable {
-            return self
-        }
+        public var hashableIdentifier: AnyHashable { self }
 
         public var description: String {
-            return "Resize(size in \(unit): \(size), contentMode: \(contentMode), crop: \(crop), upscale: \(upscale))"
+            "Resize(size in \(unit): \(size), contentMode: \(contentMode), crop: \(crop), upscale: \(upscale))"
         }
     }
 }
@@ -190,7 +189,7 @@ extension ImageProcessors {
         }
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
-            return image.processed.byDrawingInCircle(border: border)
+            image.processed.byDrawingInCircle(border: border)
         }
 
         public var identifier: String {
@@ -201,13 +200,9 @@ extension ImageProcessors {
             }
         }
 
-        public var hashableIdentifier: AnyHashable {
-            return self
-        }
+        public var hashableIdentifier: AnyHashable { self }
 
-        public var description: String {
-            return "Circle"
-        }
+        public var description: String { "Circle" }
     }
 }
 
@@ -235,7 +230,7 @@ extension ImageProcessors {
         }
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
-            return image.processed.byAddingRoundedCorners(radius: radius.converted(to: unit), border: border)
+            image.processed.byAddingRoundedCorners(radius: radius.converted(to: unit), border: border)
         }
 
         public var identifier: String {
@@ -246,12 +241,10 @@ extension ImageProcessors {
           }
         }
 
-        public var hashableIdentifier: AnyHashable {
-            return self
-        }
+        public var hashableIdentifier: AnyHashable { self }
 
         public var description: String {
-            return "RoundedCorners(radius in \(unit): \(radius))"
+            "RoundedCorners(radius in \(unit): \(radius))"
         }
     }
 }
@@ -334,7 +327,7 @@ extension ImageProcessors {
         }
 
         public var description: String {
-            return "CoreImageFilter(name: \(name), parameters: \(parameters))"
+            "CoreImageFilter(name: \(name), parameters: \(parameters))"
         }
     }
 }
@@ -358,15 +351,13 @@ extension ImageProcessors {
         }
 
         public var identifier: String {
-            return "com.github.kean/nuke/gaussian_blur?radius=\(radius)"
+            "com.github.kean/nuke/gaussian_blur?radius=\(radius)"
         }
 
-        public var hashableIdentifier: AnyHashable {
-            return self
-        }
+        public var hashableIdentifier: AnyHashable { self }
 
         public var description: String {
-            return "GaussianBlur(radius: \(radius))"
+            "GaussianBlur(radius: \(radius))"
         }
     }
 }
@@ -392,7 +383,7 @@ struct ImageDecompression {
     }
 
     static func isDecompressionNeeded(for image: UIImage) -> Bool? {
-        return objc_getAssociatedObject(image, &isDecompressionNeededAK) as? Bool
+        objc_getAssociatedObject(image, &isDecompressionNeededAK) as? Bool
     }
 }
 
@@ -412,8 +403,8 @@ extension ImageProcessors {
         }
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
-            return processors.reduce(image) { image, processor in
-                return autoreleasepool {
+            processors.reduce(image) { image, processor in
+                autoreleasepool {
                     image.flatMap { processor.process($0) }
                 }
             }
@@ -423,20 +414,18 @@ extension ImageProcessors {
         /// which they were added. If one of the processors fails to produce
         /// an image the processing stops and `nil` is returned.
         public func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
-            return processors.reduce(container) { container, processor in
-                return autoreleasepool {
+            processors.reduce(container) { container, processor in
+                autoreleasepool {
                     container.flatMap { processor.process($0, context: context) }
                 }
             }
         }
 
         public var identifier: String {
-            return processors.map({ $0.identifier }).joined()
+            processors.map({ $0.identifier }).joined()
         }
 
-        public var hashableIdentifier: AnyHashable {
-            return self
-        }
+        public var hashableIdentifier: AnyHashable { self }
 
         public func hash(into hasher: inout Hasher) {
             for processor in processors {
@@ -445,11 +434,11 @@ extension ImageProcessors {
         }
 
         public static func == (lhs: Composition, rhs: Composition) -> Bool {
-            return lhs.processors == rhs.processors
+            lhs.processors == rhs.processors
         }
 
         public var description: String {
-            return "Composition(processors: \(processors))"
+            "Composition(processors: \(processors))"
         }
     }
 }
@@ -468,11 +457,11 @@ extension ImageProcessors {
         }
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
-            return self.closure(image)
+            self.closure(image)
         }
 
         public var description: String {
-            return "AnonymousProcessor(identifier: \(identifier)"
+            "AnonymousProcessor(identifier: \(identifier)"
         }
     }
 }
@@ -528,7 +517,7 @@ extension PlatformImage {
 
 extension PlatformImage {
     var processed: ImageProcessingExtensions {
-        return ImageProcessingExtensions(image: self)
+        ImageProcessingExtensions(image: self)
     }
 }
 
@@ -641,17 +630,17 @@ struct ImageProcessingExtensions {
 #if os(macOS)
 extension NSImage {
     var cgImage: CGImage? {
-        return cgImage(forProposedRect: nil, context: nil, hints: nil)
+        cgImage(forProposedRect: nil, context: nil, hints: nil)
     }
 
     static func make(cgImage: CGImage, source: NSImage) -> NSImage {
-        return NSImage(cgImage: cgImage, size: .zero)
+        NSImage(cgImage: cgImage, size: .zero)
     }
 }
 #else
 extension UIImage {
     static func make(cgImage: CGImage, source: UIImage) -> UIImage {
-        return UIImage(cgImage: cgImage, scale: source.scale, orientation: source.imageOrientation)
+        UIImage(cgImage: cgImage, scale: source.scale, orientation: source.imageOrientation)
     }
 }
 #endif
@@ -664,7 +653,7 @@ extension CGImage {
     }
 
     var size: CGSize {
-        return CGSize(width: width, height: height)
+        CGSize(width: width, height: height)
     }
 }
 
@@ -695,11 +684,11 @@ extension CGSize {
     }
 
     func scaled(by scale: CGFloat) -> CGSize {
-        return CGSize(width: width * scale, height: height * scale)
+        CGSize(width: width * scale, height: height * scale)
     }
 
     func rounded() -> CGSize {
-        return CGSize(width: CGFloat(round(width)), height: CGFloat(round(height)))
+        CGSize(width: CGFloat(round(width)), height: CGFloat(round(height)))
     }
 }
 
@@ -720,7 +709,7 @@ extension CGSize {
     /// the rect of the input size (assuming origin: .zero)
     func centeredInRectWithSize(_ targetSize: CGSize) -> CGRect {
         // First, resize the original size to fill the target size.
-        return CGRect(origin: .zero, size: self).offsetBy(
+        CGRect(origin: .zero, size: self).offsetBy(
             dx: -(width - targetSize.width) / 2,
             dy: -(height - targetSize.height) / 2
         )
@@ -728,16 +717,6 @@ extension CGSize {
 }
 
 // MARK: - ImageProcessing Extensions (Internal)
-
-// A special version of `==` which is optimized to not create hashable identifiers
-// when not necessary (e.g. one processor is `nil` and another one isn't.
-func == (lhs: ImageProcessing?, rhs: ImageProcessing?) -> Bool {
-    switch (lhs, rhs) {
-    case (.none, .none): return true
-    case let (.some(lhs), .some(rhs)): return lhs.hashableIdentifier == rhs.hashableIdentifier
-    default: return false
-    }
-}
 
 func == (lhs: [ImageProcessing], rhs: [ImageProcessing]) -> Bool {
     guard lhs.count == rhs.count else {
@@ -778,7 +757,7 @@ public enum ImageProcessingOptions {
         }
 
         public var description: String {
-            return "Border(color: \(color), width: \(width))"
+            "Border(color: \(color), width: \(width))"
         }
     }
 
@@ -790,18 +769,12 @@ public enum ImageProcessingOptions {
 struct Screen {
     #if os(iOS) || os(tvOS)
     /// Returns the current screen scale.
-    static var scale: CGFloat {
-        return UIScreen.main.scale
-    }
+    static var scale: CGFloat { UIScreen.main.scale }
     #elseif os(watchOS)
     /// Returns the current screen scale.
-    static var scale: CGFloat {
-        return WKInterfaceDevice.current().screenScale
-    }
+    static var scale: CGFloat { WKInterfaceDevice.current().screenScale }
     #elseif os(macOS)
     /// Always returns 1.
-    static var scale: CGFloat {
-        return 1
-    }
+    static var scale: CGFloat { 1 }
     #endif
 }

@@ -36,7 +36,7 @@ public extension ImageDecoding {
     /// The default implementation which simply returns `nil` (no progressive
     /// decoding available).
     func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-        return nil
+        nil
     }
 }
 
@@ -183,11 +183,11 @@ public extension ImageDecoders {
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-            return isProgressive ? ImageContainer(image: PlatformImage(), data: data, userInfo: [:]) : nil
+            isProgressive ? ImageContainer(image: PlatformImage(), data: data, userInfo: [:]) : nil
         }
 
         public func decode(_ data: Data) -> ImageContainer? {
-            return ImageContainer(image: PlatformImage(), data: data, userInfo: [:])
+            ImageContainer(image: PlatformImage(), data: data, userInfo: [:])
         }
     }
 }
@@ -310,7 +310,7 @@ extension PlatformImage {
     // Animated image data. Only not `nil` when image data actually contains
     // an animated image.
     public var animatedImageData: Data? {
-        get { return objc_getAssociatedObject(self, &_animatedImageDataAK) as? Data }
+        get { objc_getAssociatedObject(self, &_animatedImageDataAK) as? Data }
         set { objc_setAssociatedObject(self, &_animatedImageDataAK, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 }

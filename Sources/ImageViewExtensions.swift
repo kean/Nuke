@@ -92,7 +92,7 @@ public func loadImage(with url: URL,
                       into view: ImageDisplayingView,
                       progress: ImageTask.ProgressHandler? = nil,
                       completion: ImageTask.Completion? = nil) -> ImageTask? {
-    return loadImage(with: ImageRequest(url: url), options: options, into: view, progress: progress, completion: completion)
+    loadImage(with: ImageRequest(url: url), options: options, into: view, progress: progress, completion: completion)
 }
 
 /// Loads an image with the given request and displays it in the view.
@@ -253,12 +253,12 @@ public struct ImageLoadingOptions {
         /// Fade-in transition (cross-fade in case the image view is already
         /// displaying an image).
         public static func fadeIn(duration: TimeInterval, options: UIView.AnimationOptions = .allowUserInteraction) -> Transition {
-            return Transition(style: .fadeIn(parameters:  Parameters(duration: duration, options: options)))
+            Transition(style: .fadeIn(parameters:  Parameters(duration: duration, options: options)))
         }
 
         /// Custom transition. Only runs when the image was not found in memory cache.
         public static func custom(_ closure: @escaping (ImageDisplayingView, UIImage) -> Void) -> Transition {
-            return Transition(style: .custom(closure))
+            Transition(style: .custom(closure))
         }
     }
 
@@ -279,12 +279,12 @@ public struct ImageLoadingOptions {
 
         /// Fade-in transition.
         public static func fadeIn(duration: TimeInterval) -> Transition {
-            return Transition(style: .fadeIn(parameters:  Parameters(duration: duration)))
+            Transition(style: .fadeIn(parameters:  Parameters(duration: duration)))
         }
 
         /// Custom transition. Only runs when the image was not found in memory cache.
         public static func custom(_ closure: @escaping (ImageDisplayingView, NSImage) -> Void) -> Transition {
-            return Transition(style: .custom(closure))
+            Transition(style: .custom(closure))
         }
     }
 

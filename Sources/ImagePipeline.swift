@@ -115,7 +115,7 @@ public /* final */ class ImagePipeline {
                           queue: DispatchQueue? = nil,
                           progress: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        return loadImage(with: ImageRequest(url: url), queue: queue, progress: progress, completion: completion)
+        loadImage(with: ImageRequest(url: url), queue: queue, progress: progress, completion: completion)
     }
 
     /// Loads an image for the given request using image loading pipeline.
@@ -165,7 +165,7 @@ public /* final */ class ImagePipeline {
                           queue: DispatchQueue? = nil,
                           progress progressHandler: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        return loadImage(with: request, isMainThreadConfined: false, queue: queue) { task, event in
+        loadImage(with: request, isMainThreadConfined: false, queue: queue) { task, event in
             switch event {
             case let .value(response, isCompleted):
                 if isCompleted {
@@ -252,7 +252,7 @@ public /* final */ class ImagePipeline {
 public extension ImagePipeline {
     /// Returns a cached response from the memory cache.
     func cachedImage(for url: URL) -> ImageContainer? {
-        return cachedImage(for: ImageRequest(url: url))
+        cachedImage(for: ImageRequest(url: url))
     }
 
     /// Returns a cached response from the memory cache. Returns `nil` if the request disables

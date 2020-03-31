@@ -13,7 +13,7 @@ public extension ImagePipeline.Configuration {
     @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead.")
     var isDataCachingForOriginalImageDataEnabled: Bool {
         get {
-            return dataCacheOptions.storedItems.contains(.originalImageData)
+            dataCacheOptions.storedItems.contains(.originalImageData)
         }
         set {
             if newValue {
@@ -28,7 +28,7 @@ public extension ImagePipeline.Configuration {
     @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead. Please note that the new behavior is different from the previous versions. Now, instead of storing only processd image, it encodes and stores all downloaded images.")
     var isDataCachingForProcessedImagesEnabled: Bool {
         get {
-            return dataCacheOptions.storedItems.contains(.finalImage)
+            dataCacheOptions.storedItems.contains(.finalImage)
         }
         set {
             if newValue {
@@ -42,7 +42,7 @@ public extension ImagePipeline.Configuration {
     // Deprecated in 9.0
     @available(*, deprecated, message: "The default image decoder now automatically attaches image data to the newly added ImageContainer type. To learn how to implement animated image support using this new type, see the new Image Formats guide https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md") // Deprecated in 8.5
     static var isAnimatedImageDataEnabled: Bool {
-        get { return _isAnimatedImageDataEnabled }
+        get { _isAnimatedImageDataEnabled }
         set { _isAnimatedImageDataEnabled = newValue }
     }
 }

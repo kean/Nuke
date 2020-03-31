@@ -60,9 +60,7 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
     }
 
     /// Publishes the results of the task.
-    var publisher: Publisher {
-        return Publisher(task: self)
-    }
+    var publisher: Publisher { Publisher(task: self) }
 
     /// Initializes the task with the `starter`.
     /// - parameter starter: The closure which gets called as soon as the first
@@ -179,7 +177,7 @@ extension Task {
         /// Attaches the subscriber to the task.
         /// - notes: Returns `nil` if the task is already disposed.
         func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
-            return task.subscribe(priority: priority, observer)
+            task.subscribe(priority: priority, observer)
         }
 
         /// Attaches the subscriber to the task. Automatically forwards progress
@@ -280,7 +278,7 @@ final class TaskPool<Value, Error> {
     }
 
     func publisher(withKey key: AnyHashable, starter: @escaping (Task<Value, Error>) -> Void) -> Task<Value, Error>.Publisher {
-        return task(withKey: key) {
+        task(withKey: key) {
             Task<Value, Error>(starter: starter)
         }.publisher
     }
