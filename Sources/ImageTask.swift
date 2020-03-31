@@ -128,11 +128,14 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
 
 public struct ImageContainer {
     public let image: PlatformImage
+    /// Returns `true` if the image in the container is a preview of the image.
+    public var isPreview: Bool
     public var data: Data?
     public var userInfo: [AnyHashable: Any]
 
-    public init(image: PlatformImage, data: Data? = nil, userInfo: [AnyHashable: Any] = [:]) {
+    public init(image: PlatformImage, isPreview: Bool = false, data: Data? = nil, userInfo: [AnyHashable: Any] = [:]) {
         self.image = image
+        self.isPreview = isPreview
         self.data = data
         self.userInfo = userInfo
     }
@@ -142,7 +145,7 @@ public struct ImageContainer {
         guard let image = closure(self.image) else {
             return nil
         }
-        return ImageContainer(image: image, data: data, userInfo: userInfo)
+        return ImageContainer(image: image, isPreview: isPreview, data: data, userInfo: userInfo)
     }
 }
 

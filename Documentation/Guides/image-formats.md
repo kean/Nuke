@@ -92,6 +92,10 @@ To enable progressive image decoding set `isProgressiveDecodingEnabled` configur
 ```swift
 let pipeline = ImagePipeline {
     $0.isProgressiveDecodingEnabled = true
+    
+    // If `true`, the pipeline will store all of the progressively generated previews
+    // in the memory cache. All of the previews have `isPreview` flag set to `true`.
+    $0.isStoringPreviewsInMemoryCache = true
 }
 ```
 

@@ -331,6 +331,7 @@ private final class ImageViewController {
 
     // MARK: - Loading Images
 
+    // swiftlint:disable:next cyclomatic_complexity
     func loadImage(with request: ImageRequest,
                    options: ImageLoadingOptions,
                    progress progressHandler: ImageTask.ProgressHandler? = nil,
@@ -355,8 +356,10 @@ private final class ImageViewController {
         if let image = pipeline.cachedImage(for: request) {
             let response = ImageResponse(container: image)
             handle(result: .success(response), fromMemCache: true, options: options)
-            completion?(.success(response))
-            return nil
+            if !image.isPreview { // Final image was downloaded
+                completion?(.success(response))
+                return nil // No task to perform
+            }
         }
 
         // Display a placeholder.

@@ -73,7 +73,7 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
     // MARK: - Managing Observers
 
     /// - notes: Returns `nil` if the task was disposed.
-    fileprivate func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
+    private func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
         guard !isDisposed else { return nil }
 
         nextSubscriptionId += 1

@@ -152,7 +152,7 @@ public extension ImageDecoders {
             guard let image = ImageDecoder._decode(data[0..<lastStartOfScan]) else {
                 return nil
             }
-            return ImageContainer(image: image, userInfo: [ImageDecoders.Default.scanNumberKey: numberOfScans])
+            return ImageContainer(image: image, isPreview: true, userInfo: [ImageDecoders.Default.scanNumberKey: numberOfScans])
         }
     }
 }
