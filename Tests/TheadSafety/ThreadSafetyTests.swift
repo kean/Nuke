@@ -99,7 +99,7 @@ class ThreadSafetyTests: XCTestCase {
 
         for _ in 0..<10 { // those ops happen more frequently
             ops += [
-                { cache[_request(index: rnd(10))] = Test.image },
+                { cache[_request(index: rnd(10))] = ImageContainer(image: Test.image) },
                 { cache[_request(index: rnd(10))] = nil },
                 { let _ = cache[_request(index: rnd(10))] }
             ]
@@ -185,7 +185,7 @@ final class RandomizedTests: XCTestCase {
             request.priority = every(2) ? .high : .normal
             if every(3) {
                 let size = every(2) ? CGSize(width: 40, height: 40) : CGSize(width: 60, height: 60)
-                request.processors = [ImageProcessor.Resize(size: size, contentMode: .aspectFit)]
+                request.processors = [ImageProcessors.Resize(size: size, contentMode: .aspectFit)]
             }
             if every(10) {
                 request.options.loadKey = url
