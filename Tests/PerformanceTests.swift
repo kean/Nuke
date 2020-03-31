@@ -6,16 +6,15 @@ import XCTest
 import Nuke
 
 class ImageViewPerformanceTests: XCTestCase {
-    private let dummyCacheRequest = ImageRequest(url: URL(string: "http://test.com/9999999)")!, processors: [ImageProcessor.Resize(size: CGSize(width: 2, height: 2))])
+    private let dummyCacheRequest = ImageRequest(url: URL(string: "http://test.com/9999999)")!, processors: [ImageProcessors.Resize(size: CGSize(width: 2, height: 2))])
 
     override func setUp() {
         // Store something in memory cache to avoid going through an optimized empty Dictionary path
-        let response = ImageResponse(image: PlatformImage(), urlResponse: nil)
-        ImagePipeline.shared.configuration.imageCache?.storeResponse(response, for: dummyCacheRequest)
+        ImagePipeline.shared.configuration.imageCache?[dummyCacheRequest] = ImageContainer(image: PlatformImage())
     }
 
     override func tearDown() {
-        ImagePipeline.shared.configuration.imageCache?.removeResponse(for: dummyCacheRequest)
+        ImagePipeline.shared.configuration.imageCache?[dummyCacheRequest] = nil
     }
 
     // This is the primary use case that we are optimizing for - loading images
@@ -39,7 +38,7 @@ class ImageViewPerformanceTests: XCTestCase {
 
         measure {
             for url in urls {
-                let request = ImageRequest(url: url, processors: [ImageProcessor.Resize(size: CGSize(width: 1, height: 1))])
+                let request = ImageRequest(url: url, processors: [ImageProcessors.Resize(size: CGSize(width: 1, height: 1))])
                 loadImage(with: request, into: view)
             }
         }
@@ -52,7 +51,7 @@ class ImageViewPerformanceTests: XCTestCase {
 
         measure {
             for url in urls {
-                let request = ImageRequest(url: url, processors: [ImageProcessor.Resize(size: CGSize(width: 1, height: 1))])
+                let request = ImageRequest(url: url, processors: [ImageProcessors.Resize(size: CGSize(width: 1, height: 1))])
                 loadImage(with: request, into: view)
             }
         }
@@ -99,24 +98,24 @@ class ImagePipelinePerfomanceTests: XCTestCase {
 class ImageCachePerformanceTests: XCTestCase {
     func testCacheWrite() {
         let cache = ImageCache()
-        let response = ImageResponse(image: PlatformImage(), urlResponse: nil)
+        let image = ImageContainer(image: PlatformImage())
 
         let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
         let requests = urls.map { ImageRequest(url: $0) }
         
         measure {
             for request in requests {
-                cache.storeResponse(response, for: request)
+                cache[request] = image
             }
         }
     }
 
     func testCacheHit() {
         let cache = ImageCache()
-        let response = ImageResponse(image: PlatformImage(), urlResponse: nil)
+        let image = ImageContainer(image: PlatformImage())
         
         for index in 0..<200 {
-            cache.storeResponse(response, for: ImageRequest(url: URL(string: "http://test.com/\(index)")!))
+            cache[ImageRequest(url: URL(string: "http://test.com/\(index)")!)] = image
         }
 
         var hits = 0
@@ -126,7 +125,7 @@ class ImageCachePerformanceTests: XCTestCase {
 
         measure {
             for request in requests {
-                if cache.cachedResponse(for: request) != nil {
+                if cache[request] != nil {
                     hits += 1
                 }
             }
@@ -145,7 +144,7 @@ class ImageCachePerformanceTests: XCTestCase {
 
         measure {
             for request in requests {
-                if cache.cachedResponse(for: request) == nil {
+                if cache[request] != nil {
                     misses += 1
                 }
             }
@@ -171,7 +170,7 @@ class RequestPerformanceTests: XCTestCase {
 
 class ImageProcessingPerformanceTests: XCTestCase {
     func testCreatingProcessorIdentifiers() {
-        let decompressor = ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)
+        let decompressor = ImageProcessors.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)
 
         measure {
             for _ in 0..<25_000 {
@@ -182,8 +181,8 @@ class ImageProcessingPerformanceTests: XCTestCase {
 
     func testComparingTwoProcessorCompositions() {
 
-        let lhs = ImageProcessor.Composition([MockImageProcessor(id: "123"), ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
-        let rhs = ImageProcessor.Composition([MockImageProcessor(id: "124"), ImageProcessor.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
+        let lhs = ImageProcessors.Composition([MockImageProcessor(id: "123"), ImageProcessors.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
+        let rhs = ImageProcessors.Composition([MockImageProcessor(id: "124"), ImageProcessors.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)])
 
         measure {
             for _ in 0..<25_000 {
