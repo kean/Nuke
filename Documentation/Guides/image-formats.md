@@ -170,7 +170,7 @@ This is the decoder that is used by default if none other decoders are found. It
 
 > When working with `UIImage`, the decoder automatically sets the scale of the image to match the scale of the screen.
 
-Tthe default `ImageDecoders.Default` also supports progressively decoding JPEG.
+Tthe default `ImageDecoders.Default` also supports progressively decoding JPEG. It produces a new preview every time it encounters a new full frame.
 
 ### `ImageDecoders.Empty`
 

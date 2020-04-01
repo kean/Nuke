@@ -122,7 +122,8 @@ extension ImagePipeline {
         /// `false` by default. If `true` the pipeline will try to produce a new
         /// image each time it receives a new portion of data from data loader.
         /// The decoder used by the image loading session determines whether
-        /// to produce a partial image or not.
+        /// to produce a partial image or not. The default image decoder
+        /// (`ImageDecoder`) supports progressive JPEG decoding.
         public var isProgressiveDecodingEnabled = false
 
         /// `false` by default. If `true`, the pipeline will store all of the

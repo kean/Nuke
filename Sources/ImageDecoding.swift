@@ -71,6 +71,14 @@ public enum ImageDecoders {}
 // The decoder is stateful.
 public extension ImageDecoders {
 
+    /// The default decoder which supports all of the formats natively supported
+    /// by the system.
+    ///
+    /// - note: The decoder automatically sets the scale of the decoded images to
+    /// match the scale of the screen.
+    ///
+    /// - note: The default decoder supports progressive JPEG. It produces a new
+    /// preview every time it encounters a new full frame.
     final class Default: ImageDecoding, ImageDecoderRegistering {
         // Number of scans that the decoder has found so far. The last scan might be
         // incomplete at this point.
