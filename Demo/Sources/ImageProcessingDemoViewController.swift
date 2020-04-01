@@ -73,32 +73,32 @@ final class ImageProcessingDemoViewController: UIViewController, ImagePipelineSe
         let screenWidth = UIScreen.main.bounds.size.width / 3
         let targetSize = CGSize(width: screenWidth, height: (screenWidth * 2 / 3))
         loadImage(view: views[0][1], title: "Resize", processors: [
-            ImageProcessor.Resize(size: targetSize)
+            ImageProcessors.Resize(size: targetSize)
         ])
 
         loadImage(view: views[1][0], title: "Rounded Corners", processors: [
-            ImageProcessor.Resize(size: targetSize),
-            ImageProcessor.RoundedCorners(radius: 8)
+            ImageProcessors.Resize(size: targetSize),
+            ImageProcessors.RoundedCorners(radius: 8)
         ])
 
         loadImage(view: views[1][1], title: "Monochrome", processors: [
-            ImageProcessor.Resize(size: targetSize),
-            ImageProcessor.RoundedCorners(radius: 8),
-            ImageProcessor.CoreImageFilter(name: "CIColorMonochrome",
+            ImageProcessors.Resize(size: targetSize),
+            ImageProcessors.RoundedCorners(radius: 8),
+            ImageProcessors.CoreImageFilter(name: "CIColorMonochrome",
                                            parameters: ["inputIntensity": 1,
                                                         "inputColor": CIColor(color: .white)],
                                            identifier: "nuke.demo.monochrome")
         ])
 
         loadImage(view: views[2][0], title: "Circle", processors: [
-            ImageProcessor.Resize(size: targetSize),
-            ImageProcessor.Circle()
+            ImageProcessors.Resize(size: targetSize),
+            ImageProcessors.Circle()
         ])
 
         loadImage(view: views[2][1], title: "Blur", processors: [
-            ImageProcessor.Resize(size: targetSize),
-            ImageProcessor.Circle(),
-            ImageProcessor.GaussianBlur(radius: 3)
+            ImageProcessors.Resize(size: targetSize),
+            ImageProcessors.Circle(),
+            ImageProcessors.GaussianBlur(radius: 3)
         ])
     }
 

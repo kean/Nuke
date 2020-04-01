@@ -67,7 +67,7 @@ private let imageURLs = [
 // MARK: - MP4Decoder
 
 private extension ImageDecoders {
-    final class MP4: _ImageDecoding {
+    final class MP4: ImageDecoding {
         func decode(_ data: Data) -> ImageContainer? {
             var container = ImageContainer(image: UIImage())
             container.data = data
@@ -147,25 +147,25 @@ private final class VideoCell: UICollectionViewCell {
         let pipeline = ImagePipeline.shared
         let request = ImageRequest(url: url)
 
-        if let response = pipeline.cachedResponse(for: request) {
-            return display(response: response)
+        if let image = pipeline.cachedImage(for: request) {
+            return display(image)
         }
 
         spinner.startAnimating()
         task = pipeline.loadImage(with: request) { [weak self] result in
             self?.spinner.stopAnimating()
             if case let .success(response) = result {
-                self?.display(response: response)
+                self?.display(response.container)
             }
         }
     }
 
-    private func display(response: ImageResponse) {
-        guard let data = response.container.data else {
+    private func display(_ container: ImageContainer) {
+        guard let data = container.data else {
             return
         }
 
-        assert(response.container.userInfo["mime-type"] as? String == "video/mp4")
+        assert(container.userInfo["mime-type"] as? String == "video/mp4")
 
         self.requestId += 1
         let requestId = self.requestId

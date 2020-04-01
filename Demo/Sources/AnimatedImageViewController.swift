@@ -120,25 +120,25 @@ private final class AnimatedImageCell: UICollectionViewCell {
         let pipeline = ImagePipeline.shared
         let request = ImageRequest(url: url)
 
-        if let response = pipeline.cachedResponse(for: request) {
-            return display(response: response)
+        if let image = pipeline.cachedImage(for: request) {
+            return display(image)
         }
 
         spinner.startAnimating()
         task = pipeline.loadImage(with: request) { [weak self] result in
             self?.spinner.stopAnimating()
             if case let .success(response) = result {
-                self?.display(response: response)
+                self?.display(response.container)
                 self?.animateFadeIn()
             }
         }
     }
 
-    private func display(response: ImageResponse) {
-        if let data = response.container.data {
+    private func display(_ container: Nuke.ImageContainer) {
+        if let data = container.data {
             imageView.animate(withGIFData: data)
         } else {
-            imageView.image = response.image
+            imageView.image = container.image
         }
     }
 
