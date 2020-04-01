@@ -74,16 +74,14 @@ public extension ImageProcessors {
 private var _animatedImageDataAK = "Nuke.AnimatedImageData.AssociatedKey"
 
 extension PlatformImage {
-    // Animated image data. Only not `nil` when image data actually contains
-    // an animated image.
+    // Deprecated in 9.0
     @available(*, deprecated, message: "Please use ImageContainer.data.")
     public var animatedImageData: Data? {
         get { _animatedImageData }
         set { _animatedImageData = newValue }
     }
 
-    // Animated image data. Only not `nil` when image data actually contains
-    // an animated image.
+    // Deprecated in 9.0
     internal var _animatedImageData: Data? {
         get { objc_getAssociatedObject(self, &_animatedImageDataAK) as? Data }
         set { objc_setAssociatedObject(self, &_animatedImageDataAK, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
