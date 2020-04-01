@@ -20,7 +20,7 @@ import Cocoa
 
 /// Performs image processing.
 ///
-/// For the basic processing needs, implement the following method:
+/// For basic processing needs, implement the following method:
 ///
 /// ```
 /// func process(image: PlatformImage) -> PlatformImage?
@@ -28,7 +28,7 @@ import Cocoa
 ///
 /// If your processor needs to manipulate image metadata (`ImageContainer`), or
 /// get access to more information via the context (`ImageProcessingContext`),
-/// the is an additional method that allows you to do that:
+/// there is an additional method that allows you to do that:
 ///
 /// ```
 /// func process(image container: ImageContainer, context: ImageProcessingContext) -> ImageContainer?
@@ -64,13 +64,13 @@ public protocol ImageProcessing {
 }
 
 public extension ImageProcessing {
-    /// The default implementation which simply calls the basic
+    /// The default implementation simply calls the basic
     /// `process(_ image: PlatformImage) -> PlatformImage?` method.
     func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
         container.map(process)
     }
 
-    /// The default impleemntation which simply return `var identifier: String`.
+    /// The default impleemntation simply returns `var identifier: String`.
     var hashableIdentifier: AnyHashable { identifier }
 }
 

@@ -83,7 +83,7 @@ class ImagePipelineObservingTests: XCTestCase {
         ])
     }
 
-    func testCancelationEvents() {
+    func testCancellationEvents() {
         dataLoader.queue.isSuspended = true
 
         expectNotification(MockDataLoader.DidStartTask, object: dataLoader)

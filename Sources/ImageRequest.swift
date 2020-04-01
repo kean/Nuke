@@ -73,7 +73,7 @@ public struct ImageRequest: CustomStringConvertible {
     ///
     /// ```swift
     /// let request = ImageRequest(
-    ///     url: URL(string: "http://..."),
+    ///     url: URL(string: "http://...")!,
     ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
     ///     priority: .high
     /// )
@@ -98,7 +98,7 @@ public struct ImageRequest: CustomStringConvertible {
     ///
     /// ```swift
     /// let request = ImageRequest(
-    ///     url: URL(string: "http://..."),
+    ///     url: URLRequest(url: URL(string: "http://...")!),
     ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
     ///     priority: .high
     /// )
@@ -233,7 +233,7 @@ public struct ImageRequestOptions {
 
     /// Returns a key that compares requests with regards to loading images.
     ///
-    /// The default key considers two requests equivalent it they have the same
+    /// The default key considers two requests equivalent if they have the same
     /// `URLRequests` and the same processors. `URLRequests` are compared by
     /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
     public var loadKey: AnyHashable?
