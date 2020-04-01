@@ -103,7 +103,7 @@ Please keep in mind that the built-in extensions for image views are designed to
 ```swift
 let request = ImageRequest(
     url: URL(string: "http://..."),
-    processors: [ImageProcessor.Resize(size: imageView.bounds.size)],
+    processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
     priority: .high
 )
 ```
@@ -143,7 +143,7 @@ ImageRequest(url: url, processors: [
 ])
 ```
 
-By default, the target size is in points. When the image is loaded, Nuke will downscale it to fill the target area maintaining the aspect ratio. To crop the image set `crop` to `true`. For more options, see `ImageProcessor.Resize` documentation.
+By default, the target size is in points. When the image is loaded, Nuke will downscale it to fill the target area maintaining the aspect ratio. To crop the image set `crop` to `true`. For more options, see `ImageProcessors.Resize` documentation.
 
 > Use an optional [Builder](#builder) package for a more concise API. 
 >     
