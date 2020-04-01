@@ -140,8 +140,8 @@ public struct ImageContainer {
         self.userInfo = userInfo
     }
 
-    /// Modifies the wrapped image and keeps all of the context.
-    func map(_ closure: (PlatformImage) -> PlatformImage?) -> ImageContainer? {
+    /// Modifies the wrapped image and keeps all of the rest of the metadata.
+    public func map(_ closure: (PlatformImage) -> PlatformImage?) -> ImageContainer? {
         guard let image = closure(self.image) else {
             return nil
         }
