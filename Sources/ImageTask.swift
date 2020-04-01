@@ -158,7 +158,7 @@ public final class ImageResponse {
 
     // the response is only nil when new disk cache is enabled (it only stores
     // data for now, but this might change in the future).
-    @available(*, deprecated, message: "Please use `container.userInfo[ImageDecoders.Default.scanNumberKey]` instead.") // Deprecated in Nuke 8.5
+    @available(*, deprecated, message: "Please use `container.userInfo[ImageDecoders.Default.scanNumberKey]` instead.") // Deprecated in Nuke 9.0
     public var scanNumber: Int? {
         if let number = _scanNumber {
             return number // Deprecated version
@@ -168,7 +168,7 @@ public final class ImageResponse {
 
     private let _scanNumber: Int?
 
-    @available(*, deprecated, message: "Please use `ImageResponse.init(container:urlResponse:)` instead.") // Deprecated in Nuke 8.5
+    @available(*, deprecated, message: "Please use `ImageResponse.init(container:urlResponse:)` instead.") // Deprecated in Nuke 9.0
     public init(image: PlatformImage, urlResponse: URLResponse? = nil, scanNumber: Int? = nil) {
         self.container = ImageContainer(image: image)
         self.urlResponse = urlResponse
