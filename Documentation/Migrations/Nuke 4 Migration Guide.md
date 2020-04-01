@@ -33,7 +33,7 @@ I hope that Nuke 4 is going to be a pleasure to use. Thanks for your interest ðŸ
 
 ### LRU Memory Cache
 
-Nuke 4 features a new custom LRU memory cache which replaced `NSCache`. The primary reason behind this change was the fact that `NSCache` [is not LRU](https://github.com/apple/swift-corelibs-foundation/blob/master/Foundation/NSCache.swift). The new `Nuke.Cache` has some other benefits like better performance, and more control which would enable some new advanced features in future versions.
+Nuke 4 features a new custom LRU memory cache which replaced `NSCache`. The primary reason behind this change was the fact that `NSCache` is not LRU. The new `Nuke.Cache` has some other benefits like better performance, and more control which would enable some new advanced features in future versions.
 
 ### Rate Limiter
 

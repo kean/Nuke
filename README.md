@@ -11,7 +11,7 @@
 <a href="https://travis-ci.org/kean/Nuke"><img src="https://img.shields.io/travis/kean/Nuke/master.svg"></a>
 </p>
 
-> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Migrations).
+> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Migrations).
 
 Nuke provides a simple and efficient way to download and display images in your app. Behind its clear and concise API is an advanced architecture which enables its unique features and offers virtually unlimited possibilities for customization.
 
@@ -30,14 +30,14 @@ Nuke is easy to learn and use. Here is an overview of its APIs and features:
 - **Advanced Features** ‣ [Preheat Images](#image-preheating) · [Progressive Decoding](#progressive-decoding)
 - [**Extensions**](#h_plugins) ‣ [FetchImage](#fetch-image) · [Builder](#builder) · [Combine](#combine) · [RxNuke](#rxnuke) · [And More](#h_plugins) 
 
-To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/8.0/index.html), and check out the demo project included in the repo. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, the [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/troubleshooting.md) might help. 
+To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/9.0.0/index.html), and check out the demo project included in the repo. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, the [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/troubleshooting.md) might help. 
 
 <img src="https://img.shields.io/badge/supports-Swift%20Package%20Manager%2C%20CocoaPods%2C%20Carthage-green.svg">
 
 To learn more about the pipeline and the supported formats, see the dedicated guides.
 
-- [**Image Formats**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md) ‣ [Progressive JPEG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#progressive-jpeg) · [HEIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#heif) · [GIF](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#gif) · [SVG](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#svg) · [WebP](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md#webp) 
-- [**Image Pipeline**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md) ‣ [Data Loading](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#data-loading-and-caching) · [Resumable Downloads](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#resumable-downloads) · [Memory Cache](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#memory-cache) · [Deduplication](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#deduplication) · [Decompression](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#decompression) · [Performance](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md#performance)
+- [**Image Formats**](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-formats.md) ‣ [Progressive JPEG](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-formats.md#progressive-jpeg) · [HEIF](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-formats.md#heif) · [GIF](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-formats.md#gif) · [SVG](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-formats.md#svg) · [WebP](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-formats.md#webp) 
+- [**Image Pipeline**](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-pipeline.md) ‣ [Data Loading](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-pipeline.md#data-loading-and-caching) · [Resumable Downloads](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-pipeline.md#resumable-downloads) · [Memory Cache](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-pipeline.md#memory-cache) · [Deduplication](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-pipeline.md#deduplication) · [Decompression](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-pipeline.md#decompression) · [Performance](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-pipeline.md#performance)
 
 If you'd like to contribute to Nuke see [**Contributing**](#h_contribute).
 
@@ -55,7 +55,7 @@ Nuke.loadImage(with: url, into: imageView)
 
 Nuke will check if the image exists in the memory cache, and if it does, will instantly display it. If not, the image data will be loaded, decoded, processed, and decompressed in the background.
 
-> See [Image Pipeline Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md) to learn how images are downloaded and processed.
+> See [Image Pipeline Guide](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-pipeline.md) to learn how images are downloaded and processed.
 
 ### In a Table View
 
@@ -239,7 +239,7 @@ task.priority = .high
 
 If you want to build a system that fits your specific needs, you won't be disappointed. There are a _lot of things_ to tweak. You can set custom data loaders and caches, configure image encoders and decoders, change the number of concurrent operations for each individual stage, disable and enable features like deduplication and rate limiting, and more.
 
-> To learn more see the inline documentation for `ImagePipeline.Configuration` and [Image Pipeline Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-pipeline.md).
+> To learn more see the inline documentation for `ImagePipeline.Configuration` and [Image Pipeline Guide](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-pipeline.md).
 
 <img align="right" src="https://user-images.githubusercontent.com/1567433/59148462-94f60280-8a09-11e9-906a-6c7209b8f8c8.png" width="360"/>
 
@@ -564,7 +564,7 @@ Observable.concat(pipeline.loadImage(with: lowResUrl).orEmpty,
 | Nuke 9.0      | Swift 5.1       | Xcode 11.0      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
 | Nuke 8.0      | Swift 5.0       | Xcode 10.2      | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
 
-See [Installation Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Installation%20Guide.md#h_requirements) for information about the older versions.
+See [Installation Guide](https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/Installation%20Guide.md#h_requirements) for information about the older versions.
 
 # License
 

@@ -40,7 +40,7 @@ public extension ImagePipeline.Configuration {
     }
 
     // Deprecated in 9.0
-    @available(*, deprecated, message: "The default image decoder now automatically attaches image data to the newly added ImageContainer type. To learn how to implement animated image support using this new type, see the new Image Formats guide https://github.com/kean/Nuke/blob/master/Documentation/Guides/image-formats.md") // Deprecated in 8.5
+    @available(*, deprecated, message: "The default image decoder now automatically attaches image data to the newly added ImageContainer type. To learn how to implement animated image support using this new type, see the new Image Formats guide https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-formats.md") // Deprecated in 8.5
     static var isAnimatedImageDataEnabled: Bool {
         get { _isAnimatedImageDataEnabled }
         set { _isAnimatedImageDataEnabled = newValue }

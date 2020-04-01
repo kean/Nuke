@@ -82,7 +82,7 @@ Nuke 8 is the most powerful, performant, and refined release yet. It contains ma
 
 > **Cache processed images on disk** · **New built-in image processors** · **ImagePipeline v2** · **Up to 30% faster main thread performance** · **`Result` type** · **Improved deduplication** · **`os_signpost` integration** · **Refined ImageRequest API** · **Smart decompression** · **Entirely new documentation**
 
-Most of the Nuke APIs are source compatible with Nuke 7. There is also a [Nuke 8 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%208%20Migration%20Guide.md) to help with migration.
+Most of the Nuke APIs are source compatible with Nuke 7. There is also a [Nuke 8 Migration Guide](https://github.com/kean/Nuke/blob/8.0/Documentation/Migrations/Nuke%208%20Migration%20Guide.md) to help with migration.
 
 ### Image Processing
 
@@ -248,7 +248,7 @@ The screenshots come the the **reworked demo** project. It gained new demos incl
 *Apr 13, 2019*
 
 - Fix SwiftPM 5.0 support by adding explicit platform version requirements  – [Vadim Shpakovski](https://github.com/shpakovski) in [#220](https://github.com/kean/Nuke/pull/220)
-- Update [Nuke 7 Migration Guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%207%20Migration%20Guide.md)
+- Update [Nuke 7 Migration Guide](https://github.com/kean/Nuke/blob/7.6.1/Documentation/Migrations/Nuke%207%20Migration%20Guide.md)
 
 
 ## Nuke 7.6
@@ -327,7 +327,7 @@ Nuke 7 had a lot of API changes, to make the migration easier it shipped with De
 
 - #187 Fix an issue with progress handler reporting incorrect progress for resumed (206 Partial Content) downloads
 - Remove `enableExperimentalAggressiveDiskCaching` function from `ImagePipeline.Configuration`, please use `DataCache` directly instead
-- Update [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md)
+- Update [Performance Guide](https://github.com/kean/Nuke/blob/7.4/Documentation/Guides/Performance%20Guide.md)
 
 
 ## Nuke 7.3.2
@@ -543,7 +543,7 @@ $0.enableExperimentalAggressiveDiskCaching(keyEncoder: {
 
 The public API for disk cache and the API for using custom disk caches is going to be available in the future versions.
 
-> Existing API already allows you to use custom disk cache [by implementing `DataLoading` protocol](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries), but this is not the most straightforward option.
+> Existing API already allows you to use custom disk cache by implementing `DataLoading` protocol, but this is not the most straightforward option.
 
 ### Performance Metrics
 
@@ -748,7 +748,7 @@ The reason behind this change is to reduce confusion about `Cache` usage. In pre
 
 #### Removed `DataCaching` and `CachingDataLoader`
 
-Those two types were included in Nuke to make integrating third party caching libraries a bit easier. However, they were actually not that useful. Instead of using those types you could've just wrapped `DataLoader` yourself with a comparable amount of code and get much more control. For more info see [Third Party Libraries: Using Other Caching Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries). 
+Those two types were included in Nuke to make integrating third party caching libraries a bit easier. However, they were actually not that useful. Instead of using those types you could've just wrapped `DataLoader` yourself with a comparable amount of code and get much more control. For more info see [Third Party Libraries: Using Other Caching Libraries](https://github.com/kean/Nuke/blob/5.0/Documentation/Guides/Third%20Party%20Libraries.md). 
 
 #### Other Changes
 
@@ -758,7 +758,7 @@ Those two types were included in Nuke to make integrating third party caching li
 - Reduce default `maxConcurrentOperationCount` of `DataLoader` from 8 to 6
 - Shared objects (like `Manager.shared`) are now constants.
 - `Preheater` is now initialized with `Manager` instead of `Loading` object
-- Add new [Third Party Libraries](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Third%20Party%20Libraries.md) guide.
+- Add new [Third Party Libraries](https://github.com/kean/Nuke/blob/5.0/Documentation/Guides/Third%20Party%20Libraries.md) guide.
 - Improved documentation
 
 
@@ -798,7 +798,7 @@ Nuke 4.0 focused on stability first, naturally there were some performance regre
 
 If you're interested in the types of optimizations that were made check out recent commits. There is a lot of awesome stuff there!
 
-Nuke 4.1 also includes a new [Performance Guide](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Performance%20Guide.md) and a collection of [Tips and Tricks](https://github.com/kean/Nuke/blob/master/Documentation/Guides/Tips%20and%20Tricks.md).
+Nuke 4.1 also includes a new [Performance Guide](https://github.com/kean/Nuke/blob/4.1/Documentation/Guides/Performance%20Guide.md) and a collection of [Tips and Tricks](https://github.com/kean/Nuke/blob/4.1/Documentation/Guides/Tips%20and%20Tricks.md).
 
 ### Other Changes
 
@@ -831,13 +831,13 @@ The adoption of those design principles resulted in a simpler, more testable, an
  
 I hope that Nuke 4 is going to be a pleasure to use. Thanks for your interest 😄
  
-You can learn more about Nuke 4 in an in-depth [**Nuke 4 Migration Guide**](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%204%20Migration%20Guide.md).
+You can learn more about Nuke 4 in an in-depth [**Nuke 4 Migration Guide**](https://github.com/kean/Nuke/blob/4.1/Documentation/Migrations/Nuke%204%20Migration%20Guide.md).
 
 ### Highlighted New Features
  
 #### LRU Memory Cache
  
-Nuke 4 features a new custom LRU memory cache which replaced `NSCache`. The primary reason behind this change was the fact that `NSCache` [is not LRU](https://github.com/apple/swift-corelibs-foundation/blob/master/Foundation/NSCache.swift). The new `Nuke.Cache` has some other benefits like better performance, and more control which would enable some new advanced features in future versions.
+Nuke 4 features a new custom LRU memory cache which replaced `NSCache`. The primary reason behind this change was the fact that `NSCache` is not LRU]. The new `Nuke.Cache` has some other benefits like better performance, and more control which would enable some new advanced features in future versions.
 
 #### Rate Limiter
  
