@@ -166,6 +166,13 @@ public struct ImageLoadingOptions {
     /// will be removed. `true` by default.
     public var isPrepareForReuseEnabled = true
 
+    /// If `true`, every progressively generated preview produced by the pipeline
+    /// is going to be displayed. `true` by default.
+    ///
+    /// - note: To enable progressive decoding, see `ImagePipeline.Configuration`,
+    /// `isProgressiveDecodingEnabled` option.
+    public var isProgressiveRenderingEnabled = true
+
     /// Custom pipeline to be used. `nil` by default.
     public var pipeline: ImagePipeline?
 
@@ -418,6 +425,7 @@ private final class ImageViewController {
     }
 
     private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
+        guard options.isProgressiveRenderingEnabled else { return }
         display(response.image, options.transition, options.alwaysTransition, false, options.contentModes?.success)
     }
 

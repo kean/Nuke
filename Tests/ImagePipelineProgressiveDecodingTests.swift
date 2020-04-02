@@ -218,6 +218,43 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         ImagePipeline.popShared()
     }
 
+    func testDisablingProgressiveRendering() {
+        // Given
+        ImagePipeline.pushShared(pipeline)
+
+        let imageView = _ImageView()
+
+        var options = ImageLoadingOptions()
+        options.isProgressiveRenderingEnabled = false
+
+        let expectPartialImageProduced = self.expectation(description: "Partial Image Produced")
+        // We expect two partial images (at 5 scans, and 9 scans marks).
+        expectPartialImageProduced.expectedFulfillmentCount = 2
+
+        let expectedFinalLoaded = self.expectation(description: "Final Image Produced")
+
+        // When/Then
+        Nuke.loadImage(
+            with: Test.request,
+            options: options,
+            into: imageView,
+            progress: { response, _, _ in
+                if response?.image != nil {
+                    XCTAssertNil(imageView.image)
+                    expectPartialImageProduced.fulfill()
+                    self.dataLoader.resume()
+                }
+            },
+            completion: { result in
+                XCTAssertTrue(imageView.image === result.value?.image)
+                expectedFinalLoaded.fulfill()
+            }
+        )
+        wait()
+
+        ImagePipeline.popShared()
+    }
+
     func testProgressiveDecodingDisabled() {
         // Given
         var configuration = pipeline.configuration
