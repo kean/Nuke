@@ -1,5 +1,11 @@
 # Nuke 8
 
+## Nuke 8.4.2
+
+*April 2, 2020*
+
+- Distribute as a dynamic library via Swift Package Manager
+
 ## Nuke 8.4.1
 
 *March 19, 2020*
