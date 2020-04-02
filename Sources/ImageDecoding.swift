@@ -89,9 +89,6 @@ public extension ImageDecoders {
         /// A user info key to get the scan number (Int).
         public static let scanNumberKey = "ImageDecoders.Default.scanNumberKey"
 
-        // Not sure if this is a useful configuration option and whether it needs to exist.
-        public static var _isAttachingAnimatedImageData: Bool = true
-
         private var container: ImageContainer?
 
         public init() { }
@@ -126,7 +123,7 @@ public extension ImageDecoders {
                 image._animatedImageData = data
             }
             var container = ImageContainer(image: image, data: image._animatedImageData)
-            if ImageDecoders.Default._isAttachingAnimatedImageData, case .gif? = format {
+            if case .gif? = format {
                 container.data = data
             }
             if numberOfScans > 0 {
