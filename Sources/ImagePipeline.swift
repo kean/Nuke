@@ -339,6 +339,17 @@ private extension ImagePipeline {
     }
 }
 
+// When you request an image, the pipeline creates the following dependency graph:
+//
+// DecompressedImageTask ->
+// ProcessedImageTask ->
+//   ProcessedImageTask* ->
+// OriginalImageTask ->
+// OriginalImageDataTask
+//
+// Each task represents a resource to be retrieved - processed image, original image, etc.
+// Each task can be reuse of the same resource requested multiple times.
+
 // MARK: - Get Decompressed Image (Private)
 
 private extension ImagePipeline {
