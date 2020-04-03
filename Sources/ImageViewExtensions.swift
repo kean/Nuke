@@ -392,7 +392,9 @@ private final class ImageViewController {
                     self?.handle(result: .success(response), fromMemCache: false, options: options)
                     completion?(.success(response))
                 } else {
-                    self?.handle(partialImage: response, options: options)
+                    if options.isProgressiveRenderingEnabled {
+                        self?.handle(partialImage: response, options: options)
+                    }
                     progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
                 }
             case let .error(error):
@@ -425,7 +427,6 @@ private final class ImageViewController {
     }
 
     private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
-        guard options.isProgressiveRenderingEnabled else { return }
         display(response.image, options.transition, options.alwaysTransition, false, options.contentModes?.success)
     }
 
