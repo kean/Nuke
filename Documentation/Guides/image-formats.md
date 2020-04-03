@@ -8,6 +8,7 @@ Nuke is capable of driving progressive decoding, animated image rendering, progr
   * [ImageDecoding Protocol](#imagedecoding-protocol)
   * [Registering Decoders](#registering-decoders)
   * [Progressive Decoding](#progressive-decoding)
+  * [Rendering Engines](#rendering-engines)
 - [Built-In Image Decoders](#built-in-image-decoders)
   * [`ImageDecoders.Default`](#-imagedecodersdefault-)
   * [`ImageDecoders.Empty`](#-imagedecodersempty-)
@@ -162,6 +163,14 @@ let task = ImagePipeline.shared.loadImage(
 )
 ```
 
+### Rendering Engines
+
+The decoders in Nuke work at download time - decoders produce images as data arrives, progressive decoders might produce mutliple previews of the final image. There are, however, scenarios in which decoding at download time doesn't work. One of this scenarios is displaying animated images.
+
+For animated images, it is not feasible to decode all of the animation frames and put them in memory as bitmaps at download time, it will just consume too much memory. What you typically want to do is postpone decoding to rendering time. When the animate image is displayed, a rendering engine, like [Gifu](https://github.com/kaishin/Gifu) or other, will decode and cache image frames as they are needed for display.
+
+Rendering is not in the scope of Nuke. For static images, you can use platform `UIImageView` (or `NSImageView`, or `WKInterfaceImage` depending on your platform). For animated images, you need a rendering engine, like [Gifu](https://github.com/kaishin/Gifu). If you are using short MP4 clips instead of GIFs, that also works. You can use Nuke to download and cache data, and use `AVPlayer` to render it.
+
 ## Built-In Image Decoders
 
 All decoders live in `ImageDecoders` namespace.
@@ -279,7 +288,7 @@ To render HEIF images, you can use the basic `UIImageView`/`NSImageView`/`WKInte
 
 **Decoding**
 
-The default image decoder `ImageDecoders.Default` automatically recognized GIFs. It creates an image container (`ImageContainer`) with the first frame of the GIF as placeholder and attaches the original image data to the container.
+The default image decoder `ImageDecoders.Default` automatically recognized GIFs. It creates an image container (`ImageContainer`) with the first frame of the GIF as placeholder and attaches the original image data to the container, so that you can perform just-in-time decoding at rendering time.
 
 **Encoding**
 
