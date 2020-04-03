@@ -117,6 +117,8 @@ ImageDecoderRegistry.shared.register { context: ImageDecodingContext in
 }
 ```
 
+> In order to determine image type, use `ImageType` initializer which takes data as input. `ImageType` represets uniform type identifiers, or UTI.
+
 When you register a decoder, you have access to the entire decoding context for the given decoding session:
 
 ```swift

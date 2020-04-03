@@ -103,7 +103,8 @@ public extension ImageDecoders {
             // Determined whether the image supports progressive decoding or not
             // (only proressive JPEG is allowed for now, but you can add support
             // for other formats by implementing your own decoder).
-            guard let format = ImageFormat.format(for: data), format.isProgressive ?? false else {
+            guard ImageType(data) == .jpeg,
+                ImageProperties.JPEG(data)?.isProgressive == true else {
                 return nil
             }
         }
@@ -117,12 +118,12 @@ public extension ImageDecoders {
                 return nil
             }
             // Keep original data around in case of GIF
-            let format = ImageFormat.format(for: data)
-            if ImagePipeline.Configuration._isAnimatedImageDataEnabled, case .gif? = format {
+            let type = ImageType(data)
+            if ImagePipeline.Configuration._isAnimatedImageDataEnabled, type == .gif {
                 image._animatedImageData = data
             }
             var container = ImageContainer(image: image, data: image._animatedImageData)
-            if case .gif? = format {
+            if type == .gif {
                 container.data = data
             }
             if numberOfScans > 0 {
@@ -312,19 +313,78 @@ public struct ImageDecodingContext {
     }
 }
 
-// MARK: - Image Formats
+// MARK: - ImageType
 
-enum ImageFormat: Equatable {
-    /// `isProgressive` is nil if we determined that it's a jpeg, but we don't
-    /// know if it is progressive or baseline yet.
-    case jpeg(isProgressive: Bool?)
-    case png
-    case gif
+/// A uniform type identifier (UTI).
+public struct ImageType: ExpressibleByStringLiteral, Hashable {
+    public let rawValue: String
 
-    // Returns `nil` if not enough data.
-    static func format(for data: Data) -> ImageFormat? {
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.rawValue = value
+    }
+
+    public static let png: ImageType = "public.png"
+    public static let jpeg: ImageType = "public.jpeg"
+    public static let gif: ImageType = "com.compuserve.gif"
+    /// HEIF (High Effeciency Image Format) by Apple.
+    public static let heic: ImageType = "public.heic"
+
+}
+
+public extension ImageType {
+    /// Determines a type of the image based on the given data.
+    init?(_ data: Data) {
+        guard let type = ImageType.make(data) else {
+            return nil
+        }
+        self = type
+    }
+
+    private static func make(_ data: Data) -> ImageType? {
+        func _match(_ numbers: [UInt8]) -> Bool {
+            guard data.count >= numbers.count else {
+                return false
+            }
+            return !zip(numbers.indices, numbers).contains { (index, number) in
+                data[index] != number
+            }
+        }
+
         // JPEG magic numbers https://en.wikipedia.org/wiki/JPEG
-        if _match(data, [0xFF, 0xD8, 0xFF]) {
+        if _match([0xFF, 0xD8, 0xFF]) { return .jpeg }
+
+        // PNG Magic numbers https://en.wikipedia.org/wiki/Portable_Network_Graphics
+        if _match([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) { return .png }
+
+        // GIF magic numbers https://en.wikipedia.org/wiki/GIF
+        if _match([0x47, 0x49, 0x46]) { return .gif }
+
+        // Either not enough data, or we just don't support this format.
+        return nil
+    }
+}
+
+// MARK: - ImageProperties
+
+enum ImageProperties {}
+
+// Keeping this private for now, not sure neither about the API, not the implementation.
+extension ImageProperties {
+    struct JPEG {
+        public var isProgressive: Bool
+
+        public init?(_ data: Data) {
+            guard let isProgressive = ImageProperties.JPEG.isProgressive(data) else {
+                return nil
+            }
+            self.isProgressive = isProgressive
+        }
+
+        private static func isProgressive(_ data: Data) -> Bool? {
             var index = 3 // start scanning right after magic numbers
             while index < (data.count - 1) {
                 // A example of first few bytes of progressive jpeg image:
@@ -340,45 +400,15 @@ enum ImageFormat: Equatable {
                 // efficient that checking this one special bit directly.
                 if data[index] == 0xFF {
                     if data[index + 1] == 0xC2 {
-                        return .jpeg(isProgressive: true) // progressive
+                        return true
                     }
                     if data[index + 1] == 0xC0 {
-                        return .jpeg(isProgressive: false) // baseline
+                        return false // baseline
                     }
                 }
                 index += 1
             }
-            // It's a jpeg but we don't know if progressive or not yet.
-            return .jpeg(isProgressive: nil)
-        }
-
-        // GIF magic numbers https://en.wikipedia.org/wiki/GIF
-        if _match(data, [0x47, 0x49, 0x46]) {
-            return .gif
-        }
-
-        // PNG Magic numbers https://en.wikipedia.org/wiki/Portable_Network_Graphics
-        if _match(data, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) {
-            return .png
-        }
-
-        // Either not enough data, or we just don't know this format yet.
-        return nil
-    }
-
-    var isProgressive: Bool? {
-        if case let .jpeg(isProgressive) = self {
-            return isProgressive
-        }
-        return false
-    }
-
-    private static func _match(_ data: Data, _ numbers: [UInt8]) -> Bool {
-        guard data.count >= numbers.count else {
-            return false
-        }
-        return !zip(numbers.indices, numbers).contains { (index, number) in
-            data[index] != number
+            return nil
         }
     }
 }

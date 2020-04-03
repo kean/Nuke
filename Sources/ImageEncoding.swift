@@ -137,23 +137,3 @@ public extension ImageEncoders {
         }
     }
 }
-
-// MARK: - ImageType
-
-/// A uniform type identifier (UTI).
-public struct ImageType: ExpressibleByStringLiteral, Hashable {
-    public let rawValue: String
-
-    public init(rawValue: String) {
-        self.rawValue = rawValue
-    }
-
-    public init(stringLiteral value: String) {
-        self.rawValue = value
-    }
-
-    public static let png: ImageType = "public.png"
-    public static let jpeg: ImageType = "public.jpeg"
-    /// HEIF (High Effeciency Image Format) by Apple.
-    public static let heic: ImageType = "public.heic"
-}
