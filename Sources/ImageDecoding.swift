@@ -82,9 +82,8 @@ public extension ImageDecoders {
     final class Default: ImageDecoding, ImageDecoderRegistering {
         // Number of scans that the decoder has found so far. The last scan might be
         // incomplete at this point.
-        private(set) var numberOfScans = 0
-        private var lastStartOfScan: Int = 0 // Index of the last found Start of Scan
-        private var scannedIndex: Int = -1 // Index at which previous scan was finished
+        var numberOfScans: Int { scanner.numberOfScans }
+        private var scanner = ProgressiveJPEGScanner()
 
         /// A user info key to get the scan number (Int).
         public static let scanNumberKey = "ImageDecoders.Default.scanNumberKey"
@@ -133,41 +132,59 @@ public extension ImageDecoders {
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-            // Check if there is more data to scan.
-            guard (scannedIndex + 1) < data.count else {
+            guard let endOfScan = scanner.scan(data), endOfScan > 0 else {
                 return nil
             }
-
-            // Start scaning from the where it left off previous time.
-            var index = (scannedIndex + 1)
-            var numberOfScans = self.numberOfScans
-            while index < (data.count - 1) {
-                scannedIndex = index
-                // 0xFF, 0xDA - Start Of Scan
-                if data[index] == 0xFF, data[index + 1] == 0xDA {
-                    lastStartOfScan = index
-                    numberOfScans += 1
-                }
-                index += 1
-            }
-
-            // Found more scans this the previous time
-            guard numberOfScans > self.numberOfScans else {
-                return nil
-            }
-            self.numberOfScans = numberOfScans
-
-            // `> 1` checks that we've received a first scan (SOS) and then received
-            // and also received a second scan (SOS). This way we know that we have
-            // at least one full scan available.
-            guard numberOfScans > 1 && lastStartOfScan > 0 else {
-                return nil
-            }
-            guard let image = ImageDecoder._decode(data[0..<lastStartOfScan]) else {
+            guard let image = ImageDecoder._decode(data[0...endOfScan]) else {
                 return nil
             }
             return ImageContainer(image: image, isPreview: true, userInfo: [ImageDecoders.Default.scanNumberKey: numberOfScans])
         }
+    }
+}
+
+private struct ProgressiveJPEGScanner {
+    // Number of scans that the decoder has found so far. The last scan might be
+    // incomplete at this point.
+    private(set) var numberOfScans = 0
+    private var lastStartOfScan: Int = 0 // Index of the last found Start of Scan
+    private var scannedIndex: Int = -1 // Index at which previous scan was finished
+
+    /// Scans the given data. If finds new scans, returns the last index of the
+    /// last available scan.
+    mutating func scan(_ data: Data) -> Int? {
+        // Check if there is more data to scan.
+        guard (scannedIndex + 1) < data.count else {
+            return nil
+        }
+
+        // Start scaning from the where it left off previous time.
+        var index = (scannedIndex + 1)
+        var numberOfScans = self.numberOfScans
+        while index < (data.count - 1) {
+            scannedIndex = index
+            // 0xFF, 0xDA - Start Of Scan
+            if data[index] == 0xFF, data[index + 1] == 0xDA {
+                lastStartOfScan = index
+                numberOfScans += 1
+            }
+            index += 1
+        }
+
+        // Found more scans this the previous time
+        guard numberOfScans > self.numberOfScans else {
+            return nil
+        }
+        self.numberOfScans = numberOfScans
+
+        // `> 1` checks that we've received a first scan (SOS) and then received
+        // and also received a second scan (SOS). This way we know that we have
+        // at least one full scan available.
+        guard numberOfScans > 1 && lastStartOfScan > 0 else {
+            return nil
+        }
+
+        return lastStartOfScan - 1
     }
 }
 
