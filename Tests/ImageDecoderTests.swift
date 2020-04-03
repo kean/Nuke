@@ -4,7 +4,6 @@
 
 import XCTest
 @testable import Nuke
-import MobileCoreServices
 
 class ImageDecoderTests: XCTestCase {
     func testDecodingProgressiveJPEG() {
