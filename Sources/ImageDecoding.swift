@@ -333,6 +333,11 @@ enum ImageFormat: Equatable {
                 // 0xFF, 0xC0 - Start Of Frame (baseline DCT)
                 // 0xFF, 0xC2 - Start Of Frame (progressive DCT)
                 // https://en.wikipedia.org/wiki/JPEG
+                //
+                // As an alternative, Image I/O provides facilities to parse
+                // JPEG metadata via CGImageSourceCopyPropertiesAtIndex. It is a
+                // bit too convoluted to use and most likely slightly less
+                // efficient that checking this one special bit directly.
                 if data[index] == 0xFF {
                     if data[index + 1] == 0xC2 {
                         return .jpeg(isProgressive: true) // progressive
