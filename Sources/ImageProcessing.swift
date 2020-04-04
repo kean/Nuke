@@ -204,7 +204,9 @@ extension ImageProcessors {
 
         public var hashableIdentifier: AnyHashable { self }
 
-        public var description: String { "Circle" }
+        public var description: String {
+            "Circle(border: \(border?.description ?? "nil"))"
+        }
     }
 }
 
@@ -749,17 +751,20 @@ public enum ImageProcessingOptions {
 
     #if os(iOS) || os(tvOS) || os(watchOS)
 
-    public struct Border: Hashable {
-        let color: UIColor
-        let width: CGFloat
+    public struct Border: Hashable, CustomStringConvertible {
+        public let color: UIColor
+        public let width: CGFloat
 
-        public init(color: UIColor, width: CGFloat = 1) {
+        /// - parameter color: Border color.
+        /// - parameter width: Border width. 1 points by default.
+        /// - parameter unit: Unit of the width, `.points` by default.
+        public init(color: UIColor, width: CGFloat = 1, unit: Unit = .points) {
             self.color = color
-            self.width = width
+            self.width = width.converted(to: unit)
         }
 
         public var description: String {
-            "Border(color: \(color), width: \(width))"
+            "Border(color: \(color.hex), width: \(width))"
         }
     }
 
@@ -780,3 +785,18 @@ struct Screen {
     static var scale: CGFloat { 1 }
     #endif
 }
+
+#if os(iOS) || os(tvOS)
+extension UIColor {
+    /// Returns a hex representation of the color, e.g. "#FFFFAA".
+    var hex: String {
+        var (r, g, b, a) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
+        getRed(&r, green: &g, blue: &b, alpha: &a)
+        let components = [r, g, b, a < 1 ? a : nil]
+        return "#" + components
+            .compactMap { $0 }
+            .map { String(format: "%02lX", lroundf(Float($0) * 255)) }
+            .joined()
+    }
+}
+#endif

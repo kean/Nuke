@@ -204,7 +204,7 @@ class ImageProcessorsResizeTests: XCTestCase {
         )
     }
 
-    func testDesscription() {
+    func testDescription() {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit)
 
