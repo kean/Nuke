@@ -10,7 +10,7 @@ let package = Package(
         .watchOS(.v4)
     ],
     products: [
-        .library(name: "Nuke", type: .dynamic, targets: ["Nuke"])
+        .library(name: "Nuke", targets: ["Nuke"])
     ],
     targets: [
         .target(name: "Nuke", path: "Sources")
