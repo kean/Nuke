@@ -397,6 +397,8 @@ class ImageProcessorCompositionTest: XCTestCase {
     }
 }
 
+#if os(iOS) || os(tvOS)
+
 // MARK: - ImageProcessors.GaussianBlur
 
 class ImageProcessorGaussianBlurTest: XCTestCase {
@@ -465,6 +467,8 @@ class ImageProcessorGaussianBlurTest: XCTestCase {
         )
     }
 }
+
+#endif
 
 // MARK: - CoreGraphics Extensions Tests (Internal)
 
