@@ -18,7 +18,7 @@ final class ImageEncoderTests: XCTestCase {
         XCTAssertEqual(ImageType(data), .jpeg)
     }
 
-    func testEncodeImagePNGNonTransparent() throws {
+    func testEncodeImagePNGOpaque() throws {
         // Given
         let image = Test.image(named: "fixture", extension: "png")
         let encoder = ImageEncoders.Default()
@@ -27,7 +27,13 @@ final class ImageEncoderTests: XCTestCase {
         let data = try XCTUnwrap(encoder.encode(image))
 
         // Then
+        #if os(macOS)
+        // It seems that on macOS, NSImage created from png has an alpha
+        // component regardless of whether the input image has it.
+        XCTAssertEqual(ImageType(data), .png)
+        #else
         XCTAssertEqual(ImageType(data), .jpeg)
+        #endif
     }
 
     func testEncodeImagePNGTransparent() throws {
@@ -77,7 +83,11 @@ final class ImageEncoderTests: XCTestCase {
 
     func testIsOpaqueWithOpaquePNG() {
         let image = Test.image(named: "fixture", extension: "png")
+        #if os(macOS)
+        XCTAssertFalse(image.cgImage!.isOpaque)
+        #else
         XCTAssertTrue(image.cgImage!.isOpaque)
+        #endif
     }
 
     func testIsOpaqueWithTransparentPNG() {
