@@ -181,7 +181,8 @@ extension ImageProcessors {
 
 extension ImageProcessors {
 
-    /// Rounds the corners of an image into a circle.
+    /// Rounds the corners of an image into a circle. If the image is not a square,
+    /// crops it to a square first.
     public struct Circle: ImageProcessing, Hashable, CustomStringConvertible {
         private let border: ImageProcessingOptions.Border?
 

@@ -86,6 +86,8 @@
 		0C91B0F22438E374007F9100 /* AnonymousTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C91B0F12438E374007F9100 /* AnonymousTests.swift */; };
 		0C91B0F42438E38B007F9100 /* CompositionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C91B0F32438E38B007F9100 /* CompositionTests.swift */; };
 		0C91B0F62438E3CB007F9100 /* GaussianBlurTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C91B0F52438E3CB007F9100 /* GaussianBlurTests.swift */; };
+		0C91B0F82438E84E007F9100 /* fixture-tiny.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C91B0F72438E84E007F9100 /* fixture-tiny.jpeg */; };
+		0C91B0FC2438EB31007F9100 /* s-circle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C91B0FA2438E8C3007F9100 /* s-circle.png */; };
 		0C973E141D9FDB9F00C00AD9 /* Nuke.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0C9B6E7620B9F3E2001924B8 /* ImagePipelineDeduplicationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9B6E7520B9F3E2001924B8 /* ImagePipelineDeduplicationTests.swift */; };
 		0CAAB0101E45D6DA00924450 /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
@@ -209,6 +211,8 @@
 		0C91B0F12438E374007F9100 /* AnonymousTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnonymousTests.swift; sourceTree = "<group>"; };
 		0C91B0F32438E38B007F9100 /* CompositionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositionTests.swift; sourceTree = "<group>"; };
 		0C91B0F52438E3CB007F9100 /* GaussianBlurTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianBlurTests.swift; sourceTree = "<group>"; };
+		0C91B0F72438E84E007F9100 /* fixture-tiny.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "fixture-tiny.jpeg"; sourceTree = "<group>"; };
+		0C91B0FA2438E8C3007F9100 /* s-circle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "s-circle.png"; sourceTree = "<group>"; };
 		0C94466D1D47EC0E006DB314 /* ImageViewTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewTests.swift; sourceTree = "<group>"; };
 		0C9B6E7520B9F3E2001924B8 /* ImagePipelineDeduplicationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDeduplicationTests.swift; sourceTree = "<group>"; };
 		0CA301701DAF9CD1000B9105 /* .travis.yml */ = {isa = PBXFileReference; lastKnownFileType = text; path = .travis.yml; sourceTree = "<group>"; };
@@ -320,10 +324,12 @@
 				0C70D9702089016800A49DAC /* baseline.jpeg */,
 				0C70D96F2089016700A49DAC /* progressive.jpeg */,
 				0C09B1651FE9A65600E8FE3B /* fixture.jpeg */,
+				0C91B0F72438E84E007F9100 /* fixture-tiny.jpeg */,
 				0C70D97B2089042400A49DAC /* fixture.png */,
 				0C64F73E243838BF001983C6 /* swift.png */,
 				0C64F73C243836B5001983C6 /* img_751.heic */,
 				0C8DC722209B842600084AA6 /* cat.gif */,
+				0C91B0F92438E8AC007F9100 /* Snapshots */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -477,6 +483,14 @@
 				0C91B0F52438E3CB007F9100 /* GaussianBlurTests.swift */,
 			);
 			path = ImageProcessorsTests;
+			sourceTree = "<group>";
+		};
+		0C91B0F92438E8AC007F9100 /* Snapshots */ = {
+			isa = PBXGroup;
+			children = (
+				0C91B0FA2438E8C3007F9100 /* s-circle.png */,
+			);
+			path = Snapshots;
 			sourceTree = "<group>";
 		};
 		0CDB92761DAF9BA500002905 /* Documentation */ = {
@@ -709,7 +723,9 @@
 				0C64F73D2438371A001983C6 /* img_751.heic in Resources */,
 				0C09B1661FE9A65700E8FE3B /* fixture.jpeg in Resources */,
 				0C70D97C2089042400A49DAC /* fixture.png in Resources */,
+				0C91B0FC2438EB31007F9100 /* s-circle.png in Resources */,
 				0C8DC723209B842600084AA6 /* cat.gif in Resources */,
+				0C91B0F82438E84E007F9100 /* fixture-tiny.jpeg in Resources */,
 				0C70D9742089016800A49DAC /* baseline.jpeg in Resources */,
 				0C70D9712089016800A49DAC /* progressive.jpeg in Resources */,
 			);

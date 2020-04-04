@@ -4,7 +4,19 @@
 
 import XCTest
 import Foundation
-import Nuke
+@testable import Nuke
+
+#if os(iOS) || os(tvOS) || os(watchOS)
+import UIKit
+#endif
+
+#if os(watchOS)
+import WatchKit
+#endif
+
+#if os(macOS)
+import Cocoa
+#endif
 
 extension XCTestCase {
     func expect(_ pipeline: ImagePipeline) -> TestExpectationImagePipeline {
@@ -78,4 +90,24 @@ extension XCTestCase {
             XCTAssertTrue(result.isSuccess)
         }
     }
+}
+
+
+// MARK: - UIImage
+
+func XCTAssertEqualImages(_ lhs: PlatformImage, _ rhs: PlatformImage, tolerance: UInt8 = 3, file: StaticString = #file, line: UInt = #line) {
+    XCTAssertTrue(isEqual(lhs, rhs, tolerance: tolerance), "Expected images to be equal", file: file, line: line)
+}
+
+private func isEqual(_ lhs: PlatformImage, _ rhs: PlatformImage, tolerance: UInt8 = 3) -> Bool {
+    guard (lhs.cgImage?.width, lhs.cgImage?.height) == (rhs.cgImage?.width, rhs.cgImage?.width) else {
+        return false
+    }
+
+    // Note: this will probably need more work.
+    let encoder = ImageEncoders.ImageIO(type: .png)
+    let lhs = encoder.encode(lhs)
+    let rhs = encoder.encode(rhs)
+
+    return lhs == rhs
 }

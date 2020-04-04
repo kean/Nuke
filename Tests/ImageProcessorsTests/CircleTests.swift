@@ -14,15 +14,17 @@ class ImageProcessorsCircleTests: XCTestCase {
 
     func testThatImageIsCroppedToSquareAutomatically() throws {
         // Given
+        let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.Circle()
 
         // When
-        let image = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        let cgImage = try XCTUnwrap(image.cgImage, "Expected image to be backed by CGImage")
+        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
 
         // Then
-        XCTAssertEqual(cgImage.width, 480)
-        XCTAssertEqual(cgImage.height, 480)
+        let cgImage = try XCTUnwrap(output.cgImage, "Expected image to be backed by CGImage")
+        XCTAssertEqual(cgImage.width, 150)
+        XCTAssertEqual(cgImage.height, 150)
+        XCTAssertEqualImages(output, Test.image(named: "s-circle.png"))
     }
 }
 #endif

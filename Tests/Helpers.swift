@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015-2020 Alexander Grebenyuk (github.com/kean).
 
-import Nuke
+@testable import Nuke
 import XCTest
 
 private final class BundleToken {}
@@ -17,6 +17,11 @@ enum Test {
     static func data(name: String, extension ext: String) -> Data {
         let url = self.url(forResource: name, extension: ext)
         return try! Data(contentsOf: url)
+    }
+
+    static func image(named name: String) -> PlatformImage {
+        let components = name.split(separator: ".")
+        return self.image(named: String(components[0]), extension: String(components[1]))
     }
 
     static func image(named name: String, extension ext: String) -> PlatformImage {
@@ -57,6 +62,16 @@ enum Test {
         container: .init(image: Test.image),
         urlResponse: urlResponse
     )
+
+    static func save(_ image: PlatformImage) {
+        let url = try! FileManager.default
+            .url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension(image.cgImage!.isOpaque ? "jpeg" : "png")
+        print(url)
+        let data = ImageEncoders.Default().encode(image)!
+        try! data.write(to: url)
+    }
 }
 
 extension String: Error {}
