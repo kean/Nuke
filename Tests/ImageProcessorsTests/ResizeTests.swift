@@ -16,12 +16,10 @@ class ImageProcessorsResizeTests: XCTestCase {
         let processor = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
 
         // When
-        let image = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        let cgImage = try XCTUnwrap(image.cgImage, "Expected image to be backed by CGImage")
+        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
 
         // Then
-        XCTAssertEqual(cgImage.width, 533)
-        XCTAssertEqual(cgImage.height, 400)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 533, height: 400))
     }
 
     func testThatImageIsntUpscaledByDefault() throws {
@@ -29,12 +27,10 @@ class ImageProcessorsResizeTests: XCTestCase {
         let processor = ImageProcessors.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill)
 
         // When
-        let image = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        let cgImage = try XCTUnwrap(image.cgImage, "Expected image to be backed by CGImage")
+        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
 
         // Then
-        XCTAssertEqual(cgImage.width, 640)
-        XCTAssertEqual(cgImage.height, 480)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 640, height: 480))
     }
 
     func testResizeToFitHeight() throws {
@@ -42,12 +38,10 @@ class ImageProcessorsResizeTests: XCTestCase {
         let processor = ImageProcessors.Resize(height: 300, unit: .pixels)
 
         // When
-        let image = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        let cgImage = try XCTUnwrap(image.cgImage, "Expected image to be backed by CGImage")
+        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
 
         // Then
-        XCTAssertEqual(cgImage.width, 400)
-        XCTAssertEqual(cgImage.height, 300)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 400, height: 300))
     }
 
     func testResizeToFitWidth() throws {
@@ -55,12 +49,10 @@ class ImageProcessorsResizeTests: XCTestCase {
         let processor = ImageProcessors.Resize(width: 400, unit: .pixels)
 
         // When
-        let image = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        let cgImage = try XCTUnwrap(image.cgImage, "Expected image to be backed by CGImage")
+        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
 
         // Then
-        XCTAssertEqual(cgImage.width, 400)
-        XCTAssertEqual(cgImage.height, 300)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 400, height: 300))
     }
 
     func testThatImageIsUpscaledIfOptionIsEnabled() throws {
@@ -68,12 +60,10 @@ class ImageProcessorsResizeTests: XCTestCase {
         let processor = ImageProcessors.Resize(size: CGSize(width: 960, height: 960), unit: .pixels, contentMode: .aspectFill, upscale: true)
 
         // When
-        let image = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        let cgImage = try XCTUnwrap(image.cgImage, "Expected image to be backed by CGImage")
+        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
 
         // Then
-        XCTAssertEqual(cgImage.width, 1280)
-        XCTAssertEqual(cgImage.height, 960)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 1280, height: 960))
     }
 
     func testThatContentModeCanBeChangeToAspectFit() throws {
@@ -81,12 +71,10 @@ class ImageProcessorsResizeTests: XCTestCase {
         let processor = ImageProcessors.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit)
 
         // When
-        let image = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        let cgImage = try XCTUnwrap(image.cgImage, "Expected image to be backed by CGImage")
+        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
 
         // Then
-        XCTAssertEqual(cgImage.width, 480)
-        XCTAssertEqual(cgImage.height, 360)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 480, height: 360))
     }
 
     func testThatImageIsCropped() throws {
@@ -94,12 +82,10 @@ class ImageProcessorsResizeTests: XCTestCase {
         let processor = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, crop: true)
 
         // When
-        let image = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        let cgImage = try XCTUnwrap(image.cgImage, "Expected image to be backed by CGImage")
+        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
 
         // Then
-        XCTAssertEqual(cgImage.width, 400)
-        XCTAssertEqual(cgImage.height, 400)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 400, height: 400))
     }
 
     func testThatImageIsntCroppedWithAspectFitMode() throws {
@@ -107,12 +93,10 @@ class ImageProcessorsResizeTests: XCTestCase {
         let processor = ImageProcessors.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit, crop: true)
 
         // When
-        let image = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
-        let cgImage = try XCTUnwrap(image.cgImage, "Expected image to be backed by CGImage")
+        let output = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
 
         // Then image is resized but isn't cropped
-        XCTAssertEqual(cgImage.width, 480)
-        XCTAssertEqual(cgImage.height, 360)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 480, height: 360))
     }
 
     #if os(iOS) || os(tvOS)

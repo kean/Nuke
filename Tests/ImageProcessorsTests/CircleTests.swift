@@ -21,9 +21,7 @@ class ImageProcessorsCircleTests: XCTestCase {
         let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
 
         // Then
-        let cgImage = try XCTUnwrap(output.cgImage, "Expected image to be backed by CGImage")
-        XCTAssertEqual(cgImage.width, 150)
-        XCTAssertEqual(cgImage.height, 150)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 150, height: 150))
         XCTAssertEqualImages(output, Test.image(named: "s-circle.png"))
     }
 
@@ -37,9 +35,7 @@ class ImageProcessorsCircleTests: XCTestCase {
         let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
 
         // Then
-        let cgImage = try XCTUnwrap(output.cgImage, "Expected image to be backed by CGImage")
-        XCTAssertEqual(cgImage.width, 150)
-        XCTAssertEqual(cgImage.height, 150)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 150, height: 150))
         XCTAssertEqualImages(output, Test.image(named: "s-circle-border.png"))
     }
 
