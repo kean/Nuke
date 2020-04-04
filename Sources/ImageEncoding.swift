@@ -51,11 +51,11 @@ public extension ImageEncoders {
     /// A default adaptive encoder which uses best encoder available depending
     /// on the input image and its configuration.
     struct Default: ImageEncoding {
-        private let compressionQuality: CGFloat
+        public var compressionQuality: CGFloat
 
         /// Set to `true` to switch to HEIF when it is available on the current hardware.
         /// `false` by default.
-        public var isHEIFPreffered = false
+        public var isHEIFPreferred = false
 
         public init(compressionQuality: CGFloat = 0.8) {
             self.compressionQuality = compressionQuality
@@ -67,7 +67,7 @@ public extension ImageEncoders {
             }
             let type: ImageType
             if cgImage.isOpaque {
-                if isHEIFPreffered && ImageEncoders.ImageIO.isSupported(type: .heic) {
+                if isHEIFPreferred && ImageEncoders.ImageIO.isSupported(type: .heic) {
                     type = .heic
                 } else {
                     type = .jpeg

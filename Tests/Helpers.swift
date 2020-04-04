@@ -19,19 +19,27 @@ enum Test {
         return try! Data(contentsOf: url)
     }
 
+    static func image(named name: String, extension ext: String) -> PlatformImage {
+        Test.container(named: name, extension: ext).image
+    }
+
+    static func container(named name: String, extension ext: String) -> ImageContainer {
+        let data = Test.data(name: name, extension: ext)
+        return ImageDecoders.Default().decode(data)!
+    }
+
     static let url = URL(string: "http://test.com")!
 
     static let data: Data = Test.data(name: "fixture", extension: "jpeg")
 
     // Test.image size is 640 x 480 pixels
     static var image: PlatformImage {
-        let data = Test.data(name: "fixture", extension: "jpeg")
-        return Nuke.ImageDecoders.Default().decode(data)!.image
+        Test.image(named: "fixture", extension: "jpeg")
     }
 
     // Test.image size is 640 x 480 pixels
     static var container: ImageContainer {
-        return ImageContainer(image: image)
+        ImageContainer(image: image)
     }
 
     static let request = ImageRequest(

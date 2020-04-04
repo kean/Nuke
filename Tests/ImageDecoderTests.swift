@@ -21,7 +21,7 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertTrue(container.userInfo.isEmpty)
     }
 
-    func decodeJPEG() throws {
+    func testDecodeJPEG() throws {
         // Given
         let data = Test.data(name: "baseline", extension: "jpeg")
         let decoder = ImageDecoders.Default()
@@ -35,22 +35,7 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertNil(container.data)
         XCTAssertTrue(container.userInfo.isEmpty)
     }
-    
-    func testDetectGIF() throws {
-        // Given
-        let data = Test.data(name: "cat", extension: "gif")
-        let decoder = ImageDecoders.Default()
-        
-        // When
-        let container = try XCTUnwrap(decoder.decode(data))
-        
-        // Then
-        XCTAssertEqual(container.type, .gif)
-        XCTAssertFalse(container.isPreview)
-        XCTAssertNotNil(container.data)
-        XCTAssertTrue(container.userInfo.isEmpty)
-    }
-    
+
     func testDecodingProgressiveJPEG() {
         let data = Test.data(name: "progressive", extension: "jpeg")
         let decoder = ImageDecoders.Default()
@@ -94,6 +79,36 @@ class ImageDecoderTests: XCTestCase {
         // of data that we receive contains multiple scans).
         XCTAssertNotNil(decoder.decodePartiallyDownloadedData(data))
         XCTAssertEqual(decoder.numberOfScans, 10)
+    }
+
+    func testDecodeGIF() throws {
+        // Given
+        let data = Test.data(name: "cat", extension: "gif")
+        let decoder = ImageDecoders.Default()
+
+        // When
+        let container = try XCTUnwrap(decoder.decode(data))
+
+        // Then
+        XCTAssertEqual(container.type, .gif)
+        XCTAssertFalse(container.isPreview)
+        XCTAssertNotNil(container.data)
+        XCTAssertTrue(container.userInfo.isEmpty)
+    }
+
+    func testDecodeHEIC() throws {
+        // Given
+        let data = Test.data(name: "img_751", extension: "heic")
+        let decoder = ImageDecoders.Default()
+
+        // When
+        let container = try XCTUnwrap(decoder.decode(data))
+
+        // Then
+        XCTAssertNil(container.type) // TODO: update when HEIF support is added
+        XCTAssertFalse(container.isPreview)
+        XCTAssertNil(container.data)
+        XCTAssertTrue(container.userInfo.isEmpty)
     }
 
     func testDecodingGIFsDeprecated() {
