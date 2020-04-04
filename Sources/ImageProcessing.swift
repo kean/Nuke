@@ -116,7 +116,7 @@ extension ImageProcessors {
             public var description: String {
                 switch self {
                 case .aspectFill: return ".aspectFill"
-                case .aspectFit: return ".aspectFill"
+                case .aspectFit: return ".aspectFit"
                 }
             }
         }
@@ -130,7 +130,8 @@ extension ImageProcessors {
         /// - parameter size: The target size.
         /// - parameter unit: Unit of the target size, `.points` by default.
         /// - parameter contentMode: `.aspectFill` by default.
-        /// - parameter crop: If `true` will crop the image to match the target size. `false` by default.
+        /// - parameter crop: If `true` will crop the image to match the target size.
+        /// Does nothing with content mode .aspectFill. `false` by default.
         /// - parameter upscale: `false` by default.
         public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
             self.size = size
@@ -140,14 +141,14 @@ extension ImageProcessors {
             self.upscale = upscale
         }
 
-        /// Resizes the image to fill the given width.
+        /// Resizes the image to the given width preserving aspect ratio.
         ///
         /// - parameter unit: Unit of the target size, `.points` by default.
         public init(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool = false, upscale: Bool = false) {
             self.init(size: CGSize(width: width, height: 4096), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
         }
 
-        /// Resizes the image to fill the given height.
+        /// Resizes the image to the given height preserving aspect ratio.
         ///
         /// - parameter unit: Unit of the target size, `.points` by default.
         public init(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool = false, upscale: Bool = false) {

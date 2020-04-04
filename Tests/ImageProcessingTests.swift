@@ -132,6 +132,19 @@ class ImageProcessorResizeTests: XCTestCase {
         XCTAssertEqual(cgImage.height, 400)
     }
 
+    func testThatImageIsntCroppedWithAspectFitMode() throws {
+        // Given
+        let processor = ImageProcessors.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit, crop: true)
+
+        // When
+        let image = try XCTUnwrap(processor.process(Test.image), "Failed to process an image")
+        let cgImage = try XCTUnwrap(image.cgImage, "Expected image to be backed by CGImage")
+
+        // Then image is resized but isn't cropped
+        XCTAssertEqual(cgImage.width, 480)
+        XCTAssertEqual(cgImage.height, 360)
+    }
+
     #if os(iOS) || os(tvOS)
     func testThatScalePreserved() {
         // Given
@@ -146,6 +159,90 @@ class ImageProcessorResizeTests: XCTestCase {
         XCTAssertEqual(image.scale, Test.image.scale)
     }
     #endif
+
+    func testThatIdentifiersAreEqualWithSameParameters() {
+        XCTAssertEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier
+        )
+        XCTAssertEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier
+        )
+        XCTAssertEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier
+        )
+        XCTAssertEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier
+        )
+    }
+
+    func testThatIdentifiersAreNotEqualWithDifferentParameters() {
+        XCTAssertNotEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 40)).identifier
+        )
+        XCTAssertNotEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: false).identifier
+        )
+        XCTAssertNotEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).identifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: false).identifier
+        )
+        XCTAssertNotEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).identifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFill).identifier
+        )
+    }
+
+    func testThatHashableIdentifiersAreEqualWithSameParameters() {
+        XCTAssertEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier
+        )
+        XCTAssertEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier
+        )
+        XCTAssertEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier
+        )
+        XCTAssertEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier
+        )
+    }
+
+    func testThatHashableIdentifiersAreNotEqualWithDifferentParameters() {
+        XCTAssertNotEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 40)).hashableIdentifier
+        )
+        XCTAssertNotEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: false).hashableIdentifier
+        )
+        XCTAssertNotEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: true).hashableIdentifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), upscale: false).hashableIdentifier
+        )
+        XCTAssertNotEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit).hashableIdentifier,
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFill).hashableIdentifier
+        )
+    }
+
+    func testDesscription() {
+        // Given
+        let processor = ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit)
+
+        // Then
+        XCTAssertEqual(processor.description, "Resize(size in points: (30.0, 30.0), contentMode: .aspectFit, crop: false, upscale: false)")
+    }
 }
 
 // MARK: - ImageProcessors.Circle
