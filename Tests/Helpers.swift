@@ -67,9 +67,9 @@ enum Test {
         let url = try! FileManager.default
             .url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension(image.cgImage!.isOpaque ? "jpeg" : "png")
+            .appendingPathExtension("png")
         print(url)
-        let data = ImageEncoders.Default().encode(image)!
+        let data = ImageEncoders.ImageIO(type: .png, compressionRatio: 1).encode(image)!
         try! data.write(to: url)
     }
 }
@@ -83,12 +83,6 @@ extension NSImage {
 #endif
 
 extension CGImage {
-    /// Returns `true` if the image doesn't contain alpha channel.
-    var isOpaque: Bool {
-        let alpha = alphaInfo
-        return alpha == .none || alpha == .noneSkipFirst || alpha == .noneSkipLast
-    }
-
     var size: CGSize {
         CGSize(width: width, height: height)
     }

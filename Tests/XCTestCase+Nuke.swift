@@ -95,17 +95,18 @@ extension XCTestCase {
 
 // MARK: - UIImage
 
-func XCTAssertEqualImages(_ lhs: PlatformImage, _ rhs: PlatformImage, tolerance: UInt8 = 3, file: StaticString = #file, line: UInt = #line) {
-    XCTAssertTrue(isEqual(lhs, rhs, tolerance: tolerance), "Expected images to be equal", file: file, line: line)
+func XCTAssertEqualImages(_ lhs: PlatformImage, _ rhs: PlatformImage, file: StaticString = #file, line: UInt = #line) {
+    XCTAssertTrue(isEqual(lhs, rhs), "Expected images to be equal", file: file, line: line)
 }
 
-private func isEqual(_ lhs: PlatformImage, _ rhs: PlatformImage, tolerance: UInt8 = 3) -> Bool {
+private func isEqual(_ lhs: PlatformImage, _ rhs: PlatformImage) -> Bool {
     guard lhs.sizeInPixels == rhs.sizeInPixels else {
         return false
     }
 
+
     // Note: this will probably need more work.
-    let encoder = ImageEncoders.ImageIO(type: .png)
+    let encoder = ImageEncoders.ImageIO(type: .png, compressionRatio: 1)
     let lhs = encoder.encode(lhs)
     let rhs = encoder.encode(rhs)
 
