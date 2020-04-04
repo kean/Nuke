@@ -77,7 +77,7 @@ class ImageProcessingTests: XCTestCase {
     }
 }
 
-// MARK: - ImageProcessorResizeTests
+// MARK: - ImageProcessors.Resize
 
 class ImageProcessorResizeTests: XCTestCase {
 
@@ -216,7 +216,7 @@ class ImageProcessorResizeTests: XCTestCase {
     #endif
 }
 
-// MARK: - ImageProcessorCircleTests
+// MARK: - ImageProcessors.Circle
 
 #if os(iOS) || os(tvOS)
 class ImageProcessorCircleTests: XCTestCase {
@@ -240,7 +240,7 @@ class ImageProcessorCircleTests: XCTestCase {
 }
 #endif
 
-// MARK: - ImageProcessorRoundedCornersTests
+// MARK: - ImageProcessors.RoundedCorners
 
 #if os(iOS) || os(tvOS)
 class ImageProcessorRoundedCornersTests: XCTestCase {
@@ -266,7 +266,7 @@ class ImageProcessorRoundedCornersTests: XCTestCase {
 }
 #endif
 
-// MARK: - ImageProcessorAnonymousTests
+// MARK: - ImageProcessors.Anonymous
 
 class ImageProcessorAnonymousTests: XCTestCase {
 
@@ -307,7 +307,7 @@ class ImageProcessorAnonymousTests: XCTestCase {
     }
 }
 
-// MARK: - ImageProcessorCompositionTest
+// MARK: - ImageProcessors.Composition
 
 class ImageProcessorCompositionTest: XCTestCase {
 
@@ -394,6 +394,75 @@ class ImageProcessorCompositionTest: XCTestCase {
 
         // Then
         XCTAssertEqual(lhs.identifier, rhs.identifier)
+    }
+}
+
+// MARK: - ImageProcessors.GaussianBlur
+
+class ImageProcessorGaussianBlurTest: XCTestCase {
+    func testApplyBlur() {
+        // Given
+        let image = Test.image
+        let processor = ImageProcessors.GaussianBlur()
+        XCTAssertFalse(processor.description.isEmpty) // Bumping that test coverage
+
+        // When
+        let processed = processor.process(image)
+
+        // Then
+        XCTAssertNotNil(processed)
+    }
+
+    func testApplyBlurProducesImagesBackedByCoreGraphics() {
+        // Given
+        let image = Test.image
+        let processor = ImageProcessors.GaussianBlur()
+
+        // When
+        let processed = processor.process(image)
+
+        // Then
+        XCTAssertNotNil(processed?.cgImage)
+    }
+
+    func testApplyBlurProducesTransparentImages() {
+        // Given
+        let image = Test.image
+        let processor = ImageProcessors.GaussianBlur()
+
+        // When
+        let processed = processor.process(image)
+
+        // Then
+        XCTAssertEqual(processed?.cgImage?.isOpaque, false)
+    }
+
+    func testImagesWithSameRadiusHasSameIdentifiers() {
+        XCTAssertEqual(
+            ImageProcessors.GaussianBlur(radius: 2).identifier,
+            ImageProcessors.GaussianBlur(radius: 2).identifier
+        )
+    }
+
+    func testImagesWithDifferentRadiusHasDifferentIdentifiers() {
+        XCTAssertNotEqual(
+            ImageProcessors.GaussianBlur(radius: 2).identifier,
+            ImageProcessors.GaussianBlur(radius: 3).identifier
+        )
+    }
+
+    func testImagesWithSameRadiusHasSameHashableIdentifiers() {
+        XCTAssertEqual(
+            ImageProcessors.GaussianBlur(radius: 2).hashableIdentifier,
+            ImageProcessors.GaussianBlur(radius: 2).hashableIdentifier
+        )
+    }
+
+    func testImagesWithDifferentRadiusHasDifferentHashableIdentifiers() {
+        XCTAssertNotEqual(
+            ImageProcessors.GaussianBlur(radius: 2).hashableIdentifier,
+            ImageProcessors.GaussianBlur(radius: 3).hashableIdentifier
+        )
     }
 }
 

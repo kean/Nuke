@@ -53,8 +53,25 @@ final class ImageEncoderTests: XCTestCase {
 
         // Then
         XCTAssertNil(ImageType(data)) // TODO: update when HEIF support is added
-
     }
+
+    #if os(iOS) || os(tvOS)
+
+    func testEncodeCoreImageBackedImage() throws {
+        // Given
+        let image = ImageProcessors.GaussianBlur()
+            .process(Test.image)!
+        let encoder = ImageEncoders.Default()
+
+        // When
+        let data = try XCTUnwrap(encoder.encode(image))
+
+        // Then encoded as PNG because GaussianBlur produces
+        // images with alpha channel
+        XCTAssertEqual(ImageType(data), .png)
+    }
+
+    #endif
 
     // MARK: - Misc
 
