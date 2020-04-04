@@ -18,10 +18,62 @@ class ImagePipelineProcessorTests: XCTestCase {
         super.setUp()
 
         mockDataLoader = MockDataLoader()
+        pipeline = ImagePipeline {
+            $0.dataLoader = mockDataLoader
+        }
     }
 
     override func tearDown() {
         super.tearDown()
+    }
+
+    // MARK: - Applying Filters
+
+    func testThatImageIsProcessed() {
+        // Given
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "processor1")])
+
+        // When
+        expect(pipeline).toLoadImage(with: request) { result in
+            // Then
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["processor1"])
+        }
+        wait()
+    }
+
+    // MARK: - Composing Filters
+
+    func testApplyingMultipleProcessors() {
+        // Given
+        let request = ImageRequest(
+            url: Test.url,
+            processors: [
+                MockImageProcessor(id: "processor1"),
+                MockImageProcessor(id: "processor2")
+            ]
+        )
+
+        // When
+        expect(pipeline).toLoadImage(with: request) { result in
+            // Then
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["processor1", "processor2"])
+        }
+        wait()
+    }
+
+    func testPerformingRequestWithoutProcessors() {
+        // Given
+        let request = ImageRequest(url: Test.url, processors: [])
+
+        // When
+        expect(pipeline).toLoadImage(with: request) { result in
+            // Then
+            let image = result.value?.image
+            XCTAssertEqual(image?.nk_test_processorIDs ?? [], [])
+        }
+        wait()
     }
 
     func testImageIsProcessedWithDefaultProcessors() {
