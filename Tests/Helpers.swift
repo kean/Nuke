@@ -94,6 +94,12 @@ extension CGImage {
     }
 }
 
+extension PlatformImage {
+    var sizeInPixels: CGSize {
+        cgImage!.size
+    }
+}
+
 extension String: Error {}
 
 func _groups(regex: String, in text: String) -> [String] {

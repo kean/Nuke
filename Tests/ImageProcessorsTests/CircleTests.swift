@@ -108,7 +108,15 @@ class ImageProcessorsCircleTests: XCTestCase {
         let processor = ImageProcessors.Circle(border: .init(color: .blue, width: 2, unit: .pixels))
 
         // Then
-        XCTAssertEqual(processor.description, "Circle(border: Border(color: #0000FF, width: 2.0))")
+        XCTAssertEqual(processor.description, "Circle(border: Border(color: #0000FF, width: 2.0 pixels))")
+    }
+
+    func testDescriptionWithoutBorder() {
+        // Given
+        let processor = ImageProcessors.Circle()
+
+        // Then
+        XCTAssertEqual(processor.description, "Circle(border: nil)")
     }
 
     func testColorToHex() {

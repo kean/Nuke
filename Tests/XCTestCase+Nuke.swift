@@ -100,7 +100,7 @@ func XCTAssertEqualImages(_ lhs: PlatformImage, _ rhs: PlatformImage, tolerance:
 }
 
 private func isEqual(_ lhs: PlatformImage, _ rhs: PlatformImage, tolerance: UInt8 = 3) -> Bool {
-    guard (lhs.cgImage?.width, lhs.cgImage?.height) == (rhs.cgImage?.width, rhs.cgImage?.width) else {
+    guard lhs.sizeInPixels == rhs.sizeInPixels else {
         return false
     }
 

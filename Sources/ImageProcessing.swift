@@ -219,7 +219,6 @@ extension ImageProcessors {
     /// of the image view in which it will be displayed. See `ImageProcessor.Resize` for more info.
     public struct RoundedCorners: ImageProcessing, Hashable, CustomStringConvertible {
         private let radius: CGFloat
-        private let unit: ImageProcessingOptions.Unit
         private let border: ImageProcessingOptions.Border?
 
         /// Initializes the processor with the given radius.
@@ -228,27 +227,26 @@ extension ImageProcessors {
         /// - parameter unit: Unit of the radius, `.points` by default.
         /// - parameter border: An optional border drawn around the image.
         public init(radius: CGFloat, unit: ImageProcessingOptions.Unit = .points, border: ImageProcessingOptions.Border? = nil) {
-            self.radius = radius
-            self.unit = unit
+            self.radius = radius.converted(to: unit)
             self.border = border
         }
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
-            image.processed.byAddingRoundedCorners(radius: radius.converted(to: unit), border: border)
+            image.processed.byAddingRoundedCorners(radius: radius, border: border)
         }
 
         public var identifier: String {
-          if let border = self.border {
-            return "com.github.kean/nuke/rounded_corners?radius=\(radius.converted(to: unit)),border=\(border)"
-          } else {
-            return "com.github.kean/nuke/rounded_corners?radius=\(radius.converted(to: unit))"
-          }
+            if let border = self.border {
+                return "com.github.kean/nuke/rounded_corners?radius=\(radius),border=\(border)"
+            } else {
+                return "com.github.kean/nuke/rounded_corners?radius=\(radius)"
+            }
         }
 
         public var hashableIdentifier: AnyHashable { self }
 
         public var description: String {
-            "RoundedCorners(radius in \(unit): \(radius))"
+            "RoundedCorners(radius: \(radius) pixels, border: \(border?.description ?? "nil"))"
         }
     }
 }
@@ -615,7 +613,6 @@ struct ImageProcessingExtensions {
 
             let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
             path.lineWidth = border.width
-
             path.stroke()
         }
 
@@ -771,7 +768,7 @@ public enum ImageProcessingOptions {
         }
 
         public var description: String {
-            "Border(color: \(color.hex), width: \(width))"
+            "Border(color: \(color.hex), width: \(width) pixels)"
         }
     }
 
