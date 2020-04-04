@@ -98,7 +98,6 @@ extension ImageProcessors {
     /// Scales an image to a specified size.
     public struct Resize: ImageProcessing, Hashable, CustomStringConvertible {
         private let size: CGSize
-        private let unit: ImageProcessingOptions.Unit
         private let contentMode: ContentMode
         private let crop: Bool
         private let upscale: Bool
@@ -121,10 +120,6 @@ extension ImageProcessors {
             }
         }
 
-        private var sizeInPixels: CGSize {
-            CGSize(size: size, unit: unit)
-        }
-
         /// Initializes the processor with the given size.
         ///
         /// - parameter size: The target size.
@@ -134,8 +129,7 @@ extension ImageProcessors {
         /// Does nothing with content mode .aspectFill. `false` by default.
         /// - parameter upscale: `false` by default.
         public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
-            self.size = size
-            self.unit = unit
+            self.size = CGSize(size: size, unit: unit)
             self.contentMode = contentMode
             self.crop = crop
             self.upscale = upscale
@@ -157,20 +151,20 @@ extension ImageProcessors {
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
             if crop && contentMode == .aspectFill {
-                return image.processed.byResizingAndCropping(to: sizeInPixels)
+                return image.processed.byResizingAndCropping(to: size)
             } else {
-                return image.processed.byResizing(to: sizeInPixels, contentMode: contentMode, upscale: upscale)
+                return image.processed.byResizing(to: size, contentMode: contentMode, upscale: upscale)
             }
         }
 
         public var identifier: String {
-            "com.github.kean/nuke/resize?s=\(sizeInPixels),cm=\(contentMode),crop=\(crop),upscale=\(upscale)"
+            "com.github.kean/nuke/resize?s=\(size),cm=\(contentMode),crop=\(crop),upscale=\(upscale)"
         }
 
         public var hashableIdentifier: AnyHashable { self }
 
         public var description: String {
-            "Resize(size in \(unit): \(size), contentMode: \(contentMode), crop: \(crop), upscale: \(upscale))"
+            "Resize(size: \(size) pixels, contentMode: \(contentMode), crop: \(crop), upscale: \(upscale))"
         }
     }
 }

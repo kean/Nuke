@@ -134,6 +134,10 @@ class ImageProcessorsResizeTests: XCTestCase {
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier
         )
         XCTAssertEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels).identifier,
+            ImageProcessors.Resize(size: CGSize(width: 30 / Screen.scale, height: 30 / Screen.scale), unit: .points).identifier
+        )
+        XCTAssertEqual(
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier,
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier
         )
@@ -172,6 +176,10 @@ class ImageProcessorsResizeTests: XCTestCase {
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier
         )
         XCTAssertEqual(
+            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels).hashableIdentifier,
+            ImageProcessors.Resize(size: CGSize(width: 30 / Screen.scale, height: 30 / Screen.scale), unit: .points).hashableIdentifier
+        )
+        XCTAssertEqual(
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier,
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier
         )
@@ -206,10 +214,10 @@ class ImageProcessorsResizeTests: XCTestCase {
 
     func testDescription() {
         // Given
-        let processor = ImageProcessors.Resize(size: CGSize(width: 30, height: 30), contentMode: .aspectFit)
+        let processor = ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels, contentMode: .aspectFit)
 
         // Then
-        XCTAssertEqual(processor.description, "Resize(size in points: (30.0, 30.0), contentMode: .aspectFit, crop: false, upscale: false)")
+        XCTAssertEqual(processor.description, "Resize(size: (30.0, 30.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)")
     }
 }
 
