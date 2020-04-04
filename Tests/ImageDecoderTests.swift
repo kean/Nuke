@@ -6,6 +6,51 @@ import XCTest
 @testable import Nuke
 
 class ImageDecoderTests: XCTestCase {
+    func testDecodePNG() throws {
+        // Given
+        let data = Test.data(name: "fixture", extension: "png")
+        let decoder = ImageDecoders.Default()
+
+        // When
+        let container = try XCTUnwrap(decoder.decode(data))
+
+        // Then
+        XCTAssertEqual(container.type, .png)
+        XCTAssertFalse(container.isPreview)
+        XCTAssertNil(container.data)
+        XCTAssertTrue(container.userInfo.isEmpty)
+    }
+
+    func decodeJPEG() throws {
+        // Given
+        let data = Test.data(name: "baseline", extension: "jpeg")
+        let decoder = ImageDecoders.Default()
+
+        // When
+        let container = try XCTUnwrap(decoder.decode(data))
+
+        // Then
+        XCTAssertEqual(container.type, .jpeg)
+        XCTAssertFalse(container.isPreview)
+        XCTAssertNil(container.data)
+        XCTAssertTrue(container.userInfo.isEmpty)
+    }
+    
+    func testDetectGIF() throws {
+        // Given
+        let data = Test.data(name: "cat", extension: "gif")
+        let decoder = ImageDecoders.Default()
+        
+        // When
+        let container = try XCTUnwrap(decoder.decode(data))
+        
+        // Then
+        XCTAssertEqual(container.type, .gif)
+        XCTAssertFalse(container.isPreview)
+        XCTAssertNotNil(container.data)
+        XCTAssertTrue(container.userInfo.isEmpty)
+    }
+    
     func testDecodingProgressiveJPEG() {
         let data = Test.data(name: "progressive", extension: "jpeg")
         let decoder = ImageDecoders.Default()
