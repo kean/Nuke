@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015-2020 Alexander Grebenyuk (github.com/kean).
 
-@testable import Nuke
+import Nuke
 import XCTest
 
 private final class BundleToken {}
@@ -71,6 +71,26 @@ enum Test {
         print(url)
         let data = ImageEncoders.Default().encode(image)!
         try! data.write(to: url)
+    }
+}
+
+#if os(macOS)
+extension NSImage {
+    var cgImage: CGImage? {
+        cgImage(forProposedRect: nil, context: nil, hints: nil)
+    }
+}
+#endif
+
+extension CGImage {
+    /// Returns `true` if the image doesn't contain alpha channel.
+    var isOpaque: Bool {
+        let alpha = alphaInfo
+        return alpha == .none || alpha == .noneSkipFirst || alpha == .noneSkipLast
+    }
+
+    var size: CGSize {
+        CGSize(width: width, height: height)
     }
 }
 
