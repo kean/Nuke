@@ -21,6 +21,8 @@ Nuke provides a simple and efficient way to download and display images in your 
 
 ## Getting Started
 
+> Documentation for the latest stable version (Nuke 8.4.1) can be found [here](https://github.com/kean/Nuke/tree/8.4.1).
+
 Nuke is easy to learn and use. Here is an overview of its APIs and features:
 
 - **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) · [Table View](#in-a-table-view) · [Placeholders, Transitions](#placeholders-transitions-content-modes) · [`ImageRequest`](#imagerequest)
