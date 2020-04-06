@@ -131,7 +131,7 @@ let request = ImageRequest(
 
 <img align="right" src="https://user-images.githubusercontent.com/1567433/59151404-cb944300-8a32-11e9-9c58-dbed9789080f.png" width="360"/>
 
-Nuke features a powerful and efficient image processing infrastructure with multiple built-in processors which you can find in `ImageProcessors` namespace:, e.g. `ImageProcessors.Resize`.
+Nuke features a powerful and efficient image processing infrastructure with multiple built-in processors which you can find in `ImageProcessors` namespace, e.g. `ImageProcessors.Resize`.
 
 > This and other screenshots are from the demo project included in the repo.
 
@@ -165,7 +165,7 @@ ImageRequest(url: url, processors: [
 
 ### `RoundedCorners`
 
-Rounds the corners of an image to the specified radius. Make sure you resize the image to exactly match the size of the view in which it gets displayed so that the border appears correctly.s 
+Rounds the corners of an image to the specified radius. Make sure you resize the image to exactly match the size of the view in which it gets displayed so that the border appears correctly.
 
 ```swift
 ImageRequest(url: url, processors: [
@@ -194,11 +194,11 @@ Custom processors need to implement `ImageProcessing` protocol. For the basic im
 ```swift
 public protocol ImageProcessing {
     func process(image: UIImage) -> UIImage? // NSImage on macOS
-    var identifier: Strings
+    var identifier: String { get }
 }
 ```
 
-If your processor needs to manipulate image metadata (`ImageContainer`), or get access to more information via `ImageProcessingContext`, there is an additional method that you can implement in additon to `process(_:)`.
+If your processor needs to manipulate image metadata (`ImageContainer`), or get access to more information via `ImageProcessingContext`, there is an additional method that you can implement in addition to `process(_:)`.
 
 ```swift
 public protocol ImageProcessing {
@@ -206,7 +206,7 @@ public protocol ImageProcessing {
 }
 ```
 
-In addition to `var identfier: String`, you can implement `var hashableIdentifier: AnyHashable` to be used by the memory cache where strings manipulationos swould be too slow. By default, this method returns String `identifier`. A common approach is to make your processor `Hashable` and return `self` from `hashableIdentifier`.
+In addition to `var identfier: String`, you can implement `var hashableIdentifier: AnyHashable` to be used by the memory cache where string manipulations would be too slow. By default, this method returns the `identifier` string. A common approach is to make your processor `Hashable` and return `self` from `hashableIdentifier`.
 
 <br/>
 
@@ -230,7 +230,7 @@ let task = ImagePipeline.shared.loadImage(
 
 ### `ImageTask`
 
-When you start the request, the pipeline returns an `ImageTask` object, which can be used for cancelation and more.
+When you start the request, the pipeline returns an `ImageTask` object, which can be used for cancellation and more.
 
 ```swift
 task.cancel()
@@ -542,7 +542,7 @@ To get a taste of what you can do with this extension, take a look at how easy i
 ```swift
 let pipeline = ImagePipeline.shared
 Observable.concat(pipeline.loadImage(with: lowResUrl).orEmpty,
-                  pipeline.loadImage(with: highResUtl).orEmpty)
+                  pipeline.loadImage(with: highResUrl).orEmpty)
     .subscribe(onNext: { imageView.image = $0 })
     .disposed(by: disposeBag)
 ```

@@ -31,21 +31,21 @@ This section describes the basic steps that pipeline performs when delivering an
 
 > As a visual aid, use this [Block Diagram](https://github.com/kean/Nuke/blob/8.0/Documentation/Assets/image-pipeline.svg).
 
-1. Check if the requested image is already stored in the [memory cache](#memory-cache) and returns it if it does.
-2. Check if the encoded requested image is stored in the disk cache (this feature is disable by default). If yes, the image is
+1. Check if the requested image is already stored in the [memory cache](#memory-cache). If it is, deliver it to the client.
+2. Check if the encoded requested image is stored in the disk cache (this feature is disabled by default). If yes, the image is
     - Decoded
     - [Decompressed](#decompression)
     - Stored in the memory cache
     - And is finally delivered to the client
-3. Check if the original image data is stored in the disk cache, decodes it, applies image processors, stores the image in the memory cache, and serves it.
+3. Check if the original image data is stored in the disk cache. If it is, decode it, apply image processors, store the image in the memory cache, and deliver it to the client.
 
-> The disk cache described in steps 2 and 3 are disabled by default. The pipeline relies on the HTTP-compliant disk cache on `URLSession` level. To learn how to enable custom disk cache, see [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache).
+> The disk cache described in steps 2 and 3 is disabled by default. The pipeline relies on the HTTP-compliant disk cache on `URLSession` level. To learn how to enable the disk cache, see [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache).
 
-4. If all caches are empty, the pipeline starts [loading the image data](#data-loading-and-caching). Before it does, it checks whether any [resumable data](#resumable-data) was left from the previous equivalent request. When the data is loaded, the pipeline performs all of the steps outlined in step 3.
+4. If all caches are empty, [load the image data](#data-loading-and-caching). If any [resumable data](#resumable-data) was left from a previous equivalent request, use it. Otherwise start fresh. When the data is loaded, perform all of the steps outlined in step 3.
 
-> If the [progressive decoding](#progerssive-decoding) is enabled, the pipeline attemps to produce a preview of any image every time a new chuck of data is loaded.
+> If [progressive decoding](#progerssive-decoding) is enabled, the pipeline attemps to produce a preview of any image every time a new chunk of data is loaded.
 
-During each of these steps, the pipeline creates and performs operations each of which is performed on its own operation queue with its own configuration. The operations respect the priority of the requests. The priority can be updated dynamically. 
+During each of these steps, the pipeline creates and performs operations, each of which is performed on its own operation queue with its own configuration. The operations respect the priority of the requests. The priority can be updated dynamically. 
 
 ## Under the Hood
 
@@ -79,7 +79,7 @@ By default, the pipeline stores only the original image data. To store downloade
 
 ### Resumable Downloads
 
-If the data task is terminated (either because of a failure or a cancelation) and the image was partially loaded, the next load will resume where it was left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators (`ETag` and `Last-Modified`). The resumable downloads are enabled by default.
+If the data task is terminated (either because of a failure or a cancellation) and the image was partially loaded, the next load will resume where it was left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators (`ETag` and `Last-Modified`). Resumable downloads are enabled by default.
 
 ### Memory Cache
 
@@ -112,11 +112,11 @@ When you instantiate `UIImage` with `Data`, the data can be in a compressed form
 
 ### Progressive Decoding
 
-If the progressive decoding is enabled, the pipeline attemps to produce a preview of any image every time a new chuck of data is loaded.
+If progressive decoding is enabled, the pipeline attemps to produce a preview of any image every time a new chunk of data is loaded.
 
-When the first chuck of data is downloaded, the pipeline creates an instance of a decoder which it is going to be using for the entire image loading session. When the new chunks of data are loaded, the pipleine passes these chunks to the decoder. The decoder can either produce a preview, or return `nil` if not enough data is downloaded yet.
+When the first chunk of data is downloaded, the pipeline creates an instance of a decoder which it is going to be using for the entire image loading session. When the new chunks of data are loaded, the pipleine passes these chunks to the decoder. The decoder can either produce a preview, or return `nil` if not enough data is downloaded yet.
 
-Every image preview goes throught the same processing and decompression phases that the final images do. The main different here is introduction of back pressure. If one of the stages of the pipeline can't processed the input fast enough, the pipeline waits until the current operation is finished, and then starts the new one with the latest input. When the data is downloaded fully, all of the progressive operations are cancelled to save processing time.
+Every image preview goes through the same processing and decompression phases that the final images do. The main difference here is the introduction of back pressure. If one of the stages of the pipeline can't process the input fast enough, the pipeline waits until the current operation is finished, and then starts the next one with the latest input. When the data is downloaded fully, all of the progressive operations are cancelled to save processing time.
 
 ### Performance
 
@@ -124,6 +124,6 @@ Every image preview goes throught the same processing and decompression phases t
 
 Nuke is tuned to do as little work on the main thread as possible. It uses multiple optimization techniques to achieve that: reducing the number of allocations, reducing dynamic dispatch, CoW, etc.
 
-Nuke is fully asynchronous and performs well under stress. `ImagePipeline` schedules its operations on dedicated queues. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible. Under the extreme load, `ImagePipeline` will also rate limit the requests to prevent saturation of the underlying systems.
+Nuke is fully asynchronous and performs well under stress. `ImagePipeline` schedules its operations on dedicated queues. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible. Under extreme load, `ImagePipeline` will also rate limit requests to prevent saturation of the underlying systems.
 
 If you want to see how the system behaves, how long each operation takes, and how many are performed in parallel, enable the `isSignpostLoggingEnabled` option and use the `os_signpost` Instrument. For more information see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).

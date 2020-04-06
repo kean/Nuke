@@ -17,8 +17,8 @@ import AppKit.NSImage
 /// to maintain a reference to the task unless it is useful to do so for your
 /// app’s internal bookkeeping purposes.
 public /* final */ class ImageTask: Hashable, CustomStringConvertible {
-    /// An identifier uniquely identifies the task within a given pipeline. Only
-    /// unique within this pipeline.
+    /// An identifier that uniquely identifies the task within a given pipeline. Only
+    /// unique within that pipeline.
     public let taskId: Int
 
     let isDataTask: Bool
@@ -124,7 +124,7 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     }
 }
 
-// MARK: - ImageResponse
+// MARK: - ImageContainer
 
 public struct ImageContainer {
     public var image: PlatformImage
@@ -150,6 +150,8 @@ public struct ImageContainer {
         return ImageContainer(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
     }
 }
+
+// MARK: - ImageResponse
 
 /// Represents a response of a particular image task.
 public final class ImageResponse {

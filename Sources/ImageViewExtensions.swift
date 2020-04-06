@@ -18,8 +18,8 @@ public typealias PlatformImage = NSImage
 /// them compatible with Nuke image loading extensions.
 ///
 /// The protocol is defined as `@objc` to make it possible to override its
-/// methods in extensions (e.g. you can override `nuke_display(image:)` in/
-// `UIImageView` subclass like `Gifu.ImageView).
+/// methods in extensions (e.g. you can override `nuke_display(image:)` in
+/// `UIImageView` subclass like `Gifu.ImageView).
 ///
 /// The protocol and its methods have prefixes to make sure they don't clash
 /// with other similar methods and protocol in Objective-C runtime.
@@ -97,7 +97,7 @@ public func loadImage(with url: URL,
 
 /// Loads an image with the given request and displays it in the view.
 ///
-/// Before loading a new image, the view is prepared for reuse by cancelling any
+/// Before loading a new image, the view is prepared for reuse by canceling any
 /// outstanding requests and removing a previously displayed image.
 ///
 /// If the image is stored in the memory cache, it is displayed immediately with
@@ -148,15 +148,15 @@ public struct ImageLoadingOptions {
     #if os(iOS) || os(tvOS) || os(macOS)
 
     /// The image transition animation performed when displaying a loaded image.
-    /// Only runs when the image was not found in memory cache. `.nil` by default.
+    /// Only runs when the image was not found in memory cache. `nil` by default.
     public var transition: Transition?
 
     /// The image transition animation performed when displaying a failure image.
-    /// `.nil` by default.
+    /// `nil` by default.
     public var failureImageTransition: Transition?
 
     /// If true, the requested image will always appear with transition, even
-    /// when loaded from cache
+    /// when loaded from cache.
     public var alwaysTransition = false
 
     #endif
@@ -206,13 +206,13 @@ public struct ImageLoadingOptions {
 
     /// - parameter placeholder: Placeholder to be displayed when the image is
     /// loading . `nil` by default.
-    /// - parameter transision: The image transition animation performed when
+    /// - parameter transition: The image transition animation performed when
     /// displaying a loaded image. Only runs when the image was not found in
-    /// memory cache `.nil` by default (no animations).
+    /// memory cache. `nil` by default (no animations).
     /// - parameter failureImage: Image to be displayd when request fails.
     /// `nil` by default.
     /// - parameter failureImageTransition: The image transition animation
-    /// performed when displaying a failure image. `.nil` by default.
+    /// performed when displaying a failure image. `nil` by default.
     /// - parameter contentModes: Content modes to be used for each image type
     /// (placeholder, success, failure). `nil` by default (don't change content mode).
     public init(placeholder: UIImage? = nil, transition: Transition? = nil, failureImage: UIImage? = nil, failureImageTransition: Transition? = nil, contentModes: ContentModes? = nil) {

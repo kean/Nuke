@@ -82,7 +82,7 @@ extension ImagePipeline {
             /// It can be configured to encode and store processed images instead.
             ///
             /// - note: If you are creating multiple versions of the same image using
-            /// different processors, it might be worse enabling both `.originalData`
+            /// different processors, it might be worth enabling both `.originalData`
             /// and `.encodedImages` cache to reuse the same downloaded data.
             ///
             /// - note: It might be worth enabling `.encodedImages` if you want to
@@ -95,7 +95,7 @@ extension ImagePipeline {
         /// requests are. The pipeline also automatically manages the priority of the
         /// deduplicated work.
         ///
-        /// Let't take this two requests for example:
+        /// Let's take these two requests for example:
         ///
         /// ```swift
         /// let url = URL(string: "http://example.com/image")
@@ -113,7 +113,7 @@ extension ImagePipeline {
         /// any stage.
         public var isDeduplicationEnabled = true
 
-        /// `true` by default. It `true` the pipeline will rate limits the requests
+        /// `true` by default. If `true` the pipeline will rate limit requests
         /// to prevent trashing of the underlying systems (e.g. `URLSession`).
         /// The rate limiter only comes into play when the requests are started
         /// and cancelled at a high rate (e.g. scrolling through a collection view).
@@ -133,13 +133,13 @@ extension ImagePipeline {
 
         /// If the data task is terminated (either because of a failure or a
         /// cancellation) and the image was partially loaded, the next load will
-        /// resume where it was left off. Supports both validators (`ETag`,
-        /// `Last-Modified`). The resumable downloads are enabled by default.
+        /// resume where it left off. Supports both validators (`ETag`,
+        /// `Last-Modified`). Resumable downloads are enabled by default.
         public var isResumableDataEnabled = true
 
         // MARK: - Options (Shared)
 
-        /// If `true` pipeline will detects GIFs and set `animatedImageData`
+        /// If `true` pipeline will detect GIFs and set `animatedImageData`
         /// (`UIImage` property). It will also disable processing of such images,
         /// and alter the way cache cost is calculated. However, this will not
         /// enable actual animated image rendering. To do that take a look at
@@ -158,7 +158,7 @@ extension ImagePipeline {
 
         /// Creates a default configuration.
         /// - parameter dataLoader: `DataLoader()` by default.
-        /// - parameter imageCache: `Cache.shared` by default.
+        /// - parameter imageCache: `ImageCache.shared` by default.
         public init(dataLoader: DataLoading = DataLoader(), imageCache: ImageCaching? = ImageCache.shared) {
             self.dataLoader = dataLoader
             self.imageCache = imageCache

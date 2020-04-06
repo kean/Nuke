@@ -51,7 +51,7 @@ By default, Nuke uses `Foundation.URLCache` which respects HTTP [cache control](
 
  > Using `DataCache` has other advantages like significantly improved performance comapred to `Foundation.URLCache`.
  
- 3. Force the `URLSession` to return an expired image, and then validates it later in the background. This easily be done with [ImagePublisher](https://github.com/kean/ImagePublisher#showing-stale-image-while-validating-it) or [RxNuke](https://github.com/kean/RxNuke).
+ 3. Force the `URLSession` to return an expired image, and then validate it later in the background. This can easily be done with [ImagePublisher](https://github.com/kean/ImagePublisher#showing-stale-image-while-validating-it) or [RxNuke](https://github.com/kean/RxNuke).
  
  ```swift
  let cacheRequest = URLRequest(url: url, cachePolicy: .returnCacheDataDontLoad)
