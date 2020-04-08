@@ -407,7 +407,9 @@ By default, the pipeline stores only the original image data. To store downloade
 Prefetching images in advance can dramatically improve your app's user experience.
 
 ```swift
+// Make sure to keep a strong reference to preheater.
 let preheater = ImagePreheater()
+
 preheater.startPreheating(with: urls)
 
 // Cancels all of the preheating tasks created for the given requests.
