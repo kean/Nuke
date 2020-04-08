@@ -9,7 +9,7 @@
 
 When you create `UIImage` object form data, the data doesn't get decoded immediately. It is decoded the first time it is used - for example, when you display the image in an image view. Decoding is a resource-intensive operation, if you do it on the main thread you might see dropped frames, especially for image formats like JPEG.
 
-To prevent decoding happening on the main thread, Nuke perform it in a background for you. But for even better performance it is recommended to downsample the images. To do so create a request with a target view size:
+To prevent decoding happening on the main thread, Nuke performs it in the background for you. But for even better performance it is recommended to downsample the images. To do so create a request with a target view size:
 
 ```swift
 let request = ImageRequest(

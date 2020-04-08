@@ -22,11 +22,11 @@ public protocol ImageCaching: AnyObject {
 /// The elements stored in cache are automatically discarded if either *cost* or
 /// *count* limit is reached. The default cost limit represents a number of bytes
 /// and is calculated based on the amount of physical memory available on the
-/// device. The default cmount limit is set to `Int.max`.
+/// device. The default count limit is set to `Int.max`.
 ///
-/// `Cache` automatically removes all stored elements when it received a
-/// memory warning. It also automatically removes *most* of cached elements
-/// when the app enters background.
+/// `ImageCache` automatically removes all stored elements when it receives a
+/// memory warning. It also automatically removes *most* stored elements
+/// when the app enters the background.
 public final class ImageCache: ImageCaching {
     private let impl: Cache<ImageRequest.CacheKey, ImageContainer>
 
@@ -122,7 +122,7 @@ public final class ImageCache: ImageCaching {
 
         // bytesPerRow * height gives a rough estimation of how much memory
         // image uses in bytes. In practice this algorithm combined with a
-        // concervative default cost limit works OK.
+        // conservative default cost limit works OK.
         guard let cgImage = container.image.cgImage else {
             return 1 + dataCost
         }

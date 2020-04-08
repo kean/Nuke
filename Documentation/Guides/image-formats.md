@@ -28,7 +28,7 @@ Nuke is capable of driving progressive decoding, animated image rendering, progr
 
 ### ImageDecoding Protocol
 
-At the core of the decoding infrastructure is `ImageDecoding` protocol.
+At the core of the decoding infrastructure is the `ImageDecoding` protocol.
 
 ```swift
 public protocol ImageDecoding {
@@ -54,15 +54,15 @@ public struct ImageContainer {
     public let userInfo: [AnyHashable: Any]
 ```
 
-When the very first chuck of the image data is loaded, `ImagePipeline` creates a decoder for the given image format.
+When the very first chunk of the image data is loaded, `ImagePipeline` creates a decoder for the given image format.
 
-The pipeline uses `ImageDecoderRegistry` to find the decoder.  The decoder is created once and is reused across a single image decoding session until the final chuck of data is downloaded. If your decoder supports progressive decoding, make it a `class` if you need to keep some state within a single decoding session. You can also return a shared instance of the decoder if needed.
+The pipeline uses `ImageDecoderRegistry` to find the decoder.  The decoder is created once and is reused across a single image decoding session until the final chunk of data is downloaded. If your decoder supports progressive decoding, make it a `class` if you need to keep some state within a single decoding session. You can also return a shared instance of the decoder if needed.
 
 > Tip: `decode(_:)` method only passes `data` to the decoder. However, if you need any additional information in the decoder, you can pass it when instantiating a decoder. `ImageDecodingContext` provides everything that you might need.
 >
 > You can also take advantage of `ImageRequestOptions.userInfo` to pass any kind of information that you might want to the decoder. For example, you may pass the target image view size to the SVG decoder to let it know the size of the image to create.  
 
-The decoding is performed in the background on the operation queue provided in `ImagePipeline.Configuration`. There is always only one decoding request at a time. The pipeline is not going to call `decodePariallyDownloadedData(_:)` until you are finished with the previous chuck.
+The decoding is performed in the background on the operation queue provided in `ImagePipeline.Configuration`. There is always only one decoding request at a time. The pipeline is not going to call `decodePariallyDownloadedData(_:)` until you are finished with the previous chunk.
 
 ### Registering Decoders
 
@@ -146,7 +146,7 @@ let pipeline = ImagePipeline {
 }
 ```
 
-And that's it, the pipeline will automatically do the right thing and deliver the progressive scans via `progress` closure as they arrive:
+And that's it, the pipeline will automatically do the right thing and deliver the progressive scans via the `progress` closure as they arrive:
 
 ```swift
 let imageView = UIImageView()
@@ -177,15 +177,15 @@ All decoders live in `ImageDecoders` namespace.
 
 ### `ImageDecoders.Default`
 
-This is the decoder that is used by default if none other decoders are found. It uses native `UIImage(data:)` (and `NSImage(data:)`) initializers to create images from data.
+This is the decoder that is used by default if no other decoders are found. It uses native `UIImage(data:)` (and `NSImage(data:)`) initializers to create images from data.
 
 > When working with `UIImage`, the decoder automatically sets the scale of the image to match the scale of the screen.
 
-Tthe default `ImageDecoders.Default` also supports progressively decoding JPEG. It produces a new preview every time it encounters a new full frame.
+The default `ImageDecoders.Default` also supports progressively decoding JPEG. It produces a new preview every time it encounters a new full frame.
 
 ### `ImageDecoders.Empty`
 
-This decoders returns an empty placeholder image and attaches image data to the image container. It could also be configured to return partially downloaded data.
+This decoder returns an empty placeholder image and attaches image data to the image container. It could also be configured to return partially downloaded data.
 
 Why is it useful? Let's say you want to render SVG using a third party framework directly in a view. Most likely, this framework is not going to use `UIImage` component, it works directly with `Data`. `ImageDecoders.Empty` allows you to pass this data to the rendering framework. 
 
@@ -288,7 +288,7 @@ To render HEIF images, you can use the basic `UIImageView`/`NSImageView`/`WKInte
 
 **Decoding**
 
-The default image decoder `ImageDecoders.Default` automatically recognized GIFs. It creates an image container (`ImageContainer`) with the first frame of the GIF as placeholder and attaches the original image data to the container, so that you can perform just-in-time decoding at rendering time.
+The default image decoder `ImageDecoders.Default` automatically recognizes GIFs. It creates an image container (`ImageContainer`) with the first frame of the GIF as a placeholder and attaches the original image data to the container, so that you can perform just-in-time decoding at rendering time.
 
 **Encoding**
 
@@ -363,7 +363,7 @@ To render SVG, consider using [SwiftSVG](https://github.com/mchoe/SwiftSVG), [SV
 
 ```swift
 ImageDecoderRegistry.shared.register { context in
-    // Replace this with whatever works for. There are no magic numbers
+    // Replace this with whatever works for you. There are no magic numbers
     // for SVG like are used for other binary formats, it's just XML.
     let isSVG = context.urlResponse?.url?.absoluteString.hasSuffix(".svg") ?? false
     return isSVG ? ImageDecoders.Empty() : nil
