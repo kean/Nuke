@@ -784,7 +784,7 @@ struct Screen {
     #endif
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(watchOS)
 extension UIColor {
     /// Returns a hex representation of the color, e.g. "#FFFFAA".
     var hex: String {

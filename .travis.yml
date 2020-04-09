@@ -31,7 +31,7 @@ jobs:
     - stage: test
       name: Build (watchOS, Xcode 11.3)
       osx_image: xcode11.3
-      script: Scripts/build.sh -d "OS=5.3,name=Apple Watch - 42mm" -d "OS=4.2,name=Apple Watch - 42mm"
+      script: Scripts/build.sh -d "OS=5.3,name=Apple Watch Series 3 - 42mm" -d "OS=4.2,name=Apple Watch - 42mm"
 
     - stage: test
       name: Run Unit Tests (iOS, Xcode 11.2)
