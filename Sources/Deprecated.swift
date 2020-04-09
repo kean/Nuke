@@ -39,8 +39,10 @@ public extension ImagePipeline.Configuration {
         }
     }
 
-    // Deprecated in 9.0
-    @available(*, deprecated, message: "The default image decoder now automatically attaches image data to the newly added ImageContainer type. To learn how to implement animated image support using this new type, see the new Image Formats guide https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-formats.md") // Deprecated in 8.5
+    /// - warning: Soft-deprecated in 9.0. The default image decoder now
+    /// automatically attaches image data to the newly added ImageContainer type.
+    /// To learn how to implement animated image support using this new type,
+    /// see the new Image Formats guide https://github.com/kean/Nuke/blob/9.0.0-beta.1/Documentation/Guides/image-formats.md"
     static var isAnimatedImageDataEnabled: Bool {
         get { _isAnimatedImageDataEnabled }
         set { _isAnimatedImageDataEnabled = newValue }
@@ -74,8 +76,7 @@ public extension ImageProcessors {
 private var _animatedImageDataAK = "Nuke.AnimatedImageData.AssociatedKey"
 
 extension PlatformImage {
-    // Deprecated in 9.0
-    @available(*, deprecated, message: "Please use ImageContainer.data.")
+    /// - warning: Soft-deprecated in Nuke 9.0.
     public var animatedImageData: Data? {
         get { _animatedImageData }
         set { _animatedImageData = newValue }
