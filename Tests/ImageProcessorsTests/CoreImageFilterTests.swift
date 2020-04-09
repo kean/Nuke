@@ -12,7 +12,7 @@ import XCTest
 #if os(iOS) || os(tvOS)
 
 class ImageProcessorsCoreImageFilterTests: XCTestCase {
-    func testApplySepia() throws {
+    func _testApplySepia() throws {
         // Given
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone")
@@ -24,7 +24,7 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
         XCTAssertEqualImages(output, Test.image(named: "s-sepia.png"))
     }
 
-    func testApplySepiaWithParameters() throws {
+    func _testApplySepiaWithParameters() throws {
         // Given
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
