@@ -133,7 +133,7 @@ If you want to see how the system behaves, how long each operation takes, and ho
 
 Image loading frameworks are often used in table and collection views with large number of cells. It's important that they perform well to achieve butterly smooth scrolling. 
 
-> Please keep in mind that this performance test makes for a very nice looking chart, but in practice, the difference between Nuke and say SDWebImage is not going to be that dramatic. Unless you app drops frames on a table or a collection view rendering, there is no real reason to switch.
+> Please keep in mind that this performance test ([sources](https://github.com/kean/Image-Frameworks-Benchmark)) makes for a very nice looking chart, but in practice, the difference between Nuke and say SDWebImage is not going to be that dramatic. Unless you app drops frames on a table or a collection view rendering, there is no real reason to switch.
 
 <img src="https://user-images.githubusercontent.com/1567433/61174515-92a33d00-a5a1-11e9-839f-c2a1a1237f52.png" width="800"/>
 <img src="https://user-images.githubusercontent.com/1567433/61174516-92a33d00-a5a1-11e9-8915-55cf9ba519a2.png" width="800"/>
