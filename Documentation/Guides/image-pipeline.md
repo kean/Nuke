@@ -13,6 +13,7 @@ This guide describes in detail what happens when you call `Nuke.loadImage(with: 
   * [Decompression](#decompression)
   * [Progressive Decoding](#progressive-decoding)
   * [Performance](#performance)
+- [Benchmarks](#benchmarks)
 
 ## `Nuke.loadImage(with:into)`
 
@@ -127,3 +128,12 @@ Nuke is tuned to do as little work on the main thread as possible. It uses multi
 Nuke is fully asynchronous and performs well under stress. `ImagePipeline` schedules its operations on dedicated queues. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible. Under extreme load, `ImagePipeline` will also rate limit requests to prevent saturation of the underlying systems.
 
 If you want to see how the system behaves, how long each operation takes, and how many are performed in parallel, enable the `isSignpostLoggingEnabled` option and use the `os_signpost` Instrument. For more information see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
+
+## Benchmarks
+
+Image loading frameworks are often used in table and collection views with large number of cells. It's important that they perform well to achieve butterly smooth scrolling. 
+
+> Please keep in mind that this performance test makes for a very nice looking chart, but in practice, the difference between Nuke and say SDWebImage is not going to be that dramatic. Unless you app drops frames on a table or a collection view rendering, there is no real reason to switch.
+
+<img src="https://user-images.githubusercontent.com/1567433/61174515-92a33d00-a5a1-11e9-839f-c2a1a1237f52.png" width="800"/>
+<img src="https://user-images.githubusercontent.com/1567433/61174516-92a33d00-a5a1-11e9-8915-55cf9ba519a2.png" width="800"/>
