@@ -47,3 +47,7 @@ class ImageView: UIView {
 ### Avoiding Excessive Cancellations
 
 Don't cancel outstanding requests when it is not necessary. For instance, when reloading `UITableView` you might want to check if the cell that you are updating is already loading the same image and keep the pending request running.
+
+### Measure
+
+If you want to see how the system behaves, how long each operation takes, and how many are performed in parallel, enable the `isSignpostLoggingEnabled` option and use the `os_signpost` Instrument. For more information see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
