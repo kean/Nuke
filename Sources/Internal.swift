@@ -117,34 +117,34 @@ private final class TokenBucket {
 // MARK: - Operation
 
 final class Operation: Foundation.Operation {
-    private var _isExecuting = false
-    private var _isFinished = false
+    private var _isExecuting = Atomic(false)
+    private var _isFinished = Atomic(false)
     private var isFinishCalled = Atomic(false)
 
     override var isExecuting: Bool {
         set {
-            guard _isExecuting != newValue else {
+            guard _isExecuting.value != newValue else {
                 fatalError("Invalid state, operation is already (not) executing")
             }
             willChangeValue(forKey: "isExecuting")
-            _isExecuting = newValue
+            _isExecuting.value = newValue
             didChangeValue(forKey: "isExecuting")
         }
         get {
-            _isExecuting
+            _isExecuting.value
         }
     }
     override var isFinished: Bool {
         set {
-            guard !_isFinished else {
+            guard !_isFinished.value else {
                 fatalError("Invalid state, operation is already finished")
             }
             willChangeValue(forKey: "isFinished")
-            _isFinished = newValue
+            _isFinished.value = newValue
             didChangeValue(forKey: "isFinished")
         }
         get {
-            _isFinished
+            _isFinished.value
         }
     }
 
