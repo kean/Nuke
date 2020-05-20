@@ -1,4 +1,4 @@
-# Nuke 9 Migration Guide (WIP)
+# Nuke 9 Migration Guide
 
 This guide is provided in order to ease the transition of existing applications using Nuke 8.x to the latest version, as well as explain the design and structure of new and changed functionality.
 
