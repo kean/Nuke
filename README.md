@@ -32,7 +32,7 @@ Nuke is easy to learn and use. Here is an overview of its APIs and features:
 - **Advanced Features** ‣ [Preheat Images](#image-preheating) · [Progressive Decoding](#progressive-decoding)
 - [**Extensions**](#h_plugins) ‣ [FetchImage](#fetch-image) · [Builder](#builder) · [Combine](#combine) · [RxNuke](#rxnuke) · [And More](#h_plugins) 
 
-To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/9.0.0/index.html), and check out the demo project included in the repo. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/9.0.0/Documentation/Guides/Installation%20Guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, the [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/9.0.0/Documentation/Guides/troubleshooting.md) might help. 
+To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/9.0.0/index.html), and check out the demo project included in the repo. When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/9.0.0/Documentation/Guides/installation-guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, the [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/9.0.0/Documentation/Guides/troubleshooting.md) might help. 
 
 <img src="https://img.shields.io/badge/supports-Swift%20Package%20Manager%2C%20CocoaPods%2C%20Carthage-green.svg">
 
@@ -416,6 +416,8 @@ preheater.startPreheating(with: urls)
 preheater.stopPreheating(with: urls)
 ```
 
+> To learn more about other performance optimizations you can do, see [Performance Guide](https://github.com/kean/Nuke/blob/9.0.0/Documentation/Guides/performance-guide.md).
+
 Keep in mind that prefetching takes up users' data and puts extra pressure on CPU and memory. To reduce the CPU and memory usage, you have an option to choose only the disk cache as a prefetching destination:
 
 ```swift
@@ -568,7 +570,7 @@ Observable.concat(pipeline.loadImage(with: lowResUrl).orEmpty,
 | Nuke 9.0      | Swift 5.1       | Xcode 11.0      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
 | Nuke 8.0      | Swift 5.0       | Xcode 10.2      | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
 
-See [Installation Guide](https://github.com/kean/Nuke/blob/9.0.0/Documentation/Guides/Installation%20Guide.md#h_requirements) for information about the older versions.
+See [Installation Guide](https://github.com/kean/Nuke/blob/9.0.0/Documentation/Guides/installation-guide.md#h_requirements) for information about the older versions.
 
 # License
 

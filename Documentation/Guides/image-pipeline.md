@@ -60,7 +60,7 @@ The `URLSession` class natively supports the following URL schemes: `data`, `fil
 
 Most developers either implement their own networking layer or use a third-party framework. Nuke supports both of these workflows. You can integrate your custom networking layer by implementing `DataLoading` protocol.
 
-> See [Third Party Libraries](https://github.com/kean/Nuke/blob/8.0/Documentation/Guides/Third%20Party%20Libraries.md#using-other-caching-libraries) guide to learn more. See also [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin).
+> See [Third Party Libraries](https://github.com/kean/Nuke/blob/9.0/Documentation/Guides/third-party-libraries.md#using-other-caching-libraries) guide to learn more. See also [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin).
 
 ### Aggressive LRU Disk Cache
 
