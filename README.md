@@ -194,7 +194,7 @@ Custom processors need to implement `ImageProcessing` protocol. For the basic im
 ```swift
 public protocol ImageProcessing {
     func process(image: UIImage) -> UIImage? // NSImage on macOS
-    var identifier: String { get }
+    var identifier: String // get
 }
 ```
 
