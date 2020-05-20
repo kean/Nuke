@@ -98,7 +98,7 @@ final class ImagePipelineSettingsViewController: UITableViewController {
             urlCacheEnabledSwitch.isOn = urlCache != nil
             urlCacheButtonClear.isEnabled = urlCache != nil
         } else if let dataLoader = configuration.dataLoader as? AlamofireDataLoader {
-            let urlCache = dataLoader.manager.session.configuration.urlCache
+            let urlCache = dataLoader.session.session.configuration.urlCache
             urlCacheEnabledSwitch.isOn = urlCache != nil
             urlCacheEnabledSwitch.isEnabled = false // Not supported
             urlCacheButtonClear.isEnabled = urlCache != nil
@@ -158,7 +158,7 @@ final class ImagePipelineSettingsViewController: UITableViewController {
         if let dataLoader = configuration.dataLoader as? DataLoader {
             display(urlCache: dataLoader.session.configuration.urlCache)
         } else if let dataLoader = configuration.dataLoader as? AlamofireDataLoader {
-            display(urlCache: dataLoader.manager.session.configuration.urlCache)
+            display(urlCache: dataLoader.session.session.configuration.urlCache)
         } else {
             urlCacheDataUsageLabel.text = "Unknown"
             urlCacheMemoryUsageLabel.text = "Unknown"
@@ -235,7 +235,7 @@ final class ImagePipelineSettingsViewController: UITableViewController {
         if let dataLoader = configuration.dataLoader as? DataLoader {
             dataLoader.session.configuration.urlCache?.removeAllCachedResponses()
         } else if let dataLoader = configuration.dataLoader as? AlamofireDataLoader {
-            dataLoader.manager.session.configuration.urlCache?.removeAllCachedResponses()
+            dataLoader.session.session.configuration.urlCache?.removeAllCachedResponses()
         } else {
             assertionFailure("Unsupported cache type")
         }
