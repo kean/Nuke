@@ -321,7 +321,7 @@ isRateLimiterEnabled = true
 isProgressiveDecodingEnabled = false
 
 // Don't store progressive previews in memory cache.
-$0.isStoringPreviewsInMemoryCache = false
+isStoringPreviewsInMemoryCache = false
 
 // If the data task is terminated (either because of a failure or a
 // cancellation) and the image was partially loaded, the next load will
