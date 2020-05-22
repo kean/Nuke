@@ -161,7 +161,7 @@ final class Cache<Key: Hashable, Value> {
             self?.removeAll()
         }
         self.memoryPressure.resume()
-    
+
         #if os(iOS) || os(tvOS)
         let center = NotificationCenter.default
         center.addObserver(self, selector: #selector(didEnterBackground),
