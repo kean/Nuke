@@ -284,17 +284,6 @@ class ImageCacheTests: XCTestCase {
     }
 
     #if os(iOS) || os(tvOS)
-    func testThatImagesAreRemovedOnMemoryWarnings() {
-        // Given
-        cache[Test.request] = ImageContainer(image: PlatformImage())
-
-        // When
-        NotificationCenter.default.post(name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
-
-        // Then
-        XCTAssertNil(cache[Test.request])
-    }
-
     func testThatSomeImagesAreRemovedOnDidEnterBackground() {
         // Given
         cache.costLimit = Int.max

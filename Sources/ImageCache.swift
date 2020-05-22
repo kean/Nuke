@@ -136,6 +136,7 @@ final class Cache<Key: Hashable, Value> {
     private var map = [Key: LinkedList<Entry>.Node]()
     private let list = LinkedList<Entry>()
     private let lock = NSLock()
+    private let memoryPressure: DispatchSourceMemoryPressure
 
     var costLimit: Int {
         didSet { lock.sync(_trim) }
@@ -155,11 +156,14 @@ final class Cache<Key: Hashable, Value> {
     init(costLimit: Int, countLimit: Int) {
         self.costLimit = costLimit
         self.countLimit = countLimit
+        self.memoryPressure = DispatchSource.makeMemoryPressureSource(eventMask: .all, queue: .main)
+        self.memoryPressure.setEventHandler { [weak self] in
+            self?.removeAll()
+        }
+        self.memoryPressure.resume()
+    
         #if os(iOS) || os(tvOS)
         let center = NotificationCenter.default
-        center.addObserver(self, selector: #selector(removeAll),
-                           name: UIApplication.didReceiveMemoryWarningNotification,
-                           object: nil)
         center.addObserver(self, selector: #selector(didEnterBackground),
                            name: UIApplication.didEnterBackgroundNotification,
                            object: nil)
@@ -167,6 +171,7 @@ final class Cache<Key: Hashable, Value> {
     }
 
     deinit {
+        self.memoryPressure.cancel()
         #if os(iOS) || os(tvOS)
         NotificationCenter.default.removeObserver(self)
         #endif
