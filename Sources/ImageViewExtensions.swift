@@ -367,7 +367,7 @@ private final class ImageViewController {
 
     // MARK: - Loading Images
 
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func loadImage(with request: ImageRequest,
                    options: ImageLoadingOptions,
                    progress progressHandler: ImageTask.ProgressHandler? = nil,
@@ -465,6 +465,7 @@ private final class ImageViewController {
         display(response.image, options.transition, options.alwaysTransition, false, options.contentModes?.success, options.tintColors?.success)
     }
 
+    // swiftlint:disable:next function_parameter_count
     private func display(_ image: UIImage, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?, _ newTintColor: PlatformColor?) {
         guard let imageView = imageView else {
             return
