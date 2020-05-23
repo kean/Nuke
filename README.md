@@ -72,7 +72,7 @@ func tableView(_ tableView: UITableView, cellForItemAt indexPath: IndexPaths) ->
 
 > When the view is deallocated, an associated request gets canceled automatically. To manually cancel the request, call `Nuke.cancelRequest(for: imageView)`.
 
-### Placeholders, Transitions, Content Modes
+### Placeholders, Transitions, Content Modes, Tint Colors
 
 Use `ImageLoadingOptions` to set a `placeholder`, select one of the built-in `transitions`, or provide a custom one.
 
@@ -84,13 +84,14 @@ let options = ImageLoadingOptions(
 Nuke.loadImage(with: url, options: options, into: imageView)
 ```
 
-You can even customize content modes per image type:
+You can even customize content modes or tint colors per image type:
 
 ```swift
 let options = ImageLoadingOptions(
     placeholder: UIImage(named: "placeholder"),
     failureImage: UIImage(named: "failureImage"),
-    contentModes: .init(success: .scaleAspectFill, failure: .center, placeholder: .center)
+    contentModes: .init(success: .scaleAspectFill, failure: .center, placeholder: .center),
+    tintColors: .init(success: .green, failure: .red, placeholder: .yellow)
 )
 ```
 
