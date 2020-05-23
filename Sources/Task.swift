@@ -277,10 +277,13 @@ final class TaskPool<Value, Error> {
         self.isDeduplicationEnabled = isDeduplicationEnabled
     }
 
-    func publisher(withKey key: AnyHashable, starter: @escaping (Task<Value, Error>) -> Void) -> Task<Value, Error>.Publisher {
+    /// Creates a task with the given key. If there is an outstanding task with
+    /// the given key in the pool, the existing task is returned. Tasks are
+    /// automatically removed from the pool when they are disposed.
+    func task(withKey key: AnyHashable, starter: @escaping (Task<Value, Error>) -> Void) -> Task<Value, Error> {
         task(withKey: key) {
             Task<Value, Error>(starter: starter)
-        }.publisher
+        }
     }
 
     private func task(withKey key: AnyHashable, _ make: () -> Task<Value, Error>) -> Task<Value, Error> {
