@@ -687,16 +687,16 @@ private extension ImagePipeline {
                     guard let self = self, let task = task, !task.isDisposed else {
                         return false
                     }
-                    self.performOriginalImageeDataTask(task, context: context)
+                    self.performOriginalImageDataTask(task, context: context)
                     return true
                 }
             } else { // Start loading immediately.
-                self.performOriginalImageeDataTask(task, context: context)
+                self.performOriginalImageDataTask(task, context: context)
             }
         })
     }
 
-    func performOriginalImageeDataTask(_ task: OriginalImageDataTask, context: OriginalImageDataTaskContext) {
+    func performOriginalImageDataTask(_ task: OriginalImageDataTask, context: OriginalImageDataTaskContext) {
         guard let cache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData) else {
             loadImageData(for: task, context: context) // Skip disk cache lookup, load data
             return
