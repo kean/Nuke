@@ -39,7 +39,7 @@ extension ImagePipeline {
         /// Image decoding queue. Default maximum concurrent task count is 1.
         public var imageDecodingQueue = OperationQueue()
 
-        /// Image encodign queue. Default maximum concurrent task count is 1.
+        /// Image encoding queue. Default maximum concurrent task count is 1.
         public var imageEncodingQueue = OperationQueue()
 
         /// Image processing queue. Default maximum concurrent task count is 2.
@@ -175,7 +175,7 @@ extension ImagePipeline {
     }
 
     public enum DataCacheItem {
-        /// Originl image data.
+        /// Original image data.
         case originalImageData
         /// Final image with all processors applied.
         case finalImage
