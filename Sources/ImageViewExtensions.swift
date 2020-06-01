@@ -9,15 +9,10 @@ import UIKit.UIImage
 import UIKit.UIColor
 /// Alias for `UIImage`.
 public typealias PlatformImage = UIImage
-/// Alias for `UIColor`.
-public typealias PlatformColor = UIColor
 #else
 import AppKit.NSImage
-import AppKit.NSColor
 /// Alias for `NSImage`.
 public typealias PlatformImage = NSImage
-/// Alias for `NSColor`.
-public typealias PlatformColor = NSColor
 #endif
 
 /// Displays images. Add the conformance to this protocol to your views to make
@@ -214,16 +209,16 @@ public struct ImageLoadingOptions {
     /// failure).
     public struct TintColors {
         /// Tint color to be used for the loaded image.
-        public var success: PlatformColor?
+        public var success: UIColor?
         /// Tint color to be used when displaying a `failureImage`.
-        public var failure: PlatformColor?
+        public var failure: UIColor?
         /// Tint color to be used when displaying a `placeholder`.
-        public var placeholder: PlatformColor?
+        public var placeholder: UIColor?
 
         /// - parameter success: A tint color to be used with a loaded image.
         /// - parameter failure: A tint color to be used with a `failureImage`.
         /// - parameter placeholder: A tint color to be used with a `placeholder`.
-        public init(success: PlatformColor?, failure: PlatformColor?, placeholder: PlatformColor?) {
+        public init(success: UIColor?, failure: UIColor?, placeholder: UIColor?) {
             self.success = success; self.failure = failure; self.placeholder = placeholder
         }
     }
@@ -466,7 +461,7 @@ private final class ImageViewController {
     }
 
     // swiftlint:disable:next function_parameter_count
-    private func display(_ image: UIImage, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?, _ newTintColor: PlatformColor?) {
+    private func display(_ image: UIImage, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?, _ newTintColor: UIColor?) {
         guard let imageView = imageView else {
             return
         }
