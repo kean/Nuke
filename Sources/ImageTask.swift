@@ -131,6 +131,14 @@ public struct ImageContainer {
     public var type: ImageType?
     /// Returns `true` if the image in the container is a preview of the image.
     public var isPreview: Bool
+    /// Contains the original image `data`, but only if the decoder decides to
+    /// attach it to the image.
+    ///
+    /// The default decoder (`ImageDecoders.Default`) attaches data to GIFs to
+    /// allow to display them using a rendering engine of your choice.
+    ///
+    /// - note: The `data`, along with the image container itself gets stored in the memory
+    /// cache.
     public var data: Data?
     public var userInfo: [AnyHashable: Any]
 
