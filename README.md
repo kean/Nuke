@@ -227,6 +227,8 @@ let task = ImagePipeline.shared.loadImage(
 )
 ```
 
+> `loadImage` returns always calls a completion closure asynchronously. To check if the image is stored in a memory cache, use `pipeline.cachedImage(for: url)`.
+
 > To download the data without doing any expensive decoding or processing, use `loadData(with:progress:completion:)`.
 
 ### `ImageTask`
