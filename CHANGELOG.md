@@ -1,5 +1,15 @@
 # Nuke 9
 
+## Nuke 9.1
+
+*June 1, 2020*
+
+### Enhancements
+
+- `ImageCache` now uses `DispatchSourceMemoryPressure` instead `UIApplication.didReceiveMemoryWarningNotification` to improve watchOS support - [#370](https://github.com/kean/Nuke/pull/370), by [Dennis Oberhoff](https://github.com/docterd)
+- Add `tintColor` option to `ImageLoadingOptions` - [#371](https://github.com/kean/Nuke/pull/371) by [Basem Emara](https://github.com/basememara)
+- Minor documentation fixes and improvements
+
 ## Nuke 9.0
 
 *May 20, 2020*
