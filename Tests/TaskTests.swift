@@ -155,6 +155,23 @@ class TaskTests: XCTestCase {
         XCTAssertNil(task.subscribe { _ in })
     }
 
+    func testSubscribeToTaskWithSynchronousCompletionReturnsNil() {
+        // Given
+        let task = Task<Int, MyError> { (task) in
+            task.send(value: 0, isCompleted: true)
+        }
+
+        // When
+        let expectation = self.expectation(description: "Observer called")
+        let subscription = task.subscribe { _ in
+            expectation.fulfill()
+        }
+
+        // Then
+        XCTAssertNil(subscription)
+        wait()
+    }
+
     // MARK: - Ubsubscribe
 
     func testWhenSubscriptionIsRemovedNoEventsAreSent() {

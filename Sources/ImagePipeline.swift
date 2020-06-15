@@ -887,3 +887,10 @@ public extension ImagePipeline {
         }
     }
 }
+
+// MARK: - Testing
+internal extension ImagePipeline {
+    var taskCount: Int {
+        return tasks.count
+    }
+}
