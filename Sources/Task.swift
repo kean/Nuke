@@ -86,6 +86,9 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
         starter?(self)
         starter = nil
 
+        // The task may have been completed synchronously by `starter`.
+        guard !isDisposed else { return nil }
+
         return subscription
     }
 

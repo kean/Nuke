@@ -471,6 +471,20 @@ class ImagePipelineMemoryCacheTests: XCTestCase {
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
         XCTAssertNotNil(cache[Test.request])
     }
+
+    func testTaskCountAfterCachedLoad() {
+        // Given
+        cache[Test.request] = ImageContainer(image: Test.image)
+
+        // When
+        expect(pipeline).toLoadImage(with: Test.request)
+        wait()
+
+        // Then
+        XCTAssertEqual(dataLoader.createdTaskCount, 0)
+        XCTAssertNotNil(cache[Test.request])
+        XCTAssertEqual(pipeline.taskCount, 0)
+    }
 }
 
 class ImagePipelineErrorHandlingTests: XCTestCase {
