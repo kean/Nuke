@@ -1,5 +1,15 @@
 # Nuke 9
 
+## Nuke 9.1.1
+
+*June 19, 2020*
+
+### Fixes
+
+- Fix how `RateLimiter` clamps the delay – [#374](https://github.com/kean/Nuke/pull/374) by [Tangent](https://github.com/TangentW)
+- Fix an issue where `ImageTask` would stay in memory indefinitely in certain situations - [#377](https://github.com/kean/Nuke/pull/377) by [Ken Bongort](https://github.com/ken-broadsheet)
+- Fix an issue in a demo project where "Rate Limiter" demo would use incorrect cell size on first draw 
+
 ## Nuke 9.1
 
 *June 1, 2020*
