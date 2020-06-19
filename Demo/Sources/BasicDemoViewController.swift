@@ -70,7 +70,7 @@ class BasicDemoViewController: UICollectionViewController, ImagePipelineSettings
         }
 
         let imageView = imageViewForCell(cell)
-        let request = makeRequest(with: photos[indexPath.row], imageView: imageView)
+        let request = makeRequest(with: photos[indexPath.row], cellSize: cell.bounds.size)
         var options = makeImageLoadingOptions()
         options.pipeline = self.pipeline
         loadImage(with: request, options: options, into: imageView)
@@ -78,7 +78,7 @@ class BasicDemoViewController: UICollectionViewController, ImagePipelineSettings
         return cell
     }
 
-    func makeRequest(with url: URL, imageView: UIImageView) -> ImageRequest {
+    func makeRequest(with url: URL, cellSize: CGSize) -> ImageRequest {
         return ImageRequest(url: url)
     }
 

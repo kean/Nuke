@@ -28,8 +28,8 @@ final class RateLimiterDemoViewController: BasicDemoViewController {
         }
     }
 
-    override func makeRequest(with url: URL, imageView: UIImageView) -> ImageRequest {
-        return ImageRequest(url: url, processors: [ImageProcessors.Resize(size: imageView.bounds.size)])
+    override func makeRequest(with url: URL, cellSize: CGSize) -> ImageRequest {
+        return ImageRequest(url: url, processors: [ImageProcessors.Resize(size: cellSize)])
     }
 
     override func makeImageLoadingOptions() -> ImageLoadingOptions {
