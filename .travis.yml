@@ -58,11 +58,11 @@ jobs:
       osx_image: xcode11.3
       script: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=13.3,name=iPhone 11"
 
-    - stage: test
-      name: Run Validations (SwiftLint)
-      osx_image: xcode11.3
-      install: Scripts/install_swiftlint.sh
-      script: Scripts/validate.sh
+#    - stage: test
+#      name: Run Validations (SwiftLint)
+#      osx_image: xcode11.3
+#      install: Scripts/install_swiftlint.sh
+#      script: Scripts/validate.sh
 
     - stage: test
       name: Build Demo Project
