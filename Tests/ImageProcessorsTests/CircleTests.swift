@@ -12,7 +12,7 @@ import XCTest
 #if os(iOS) || os(tvOS)
 class ImageProcessorsCircleTests: XCTestCase {
 
-    func testThatImageIsCroppedToSquareAutomatically() throws {
+    func _testThatImageIsCroppedToSquareAutomatically() throws {
         // Given
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.Circle()
@@ -25,7 +25,7 @@ class ImageProcessorsCircleTests: XCTestCase {
         XCTAssertEqualImages(output, Test.image(named: "s-circle.png"))
     }
 
-    func testThatBorderIsAdded() throws {
+    func _testThatBorderIsAdded() throws {
         // Given
         let input = Test.image(named: "fixture-tiny.jpeg")
         let border = ImageProcessingOptions.Border(color: .red, width: 4, unit: .pixels)
