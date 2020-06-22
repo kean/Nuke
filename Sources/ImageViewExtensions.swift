@@ -88,12 +88,12 @@ extension WKInterfaceImage: Nuke_ImageDisplaying {
 /// the memory cache. `nil` by default.
 /// - returns: An image task or `nil` if the image was found in the memory cache.
 @discardableResult
-public func loadImage(with url: URL,
+public func loadImage(with url: URL?,
                       options: ImageLoadingOptions = ImageLoadingOptions.shared,
                       into view: ImageDisplayingView,
                       progress: ImageTask.ProgressHandler? = nil,
                       completion: ImageTask.Completion? = nil) -> ImageTask? {
-    loadImage(with: ImageRequest(url: url), options: options, into: view, progress: progress, completion: completion)
+    loadImage(with: url.map { ImageRequest(url: $0) }, options: options, into: view, progress: progress, completion: completion)
 }
 
 /// Loads an image with the given request and displays it in the view.
@@ -117,7 +117,7 @@ public func loadImage(with url: URL,
 /// the memory cache. `nil` by default.
 /// - returns: An image task or `nil` if the image was found in the memory cache.
 @discardableResult
-public func loadImage(with request: ImageRequest,
+public func loadImage(with request: ImageRequest?,
                       options: ImageLoadingOptions = ImageLoadingOptions.shared,
                       into view: ImageDisplayingView,
                       progress: ImageTask.ProgressHandler? = nil,
@@ -363,7 +363,7 @@ private final class ImageViewController {
     // MARK: - Loading Images
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
-    func loadImage(with request: ImageRequest,
+    func loadImage(with request: ImageRequest?,
                    options: ImageLoadingOptions,
                    progress progressHandler: ImageTask.ProgressHandler? = nil,
                    completion: ImageTask.Completion? = nil) -> ImageTask? {
@@ -379,6 +379,11 @@ private final class ImageViewController {
             #elseif os(macOS)
             imageView.layer?.removeAllAnimations()
             #endif
+        }
+
+        guard let request = request else {
+            // TODO: what should the image view display at this point?
+            return nil
         }
 
         let pipeline = options.pipeline ?? ImagePipeline.shared
