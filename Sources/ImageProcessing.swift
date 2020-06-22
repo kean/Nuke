@@ -291,7 +291,7 @@ extension ImageProcessors {
 
         /// A default context shared between all Core Image filters. The context
         /// has `.priorityRequestLow` option set to `true`.
-        public static var context = CIContext(options: [.priorityRequestLow: true])
+        public static var context = CIContext(options: [kCIContextPriorityRequestLow : true]);
 
         public static func apply(filter: CIFilter?, to image: UIImage) -> UIImage? {
             guard let filter = filter else {
