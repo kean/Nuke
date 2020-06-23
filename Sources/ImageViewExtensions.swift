@@ -332,7 +332,7 @@ public struct ImageLoadingOptions {
 /// however as it stands today `ImageViewController` is just a helper class,
 /// making it public wouldn't expose any additional functionality to the users.
 private final class ImageViewController {
-    private unowned var imageView: ImageDisplayingView?
+    private weak var imageView: ImageDisplayingView?
     private var task: ImageTask?
 
     // Automatically cancel the request when the view is deallocated.
