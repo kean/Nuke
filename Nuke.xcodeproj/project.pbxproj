@@ -185,6 +185,7 @@
 		0C6D0A8720E574400037B68F /* MockDataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDataCache.swift; sourceTree = "<group>"; };
 		0C6D0A8B20E57C810037B68F /* ImagePipelineDataCachingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDataCachingTests.swift; sourceTree = "<group>"; };
 		0C70CF6924A37E2A0009966C /* xcbuild.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = xcbuild.sh; path = Scripts/xcbuild.sh; sourceTree = "<group>"; };
+		0C70CF6E24A3819F0009966C /* Package@swift-5.3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Package@swift-5.3.swift"; sourceTree = "<group>"; };
 		0C70D96F2089016700A49DAC /* progressive.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = progressive.jpeg; sourceTree = "<group>"; };
 		0C70D9702089016800A49DAC /* baseline.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = baseline.jpeg; sourceTree = "<group>"; };
 		0C70D9772089017500A49DAC /* ImageDecoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDecoderTests.swift; sourceTree = "<group>"; };
@@ -556,6 +557,7 @@
 				0C4326262424338200799446 /* LICENSE */,
 				0CDB92811DAF9BC000002905 /* Nuke.podspec */,
 				0CDB92831DAF9BCB00002905 /* Package.swift */,
+				0C70CF6E24A3819F0009966C /* Package@swift-5.3.swift */,
 				0CA301701DAF9CD1000B9105 /* .travis.yml */,
 				0C179C772282AC50008AB488 /* .swiftlint.yml */,
 			);
