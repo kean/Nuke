@@ -1251,6 +1251,7 @@
 			baseConfigurationReference = 0CCDB8D121D576F00032518B /* Nuke.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -1272,6 +1273,7 @@
 			baseConfigurationReference = 0CCDB8D121D576F00032518B /* Nuke.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -1284,7 +1286,6 @@
 				MARKETING_VERSION = 9.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
-				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};
