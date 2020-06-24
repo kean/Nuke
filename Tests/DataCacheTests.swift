@@ -340,7 +340,7 @@ class DataCacheTests: XCTestCase {
         cache.flush()
 
         // Then
-        XCTAssertEqual(cache.contents, [cache.url(for: "key")])
+        XCTAssertEqual(cache.contents, [cache.url(for: "key")].compactMap { $0 })
     }
 
     func testFlushForKey() {
@@ -352,7 +352,7 @@ class DataCacheTests: XCTestCase {
         cache.flush(for: "key")
 
         // Then
-        XCTAssertEqual(cache.contents, [cache.url(for: "key")])
+        XCTAssertEqual(cache.contents, [cache.url(for: "key")].compactMap { $0 })
     }
 
     func testFlushForKey2() {
@@ -365,7 +365,7 @@ class DataCacheTests: XCTestCase {
         cache.flush(for: "key1")
 
         // Then only flushes content for the specific key
-        XCTAssertEqual(cache.contents, [cache.url(for: "key1")])
+        XCTAssertEqual(cache.contents, [cache.url(for: "key1")].compactMap { $0 })
     }
 
     // MARK: Inspection
