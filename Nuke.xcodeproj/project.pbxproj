@@ -184,6 +184,7 @@
 		0C68F608208A1F40007DC696 /* ImageDecoderRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDecoderRegistryTests.swift; sourceTree = "<group>"; };
 		0C6D0A8720E574400037B68F /* MockDataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDataCache.swift; sourceTree = "<group>"; };
 		0C6D0A8B20E57C810037B68F /* ImagePipelineDataCachingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDataCachingTests.swift; sourceTree = "<group>"; };
+		0C70CF6924A37E2A0009966C /* xcbuild.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = xcbuild.sh; path = Scripts/xcbuild.sh; sourceTree = "<group>"; };
 		0C70D96F2089016700A49DAC /* progressive.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = progressive.jpeg; sourceTree = "<group>"; };
 		0C70D9702089016800A49DAC /* baseline.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = baseline.jpeg; sourceTree = "<group>"; };
 		0C70D9772089017500A49DAC /* ImageDecoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDecoderTests.swift; sourceTree = "<group>"; };
@@ -354,6 +355,7 @@
 				0CA82BDC237AE09F00338375 /* install_swiftlint.sh */,
 				0C1E596A2372EBBC00674B63 /* test.sh */,
 				0C1E59672372EBBC00674B63 /* validate_demo.sh */,
+				0C70CF6924A37E2A0009966C /* xcbuild.sh */,
 				0C1E59682372EBBC00674B63 /* validate.sh */,
 			);
 			name = Scripts;
