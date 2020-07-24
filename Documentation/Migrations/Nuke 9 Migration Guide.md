@@ -2,7 +2,7 @@
 
 This guide is provided in order to ease the transition of existing applications using Nuke 8.x to the latest version, as well as explain the design and structure of new and changed functionality.
 
-> To learn about the new features in Nuke 9 see the [release notes](https://github.com/kean/Nuke/releases/tag/9.0-beta.2).
+> To learn about the new features in Nuke 9 see the [release notes](https://github.com/kean/Nuke/releases/tag/9.0.0).
 
 ## Minimum Requirements
 
