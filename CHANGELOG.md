@@ -1,5 +1,11 @@
 # Nuke 9
 
+## Nuke 9.1.2
+
+*Aug 25, 2020*
+
+- Fix an issue with `ImageCache` memory pressure monitoring where it was clearing it when memory pressure changes to `normal` level - [#392](https://github.com/kean/Nuke/pull/392) by [Eric Jensen](https://github.com/ejensen)
+
 ## Nuke 9.1.1
 
 *June 19, 2020*
