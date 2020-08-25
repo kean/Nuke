@@ -156,7 +156,7 @@ final class Cache<Key: Hashable, Value> {
     init(costLimit: Int, countLimit: Int) {
         self.costLimit = costLimit
         self.countLimit = countLimit
-        self.memoryPressure = DispatchSource.makeMemoryPressureSource(eventMask: .all, queue: .main)
+        self.memoryPressure = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .main)
         self.memoryPressure.setEventHandler { [weak self] in
             self?.removeAll()
         }
