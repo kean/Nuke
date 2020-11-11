@@ -357,12 +357,12 @@
 			name = Scripts;
 			sourceTree = "<group>";
 		};
-		0C4F8FE722E4B7260070ECFD /* TheadSafety */ = {
+		0C4F8FE722E4B7260070ECFD /* ThreadSafety */ = {
 			isa = PBXGroup;
 			children = (
 				0C5D81871D46A385000ECCB6 /* ThreadSafetyTests.swift */,
 			);
-			path = TheadSafety;
+			path = ThreadSafety;
 			sourceTree = "<group>";
 		};
 		0C4F900222E4C4FB0070ECFD /* Frameworks */ = {
@@ -392,7 +392,7 @@
 				0CB2EFD52110F52C00F7C63F /* RateLimiterTests.swift */,
 				0C0F7BF02287F6EE0034E656 /* TaskTests.swift */,
 				0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */,
-				0C4F8FE722E4B7260070ECFD /* TheadSafety */,
+				0C4F8FE722E4B7260070ECFD /* ThreadSafety */,
 				0C7C069B1BCA889000089D7F /* Extensions */,
 				0C8D7BD11D9DBF1600D12EB7 /* Host */,
 				0C7C069A1BCA888C00089D7F /* Mocks */,
