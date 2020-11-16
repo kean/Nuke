@@ -260,6 +260,7 @@ struct ResumableData {
         // Check if "Accept-Ranges" is present and the response is valid.
         guard !data.isEmpty,
             let response = response as? HTTPURLResponse,
+            data.count < response.expectedContentLength,
             response.statusCode == 200 /* OK */ || response.statusCode == 206, /* Partial Content */
             let acceptRanges = response.allHeaderFields["Accept-Ranges"] as? String,
             acceptRanges.lowercased() == "bytes",
