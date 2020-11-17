@@ -1,5 +1,12 @@
 # Nuke 9
 
+## Nuke 9.1.3
+
+*Nov 17, 2020*
+
+- Fix an issue where HTTP range for resumable requests would sometimes be sent incorrectly - [#389](https://github.com/kean/Nuke/issues/389)
+- Fix compile time warnings in Xcode 12
+
 ## Nuke 9.1.2
 
 *Aug 25, 2020*
