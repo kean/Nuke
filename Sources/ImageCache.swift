@@ -171,10 +171,7 @@ final class Cache<Key: Hashable, Value> {
     }
 
     deinit {
-        self.memoryPressure.cancel()
-        #if os(iOS) || os(tvOS)
-        NotificationCenter.default.removeObserver(self)
-        #endif
+        memoryPressure.cancel()
     }
 
     func value(forKey key: Key) -> Value? {

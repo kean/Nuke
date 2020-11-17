@@ -113,10 +113,10 @@ public final class ImagePreheater {
                 finish()
             }
         case .memoryCache:
-            imageTask = pipeline.loadImage(with: request) { [weak self] _ in
+            imageTask = pipeline.loadImage(with: request, completion: { [weak self] _ in
                 self?._remove(task)
                 finish()
-            }
+            })
         }
         task.onCancelled = {
             imageTask.cancel()

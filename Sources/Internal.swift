@@ -123,6 +123,9 @@ final class Operation: Foundation.Operation {
     private var isFinishCalled = Atomic(false)
 
     override var isExecuting: Bool {
+        get {
+            _isExecuting.value
+        }
         set {
             guard _isExecuting.value != newValue else {
                 fatalError("Invalid state, operation is already (not) executing")
@@ -131,11 +134,11 @@ final class Operation: Foundation.Operation {
             _isExecuting.value = newValue
             didChangeValue(forKey: "isExecuting")
         }
-        get {
-            _isExecuting.value
-        }
     }
     override var isFinished: Bool {
+        get {
+            _isFinished.value
+        }
         set {
             guard !_isFinished.value else {
                 fatalError("Invalid state, operation is already finished")
@@ -143,9 +146,6 @@ final class Operation: Foundation.Operation {
             willChangeValue(forKey: "isFinished")
             _isFinished.value = newValue
             didChangeValue(forKey: "isFinished")
-        }
-        get {
-            _isFinished.value
         }
     }
 
