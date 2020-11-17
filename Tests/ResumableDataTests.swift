@@ -11,8 +11,9 @@ class ResumableDataTests: XCTestCase {
     func testResumingRequst() {
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
-            "ETag": "1234"]
-        )
+            "Content-Length": "2000",
+            "ETag": "1234"
+        ])
         let data = ResumableData(response: response, data: _data)!
         var request = URLRequest(url: Test.url)
         data.resume(request: &request)
@@ -37,8 +38,9 @@ class ResumableDataTests: XCTestCase {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
-            "ETag": "1234"]
-        )
+            "Content-Length": "2000",
+            "ETag": "1234"
+        ])
         let data = ResumableData(response: response, data: _data)
 
         // Then
@@ -51,8 +53,9 @@ class ResumableDataTests: XCTestCase {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
-            "Etag": "1234"]
-        )
+            "Content-Length": "2000",
+            "Etag": "1234"
+        ])
         let data = ResumableData(response: response, data: _data)
 
         // Then
@@ -65,8 +68,9 @@ class ResumableDataTests: XCTestCase {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
-            "Last-Modified": "Wed, 21 Oct 2015 07:28:00 GMT"]
-        )
+            "Content-Length": "2000",
+            "Last-Modified": "Wed, 21 Oct 2015 07:28:00 GMT"
+        ])
         let data = ResumableData(response: response, data: _data)
 
         // Then
@@ -80,8 +84,9 @@ class ResumableDataTests: XCTestCase {
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
             "ETag": "1234",
-            "Last-Modified": "Wed, 21 Oct 2015 07:28:00 GMT"]
-        )
+            "Content-Length": "2000",
+            "Last-Modified": "Wed, 21 Oct 2015 07:28:00 GMT"
+        ])
         let data = ResumableData(response: response, data: _data)
 
         // Then
@@ -96,8 +101,9 @@ class ResumableDataTests: XCTestCase {
         // Given
         let response = _makeResponse(statusCode: 206, headers: [
             "Accept-Ranges": "bytes",
-            "ETag": "1234"]
-        )
+            "Content-Length": "2000",
+            "ETag": "1234"
+        ])
         let data = ResumableData(response: response, data: _data)
 
         // Then
@@ -112,8 +118,9 @@ class ResumableDataTests: XCTestCase {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
-            "ETag": "1234"]
-        )
+            "Content-Length": "2000",
+            "ETag": "1234"
+        ])
         let data = ResumableData(response: response, data: Data())
 
         // Then
@@ -133,8 +140,9 @@ class ResumableDataTests: XCTestCase {
         // Given
         let response = _makeResponse(statusCode: 304, headers: [
             "Accept-Ranges": "bytes",
-            "ETag": "1234"]
-        )
+            "Content-Length": "2000",
+            "ETag": "1234"
+        ])
         let data = ResumableData(response: response, data: _data)
 
         // Then
@@ -144,8 +152,9 @@ class ResumableDataTests: XCTestCase {
     func testCreateWithMissingValidator() {
         // Given
         let response = _makeResponse(headers: [
-            "Accept-Ranges": "bytes"]
-        )
+            "Accept-Ranges": "bytes",
+            "Content-Length": "2000"
+        ])
         let data = ResumableData(response: response, data: _data)
 
         // Then
@@ -155,8 +164,9 @@ class ResumableDataTests: XCTestCase {
     func testCreateWithMissingAcceptRanges() {
         // Given
         let response = _makeResponse(headers: [
-            "ETag": "1234"]
-        )
+            "ETag": "1234",
+            "Content-Length": "2000"
+        ])
         let data = ResumableData(response: response, data: _data)
 
         // Then
@@ -167,8 +177,22 @@ class ResumableDataTests: XCTestCase {
         // Given
         let response = _makeResponse(headers: [
             "Accept-Ranges": "none",
-            "ETag": "1234"]
-        )
+            "Content-Length": "2000",
+            "ETag": "1234"
+        ])
+        let data = ResumableData(response: response, data: _data)
+
+        // Then
+        XCTAssertNil(data)
+    }
+
+    func testCreateWhenFullDataIsLoaded() {
+        // Given
+        let response = _makeResponse(headers: [
+            "Accept-Ranges": "none",
+            "Content-Length": "1000",
+            "ETag": "1234"
+        ])
         let data = ResumableData(response: response, data: _data)
 
         // Then

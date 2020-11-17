@@ -40,6 +40,10 @@ class ImagePipelineResumableDataTests: XCTestCase {
         })
         wait()
     }
+
+    func testThatResumableDataIsntSavedIfCancelledWhenDownloadIsCompleted() {
+
+    }
 }
 
 private class _MockResumableDataLoader: DataLoading {
