@@ -1,5 +1,9 @@
 # Nuke 9
 
+## WIP
+
+- Introduce `ImageRequestConvertible` protocol to narrow the number of public APIs
+
 ## Nuke 9.1.3
 
 *Nov 17, 2020*
