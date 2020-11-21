@@ -67,6 +67,14 @@ extension WKInterfaceImage: Nuke_ImageDisplaying {
 
 // MARK: - ImageView Extensions
 
+@discardableResult
+public func loadImage(with request: ImageRequestConvertible,
+                      options: ImageLoadingOptions = ImageLoadingOptions.shared,
+                      into view: ImageDisplayingView,
+                      completion: @escaping ImageTask.Completion) -> ImageTask? {
+    loadImage(with: request, options: options, into: view, progress: nil, completion: completion)
+}
+
 /// Loads an image with the given request and displays it in the view.
 ///
 /// Before loading a new image, the view is prepared for reuse by canceling any
