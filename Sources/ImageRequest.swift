@@ -335,3 +335,27 @@ extension ImageRequest {
         }
     }
 }
+
+// MARK: - ImageRequestConvertible
+
+public protocol ImageRequestConvertible {
+    func asImageRequest() -> ImageRequest
+}
+
+extension ImageRequest: ImageRequestConvertible {
+    public func asImageRequest() -> ImageRequest {
+        self
+    }
+}
+
+extension URL: ImageRequestConvertible {
+    public func asImageRequest() -> ImageRequest {
+        ImageRequest(url: self)
+    }
+}
+
+extension URLRequest: ImageRequestConvertible {
+    public func asImageRequest() -> ImageRequest {
+        ImageRequest(urlRequest: self)
+    }
+}

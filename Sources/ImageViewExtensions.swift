@@ -67,35 +67,6 @@ extension WKInterfaceImage: Nuke_ImageDisplaying {
 
 // MARK: - ImageView Extensions
 
-/// Loads an image with the given URL and displays it in the view.
-///
-/// Before loading a new image, the view is prepared for reuse by canceling any
-/// outstanding requests and removing a previously displayed image.
-///
-/// If the image is stored in the memory cache, it is displayed immediately with
-/// no animations. If not, the image is loaded using an image pipeline. When the
-/// image is loading, the provided `placeholder` is displayed. When the request
-/// completes the loaded image is displayed (or `failureImage` in case of an error)
-/// with the selected animation.
-///
-/// - parameter options: `ImageLoadingOptions.shared` by default.
-/// - parameter view: Nuke keeps a weak reference to the view. If the view is deallocated
-/// the associated request automatically gets canceled.
-/// - parameter progress: A closure to be called periodically on the main thread
-/// when the progress is updated. `nil` by default.
-/// - parameter completion: A closure to be called on the main thread when the
-/// request is finished. Gets called synchronously if the response was found in
-/// the memory cache. `nil` by default.
-/// - returns: An image task or `nil` if the image was found in the memory cache.
-@discardableResult
-public func loadImage(with url: URL,
-                      options: ImageLoadingOptions = ImageLoadingOptions.shared,
-                      into view: ImageDisplayingView,
-                      progress: ImageTask.ProgressHandler? = nil,
-                      completion: ImageTask.Completion? = nil) -> ImageTask? {
-    loadImage(with: ImageRequest(url: url), options: options, into: view, progress: progress, completion: completion)
-}
-
 /// Loads an image with the given request and displays it in the view.
 ///
 /// Before loading a new image, the view is prepared for reuse by canceling any
@@ -117,14 +88,14 @@ public func loadImage(with url: URL,
 /// the memory cache. `nil` by default.
 /// - returns: An image task or `nil` if the image was found in the memory cache.
 @discardableResult
-public func loadImage(with request: ImageRequest,
+public func loadImage(with request: ImageRequestConvertible,
                       options: ImageLoadingOptions = ImageLoadingOptions.shared,
                       into view: ImageDisplayingView,
                       progress: ImageTask.ProgressHandler? = nil,
                       completion: ImageTask.Completion? = nil) -> ImageTask? {
     assert(Thread.isMainThread)
     let controller = ImageViewController.controller(for: view)
-    return controller.loadImage(with: request, options: options, progress: progress, completion: completion)
+    return controller.loadImage(with: request.asImageRequest(), options: options, progress: progress, completion: completion)
 }
 
 /// Cancels an outstanding request associated with the view.

@@ -68,56 +68,6 @@ public /* final */ class ImagePipeline {
 
     // MARK: - Loading Images
 
-    /// Loads an image with the given url.
-    ///
-    /// The pipeline first checks if the image or image data exists in any of its caches.
-    /// It checks if the processed image exists in the memory cache, then if the processed
-    /// image data exists in the custom data cache (disabled by default), then if the data
-    /// cache contains the original image data. Only if there is no cached data, the pipeline
-    /// will start loading the data. When the data is loaded the pipeline decodes it, applies
-    /// the processors, and decompresses the image in the background.
-    ///
-    /// To learn more about the pipeine, see the [README](https://github.com/kean/Nuke).
-    ///
-    /// # Deduplication
-    ///
-    /// The pipeline avoids doing any duplicated work when loading images. For example,
-    /// let's take these two requests:
-    ///
-    /// ```swift
-    /// let url = URL(string: "http://example.com/image")
-    /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ///     ImageProcessors.Resize(size: CGSize(width: 44, height: 44)),
-    ///     ImageProcessors.GaussianBlur(radius: 8)
-    /// ]))
-    /// pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ///     ImageProcessors.Resize(size: CGSize(width: 44, height: 44))
-    /// ]))
-    /// ```
-    ///
-    /// Nuke will load the data only once, resize the image once and blur it also only once.
-    /// There is no duplicated work done. The work only gets canceled when all the registered
-    /// requests are, and the priority is based on the highest priority of the registered requests.
-    ///
-    /// # Configuration
-    ///
-    /// See `ImagePipeline.Configuration` to learn more about the pipeline features and
-    /// how to enable/disable them.
-    ///
-    /// - parameter queue: A queue on which to execute `progress` and `completion`
-    /// callbacks. By default, the pipeline uses `.main` queue.
-    /// - parameter progress: A closure to be called periodically on the main thread
-    /// when the progress is updated. `nil` by default.
-    /// - parameter completion: A closure to be called on the main thread when the
-    /// request is finished. `nil` by default.
-    @discardableResult
-    public func loadImage(with url: URL,
-                          queue: DispatchQueue? = nil,
-                          progress: ImageTask.ProgressHandler? = nil,
-                          completion: ImageTask.Completion? = nil) -> ImageTask {
-        loadImage(with: ImageRequest(url: url), queue: queue, progress: progress, completion: completion)
-    }
-
     /// Loads an image for the given request using image loading pipeline.
     ///
     /// The pipeline first checks if the image or image data exists in any of its caches.
@@ -161,11 +111,11 @@ public /* final */ class ImagePipeline {
     /// - parameter completion: A closure to be called on the main thread when the
     /// request is finished. `nil` by default.
     @discardableResult
-    public func loadImage(with request: ImageRequest,
+    public func loadImage(with request: ImageRequestConvertible,
                           queue: DispatchQueue? = nil,
                           progress progressHandler: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        loadImage(with: request, isMainThreadConfined: false, queue: queue) { task, event in
+        loadImage(with: request.asImageRequest(), isMainThreadConfined: false, queue: queue) { task, event in
             switch event {
             case let .value(response, isCompleted):
                 if isCompleted {
@@ -211,10 +161,11 @@ public /* final */ class ImagePipeline {
     /// - parameter completion: A closure to be called on the main thread when the
     /// request is finished.
     @discardableResult
-    public func loadData(with request: ImageRequest,
+    public func loadData(with request: ImageRequestConvertible,
                          queue: DispatchQueue? = nil,
                          progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
+        let request = request.asImageRequest()
         let task = ImageTask(taskId: nextTaskId.increment(), request: request, isDataTask: true, queue: queue)
         task.pipeline = self
         self.queue.async {
