@@ -68,6 +68,13 @@ public /* final */ class ImagePipeline {
 
     // MARK: - Loading Images
 
+    @discardableResult
+    public func loadImage(with request: ImageRequestConvertible,
+                          queue: DispatchQueue? = nil,
+                          completion: @escaping ImageTask.Completion) -> ImageTask {
+        loadImage(with: request, queue: queue, progress: nil, completion: completion)
+    }
+
     /// Loads an image for the given request using image loading pipeline.
     ///
     /// The pipeline first checks if the image or image data exists in any of its caches.
@@ -147,6 +154,13 @@ public /* final */ class ImagePipeline {
     }
 
     // MARK: - Loading Image Data
+
+    @discardableResult
+    public func loadData(with request: ImageRequestConvertible,
+                         queue: DispatchQueue? = nil,
+                         completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
+        loadData(with: request, queue: queue, progress: nil, completion: completion)
+    }
 
     /// Loads the image data for the given request. The data doesn't get decoded or processed in any
     /// other way.

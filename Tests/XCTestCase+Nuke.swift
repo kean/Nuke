@@ -29,6 +29,11 @@ struct TestExpectationImagePipeline {
     let pipeline: ImagePipeline
 
     @discardableResult
+    func toLoadImage(with request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> ImageTask {
+        toLoadImage(with: request, progress: nil, completion: completion)
+    }
+
+    @discardableResult
     func toLoadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
         let expectation = test.expectation(description: "Image loaded for \(request)")
         return pipeline.loadImage(with: request, progress: progress) { result in
@@ -37,6 +42,11 @@ struct TestExpectationImagePipeline {
             XCTAssertTrue(result.isSuccess)
             expectation.fulfill()
         }
+    }
+
+    @discardableResult
+    func toFailRequest(_ request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> ImageTask {
+        toFailRequest(request, progress: nil, completion: completion)
     }
 
     @discardableResult
