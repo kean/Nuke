@@ -212,7 +212,7 @@ public /* final */ class ImagePipeline {
     }
 }
 
-// MARK: - Image Cache
+// MARK: - Image (In-Memory) Cache
 
 public extension ImagePipeline {
     /// Returns a cached response from the memory cache.
@@ -229,7 +229,7 @@ public extension ImagePipeline {
         return configuration.imageCache?[request]
     }
 
-    private func storeResponse(_ image: ImageContainer, for request: ImageRequest, isCompleted: Bool) {
+    private func storeResponse(_ image: ImageContainer, for request: ImageRequest) {
         guard request.options.memoryCacheOptions.isWriteAllowed,
             !image.isPreview || configuration.isStoringPreviewsInMemoryCache else { return }
         configuration.imageCache?[request] = image
@@ -248,6 +248,23 @@ public extension ImagePipeline {
     }
 }
 
+// MARK: - Cache
+
+public extension ImagePipeline {
+    /// Removes cached image from all cache layers.
+    func removeCachedImage(for request: ImageRequest) {
+        let request = inheritOptions(request)
+
+        configuration.imageCache?[request] = nil
+
+        if let dataCache = configuration.dataCache {
+            dataCache.removeData(for: request.makeCacheKeyForOriginalImageData())
+            dataCache.removeData(for: request.makeCacheKeyForFinalImageData())
+        }
+
+        configuration.dataLoader.removeData(for: request.urlRequest)
+    }
+}
 // MARK: - Starting Image Tasks (Private)
 
 private extension ImagePipeline {
@@ -408,7 +425,7 @@ private extension ImagePipeline {
     #else
     func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, task: DecompressedImageTask) {
         guard isDecompressionNeeded(for: response) else {
-            storeResponse(response.container, for: request, isCompleted: isCompleted)
+            storeResponse(response.container, for: request)
             task.send(value: response, isCompleted: isCompleted)
             return
         }
@@ -430,7 +447,7 @@ private extension ImagePipeline {
             log.signpost(.end)
 
             self.queue.async {
-                self.storeResponse(response.container, for: request, isCompleted: isCompleted)
+                self.storeResponse(response.container, for: request)
                 task.send(value: response, isCompleted: isCompleted)
             }
         }

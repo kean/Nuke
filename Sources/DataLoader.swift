@@ -16,6 +16,9 @@ public protocol DataLoading {
     func loadData(with request: URLRequest,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
                   completion: @escaping (Error?) -> Void) -> Cancellable
+
+    /// Removes data for the given request.
+    func removeData(for request: URLRequest)
 }
 
 extension URLSessionTask: Cancellable {}
@@ -88,6 +91,10 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
                          completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
         return impl.loadData(with: request, session: session, didReceiveData: didReceiveData, completion: completion)
+    }
+
+    public func removeData(for request: URLRequest) {
+        session.configuration.urlCache?.removeCachedResponse(for: request)
     }
 
     /// Errors produced by `DataLoader`.

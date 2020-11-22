@@ -17,6 +17,9 @@ public protocol DataCaching {
     /// - note: The implementation must return immediately and store data
     /// asynchronously.
     func storeData(_ data: Data, for key: String)
+
+    /// Removes data for the given key.
+    func removeData(for key: String)
 }
 
 // MARK: - DataCache

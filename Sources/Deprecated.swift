@@ -84,3 +84,15 @@ extension PlatformImage {
         set { objc_setAssociatedObject(self, &_animatedImageDataAK, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 }
+
+public extension DataCaching {
+    // Deprecated in 9.2
+    @available(*, deprecated, message: "This method exists for backward-compatibility with Nuke 9.1.x and lower.")
+    func removeData(for key: String) {}
+}
+
+public extension DataLoading {
+    // Deprecated in 9.2
+    @available(*, deprecated, message: "This method exists for backward-compatibility with Nuke 9.1.x and lower.")
+    func removeData(for request: URLRequest) {}
+}
