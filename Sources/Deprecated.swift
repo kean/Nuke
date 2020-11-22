@@ -4,10 +4,6 @@
 
 import Foundation
 
-// Deprecated in 8.4
-@available(*, deprecated, message: "Deprecated to avoid name clashes with SwiftUI. Please use `PlatformImage` instead.")
-public typealias Image = PlatformImage
-
 public extension ImagePipeline.Configuration {
     // Deprecated in 9.0
     @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead.")
