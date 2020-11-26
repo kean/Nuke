@@ -97,7 +97,7 @@ public enum ImageProcessors {}
 extension ImageProcessors {
     /// Scales an image to a specified size.
     public struct Resize: ImageProcessing, Hashable, CustomStringConvertible {
-        private let size: CGSize
+        private let size: Size
         private let contentMode: ContentMode
         private let crop: Bool
         private let upscale: Bool
@@ -129,7 +129,7 @@ extension ImageProcessors {
         /// Does nothing with content mode .aspectFill. `false` by default.
         /// - parameter upscale: `false` by default.
         public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
-            self.size = CGSize(size: size, unit: unit)
+            self.size = Size(cgSize: CGSize(size: size, unit: unit))
             self.contentMode = contentMode
             self.crop = crop
             self.upscale = upscale
@@ -151,20 +151,20 @@ extension ImageProcessors {
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
             if crop && contentMode == .aspectFill {
-                return image.processed.byResizingAndCropping(to: size)
+                return image.processed.byResizingAndCropping(to: size.cgSize)
             } else {
-                return image.processed.byResizing(to: size, contentMode: contentMode, upscale: upscale)
+                return image.processed.byResizing(to: size.cgSize, contentMode: contentMode, upscale: upscale)
             }
         }
 
         public var identifier: String {
-            "com.github.kean/nuke/resize?s=\(size),cm=\(contentMode),crop=\(crop),upscale=\(upscale)"
+            "com.github.kean/nuke/resize?s=\(size.cgSize),cm=\(contentMode),crop=\(crop),upscale=\(upscale)"
         }
 
         public var hashableIdentifier: AnyHashable { self }
 
         public var description: String {
-            "Resize(size: \(size) pixels, contentMode: \(contentMode), crop: \(crop), upscale: \(upscale))"
+            "Resize(size: \(size.cgSize) pixels, contentMode: \(contentMode), crop: \(crop), upscale: \(upscale))"
         }
     }
 }
@@ -632,7 +632,7 @@ extension CGImage {
     }
 }
 
-extension CGFloat {
+private extension CGFloat {
     func converted(to unit: ImageProcessingOptions.Unit) -> CGFloat {
         switch unit {
         case .pixels: return self
@@ -641,10 +641,12 @@ extension CGFloat {
     }
 }
 
-extension CGSize: Hashable { // For some reason `CGSize` isn't `Hashable`
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(width)
-        hasher.combine(height)
+private struct Size: Hashable {
+    let cgSize: CGSize
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(cgSize.width)
+        hasher.combine(cgSize.height)
     }
 }
 
