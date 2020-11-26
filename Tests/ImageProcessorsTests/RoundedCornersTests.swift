@@ -12,7 +12,7 @@ import XCTest
 #if os(iOS) || os(tvOS)
 class ImageProcessorsRoundedCornersTests: XCTestCase {
 
-    func testThatCornerRadiusIsAdded() throws {
+    func _testThatCornerRadiusIsAdded() throws {
         // Given
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.RoundedCorners(radius: 12, unit: .pixels)

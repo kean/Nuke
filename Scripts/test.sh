@@ -19,7 +19,7 @@ set -o pipefail
 xcodebuild -version
 
 
-xcodebuild build-for-testing -scheme "$scheme" -destination "${destinations[0]}" | xcpretty --test;
+xcodebuild build-for-testing -scheme "$scheme" -destination "${destinations[0]}" | xcpretty; # --test;
 if [ $? -ne 0 ]; then
     exit $?
 fi
