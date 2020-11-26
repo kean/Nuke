@@ -108,7 +108,7 @@ class ImageProcessorsRoundedCornersTests: XCTestCase {
 
     func testDescriptionWithBorder() {
         // Given
-        let processor = ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red))
+        let processor = ImageProcessors.RoundedCorners(radius: 16, unit: .pixels, border: .init(color: .red, width: 2, unit: .pixels))
 
         // Then
         XCTAssertEqual(processor.description, "RoundedCorners(radius: 16.0 pixels, border: Border(color: #FF0000, width: 2.0 pixels))")
