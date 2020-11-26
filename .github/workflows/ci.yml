@@ -1,0 +1,102 @@
+name: "Nuke CI"
+
+on: 
+  push:
+    branches: 
+      - master
+  pull_request:
+    branches: 
+      - '*'
+
+jobs:
+  ios-latest:
+    name: Unit Tests (iOS 14.2, Xcode 12.2)
+    runs-on: macOS-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Tests
+        run: Scripts/test.sh -d "OS=14.2,name=iPhone 11"
+  macos-latest:
+    name: Unit Tests (macOS, Xcode 12.2)
+    runs-on: macOS-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Tests
+        run: Scripts/test.sh -d "arch=x86_64"
+  tvos-latest:
+    name: Unit Tests (tvOS 14.2, Xcode 12.2)
+    runs-on: macOS-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Tests
+        run: Scripts/test.sh -d "OS=14.2,name=Apple TV 4K"
+  watchos-latest:
+    name: Build (watchOS 7.1, Xcode 12.2)
+    runs-on: macOS-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: Scripts/build.sh -d "OS=7.1,name=Apple Watch Series 6 - 40mm"
+  ios-xcode-12_0_1:
+    name: Unit Tests (iOS 14.0, Xcode 12.0.1)
+    runs-on: macOS-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_12.0.1.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Tests
+        run: Scripts/test.sh -d "OS=14.0,name=iPhone 11"
+  ios-xcode-11_2_1:
+    name: Unit Tests (iOS 13.2.2, Xcode 11.2.1)
+    runs-on: macOS-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_11.2.1.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Tests
+        run: Scripts/test.sh -d "OS=13.2.2,name=iPhone 11"
+  ios-thread-safety:
+    name: Thread Safety Tests (TSan Enabled)
+    runs-on: macOS-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Tests
+        run: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=14.2,name=iPhone 11"
+  ios-performance-tests:
+    name: Performance Tests
+    runs-on: macOS-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Tests
+        run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=14.2,name=iPhone 11"
+  demo-project:
+    name: Build Demo Project
+    runs-on: macOS-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: Scripts/validate_demo.sh
+  swift-build:
+    name: Swift Build (SPM)
+    runs-on: macOS-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: swift build
+
