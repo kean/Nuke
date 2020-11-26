@@ -19,7 +19,7 @@ set -o pipefail
 xcodebuild -version
 
 
-xcodebuild build-for-testing -scheme "$scheme" -destination "${destinations[0]}" | xcpretty;
+xcodebuild build-for-testing -scheme "$scheme" -destination "${destinations[0]}" | xcpretty --test;
 if [ $? -ne 0 ]; then
     exit $?
 fi
@@ -28,7 +28,7 @@ for destination in "${destinations[@]}"; do
 	echo "\nRunning tests for destination: $destination"
 
 	# passing multiple destinations to `test` command results in Travis hanging
-	xcodebuild test-without-building -scheme "$scheme" -destination "$destination" | xcpretty;
+	xcodebuild test-without-building -scheme "$scheme" -destination "$destination" | xcpretty --test;
 
     if [ $? -ne 0 ]; then
         exit $?
