@@ -113,12 +113,7 @@ private func isEqual(_ lhs: PlatformImage, _ rhs: PlatformImage) -> Bool {
     guard lhs.sizeInPixels == rhs.sizeInPixels else {
         return false
     }
-
-
     // Note: this will probably need more work.
     let encoder = ImageEncoders.ImageIO(type: .png, compressionRatio: 1)
-    let lhs = encoder.encode(lhs)
-    let rhs = encoder.encode(rhs)
-
-    return lhs == rhs
+    return encoder.encode(lhs) == encoder.encode(rhs)
 }

@@ -49,19 +49,6 @@ class ImageProcessorsGaussianBlurTest: XCTestCase {
         XCTAssertEqual(processed?.cgImage?.isOpaque, false)
     }
 
-    func testExtendedColorSpaceSupport() throws {
-        // Given
-        let input = Test.image(named: "image-p3", extension: "jpg")
-        let processor = ImageProcessors.GaussianBlur()
-
-        // When
-        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
-
-        // Then image is resized but isn't cropped
-        let colorSpace = try XCTUnwrap(output.cgImage?.colorSpace)
-        XCTAssertTrue(colorSpace.isWideGamutRGB)
-    }
-
     func testImagesWithSameRadiusHasSameIdentifiers() {
         XCTAssertEqual(
             ImageProcessors.GaussianBlur(radius: 2).identifier,

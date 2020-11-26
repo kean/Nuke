@@ -419,7 +419,7 @@ private extension ImagePipeline {
 
     #if os(macOS)
     func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, task: DecompressedImageTask) {
-        storeResponse(response.container, for: request, isCompleted: isCompleted)
+        storeResponse(response.container, for: request)
         task.send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
     }
     #else

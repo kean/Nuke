@@ -537,9 +537,9 @@ struct ImageProcessingExtensions {
         return image.draw(inCanvasWithSize: targetSize, drawRect: drawRect)
     }
 
-    #if os(iOS) || os(tvOS) || os(watchOS)
+#if os(iOS) || os(tvOS) || os(watchOS)
 
-    func byDrawingInCircle(border: ImageProcessingOptions.Border?) -> UIImage? {
+    func byDrawingInCircle(border: ImageProcessingOptions.Border?) -> PlatformImage? {
         guard let squared = byCroppingToSquare(), let cgImage = squared.cgImage else {
             return nil
         }
@@ -549,7 +549,7 @@ struct ImageProcessingExtensions {
 
     /// Draws an image in square by preserving an aspect ratio and filling the
     /// square if needed. If the image is already a square, returns an original image.
-    func byCroppingToSquare() -> UIImage? {
+    func byCroppingToSquare() -> PlatformImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
@@ -574,38 +574,30 @@ struct ImageProcessingExtensions {
     /// Adds rounded corners with the given radius to the image.
     /// - parameter radius: Radius in pixels.
     /// - parameter border: Optional stroke border.
-    func byAddingRoundedCorners(radius: CGFloat, border: ImageProcessingOptions.Border? = nil) -> UIImage? {
+    func byAddingRoundedCorners(radius: CGFloat, border: ImageProcessingOptions.Border? = nil) -> PlatformImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
-
-        let imageSize = cgImage.size
-
-        UIGraphicsBeginImageContextWithOptions(imageSize, false, 1.0)
-        defer { UIGraphicsEndImageContext() }
-
-        let rect = CGRect(origin: CGPoint.zero, size: imageSize)
-        let clippingPath = UIBezierPath(roundedRect: rect, cornerRadius: radius)
-
-        clippingPath.addClip()
-        image.draw(in: CGRect(origin: CGPoint.zero, size: imageSize))
-
-        if let border = border, let context = UIGraphicsGetCurrentContext() {
-            context.setStrokeColor(border.color.cgColor)
-
-            let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
-            path.lineWidth = border.width
-            path.stroke()
-        }
-
-        guard let roundedImage = UIGraphicsGetImageFromCurrentImageContext()?.cgImage else {
+        guard let ctx = CGContext.make(cgImage, size: cgImage.size, alphaInfo: .premultipliedLast) else {
             return nil
         }
+        let rect = CGRect(origin: CGPoint.zero, size: cgImage.size)
+        ctx.addPath(UIBezierPath(roundedRect: rect, cornerRadius: radius).cgPath)
+        ctx.clip()
+        ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: cgImage.size))
 
-        return UIImage(cgImage: roundedImage, scale: image.scale, orientation: image.imageOrientation)
+        if let border = border {
+            ctx.setStrokeColor(border.color.cgColor)
+            ctx.addPath(UIBezierPath(roundedRect: rect, cornerRadius: radius).cgPath)
+            ctx.setLineWidth(border.width)
+            ctx.strokePath()
+        }
+        guard let outputCGImage = ctx.makeImage() else {
+            return nil
+        }
+        return PlatformImage.make(cgImage: outputCGImage, source: image)
     }
-
-    #endif
+#endif
 }
 
 // MARK: - CoreGraphics Helpers (Internal)
@@ -788,7 +780,7 @@ extension UIColor {
 #endif
 
 private extension CGContext {
-    static func make(_ image: CGImage, size: CGSize) -> CGContext? {
+    static func make(_ image: CGImage, size: CGSize, alphaInfo: CGImageAlphaInfo? = nil) -> CGContext? {
         // Create the context which matches the input image.
         if let ctx = CGContext(
             data: nil,
@@ -797,7 +789,7 @@ private extension CGContext {
             bitsPerComponent: image.bitsPerComponent,
             bytesPerRow: 0,
             space: image.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: image.bitmapInfo.rawValue
+            bitmapInfo: alphaInfo?.rawValue ?? image.bitmapInfo.rawValue
         ) {
             return ctx
         }
