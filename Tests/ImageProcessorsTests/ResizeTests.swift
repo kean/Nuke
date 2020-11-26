@@ -99,6 +99,19 @@ class ImageProcessorsResizeTests: XCTestCase {
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 480, height: 360))
     }
 
+    func testExtendedColorSpaceSupport() throws {
+        // Given
+        let processor = ImageProcessors.Resize(size: CGSize(width: 480, height: 480), unit: .pixels, contentMode: .aspectFit, crop: true)
+
+        // When
+        let output = try XCTUnwrap(processor.process(Test.image(named: "image-p3", extension: "jpg")), "Failed to process an image")
+
+        // Then image is resized but isn't cropped
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 480, height: 320))
+        let colorSpace = try XCTUnwrap(output.cgImage?.colorSpace)
+        XCTAssertTrue(colorSpace.isWideGamutRGB)
+    }
+
     #if os(iOS) || os(tvOS)
     func testThatScalePreserved() throws {
         // Given
