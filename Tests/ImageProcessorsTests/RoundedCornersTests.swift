@@ -38,6 +38,19 @@ class ImageProcessorsRoundedCornersTests: XCTestCase {
         XCTAssertEqualImages(output, Test.image(named: "s-rounded-corners-border.png"))
     }
 
+    func testExtendedColorSpaceSupport() throws {
+        // Given
+        let input = Test.image(named: "image-p3", extension: "jpg")
+        let processor = ImageProcessors.RoundedCorners(radius: 12, unit: .pixels)
+
+        // When
+        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
+
+        // Then image is resized but isn't cropped
+        let colorSpace = try XCTUnwrap(output.cgImage?.colorSpace)
+        XCTAssertTrue(colorSpace.isWideGamutRGB)
+    }
+
     func testEqualIdentifiers() {
         XCTAssertEqual(
             ImageProcessors.RoundedCorners(radius: 16).identifier,

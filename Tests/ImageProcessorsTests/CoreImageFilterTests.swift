@@ -35,6 +35,19 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
         // Then
         XCTAssertEqualImages(output, Test.image(named: "s-sepia-less-intense.png"))
     }
+
+    func testExtendedColorSpaceSupport() throws {
+        // Given
+        let input = Test.image(named: "image-p3", extension: "jpg")
+        let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
+
+        // When
+        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
+
+        // Then image is resized but isn't cropped
+        let colorSpace = try XCTUnwrap(output.cgImage?.colorSpace)
+        XCTAssertTrue(colorSpace.isWideGamutRGB)
+    }
 }
 
 #endif

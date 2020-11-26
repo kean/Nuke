@@ -478,20 +478,8 @@ extension PlatformImage {
         guard let cgImage = cgImage else {
             return nil
         }
-
-        // For more info see:
-        // - Quartz 2D Programming Guide
-        // - https://github.com/kean/Nuke/issues/35
-        // - https://github.com/kean/Nuke/issues/57
-        let alphaInfo: CGImageAlphaInfo = cgImage.isOpaque ? .noneSkipLast : .premultipliedLast
-
-        guard let ctx = CGContext(
-            data: nil,
-            width: Int(canvasSize.width), height: Int(canvasSize.height),
-            bitsPerComponent: 8, bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: alphaInfo.rawValue) else {
-                return nil
+        guard let ctx = CGContext.make(cgImage, size: canvasSize) else {
+            return nil
         }
         ctx.draw(cgImage, in: drawRect ?? CGRect(origin: .zero, size: canvasSize))
         guard let outputCGImage = ctx.makeImage() else {
@@ -798,3 +786,35 @@ extension UIColor {
     }
 }
 #endif
+
+private extension CGContext {
+    static func make(_ image: CGImage, size: CGSize) -> CGContext? {
+        // Create the context which matches the input image.
+        if let ctx = CGContext(
+            data: nil,
+            width: Int(size.width),
+            height: Int(size.height),
+            bitsPerComponent: image.bitsPerComponent,
+            bytesPerRow: 0,
+            space: image.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: image.bitmapInfo.rawValue
+        ) {
+            return ctx
+        }
+
+        // In case the combination of parameters (color space, bits per component, etc)
+        // is nit supported by Core Graphics, switch to default context.
+        // - Quartz 2D Programming Guide
+        // - https://github.com/kean/Nuke/issues/35
+        // - https://github.com/kean/Nuke/issues/57
+        let alphaInfo: CGImageAlphaInfo = image.isOpaque ? .noneSkipLast : .premultipliedLast
+        return CGContext(
+            data: nil,
+            width: Int(size.width), height: Int(size.height),
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: alphaInfo.rawValue
+        )
+    }
+}

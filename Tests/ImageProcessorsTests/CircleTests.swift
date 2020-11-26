@@ -39,6 +39,20 @@ class ImageProcessorsCircleTests: XCTestCase {
         XCTAssertEqualImages(output, Test.image(named: "s-circle-border.png"))
     }
 
+    func testExtendedColorSpaceSupport() throws {
+        // Given
+        let input = Test.image(named: "image-p3", extension: "jpg")
+        let border = ImageProcessingOptions.Border(color: .red, width: 4, unit: .pixels)
+        let processor = ImageProcessors.Circle(border: border)
+
+        // When
+        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
+
+        // Then image is resized but isn't cropped
+        let colorSpace = try XCTUnwrap(output.cgImage?.colorSpace)
+        XCTAssertTrue(colorSpace.isWideGamutRGB)
+    }
+
     func testIdentifierEqual() throws {
         XCTAssertEqual(
             ImageProcessors.Circle().identifier,
