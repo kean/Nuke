@@ -169,6 +169,17 @@ class RequestPerformanceTests: XCTestCase {
 }
 
 class ImageProcessingPerformanceTests: XCTestCase {
+    func testResizeProcessor() {
+        let processor = ImageProcessors.Resize(width: 100)
+        let image = Test.image
+
+        measure {
+            for _ in 0..<500 {
+                _ = processor.process(image)
+            }
+        }
+    }
+
     func testCreatingProcessorIdentifiers() {
         let decompressor = ImageProcessors.Resize(size: CGSize(width: 1, height: 1), contentMode: .aspectFill, upscale: false)
 

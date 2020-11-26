@@ -475,26 +475,13 @@ extension PlatformImage {
     ///
     /// - parameter drawRect: `nil` by default. If `nil` will use the canvas rect.
     func draw(inCanvasWithSize canvasSize: CGSize, drawRect: CGRect? = nil) -> PlatformImage? {
-        guard let cgImage = cgImage else {
-            return nil
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: canvasSize, format: format)
+        let output = renderer.image { _ in
+            draw(in: drawRect ?? CGRect(origin: .zero, size: canvasSize))
         }
-
-        // For more info see:
-        // - Quartz 2D Programming Guide
-        // - https://github.com/kean/Nuke/issues/35
-        // - https://github.com/kean/Nuke/issues/57
-        let alphaInfo: CGImageAlphaInfo = cgImage.isOpaque ? .noneSkipLast : .premultipliedLast
-
-        guard let ctx = CGContext(
-            data: nil,
-            width: Int(canvasSize.width), height: Int(canvasSize.height),
-            bitsPerComponent: 8, bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: alphaInfo.rawValue) else {
-                return nil
-        }
-        ctx.draw(cgImage, in: drawRect ?? CGRect(origin: .zero, size: canvasSize))
-        guard let outputCGImage = ctx.makeImage() else {
+        guard let outputCGImage = output.cgImage else {
             return nil
         }
         return PlatformImage.make(cgImage: outputCGImage, source: self)
