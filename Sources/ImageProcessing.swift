@@ -464,7 +464,7 @@ extension ImageProcessors {
 
 // MARK: - Image Processing (Internal)
 
-extension PlatformImage {
+private extension PlatformImage {
     /// Draws the image in a `CGContext` in a canvas with the given size using
     /// the specified draw rect.
     ///
@@ -499,13 +499,13 @@ extension PlatformImage {
 
 // MARK: - ImageProcessingExtensions
 
-extension PlatformImage {
+private extension PlatformImage {
     var processed: ImageProcessingExtensions {
         ImageProcessingExtensions(image: self)
     }
 }
 
-struct ImageProcessingExtensions {
+private struct ImageProcessingExtensions {
     let image: PlatformImage
 
     func byResizing(to targetSize: CGSize,
@@ -603,7 +603,7 @@ struct ImageProcessingExtensions {
 // MARK: - CoreGraphics Helpers (Internal)
 
 #if os(macOS)
-extension NSImage {
+private extension NSImage {
     var cgImage: CGImage? {
         cgImage(forProposedRect: nil, context: nil, hints: nil)
     }
@@ -613,7 +613,7 @@ extension NSImage {
     }
 }
 #else
-extension UIImage {
+private extension UIImage {
     static func make(cgImage: CGImage, source: UIImage) -> UIImage {
         UIImage(cgImage: cgImage, scale: source.scale, orientation: source.imageOrientation)
     }
@@ -641,6 +641,7 @@ private extension CGFloat {
     }
 }
 
+// Adds Hashable without making changes to public CGSize API
 private struct Size: Hashable {
     let cgSize: CGSize
 
@@ -650,7 +651,7 @@ private struct Size: Hashable {
     }
 }
 
-extension CGSize {
+private extension CGSize {
     /// Creates the size in pixels by scaling to the input size to the screen scale
     /// if needed.
     init(size: CGSize, unit: ImageProcessingOptions.Unit) {
