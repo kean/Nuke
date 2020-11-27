@@ -416,7 +416,7 @@ let request = ImageRequest(url: url, cachePolicy: .reloadIgnoringCacheData)
 Nuke.loadImage(with: request, into: imageView)
 ```
 
-> If you are manually constucting a `URLRequest`, make sure to update the respective cache policy of the URL request.
+> If you are manually constucting a `URLRequest`, make sure to update the respective cache policy.
 
 <br/>
 
