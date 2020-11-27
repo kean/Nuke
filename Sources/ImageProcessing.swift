@@ -169,8 +169,6 @@ extension ImageProcessors {
     }
 }
 
-#if os(iOS) || os(tvOS) || os(watchOS)
-
 // MARK: - ImageProcessors.Circle
 
 extension ImageProcessors {
@@ -364,7 +362,7 @@ extension ImageProcessors {
 
 struct ImageDecompression {
 
-    func decompress(image: UIImage) -> UIImage {
+    func decompress(image: PlatformImage) -> PlatformImage {
         let output = image.decompressed() ?? image
         ImageDecompression.setDecompressionNeeded(false, for: output)
         return output
@@ -374,16 +372,14 @@ struct ImageDecompression {
 
     static var isDecompressionNeededAK = "ImageDecompressor.isDecompressionNeeded.AssociatedKey"
 
-    static func setDecompressionNeeded(_ isDecompressionNeeded: Bool, for image: UIImage) {
+    static func setDecompressionNeeded(_ isDecompressionNeeded: Bool, for image: PlatformImage) {
         objc_setAssociatedObject(image, &isDecompressionNeededAK, isDecompressionNeeded, .OBJC_ASSOCIATION_RETAIN)
     }
 
-    static func isDecompressionNeeded(for image: UIImage) -> Bool? {
+    static func isDecompressionNeeded(for image: PlatformImage) -> Bool? {
         objc_getAssociatedObject(image, &isDecompressionNeededAK) as? Bool
     }
 }
-
-#endif
 
 // MARK: - ImageProcessors.Composition
 
@@ -537,8 +533,6 @@ private struct ImageProcessingExtensions {
         return image.draw(inCanvasWithSize: targetSize, drawRect: drawRect)
     }
 
-#if os(iOS) || os(tvOS) || os(watchOS)
-
     func byDrawingInCircle(border: ImageProcessingOptions.Border?) -> PlatformImage? {
         guard let squared = byCroppingToSquare(), let cgImage = squared.cgImage else {
             return nil
@@ -568,7 +562,7 @@ private struct ImageProcessingExtensions {
         guard let cropped = cgImage.cropping(to: cropRect) else {
             return nil
         }
-        return UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
+        return PlatformImage.make(cgImage: cropped, source: image)
     }
 
     /// Adds rounded corners with the given radius to the image.
@@ -582,13 +576,14 @@ private struct ImageProcessingExtensions {
             return nil
         }
         let rect = CGRect(origin: CGPoint.zero, size: cgImage.size)
-        ctx.addPath(UIBezierPath(roundedRect: rect, cornerRadius: radius).cgPath)
+        let path = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
+        ctx.addPath(path)
         ctx.clip()
         ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: cgImage.size))
 
         if let border = border {
             ctx.setStrokeColor(border.color.cgColor)
-            ctx.addPath(UIBezierPath(roundedRect: rect, cornerRadius: radius).cgPath)
+            ctx.addPath(path)
             ctx.setLineWidth(border.width)
             ctx.strokePath()
         }
@@ -597,13 +592,18 @@ private struct ImageProcessingExtensions {
         }
         return PlatformImage.make(cgImage: outputCGImage, source: image)
     }
-#endif
 }
 
 // MARK: - CoreGraphics Helpers (Internal)
 
 #if os(macOS)
-private extension NSImage {
+typealias Color = NSColor
+#else
+typealias Color = UIColor
+#endif
+
+#if os(macOS)
+extension NSImage {
     var cgImage: CGImage? {
         cgImage(forProposedRect: nil, context: nil, hints: nil)
     }
@@ -613,7 +613,7 @@ private extension NSImage {
     }
 }
 #else
-private extension UIImage {
+extension UIImage {
     static func make(cgImage: CGImage, source: UIImage) -> UIImage {
         UIImage(cgImage: cgImage, scale: source.scale, orientation: source.imageOrientation)
     }
@@ -749,6 +749,32 @@ public enum ImageProcessingOptions {
         }
     }
 
+    #else
+
+    /// Draws a border.
+    ///
+    /// - warning: To make sure that the border looks the way you expect,
+    /// make sure that the images you display exactly match the size of the
+    /// views in which they get displayed. If you can't guarantee that, pleasee
+    /// consider adding border to a view layer. This should be your primary
+    /// option regardless.
+    public struct Border: Hashable, CustomStringConvertible { // Duplicated to avoid introducing PlatformColor
+        public let color: NSColor
+        public let width: CGFloat
+
+        /// - parameter color: Border color.
+        /// - parameter width: Border width. 1 points by default.
+        /// - parameter unit: Unit of the width, `.points` by default.
+        public init(color: NSColor, width: CGFloat = 1, unit: Unit = .points) {
+            self.color = color
+            self.width = width.converted(to: unit)
+        }
+
+        public var description: String {
+            "Border(color: \(color.hex), width: \(width) pixels)"
+        }
+    }
+
     #endif
 }
 
@@ -767,8 +793,7 @@ struct Screen {
     #endif
 }
 
-#if os(iOS) || os(tvOS) || os(watchOS)
-extension UIColor {
+extension Color {
     /// Returns a hex representation of the color, e.g. "#FFFFAA".
     var hex: String {
         var (r, g, b, a) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
@@ -780,7 +805,6 @@ extension UIColor {
             .joined()
     }
 }
-#endif
 
 private extension CGContext {
     static func make(_ image: CGImage, size: CGSize, alphaInfo: CGImageAlphaInfo? = nil) -> CGContext? {
