@@ -95,6 +95,7 @@
 		0C91B0F42438E38B007F9100 /* CompositionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C91B0F32438E38B007F9100 /* CompositionTests.swift */; };
 		0C91B0F62438E3CB007F9100 /* GaussianBlurTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C91B0F52438E3CB007F9100 /* GaussianBlurTests.swift */; };
 		0C91B0F82438E84E007F9100 /* fixture-tiny.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C91B0F72438E84E007F9100 /* fixture-tiny.jpeg */; };
+		0C95FD3E25718983008D4FC2 /* baseline.webp in Resources */ = {isa = PBXBuildFile; fileRef = 0C95FD3D2571897A008D4FC2 /* baseline.webp */; };
 		0C973E141D9FDB9F00C00AD9 /* Nuke.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0C9B6E7620B9F3E2001924B8 /* ImagePipelineDeduplicationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9B6E7520B9F3E2001924B8 /* ImagePipelineDeduplicationTests.swift */; };
 		0CAAB0101E45D6DA00924450 /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
@@ -228,8 +229,8 @@
 		0C91B0F52438E3CB007F9100 /* GaussianBlurTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianBlurTests.swift; sourceTree = "<group>"; };
 		0C91B0F72438E84E007F9100 /* fixture-tiny.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "fixture-tiny.jpeg"; sourceTree = "<group>"; };
 		0C94466D1D47EC0E006DB314 /* ImageViewTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewTests.swift; sourceTree = "<group>"; };
+		0C95FD3D2571897A008D4FC2 /* baseline.webp */ = {isa = PBXFileReference; lastKnownFileType = file; name = baseline.webp; path = "../../../../Library/Developer/Xcode/DerivedData/NukeDemo-ccwtenmfandmacgnpytuoagmopvo/SourcePackages/checkouts/Nuke/Tests/Resources/baseline.webp"; sourceTree = "<group>"; };
 		0C9B6E7520B9F3E2001924B8 /* ImagePipelineDeduplicationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDeduplicationTests.swift; sourceTree = "<group>"; };
-		0CA301701DAF9CD1000B9105 /* .travis.yml */ = {isa = PBXFileReference; lastKnownFileType = text; path = .travis.yml; sourceTree = "<group>"; };
 		0CA82BDC237AE09F00338375 /* install_swiftlint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = install_swiftlint.sh; path = Scripts/install_swiftlint.sh; sourceTree = "<group>"; };
 		0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NukeExtensions.swift; sourceTree = "<group>"; };
 		0CB26801208F2565004C83F4 /* DataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataCache.swift; sourceTree = "<group>"; };
@@ -340,6 +341,7 @@
 				0C09B1651FE9A65600E8FE3B /* fixture.jpeg */,
 				0C91B0F72438E84E007F9100 /* fixture-tiny.jpeg */,
 				0C70D97B2089042400A49DAC /* fixture.png */,
+				0C95FD3D2571897A008D4FC2 /* baseline.webp */,
 				0C64F73E243838BF001983C6 /* swift.png */,
 				0C6B5BDA257010B400D763F2 /* image-p3.jpg */,
 				0C64F73C243836B5001983C6 /* img_751.heic */,
@@ -557,7 +559,6 @@
 				0C4326262424338200799446 /* LICENSE */,
 				0CDB92811DAF9BC000002905 /* Nuke.podspec */,
 				0CDB92831DAF9BCB00002905 /* Package.swift */,
-				0CA301701DAF9CD1000B9105 /* .travis.yml */,
 				0C179C772282AC50008AB488 /* .swiftlint.yml */,
 			);
 			name = Metadata;
@@ -755,6 +756,7 @@
 				0C7CE28B243933550018C8C3 /* s-rounded-corners.png in Resources */,
 				0C70D9712089016800A49DAC /* progressive.jpeg in Resources */,
 				0C7CE28D2439342C0018C8C3 /* s-rounded-corners-border.png in Resources */,
+				0C95FD3E25718983008D4FC2 /* baseline.webp in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

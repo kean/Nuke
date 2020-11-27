@@ -176,6 +176,16 @@ class ImageTypeTests: XCTestCase {
         // Full image
         XCTAssertEqual(ImageType(data), .jpeg)
     }
+
+    // MARK: WebP
+
+    func testDetectBaselineWebP() {
+        let data = Test.data(name: "baseline", extension: "webp")
+        XCTAssertNil(ImageType(data[0..<1]))
+        XCTAssertNil(ImageType(data[0..<2]))
+        XCTAssertEqual(ImageType(data[0..<12]), .webp)
+        XCTAssertEqual(ImageType(data), .webp)
+    }
 }
 
 class ImagePropertiesTests: XCTestCase {
