@@ -243,7 +243,7 @@ extension ImageProcessors {
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(macOS)
 
 // MARK: - ImageProcessors.CoreImageFilter
 
@@ -291,7 +291,7 @@ extension ImageProcessors {
         /// has `.priorityRequestLow` option set to `true`.
         public static var context = CIContext(options: [.priorityRequestLow: true])
 
-        public static func apply(filter: CIFilter?, to image: UIImage) -> UIImage? {
+        public static func apply(filter: CIFilter?, to image: PlatformImage) -> PlatformImage? {
             guard let filter = filter else {
                 return nil
             }
@@ -301,7 +301,7 @@ extension ImageProcessors {
             }
         }
 
-        static func applyFilter(to image: UIImage, context: CIContext = context, closure: (CoreImage.CIImage) -> CoreImage.CIImage?) -> UIImage? {
+        static func applyFilter(to image: PlatformImage, context: CIContext = context, closure: (CoreImage.CIImage) -> CoreImage.CIImage?) -> PlatformImage? {
             let ciImage: CoreImage.CIImage? = {
                 if let image = image.ciImage {
                     return image
@@ -317,7 +317,7 @@ extension ImageProcessors {
             guard let imageRef = context.createCGImage(outputImage, from: outputImage.extent) else {
                 return nil
             }
-            return UIImage(cgImage: imageRef, scale: image.scale, orientation: image.imageOrientation)
+            return PlatformImage.make(cgImage: imageRef, source: image)
         }
 
         public var description: String {
@@ -606,6 +606,10 @@ typealias Color = UIColor
 extension NSImage {
     var cgImage: CGImage? {
         cgImage(forProposedRect: nil, context: nil, hints: nil)
+    }
+
+    var ciImage: CIImage? {
+        cgImage.map { CIImage(cgImage: $0) }
     }
 
     static func make(cgImage: CGImage, source: NSImage) -> NSImage {
