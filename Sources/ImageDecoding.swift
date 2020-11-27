@@ -257,7 +257,11 @@ public final class ImageDecoderRegistry {
     /// A shared registry.
     public static let shared = ImageDecoderRegistry()
 
-    private var matches = [(ImageDecodingContext) -> ImageDecoding?]()
+    private struct Match {
+        let closure: (ImageDecodingContext) -> ImageDecoding?
+    }
+
+    private var matches = [Match]()
 
     public init() {
         self.register(ImageDecoders.Default.self)
@@ -266,7 +270,7 @@ public final class ImageDecoderRegistry {
     /// Returns a decoder which matches the given context.
     public func decoder(for context: ImageDecodingContext) -> ImageDecoding? {
         for match in matches {
-            if let decoder = match(context) {
+            if let decoder = match.closure(context) {
                 return decoder
             }
         }
@@ -289,7 +293,7 @@ public final class ImageDecoderRegistry {
     /// Registers a decoder to be used in a given decoding context. The closure
     /// is going to be executed before all other already registered closures.
     public func register(_ match: @escaping (ImageDecodingContext) -> ImageDecoding?) {
-        matches.insert(match, at: 0)
+        matches.insert(Match(closure: match), at: 0)
     }
 
     /// Removes all registered decoders.

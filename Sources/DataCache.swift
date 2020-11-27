@@ -351,8 +351,8 @@ public final class DataCache: DataCaching {
         }
         var size = items.reduce(0) { $0 + ($1.meta.totalFileAllocatedSize ?? 0) }
         var count = items.count
-        let sizeLimit = self.sizeLimit / Int(1 / trimRatio)
-        let countLimit = self.countLimit / Int(1 / trimRatio)
+        let sizeLimit = Int(Double(self.sizeLimit) * trimRatio)
+        let countLimit = Int(Double(self.countLimit) * trimRatio)
 
         guard size > sizeLimit || count > countLimit else {
             return // All good, no need to perform any work.

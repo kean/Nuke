@@ -294,7 +294,7 @@ extension ImageRequest {
 
     /// A key for processed image data in disk cache.
     func makeCacheKeyForFinalImageData() -> String {
-        ref.preferredURLString + ImageProcessors.Composition(processors).identifier
+        "\(ref.preferredURLString)\(ImageProcessors.Composition(processors).identifier)"
     }
 
     /// A key for original image data in disk cache.
