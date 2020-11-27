@@ -26,7 +26,7 @@ Nuke is easy to learn and use. Here is an overview of its APIs and features:
 - **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) · [Table View](#in-a-table-view) · [Placeholders, Transitions](#placeholders-transitions-content-modes) · [`ImageRequest`](#imagerequest)
 - **Image Processing** ‣ [`Resize`](#resize) · [`Circle`](#circle) · [`RoundedCorners`](#roundedcorners) · [`GaussianBlur`](#gaussianblur) · [`CoreImage`](#coreimagefilter) · [Custom Processors](#custom-processors)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) · [`ImageTask`](#imagetask) · [Customize Image Pipeline](#customize-image-pipeline) · [Default Pipeline](#default-image-pipeline)
-- **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) · [HTTP Disk Cache](#http-disk-cache) · [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
+- **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) · [HTTP Disk Cache](#http-disk-cache) · [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache) · [Reloading Images](#reloading-images)
 - **Advanced Features** ‣ [Preheat Images](#image-preheating) · [Progressive Decoding](#progressive-decoding)
 - [**Extensions**](#h_plugins) ‣ [FetchImage](#fetch-image) · [Builder](#builder) · [Combine](#combine) · [RxNuke](#rxnuke) · [And More](#h_plugins) 
 
@@ -105,6 +105,7 @@ Please keep in mind that the built-in extensions for image views are designed to
 let request = ImageRequest(
     url: URL(string: "http://..."),
     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
+    cachePolicy: .reloadIgnoringCacheData,
     priority: .high
 )
 ```
@@ -398,6 +399,24 @@ ImagePipeline {
 By default, the pipeline stores only the original image data. To store downloaded and processed images instead, set `dataCacheOptions.storedItems` to `[.finalImage]`. This option is useful if you want to store processed, e.g. downsampled images, or if you want to transcode images to a more efficient format, like HEIF.
 
 > To save disk space see `ImageEncoders.ImageIO` and  `ImageEncoder.isHEIFPreferred` option for HEIF support.
+
+### Reloading Images
+
+There are two options available. You can remove an image from all cache layers:
+
+```swift
+let request = ImageRequest(url: url)
+pipeline.removeCachedImage(for: request)
+```
+
+Another option is to keep the image in cache, but instruct the pipeline to ignore the cached data:
+
+```swift
+let request = ImageRequest(url: url, cachePolicy: .reloadIgnoringCacheData)
+Nuke.loadImage(with: request, into: imageView)
+```
+
+> If you are manually constucting a `URLRequest`, make sure to update the respective cache policy of the URL request.
 
 <br/>
 

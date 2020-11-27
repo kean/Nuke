@@ -13,7 +13,18 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// The `URLRequest` used for loading an image.
     public var urlRequest: URLRequest {
-        get { ref.resource.urlRequest }
+        get {
+            switch ref.resource {
+            case let .url(url):
+                var request = URLRequest(url: url) // create lazily
+                if cachePolicy == .reloadIgnoringCachedData {
+                    request.cachePolicy = .reloadIgnoringLocalCacheData
+                }
+                return request
+            case let .urlRequest(urlRequest):
+                return urlRequest
+            }
+        }
         set {
             mutate {
                 $0.resource = Resource.urlRequest(newValue)
@@ -49,6 +60,20 @@ public struct ImageRequest: CustomStringConvertible {
         set { mutate { $0.priority = newValue } }
     }
 
+    public enum CachePolicy {
+        case `default`
+        /// The image should be loaded only from the originating source.
+        ///
+        /// If you initialize the request with `URLRequest`, make sure to provide
+        /// the correct policy in the request too.
+        case reloadIgnoringCachedData
+    }
+
+    public var cachePolicy: CachePolicy {
+        get { ref.cachePolicy }
+        set { mutate { $0.cachePolicy = newValue } }
+    }
+
     /// The request options. See `ImageRequestOptions` for more info.
     public var options: ImageRequestOptions {
         get { ref.options }
@@ -80,9 +105,10 @@ public struct ImageRequest: CustomStringConvertible {
     /// ```
     public init(url: URL,
                 processors: [ImageProcessing] = [],
-                priority: ImageRequest.Priority = .normal,
+                cachePolicy: CachePolicy = .default,
+                priority: Priority = .normal,
                 options: ImageRequestOptions = .init()) {
-        self.ref = Container(resource: Resource.url(url), processors: processors, priority: priority, options: options)
+        self.ref = Container(resource: Resource.url(url), processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
         self.ref.urlString = url.absoluteString
         // creating `.absoluteString` takes 50% of time of Request creation,
         // it's still faster than using URLs as cache keys
@@ -105,9 +131,10 @@ public struct ImageRequest: CustomStringConvertible {
     /// ```
     public init(urlRequest: URLRequest,
                 processors: [ImageProcessing] = [],
+                cachePolicy: CachePolicy = .default,
                 priority: ImageRequest.Priority = .normal,
                 options: ImageRequestOptions = .init()) {
-        self.ref = Container(resource: Resource.urlRequest(urlRequest), processors: processors, priority: priority, options: options)
+        self.ref = Container(resource: Resource.urlRequest(urlRequest), processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
         self.ref.urlString = urlRequest.url?.absoluteString
     }
 
@@ -127,16 +154,18 @@ public struct ImageRequest: CustomStringConvertible {
     private class Container {
         var resource: Resource
         var urlString: String? // memoized absoluteString
+        var cachePolicy: CachePolicy
         var priority: ImageRequest.Priority
         var options: ImageRequestOptions
         var processors: [ImageProcessing]
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, processors: [ImageProcessing], priority: Priority, options: ImageRequestOptions) {
+        init(resource: Resource, processors: [ImageProcessing], cachePolicy: CachePolicy, priority: Priority, options: ImageRequestOptions) {
             self.resource = resource
+            self.processors = processors
+            self.cachePolicy = cachePolicy
             self.priority = priority
             self.options = options
-            self.processors = processors
         }
 
         /// Creates a copy.
@@ -144,8 +173,9 @@ public struct ImageRequest: CustomStringConvertible {
             self.resource = ref.resource
             self.urlString = ref.urlString
             self.processors = ref.processors
-            self.options = ref.options
+            self.cachePolicy = ref.cachePolicy
             self.priority = ref.priority
+            self.options = ref.options
         }
 
         var preferredURLString: String {
@@ -158,17 +188,12 @@ public struct ImageRequest: CustomStringConvertible {
         case url(URL)
         case urlRequest(URLRequest)
 
-        var urlRequest: URLRequest {
-            switch self {
-            case let .url(url): return URLRequest(url: url) // create lazily
-            case let .urlRequest(urlRequest): return urlRequest
-            }
-        }
-
         var description: String {
             switch self {
-            case let .url(url): return "\(url)"
-            case let .urlRequest(urlRequest): return "\(urlRequest)"
+            case let .url(url):
+                return "\(url)"
+            case let .urlRequest(urlRequest):
+                return "\(urlRequest)"
             }
         }
     }
@@ -195,6 +220,8 @@ public struct ImageRequest: CustomStringConvertible {
 
 public struct ImageRequestOptions {
     /// The policy to use when reading or writing images to the memory cache.
+    ///
+    /// Soft-deprecated in Nuke 9.2.
     public struct MemoryCacheOptions {
         /// `true` by default.
         public var isReadAllowed = true
@@ -324,12 +351,14 @@ extension ImageRequest {
 
     private struct LoadKeyForOriginalImage: Hashable {
         let urlString: String?
+        let requestCachePolicy: CachePolicy
         let cachePolicy: URLRequest.CachePolicy
         let allowsCellularAccess: Bool
 
         init(request: ImageRequest) {
             self.urlString = request.ref.urlString
             let urlRequest = request.urlRequest
+            self.requestCachePolicy = request.cachePolicy
             self.cachePolicy = urlRequest.cachePolicy
             self.allowsCellularAccess = urlRequest.allowsCellularAccess
         }

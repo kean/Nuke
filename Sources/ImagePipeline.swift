@@ -223,7 +223,7 @@ public extension ImagePipeline {
     /// Returns a cached response from the memory cache. Returns `nil` if the request disables
     /// memory cache reads.
     func cachedImage(for request: ImageRequest) -> ImageContainer? {
-        guard request.options.memoryCacheOptions.isReadAllowed else { return nil }
+        guard request.options.memoryCacheOptions.isReadAllowed && request.cachePolicy != .reloadIgnoringCachedData else { return nil }
 
         let request = inheritOptions(request)
         return configuration.imageCache?[request]
@@ -354,7 +354,7 @@ private extension ImagePipeline {
             }
         }
 
-        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage) else {
+        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage), request.cachePolicy != .reloadIgnoringCachedData else {
             return loadDecompressedImage(for: request, task: task)
         }
 
@@ -679,7 +679,7 @@ private extension ImagePipeline {
     }
 
     func performOriginalImageDataTask(_ task: OriginalImageDataTask, context: OriginalImageDataTaskContext) {
-        guard let cache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData) else {
+        guard let cache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData), context.request.cachePolicy != .reloadIgnoringCachedData else {
             loadImageData(for: task, context: context) // Skip disk cache lookup, load data
             return
         }

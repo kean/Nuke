@@ -88,6 +88,37 @@ class ImagePipelineDataCachingTests: XCTestCase {
         task.cancel()
         wait() // Wait till operation is created
     }
+
+    // MARK: - Cache Policy
+
+    func testReloadIgnoringCacheData() {
+        // Given
+        dataCache.store[Test.url.absoluteString] = Test.data
+
+        var request = Test.request
+        request.cachePolicy = .reloadIgnoringCachedData
+
+        // When
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // Then
+        XCTAssertEqual(dataLoader.createdTaskCount, 1)
+    }
+
+    func testReloadRemovingCacheData() {
+        // Given
+        let request = Test.request
+        dataCache.store[request.urlRequest.url!.absoluteString] = Test.data
+
+        // When
+        pipeline.removeCachedImage(for: request)
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // Then
+        XCTAssertEqual(dataLoader.createdTaskCount, 1)
+    }
 }
 
 class ImagePipelineProcessedDataCachingTests: XCTestCase {

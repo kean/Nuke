@@ -597,6 +597,22 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         XCTAssertEqual(imageView.image, placeholder)
 
         ImageLoadingOptions.popShared()
+    }
 
+    // MARK: - Cache Policy
+
+    func testReloadIgnoringCacheData() {
+        // When the requested image is stored in memory cache
+        var request = Test.request
+        mockCache[request] = ImageContainer(image: PlatformImage())
+
+        request.cachePolicy = .reloadIgnoringCachedData
+
+        // When
+        expectToFinishLoadingImage(with: request, into: imageView)
+        wait()
+
+        // Then
+        XCTAssertEqual(dataLoader.createdTaskCount, 1)
     }
 }
