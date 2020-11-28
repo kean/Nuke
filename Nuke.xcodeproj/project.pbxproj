@@ -176,6 +176,7 @@
 		0C4AF1E91FE8551D002F86CB /* LinkedListTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedListTest.swift; sourceTree = "<group>"; };
 		0C4B34112572E233000FDDBA /* grayscale.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = grayscale.jpeg; sourceTree = "<group>"; };
 		0C4B341B2572E288000FDDBA /* DecompressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecompressionTests.swift; sourceTree = "<group>"; };
+		0C4B34312572E9AC000FDDBA /* generate_docs.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = generate_docs.sh; path = Scripts/generate_docs.sh; sourceTree = "<group>"; };
 		0C4B6A341E36630E00E86B21 /* Nuke 5 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 5 Migration Guide.md"; sourceTree = "<group>"; };
 		0C4F8FDF22E4B6ED0070ECFD /* Nuke Thread Safety Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke Thread Safety Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C505B6B2286F3AD006D5399 /* Task.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
@@ -362,6 +363,7 @@
 				0C1E59692372EBBC00674B63 /* build.sh */,
 				0C1E59662372EBBC00674B63 /* lint.sh */,
 				0CA82BDC237AE09F00338375 /* install_swiftlint.sh */,
+				0C4B34312572E9AC000FDDBA /* generate_docs.sh */,
 				0C1E596A2372EBBC00674B63 /* test.sh */,
 				0C1E59672372EBBC00674B63 /* validate_demo.sh */,
 				0C1E59682372EBBC00674B63 /* validate.sh */,
@@ -1276,7 +1278,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 9.1.3;
+				MARKETING_VERSION = 9.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 				SKIP_INSTALL = YES;
@@ -1297,7 +1299,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 9.1.3;
+				MARKETING_VERSION = 9.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 				SKIP_INSTALL = YES;
