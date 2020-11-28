@@ -29,6 +29,8 @@
 		0C45706B2377874500AB20DD /* ImagePipelineObservingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C45706A2377874500AB20DD /* ImagePipelineObservingTests.swift */; };
 		0C49232920BACA81001DFCC8 /* XCTestCase+Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C49232820BACA81001DFCC8 /* XCTestCase+Nuke.swift */; };
 		0C4AF1EB1FE85539002F86CB /* LinkedListTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4AF1E91FE8551D002F86CB /* LinkedListTest.swift */; };
+		0C4B34122572E233000FDDBA /* grayscale.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C4B34112572E233000FDDBA /* grayscale.jpeg */; };
+		0C4B341C2572E288000FDDBA /* DecompressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C4B341B2572E288000FDDBA /* DecompressionTests.swift */; };
 		0C4F8FE822E4B7390070ECFD /* ThreadSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C5D81871D46A385000ECCB6 /* ThreadSafetyTests.swift */; };
 		0C4F8FF122E4B8D60070ECFD /* MockImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockImageCache.swift */; };
 		0C4F8FF222E4B8D60070ECFD /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
@@ -172,6 +174,8 @@
 		0C45706A2377874500AB20DD /* ImagePipelineObservingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineObservingTests.swift; sourceTree = "<group>"; };
 		0C49232820BACA81001DFCC8 /* XCTestCase+Nuke.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+Nuke.swift"; sourceTree = "<group>"; };
 		0C4AF1E91FE8551D002F86CB /* LinkedListTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedListTest.swift; sourceTree = "<group>"; };
+		0C4B34112572E233000FDDBA /* grayscale.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = grayscale.jpeg; sourceTree = "<group>"; };
+		0C4B341B2572E288000FDDBA /* DecompressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecompressionTests.swift; sourceTree = "<group>"; };
 		0C4B6A341E36630E00E86B21 /* Nuke 5 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 5 Migration Guide.md"; sourceTree = "<group>"; };
 		0C4F8FDF22E4B6ED0070ECFD /* Nuke Thread Safety Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke Thread Safety Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C505B6B2286F3AD006D5399 /* Task.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
@@ -337,6 +341,7 @@
 			isa = PBXGroup;
 			children = (
 				0C70D9702089016800A49DAC /* baseline.jpeg */,
+				0C4B34112572E233000FDDBA /* grayscale.jpeg */,
 				0C70D96F2089016700A49DAC /* progressive.jpeg */,
 				0C95FD532571B278008D4FC2 /* baseline.webp */,
 				0C09B1651FE9A65600E8FE3B /* fixture.jpeg */,
@@ -492,6 +497,7 @@
 		0C91B0EA2438E269007F9100 /* ImageProcessorsTests */ = {
 			isa = PBXGroup;
 			children = (
+				0C4B341B2572E288000FDDBA /* DecompressionTests.swift */,
 				0C91B0EB2438E287007F9100 /* ResizeTests.swift */,
 				0C91B0ED2438E307007F9100 /* CircleTests.swift */,
 				0C91B0EF2438E352007F9100 /* RoundedCornersTests.swift */,
@@ -749,6 +755,7 @@
 				0C7CE299243940290018C8C3 /* s-circle.png in Resources */,
 				0C09B1661FE9A65700E8FE3B /* fixture.jpeg in Resources */,
 				0C70D97C2089042400A49DAC /* fixture.png in Resources */,
+				0C4B34122572E233000FDDBA /* grayscale.jpeg in Resources */,
 				0C8DC723209B842600084AA6 /* cat.gif in Resources */,
 				0C7CE29B2439417C0018C8C3 /* s-sepia.png in Resources */,
 				0C91B0F82438E84E007F9100 /* fixture-tiny.jpeg in Resources */,
@@ -846,6 +853,7 @@
 				0CB2EFD22110F38600F7C63F /* ImagePipelineConfigurationTests.swift in Sources */,
 				0C6B5BE1257010D300D763F2 /* ImagePipelineFormatsTests.swift in Sources */,
 				0C7527A01D473AF100EC6222 /* MockImagePipeline.swift in Sources */,
+				0C4B341C2572E288000FDDBA /* DecompressionTests.swift in Sources */,
 				0C49232920BACA81001DFCC8 /* XCTestCase+Nuke.swift in Sources */,
 				0C75279E1D473AEF00EC6222 /* MockImageCache.swift in Sources */,
 				0CCBB534217D0B980026F552 /* MockProgressiveDataLoader.swift in Sources */,

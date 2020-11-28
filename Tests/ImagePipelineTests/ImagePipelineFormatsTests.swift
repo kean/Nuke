@@ -38,4 +38,23 @@ class ImagePipelineFormatsTests: XCTestCase {
         let colorSpace = try XCTUnwrap(cgImage.colorSpace)
         XCTAssertTrue(colorSpace.isWideGamutRGB)
     }
+
+    func testGrayscaleSupport() throws {
+        // Given
+        dataLoader.results[Test.url] = .success(
+            (Test.data(name: "grayscale", extension: "jpeg"), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        // When
+        var result: Result<ImageResponse, ImagePipeline.Error>?
+        expect(pipeline).toLoadImage(with: Test.request) {
+            result = $0
+        }
+        wait()
+
+        // Then
+        let image = try XCTUnwrap(result?.value?.image)
+        let cgImage = try XCTUnwrap(image.cgImage)
+        XCTAssertEqual(cgImage.bitsPerComponent, 8)
+    }
 }

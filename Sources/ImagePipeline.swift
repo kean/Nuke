@@ -443,7 +443,7 @@ private extension ImagePipeline {
 
             let log = Log(self.log, "Decompress Image")
             log.signpost(.begin, isCompleted ? "Final image" : "Progressive image")
-            let response = response.map { $0.map(ImageDecompression().decompress(image:)) } ?? response
+            let response = response.map { $0.map(ImageDecompression.decompress(image:)) } ?? response
             log.signpost(.end)
 
             self.queue.async {
