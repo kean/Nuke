@@ -9,7 +9,7 @@ import XCTest
     import UIKit
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(macOS)
 
 class ImageProcessorsCoreImageFilterTests: XCTestCase {
     func _testApplySepia() throws {
