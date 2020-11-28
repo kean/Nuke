@@ -392,4 +392,10 @@ ImagePipeline.shared.loadImage(with: url) { [weak self] result in
 
 ### WebP
 
+#### Third-party Support
+
 [WebP](https://developers.google.com/speed/webp) support is provided by [Nuke WebP Plugin](https://github.com/ryokosuge/Nuke-WebP-Plugin) built by [Ryo Kosuge](https://github.com/ryokosuge). Please follow the instructions from the repo.
+
+#### Native Support (macOS 11, iOS 14, watchOS 7)
+
+WebP is now supported natively. Nuke currently only supports baseline WebP (no progressive WebP support).

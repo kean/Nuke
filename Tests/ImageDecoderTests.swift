@@ -133,6 +133,18 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertNotNil(container)
         XCTAssertNil(container?.data)
     }
+
+    func testDecodeBaselineWebP() {
+        let data = Test.data(name: "baseline", extension: "webp")
+        let container = ImageDecoders.Default().decode(data)
+        if #available(OSX 15, iOS 14.0, watchOS 7.0, tvOS 999.0, *) {
+            XCTAssertNotNil(container)
+            XCTAssertNil(container?.data)
+        } else {
+            XCTAssertNil(container)
+            XCTAssertNil(container?.data)
+        }
+    }
 }
 
 class ImageTypeTests: XCTestCase {
@@ -175,6 +187,16 @@ class ImageTypeTests: XCTestCase {
 
         // Full image
         XCTAssertEqual(ImageType(data), .jpeg)
+    }
+
+    // MARK: WebP
+
+    func testDetectBaselineWebP() {
+        let data = Test.data(name: "baseline", extension: "webp")
+        XCTAssertNil(ImageType(data[0..<1]))
+        XCTAssertNil(ImageType(data[0..<2]))
+        XCTAssertEqual(ImageType(data[0..<12]), .webp)
+        XCTAssertEqual(ImageType(data), .webp)
     }
 }
 
