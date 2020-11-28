@@ -1,8 +1,29 @@
 # Nuke 9
 
-## WIP
+## Nuke 9.2.0
 
-- Introduce `ImageRequestConvertible` protocol to narrow the number of public APIs
+*Nov 28, 2020*
+
+### Additions
+
+- Add support for extended color spaces - [#408](https://github.com/kean/Nuke/pull/408)
+- Add an option to remove an image from all cache layers `pipeline.removeCachedImage(for:)`
+- Add `ImageRequest.CachePolicy` to `ImageRequest`. Use `.reloadIgnoringCacheData` to reload the image ignoring all cached data - [#411](https://github.com/kean/Nuke/pull/411)
+- Add `ImageProcessors.Circle` and `ImageProcessors.RoundedCorners` on macOS - [#410](https://github.com/kean/Nuke/pull/410)
+- Add `ImageProcessors.CoreImage` and `ImageProcessors.GaussianBlur` available on macOS - [#413](https://github.com/kean/Nuke/pull/413)
+- Add  `ImageType.webp`. WebP is natively supported by the latest Apple platforms - [#412](https://github.com/kean/Nuke/pull/412)
+
+### Improvements
+
+- Introduce `ImageRequestConvertible` protocol to narrow the number of public APIs. For example, if you type `ImagePipeline.shared.loadImage...`, it's now going to suggest twice fewer options.
+- Remove `Image` typealias deprecated in Nuke 8.4
+- Remove public `CGSize: Hashable` conformance - [#410](https://github.com/kean/Nuke/pull/410)
+- Decompression and resizing now preserve image color space and other parameters. For example, grayscale images with 8 bits per component stay images with 8 bits per component.
+- Switch from Travis to GitHub Actions - [#409](https://github.com/kean/Nuke/pull/409)
+
+### Fixes
+
+- Fix "Backward matching of the unlabeled trailing closure is deprecated"  warnings
 
 ## Nuke 9.1.3
 
