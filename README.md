@@ -7,7 +7,6 @@
 <p align="left">
 <img src="https://img.shields.io/cocoapods/v/Nuke.svg?label=version">
 <img src="https://img.shields.io/badge/platforms-iOS%2C%20macOS%2C%20watchOS%2C%20tvOS-lightgrey.svg">
-<img src="https://img.shields.io/badge/test%20coverage-100%25-brightgreen.svg">
 <img src="https://github.com/kean/Nuke/workflows/Nuke%20CI/badge.svg">
 </p>
 
