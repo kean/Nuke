@@ -14,7 +14,7 @@ To prevent decoding happening on the main thread, Nuke performs it in the backgr
 ```swift
 let request = ImageRequest(
     url: URL(string: "http://..."),
-    processors: [ImageProcessor.Resize(size: imageView.bounds.size)]
+    processors: [ImageProcessors.Resize(size: imageView.bounds.size)]
 )
 ```
 
