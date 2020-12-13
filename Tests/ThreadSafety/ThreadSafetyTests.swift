@@ -161,6 +161,16 @@ class ThreadSafetyTests: XCTestCase {
         }
         queue.waitUntilAllOperationsAreFinished()
     }
+
+    // MARK: Processors
+
+    func testResizeThreadSafety() {
+        DispatchQueue.concurrentPerform(iterations: 100) { _ in
+            for _ in 0..<10 {
+                _ = ImageProcessors.Resize(width: 100).process(Test.image)
+            }
+        }
+    }
 }
 
 final class RandomizedTests: XCTestCase {
