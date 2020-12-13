@@ -137,7 +137,7 @@ class ImageDecoderTests: XCTestCase {
     func testDecodeBaselineWebP() {
         let data = Test.data(name: "baseline", extension: "webp")
         let container = ImageDecoders.Default().decode(data)
-        if #available(OSX 15, iOS 14.0, watchOS 7.0, tvOS 999.0, *) {
+        if #available(OSX 10.15, iOS 14.0, watchOS 7.0, tvOS 999.0, *) {
             XCTAssertNotNil(container)
             XCTAssertNil(container?.data)
         } else {

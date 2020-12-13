@@ -22,12 +22,18 @@ class ImageDecompressionTests: XCTestCase {
     func testGrayscalePreserved() throws {
         // Given
         let input = Test.image(named: "grayscale", extension: "jpeg")
+        XCTAssertEqual(input.cgImage?.bitsPerComponent, 8)
         XCTAssertEqual(input.cgImage?.bitsPerPixel, 8)
 
         // When
         let output = ImageDecompression.decompress(image: input)
 
         // Then
+        XCTAssertEqual(output.cgImage?.bitsPerComponent, 8)
+        #if os(macOS)
         XCTAssertEqual(output.cgImage?.bitsPerPixel, 8)
+        #else
+        XCTAssertEqual(output.cgImage?.bitsPerPixel, 16)
+        #endif
     }
 }

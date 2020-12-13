@@ -471,17 +471,9 @@ private extension PlatformImage {
     ///
     /// - parameter drawRect: `nil` by default. If `nil` will use the canvas rect.
     func draw(inCanvasWithSize canvasSize: CGSize, drawRect: CGRect? = nil) -> PlatformImage? {
-        guard let cgImage = cgImage else {
-            return nil
+        draw(size: canvasSize) { cgImage, cgContext in
+            cgContext.draw(cgImage, in: drawRect ?? CGRect(origin: .zero, size: canvasSize))
         }
-        guard let ctx = CGContext.make(cgImage, size: canvasSize) else {
-            return nil
-        }
-        ctx.draw(cgImage, in: drawRect ?? CGRect(origin: .zero, size: canvasSize))
-        guard let outputCGImage = ctx.makeImage() else {
-            return nil
-        }
-        return PlatformImage.make(cgImage: outputCGImage, source: self)
     }
 
     /// Decompresses the input image by drawing in the the `CGContext`.
@@ -547,11 +539,9 @@ private struct ImageProcessingExtensions {
         guard let cgImage = image.cgImage else {
             return nil
         }
-
         guard cgImage.width != cgImage.height else {
             return image // Already a square
         }
-
         let imageSize = cgImage.size
         let side = min(cgImage.width, cgImage.height)
         let targetSize = CGSize(width: side, height: side)
@@ -569,28 +559,20 @@ private struct ImageProcessingExtensions {
     /// - parameter radius: Radius in pixels.
     /// - parameter border: Optional stroke border.
     func byAddingRoundedCorners(radius: CGFloat, border: ImageProcessingOptions.Border? = nil) -> PlatformImage? {
-        guard let cgImage = image.cgImage else {
-            return nil
-        }
-        guard let ctx = CGContext.make(cgImage, size: cgImage.size, alphaInfo: .premultipliedLast) else {
-            return nil
-        }
-        let rect = CGRect(origin: CGPoint.zero, size: cgImage.size)
-        let path = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
-        ctx.addPath(path)
-        ctx.clip()
-        ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: cgImage.size))
+        image.draw { cgImage, cgContext in
+            let rect = CGRect(origin: CGPoint.zero, size: cgImage.size)
+            let path = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
+            cgContext.addPath(path)
+            cgContext.clip()
+            cgContext.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: cgImage.size))
 
-        if let border = border {
-            ctx.setStrokeColor(border.color.cgColor)
-            ctx.addPath(path)
-            ctx.setLineWidth(border.width)
-            ctx.strokePath()
+            if let border = border {
+                cgContext.setStrokeColor(border.color.cgColor)
+                cgContext.addPath(path)
+                cgContext.setLineWidth(border.width)
+                cgContext.strokePath()
+            }
         }
-        guard let outputCGImage = ctx.makeImage() else {
-            return nil
-        }
-        return PlatformImage.make(cgImage: outputCGImage, source: image)
     }
 }
 
@@ -697,6 +679,65 @@ extension CGSize {
         )
     }
 }
+
+extension PlatformImage {
+    func draw(size canvasSize: CGSize? = nil, _ actions: (CGImage, CGContext) -> Void) -> PlatformImage? {
+        guard let inputCGImage = cgImage else {
+            return nil
+        }
+        #if os(macOS)
+        guard let context = CGContext.make(inputCGImage, size: canvasSize ?? inputCGImage.size) else {
+            return nil
+        }
+        actions(inputCGImage, context)
+        guard let outputCGImage = context.makeImage() else {
+            return nil
+        }
+        #else
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1 // Image processors always provide size in pixels
+        let renderer = UIGraphicsImageRenderer(size: canvasSize ?? inputCGImage.size, format: format)
+        let output = renderer.image {
+            actions(inputCGImage, $0.cgContext)
+        }
+        guard let outputCGImage = output.cgImage else {
+            return nil
+        }
+        #endif
+        return PlatformImage.make(cgImage: outputCGImage, source: self)
+    }
+}
+
+#if os(macOS)
+private extension CGContext {
+    static func make(_ image: CGImage, size: CGSize) -> CGContext? {
+        // Create the context which matches the input image.
+        if let ctx = CGContext(
+            data: nil,
+            width: Int(size.width),
+            height: Int(size.height),
+            bitsPerComponent: image.bitsPerComponent,
+            bytesPerRow: 0,
+            space: image.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: image.bitmapInfo.rawValue
+        ) {
+            return ctx
+        }
+
+        // In case the combination of parameters (color space, bits per component, etc)
+        // is nit supported by Core Graphics, switch to default context.
+        // - Quartz 2D Programming Guide
+        return CGContext(
+            data: nil,
+            width: Int(size.width), height: Int(size.height),
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        )
+    }
+}
+#endif
 
 // MARK: - ImageProcessing Extensions (Internal)
 
@@ -807,37 +848,5 @@ extension Color {
             .compactMap { $0 }
             .map { String(format: "%02lX", lroundf(Float($0) * 255)) }
             .joined()
-    }
-}
-
-private extension CGContext {
-    static func make(_ image: CGImage, size: CGSize, alphaInfo: CGImageAlphaInfo? = nil) -> CGContext? {
-        // Create the context which matches the input image.
-        if let ctx = CGContext(
-            data: nil,
-            width: Int(size.width),
-            height: Int(size.height),
-            bitsPerComponent: image.bitsPerComponent,
-            bytesPerRow: 0,
-            space: image.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: alphaInfo?.rawValue ?? image.bitmapInfo.rawValue
-        ) {
-            return ctx
-        }
-
-        // In case the combination of parameters (color space, bits per component, etc)
-        // is nit supported by Core Graphics, switch to default context.
-        // - Quartz 2D Programming Guide
-        // - https://github.com/kean/Nuke/issues/35
-        // - https://github.com/kean/Nuke/issues/57
-        let alphaInfo: CGImageAlphaInfo = image.isOpaque ? .noneSkipLast : .premultipliedLast
-        return CGContext(
-            data: nil,
-            width: Int(size.width), height: Int(size.height),
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: alphaInfo.rawValue
-        )
     }
 }
