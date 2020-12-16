@@ -812,15 +812,17 @@ extension Color {
 
 private extension CGContext {
     static func make(_ image: CGImage, size: CGSize, alphaInfo: CGImageAlphaInfo? = nil) -> CGContext? {
+        let alphaInfo: CGImageAlphaInfo = image.isOpaque ? .noneSkipLast : .premultipliedLast
+
         // Create the context which matches the input image.
         if let ctx = CGContext(
             data: nil,
             width: Int(size.width),
             height: Int(size.height),
-            bitsPerComponent: image.bitsPerComponent,
+            bitsPerComponent: 8,
             bytesPerRow: 0,
             space: image.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: alphaInfo?.rawValue ?? image.bitmapInfo.rawValue
+            bitmapInfo: alphaInfo.rawValue
         ) {
             return ctx
         }
@@ -830,7 +832,6 @@ private extension CGContext {
         // - Quartz 2D Programming Guide
         // - https://github.com/kean/Nuke/issues/35
         // - https://github.com/kean/Nuke/issues/57
-        let alphaInfo: CGImageAlphaInfo = image.isOpaque ? .noneSkipLast : .premultipliedLast
         return CGContext(
             data: nil,
             width: Int(size.width), height: Int(size.height),

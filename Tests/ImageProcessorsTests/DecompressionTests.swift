@@ -22,12 +22,17 @@ class ImageDecompressionTests: XCTestCase {
     func testGrayscalePreserved() throws {
         // Given
         let input = Test.image(named: "grayscale", extension: "jpeg")
+        XCTAssertEqual(input.cgImage?.bitsPerComponent, 8)
         XCTAssertEqual(input.cgImage?.bitsPerPixel, 8)
 
         // When
         let output = ImageDecompression.decompress(image: input)
 
         // Then
-        XCTAssertEqual(output.cgImage?.bitsPerPixel, 8)
+        // The original image doesn't have an alpha channel (kCGImageAlphaNone),
+        // but this parameter combination (8 bbc and kCGImageAlphaNone) is not
+        // supported by CGContext. Thus we are switching to a different format.
+        XCTAssertEqual(output.cgImage?.bitsPerPixel, 16)
+        XCTAssertEqual(output.cgImage?.bitsPerComponent, 8)
     }
 }
