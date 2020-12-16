@@ -1,5 +1,11 @@
 # Nuke 9
 
+## Nuke 9.2.1
+
+*Dec 15, 2020*
+
+- Fix `CGBitmapContextCreate: unsupported parameter combination` warnings - [#416](https://github.com/kean/Nuke/issues/416)
+
 ## Nuke 9.2.0
 
 *Nov 28, 2020*
