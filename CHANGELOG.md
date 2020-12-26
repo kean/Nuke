@@ -1,5 +1,11 @@
 # Nuke 9
 
+## Nuke 9.2.2
+
+*Dec 26, 2020*
+
+- Deprecate `crop` parameter in `ImageProcessors.Resize` `init(height:)` and `init(width:)` initailizers (crop doesn't make sense in with these parameters)
+
 ## Nuke 9.2.1
 
 *Dec 15, 2020*
