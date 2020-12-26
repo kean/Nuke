@@ -216,6 +216,20 @@ class ImageProcessorsResizeTests: XCTestCase {
         // Then
         XCTAssertEqual(processor.description, "Resize(size: (30.0, 30.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)")
     }
+
+    // Just make sure these initailizers are still available.
+    func testInitailizer() {
+        _ = ImageProcessors.Resize(height: 10)
+        _ = ImageProcessors.Resize(width: 10)
+        _ = ImageProcessors.Resize(width: 10, upscale: true)
+        _ = ImageProcessors.Resize(width: 10, unit: .pixels, upscale: true)
+    }
+
+    @available(*, deprecated, message: "Deprecated")
+    func testDeprecatedInitializer() {
+        _ = ImageProcessors.Resize(height: 10, unit: .points, crop: true, upscale: true)
+        _ = ImageProcessors.Resize(width: 10, unit: .points, crop: true, upscale: true)
+    }
 }
 
 class CoreGraphicsExtensionsTests: XCTestCase {

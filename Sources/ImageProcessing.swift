@@ -138,15 +138,15 @@ extension ImageProcessors {
         /// Resizes the image to the given width preserving aspect ratio.
         ///
         /// - parameter unit: Unit of the target size, `.points` by default.
-        public init(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool = false, upscale: Bool = false) {
-            self.init(size: CGSize(width: width, height: 4096), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
+        public init(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) {
+            self.init(size: CGSize(width: width, height: 9999), unit: unit, contentMode: .aspectFit, crop: false, upscale: upscale)
         }
 
         /// Resizes the image to the given height preserving aspect ratio.
         ///
         /// - parameter unit: Unit of the target size, `.points` by default.
-        public init(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool = false, upscale: Bool = false) {
-            self.init(size: CGSize(width: 4096, height: height), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
+        public init(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) {
+            self.init(size: CGSize(width: 9999, height: height), unit: unit, contentMode: .aspectFit, crop: false, upscale: upscale)
         }
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
