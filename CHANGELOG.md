@@ -1,5 +1,11 @@
 # Nuke 9
 
+## Nuke 9.2.3
+
+*Dec 30, 2020*
+
+- Fix regression introduced in Nuke 9.2.1 where some image processors would not render transparent background correctly - [#424](https://github.com/kean/Nuke/issues/424)
+
 ## Nuke 9.2.2
 
 *Dec 26, 2020*
