@@ -812,7 +812,7 @@ extension Color {
 
 private extension CGContext {
     static func make(_ image: CGImage, size: CGSize, alphaInfo: CGImageAlphaInfo? = nil) -> CGContext? {
-        let alphaInfo: CGImageAlphaInfo = image.isOpaque ? .noneSkipLast : .premultipliedLast
+        let alphaInfo: CGImageAlphaInfo = alphaInfo ?? (image.isOpaque ? .noneSkipLast : .premultipliedLast)
 
         // Create the context which matches the input image.
         if let ctx = CGContext(
