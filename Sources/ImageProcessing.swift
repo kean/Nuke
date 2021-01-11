@@ -152,7 +152,7 @@ extension ImageProcessors {
         }
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
-            let bounded = CGSize(size: size.cgSize, unit: unit, scale: image.scale)
+            let bounded = CGSize(size: size.cgSize, unit: unit, scale: 1 / image.scale)
             if crop && contentMode == .aspectFill {
                 return image.processed.byResizingAndCropping(to: bounded)
             } else {
@@ -493,11 +493,6 @@ private extension PlatformImage {
             return nil
         }
         return draw(inCanvasWithSize: cgImage.size, drawRect: CGRect(origin: .zero, size: cgImage.size))
-    }
-    
-    var scale: CGFloat {
-        guard let cgWidth = cgImage?.size.width else { return 1 }
-        return size.width / cgWidth
     }
 }
 

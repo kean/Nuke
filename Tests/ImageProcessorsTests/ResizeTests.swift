@@ -147,10 +147,6 @@ class ImageProcessorsResizeTests: XCTestCase {
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier
         )
         XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels).identifier,
-            ImageProcessors.Resize(size: CGSize(width: 30 / Screen.scale, height: 30 / Screen.scale), unit: .points).identifier
-        )
-        XCTAssertEqual(
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier,
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).identifier
         )
@@ -187,10 +183,6 @@ class ImageProcessorsResizeTests: XCTestCase {
         XCTAssertEqual(
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier,
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier
-        )
-        XCTAssertEqual(
-            ImageProcessors.Resize(size: CGSize(width: 30, height: 30), unit: .pixels).hashableIdentifier,
-            ImageProcessors.Resize(size: CGSize(width: 30 / Screen.scale, height: 30 / Screen.scale), unit: .points).hashableIdentifier
         )
         XCTAssertEqual(
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30), crop: true).hashableIdentifier,
