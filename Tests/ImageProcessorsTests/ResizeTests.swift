@@ -54,6 +54,22 @@ class ImageProcessorsResizeTests: XCTestCase {
         // Then
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 400, height: 300))
     }
+    
+    func testResizeToFitWithMismatchedScale() throws {
+        // Given
+        let target = CGSize(width: 40, height: 40)
+        let processor = ImageProcessors.Resize(
+            size: target,
+            unit: .points
+        )
+        let image = try XCTUnwrap(PlatformImage(named: "resize", in: Bundle(for: type(of: self)), compatibleWith: nil), "Could not find test image")
+        
+        // When
+        let output = try XCTUnwrap(processor.process(image), "Failed to process an image")
+        
+        // Then
+        XCTAssertEqual(target, output.size)
+    }
 
     func testThatImageIsUpscaledIfOptionIsEnabled() throws {
         // Given

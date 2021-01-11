@@ -98,6 +98,7 @@ extension ImageProcessors {
     /// Scales an image to a specified size.
     public struct Resize: ImageProcessing, Hashable, CustomStringConvertible {
         private let size: Size
+        private let unit: ImageProcessingOptions.Unit
         private let contentMode: ContentMode
         private let crop: Bool
         private let upscale: Bool
@@ -129,7 +130,8 @@ extension ImageProcessors {
         /// Does nothing with content mode .aspectFill. `false` by default.
         /// - parameter upscale: `false` by default.
         public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
-            self.size = Size(cgSize: CGSize(size: size, unit: unit))
+            self.unit = unit
+            self.size = Size(cgSize: size)
             self.contentMode = contentMode
             self.crop = crop
             self.upscale = upscale
@@ -150,10 +152,11 @@ extension ImageProcessors {
         }
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
+            let bounded = CGSize(size: size.cgSize, unit: unit, scale: image.scale)
             if crop && contentMode == .aspectFill {
-                return image.processed.byResizingAndCropping(to: size.cgSize)
+                return image.processed.byResizingAndCropping(to: bounded)
             } else {
-                return image.processed.byResizing(to: size.cgSize, contentMode: contentMode, upscale: upscale)
+                return image.processed.byResizing(to: bounded, contentMode: contentMode, upscale: upscale)
             }
         }
 
@@ -491,6 +494,11 @@ private extension PlatformImage {
         }
         return draw(inCanvasWithSize: cgImage.size, drawRect: CGRect(origin: .zero, size: cgImage.size))
     }
+    
+    var scale: CGFloat {
+        guard let cgWidth = cgImage?.size.width else { return 1 }
+        return size.width / cgWidth
+    }
 }
 
 // MARK: - ImageProcessingExtensions
@@ -658,10 +666,10 @@ private struct Size: Hashable {
 private extension CGSize {
     /// Creates the size in pixels by scaling to the input size to the screen scale
     /// if needed.
-    init(size: CGSize, unit: ImageProcessingOptions.Unit) {
+    init(size: CGSize, unit: ImageProcessingOptions.Unit, scale: CGFloat) {
         switch unit {
         case .pixels: self = size // The size is already in pixels
-        case .points: self = size.scaled(by: Screen.scale)
+        case .points: self = size.scaled(by: scale)
         }
     }
 
