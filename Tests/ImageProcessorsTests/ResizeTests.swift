@@ -62,10 +62,16 @@ class ImageProcessorsResizeTests: XCTestCase {
             size: target,
             unit: .points
         )
-        let image = try XCTUnwrap(PlatformImage(named: "resize", in: Bundle(for: type(of: self)), compatibleWith: nil), "Could not find test image")
+        let image: PlatformImage?
+        #if os(macOS)
+        image = Bundle(for: type(of: self)).image(forResource: "resize")
+        #else
+        image = PlatformImage(named: "resize", in: Bundle(for: type(of: self)), compatibleWith: nil)
+        #endif
+        let unwrapped = try XCTUnwrap(image, "Could not find test image")
         
         // When
-        let output = try XCTUnwrap(processor.process(image), "Failed to process an image")
+        let output = try XCTUnwrap(processor.process(unwrapped), "Failed to process an image")
         
         // Then
         XCTAssertEqual(target, output.size)

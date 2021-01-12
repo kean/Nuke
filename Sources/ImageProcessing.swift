@@ -614,6 +614,11 @@ extension NSImage {
     var ciImage: CIImage? {
         cgImage.map { CIImage(cgImage: $0) }
     }
+    
+    var scale: CGFloat {
+        guard let width = representations.first?.pixelsWide else { return 1 }
+        return CGFloat(width) / size.width
+    }
 
     static func make(cgImage: CGImage, source: NSImage) -> NSImage {
         NSImage(cgImage: cgImage, size: .zero)
