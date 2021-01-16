@@ -112,6 +112,70 @@ class ImageProcessorsResizeTests: XCTestCase {
         XCTAssertTrue(colorSpace.isWideGamutRGB)
     }
 
+    #if os(macOS)
+    func testResizeImageWithOrientationLeft() throws {
+        // Given an image with `left` orientation. From the user perspective,
+        // the image a landscape image with s size 640x480px. The raw pixel
+        // data, on the other hand, is 480x640px. macOS, however, automatically
+        // changes image orientaiton to `up` so that you don't have to worry about it
+        let input = try XCTUnwrap(Test.image(named: "left-orientation.jpeg"))
+
+        // When we resize the image to fit 320x480px frame, we expect the processor
+        // to take image orientation into the account and produce a 320x240px.
+        let processor = ImageProcessors.Resize(size: CGSize(width: 320, height: 1000), unit: .pixels, contentMode: .aspectFit)
+        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
+
+        // Then the image orientation is still `.left`
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 320, height: 240))
+
+        // Then the image is resized according to orientation
+        XCTAssertEqual(output.size, CGSize(width: 320 / Screen.scale, height: 240 / Screen.scale))
+    }
+    #endif
+
+    #if os(iOS) || os(tvOS) || os(watchOS)
+    func testResizeImageWithOrientationLeft() throws {
+        // Given an image with `right` orientation. From the user perspective,
+        // the image a landscape image with s size 640x480px. The raw pixel
+        // data, on the other hand, is 480x640px.
+        let input = try XCTUnwrap(Test.image(named: "left-orientation.jpeg"))
+        XCTAssertEqual(input.imageOrientation, .right)
+
+        // When we resize the image to fit 320x480px frame, we expect the processor
+        // to take image orientation into the account and produce a 320x240px.
+        let processor = ImageProcessors.Resize(size: CGSize(width: 320, height: 1000), unit: .pixels, contentMode: .aspectFit)
+        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
+
+        // Then the image orientation is still `.right`
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 240, height: 320))
+        XCTAssertEqual(output.imageOrientation, .right)
+        // Then the image is resized according to orientation
+        XCTAssertEqual(output.size, CGSize(width: 320 / Screen.scale, height: 240 / Screen.scale))
+    }
+
+    func testResizeAndCropWithOrientationLeft() throws {
+        // Given an image with `right` orientation. From the user perspective,
+        // the image a landscape image with s size 640x480px. The raw pixel
+        // data, on the other hand, is 480x640px.
+        let input = try XCTUnwrap(Test.image(named: "left-orientation.jpeg"))
+        XCTAssertEqual(input.imageOrientation, .right)
+
+        // When
+        let processor = ImageProcessors.Resize(size: CGSize(width: 320, height: 80), unit: .pixels, contentMode: .aspectFill, crop: true)
+        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
+
+        // Then
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 80, height: 320))
+        XCTAssertEqual(output.imageOrientation, .right)
+        // Then
+        XCTAssertEqual(output.size, CGSize(width: 320 / Screen.scale, height: 80 / Screen.scale))
+    }
+    #endif
+
+    #if os(macOS)
+
+    #endif
+
     #if os(iOS) || os(tvOS)
     func testThatScalePreserved() throws {
         // Given
@@ -296,5 +360,15 @@ class CoreGraphicsExtensionsTests: XCTestCase {
             CGSize(width: 10, height: 40).centeredInRectWithSize(CGSize(width: 10, height: 20)),
             CGRect(x: 0, y: -10, width: 10, height: 40)
         )
+    }
+}
+
+private extension CGSize {
+    func scaleToFill(_ targetSize: CGSize) -> CGFloat {
+        getScale(targetSize: targetSize, contentMode: .aspectFill)
+    }
+
+    func scaleToFit(_ targetSize: CGSize) -> CGFloat {
+        getScale(targetSize: targetSize, contentMode: .aspectFit)
     }
 }

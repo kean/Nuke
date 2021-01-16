@@ -510,9 +510,10 @@ private struct ImageProcessingExtensions {
         guard let cgImage = image.cgImage else {
             return nil
         }
-        let scale = contentMode == .aspectFill ?
-            cgImage.size.scaleToFill(targetSize) :
-            cgImage.size.scaleToFit(targetSize)
+        #if os(iOS) || os(tvOS) || os(watchOS)
+        let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
+        #endif
+        let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: contentMode)
         guard scale < 1 || upscale else {
             return image // The image doesn't require scaling
         }
@@ -526,9 +527,11 @@ private struct ImageProcessingExtensions {
         guard let cgImage = image.cgImage else {
             return nil
         }
-
-        let imageSize = cgImage.size
-        let scaledSize = imageSize.scaled(by: cgImage.size.scaleToFill(targetSize))
+        #if os(iOS) || os(tvOS) || os(watchOS)
+        let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
+        #endif
+        let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: .aspectFill)
+        let scaledSize = cgImage.size.scaled(by: scale)
         let drawRect = scaledSize.centeredInRectWithSize(targetSize)
         return image.draw(inCanvasWithSize: targetSize, drawRect: drawRect)
     }
@@ -674,17 +677,32 @@ private extension CGSize {
     }
 }
 
-extension CGSize {
-    func scaleToFill(_ targetSize: CGSize) -> CGFloat {
-        let scaleHor = targetSize.width / width
-        let scaleVert = targetSize.height / height
-        return max(scaleHor, scaleVert)
+#if os(iOS) || os(tvOS) || os(watchOS)
+private extension CGSize {
+    func rotatedForOrientation(_ imageOrientation: UIImage.Orientation) -> CGSize {
+        switch imageOrientation {
+        case .left, .leftMirrored, .right, .rightMirrored:
+            return CGSize(width: height, height: width) // Rotate 90 degrees
+        case .up, .upMirrored, .down, .downMirrored:
+            return self
+        @unknown default:
+            return self
+        }
     }
+}
+#endif
 
-    func scaleToFit(_ targetSize: CGSize) -> CGFloat {
+extension CGSize {
+    func getScale(targetSize: CGSize, contentMode: ImageProcessors.Resize.ContentMode) -> CGFloat {
         let scaleHor = targetSize.width / width
         let scaleVert = targetSize.height / height
-        return min(scaleHor, scaleVert)
+
+        switch contentMode {
+        case .aspectFill:
+            return max(scaleHor, scaleVert)
+        case .aspectFit:
+            return min(scaleHor, scaleVert)
+        }
     }
 
     /// Calculates a rect such that the output rect will be in the center of

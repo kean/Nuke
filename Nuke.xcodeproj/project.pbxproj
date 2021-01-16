@@ -114,6 +114,7 @@
 		0CE745751D4767B900123F65 /* MockImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE745741D4767B900123F65 /* MockImageDecoder.swift */; };
 		0CF1754C22913F9800A8946E /* ImagePipelineConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */; };
 		0CF4DE7D1D412A9E00170289 /* ImagePreheater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */; };
+		0CF5456B25B39A0E00B45F1E /* left-orientation.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0CF5456A25B39A0E00B45F1E /* left-orientation.jpeg */; };
 		2DFD93B0233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DFD93AF233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -262,6 +263,7 @@
 		0CE745741D4767B900123F65 /* MockImageDecoder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockImageDecoder.swift; sourceTree = "<group>"; };
 		0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineConfiguration.swift; sourceTree = "<group>"; };
 		0CF4DE7C1D412A9E00170289 /* ImagePreheater.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePreheater.swift; sourceTree = "<group>"; };
+		0CF5456A25B39A0E00B45F1E /* left-orientation.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "left-orientation.jpeg"; sourceTree = "<group>"; };
 		2DFD93AF233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineProcessorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -342,6 +344,7 @@
 			isa = PBXGroup;
 			children = (
 				0C70D9702089016800A49DAC /* baseline.jpeg */,
+				0CF5456A25B39A0E00B45F1E /* left-orientation.jpeg */,
 				0C4B34112572E233000FDDBA /* grayscale.jpeg */,
 				0C70D96F2089016700A49DAC /* progressive.jpeg */,
 				0C95FD532571B278008D4FC2 /* baseline.webp */,
@@ -682,7 +685,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1020;
-				LastUpgradeCheck = 1220;
+				LastUpgradeCheck = 1230;
 				ORGANIZATIONNAME = "Alexander Grebenyuk";
 				TargetAttributes = {
 					0C4F8FDE22E4B6ED0070ECFD = {
@@ -763,6 +766,7 @@
 				0C91B0F82438E84E007F9100 /* fixture-tiny.jpeg in Resources */,
 				0C70D9742089016800A49DAC /* baseline.jpeg in Resources */,
 				0C95FD542571B278008D4FC2 /* baseline.webp in Resources */,
+				0CF5456B25B39A0E00B45F1E /* left-orientation.jpeg in Resources */,
 				0C7CE28B243933550018C8C3 /* s-rounded-corners.png in Resources */,
 				0C70D9712089016800A49DAC /* progressive.jpeg in Resources */,
 				0C7CE28D2439342C0018C8C3 /* s-rounded-corners-border.png in Resources */,
