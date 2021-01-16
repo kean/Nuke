@@ -127,7 +127,7 @@ class ImageProcessorsResizeTests: XCTestCase {
 
         // Then the image orientation is still `.left`
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 320, height: 240))
-//        XCTAssertEqual(output.imageOrientation, .right)
+
         // Then the image is resized according to orientation
         XCTAssertEqual(output.size, CGSize(width: 320 / Screen.scale, height: 240 / Screen.scale))
     }
@@ -342,5 +342,15 @@ class CoreGraphicsExtensionsTests: XCTestCase {
             CGSize(width: 10, height: 40).centeredInRectWithSize(CGSize(width: 10, height: 20)),
             CGRect(x: 0, y: -10, width: 10, height: 40)
         )
+    }
+}
+
+private extension CGSize {
+    func scaleToFill(_ targetSize: CGSize) -> CGFloat {
+        getScale(targetSize: targetSize, contentMode: .aspectFill)
+    }
+
+    func scaleToFit(_ targetSize: CGSize) -> CGFloat {
+        getScale(targetSize: targetSize, contentMode: .aspectFit)
     }
 }
