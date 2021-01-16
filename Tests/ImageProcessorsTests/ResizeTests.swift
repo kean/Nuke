@@ -152,6 +152,25 @@ class ImageProcessorsResizeTests: XCTestCase {
         // Then the image is resized according to orientation
         XCTAssertEqual(output.size, CGSize(width: 320 / Screen.scale, height: 240 / Screen.scale))
     }
+
+    func testResizeAndCropWithOrientationLeft() throws {
+        // Given an image with `left` orientation. From the user perspective,
+        // the image a landscape image with s size 640x480px. The raw pixel
+        // data, on the other hand, is 480x640px.
+        let input = try XCTUnwrap(Test.image(named: "left-orientation.jpeg"))
+        XCTAssertEqual(input.imageOrientation, .right)
+
+        // When we resize the image to fit 320x480px frame, we expect the processor
+        // to take image orientation into the account and produce a 320x240px.
+        let processor = ImageProcessors.Resize(size: CGSize(width: 320, height: 320), unit: .pixels, contentMode: .aspectFill, crop: true)
+        let output = try XCTUnwrap(processor.process(input), "Failed to process an image")
+
+        // Then the image orientation is still `.left`
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 320, height: 320))
+        XCTAssertEqual(output.imageOrientation, .right)
+        // Then the image is resized according to orientation
+        XCTAssertEqual(output.size, CGSize(width: 320 / Screen.scale, height: 320 / Screen.scale))
+    }
     #endif
 
     #if os(macOS)
