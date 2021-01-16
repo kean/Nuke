@@ -510,7 +510,10 @@ private struct ImageProcessingExtensions {
         guard let cgImage = image.cgImage else {
             return nil
         }
-        let scale = getScale(cgImage: cgImage, targetSize: targetSize, contentMode: contentMode)
+        #if os(iOS) || os(tvOS) || os(watchOS)
+        let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
+        #endif
+        let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: contentMode)
         guard scale < 1 || upscale else {
             return image // The image doesn't require scaling
         }
@@ -524,20 +527,13 @@ private struct ImageProcessingExtensions {
         guard let cgImage = image.cgImage else {
             return nil
         }
-        let scale = getScale(cgImage: cgImage, targetSize: targetSize, contentMode: .aspectFill)
+        #if os(iOS) || os(tvOS) || os(watchOS)
+        let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
+        #endif
+        let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: .aspectFill)
         let scaledSize = cgImage.size.scaled(by: scale)
         let drawRect = scaledSize.centeredInRectWithSize(targetSize)
         return image.draw(inCanvasWithSize: targetSize, drawRect: drawRect)
-    }
-
-    func getScale(cgImage: CGImage,
-                  targetSize: CGSize,
-                  contentMode: ImageProcessors.Resize.ContentMode) -> CGFloat {
-        var inputSize = cgImage.size
-        #if os(iOS) || os(tvOS) || os(watchOS)
-        inputSize = cgImage.size.rotatedForOrientation(image.imageOrientation)
-        #endif
-        return inputSize.getScale(targetSize: targetSize, contentMode: contentMode)
     }
 
     func byDrawingInCircle(border: ImageProcessingOptions.Border?) -> PlatformImage? {
