@@ -4,7 +4,7 @@
 
 *Jan 16, 2021*
 
-- Add support for image orientation in `ImageProcessors.Resize` - [#429](https://github.com/kean/Nuke/pull/429))
+- Add support for image orientation in `ImageProcessors.Resize` - [#429](https://github.com/kean/Nuke/pull/429)
 
 ## Nuke 9.2.3
 
