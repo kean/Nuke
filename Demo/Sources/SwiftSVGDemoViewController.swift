@@ -2,8 +2,8 @@
 //  SVGDemoViewController.swift
 //  NukeDemo
 //
-//  Created by Alexander Grebenyuk on 27.03.2020.
-//  Copyright © 2020 CocoaPods. All rights reserved.
+//  Created by Alexander Grebenyuk on 27.03.2021.
+//  Copyright © 2021 CocoaPods. All rights reserved.
 //
 
 import UIKit
