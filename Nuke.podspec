@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name             = 'Nuke'
-    s.version          = '9.2.3'
+    s.version          = '9.2.4'
     s.summary          = 'A powerful image loading and caching system'
     s.description  = <<-EOS
     A powerful image loading and caching system which makes simple tasks like loading images into views extremely simple, while also supporting more advanced features for more demanding apps.
