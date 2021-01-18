@@ -175,7 +175,7 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
 extension Task {
     /// Publishes the results of the task.
     struct Publisher {
-        let task: Task
+        fileprivate let task: Task
 
         /// Attaches the subscriber to the task.
         /// - notes: Returns `nil` if the task is already disposed.
