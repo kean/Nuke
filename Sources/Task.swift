@@ -15,7 +15,7 @@ import Foundation
 /// image pipeline are represented using Operation to take advantage of these features.
 ///
 /// - warning: Must be thread-confined!
-final class Task<Value, Error>: TaskSubscriptionDelegate {
+class Task<Value, Error>: TaskSubscriptionDelegate {
 
     private struct Subscription {
         let observer: (Event) -> Void
@@ -62,6 +62,9 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
     /// Publishes the results of the task.
     var publisher: Publisher { Publisher(task: self) }
 
+    // TODO: temp
+    var isStarted = false
+
     /// Initializes the task with the `starter`.
     /// - parameter starter: The closure which gets called as soon as the first
     /// subscription is added to the task. Only gets called once and is immediatelly
@@ -69,6 +72,9 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
     init(starter: ((Task) -> Void)? = nil) {
         self.starter = starter
     }
+
+    /// Override this to start image task
+    func start() {}
 
     // MARK: - Managing Observers
 
@@ -82,6 +88,11 @@ final class Task<Value, Error>: TaskSubscriptionDelegate {
 
         subscriptions[subscriptionKey] = Subscription(observer: observer, priority: priority)
         updatePriority()
+
+        if !isStarted {
+            isStarted = true
+            start()
+        }
 
         starter?(self)
         starter = nil
