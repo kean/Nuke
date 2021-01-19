@@ -224,9 +224,19 @@ final class TaskSubscription {
     private let task: TaskSubscriptionDelegate
     private let key: TaskSubscriptionKey
 
+    #if TRACK_ALLOCATIONS
+    deinit {
+        Allocations.decrement("TaskSubscription")
+    }
+    #endif
+
     fileprivate init(task: TaskSubscriptionDelegate, key: TaskSubscriptionKey) {
         self.task = task
         self.key = key
+
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("TaskSubscription")
+        #endif
     }
 
     /// Removes the subscription from the task. The observer won't receive any
@@ -284,5 +294,9 @@ final class TaskPool<Value, Error> {
             self?.map[key] = nil
         }
         return task
+    }
+
+    func invalidate() {
+        map = [:]
     }
 }

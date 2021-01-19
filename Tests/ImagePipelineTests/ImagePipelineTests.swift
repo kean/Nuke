@@ -393,6 +393,37 @@ class ImagePipelineTests: XCTestCase {
         request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
         XCTAssertEqual(pipeline.cacheKey(for: request, item: .finalImage), Test.url.absoluteString + "1")
     }
+
+    // MARK: - Memory Management
+
+    // ImagePipeline retains itself until there are any pending tasks.
+    func testPipelineRetainsItselfWhileTasksPending() {
+        pipeline = nil
+
+        let expectation = self.expectation(description: "ImageLoaded")
+        ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }.loadImage(with: Test.request) { result in
+            XCTAssertTrue(result.isSuccess)
+            expectation.fulfill()
+        }
+        wait()
+    }
+
+    func testInvalidateAndCancel() {
+        // Given
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+        pipeline.loadImage(with: Test.request)
+
+        let expectation = self.expectation(description: "ImagePipelineDeallocated")
+        pipeline.onDeinit = {
+            expectation.fulfill()
+        }
+
+        pipeline.invalidate()
+        wait()
+    }
 }
 
 /// Test how well image pipeline interacts with memory cache.

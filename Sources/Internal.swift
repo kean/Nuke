@@ -518,28 +518,51 @@ enum SignpostType {
 enum Allocations {
     static var allocations = [String: Int]()
     static let lock = NSLock()
+    static var timer: Timer?
+
+    // TODO: pass via environment settings
     static let isPrintingEnabled = false
+    static let isTimerEnabled = true
 
     static func increment(_ name: String) {
         lock.lock()
         defer { lock.unlock() }
         allocations[name, default: 0] += 1
-        allocations["Total", default: 0] += 1
 
         if isPrintingEnabled {
-            print("Increment \(name): \(allocations[name] ?? 0) Total: \(allocations["Total"] ?? 0)")
+            print("Increment \(name): \(allocations[name] ?? 0) Total: \(totalAllocationCount)")
         }
+
+        if isTimerEnabled, timer == nil {
+            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+                Allocations.printAllocations()
+            }
+        }
+    }
+
+    static var totalAllocationCount: Int {
+        allocations.values.reduce(0, +)
     }
 
     static func decrement(_ name: String) {
         lock.lock()
         defer { lock.unlock() }
         allocations[name, default: 0] -= 1
-        allocations["Total", default: 0] -= 1
 
         if isPrintingEnabled {
-            print("Decrement \(name): \(allocations[name] ?? 0) Total: \(allocations["Total"] ?? 0)")
+            print("Decrement \(name): \(allocations[name] ?? 0) Total: \(totalAllocationCount)")
         }
+    }
+
+    static func printAllocations() {
+        lock.lock()
+        defer { lock.unlock() }
+        let allocations = self.allocations
+            .filter { $0.value > 0 }
+            .map { "\($0.key): \($0.value)" }
+            .sorted()
+            .joined(separator: " ")
+        print("Allocations: \(totalAllocationCount) – \(allocations)")
     }
 }
 #endif

@@ -33,11 +33,21 @@ public /* final */ class ImagePipeline {
     // The queue on which the entire subsystem is synchronized.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
     private let log: OSLog
+    private var isInvalidated = false
 
     let rateLimiter: RateLimiter?
 
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
+
+    #if TRACK_ALLOCATIONS
+    var onDeinit: (() -> Void)?
+
+    deinit {
+        onDeinit?()
+        Allocations.decrement("ImagePipeline")
+    }
+    #endif
 
     /// Initializes `ImagePipeline` instance with the given configuration.
     ///
@@ -57,12 +67,30 @@ public /* final */ class ImagePipeline {
         } else {
             self.log = .disabled
         }
+
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("ImagePipeline")
+        #endif
     }
 
     public convenience init(_ configure: (inout ImagePipeline.Configuration) -> Void) {
         var configuration = ImagePipeline.Configuration()
         configure(&configuration)
         self.init(configuration: configuration)
+    }
+
+    /// Invalidates the pipeline and cancels all outstanding tasks.
+    public func invalidate() {
+        queue.async {
+            guard !self.isInvalidated else { return }
+            self.isInvalidated = true
+            self.tasks.keys.forEach(self.cancel)
+
+            self.decompressedImageTasks.invalidate()
+            self.processedImageTasks.invalidate()
+            self.originalImageTasks.invalidate()
+            self.originalImageDataTasks.invalidate()
+        }
     }
 
     // MARK: - Loading Images
@@ -191,12 +219,16 @@ public /* final */ class ImagePipeline {
 
     func imageTaskCancelCalled(_ task: ImageTask) {
         queue.async {
-            guard let subscription = self.tasks.removeValue(forKey: task) else { return }
-            if !task.isDataTask {
-                self.send(.cancelled, task)
-            }
-            subscription.unsubscribe()
+            self.cancel(task)
         }
+    }
+
+    private func cancel(_ task: ImageTask) {
+        guard let subscription = self.tasks.removeValue(forKey: task) else { return }
+        if !task.isDataTask {
+            self.send(.cancelled, task)
+        }
+        subscription.unsubscribe()
     }
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
@@ -268,6 +300,8 @@ public extension ImagePipeline {
 
 private extension ImagePipeline {
     func startImageTask(_ task: ImageTask, observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) {
+        guard !isInvalidated else { return }
+
         self.send(.started, task)
 
         tasks[task] = getDecompressedImage(for: task.request)
@@ -293,6 +327,8 @@ private extension ImagePipeline {
     func startDataTask(_ task: ImageTask,
                        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
                        completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
+        guard !isInvalidated else { return }
+
         tasks[task] = getOriginalImageData(for: task.request)
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
