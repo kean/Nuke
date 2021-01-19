@@ -333,10 +333,9 @@
 			children = (
 				0C0FD5DF1CA47FE1002A78FB /* ImageViewExtensions.swift */,
 				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
-				0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */,
-				0CB402D325B6568800F5A241 /* Tasks */,
-				0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */,
 				0C86AB69228B3B5100A81BA1 /* ImageTask.swift */,
+				0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */,
+				0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */,
 				0C0FD5D71CA47FE1002A78FB /* ImageCache.swift */,
 				0C0FD5D81CA47FE1002A78FB /* ImageProcessing.swift */,
 				0CE2D9B92084FDDD00934B28 /* ImageDecoding.swift */,
@@ -346,6 +345,7 @@
 				0CB26801208F2565004C83F4 /* DataCache.swift */,
 				0C7150081FC9724C00B880AC /* Internal.swift */,
 				0C42D4C422A283140094CB5A /* Deprecated.swift */,
+				0CB402D325B6568800F5A241 /* Tasks */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
