@@ -7,11 +7,12 @@ import os
 
 class ImagePipelineTask<Value>: Task<Value, ImagePipeline.Error> {
     let pipeline: ImagePipeline
-    var configuration: ImagePipeline.Configuration { pipeline.configuration }
+    let configuration: ImagePipeline.Configuration
     let request: ImageRequest
 
     init(_ pipeline: ImagePipeline, _ request: ImageRequest) {
         self.pipeline = pipeline
+        self.configuration = pipeline.configuration
         self.request = request
     }
 }
