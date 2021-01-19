@@ -142,7 +142,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
         send(value: (data, response))
     }
 
-    func imageDataLoadingTaskDidFinish(error: Swift.Error?) {
+    private func imageDataLoadingTaskDidFinish(error: Swift.Error?) {
         if let error = error {
             tryToSaveResumableData()
             send(error: .dataLoadingFailed(error))
@@ -164,7 +164,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
         send(value: (data, urlResponse), isCompleted: true)
     }
 
-    func tryToSaveResumableData() {
+    private func tryToSaveResumableData() {
         // Try to save resumable data in case the task was cancelled
         // (`URLError.cancelled`) or failed to complete with other error.
         if configuration.isResumableDataEnabled,
