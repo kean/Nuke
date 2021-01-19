@@ -384,7 +384,7 @@ private extension ImagePipeline {
         configuration.dataCachingQueue.addOperation(operation)
     }
 
-    func decodeProcessedImageData(_ data: Data, for request: ImageRequest, task: ProcessedImageTask) {
+    func decodeProcessedImageData(_ data: Data, for request: ImageRequest, task: DecompressedImageTask) {
         guard !task.isDisposed else { return }
 
         let decoderContext = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
@@ -415,7 +415,7 @@ private extension ImagePipeline {
     }
 
     func loadDecompressedImage(for request: ImageRequest, task: DecompressedImageTask) {
-        task.dependency = getProcessedImage(for: request).subscribe(task) { [weak self] image, isCompleted, task in
+        task.dependency = context.getProcessedImage(for: request).publisher.subscribe(task) { [weak self] image, isCompleted, task in
             self?.storeDecompressedImageInDataCache(image, request: request)
             self?.decompressProcessedImage(image, isCompleted: isCompleted, for: request, task: task)
         }
@@ -484,84 +484,6 @@ private extension ImagePipeline {
             let key = self.cacheKey(for: request, item: .finalImage)
             dataCache.storeData(data, for: key) // This is instant
         }
-    }
-}
-
-// MARK: - Get Processed Image (Private)
-
-private extension ImagePipeline {
-    typealias ProcessedImageTask = Task<ImageResponse, Error>
-
-    func getProcessedImage(for request: ImageRequest) -> ProcessedImageTask.Publisher {
-        guard !request.processors.isEmpty else {
-            return context.getOriginalImage(for: request).publisher // No processing needed
-        }
-
-        let key = request.makeLoadKeyForFinalImage()
-        return processedImageFetchTasks.task(withKey: key, starter: { task in
-            self.performProcessedImageFetchTask(task, request: request)
-        }).publisher
-    }
-
-    func performProcessedImageFetchTask(_ task: ProcessedImageTask, request: ImageRequest) {
-        assert(!request.processors.isEmpty)
-        guard !task.isDisposed, !request.processors.isEmpty else { return }
-
-        if let image = cachedImage(for: request), !image.isPreview {
-            return task.send(value: ImageResponse(container: image), isCompleted: true)
-        }
-
-        let processor: ImageProcessing
-        var subRequest = request
-        if configuration.isDeduplicationEnabled {
-            // Recursively call getProcessedImage until there are no more processors left.
-            // Each time getProcessedImage is called it tries to find an existing
-            // task ("deduplication") to avoid doing any duplicated work.
-            processor = request.processors.last!
-            subRequest.processors = Array(request.processors.dropLast())
-        } else {
-            // Perform all transformations in one go
-            processor = ImageProcessors.Composition(request.processors)
-            subRequest.processors = []
-        }
-        task.dependency = getProcessedImage(for: subRequest).subscribe(task) { [weak self] image, isCompleted, task in
-            self?.processImage(image, isCompleted: isCompleted, for: request, processor: processor, task: task)
-        }
-    }
-
-    func processImage(_ response: ImageResponse, isCompleted: Bool, for request: ImageRequest, processor: ImageProcessing, task: ProcessedImageTask) {
-        guard !(Configuration._isAnimatedImageDataEnabled && response.image._animatedImageData != nil) else {
-            task.send(value: response, isCompleted: isCompleted)
-            return
-        }
-
-        if isCompleted {
-            task.operation?.cancel() // Cancel any potential pending progressive processing tasks
-        } else if task.operation != nil {
-            return  // Back pressure - already processing another progressive image
-        }
-
-        let operation = BlockOperation { [weak self, weak task] in
-            guard let self = self, let task = task else { return }
-
-            let log = Log(self.log, "Process Image")
-            log.signpost(.begin, "\(processor), \(isCompleted ? "final" : "progressive") image")
-            let context = ImageProcessingContext(request: request, response: response, isFinal: isCompleted)
-            let response = response.map { processor.process($0, context: context) }
-            log.signpost(.end)
-
-            self.queue.async {
-                guard let response = response else {
-                    if isCompleted {
-                        task.send(error: .processingFailed)
-                    } // Ignore when progressive processing fails
-                    return
-                }
-                task.send(value: response, isCompleted: isCompleted)
-            }
-        }
-        task.operation = operation
-        configuration.imageProcessingQueue.addOperation(operation)
     }
 }
 
@@ -647,17 +569,56 @@ final class ImagePipelineContext {
 
     // MARK: - Task Factory
 
-    func getOriginalImage(for request: ImageRequest) -> OriginalImageTask {
-        // TODO: fix generics
-        originalImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
-            OriginalImageTask(context: self, request: request)
-        } as! OriginalImageTask // swiftlint:disable:this all
+    func getProcessedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
+        guard !request.processors.isEmpty else {
+            return getOriginalImage(for: request) // No processing needed
+        }
+        return processedImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForFinalImage()) {
+            ProcessedImageTask(context: self, request: request)
+        }
     }
 
-    func getOriginalImageData(for request: ImageRequest) -> OriginalDataTask {
-        // TODO: fix generics
+    func getOriginalImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
+        originalImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
+            OriginalImageTask(context: self, request: request)
+        }
+    }
+
+    func getOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error> {
         originalImageDataFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
             OriginalDataTask(context: self, request: request)
-        } as! OriginalDataTask // swiftlint:disable:this all
+        }
+    }
+
+    // TODO: cleanup
+
+    /// Returns a cached response from the memory cache.
+    func cachedImage(for url: URL) -> ImageContainer? {
+        cachedImage(for: ImageRequest(url: url))
+    }
+
+    /// Returns a cached response from the memory cache. Returns `nil` if the request disables
+    /// memory cache reads.
+    func cachedImage(for request: ImageRequest) -> ImageContainer? {
+        guard request.options.memoryCacheOptions.isReadAllowed && request.cachePolicy != .reloadIgnoringCachedData else { return nil }
+
+        let request = inheritOptions(request)
+        return configuration.imageCache?[request]
+    }
+
+    func storeResponse(_ image: ImageContainer, for request: ImageRequest) {
+        guard request.options.memoryCacheOptions.isWriteAllowed,
+            !image.isPreview || configuration.isStoringPreviewsInMemoryCache else { return }
+        configuration.imageCache?[request] = image
+    }
+
+    /// Inherits some of the pipeline configuration options like processors.
+    func inheritOptions(_ request: ImageRequest) -> ImageRequest {
+        // Do not manipulate is the request has some processors already.
+        guard request.processors.isEmpty, !configuration.processors.isEmpty else { return request }
+
+        var request = request
+        request.processors = configuration.processors
+        return request
     }
 }
