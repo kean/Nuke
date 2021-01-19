@@ -9,7 +9,6 @@ final class OriginalImageTask: Task<ImageResponse, ImagePipeline.Error> {
     private let pipeline: ImagePipeline
     // TODO: cleanup
     private var configuration: ImagePipeline.Configuration { pipeline.configuration }
-    private var queue: DispatchQueue { pipeline.syncQueue }
     private let request: ImageRequest
     private var decoder: ImageDecoding?
 
@@ -57,7 +56,7 @@ final class OriginalImageTask: Task<ImageResponse, ImagePipeline.Error> {
             let response = decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted)
             log.signpost(.end)
 
-            self.queue.async {
+            self.pipeline.async {
                 if let response = response {
                     self.send(value: response, isCompleted: isCompleted)
                 } else if isCompleted {

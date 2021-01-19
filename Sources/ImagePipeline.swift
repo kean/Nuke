@@ -37,9 +37,6 @@ public /* final */ class ImagePipeline {
     // TODO: make private
     let log: OSLog
 
-    // TODO: cleanup
-    var syncQueue: DispatchQueue { queue }
-
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
 

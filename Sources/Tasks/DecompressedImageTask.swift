@@ -9,7 +9,6 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
     private let pipeline: ImagePipeline
     // TODO: cleanup
     private var configuration: ImagePipeline.Configuration { pipeline.configuration }
-    private var queue: DispatchQueue { pipeline.syncQueue }
     private let request: ImageRequest
 
     init(pipeline: ImagePipeline, request: ImageRequest) {
@@ -41,7 +40,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
             let data = dataCache.cachedData(for: key)
             log.signpost(.end)
 
-            self.queue.async {
+            self.pipeline.async {
                 if let data = data {
                     self.decodeProcessedImageData(data)
                 } else {
@@ -71,7 +70,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
             let response = decoder.decode(data, urlResponse: nil, isCompleted: true)
             log.signpost(.end)
 
-            self.queue.async {
+            self.pipeline.async {
                 if let response = response {
                     self.decompressProcessedImage(response, isCompleted: true)
                 } else {
@@ -119,7 +118,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
             let response = response.map { $0.map(ImageDecompression.decompress(image:)) } ?? response
             log.signpost(.end)
 
-            self.queue.async {
+            self.pipeline.async {
                 self.pipeline.storeResponse(response.container, for: self.request)
                 self.send(value: response, isCompleted: isCompleted)
             }

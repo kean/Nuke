@@ -9,7 +9,6 @@ final class ProcessedImageTask: Task<ImageResponse, ImagePipeline.Error> {
     private let pipeline: ImagePipeline
     // TODO: cleanup
     private var configuration: ImagePipeline.Configuration { pipeline.configuration }
-    private var queue: DispatchQueue { pipeline.syncQueue }
     private let request: ImageRequest
 
     init(pipeline: ImagePipeline, request: ImageRequest) {
@@ -65,7 +64,7 @@ final class ProcessedImageTask: Task<ImageResponse, ImagePipeline.Error> {
             let response = response.map { processor.process($0, context: context) }
             log.signpost(.end)
 
-            self.queue.async {
+            self.pipeline.async {
                 guard let response = response else {
                     if isCompleted {
                         self.send(error: .processingFailed)
