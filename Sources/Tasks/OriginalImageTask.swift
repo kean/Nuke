@@ -5,17 +5,8 @@
 import Foundation
 import os
 
-final class OriginalImageTask: Task<ImageResponse, ImagePipeline.Error> {
-    private let pipeline: ImagePipeline
-    // TODO: cleanup
-    private var configuration: ImagePipeline.Configuration { pipeline.configuration }
-    private let request: ImageRequest
+final class OriginalImageTask: ImagePipelineTask<ImageResponse> {
     private var decoder: ImageDecoding?
-
-    init(pipeline: ImagePipeline, request: ImageRequest) {
-        self.pipeline = pipeline
-        self.request = request
-    }
 
     override func start() {
         // TODO: cleanup

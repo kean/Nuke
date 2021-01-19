@@ -5,17 +5,7 @@
 import Foundation
 import os
 
-final class ProcessedImageTask: Task<ImageResponse, ImagePipeline.Error> {
-    private let pipeline: ImagePipeline
-    // TODO: cleanup
-    private var configuration: ImagePipeline.Configuration { pipeline.configuration }
-    private let request: ImageRequest
-
-    init(pipeline: ImagePipeline, request: ImageRequest) {
-        self.pipeline = pipeline
-        self.request = request
-    }
-
+final class ProcessedImageTask: ImagePipelineTask<ImageResponse> {
     override func start() {
         assert(!request.processors.isEmpty)
         guard !isDisposed, !request.processors.isEmpty else { return }

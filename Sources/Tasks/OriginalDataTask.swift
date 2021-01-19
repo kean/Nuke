@@ -6,22 +6,11 @@ import Foundation
 
 /// Fetches original image data from data cache (`DataCaching`) or data loader
 /// (`DataLoading`) in case data is not available in cache.
-final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
-    // Dependencies
-    private let pipeline: ImagePipeline
-    private var configuration: ImagePipeline.Configuration { pipeline.configuration }
-    private let request: ImageRequest
-
-    // State
+final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
     private var urlResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
     private lazy var data = Data()
-
-    init(pipeline: ImagePipeline, request: ImageRequest) {
-        self.pipeline = pipeline
-        self.request = request
-    }
 
     override func start() {
         if let rateLimiter = pipeline.rateLimiter {

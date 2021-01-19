@@ -5,17 +5,7 @@
 import Foundation
 import os
 
-final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
-    private let pipeline: ImagePipeline
-    // TODO: cleanup
-    private var configuration: ImagePipeline.Configuration { pipeline.configuration }
-    private let request: ImageRequest
-
-    init(pipeline: ImagePipeline, request: ImageRequest) {
-        self.pipeline = pipeline
-        self.request = request
-    }
-
+final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
     override func start() {
         if let image = pipeline.cachedImage(for: request) {
             let response = ImageResponse(container: image)
