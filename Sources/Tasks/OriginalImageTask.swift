@@ -21,7 +21,6 @@ final class OriginalImageTask: Task<ImageResponse, ImagePipeline.Error> {
     override func start() {
         // TODO: cleanup
         self.dependency = pipeline.getOriginalImageData(for: request)
-            .publisher
             .subscribe(self) { [weak self] value, isCompleted, _ in
             self?.on(value, isCompleted: isCompleted)
         }

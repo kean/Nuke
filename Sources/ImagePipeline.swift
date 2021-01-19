@@ -273,7 +273,6 @@ private extension ImagePipeline {
         self.send(.started, task)
 
         tasks[task] = getDecompressedImage(for: task.request)
-            .publisher
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
@@ -296,7 +295,7 @@ private extension ImagePipeline {
     func startDataTask(_ task: ImageTask,
                        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
                        completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
-        tasks[task] = getOriginalImageData(for: task.request).publisher
+        tasks[task] = getOriginalImageData(for: task.request)
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 

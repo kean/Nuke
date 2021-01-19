@@ -38,7 +38,7 @@ final class ProcessedImageTask: Task<ImageResponse, ImagePipeline.Error> {
             processor = ImageProcessors.Composition(request.processors)
             subRequest.processors = []
         }
-        dependency = pipeline.getProcessedImage(for: subRequest).publisher
+        dependency = pipeline.getProcessedImage(for: subRequest)
             .subscribe(self) { [weak self] image, isCompleted, _ in
                 self?.processImage(image, isCompleted: isCompleted, processor: processor, request: subRequest)
             }

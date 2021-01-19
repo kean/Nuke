@@ -84,7 +84,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
     }
 
     func loadDecompressedImage() {
-        dependency = pipeline.getProcessedImage(for: request).publisher.subscribe(self) { [weak self] image, isCompleted, _ in
+        dependency = pipeline.getProcessedImage(for: request).subscribe(self) { [weak self] image, isCompleted, _ in
             self?.storeDecompressedImageInDataCache(image)
             self?.decompressProcessedImage(image, isCompleted: isCompleted)
         }

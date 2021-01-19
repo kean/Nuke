@@ -58,16 +58,13 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         }
     }
 
-    /// Publishes the results of the task.
-    var publisher: Publisher { Publisher(task: self) }
-
     /// Override this to start image task. Only gets called once.
     func start() {}
 
     // MARK: - Managing Observers
 
     /// - notes: Returns `nil` if the task was disposed.
-    private func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
+    func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
         guard !isDisposed else { return nil }
 
         nextSubscriptionId += 1
@@ -86,6 +83,23 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         guard !isDisposed else { return nil }
 
         return subscription
+    }
+
+    /// Attaches the subscriber to the task. Automatically forwards progress
+    /// andd error events to the given task.
+    /// - notes: Returns `nil` if the task is already disposed.
+    func subscribe<NewValue>(_ task: Task<NewValue, Error>, onValue: @escaping (Value, Bool, Task<NewValue, Error>) -> Void) -> TaskSubscription? {
+        subscribe { [weak task] event in
+            guard let task = task else { return }
+            switch event {
+            case let .value(value, isCompleted):
+                onValue(value, isCompleted, task)
+            case let .progress(progress):
+                task.send(progress: progress)
+            case let .error(error):
+                task.send(error: error)
+            }
+        }
     }
 
     // MARK: - TaskSubscriptionDelegate
@@ -163,38 +177,6 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
 
     private func updatePriority() {
         priority = subscriptions.values.map({ $0.priority }).max() ?? .normal
-    }
-}
-
-// MARK: - Task (Publisher)
-
-extension Task {
-    /// Publishes the results of the task.
-    struct Publisher {
-        fileprivate let task: Task
-
-        /// Attaches the subscriber to the task.
-        /// - notes: Returns `nil` if the task is already disposed.
-        func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
-            task.subscribe(priority: priority, observer)
-        }
-
-        /// Attaches the subscriber to the task. Automatically forwards progress
-        /// andd error events to the given task.
-        /// - notes: Returns `nil` if the task is already disposed.
-        func subscribe<NewValue>(_ task: Task<NewValue, Error>, onValue: @escaping (Value, Bool, Task<NewValue, Error>) -> Void) -> TaskSubscription? {
-            subscribe { [weak task] event in
-                guard let task = task else { return }
-                switch event {
-                case let .value(value, isCompleted):
-                    onValue(value, isCompleted, task)
-                case let .progress(progress):
-                    task.send(progress: progress)
-                case let .error(error):
-                    task.send(error: error)
-                }
-            }
-        }
     }
 }
 

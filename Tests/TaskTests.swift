@@ -447,12 +447,6 @@ private struct MyError: Equatable {
     let raw: String
 }
 
-extension Task {
-    func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
-        return publisher.subscribe(priority: priority, observer)
-    }
-}
-
 private final class SimpleTask<T, E>: Task<T, E> {
     private var starter: ((SimpleTask) -> Void)?
 
