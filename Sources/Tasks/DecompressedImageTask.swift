@@ -85,9 +85,8 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
 
     func loadDecompressedImage() {
         dependency = pipeline.getProcessedImage(for: request).publisher.subscribe(self) { [weak self] image, isCompleted, _ in
-            guard let self = self else { return }
-            self.storeDecompressedImageInDataCache(image)
-            self.decompressProcessedImage(image, isCompleted: isCompleted)
+            self?.storeDecompressedImageInDataCache(image)
+            self?.decompressProcessedImage(image, isCompleted: isCompleted)
         }
     }
 
@@ -142,9 +141,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = configuration.makeImageEncoder(context)
-        configuration.imageEncodingQueue.addOperation { [weak self] in
-            guard let self = self else { return }
-
+        configuration.imageEncodingQueue.addOperation {
             let log = Log(self.pipeline.log, "Encode Image")
             log.signpost(.begin)
             let encodedData = encoder.encode(response.container, context: context)
