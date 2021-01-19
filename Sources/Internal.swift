@@ -152,8 +152,18 @@ final class Operation: Foundation.Operation {
     typealias Starter = (_ finish: @escaping () -> Void) -> Void
     private let starter: Starter
 
+    #if TRACK_ALLOCATIONS
+    deinit {
+        Allocations.decrement("Operation")
+    }
+    #endif
+
     init(starter: @escaping Starter) {
         self.starter = starter
+
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("Operation")
+        #endif
     }
 
     override func start() {
@@ -385,16 +395,24 @@ extension Atomic where T: Equatable {
         _value = newValue
         return true
     }
+
+    func map(_ transform: (T) -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+
+        _value = transform(_value)
+        return _value
+    }
 }
 
 extension Atomic where T == Int {
     /// Atomically increments the value and retruns a new incremented value.
-    func increment() -> Int {
-        lock.lock()
-        defer { lock.unlock() }
+    @discardableResult func increment() -> Int {
+        map { $0 + 1 }
+    }
 
-        _value += 1
-        return _value
+    @discardableResult func decrement() -> Int {
+        map { $0 - 1 }
     }
 }
 
@@ -493,3 +511,35 @@ enum SignpostType {
         }
     }
 }
+
+// MARK: - Allocations
+
+#if TRACK_ALLOCATIONS
+enum Allocations {
+    static var allocations = [String: Int]()
+    static let lock = NSLock()
+    static let isPrintingEnabled = false
+
+    static func increment(_ name: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        allocations[name, default: 0] += 1
+        allocations["Total", default: 0] += 1
+
+        if isPrintingEnabled {
+            print("Increment \(name): \(allocations[name] ?? 0) Total: \(allocations["Total"] ?? 0)")
+        }
+    }
+
+    static func decrement(_ name: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        allocations[name, default: 0] -= 1
+        allocations["Total", default: 0] -= 1
+
+        if isPrintingEnabled {
+            print("Decrement \(name): \(allocations[name] ?? 0) Total: \(allocations["Total"] ?? 0)")
+        }
+    }
+}
+#endif

@@ -119,12 +119,12 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = configuration.makeImageEncoder(context)
-        configuration.imageEncodingQueue.addOperation {
-            let encodedData = self.pipeline.signpost("Encode Image") {
+        configuration.imageEncodingQueue.addOperation { [pipeline, request] in
+            let encodedData = pipeline.signpost("Encode Image") {
                 encoder.encode(response.container, context: context)
             }
             guard let data = encodedData else { return }
-            let key = self.request.makeCacheKeyForFinalImageData()
+            let key = request.makeCacheKeyForFinalImageData()
             dataCache.storeData(data, for: key) // This is instant
         }
     }

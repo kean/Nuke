@@ -58,6 +58,16 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         }
     }
 
+    #if TRACK_ALLOCATIONS
+    deinit {
+        Allocations.decrement("Task")
+    }
+
+    init() {
+        Allocations.increment("Task")
+    }
+    #endif
+
     /// Override this to start image task. Only gets called once.
     func start() {}
 
@@ -89,7 +99,8 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     /// andd error events to the given task.
     /// - notes: Returns `nil` if the task is already disposed.
     func subscribe<NewValue>(_ task: Task<NewValue, Error>, onValue: @escaping (Value, Bool) -> Void) -> TaskSubscription? {
-        subscribe { event in
+        subscribe { [weak task] event in
+            guard let task = task else { return }
             switch event {
             case let .value(value, isCompleted):
                 onValue(value, isCompleted)
