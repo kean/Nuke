@@ -295,12 +295,12 @@ final class TaskPool<Value, Error> {
     /// the given key in the pool, the existing task is returned. Tasks are
     /// automatically removed from the pool when they are disposed.
     func task(withKey key: AnyHashable, starter: @escaping (Task<Value, Error>) -> Void) -> Task<Value, Error> {
-        task(withKey: key) {
+        reusableTaskForKey(key) {
             Task<Value, Error>(starter: starter)
         }
     }
 
-    private func task(withKey key: AnyHashable, _ make: () -> Task<Value, Error>) -> Task<Value, Error> {
+    func reusableTaskForKey(_ key: AnyHashable, _ make: () -> Task<Value, Error>) -> Task<Value, Error> {
         guard isDeduplicationEnabled else {
             return make()
         }

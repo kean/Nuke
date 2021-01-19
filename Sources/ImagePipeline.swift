@@ -29,14 +29,15 @@ public /* final */ class ImagePipeline {
     private let decompressedImageFetchTasks: TaskPool<ImageResponse, Error>
     private let processedImageFetchTasks: TaskPool<ImageResponse, Error>
     private let originalImageFetchTasks: TaskPool<ImageResponse, Error>
-    private let dataService: ImageDataService
     private let originalImageDataFetchTasks: TaskPool<(Data, URLResponse?), Error>
+
+    private let imageFetchTaskContext: OriginalImageTaskContext
+    private let imageDataTaskContext: OriginalDataTaskContext
 
     private var nextTaskId = Atomic<Int>(0)
 
-    private let rateLimiter: RateLimiter
-
-    private let log: OSLog
+    let rateLimiter: RateLimiter
+    let log: OSLog
 
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
@@ -61,7 +62,8 @@ public /* final */ class ImagePipeline {
         }
 
         // TODO: temp
-        self.dataService = ImageDataService(configuration: configuration, queue: queue, log: log)
+        self.imageFetchTaskContext = OriginalImageTaskContext(configuration: configuration, queue: queue, log: log)
+        self.imageDataTaskContext = OriginalDataTaskContext(configuration: configuration, queue: queue, log: log)
     }
 
     public convenience init(_ configure: (inout ImagePipeline.Configuration) -> Void) {
@@ -298,7 +300,7 @@ private extension ImagePipeline {
     func startDataTask(_ task: ImageTask,
                        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
                        completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
-        tasks[task] = getOriginalImageData(for: task.request)
+        tasks[task] = getOriginalImageData(for: task.request).publisher
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
@@ -494,7 +496,7 @@ private extension ImagePipeline {
 
     func getProcessedImage(for request: ImageRequest) -> ProcessedImageTask.Publisher {
         guard !request.processors.isEmpty else {
-            return getOriginalImage(for: request) // No processing needed
+            return getOriginalImage(for: request).publisher // No processing needed
         }
 
         let key = request.makeLoadKeyForFinalImage()
@@ -568,269 +570,22 @@ private extension ImagePipeline {
 // MARK: - Get Original Image (Private)
 
 private extension ImagePipeline {
-    typealias OriginalImageTask = Task<ImageResponse, Error>
-
-    final class OriginalImageTaskContext {
-        let request: ImageRequest
-        var decoder: ImageDecoding?
-
-        init(request: ImageRequest) {
-            self.request = request
-        }
-    }
-
-    func getOriginalImage(for request: ImageRequest) -> OriginalImageTask.Publisher {
-        let key = request.makeLoadKeyForOriginalImage()
-        return originalImageFetchTasks.task(withKey: key, starter: { task in
-            let context = OriginalImageTaskContext(request: request)
-            task.dependency = self.getOriginalImageData(for: request)
-                .subscribe(task) { [weak self] value, isCompleted, task in
-                    self?.decodeData(value.0, urlResponse: value.1, isCompleted: isCompleted, task: task, context: context)
-            }
-        }).publisher
-    }
-
-    func decodeData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool, task: OriginalImageTask, context: OriginalImageTaskContext) {
-        if isCompleted {
-            task.operation?.cancel() // Cancel any potential pending progressive decoding tasks
-        } else if !configuration.isProgressiveDecodingEnabled || task.operation != nil {
-            return // Back pressure - already decoding another progressive data chunk
-        }
-
-        // Sanity check
-        guard !data.isEmpty else {
-            if isCompleted {
-                task.send(error: .decodingFailed)
-            }
-            return
-        }
-
-        guard let decoder = self.decoder(for: context, data: data, urlResponse: urlResponse, isCompleted: isCompleted) else {
-            if isCompleted {
-                task.send(error: .decodingFailed)
-            } // Try again when more data is downloaded.
-            return
-        }
-
-        let operation = BlockOperation { [weak self, weak task] in
-            guard let self = self, let task = task else { return }
-
-            let log = Log(self.log, "Decode Image Data")
-            log.signpost(.begin, "\(isCompleted ? "Final" : "Progressive") image")
-            let response = decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted)
-            log.signpost(.end)
-
-            self.queue.async {
-                if let response = response {
-                    task.send(value: response, isCompleted: isCompleted)
-                } else if isCompleted {
-                    task.send(error: .decodingFailed)
-                }
-            }
-        }
-        task.operation = operation
-        configuration.imageDecodingQueue.addOperation(operation)
-    }
-
-    // Lazily creates decoding for task
-    func decoder(for context: OriginalImageTaskContext, data: Data, urlResponse: URLResponse?, isCompleted: Bool) -> ImageDecoding? {
-        // Return the existing processor in case it has already been created.
-        if let decoder = context.decoder {
-            return decoder
-        }
-        let decoderContext = ImageDecodingContext(request: context.request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
-        let decoder = configuration.makeImageDecoder(decoderContext)
-        context.decoder = decoder
-        return decoder
+    func getOriginalImage(for request: ImageRequest) -> OriginalImageTask {
+        // TODO: fix generics
+        originalImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
+            OriginalImageTask(context: imageFetchTaskContext, request: request, dependency: getOriginalImageData(for: request))
+        } as! OriginalImageTask // swiftlint:disable:this all
     }
 }
 
 // MARK: - Get Original Image Data (Private)
 
 private extension ImagePipeline {
-    typealias OriginalImageDataTask = Task<(Data, URLResponse?), Error>
-
-    final class OriginalImageDataTaskContext {
-        let request: ImageRequest
-        var urlResponse: URLResponse?
-        var resumableData: ResumableData?
-        var resumedDataCount: Int64 = 0
-        lazy var data = Data()
-
-        init(request: ImageRequest) {
-            self.request = request
-        }
-    }
-
-    func getOriginalImageData(for request: ImageRequest) -> OriginalImageDataTask.Publisher {
-        let key = request.makeLoadKeyForOriginalImage()
-        return originalImageDataFetchTasks.task(withKey: key, starter: { task in
-            let context = OriginalImageDataTaskContext(request: request)
-            if self.configuration.isRateLimiterEnabled {
-                // Rate limiter is synchronized on pipeline's queue. Delayed work is
-                // executed asynchronously also on this same queue.
-                self.rateLimiter.execute { [weak self, weak task] in
-                    guard let self = self, let task = task, !task.isDisposed else {
-                        return false
-                    }
-                    self.performOriginalImageDataTask(task, context: context)
-                    return true
-                }
-            } else { // Start loading immediately.
-                self.performOriginalImageDataTask(task, context: context)
-            }
-        }).publisher
-    }
-
-    func performOriginalImageDataTask(_ task: OriginalImageDataTask, context: OriginalImageDataTaskContext) {
-        guard let cache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData), context.request.cachePolicy != .reloadIgnoringCachedData else {
-            loadImageData(for: task, context: context) // Skip disk cache lookup, load data
-            return
-        }
-
-        let key = cacheKey(for: context.request, item: .originalImageData)
-        let operation = BlockOperation { [weak self, weak task] in
-            guard let self = self, let task = task else { return }
-
-            let log = Log(self.log, "Read Cached Image Data")
-            log.signpost(.begin)
-            let data = cache.cachedData(for: key)
-            log.signpost(.end)
-
-            self.queue.async {
-                if let data = data {
-                    task.send(value: (data, nil), isCompleted: true)
-                } else {
-                    self.loadImageData(for: task, context: context)
-                }
-            }
-        }
-        task.operation = operation
-        configuration.dataCachingQueue.addOperation(operation)
-    }
-
-    func loadImageData(for task: OriginalImageDataTask, context: OriginalImageDataTaskContext) {
-        // Wrap data request in an operation to limit maximum number of
-        // concurrent data tasks.
-        let operation = Operation(starter: { [weak self, weak task] finish in
-            guard let self = self, let task = task else {
-                return finish()
-            }
-            self.queue.async {
-                self.loadImageData(for: task, context: context, finish: finish)
-            }
-        })
-        configuration.dataLoadingQueue.addOperation(operation)
-        task.operation = operation
-    }
-
-    // This methods gets called inside data loading operation (Operation).
-    func loadImageData(for task: OriginalImageDataTask, context: OriginalImageDataTaskContext, finish: @escaping () -> Void) {
-        guard !task.isDisposed else {
-            return finish() // Task was cancelled by the time it got a chance to start
-        }
-
-        var urlRequest = context.request.urlRequest
-
-        // Read and remove resumable data from cache (we're going to insert it
-        // back in the cache if the request fails to complete again).
-        if configuration.isResumableDataEnabled,
-            let resumableData = ResumableData.removeResumableData(for: urlRequest) {
-            // Update headers to add "Range" and "If-Range" headers
-            resumableData.resume(request: &urlRequest)
-            // Save resumable data to be used later (before using it, the pipeline
-            // verifies that the server returns "206 Partial Content")
-            context.resumableData = resumableData
-        }
-
-        let log = Log(self.log, "Load Image Data")
-        log.signpost(.begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Log.bytes(context.resumableData?.data.count ?? 0))")
-
-        let dataTask = configuration.dataLoader.loadData(
-            with: urlRequest,
-            didReceiveData: { [weak self, weak task] data, response in
-                guard let self = self, let task = task else { return }
-                self.queue.async {
-                    self.imageDataLoadingTask(task, context: context, didReceiveData: data, response: response, log: log)
-                }
-            },
-            completion: { [weak self, weak task] error in
-                finish() // Finish the operation!
-                guard let self = self, let task = task else { return }
-                self.queue.async {
-                    log.signpost(.end, "Finished with size \(Log.bytes(context.data.count))")
-                    self.imageDataLoadingTask(task, context: context, didFinishLoadingDataWithError: error)
-                }
-        })
-
-        task.onCancelled = { [weak self] in
-            guard let self = self else { return }
-
-            log.signpost(.end, "Cancelled")
-            dataTask.cancel()
-            finish() // Finish the operation!
-
-            self.tryToSaveResumableData(for: context)
-        }
-    }
-
-    func imageDataLoadingTask(_ task: OriginalImageDataTask, context: OriginalImageDataTaskContext, didReceiveData chunk: Data, response: URLResponse, log: Log) {
-        // Check if this is the first response.
-        if context.urlResponse == nil {
-            // See if the server confirmed that the resumable data can be used
-            if let resumableData = context.resumableData, ResumableData.isResumedResponse(response) {
-                context.data = resumableData.data
-                context.resumedDataCount = Int64(resumableData.data.count)
-                log.signpost(.event, "Resumed with data \(Log.bytes(context.resumedDataCount))")
-            }
-            context.resumableData = nil // Get rid of resumable data
-        }
-
-        // Append data and save response
-        context.data.append(chunk)
-        context.urlResponse = response
-
-        let progress = TaskProgress(completed: Int64(context.data.count), total: response.expectedContentLength + context.resumedDataCount)
-        task.send(progress: progress)
-
-        // If the image hasn't been fully loaded yet, give decoder a change
-        // to decode the data chunk. In case `expectedContentLength` is `0`,
-        // progressive decoding doesn't run.
-        guard context.data.count < response.expectedContentLength else { return }
-
-        task.send(value: (context.data, response))
-    }
-
-    func imageDataLoadingTask(_ task: OriginalImageDataTask, context: OriginalImageDataTaskContext, didFinishLoadingDataWithError error: Swift.Error?) {
-        if let error = error {
-            tryToSaveResumableData(for: context)
-            task.send(error: .dataLoadingFailed(error))
-            return
-        }
-
-        // Sanity check, should never happen in practice
-        guard !context.data.isEmpty else {
-            task.send(error: .dataLoadingFailed(URLError(.unknown, userInfo: [:])))
-            return
-        }
-
-        // Store in data cache
-        if let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData) {
-            let key = cacheKey(for: context.request, item: .originalImageData)
-            dataCache.storeData(context.data, for: key)
-        }
-
-        task.send(value: (context.data, context.urlResponse), isCompleted: true)
-    }
-
-    func tryToSaveResumableData(for context: OriginalImageDataTaskContext) {
-        // Try to save resumable data in case the task was cancelled
-        // (`URLError.cancelled`) or failed to complete with other error.
-        if configuration.isResumableDataEnabled,
-            let response = context.urlResponse, !context.data.isEmpty,
-            let resumableData = ResumableData(response: response, data: context.data) {
-            ResumableData.storeResumableData(resumableData, for: context.request.urlRequest)
-        }
+    // TODO: fix generics
+    func getOriginalImageData(for request: ImageRequest) -> OriginalDataTask {
+        originalImageDataFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
+            OriginalDataTask(service: imageDataTaskContext, request: request)
+        } as! OriginalDataTask // swiftlint:disable:this all
     }
 }
 
@@ -881,200 +636,3 @@ internal extension ImagePipeline {
     }
 }
 
-private final class ImageDataService {
-    let configuration: ImagePipeline.Configuration
-    let queue: DispatchQueue
-    let rateLimiter: RateLimiter?
-    let log: OSLog
-
-    init(configuration: ImagePipeline.Configuration, queue: DispatchQueue, log: OSLog) {
-        self.configuration = configuration
-        self.queue = queue
-        self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
-        self.log = log
-    }
-}
-
-private final class ImageDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
-    private let service: ImageDataService
-    // TODO: temp
-    private var configuration: ImagePipeline.Configuration { service.configuration }
-    private var queue: DispatchQueue { service.queue }
-    private let request: ImageRequest
-    private var urlResponse: URLResponse?
-    private var resumableData: ResumableData?
-    private var resumedDataCount: Int64 = 0
-    private lazy var data = Data()
-
-    init(service: ImageDataService, request: ImageRequest) {
-        self.service = service
-        self.request = request
-    }
-
-    override func start() {
-        if let rateLimiter = service.rateLimiter {
-            // Rate limiter is synchronized on pipeline's queue. Delayed work is
-            // executed asynchronously also on this same queue.
-            rateLimiter.execute { [weak self] in
-                guard let self = self, !self.isDisposed else {
-                    return false
-                }
-                self.actuallyStart()
-                return true
-            }
-        } else { // Start loading immediately.
-            actuallyStart()
-        }
-    }
-
-    private func actuallyStart() {
-        guard let cache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData), request.cachePolicy != .reloadIgnoringCachedData else {
-            loadImageData() // Skip disk cache lookup, load data
-            return
-        }
-
-        let key = request.makeCacheKeyForOriginalImageData()
-        let operation = BlockOperation { [weak self] in
-            guard let self = self else { return }
-
-            let log = Log(self.service.log, "Read Cached Image Data")
-            log.signpost(.begin)
-            let data = cache.cachedData(for: key)
-            log.signpost(.end)
-
-            self.queue.async {
-                if let data = data {
-                    self.send(value: (data, nil), isCompleted: true)
-                } else {
-                    self.loadImageData()
-                }
-            }
-        }
-        self.operation = operation
-        configuration.dataCachingQueue.addOperation(operation)
-    }
-
-    private func loadImageData() {
-        // Wrap data request in an operation to limit maximum number of
-        // concurrent data tasks.
-        let operation = Operation(starter: { [weak self] finish in
-            guard let self = self else {
-                return finish()
-            }
-            self.queue.async {
-                self.loadImageData(finish: finish)
-            }
-        })
-        configuration.dataLoadingQueue.addOperation(operation)
-        self.operation = operation
-    }
-
-    // This methods gets called inside data loading operation (Operation).
-    private func loadImageData(finish: @escaping () -> Void) {
-        guard !isDisposed else {
-            return finish() // Task was cancelled by the time it got a chance to start
-        }
-
-        var urlRequest = request.urlRequest
-
-        // Read and remove resumable data from cache (we're going to insert it
-        // back in the cache if the request fails to complete again).
-        if configuration.isResumableDataEnabled,
-           let resumableData = ResumableData.removeResumableData(for: urlRequest) {
-            // Update headers to add "Range" and "If-Range" headers
-            resumableData.resume(request: &urlRequest)
-            // Save resumable data to be used later (before using it, the pipeline
-            // verifies that the server returns "206 Partial Content")
-            self.resumableData = resumableData
-        }
-
-        let log = Log(service.log, "Load Image Data")
-        log.signpost(.begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Log.bytes(resumableData?.data.count ?? 0))")
-
-        let dataTask = configuration.dataLoader.loadData(
-            with: urlRequest,
-            didReceiveData: { [weak self] data, response in
-                guard let self = self else { return }
-                self.queue.async {
-                    self.imageDataLoadingTask(didReceiveData: data, response: response, log: log)
-                }
-            },
-            completion: { [weak self] error in
-                finish() // Finish the operation!
-                guard let self = self else { return }
-                self.queue.async {
-                    log.signpost(.end, "Finished with size \(Log.bytes(self.data.count))")
-                    self.imageDataLoadingTaskDidFinish(error: error)
-                }
-            })
-
-        onCancelled = { [weak self] in
-            guard let self = self else { return }
-
-            log.signpost(.end, "Cancelled")
-            dataTask.cancel()
-            finish() // Finish the operation!
-
-            self.tryToSaveResumableData()
-        }
-    }
-
-    private func imageDataLoadingTask(didReceiveData chunk: Data, response: URLResponse, log: Log) {
-        // Check if this is the first response.
-        if urlResponse == nil {
-            // See if the server confirmed that the resumable data can be used
-            if let resumableData = resumableData, ResumableData.isResumedResponse(response) {
-                data = resumableData.data
-                resumedDataCount = Int64(resumableData.data.count)
-                log.signpost(.event, "Resumed with data \(Log.bytes(resumedDataCount))")
-            }
-            resumableData = nil // Get rid of resumable data
-        }
-
-        // Append data and save response
-        data.append(chunk)
-        urlResponse = response
-
-        let progress = TaskProgress(completed: Int64(data.count), total: response.expectedContentLength + resumedDataCount)
-        send(progress: progress)
-
-        // If the image hasn't been fully loaded yet, give decoder a change
-        // to decode the data chunk. In case `expectedContentLength` is `0`,
-        // progressive decoding doesn't run.
-        guard data.count < response.expectedContentLength else { return }
-
-        send(value: (data, response))
-    }
-
-    func imageDataLoadingTaskDidFinish(error: Swift.Error?) {
-        if let error = error {
-            tryToSaveResumableData()
-            send(error: .dataLoadingFailed(error))
-            return
-        }
-
-        // Sanity check, should never happen in practice
-        guard !data.isEmpty else {
-            send(error: .dataLoadingFailed(URLError(.unknown, userInfo: [:])))
-            return
-        }
-
-        // Store in data cache
-        if let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData) {
-            let key = request.makeCacheKeyForOriginalImageData()
-            dataCache.storeData(data, for: key)
-        }
-
-        send(value: (data, urlResponse), isCompleted: true)
-    }
-
-    func tryToSaveResumableData() {
-        // Try to save resumable data in case the task was cancelled
-        // (`URLError.cancelled`) or failed to complete with other error.
-        if configuration.isResumableDataEnabled,
-           let response = urlResponse, !data.isEmpty,
-           let resumableData = ResumableData(response: response, data: data) {
-            ResumableData.storeResumableData(resumableData, for: request.urlRequest)
-        }
-    }
-}
