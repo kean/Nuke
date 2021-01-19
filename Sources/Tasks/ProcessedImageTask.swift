@@ -6,24 +6,22 @@ import Foundation
 import os
 
 final class ProcessedImageTask: Task<ImageResponse, ImagePipeline.Error> {
-    private let context: ImagePipelineContext
+    private let pipeline: ImagePipeline
     // TODO: cleanup
-    private var configuration: ImagePipeline.Configuration { context.configuration }
-    private var queue: DispatchQueue { context.queue }
+    private var configuration: ImagePipeline.Configuration { pipeline.configuration }
+    private var queue: DispatchQueue { pipeline.syncQueue }
     private let request: ImageRequest
 
-    init(context: ImagePipelineContext, request: ImageRequest) {
-        self.context = context
+    init(pipeline: ImagePipeline, request: ImageRequest) {
+        self.pipeline = pipeline
         self.request = request
     }
 
     override func start() {
-        // TODO: cleanup task creation, we should do that on start, should we?
-
         assert(!request.processors.isEmpty)
         guard !isDisposed, !request.processors.isEmpty else { return }
 
-        if let image = context.cachedImage(for: request), !image.isPreview {
+        if let image = pipeline.cachedImage(for: request), !image.isPreview {
             return send(value: ImageResponse(container: image), isCompleted: true)
         }
 
@@ -40,7 +38,7 @@ final class ProcessedImageTask: Task<ImageResponse, ImagePipeline.Error> {
             processor = ImageProcessors.Composition(request.processors)
             subRequest.processors = []
         }
-        dependency = context.getProcessedImage(for: subRequest).publisher
+        dependency = pipeline.getProcessedImage(for: subRequest).publisher
             .subscribe(self) { [weak self] image, isCompleted, _ in
                 self?.processImage(image, isCompleted: isCompleted, processor: processor, request: subRequest)
             }
@@ -61,7 +59,7 @@ final class ProcessedImageTask: Task<ImageResponse, ImagePipeline.Error> {
         let operation = BlockOperation { [weak self] in
             guard let self = self else { return }
 
-            let log = Log(self.context.log, "Process Image")
+            let log = Log(self.pipeline.log, "Process Image")
             log.signpost(.begin, "\(processor), \(isCompleted ? "final" : "progressive") image")
             let context = ImageProcessingContext(request: self.request, response: response, isFinal: isCompleted)
             let response = response.map { processor.process($0, context: context) }

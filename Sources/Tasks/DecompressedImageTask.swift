@@ -6,19 +6,19 @@ import Foundation
 import os
 
 final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
-    private let context: ImagePipelineContext
+    private let pipeline: ImagePipeline
     // TODO: cleanup
-    private var configuration: ImagePipeline.Configuration { context.configuration }
-    private var queue: DispatchQueue { context.queue }
+    private var configuration: ImagePipeline.Configuration { pipeline.configuration }
+    private var queue: DispatchQueue { pipeline.syncQueue }
     private let request: ImageRequest
 
-    init(context: ImagePipelineContext, request: ImageRequest) {
-        self.context = context
+    init(pipeline: ImagePipeline, request: ImageRequest) {
+        self.pipeline = pipeline
         self.request = request
     }
 
     override func start() {
-        if let image = context.cachedImage(for: request) {
+        if let image = pipeline.cachedImage(for: request) {
             let response = ImageResponse(container: image)
             if image.isPreview {
                 send(value: response)
@@ -36,7 +36,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
         let operation = BlockOperation { [weak self] in
             guard let self = self else { return }
 
-            let log = Log(self.context.log, "Read Cached Processed Image Data")
+            let log = Log(self.pipeline.log, "Read Cached Processed Image Data")
             log.signpost(.begin)
             let data = dataCache.cachedData(for: key)
             log.signpost(.end)
@@ -66,7 +66,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
         let operation = BlockOperation { [weak self] in
             guard let self = self else { return }
 
-            let log = Log(self.context.log, "Decode Cached Processed Image Data")
+            let log = Log(self.pipeline.log, "Decode Cached Processed Image Data")
             log.signpost(.begin)
             let response = decoder.decode(data, urlResponse: nil, isCompleted: true)
             log.signpost(.end)
@@ -84,7 +84,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
     }
 
     func loadDecompressedImage() {
-        dependency = context.getProcessedImage(for: request).publisher.subscribe(self) { [weak self] image, isCompleted, _ in
+        dependency = pipeline.getProcessedImage(for: request).publisher.subscribe(self) { [weak self] image, isCompleted, _ in
             guard let self = self else { return }
             self.storeDecompressedImageInDataCache(image)
             self.decompressProcessedImage(image, isCompleted: isCompleted)
@@ -99,7 +99,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
     #else
     func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
         guard isDecompressionNeeded(for: response) else {
-            context.storeResponse(response.container, for: request)
+            pipeline.storeResponse(response.container, for: request)
             send(value: response, isCompleted: isCompleted)
             return
         }
@@ -115,13 +115,13 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
         let operation = BlockOperation { [weak self] in
             guard let self = self else { return }
 
-            let log = Log(self.context.log, "Decompress Image")
+            let log = Log(self.pipeline.log, "Decompress Image")
             log.signpost(.begin, isCompleted ? "Final image" : "Progressive image")
             let response = response.map { $0.map(ImageDecompression.decompress(image:)) } ?? response
             log.signpost(.end)
 
             self.queue.async {
-                self.context.storeResponse(response.container, for: self.request)
+                self.pipeline.storeResponse(response.container, for: self.request)
                 self.send(value: response, isCompleted: isCompleted)
             }
         }
@@ -145,7 +145,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
         configuration.imageEncodingQueue.addOperation { [weak self] in
             guard let self = self else { return }
 
-            let log = Log(self.context.log, "Encode Image")
+            let log = Log(self.pipeline.log, "Encode Image")
             log.signpost(.begin)
             let encodedData = encoder.encode(response.container, context: context)
             log.signpost(.end)

@@ -6,18 +6,18 @@ import Foundation
 import os
 
 final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
-    private let context: ImagePipelineContext
+    private let pipeline: ImagePipeline
     // TODO: temp
-    private var configuration: ImagePipeline.Configuration { context.configuration }
-    private var queue: DispatchQueue { context.queue }
+    private var configuration: ImagePipeline.Configuration { pipeline.configuration }
+    private var queue: DispatchQueue { pipeline.syncQueue }
     private let request: ImageRequest
     private var urlResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
     private lazy var data = Data()
 
-    init(context: ImagePipelineContext, request: ImageRequest) {
-        self.context = context
+    init(pipeline: ImagePipeline, request: ImageRequest) {
+        self.pipeline = pipeline
         self.request = request
     }
 
@@ -25,7 +25,7 @@ final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
         if configuration.isRateLimiterEnabled {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
             // executed asynchronously also on this same queue.
-            context.rateLimiter.execute { [weak self] in
+            pipeline.rateLimiter.execute { [weak self] in
                 guard let self = self, !self.isDisposed else {
                     return false
                 }
@@ -47,7 +47,7 @@ final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
         let operation = BlockOperation { [weak self] in
             guard let self = self else { return }
 
-            let log = Log(self.context.log, "Read Cached Image Data")
+            let log = Log(self.pipeline.log, "Read Cached Image Data")
             log.signpost(.begin)
             let data = cache.cachedData(for: key)
             log.signpost(.end)
@@ -98,7 +98,7 @@ final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
             self.resumableData = resumableData
         }
 
-        let log = Log(context.log, "Load Image Data")
+        let log = Log(pipeline.log, "Load Image Data")
         log.signpost(.begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Log.bytes(resumableData?.data.count ?? 0))")
 
         let dataTask = configuration.dataLoader.loadData(

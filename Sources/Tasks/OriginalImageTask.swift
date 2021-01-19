@@ -6,21 +6,21 @@ import Foundation
 import os
 
 final class OriginalImageTask: Task<ImageResponse, ImagePipeline.Error> {
-    private let context: ImagePipelineContext
+    private let pipeline: ImagePipeline
     // TODO: cleanup
-    private var configuration: ImagePipeline.Configuration { context.configuration }
-    private var queue: DispatchQueue { context.queue }
+    private var configuration: ImagePipeline.Configuration { pipeline.configuration }
+    private var queue: DispatchQueue { pipeline.syncQueue }
     private let request: ImageRequest
     private var decoder: ImageDecoding?
 
-    init(context: ImagePipelineContext, request: ImageRequest) {
-        self.context = context
+    init(pipeline: ImagePipeline, request: ImageRequest) {
+        self.pipeline = pipeline
         self.request = request
     }
 
     override func start() {
         // TODO: cleanup
-        self.dependency = context.getOriginalImageData(for: request)
+        self.dependency = pipeline.getOriginalImageData(for: request)
             .publisher
             .subscribe(self) { [weak self] value, isCompleted, _ in
             self?.on(value, isCompleted: isCompleted)
@@ -53,7 +53,7 @@ final class OriginalImageTask: Task<ImageResponse, ImagePipeline.Error> {
         let operation = BlockOperation { [weak self] in
             guard let self = self else { return }
 
-            let log = Log(self.context.log, "Decode Image Data")
+            let log = Log(self.pipeline.log, "Decode Image Data")
             log.signpost(.begin, "\(isCompleted ? "Final" : "Progressive") image")
             let response = decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted)
             log.signpost(.end)

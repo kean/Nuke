@@ -21,23 +21,22 @@ public /* final */ class ImagePipeline {
     public let configuration: Configuration
     public var observer: ImagePipelineObserving?
 
-    // The queue on which the entire subsystem is synchronized.
-    private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
-
     private var tasks = [ImageTask: TaskSubscription]()
 
-    // TODO: cleanup
     private let decompressedImageFetchTasks: TaskPool<ImageResponse, Error>
     private let processedImageFetchTasks: TaskPool<ImageResponse, Error>
     private let originalImageFetchTasks: TaskPool<ImageResponse, Error>
     private let originalImageDataFetchTasks: TaskPool<(Data, URLResponse?), Error>
 
-    private let context: ImagePipelineContext
-
     private var nextTaskId = Atomic<Int>(0)
 
+    // The queue on which the entire subsystem is synchronized.
+    private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
     let rateLimiter: RateLimiter
     let log: OSLog
+
+    // TODO: cleanup
+    var syncQueue: DispatchQueue { queue }
 
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
@@ -60,8 +59,6 @@ public /* final */ class ImagePipeline {
         } else {
             self.log = .disabled
         }
-
-        self.context = ImagePipelineContext(configuration: configuration, queue: queue)
     }
 
     public convenience init(_ configure: (inout ImagePipeline.Configuration) -> Void) {
@@ -233,7 +230,7 @@ public extension ImagePipeline {
         return configuration.imageCache?[request]
     }
 
-    private func storeResponse(_ image: ImageContainer, for request: ImageRequest) {
+    internal func storeResponse(_ image: ImageContainer, for request: ImageRequest) {
         guard request.options.memoryCacheOptions.isWriteAllowed,
             !image.isPreview || configuration.isStoringPreviewsInMemoryCache else { return }
         configuration.imageCache?[request] = image
@@ -275,7 +272,7 @@ private extension ImagePipeline {
     func startImageTask(_ task: ImageTask, observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) {
         self.send(.started, task)
 
-        tasks[task] = context.getDecompressedImage(for: task.request)
+        tasks[task] = getDecompressedImage(for: task.request)
             .publisher
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
@@ -299,7 +296,7 @@ private extension ImagePipeline {
     func startDataTask(_ task: ImageTask,
                        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
                        completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
-        tasks[task] = context.getOriginalImageData(for: task.request).publisher
+        tasks[task] = getOriginalImageData(for: task.request).publisher
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
@@ -322,6 +319,48 @@ private extension ImagePipeline {
                         completion(.failure(error))
                     }
                 }
+        }
+    }
+}
+
+// MARK: - Task Factory
+
+// When you request an image, the pipeline creates the following dependency graph:
+//
+// DecompressedImageTask ->
+// ProcessedImageTask ->
+//   ProcessedImageTask* ->
+// OriginalImageTask ->
+// OriginalImageDataTask
+//
+// Each task represents a resource to be retrieved - processed image, original image, etc.
+// Each task can be reuse of the same resource requested multiple times.
+
+extension ImagePipeline {
+    func getDecompressedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
+        decompressedImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForFinalImage()) {
+            DecompressedImageTask(pipeline: self, request: request)
+        }
+    }
+
+    func getProcessedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
+        guard !request.processors.isEmpty else {
+            return getOriginalImage(for: request) // No processing needed
+        }
+        return processedImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForFinalImage()) {
+            ProcessedImageTask(pipeline: self, request: request)
+        }
+    }
+
+    func getOriginalImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
+        originalImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
+            OriginalImageTask(pipeline: self, request: request)
+        }
+    }
+
+    func getOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error> {
+        originalImageDataFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
+            OriginalDataTask(pipeline: self, request: request)
         }
     }
 }
@@ -370,112 +409,5 @@ public extension ImagePipeline {
 internal extension ImagePipeline {
     var taskCount: Int {
         return tasks.count
-    }
-}
-
-// Context with dependencies for executing private pipeline tasks.
-final class ImagePipelineContext {
-    let configuration: ImagePipeline.Configuration
-    let rateLimiter: RateLimiter
-    let queue: DispatchQueue
-    let log: OSLog
-
-    private let decompressedImageFetchTasks: TaskPool<ImageResponse, ImagePipeline.Error>
-    private let processedImageFetchTasks: TaskPool<ImageResponse, ImagePipeline.Error>
-    private let originalImageFetchTasks: TaskPool<ImageResponse, ImagePipeline.Error>
-    private let originalImageDataFetchTasks: TaskPool<(Data, URLResponse?), ImagePipeline.Error>
-
-    /// Initializes `ImagePipeline` instance with the given configuration.
-    ///
-    /// - parameter configuration: `Configuration()` by default.
-    public init(configuration: ImagePipeline.Configuration, queue: DispatchQueue) {
-        self.configuration = configuration
-        self.rateLimiter = RateLimiter(queue: queue)
-        self.queue = queue
-
-        let isDeduplicationEnabled = configuration.isDeduplicationEnabled
-        self.decompressedImageFetchTasks = TaskPool(isDeduplicationEnabled)
-        self.processedImageFetchTasks = TaskPool(isDeduplicationEnabled)
-        self.originalImageFetchTasks = TaskPool(isDeduplicationEnabled)
-        self.originalImageDataFetchTasks = TaskPool(isDeduplicationEnabled)
-
-        if ImagePipeline.Configuration.isSignpostLoggingEnabled {
-            self.log = OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading")
-        } else {
-            self.log = .disabled
-        }
-    }
-
-    // MARK: - Task Factory
-
-    // When you request an image, the pipeline creates the following dependency graph:
-    //
-    // DecompressedImageTask ->
-    // ProcessedImageTask ->
-    //   ProcessedImageTask* ->
-    // OriginalImageTask ->
-    // OriginalImageDataTask
-    //
-    // Each task represents a resource to be retrieved - processed image, original image, etc.
-    // Each task can be reuse of the same resource requested multiple times.
-
-    func getDecompressedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
-        decompressedImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForFinalImage()) {
-            DecompressedImageTask(context: self, request: request)
-        }
-    }
-
-    func getProcessedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
-        // TODO: this is not great
-        guard !request.processors.isEmpty else {
-            return getOriginalImage(for: request) // No processing needed
-        }
-        return processedImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForFinalImage()) {
-            ProcessedImageTask(context: self, request: request)
-        }
-    }
-
-    func getOriginalImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
-        originalImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
-            OriginalImageTask(context: self, request: request)
-        }
-    }
-
-    func getOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error> {
-        originalImageDataFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
-            OriginalDataTask(context: self, request: request)
-        }
-    }
-
-    // TODO: cleanup
-
-    /// Returns a cached response from the memory cache.
-    func cachedImage(for url: URL) -> ImageContainer? {
-        cachedImage(for: ImageRequest(url: url))
-    }
-
-    /// Returns a cached response from the memory cache. Returns `nil` if the request disables
-    /// memory cache reads.
-    func cachedImage(for request: ImageRequest) -> ImageContainer? {
-        guard request.options.memoryCacheOptions.isReadAllowed && request.cachePolicy != .reloadIgnoringCachedData else { return nil }
-
-        let request = inheritOptions(request)
-        return configuration.imageCache?[request]
-    }
-
-    func storeResponse(_ image: ImageContainer, for request: ImageRequest) {
-        guard request.options.memoryCacheOptions.isWriteAllowed,
-            !image.isPreview || configuration.isStoringPreviewsInMemoryCache else { return }
-        configuration.imageCache?[request] = image
-    }
-
-    /// Inherits some of the pipeline configuration options like processors.
-    func inheritOptions(_ request: ImageRequest) -> ImageRequest {
-        // Do not manipulate is the request has some processors already.
-        guard request.processors.isEmpty, !configuration.processors.isEmpty else { return request }
-
-        var request = request
-        request.processors = configuration.processors
-        return request
     }
 }
