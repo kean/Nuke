@@ -23,10 +23,10 @@ public /* final */ class ImagePipeline {
 
     private var tasks = [ImageTask: TaskSubscription]()
 
-    private let decompressedImageFetchTasks: TaskPool<ImageResponse, Error>
-    private let processedImageFetchTasks: TaskPool<ImageResponse, Error>
-    private let originalImageFetchTasks: TaskPool<ImageResponse, Error>
-    private let originalImageDataFetchTasks: TaskPool<(Data, URLResponse?), Error>
+    private let decompressedImageTasks: TaskPool<ImageResponse, Error>
+    private let processedImageTasks: TaskPool<ImageResponse, Error>
+    private let originalImageTasks: TaskPool<ImageResponse, Error>
+    private let originalImageDataTasks: TaskPool<(Data, URLResponse?), Error>
 
     private var nextTaskId = Atomic<Int>(0)
 
@@ -47,10 +47,10 @@ public /* final */ class ImagePipeline {
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
 
         let isDeduplicationEnabled = configuration.isDeduplicationEnabled
-        self.decompressedImageFetchTasks = TaskPool(isDeduplicationEnabled)
-        self.processedImageFetchTasks = TaskPool(isDeduplicationEnabled)
-        self.originalImageFetchTasks = TaskPool(isDeduplicationEnabled)
-        self.originalImageDataFetchTasks = TaskPool(isDeduplicationEnabled)
+        self.decompressedImageTasks = TaskPool(isDeduplicationEnabled)
+        self.processedImageTasks = TaskPool(isDeduplicationEnabled)
+        self.originalImageTasks = TaskPool(isDeduplicationEnabled)
+        self.originalImageDataTasks = TaskPool(isDeduplicationEnabled)
 
         if Configuration.isSignpostLoggingEnabled {
             self.log = OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading")
@@ -335,29 +335,28 @@ private extension ImagePipeline {
 
 extension ImagePipeline {
     func getDecompressedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
-        decompressedImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForFinalImage()) {
-            DecompressedImageTask(pipeline: self, request: request)
+        decompressedImageTasks.taskForKey(request.makeLoadKeyForFinalImage()) {
+            DecompressedImageTask(self, request)
         }
     }
 
     func getProcessedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
-        guard !request.processors.isEmpty else {
-            return getOriginalImage(for: request) // No processing needed
-        }
-        return processedImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForFinalImage()) {
-            ProcessedImageTask(pipeline: self, request: request)
-        }
+        request.processors.isEmpty ?
+            getOriginalImage(for: request) : // No processing needed
+            processedImageTasks.taskForKey(request.makeLoadKeyForFinalImage()) {
+                ProcessedImageTask(self, request)
+            }
     }
 
     func getOriginalImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
-        originalImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
-            OriginalImageTask(pipeline: self, request: request)
+        originalImageTasks.taskForKey(request.makeLoadKeyForOriginalImage()) {
+            OriginalImageTask(self, request)
         }
     }
 
     func getOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error> {
-        originalImageDataFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
-            OriginalDataTask(pipeline: self, request: request)
+        originalImageDataTasks.taskForKey(request.makeLoadKeyForOriginalImage()) {
+            OriginalDataTask(self, request)
         }
     }
 }

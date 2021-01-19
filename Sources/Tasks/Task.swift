@@ -260,7 +260,7 @@ final class TaskPool<Value, Error> {
     /// Creates a task with the given key. If there is an outstanding task with
     /// the given key in the pool, the existing task is returned. Tasks are
     /// automatically removed from the pool when they are disposed.
-    func reusableTaskForKey(_ key: AnyHashable, _ make: () -> Task<Value, Error>) -> Task<Value, Error> {
+    func taskForKey(_ key: AnyHashable, _ make: () -> Task<Value, Error>) -> Task<Value, Error> {
         guard isDeduplicationEnabled else {
             return make()
         }
