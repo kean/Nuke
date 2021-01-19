@@ -32,7 +32,7 @@ public /* final */ class ImagePipeline {
 
     // The queue on which the entire subsystem is synchronized.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
-    let rateLimiter: RateLimiter
+    let rateLimiter: RateLimiter?
     let log: OSLog
 
     // TODO: cleanup
@@ -46,7 +46,7 @@ public /* final */ class ImagePipeline {
     /// - parameter configuration: `Configuration()` by default.
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
-        self.rateLimiter = RateLimiter(queue: queue)
+        self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
 
         let isDeduplicationEnabled = configuration.isDeduplicationEnabled
         self.decompressedImageFetchTasks = TaskPool(isDeduplicationEnabled)

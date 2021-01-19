@@ -22,10 +22,10 @@ final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
     }
 
     override func start() {
-        if configuration.isRateLimiterEnabled {
+        if let rateLimiter = pipeline.rateLimiter {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
             // executed asynchronously also on this same queue.
-            pipeline.rateLimiter.execute { [weak self] in
+            rateLimiter.execute { [weak self] in
                 guard let self = self, !self.isDisposed else {
                     return false
                 }
