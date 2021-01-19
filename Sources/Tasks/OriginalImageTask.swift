@@ -3,20 +3,19 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import os
 
+/// Receives data from ``OriginalDataTask` and decodes it as it arrives.
 final class OriginalImageTask: ImagePipelineTask<ImageResponse> {
     private var decoder: ImageDecoding?
 
     override func start() {
-        dependency = pipeline.getOriginalImageData(for: request)
-            .subscribe(self) { [weak self] value, isCompleted in
-            self?.on(value, isCompleted: isCompleted)
+        dependency = pipeline.getOriginalImageData(for: request).subscribe(self) { [weak self] in
+            self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
         }
     }
 
-    func on(_ value: (Data, URLResponse?), isCompleted: Bool) {
-        let (data, urlResponse) = value
+    /// Receiving data from `OriginalDataTask`.
+    private func didReceiveData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool) {
         if isCompleted {
             operation?.cancel() // Cancel any potential pending progressive decoding tasks
         } else if !configuration.isProgressiveDecodingEnabled || operation != nil {
@@ -31,17 +30,17 @@ final class OriginalImageTask: ImagePipelineTask<ImageResponse> {
             return
         }
 
-        guard let decoder = self.decoder(data: data, urlResponse: urlResponse, isCompleted: isCompleted) else {
+        guard let decoder = decoder(data: data, urlResponse: urlResponse, isCompleted: isCompleted) else {
             if isCompleted {
                 send(error: .decodingFailed)
             } // Try again when more data is downloaded.
             return
         }
 
-        let operation = BlockOperation { [weak self] in
+        operation = configuration.imageDecodingQueue.add { [weak self] in
             guard let self = self else { return }
 
-            let log = Log(self.pipeline.log, "Decode Image Data")
+            let log = self.pipeline.log("Decode Image Data")
             log.signpost(.begin, "\(isCompleted ? "Final" : "Progressive") image")
             let response = decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted)
             log.signpost(.end)
@@ -54,12 +53,10 @@ final class OriginalImageTask: ImagePipelineTask<ImageResponse> {
                 }
             }
         }
-        self.operation = operation
-        configuration.imageDecodingQueue.addOperation(operation)
     }
 
     // Lazily creates decoding for task
-    func decoder(data: Data, urlResponse: URLResponse?, isCompleted: Bool) -> ImageDecoding? {
+    private func decoder(data: Data, urlResponse: URLResponse?, isCompleted: Bool) -> ImageDecoding? {
         // Return the existing processor in case it has already been created.
         if let decoder = self.decoder {
             return decoder

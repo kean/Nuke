@@ -3,8 +3,9 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import os
 
+/// Receives images from `OriginalDataTask` or intermidiate `ProcessedImageTask`
+/// and applies respective processors.
 final class ProcessedImageTask: ImagePipelineTask<ImageResponse> {
     override func start() {
         assert(!request.processors.isEmpty)
@@ -27,13 +28,12 @@ final class ProcessedImageTask: ImagePipelineTask<ImageResponse> {
             processor = ImageProcessors.Composition(request.processors)
             subRequest.processors = []
         }
-        dependency = pipeline.getProcessedImage(for: subRequest)
-            .subscribe(self) { [weak self] image, isCompleted in
-                self?.processImage(image, isCompleted: isCompleted, processor: processor, request: subRequest)
-            }
+        dependency = pipeline.getProcessedImage(for: subRequest).subscribe(self) { [weak self] in
+            self?.processImage($0, isCompleted: $1, processor: processor)
+        }
     }
 
-    func processImage(_ response: ImageResponse, isCompleted: Bool, processor: ImageProcessing, request: ImageRequest) {
+    private func processImage(_ response: ImageResponse, isCompleted: Bool, processor: ImageProcessing) {
         guard !(ImagePipeline.Configuration._isAnimatedImageDataEnabled && response.image._animatedImageData != nil) else {
             send(value: response, isCompleted: isCompleted)
             return
@@ -45,10 +45,10 @@ final class ProcessedImageTask: ImagePipelineTask<ImageResponse> {
             return  // Back pressure - already processing another progressive image
         }
 
-        let operation = BlockOperation { [weak self] in
+        operation = configuration.imageProcessingQueue.add { [weak self] in
             guard let self = self else { return }
 
-            let log = Log(self.pipeline.log, "Process Image")
+            let log = self.pipeline.log("Process Image")
             log.signpost(.begin, "\(processor), \(isCompleted ? "final" : "progressive") image")
             let context = ImageProcessingContext(request: self.request, response: response, isFinal: isCompleted)
             let response = response.map { processor.process($0, context: context) }
@@ -64,7 +64,5 @@ final class ProcessedImageTask: ImagePipelineTask<ImageResponse> {
                 self.send(value: response, isCompleted: isCompleted)
             }
         }
-        self.operation = operation
-        configuration.imageProcessingQueue.addOperation(operation)
     }
 }
