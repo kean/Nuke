@@ -38,7 +38,7 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         }
     }
 
-    func decodeProcessedImageData(_ data: Data) {
+    private func decodeProcessedImageData(_ data: Data) {
         guard !isDisposed else { return }
 
         let decoderContext = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
@@ -63,7 +63,7 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         }
     }
 
-    func loadDecompressedImage() {
+    private func loadDecompressedImage() {
         dependency = pipeline.getProcessedImage(for: request).subscribe(self) { [weak self] in
             self?.storeDecompressedImageInDataCache($0)
             self?.decompressProcessedImage($0, isCompleted: $1)
@@ -71,12 +71,12 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
     }
 
     #if os(macOS)
-    func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
+    private func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
         pipeline.storeResponse(response.container, for: request)
         send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
     }
     #else
-    func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
+    private func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
         guard isDecompressionNeeded(for: response) else {
             pipeline.storeResponse(response.container, for: request)
             send(value: response, isCompleted: isCompleted)
@@ -106,14 +106,14 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         }
     }
 
-    func isDecompressionNeeded(for response: ImageResponse) -> Bool {
+    private func isDecompressionNeeded(for response: ImageResponse) -> Bool {
         return configuration.isDecompressionEnabled &&
             ImageDecompression.isDecompressionNeeded(for: response.image) ?? false &&
             !(ImagePipeline.Configuration._isAnimatedImageDataEnabled && response.image._animatedImageData != nil)
     }
     #endif
 
-    func storeDecompressedImageInDataCache(_ response: ImageResponse) {
+    private func storeDecompressedImageInDataCache(_ response: ImageResponse) {
         guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage), !response.container.isPreview else {
             return
         }
