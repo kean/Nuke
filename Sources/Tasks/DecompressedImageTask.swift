@@ -22,9 +22,9 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         }
 
         // Load processed image from data cache and decompress it.
-        let key = request.makeCacheKeyForFinalImageData()
         operation = configuration.dataCachingQueue.add { [weak self] in
             guard let self = self else { return }
+            let key = self.request.makeCacheKeyForFinalImageData()
             let data = self.pipeline.signpost("Read Cached Processed Image Data") {
                 dataCache.cachedData(for: key)
             }
