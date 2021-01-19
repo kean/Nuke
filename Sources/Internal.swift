@@ -527,9 +527,8 @@ enum Allocations {
     static let lock = NSLock()
     static var timer: Timer?
 
-    // TODO: pass via environment settings
-    static let isPrintingEnabled = false
-    static let isTimerEnabled = false
+    static let isPrintingEnabled = ProcessInfo.processInfo.environment["NUKE_PRINT_ALL_ALLOCATIONS"] != nil
+    static let isTimerEnabled = ProcessInfo.processInfo.environment["NUKE_ALLOCATIONS_PERIODIC_LOG"] != nil
 
     static func increment(_ name: String) {
         lock.lock()
