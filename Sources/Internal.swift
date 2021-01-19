@@ -568,7 +568,7 @@ enum Allocations {
             .map { "\($0.key): \($0.value)" }
             .sorted()
             .joined(separator: " ")
-        print("Allocations: \(totalAllocationCount) – \(allocations)")
+        print("Allocations: \(totalAllocationCount) \(allocations)")
     }
 }
 #endif

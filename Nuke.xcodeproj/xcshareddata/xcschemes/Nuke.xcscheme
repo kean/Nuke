@@ -83,12 +83,12 @@
          <EnvironmentVariable
             key = "NUKE_PRINT_ALL_ALLOCATIONS"
             value = "true"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "NUKE_ALLOCATIONS_PERIODIC_LOG"
             value = "true"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </EnvironmentVariable>
       </EnvironmentVariables>
    </LaunchAction>

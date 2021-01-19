@@ -19,6 +19,28 @@ class ImagePipelineTests: XCTestCase {
         }
     }
 
+    override func tearDown() {
+        super.tearDown()
+
+        dataLoader = nil
+        pipeline = nil
+
+        #if TRACK_ALLOCATIONS
+        Allocations.printAllocations()
+        #endif
+    }
+
+    func waitAndDeinitPipeline() {
+        #if TRACK_ALLOCATIONS
+        let expectation = self.expectation(description: "ImagePipelineDeallocated")
+        pipeline.onDeinit = {
+            expectation.fulfill()
+        }
+        pipeline = nil
+        wait()
+        #endif
+    }
+
     // MARK: - Completion
 
     func testCompletionCalledAsynchronouslyOnMainThread() {
@@ -29,6 +51,9 @@ class ImagePipelineTests: XCTestCase {
         }
         XCTAssertFalse(isCompleted)
         wait()
+
+        // Cleanup
+        waitAndDeinitPipeline()
     }
 
     // MARK: - Progress
@@ -43,6 +68,7 @@ class ImagePipelineTests: XCTestCase {
 
         // When
         let expectedProgress = expectProgress([(10, 20), (20, 20)])
+        let expectedCompletion = expectation(description: "ImageLoaded")
 
         pipeline.loadImage(
             with: request,
@@ -50,10 +76,15 @@ class ImagePipelineTests: XCTestCase {
                 // Then
                 XCTAssertTrue(Thread.isMainThread)
                 expectedProgress.received((completed, total))
+            },
+            completion: { _ in
+                expectedCompletion.fulfill()
             }
         )
-
         wait()
+
+        // Cleanup
+        waitAndDeinitPipeline()
     }
 
     func testProgressObjectIsUpdated() {
@@ -77,8 +108,10 @@ class ImagePipelineTests: XCTestCase {
         self.expect(values: [10, 20], for: task.progress, keyPath: \.completedUnitCount) { _, _ in
             XCTAssertTrue(Thread.isMainThread)
         }
-
         wait()
+
+        // Cleanup
+        waitAndDeinitPipeline()
     }
 
     // MARK: - Callback Queues
@@ -98,6 +131,9 @@ class ImagePipelineTests: XCTestCase {
             expectation.fulfill()
         })
         wait()
+
+        // Cleanup
+        waitAndDeinitPipeline()
     }
 
     func testChangingCallbackQueueLoadData() {
@@ -115,6 +151,9 @@ class ImagePipelineTests: XCTestCase {
             expectation.fulfill()
         })
         wait()
+
+        // Cleanup
+        waitAndDeinitPipeline()
     }
 
     // MARK: - Animated Images
@@ -138,8 +177,9 @@ class ImagePipelineTests: XCTestCase {
             let image = result.value?.image
             XCTAssertNotNil(image?._animatedImageData)
         }
-        wait()
 
+        // Cleanup
+        waitAndDeinitPipeline()
         ImagePipeline.Configuration._isAnimatedImageDataEnabled = false
     }
 
@@ -166,6 +206,10 @@ class ImagePipelineTests: XCTestCase {
         task.priority = .high
 
         wait()
+
+        // Cleanup
+        queue.isSuspended = false
+        waitAndDeinitPipeline()
     }
 
     func testDecodingPriorityUpdated() {
@@ -189,6 +233,10 @@ class ImagePipelineTests: XCTestCase {
         task.priority = .high
 
         wait()
+
+        // Cleanup
+        queue.isSuspended = false
+        waitAndDeinitPipeline()
     }
 
     func testProcessingPriorityUpdated() {
@@ -212,6 +260,10 @@ class ImagePipelineTests: XCTestCase {
         task.priority = .high
 
         wait()
+
+        // Cleanup
+        queue.isSuspended = false
+        waitAndDeinitPipeline()
     }
 
     // MARK: - Cancellation
@@ -228,7 +280,11 @@ class ImagePipelineTests: XCTestCase {
         expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
         task.cancel()
         wait()
-    }
+
+        // Cleanup
+        dataLoader.queue.isSuspended = false
+        waitAndDeinitPipeline()
+     }
 
     func testDecodingOperationCancelled() {
         // Given
@@ -253,6 +309,10 @@ class ImagePipelineTests: XCTestCase {
         task.cancel()
 
         wait()
+
+        // Cleanup
+        queue.isSuspended = false
+        waitAndDeinitPipeline()
     }
 
     func testProcessingOperationCancelled() {
@@ -281,6 +341,10 @@ class ImagePipelineTests: XCTestCase {
         task.cancel()
 
         wait()
+
+        // Cleanup
+        queue.isSuspended = false
+        waitAndDeinitPipeline()
     }
 
     // MARK: Decompression
@@ -316,6 +380,9 @@ class ImagePipelineTests: XCTestCase {
             XCTAssertEqual(isDecompressionNeeded, true)
         }
         wait()
+
+        // Cleanup
+        waitAndDeinitPipeline()
     }
 
     func testDecompression() {
@@ -344,6 +411,9 @@ class ImagePipelineTests: XCTestCase {
             XCTAssertEqual(isDecompressionNeeded, false)
         }
         wait()
+
+        // Cleanup
+        waitAndDeinitPipeline()
     }
 
     func testDecompressionNotPerformedWhenProcessorWasApplied() {
@@ -362,6 +432,9 @@ class ImagePipelineTests: XCTestCase {
             XCTAssertNil(isDecompressionNeeded)
         }
         wait()
+
+        // Cleanup
+        waitAndDeinitPipeline()
     }
 
     func testDecompressionPerformedWhenProcessorIsAppliedButDoesNothing() {
@@ -378,6 +451,9 @@ class ImagePipelineTests: XCTestCase {
             XCTAssertEqual(isDecompressionNeeded, false)
         }
         wait()
+
+        // Cleanup
+        waitAndDeinitPipeline()
     }
 
     #endif
@@ -398,8 +474,6 @@ class ImagePipelineTests: XCTestCase {
 
     // ImagePipeline retains itself until there are any pending tasks.
     func testPipelineRetainsItselfWhileTasksPending() {
-        pipeline = nil
-
         let expectation = self.expectation(description: "ImageLoaded")
         ImagePipeline {
             $0.dataLoader = dataLoader
@@ -409,8 +483,12 @@ class ImagePipelineTests: XCTestCase {
             expectation.fulfill()
         }
         wait()
+
+        // Cleanup
+        waitAndDeinitPipeline()
     }
 
+    #if TRACK_ALLOCATIONS
     func testInvalidateAndCancel() {
         // Given
         pipeline.configuration.dataLoadingQueue.isSuspended = true
@@ -425,6 +503,7 @@ class ImagePipelineTests: XCTestCase {
         pipeline = nil
         wait()
     }
+    #endif
 }
 
 /// Test how well image pipeline interacts with memory cache.
