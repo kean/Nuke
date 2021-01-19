@@ -73,7 +73,7 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
     }
 
     func loadDecompressedImage() {
-        dependency = pipeline.getProcessedImage(for: request).subscribe(self) { [weak self] image, isCompleted, _ in
+        dependency = pipeline.getProcessedImage(for: request).subscribe(self) { [weak self] image, isCompleted in
             self?.storeDecompressedImageInDataCache(image)
             self?.decompressProcessedImage(image, isCompleted: isCompleted)
         }

@@ -9,9 +9,8 @@ final class OriginalImageTask: ImagePipelineTask<ImageResponse> {
     private var decoder: ImageDecoding?
 
     override func start() {
-        // TODO: cleanup
-        self.dependency = pipeline.getOriginalImageData(for: request)
-            .subscribe(self) { [weak self] value, isCompleted, _ in
+        dependency = pipeline.getOriginalImageData(for: request)
+            .subscribe(self) { [weak self] value, isCompleted in
             self?.on(value, isCompleted: isCompleted)
         }
     }

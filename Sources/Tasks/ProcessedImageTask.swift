@@ -28,7 +28,7 @@ final class ProcessedImageTask: ImagePipelineTask<ImageResponse> {
             subRequest.processors = []
         }
         dependency = pipeline.getProcessedImage(for: subRequest)
-            .subscribe(self) { [weak self] image, isCompleted, _ in
+            .subscribe(self) { [weak self] image, isCompleted in
                 self?.processImage(image, isCompleted: isCompleted, processor: processor, request: subRequest)
             }
     }

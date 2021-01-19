@@ -88,12 +88,11 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     /// Attaches the subscriber to the task. Automatically forwards progress
     /// andd error events to the given task.
     /// - notes: Returns `nil` if the task is already disposed.
-    func subscribe<NewValue>(_ task: Task<NewValue, Error>, onValue: @escaping (Value, Bool, Task<NewValue, Error>) -> Void) -> TaskSubscription? {
-        subscribe { [weak task] event in
-            guard let task = task else { return }
+    func subscribe<NewValue>(_ task: Task<NewValue, Error>, onValue: @escaping (Value, Bool) -> Void) -> TaskSubscription? {
+        subscribe { event in
             switch event {
             case let .value(value, isCompleted):
-                onValue(value, isCompleted, task)
+                onValue(value, isCompleted)
             case let .progress(progress):
                 task.send(progress: progress)
             case let .error(error):
