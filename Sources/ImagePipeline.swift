@@ -33,6 +33,8 @@ public /* final */ class ImagePipeline {
     // The queue on which the entire subsystem is synchronized.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
     let rateLimiter: RateLimiter?
+
+    // TODO: make private
     let log: OSLog
 
     // TODO: cleanup
@@ -361,6 +363,25 @@ extension ImagePipeline {
         originalImageDataFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
             OriginalDataTask(pipeline: self, request: request)
         }
+    }
+}
+
+extension ImagePipeline {
+    func signpost<T>(_ name: StaticString, _ work: () -> T) -> T {
+        let log = Log(self.log, name)
+        log.signpost(.begin)
+        let result = work()
+        log.signpost(.end)
+        return result
+    }
+
+    func log(_ name: StaticString) -> Log {
+        Log(self.log, name)
+    }
+
+    /// Executes work on the pipeline synchronization queue.
+    func async(_ work: @escaping () -> Void) {
+        queue.async(execute: work)
     }
 }
 

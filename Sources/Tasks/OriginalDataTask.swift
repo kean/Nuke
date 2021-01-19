@@ -3,14 +3,16 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import os
 
+/// Fetches original image data from data cache (`DataCaching`) or data loader
+/// (`DataLoading`) in case data is not available in cache.
 final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
+    // Dependencies
     private let pipeline: ImagePipeline
-    // TODO: temp
     private var configuration: ImagePipeline.Configuration { pipeline.configuration }
-    private var queue: DispatchQueue { pipeline.syncQueue }
     private let request: ImageRequest
+
+    // State
     private var urlResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
@@ -38,45 +40,40 @@ final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
     }
 
     private func actuallyStart() {
-        guard let cache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData), request.cachePolicy != .reloadIgnoringCachedData else {
+        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData), request.cachePolicy != .reloadIgnoringCachedData else {
             loadImageData() // Skip disk cache lookup, load data
             return
         }
+        operation = configuration.dataCachingQueue.add { [weak self] in
+            self?.getCachedData(dataCache: dataCache)
+        }
+    }
 
+    private func getCachedData(dataCache: DataCaching) {
         let key = request.makeCacheKeyForOriginalImageData()
-        let operation = BlockOperation { [weak self] in
-            guard let self = self else { return }
-
-            let log = Log(self.pipeline.log, "Read Cached Image Data")
-            log.signpost(.begin)
-            let data = cache.cachedData(for: key)
-            log.signpost(.end)
-
-            self.queue.async {
-                if let data = data {
-                    self.send(value: (data, nil), isCompleted: true)
-                } else {
-                    self.loadImageData()
-                }
+        let data = pipeline.signpost("Read Cached Image Data") {
+            dataCache.cachedData(for: key)
+        }
+        pipeline.async {
+            if let data = data {
+                self.send(value: (data, nil), isCompleted: true)
+            } else {
+                self.loadImageData()
             }
         }
-        self.operation = operation
-        configuration.dataCachingQueue.addOperation(operation)
     }
 
     private func loadImageData() {
         // Wrap data request in an operation to limit maximum number of
         // concurrent data tasks.
-        let operation = Operation(starter: { [weak self] finish in
+        operation = configuration.dataLoadingQueue.add { [weak self] finish in
             guard let self = self else {
                 return finish()
             }
-            self.queue.async {
+            self.pipeline.async {
                 self.loadImageData(finish: finish)
             }
-        })
-        configuration.dataLoadingQueue.addOperation(operation)
-        self.operation = operation
+        }
     }
 
     // This methods gets called inside data loading operation (Operation).
@@ -98,21 +95,21 @@ final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
             self.resumableData = resumableData
         }
 
-        let log = Log(pipeline.log, "Load Image Data")
+        let log = pipeline.log("Load Image Data")
         log.signpost(.begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Log.bytes(resumableData?.data.count ?? 0))")
 
         let dataTask = configuration.dataLoader.loadData(
             with: urlRequest,
             didReceiveData: { [weak self] data, response in
                 guard let self = self else { return }
-                self.queue.async {
+                self.pipeline.async {
                     self.imageDataLoadingTask(didReceiveData: data, response: response, log: log)
                 }
             },
             completion: { [weak self] error in
                 finish() // Finish the operation!
                 guard let self = self else { return }
-                self.queue.async {
+                self.pipeline.async {
                     log.signpost(.end, "Finished with size \(Log.bytes(self.data.count))")
                     self.imageDataLoadingTaskDidFinish(error: error)
                 }
