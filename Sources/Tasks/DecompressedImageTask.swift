@@ -17,13 +17,13 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
         self.request = request
     }
 
-    func performDecompressedImageFetchTask(_ task: DecompressedImageTask, request: ImageRequest) {
+    override func start() {
         if let image = context.cachedImage(for: request) {
             let response = ImageResponse(container: image)
             if image.isPreview {
-                task.send(value: response)
+                send(value: response)
             } else {
-                return task.send(value: response, isCompleted: true)
+                return send(value: response, isCompleted: true)
             }
         }
 
@@ -49,7 +49,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
                 }
             }
         }
-        task.operation = operation
+        self.operation = operation
         configuration.dataCachingQueue.addOperation(operation)
     }
 
@@ -93,7 +93,7 @@ final class DecompressedImageTask: Task<ImageResponse, ImagePipeline.Error> {
 
     #if os(macOS)
     func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
-        storeResponse(response.container, for: request)
+        storeResponse(response.container)
         task.send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
     }
     #else
