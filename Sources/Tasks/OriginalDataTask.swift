@@ -5,42 +5,27 @@
 import Foundation
 import os
 
-/// Dependencies for `ImageDataTask`.
-final class OriginalDataTaskContext {
-    let configuration: ImagePipeline.Configuration
-    let queue: DispatchQueue
-    let rateLimiter: RateLimiter?
-    let log: OSLog
-
-    init(configuration: ImagePipeline.Configuration, queue: DispatchQueue, log: OSLog) {
-        self.configuration = configuration
-        self.queue = queue
-        self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
-        self.log = log
-    }
-}
-
 final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
-    private let service: OriginalDataTaskContext
+    private let context: ImagePipelineContext
     // TODO: temp
-    private var configuration: ImagePipeline.Configuration { service.configuration }
-    private var queue: DispatchQueue { service.queue }
+    private var configuration: ImagePipeline.Configuration { context.configuration }
+    private var queue: DispatchQueue { context.queue }
     private let request: ImageRequest
     private var urlResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
     private lazy var data = Data()
 
-    init(service: OriginalDataTaskContext, request: ImageRequest) {
-        self.service = service
+    init(context: ImagePipelineContext, request: ImageRequest) {
+        self.context = context
         self.request = request
     }
 
     override func start() {
-        if let rateLimiter = service.rateLimiter {
+        if configuration.isRateLimiterEnabled {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
             // executed asynchronously also on this same queue.
-            rateLimiter.execute { [weak self] in
+            context.rateLimiter.execute { [weak self] in
                 guard let self = self, !self.isDisposed else {
                     return false
                 }
@@ -62,7 +47,7 @@ final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
         let operation = BlockOperation { [weak self] in
             guard let self = self else { return }
 
-            let log = Log(self.service.log, "Read Cached Image Data")
+            let log = Log(self.context.log, "Read Cached Image Data")
             log.signpost(.begin)
             let data = cache.cachedData(for: key)
             log.signpost(.end)
@@ -113,7 +98,7 @@ final class OriginalDataTask: Task<(Data, URLResponse?), ImagePipeline.Error> {
             self.resumableData = resumableData
         }
 
-        let log = Log(service.log, "Load Image Data")
+        let log = Log(context.log, "Load Image Data")
         log.signpost(.begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Log.bytes(resumableData?.data.count ?? 0))")
 
         let dataTask = configuration.dataLoader.loadData(

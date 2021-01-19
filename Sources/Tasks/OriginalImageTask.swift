@@ -5,36 +5,24 @@
 import Foundation
 import os
 
-final class OriginalImageTaskContext {
-    let configuration: ImagePipeline.Configuration
-    let queue: DispatchQueue
-    let log: OSLog
-
-    init(configuration: ImagePipeline.Configuration, queue: DispatchQueue, log: OSLog) {
-        self.configuration = configuration
-        self.queue = queue
-        self.log = log
-    }
-}
-
 final class OriginalImageTask: Task<ImageResponse, ImagePipeline.Error> {
-    private let context: OriginalImageTaskContext
+    private let context: ImagePipelineContext
     // TODO: cleanup
     private var configuration: ImagePipeline.Configuration { context.configuration }
     private var queue: DispatchQueue { context.queue }
     private let request: ImageRequest
     private var decoder: ImageDecoding?
-    private let _dep: OriginalDataTask
 
-    init(context: OriginalImageTaskContext, request: ImageRequest, dependency: OriginalDataTask) {
+    init(context: ImagePipelineContext, request: ImageRequest) {
         self.context = context
         self.request = request
-        self._dep = dependency
     }
 
     override func start() {
-        // TODO:
-        self.dependency = _dep.publisher.subscribe(self) { [weak self] value, isCompleted, _ in
+        // TODO: cleanup
+        self.dependency = context.getOriginalImageData(for: request)
+            .publisher
+            .subscribe(self) { [weak self] value, isCompleted, _ in
             self?.on(value, isCompleted: isCompleted)
         }
     }

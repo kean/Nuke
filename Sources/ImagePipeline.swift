@@ -26,13 +26,13 @@ public /* final */ class ImagePipeline {
 
     private var tasks = [ImageTask: TaskSubscription]()
 
+    // TODO: cleanup
     private let decompressedImageFetchTasks: TaskPool<ImageResponse, Error>
     private let processedImageFetchTasks: TaskPool<ImageResponse, Error>
     private let originalImageFetchTasks: TaskPool<ImageResponse, Error>
     private let originalImageDataFetchTasks: TaskPool<(Data, URLResponse?), Error>
 
-    private let imageFetchTaskContext: OriginalImageTaskContext
-    private let imageDataTaskContext: OriginalDataTaskContext
+    private let context: ImagePipelineContext
 
     private var nextTaskId = Atomic<Int>(0)
 
@@ -61,9 +61,7 @@ public /* final */ class ImagePipeline {
             self.log = .disabled
         }
 
-        // TODO: temp
-        self.imageFetchTaskContext = OriginalImageTaskContext(configuration: configuration, queue: queue, log: log)
-        self.imageDataTaskContext = OriginalDataTaskContext(configuration: configuration, queue: queue, log: log)
+        self.context = ImagePipelineContext(configuration: configuration, queue: queue)
     }
 
     public convenience init(_ configure: (inout ImagePipeline.Configuration) -> Void) {
@@ -300,7 +298,7 @@ private extension ImagePipeline {
     func startDataTask(_ task: ImageTask,
                        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
                        completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
-        tasks[task] = getOriginalImageData(for: task.request).publisher
+        tasks[task] = context.getOriginalImageData(for: task.request).publisher
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
@@ -496,7 +494,7 @@ private extension ImagePipeline {
 
     func getProcessedImage(for request: ImageRequest) -> ProcessedImageTask.Publisher {
         guard !request.processors.isEmpty else {
-            return getOriginalImage(for: request).publisher // No processing needed
+            return context.getOriginalImage(for: request).publisher // No processing needed
         }
 
         let key = request.makeLoadKeyForFinalImage()
@@ -567,28 +565,6 @@ private extension ImagePipeline {
     }
 }
 
-// MARK: - Get Original Image (Private)
-
-private extension ImagePipeline {
-    func getOriginalImage(for request: ImageRequest) -> OriginalImageTask {
-        // TODO: fix generics
-        originalImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
-            OriginalImageTask(context: imageFetchTaskContext, request: request, dependency: getOriginalImageData(for: request))
-        } as! OriginalImageTask // swiftlint:disable:this all
-    }
-}
-
-// MARK: - Get Original Image Data (Private)
-
-private extension ImagePipeline {
-    // TODO: fix generics
-    func getOriginalImageData(for request: ImageRequest) -> OriginalDataTask {
-        originalImageDataFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
-            OriginalDataTask(service: imageDataTaskContext, request: request)
-        } as! OriginalDataTask // swiftlint:disable:this all
-    }
-}
-
 // MARK: - Misc (Private)
 
 private extension ImagePipeline {
@@ -636,3 +612,52 @@ internal extension ImagePipeline {
     }
 }
 
+// Context with dependencies for executing private pipeline tasks.
+final class ImagePipelineContext {
+    let configuration: ImagePipeline.Configuration
+    let rateLimiter: RateLimiter
+    let queue: DispatchQueue
+    let log: OSLog
+
+    private let decompressedImageFetchTasks: TaskPool<ImageResponse, ImagePipeline.Error>
+    private let processedImageFetchTasks: TaskPool<ImageResponse, ImagePipeline.Error>
+    private let originalImageFetchTasks: TaskPool<ImageResponse, ImagePipeline.Error>
+    private let originalImageDataFetchTasks: TaskPool<(Data, URLResponse?), ImagePipeline.Error>
+
+    /// Initializes `ImagePipeline` instance with the given configuration.
+    ///
+    /// - parameter configuration: `Configuration()` by default.
+    public init(configuration: ImagePipeline.Configuration, queue: DispatchQueue) {
+        self.configuration = configuration
+        self.rateLimiter = RateLimiter(queue: queue)
+        self.queue = queue
+
+        let isDeduplicationEnabled = configuration.isDeduplicationEnabled
+        self.decompressedImageFetchTasks = TaskPool(isDeduplicationEnabled)
+        self.processedImageFetchTasks = TaskPool(isDeduplicationEnabled)
+        self.originalImageFetchTasks = TaskPool(isDeduplicationEnabled)
+        self.originalImageDataFetchTasks = TaskPool(isDeduplicationEnabled)
+
+        if ImagePipeline.Configuration.isSignpostLoggingEnabled {
+            self.log = OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading")
+        } else {
+            self.log = .disabled
+        }
+    }
+
+    // MARK: - Task Factory
+
+    func getOriginalImage(for request: ImageRequest) -> OriginalImageTask {
+        // TODO: fix generics
+        originalImageFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
+            OriginalImageTask(context: self, request: request)
+        } as! OriginalImageTask // swiftlint:disable:this all
+    }
+
+    func getOriginalImageData(for request: ImageRequest) -> OriginalDataTask {
+        // TODO: fix generics
+        originalImageDataFetchTasks.reusableTaskForKey(request.makeLoadKeyForOriginalImage()) {
+            OriginalDataTask(context: self, request: request)
+        } as! OriginalDataTask // swiftlint:disable:this all
+    }
+}
