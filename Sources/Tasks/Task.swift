@@ -295,8 +295,4 @@ final class TaskPool<Value, Error> {
         }
         return task
     }
-
-    func invalidate() {
-        map = [:]
-    }
 }

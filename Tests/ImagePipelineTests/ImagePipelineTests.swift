@@ -422,6 +422,7 @@ class ImagePipelineTests: XCTestCase {
         }
 
         pipeline.invalidate()
+        pipeline = nil
         wait()
     }
 }

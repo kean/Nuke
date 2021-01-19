@@ -85,11 +85,6 @@ public /* final */ class ImagePipeline {
             guard !self.isInvalidated else { return }
             self.isInvalidated = true
             self.tasks.keys.forEach(self.cancel)
-
-            self.decompressedImageTasks.invalidate()
-            self.processedImageTasks.invalidate()
-            self.originalImageTasks.invalidate()
-            self.originalImageDataTasks.invalidate()
         }
     }
 
