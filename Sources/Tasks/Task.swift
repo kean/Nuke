@@ -27,13 +27,12 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
 
     /// Returns `true` if the task was either cancelled, or was completed.
     private(set) var isDisposed = false
+    private var isStarted = false
 
     /// Gets called when the task is either cancelled, or was completed.
     var onDisposed: (() -> Void)?
 
     var onCancelled: (() -> Void)?
-
-    private var starter: ((Task) -> Void)?
 
     private var priority: TaskPriority = .normal {
         didSet {
@@ -62,18 +61,7 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     /// Publishes the results of the task.
     var publisher: Publisher { Publisher(task: self) }
 
-    // TODO: temp
-    var isStarted = false
-
-    /// Initializes the task with the `starter`.
-    /// - parameter starter: The closure which gets called as soon as the first
-    /// subscription is added to the task. Only gets called once and is immediatelly
-    /// deallocated after it is called.
-    init(starter: ((Task) -> Void)? = nil) {
-        self.starter = starter
-    }
-
-    /// Override this to start image task
+    /// Override this to start image task. Only gets called once.
     func start() {}
 
     // MARK: - Managing Observers
@@ -93,9 +81,6 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
             isStarted = true
             start()
         }
-
-        starter?(self)
-        starter = nil
 
         // The task may have been completed synchronously by `starter`.
         guard !isDisposed else { return nil }
