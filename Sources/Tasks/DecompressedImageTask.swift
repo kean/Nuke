@@ -3,8 +3,9 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import os
 
+/// Tries to load processed image data from disk and if not available, starts
+/// `ProcessedImageTask` and subscribes to it.
 final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
     override func start() {
         if let image = pipeline.cachedImage(for: request) {
@@ -22,14 +23,11 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
 
         // Load processed image from data cache and decompress it.
         let key = request.makeCacheKeyForFinalImageData()
-        let operation = BlockOperation { [weak self] in
+        operation = configuration.dataCachingQueue.add { [weak self] in
             guard let self = self else { return }
-
-            let log = Log(self.pipeline.log, "Read Cached Processed Image Data")
-            log.signpost(.begin)
-            let data = dataCache.cachedData(for: key)
-            log.signpost(.end)
-
+            let data = self.pipeline.signpost("Read Cached Processed Image Data") {
+                dataCache.cachedData(for: key)
+            }
             self.pipeline.async {
                 if let data = data {
                     self.decodeProcessedImageData(data)
@@ -38,8 +36,6 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
                 }
             }
         }
-        self.operation = operation
-        configuration.dataCachingQueue.addOperation(operation)
     }
 
     func decodeProcessedImageData(_ data: Data) {
@@ -52,14 +48,11 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
             return loadDecompressedImage()
         }
 
-        let operation = BlockOperation { [weak self] in
+        operation = configuration.imageDecodingQueue.add { [weak self] in
             guard let self = self else { return }
-
-            let log = Log(self.pipeline.log, "Decode Cached Processed Image Data")
-            log.signpost(.begin)
-            let response = decoder.decode(data, urlResponse: nil, isCompleted: true)
-            log.signpost(.end)
-
+            let response = self.pipeline.signpost("Decode Cached Processed Image Data") {
+                decoder.decode(data, urlResponse: nil, isCompleted: true)
+            }
             self.pipeline.async {
                 if let response = response {
                     self.decompressProcessedImage(response, isCompleted: true)
@@ -68,21 +61,19 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
                 }
             }
         }
-        self.operation = operation
-        configuration.imageDecodingQueue.addOperation(operation)
     }
 
     func loadDecompressedImage() {
-        dependency = pipeline.getProcessedImage(for: request).subscribe(self) { [weak self] image, isCompleted in
-            self?.storeDecompressedImageInDataCache(image)
-            self?.decompressProcessedImage(image, isCompleted: isCompleted)
+        dependency = pipeline.getProcessedImage(for: request).subscribe(self) { [weak self] in
+            self?.storeDecompressedImageInDataCache($0)
+            self?.decompressProcessedImage($0, isCompleted: $1)
         }
     }
 
     #if os(macOS)
     func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
-        storeResponse(response.container)
-        task.send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
+        pipeline.storeResponse(response.container, for: request)
+        send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
     }
     #else
     func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
@@ -100,10 +91,10 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
 
         guard !isDisposed else { return }
 
-        let operation = BlockOperation { [weak self] in
+        operation = configuration.imageDecompressingQueue.add { [weak self] in
             guard let self = self else { return }
 
-            let log = Log(self.pipeline.log, "Decompress Image")
+            let log = self.pipeline.log("Decompress Image")
             log.signpost(.begin, isCompleted ? "Final image" : "Progressive image")
             let response = response.map { $0.map(ImageDecompression.decompress(image:)) } ?? response
             log.signpost(.end)
@@ -113,8 +104,6 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
                 self.send(value: response, isCompleted: isCompleted)
             }
         }
-        self.operation = operation
-        configuration.imageDecompressingQueue.addOperation(operation)
     }
 
     func isDecompressionNeeded(for response: ImageResponse) -> Bool {
@@ -125,17 +114,15 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
     #endif
 
     func storeDecompressedImageInDataCache(_ response: ImageResponse) {
-        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage) else {
+        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage), !response.container.isPreview else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = configuration.makeImageEncoder(context)
         configuration.imageEncodingQueue.addOperation {
-            let log = Log(self.pipeline.log, "Encode Image")
-            log.signpost(.begin)
-            let encodedData = encoder.encode(response.container, context: context)
-            log.signpost(.end)
-
+            let encodedData = self.pipeline.signpost("Encode Image") {
+                encoder.encode(response.container, context: context)
+            }
             guard let data = encodedData else { return }
             let key = self.request.makeCacheKeyForFinalImageData()
             dataCache.storeData(data, for: key) // This is instant
