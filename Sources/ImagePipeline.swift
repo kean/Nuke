@@ -32,10 +32,9 @@ public /* final */ class ImagePipeline {
 
     // The queue on which the entire subsystem is synchronized.
     private let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
-    let rateLimiter: RateLimiter?
+    private let log: OSLog
 
-    // TODO: make private
-    let log: OSLog
+    let rateLimiter: RateLimiter?
 
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
