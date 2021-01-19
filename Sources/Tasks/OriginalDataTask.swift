@@ -40,10 +40,10 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
 
     private func getCachedData(dataCache: DataCaching) {
         let key = request.makeCacheKeyForOriginalImageData()
-        let data = pipeline.signpost("Read Cached Image Data") {
+        let data = log("Read Cached Image Data").signpost {
             dataCache.cachedData(for: key)
         }
-        pipeline.async {
+        async {
             if let data = data {
                 self.send(value: (data, nil), isCompleted: true)
             } else {
@@ -59,7 +59,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
             guard let self = self else {
                 return finish()
             }
-            self.pipeline.async {
+            self.async {
                 self.loadImageData(finish: finish)
             }
         }
@@ -84,21 +84,21 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
             self.resumableData = resumableData
         }
 
-        let log = pipeline.log("Load Image Data")
+        let log = self.log("Load Image Data")
         log.signpost(.begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Log.bytes(resumableData?.data.count ?? 0))")
 
         let dataTask = configuration.dataLoader.loadData(
             with: urlRequest,
             didReceiveData: { [weak self] data, response in
                 guard let self = self else { return }
-                self.pipeline.async {
+                self.async {
                     self.imageDataLoadingTask(didReceiveData: data, response: response, log: log)
                 }
             },
             completion: { [weak self] error in
                 finish() // Finish the operation!
                 guard let self = self else { return }
-                self.pipeline.async {
+                self.async {
                     log.signpost(.end, "Finished with size \(Log.bytes(self.data.count))")
                     self.imageDataLoadingTaskDidFinish(error: error)
                 }

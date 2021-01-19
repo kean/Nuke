@@ -469,6 +469,13 @@ final class Log {
         }
     }
 
+    func signpost<T>(_ message: @autoclosure () -> String? = nil, _ work: () -> T) -> T {
+        signpost(.begin)
+        let result = work()
+        signpost(.end)
+        return result
+    }
+
     // Unfortunately, there is no way to wrap os_signpost which takes variadic
     // arguments, because Swift implicitly wraps `arguments CVarArg...` from `log`
     // into an array and passes the array to `os_signpost` which is not what
@@ -522,7 +529,7 @@ enum Allocations {
 
     // TODO: pass via environment settings
     static let isPrintingEnabled = false
-    static let isTimerEnabled = true
+    static let isTimerEnabled = false
 
     static func increment(_ name: String) {
         lock.lock()

@@ -25,10 +25,10 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         operation = configuration.dataCachingQueue.add { [weak self] in
             guard let self = self else { return }
             let key = self.request.makeCacheKeyForFinalImageData()
-            let data = self.pipeline.signpost("Read Cached Processed Image Data") {
+            let data = self.log("Read Cached Processed Image Data").signpost {
                 dataCache.cachedData(for: key)
             }
-            self.pipeline.async {
+            self.async {
                 if let data = data {
                     self.decodeProcessedImageData(data)
                 } else {
@@ -50,10 +50,10 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
 
         operation = configuration.imageDecodingQueue.add { [weak self] in
             guard let self = self else { return }
-            let response = self.pipeline.signpost("Decode Cached Processed Image Data") {
+            let response = self.log("Decode Cached Processed Image Data").signpost {
                 decoder.decode(data, urlResponse: nil, isCompleted: true)
             }
-            self.pipeline.async {
+            self.async {
                 if let response = response {
                     self.decompressProcessedImage(response, isCompleted: true)
                 } else {
@@ -94,12 +94,12 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         operation = configuration.imageDecompressingQueue.add { [weak self] in
             guard let self = self else { return }
 
-            let log = self.pipeline.log("Decompress Image")
+            let log = self.log("Decompress Image")
             log.signpost(.begin, isCompleted ? "Final image" : "Progressive image")
             let response = response.map { $0.map(ImageDecompression.decompress(image:)) } ?? response
             log.signpost(.end)
 
-            self.pipeline.async {
+            self.async {
                 self.pipeline.storeResponse(response.container, for: self.request)
                 self.send(value: response, isCompleted: isCompleted)
             }
@@ -119,8 +119,9 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = configuration.makeImageEncoder(context)
-        configuration.imageEncodingQueue.addOperation { [pipeline, request] in
-            let encodedData = pipeline.signpost("Encode Image") {
+        let log = self.log("Encode Image")
+        configuration.imageEncodingQueue.addOperation { [request] in
+            let encodedData = log.signpost {
                 encoder.encode(response.container, context: context)
             }
             guard let data = encodedData else { return }

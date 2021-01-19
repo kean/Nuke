@@ -351,7 +351,7 @@ private extension ImagePipeline {
     }
 }
 
-// MARK: - Task Factory
+// MARK: - Task Factory (Private)
 
 // When you request an image, the pipeline creates the following dependency graph:
 //
@@ -367,7 +367,7 @@ private extension ImagePipeline {
 extension ImagePipeline {
     func getDecompressedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
         decompressedImageTasks.taskForKey(request.makeLoadKeyForFinalImage()) {
-            DecompressedImageTask(self, request)
+            DecompressedImageTask(self, request, queue, log)
         }
     }
 
@@ -375,39 +375,20 @@ extension ImagePipeline {
         request.processors.isEmpty ?
             getOriginalImage(for: request) : // No processing needed
             processedImageTasks.taskForKey(request.makeLoadKeyForFinalImage()) {
-                ProcessedImageTask(self, request)
+                ProcessedImageTask(self, request, queue, log)
             }
     }
 
     func getOriginalImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
         originalImageTasks.taskForKey(request.makeLoadKeyForOriginalImage()) {
-            OriginalImageTask(self, request)
+            OriginalImageTask(self, request, queue, log)
         }
     }
 
     func getOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error> {
         originalImageDataTasks.taskForKey(request.makeLoadKeyForOriginalImage()) {
-            OriginalDataTask(self, request)
+            OriginalDataTask(self, request, queue, log)
         }
-    }
-}
-
-extension ImagePipeline {
-    func signpost<T>(_ name: StaticString, _ work: () -> T) -> T {
-        let log = Log(self.log, name)
-        log.signpost(.begin)
-        let result = work()
-        log.signpost(.end)
-        return result
-    }
-
-    func log(_ name: StaticString) -> Log {
-        Log(self.log, name)
-    }
-
-    /// Executes work on the pipeline synchronization queue.
-    func async(_ work: @escaping () -> Void) {
-        queue.async(execute: work)
     }
 }
 
@@ -452,8 +433,9 @@ public extension ImagePipeline {
 }
 
 // MARK: - Testing
-internal extension ImagePipeline {
+
+extension ImagePipeline {
     var taskCount: Int {
-        return tasks.count
+        tasks.count
     }
 }
