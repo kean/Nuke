@@ -227,7 +227,9 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
     func testBothProcessedAndOriginalImageDataStoredInDataCache() {
         // When
         pipeline.configuration.imageEncodingQueue.isSuspended = true
+        pipeline.configuration.dataCachingQueue.isSuspended = true
         expect(pipeline.configuration.imageEncodingQueue).toFinishWithEnqueuedOperationCount(1)
+        expect(pipeline.configuration.dataCachingQueue).toFinishWithEnqueuedOperationCount(1)
         expect(pipeline).toLoadImage(with: request)
         wait()
 
