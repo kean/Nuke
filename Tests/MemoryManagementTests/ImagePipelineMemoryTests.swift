@@ -36,7 +36,10 @@ class ImagePipelineMemoryTests: XCTestCase {
         dataLoader = nil
 
         #if TRACK_ALLOCATIONS
-        expectDeinitAll()
+        let allDeinitExpectation = self.expectation(description: "AllDeallocated")
+        Allocations.onDeinitAll {
+            allDeinitExpectation.fulfill()
+        }
         wait()
         #endif
     }
