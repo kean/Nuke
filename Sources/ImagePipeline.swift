@@ -41,15 +41,12 @@ public /* final */ class ImagePipeline {
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
 
-    #if TRACK_ALLOCATIONS
-    var onDeinit: (() -> Void)?
-
     deinit {
         ResumableDataStorage.shared.unregister(self)
-        onDeinit?()
+        #if TRACK_ALLOCATIONS
         Allocations.decrement("ImagePipeline")
+        #endif
     }
-    #endif
 
     /// Initializes `ImagePipeline` instance with the given configuration.
     ///
