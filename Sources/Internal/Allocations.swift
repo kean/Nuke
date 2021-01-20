@@ -7,6 +7,7 @@ import Foundation
 #if TRACK_ALLOCATIONS
 enum Allocations {
     static var allocations = [String: Int]()
+    static var total = 0
     static let lock = NSLock()
     static var timer: Timer?
 
@@ -16,10 +17,12 @@ enum Allocations {
     static func increment(_ name: String) {
         lock.lock()
         defer { lock.unlock() }
+
         allocations[name, default: 0] += 1
+        total += 1
 
         if isPrintingEnabled {
-            print("Increment \(name): \(allocations[name] ?? 0) Total: \(totalAllocationCount)")
+            debugPrint("Increment \(name): \(allocations[name] ?? 0) Total: \(totalAllocationCount)")
         }
 
         if isTimerEnabled, timer == nil {
@@ -36,12 +39,13 @@ enum Allocations {
     static func decrement(_ name: String) {
         lock.lock()
         defer { lock.unlock() }
+
         allocations[name, default: 0] -= 1
 
         let totalAllocationCount = self.totalAllocationCount
 
         if isPrintingEnabled {
-            print("Decrement \(name): \(allocations[name] ?? 0) Total: \(totalAllocationCount)")
+            debugPrint("Decrement \(name): \(allocations[name] ?? 0) Total: \(totalAllocationCount)")
         }
 
         if totalAllocationCount == 0 {
@@ -71,7 +75,7 @@ enum Allocations {
             .map { "\($0.key): \($0.value)" }
             .sorted()
             .joined(separator: " ")
-        print("Allocations: \(totalAllocationCount) \(allocations)")
+        debugPrint("Current: \(totalAllocationCount) Overall: \(total) \(allocations)")
     }
 }
 #endif
