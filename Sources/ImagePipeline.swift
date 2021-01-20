@@ -239,7 +239,7 @@ public /* final */ class ImagePipeline {
     }
 }
 
-// MARK: - Image (In-Memory) Cache
+// MARK: - Cache
 
 public extension ImagePipeline {
     /// Returns a cached response from the memory cache.
@@ -261,11 +261,7 @@ public extension ImagePipeline {
             !image.isPreview || configuration.isStoringPreviewsInMemoryCache else { return }
         configuration.imageCache?[request] = image
     }
-}
 
-// MARK: - Data Cache
-
-public extension ImagePipeline {
     /// Returns a key used for disk cache (see `DataCaching`).
     func cacheKey(for request: ImageRequest, item: DataCacheItem) -> String {
         switch item {
@@ -273,11 +269,7 @@ public extension ImagePipeline {
         case .finalImage: return request.makeCacheKeyForFinalImageData()
         }
     }
-}
 
-// MARK: - Cache
-
-public extension ImagePipeline {
     /// Removes cached image from all cache layers.
     func removeCachedImage(for request: ImageRequest) {
         let request = inheritOptions(request)
@@ -292,6 +284,7 @@ public extension ImagePipeline {
         configuration.dataLoader.removeData(for: request.urlRequest)
     }
 }
+
 // MARK: - Starting Image Tasks (Private)
 
 private extension ImagePipeline {
