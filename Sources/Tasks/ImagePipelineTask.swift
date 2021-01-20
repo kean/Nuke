@@ -26,9 +26,4 @@ class ImagePipelineTask<Value>: Task<Value, ImagePipeline.Error> {
     func async(_ work: @escaping () -> Void) {
         queue.async(execute: work)
     }
-
-    /// Creates log with the given name.
-    func log(_ name: StaticString) -> Log {
-        Log(log, name)
-    }
 }

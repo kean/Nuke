@@ -25,7 +25,7 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         operation = configuration.dataCachingQueue.add { [weak self] in
             guard let self = self else { return }
             let key = self.request.makeCacheKeyForFinalImageData()
-            let data = self.log("Read Cached Processed Image Data").signpost {
+            let data = signpost(self.log, "Read Cached Processed Image Data") {
                 dataCache.cachedData(for: key)
             }
             self.async {
@@ -50,7 +50,7 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
 
         operation = configuration.imageDecodingQueue.add { [weak self] in
             guard let self = self else { return }
-            let response = self.log("Decode Cached Processed Image Data").signpost {
+            let response = signpost(self.log, "Decode Cached Processed Image Data") {
                 decoder.decode(data, urlResponse: nil, isCompleted: true)
             }
             self.async {
@@ -94,10 +94,9 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         operation = configuration.imageDecompressingQueue.add { [weak self] in
             guard let self = self else { return }
 
-            let log = self.log("Decompress Image")
-            log.signpost(.begin, isCompleted ? "Final image" : "Progressive image")
-            let response = response.map { $0.map(ImageDecompression.decompress(image:)) } ?? response
-            log.signpost(.end)
+            let response = signpost(self.log, "Decompress Image", isCompleted ? "Final image" : "Progressive image") {
+                response.map { $0.map(ImageDecompression.decompress(image:)) } ?? response
+            }
 
             self.async {
                 self.pipeline.storeResponse(response.container, for: self.request)
@@ -119,9 +118,8 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = configuration.makeImageEncoder(context)
-        let log = self.log("Encode Image")
-        configuration.imageEncodingQueue.addOperation { [request] in
-            let encodedData = log.signpost {
+        configuration.imageEncodingQueue.addOperation { [request, log] in
+            let encodedData = signpost(log, "Encode Image") {
                 encoder.encode(response.container, context: context)
             }
             guard let data = encodedData else { return }

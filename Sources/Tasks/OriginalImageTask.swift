@@ -40,10 +40,9 @@ final class OriginalImageTask: ImagePipelineTask<ImageResponse> {
         operation = configuration.imageDecodingQueue.add { [weak self] in
             guard let self = self else { return }
 
-            let log = self.log("Decode Image Data")
-            log.signpost(.begin, "\(isCompleted ? "Final" : "Progressive") image")
-            let response = decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted)
-            log.signpost(.end)
+            let response = signpost(self.log, "Decode Image Data", isCompleted ? "Final image" : "Progressive image") {
+                decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted)
+            }
 
             self.async {
                 if let response = response {

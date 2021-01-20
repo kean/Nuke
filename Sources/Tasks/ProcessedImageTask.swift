@@ -48,11 +48,10 @@ final class ProcessedImageTask: ImagePipelineTask<ImageResponse> {
         operation = configuration.imageProcessingQueue.add { [weak self] in
             guard let self = self else { return }
 
-            let log = self.log("Process Image")
-            log.signpost(.begin, "\(processor), \(isCompleted ? "final" : "progressive") image")
             let context = ImageProcessingContext(request: self.request, response: response, isFinal: isCompleted)
-            let response = response.map { processor.process($0, context: context) }
-            log.signpost(.end)
+            let response = signpost(self.log, "Process Image", isCompleted ? "Final image" : "Progressive image") {
+                response.map { processor.process($0, context: context) }
+            }
 
             self.async {
                 guard let response = response else {

@@ -40,7 +40,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
 
     private func getCachedData(dataCache: DataCaching) {
         let key = request.makeCacheKeyForOriginalImageData()
-        let data = log("Read Cached Image Data").signpost {
+        let data = signpost(self.log, "Read Cached Image Data") {
             dataCache.cachedData(for: key)
         }
         async {
@@ -84,22 +84,21 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
             self.resumableData = resumableData
         }
 
-        let log = self.log("Load Image Data")
-        log.signpost(.begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Log.bytes(resumableData?.data.count ?? 0))")
+        signpost(self.log, self, "Load Image Data", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
 
         let dataTask = configuration.dataLoader.loadData(
             with: urlRequest,
             didReceiveData: { [weak self] data, response in
                 guard let self = self else { return }
                 self.async {
-                    self.imageDataLoadingTask(didReceiveData: data, response: response, log: log)
+                    self.imageDataLoadingTask(didReceiveData: data, response: response)
                 }
             },
             completion: { [weak self] error in
                 finish() // Finish the operation!
                 guard let self = self else { return }
                 self.async {
-                    log.signpost(.end, "Finished with size \(Log.bytes(self.data.count))")
+                    signpost(self.log, self, "Load Image Data", .end, "Finished with size \(Formatter.bytes(self.data.count))")
                     self.imageDataLoadingTaskDidFinish(error: error)
                 }
             })
@@ -107,7 +106,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
         onCancelled = { [weak self] in
             guard let self = self else { return }
 
-            log.signpost(.end, "Cancelled")
+            signpost(self.log, self, "Load Image Data", .end, "Cancelled")
             dataTask.cancel()
             finish() // Finish the operation!
 
@@ -115,14 +114,14 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
         }
     }
 
-    private func imageDataLoadingTask(didReceiveData chunk: Data, response: URLResponse, log: Log) {
+    private func imageDataLoadingTask(didReceiveData chunk: Data, response: URLResponse) {
         // Check if this is the first response.
         if urlResponse == nil {
             // See if the server confirmed that the resumable data can be used
             if let resumableData = resumableData, ResumableData.isResumedResponse(response) {
                 data = resumableData.data
                 resumedDataCount = Int64(resumableData.data.count)
-                log.signpost(.event, "Resumed with data \(Log.bytes(resumedDataCount))")
+                signpost(self.log, self, "Load Image Data", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
             }
             resumableData = nil // Get rid of resumable data
         }
