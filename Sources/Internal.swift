@@ -42,6 +42,16 @@ final class RateLimiter {
     init(queue: DispatchQueue, rate: Int = 80, burst: Int = 25) {
         self.queue = queue
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
+
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("RateLimiter")
+        #endif
+    }
+
+    deinit {
+        #if TRACK_ALLOCATIONS
+        Allocations.decrement("RateLimiter")
+        #endif
     }
 
     /// - parameter closure: Returns `true` if the close was executed, `false`
@@ -152,8 +162,18 @@ final class Operation: Foundation.Operation {
     typealias Starter = (_ finish: @escaping () -> Void) -> Void
     private let starter: Starter
 
+    #if TRACK_ALLOCATIONS
+    deinit {
+        Allocations.decrement("Operation")
+    }
+    #endif
+
     init(starter: @escaping Starter) {
         self.starter = starter
+
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("Operation")
+        #endif
     }
 
     override func start() {
@@ -176,6 +196,24 @@ final class Operation: Foundation.Operation {
     }
 }
 
+// MARK: - OperationQueue
+
+extension OperationQueue {
+    /// Adds simple `BlockOperation`.
+    func add(_ closure: @escaping () -> Void) -> BlockOperation {
+        let operation = BlockOperation(block: closure)
+        addOperation(operation)
+        return operation
+    }
+
+    /// Adds asynchronous operation (`Nuke.Operation`) with the given starter.
+    func add(_ starter: @escaping Operation.Starter) -> Operation {
+        let operation = Operation(starter: starter)
+        addOperation(operation)
+        return operation
+    }
+}
+
 // MARK: - LinkedList
 
 /// A doubly linked list.
@@ -186,6 +224,16 @@ final class LinkedList<Element> {
 
     deinit {
         removeAll()
+
+        #if TRACK_ALLOCATIONS
+        Allocations.decrement("LinkedList")
+        #endif
+    }
+
+    init() {
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("LinkedList")
+        #endif
     }
 
     var isEmpty: Bool {
@@ -306,26 +354,70 @@ struct ResumableData {
         // "206 Partial Content" (server accepted "If-Range")
         (response as? HTTPURLResponse)?.statusCode == 206
     }
+}
 
-    // MARK: Storing Resumable Data
+/// Shared cache, uses the same memory pool across multiple pipelines.
+final class ResumableDataStorage {
+    static let shared = ResumableDataStorage()
 
-    /// Shared between multiple pipelines. Thread safe. In the future version we
-    /// might feature more customization options.
-    static var cache = Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100)
-    // internal only for testing purposes
+    private let lock = NSLock()
+    private var registeredPipelines = Set<UUID>()
 
-    static func removeResumableData(for request: URLRequest) -> ResumableData? {
-        guard let url = request.url?.absoluteString else {
-            return nil
+    private var cache: Cache<Key, ResumableData>?
+
+    // MARK: Registration
+
+    func register(_ pipeline: ImagePipeline) {
+        lock.lock(); defer { lock.unlock() }
+
+        if registeredPipelines.isEmpty {
+            cache = Cache(costLimit: 32 * 1024 * 1024, countLimit: 100)
         }
-        return cache.removeValue(forKey: url)
+        registeredPipelines.insert(pipeline.id)
     }
 
-    static func storeResumableData(_ data: ResumableData, for request: URLRequest) {
-        guard let url = request.url?.absoluteString else {
-            return
+    func unregister(_ pipeline: ImagePipeline) {
+        lock.lock(); defer { lock.unlock() }
+
+        registeredPipelines.remove(pipeline.id)
+        if registeredPipelines.isEmpty {
+            cache = nil // Deallocate storage
         }
-        cache.set(data, forKey: url, cost: data.data.count)
+    }
+
+    func removeAll() {
+        lock.lock(); defer { lock.unlock() }
+
+        cache?.removeAll()
+    }
+
+    // MARK: Storage
+
+    func removeResumableData(for request: URLRequest, pipeline: ImagePipeline) -> ResumableData? {
+        lock.lock(); defer { lock.unlock() }
+
+        guard let key = Key(request: request, pipeline: pipeline) else { return nil }
+        return cache?.removeValue(forKey: key)
+    }
+
+    func storeResumableData(_ data: ResumableData, for request: URLRequest, pipeline: ImagePipeline) {
+        lock.lock(); defer { lock.unlock() }
+
+        guard let key = Key(request: request, pipeline: pipeline) else { return }
+        cache?.set(data, forKey: key, cost: data.data.count)
+    }
+
+    private struct Key: Hashable {
+        let pipelineId: UUID
+        let url: String
+
+        init?(request: URLRequest, pipeline: ImagePipeline) {
+            guard let url = request.url?.absoluteString else {
+                return nil
+            }
+            self.pipelineId = pipeline.id
+            self.url = url
+        }
     }
 }
 
@@ -338,6 +430,16 @@ final class Atomic<T> {
 
     init(_ value: T) {
         self._value = value
+
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("Atomic")
+        #endif
+    }
+
+    deinit {
+        #if TRACK_ALLOCATIONS
+        Allocations.decrement("Atomic")
+        #endif
     }
 
     var value: T {
@@ -367,16 +469,24 @@ extension Atomic where T: Equatable {
         _value = newValue
         return true
     }
+
+    func map(_ transform: (T) -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+
+        _value = transform(_value)
+        return _value
+    }
 }
 
 extension Atomic where T == Int {
     /// Atomically increments the value and retruns a new incremented value.
-    func increment() -> Int {
-        lock.lock()
-        defer { lock.unlock() }
+    @discardableResult func increment() -> Int {
+        map { $0 + 1 }
+    }
 
-        _value += 1
-        return _value
+    @discardableResult func decrement() -> Int {
+        map { $0 - 1 }
     }
 }
 
@@ -433,6 +543,13 @@ final class Log {
         }
     }
 
+    func signpost<T>(_ message: @autoclosure () -> String? = nil, _ work: () -> T) -> T {
+        signpost(.begin)
+        let result = work()
+        signpost(.end)
+        return result
+    }
+
     // Unfortunately, there is no way to wrap os_signpost which takes variadic
     // arguments, because Swift implicitly wraps `arguments CVarArg...` from `log`
     // into an array and passes the array to `os_signpost` which is not what
@@ -475,3 +592,77 @@ enum SignpostType {
         }
     }
 }
+
+// MARK: - Allocations
+
+#if TRACK_ALLOCATIONS
+enum Allocations {
+    static var allocations = [String: Int]()
+    static let lock = NSLock()
+    static var timer: Timer?
+
+    static let isPrintingEnabled = ProcessInfo.processInfo.environment["NUKE_PRINT_ALL_ALLOCATIONS"] != nil
+    static let isTimerEnabled = ProcessInfo.processInfo.environment["NUKE_ALLOCATIONS_PERIODIC_LOG"] != nil
+
+    static func increment(_ name: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        allocations[name, default: 0] += 1
+
+        if isPrintingEnabled {
+            print("Increment \(name): \(allocations[name] ?? 0) Total: \(totalAllocationCount)")
+        }
+
+        if isTimerEnabled, timer == nil {
+            timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+                Allocations.printAllocations()
+            }
+        }
+    }
+
+    static var totalAllocationCount: Int {
+        allocations.values.reduce(0, +)
+    }
+
+    static func decrement(_ name: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        allocations[name, default: 0] -= 1
+
+        let totalAllocationCount = self.totalAllocationCount
+
+        if isPrintingEnabled {
+            print("Decrement \(name): \(allocations[name] ?? 0) Total: \(totalAllocationCount)")
+        }
+
+        if totalAllocationCount == 0 {
+            _onDeinitAll?()
+            _onDeinitAll = nil
+        }
+    }
+
+    private static var _onDeinitAll: (() -> Void)?
+
+    static func onDeinitAll(_ closure: @escaping () -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if totalAllocationCount == 0 {
+            closure()
+        } else {
+            _onDeinitAll = closure
+        }
+    }
+
+    static func printAllocations() {
+        lock.lock()
+        defer { lock.unlock() }
+        let allocations = self.allocations
+            .filter { $0.value > 0 }
+            .map { "\($0.key): \($0.value)" }
+            .sorted()
+            .joined(separator: " ")
+        print("Allocations: \(totalAllocationCount) \(allocations)")
+    }
+}
+#endif

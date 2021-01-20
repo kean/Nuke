@@ -8,10 +8,10 @@ import XCTest
 class ImagePipelineTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
-    
+
     override func setUp() {
         super.setUp()
-        
+
         dataLoader = MockDataLoader()
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader

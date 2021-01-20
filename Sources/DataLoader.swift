@@ -32,6 +32,10 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
 
     deinit {
         session.invalidateAndCancel()
+
+        #if TRACK_ALLOCATIONS
+        Allocations.decrement("DataLoader")
+        #endif
     }
 
     /// Initializes `DataLoader` with the given configuration.
@@ -44,6 +48,10 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
         self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: queue)
         self.impl.validate = validate
         self.impl.observer = self
+
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("DataLoader")
+        #endif
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set

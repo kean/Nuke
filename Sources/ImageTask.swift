@@ -65,6 +65,12 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     /// A progress handler to be called periodically during the lifetime of a task.
     public typealias ProgressHandler = (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
 
+    #if TRACK_ALLOCATIONS
+    deinit {
+        Allocations.decrement("ImageTask")
+    }
+    #endif
+
     init(taskId: Int, request: ImageRequest, isMainThreadConfined: Bool = false, isDataTask: Bool, queue: DispatchQueue?) {
         self.taskId = taskId
         self.request = request
@@ -73,6 +79,10 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
         self.isDataTask = isDataTask
         self.queue = queue
         lock = isMainThreadConfined ? nil : NSLock()
+
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("ImageTask")
+        #endif
     }
 
     /// Marks task as being cancelled.

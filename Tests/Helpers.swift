@@ -47,9 +47,9 @@ enum Test {
         ImageContainer(image: image)
     }
 
-    static let request = ImageRequest(
-        url: Test.url
-    )
+    static var request: ImageRequest {
+        ImageRequest(url: Test.url)
+    }
 
     static let urlResponse = HTTPURLResponse(
         url: Test.url,

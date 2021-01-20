@@ -159,6 +159,12 @@ public struct ImageRequest: CustomStringConvertible {
         var options: ImageRequestOptions
         var processors: [ImageProcessing]
 
+        deinit {
+            #if TRACK_ALLOCATIONS
+            Allocations.decrement("ImageRequest.Container")
+            #endif
+        }
+
         /// Creates a resource with a default processor.
         init(resource: Resource, processors: [ImageProcessing], cachePolicy: CachePolicy, priority: Priority, options: ImageRequestOptions) {
             self.resource = resource
@@ -166,6 +172,10 @@ public struct ImageRequest: CustomStringConvertible {
             self.cachePolicy = cachePolicy
             self.priority = priority
             self.options = options
+
+            #if TRACK_ALLOCATIONS
+            Allocations.increment("ImageRequest.Container")
+            #endif
         }
 
         /// Creates a copy.
@@ -176,6 +186,10 @@ public struct ImageRequest: CustomStringConvertible {
             self.cachePolicy = ref.cachePolicy
             self.priority = ref.priority
             self.options = ref.options
+
+            #if TRACK_ALLOCATIONS
+            Allocations.increment("ImageRequest.Container")
+            #endif
         }
 
         var preferredURLString: String {
