@@ -22,15 +22,11 @@ func signpost(_ log: OSLog, _ object: AnyObject, _ name: StaticString, _ type: S
 }
 
 func signpost<T>(_ log: OSLog, _ name: StaticString, _ work: () -> T) -> T {
-    if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
+    if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *), ImagePipeline.Configuration.isSignpostLoggingEnabled {
         let signpostId = OSSignpostID(log: log)
-        if ImagePipeline.Configuration.isSignpostLoggingEnabled {
-            os_signpost(.begin, log: log, name: name, signpostID: signpostId)
-        }
+        os_signpost(.begin, log: log, name: name, signpostID: signpostId)
         let result = work()
-        if ImagePipeline.Configuration.isSignpostLoggingEnabled {
-            os_signpost(.end, log: log, name: name, signpostID: signpostId)
-        }
+        os_signpost(.end, log: log, name: name, signpostID: signpostId)
         return result
     } else {
         return work()
@@ -38,15 +34,11 @@ func signpost<T>(_ log: OSLog, _ name: StaticString, _ work: () -> T) -> T {
 }
 
 func signpost<T>(_ log: OSLog, _ name: StaticString, _ message: @autoclosure () -> String, _ work: () -> T) -> T {
-    if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *) {
+    if #available(OSX 10.14, iOS 12.0, watchOS 5.0, tvOS 12.0, *), ImagePipeline.Configuration.isSignpostLoggingEnabled {
         let signpostId = OSSignpostID(log: log)
-        if ImagePipeline.Configuration.isSignpostLoggingEnabled {
-            os_signpost(.begin, log: log, name: name, signpostID: signpostId, "%{public}s", message())
-        }
+        os_signpost(.begin, log: log, name: name, signpostID: signpostId, "%{public}s", message())
         let result = work()
-        if ImagePipeline.Configuration.isSignpostLoggingEnabled {
-            os_signpost(.end, log: log, name: name, signpostID: signpostId)
-        }
+        os_signpost(.end, log: log, name: name, signpostID: signpostId)
         return result
     } else {
         return work()
