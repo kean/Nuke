@@ -13,10 +13,20 @@ class ImagePipelineTests: XCTestCase {
         super.setUp()
         
         dataLoader = MockDataLoader()
-        pipeline = ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-        }
+
+        let configuration = ImagePipeline.Configuration(
+            dataLoader: dataLoader,
+            imageCache: nil
+        )
+
+        pipeline = ImagePipeline(configuration: configuration)
+
+        // Typically you would configure pipeline the following way.
+        // We don't do that in unit tests to avoid allocating shared objects.
+        // pipeline = ImagePipeline {
+        //    $0.dataLoader = dataLoader
+        //    $0.imageCache = nil
+        // }
     }
 
     override func tearDown() {
@@ -31,12 +41,11 @@ class ImagePipelineTests: XCTestCase {
     }
 
     func waitAndDeinitPipeline() {
-        #if TRACK_ALLOCATIONS
-        let expectation = self.expectation(description: "ImagePipelineDeallocated")
-        pipeline.onDeinit = {
-            expectation.fulfill()
-        }
         pipeline = nil
+        dataLoader = nil
+
+        #if TRACK_ALLOCATIONS
+        expectDeinitAll()
         wait()
         #endif
     }

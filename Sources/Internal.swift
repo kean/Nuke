@@ -42,6 +42,16 @@ final class RateLimiter {
     init(queue: DispatchQueue, rate: Int = 80, burst: Int = 25) {
         self.queue = queue
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
+
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("RateLimiter")
+        #endif
+    }
+
+    deinit {
+        #if TRACK_ALLOCATIONS
+        Allocations.decrement("RateLimiter")
+        #endif
     }
 
     /// - parameter closure: Returns `true` if the close was executed, `false`
@@ -214,6 +224,16 @@ final class LinkedList<Element> {
 
     deinit {
         removeAll()
+
+        #if TRACK_ALLOCATIONS
+        Allocations.decrement("LinkedList")
+        #endif
+    }
+
+    init() {
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("LinkedList")
+        #endif
     }
 
     var isEmpty: Bool {
@@ -339,7 +359,7 @@ struct ResumableData {
 
     /// Shared between multiple pipelines. Thread safe. In the future version we
     /// might feature more customization options.
-    static var cache = Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100)
+    static let cache = Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100)
     // internal only for testing purposes
 
     static func removeResumableData(for request: URLRequest) -> ResumableData? {
@@ -366,6 +386,16 @@ final class Atomic<T> {
 
     init(_ value: T) {
         self._value = value
+
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("Atomic")
+        #endif
+    }
+
+    deinit {
+        #if TRACK_ALLOCATIONS
+        Allocations.decrement("Atomic")
+        #endif
     }
 
     var value: T {
@@ -555,8 +585,28 @@ enum Allocations {
         defer { lock.unlock() }
         allocations[name, default: 0] -= 1
 
+        let totalAllocationCount = self.totalAllocationCount
+
         if isPrintingEnabled {
             print("Decrement \(name): \(allocations[name] ?? 0) Total: \(totalAllocationCount)")
+        }
+
+        if totalAllocationCount == 0 {
+            _onDeinitAll?()
+            _onDeinitAll = nil
+        }
+    }
+
+    private static var _onDeinitAll: (() -> Void)?
+
+    static func onDeinitAll(_ closure: @escaping () -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if totalAllocationCount == 0 {
+            closure()
+        } else {
+            _onDeinitAll = closure
         }
     }
 

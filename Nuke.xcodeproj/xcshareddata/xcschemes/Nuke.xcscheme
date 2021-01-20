@@ -88,7 +88,7 @@
          <EnvironmentVariable
             key = "NUKE_ALLOCATIONS_PERIODIC_LOG"
             value = "true"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>
    </LaunchAction>

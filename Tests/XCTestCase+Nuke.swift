@@ -22,6 +22,15 @@ extension XCTestCase {
     func expect(_ pipeline: ImagePipeline) -> TestExpectationImagePipeline {
         return TestExpectationImagePipeline(test: self, pipeline: pipeline)
     }
+
+    func expectDeinitAll() {
+        #if TRACK_ALLOCATIONS
+        let allDeinitExpectation = self.expectation(description: "AllDeallocated")
+        Allocations.onDeinitAll {
+            allDeinitExpectation.fulfill()
+        }
+        #endif
+    }
 }
 
 struct TestExpectationImagePipeline {
