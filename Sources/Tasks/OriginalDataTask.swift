@@ -76,7 +76,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
         // Read and remove resumable data from cache (we're going to insert it
         // back in the cache if the request fails to complete again).
         if configuration.isResumableDataEnabled,
-           let resumableData = ResumableData.removeResumableData(for: urlRequest) {
+           let resumableData = ResumableDataStorage.shared.removeResumableData(for: urlRequest, pipeline: pipeline) {
             // Update headers to add "Range" and "If-Range" headers
             resumableData.resume(request: &urlRequest)
             // Save resumable data to be used later (before using it, the pipeline
@@ -170,7 +170,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
         if configuration.isResumableDataEnabled,
            let response = urlResponse, !data.isEmpty,
            let resumableData = ResumableData(response: response, data: data) {
-            ResumableData.storeResumableData(resumableData, for: request.urlRequest)
+            ResumableDataStorage.shared.storeResumableData(resumableData, for: request.urlRequest, pipeline: pipeline)
         }
     }
 }

@@ -36,6 +36,7 @@ public /* final */ class ImagePipeline {
     private var isInvalidated = false
 
     let rateLimiter: RateLimiter?
+    let id = UUID()
 
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
@@ -44,6 +45,7 @@ public /* final */ class ImagePipeline {
     var onDeinit: (() -> Void)?
 
     deinit {
+        ResumableDataStorage.shared.unregister(self)
         onDeinit?()
         Allocations.decrement("ImagePipeline")
     }
@@ -67,6 +69,8 @@ public /* final */ class ImagePipeline {
         } else {
             self.log = .disabled
         }
+
+        ResumableDataStorage.shared.register(self)
 
         #if TRACK_ALLOCATIONS
         Allocations.increment("ImagePipeline")

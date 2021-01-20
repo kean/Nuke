@@ -354,26 +354,70 @@ struct ResumableData {
         // "206 Partial Content" (server accepted "If-Range")
         (response as? HTTPURLResponse)?.statusCode == 206
     }
+}
 
-    // MARK: Storing Resumable Data
+/// Shared cache, uses the same memory pool across multiple pipelines.
+final class ResumableDataStorage {
+    static let shared = ResumableDataStorage()
 
-    /// Shared between multiple pipelines. Thread safe. In the future version we
-    /// might feature more customization options.
-    static let cache = Cache<String, ResumableData>(costLimit: 32 * 1024 * 1024, countLimit: 100)
-    // internal only for testing purposes
+    private let lock = NSLock()
+    private var registeredPipelines = Set<UUID>()
 
-    static func removeResumableData(for request: URLRequest) -> ResumableData? {
-        guard let url = request.url?.absoluteString else {
-            return nil
+    private var cache: Cache<Key, ResumableData>?
+
+    // MARK: Registration
+
+    func register(_ pipeline: ImagePipeline) {
+        lock.lock(); defer { lock.unlock() }
+
+        if registeredPipelines.isEmpty {
+            cache = Cache(costLimit: 32 * 1024 * 1024, countLimit: 100)
         }
-        return cache.removeValue(forKey: url)
+        registeredPipelines.insert(pipeline.id)
     }
 
-    static func storeResumableData(_ data: ResumableData, for request: URLRequest) {
-        guard let url = request.url?.absoluteString else {
-            return
+    func unregister(_ pipeline: ImagePipeline) {
+        lock.lock(); defer { lock.unlock() }
+
+        registeredPipelines.remove(pipeline.id)
+        if registeredPipelines.isEmpty {
+            cache = nil // Deallocate storage
         }
-        cache.set(data, forKey: url, cost: data.data.count)
+    }
+
+    func removeAll() {
+        lock.lock(); defer { lock.unlock() }
+
+        cache?.removeAll()
+    }
+
+    // MARK: Storage
+
+    func removeResumableData(for request: URLRequest, pipeline: ImagePipeline) -> ResumableData? {
+        lock.lock(); defer { lock.unlock() }
+
+        guard let key = Key(request: request, pipeline: pipeline) else { return nil }
+        return cache?.removeValue(forKey: key)
+    }
+
+    func storeResumableData(_ data: ResumableData, for request: URLRequest, pipeline: ImagePipeline) {
+        lock.lock(); defer { lock.unlock() }
+
+        guard let key = Key(request: request, pipeline: pipeline) else { return }
+        cache?.set(data, forKey: key, cost: data.data.count)
+    }
+
+    private struct Key: Hashable {
+        let pipelineId: UUID
+        let url: String
+
+        init?(request: URLRequest, pipeline: ImagePipeline) {
+            guard let url = request.url?.absoluteString else {
+                return nil
+            }
+            self.pipelineId = pipeline.id
+            self.url = url
+        }
     }
 }
 
