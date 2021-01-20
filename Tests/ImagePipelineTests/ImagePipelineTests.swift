@@ -60,8 +60,6 @@ class ImagePipelineTests: XCTestCase {
 
     func testProgressClosureIsCalled() {
         // Given
-        let request = ImageRequest(url: Test.url)
-
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
@@ -71,7 +69,7 @@ class ImagePipelineTests: XCTestCase {
         let expectedCompletion = expectation(description: "ImageLoaded")
 
         pipeline.loadImage(
-            with: request,
+            with: ImageRequest(url: Test.url),
             progress: { _, completed, total in
                 // Then
                 XCTAssertTrue(Thread.isMainThread)
@@ -193,19 +191,21 @@ class ImagePipelineTests: XCTestCase {
         let request = Test.request
         XCTAssertEqual(request.priority, .normal)
 
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
+        autoreleasepool {
+            let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        let task = pipeline.loadImage(with: request)
-        wait() // Wait till the operation is created.
+            let task = pipeline.loadImage(with: request)
+            wait() // Wait till the operation is created.
 
-        // When/Then
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
+            // When/Then
+            guard let operation = observer.operations.first else {
+                XCTFail("Failed to find operation")
+                return
+            }
+            expect(operation).toUpdatePriority()
+            task.priority = .high
+            wait()
         }
-        expect(operation).toUpdatePriority()
-        task.priority = .high
-
-        wait()
 
         // Cleanup
         queue.isSuspended = false
@@ -220,19 +220,22 @@ class ImagePipelineTests: XCTestCase {
         let request = Test.request
         XCTAssertEqual(request.priority, .normal)
 
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
+        autoreleasepool {
+            let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        let task = pipeline.loadImage(with: request)
-        wait() // Wait till the operation is created.
+            let task = pipeline.loadImage(with: request)
+            wait() // Wait till the operation is created.
 
-        // When/Then
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
+            // When/Then
+            guard let operation = observer.operations.first else {
+                XCTFail("Failed to find operation")
+                return
+            }
+            expect(operation).toUpdatePriority()
+            task.priority = .high
+
+            wait()
         }
-        expect(operation).toUpdatePriority()
-        task.priority = .high
-
-        wait()
 
         // Cleanup
         queue.isSuspended = false
@@ -247,19 +250,21 @@ class ImagePipelineTests: XCTestCase {
         let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
         XCTAssertEqual(request.priority, .normal)
 
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
+        autoreleasepool {
+            let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        let task = pipeline.loadImage(with: request)
-        wait() // Wait till the operation is created.
+            let task = pipeline.loadImage(with: request)
+            wait() // Wait till the operation is created.
 
-        // When/Then
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
+            // When/Then
+            guard let operation = observer.operations.first else {
+                XCTFail("Failed to find operation")
+                return
+            }
+            expect(operation).toUpdatePriority()
+            task.priority = .high
+            wait()
         }
-        expect(operation).toUpdatePriority()
-        task.priority = .high
-
-        wait()
 
         // Cleanup
         queue.isSuspended = false
@@ -271,15 +276,17 @@ class ImagePipelineTests: XCTestCase {
     func testDataLoadingOperationCancelled() {
         dataLoader.queue.isSuspended = true
 
-        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-        let task = pipeline.loadImage(with: Test.request) { _ in
-            XCTFail()
-        }
-        wait() // Wait till operation is created
+        autoreleasepool {
+            expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
+            let task = pipeline.loadImage(with: Test.request) { _ in
+                XCTFail()
+            }
+            wait() // Wait till operation is created
 
-        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
-        task.cancel()
-        wait()
+            expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
+            task.cancel()
+            wait()
+        }
 
         // Cleanup
         dataLoader.queue.isSuspended = false
@@ -291,24 +298,27 @@ class ImagePipelineTests: XCTestCase {
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
 
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
+        autoreleasepool {
+            let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        let request = Test.request
+            let request = Test.request
 
-        let task = pipeline.loadImage(with: request) { _ in
-            XCTFail()
+            let task = pipeline.loadImage(with: request) { _ in
+                XCTFail()
+            }
+            wait() // Wait till operation is created
+
+            // When/Then
+            guard let operation = observer.operations.first else {
+                XCTFail("Failed to find operation")
+                return
+            }
+            expect(operation).toCancel()
+
+            task.cancel()
+
+            wait()
         }
-        wait() // Wait till operation is created
-
-        // When/Then
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-        expect(operation).toCancel()
-
-        task.cancel()
-
-        wait()
 
         // Cleanup
         queue.isSuspended = false
@@ -320,27 +330,29 @@ class ImagePipelineTests: XCTestCase {
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
 
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
+        autoreleasepool {
+            let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        let processor = ImageProcessors.Anonymous(id: "1") {
-            XCTFail()
-            return $0
+            let processor = ImageProcessors.Anonymous(id: "1") {
+                XCTFail()
+                return $0
+            }
+            let request = ImageRequest(url: Test.url, processors: [processor])
+
+            let task = pipeline.loadImage(with: request) { _ in
+                XCTFail()
+            }
+            wait() // Wait till operation is created
+
+            // When/Then
+            let operation = observer.operations.first
+            XCTAssertNotNil(operation)
+            expect(operation!).toCancel()
+
+            task.cancel()
+
+            wait()
         }
-        let request = ImageRequest(url: Test.url, processors: [processor])
-
-        let task = pipeline.loadImage(with: request) { _ in
-            XCTFail()
-        }
-        wait() // Wait till operation is created
-
-        // When/Then
-        let operation = observer.operations.first
-        XCTAssertNotNil(operation)
-        expect(operation!).toCancel()
-
-        task.cancel()
-
-        wait()
 
         // Cleanup
         queue.isSuspended = false

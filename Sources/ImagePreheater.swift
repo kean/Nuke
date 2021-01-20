@@ -44,6 +44,10 @@ public final class ImagePreheater {
         self.pipeline = pipeline
         self.destination = destination
         self.preheatQueue.maxConcurrentOperationCount = maxConcurrentRequestCount
+
+        #if TRACK_ALLOCATIONS
+        Allocations.increment("ImagePreheater")
+        #endif
     }
 
     deinit {
@@ -53,6 +57,10 @@ public final class ImagePreheater {
                 task.cancel()
             }
         }
+
+        #if TRACK_ALLOCATIONS
+        Allocations.decrement("ImagePreheater")
+        #endif
     }
 
     /// Starte preheating images for the given urls.
