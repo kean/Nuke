@@ -14,19 +14,10 @@ class ImagePipelineTests: XCTestCase {
         
         dataLoader = MockDataLoader()
 
-        let configuration = ImagePipeline.Configuration(
-            dataLoader: dataLoader,
-            imageCache: nil
-        )
-
-        pipeline = ImagePipeline(configuration: configuration)
-
-        // Typically you would configure pipeline the following way.
-        // We don't do that in unit tests to avoid allocating shared objects.
-        // pipeline = ImagePipeline {
-        //    $0.dataLoader = dataLoader
-        //    $0.imageCache = nil
-        // }
+        pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
     }
 
     override func tearDown() {
