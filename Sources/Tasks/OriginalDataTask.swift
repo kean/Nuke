@@ -40,7 +40,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
 
     private func getCachedData(dataCache: DataCaching) {
         let key = request.makeCacheKeyForOriginalImageData()
-        let data = signpost(self.log, "Read Cached Image Data") {
+        let data = signpost(self.log, "ReadCachedImageData") {
             dataCache.cachedData(for: key)
         }
         async {
@@ -84,7 +84,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
             self.resumableData = resumableData
         }
 
-        signpost(self.log, self, "Load Image Data", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
+        signpost(self.log, self, "LoadImageData", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
 
         let dataTask = configuration.dataLoader.loadData(
             with: urlRequest,
@@ -98,7 +98,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
                 finish() // Finish the operation!
                 guard let self = self else { return }
                 self.async {
-                    signpost(self.log, self, "Load Image Data", .end, "Finished with size \(Formatter.bytes(self.data.count))")
+                    signpost(self.log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
                     self.imageDataLoadingTaskDidFinish(error: error)
                 }
             })
@@ -106,7 +106,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
         onCancelled = { [weak self] in
             guard let self = self else { return }
 
-            signpost(self.log, self, "Load Image Data", .end, "Cancelled")
+            signpost(self.log, self, "LoadImageData", .end, "Cancelled")
             dataTask.cancel()
             finish() // Finish the operation!
 
@@ -121,7 +121,7 @@ final class OriginalDataTask: ImagePipelineTask<(Data, URLResponse?)> {
             if let resumableData = resumableData, ResumableData.isResumedResponse(response) {
                 data = resumableData.data
                 resumedDataCount = Int64(resumableData.data.count)
-                signpost(self.log, self, "Load Image Data", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
+                signpost(self.log, self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
             }
             resumableData = nil // Get rid of resumable data
         }

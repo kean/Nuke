@@ -25,7 +25,7 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         operation = configuration.dataCachingQueue.add { [weak self] in
             guard let self = self else { return }
             let key = self.request.makeCacheKeyForFinalImageData()
-            let data = signpost(self.log, "Read Cached Processed Image Data") {
+            let data = signpost(self.log, "ReadCachedProcessedImageData") {
                 dataCache.cachedData(for: key)
             }
             self.async {
@@ -50,7 +50,7 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
 
         operation = configuration.imageDecodingQueue.add { [weak self] in
             guard let self = self else { return }
-            let response = signpost(self.log, "Decode Cached Processed Image Data") {
+            let response = signpost(self.log, "DecodeCachedProcessedImageData") {
                 decoder.decode(data, urlResponse: nil, isCompleted: true)
             }
             self.async {
@@ -94,7 +94,7 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         operation = configuration.imageDecompressingQueue.add { [weak self] in
             guard let self = self else { return }
 
-            let response = signpost(self.log, "Decompress Image", isCompleted ? "Final image" : "Progressive image") {
+            let response = signpost(self.log, "DecompressImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 response.map { $0.map(ImageDecompression.decompress(image:)) } ?? response
             }
 
@@ -119,7 +119,7 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = configuration.makeImageEncoder(context)
         configuration.imageEncodingQueue.addOperation { [request, log] in
-            let encodedData = signpost(log, "Encode Image") {
+            let encodedData = signpost(log, "EncodeImage") {
                 encoder.encode(response.container, context: context)
             }
             guard let data = encodedData else { return }
