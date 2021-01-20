@@ -80,7 +80,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -s "Nuke Memery Management Tests" -d "OS=14.2,name=iPhone 11"
+        run: Scripts/test.sh -s "Nuke Memory Management Tests" -d "OS=14.2,name=iPhone 11"
   ios-performance-tests:
     name: Performance Tests
     runs-on: macOS-latest
