@@ -134,10 +134,10 @@ class ImagePipelineMemoryTests: XCTestCase {
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
 
-        let request = Test.request
-        XCTAssertEqual(request.priority, .normal)
-
         autoreleasepool {
+            let request = Test.request
+            XCTAssertEqual(request.priority, .normal)
+
             let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
             let task = pipeline.loadImage(with: request)
@@ -163,10 +163,10 @@ class ImagePipelineMemoryTests: XCTestCase {
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
 
-        let request = Test.request
-        XCTAssertEqual(request.priority, .normal)
-
         autoreleasepool {
+            let request = Test.request
+            XCTAssertEqual(request.priority, .normal)
+
             let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
             let task = pipeline.loadImage(with: request)
@@ -193,10 +193,10 @@ class ImagePipelineMemoryTests: XCTestCase {
         let queue = pipeline.configuration.imageProcessingQueue
         queue.isSuspended = true
 
-        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
-        XCTAssertEqual(request.priority, .normal)
-
         autoreleasepool {
+            let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
+            XCTAssertEqual(request.priority, .normal)
+
             let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
             let task = pipeline.loadImage(with: request)
