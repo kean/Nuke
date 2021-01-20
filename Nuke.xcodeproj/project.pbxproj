@@ -23,6 +23,13 @@
 		0C1ECA501D52811D009063A9 /* ImageViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C94466D1D47EC0E006DB314 /* ImageViewTests.swift */; };
 		0C2A8CF720970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CF620970B790013FD65 /* ImagePipelineResumableDataTests.swift */; };
 		0C2CD6EB25B67FB30017018F /* ImagePipelineTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2CD6EA25B67FB30017018F /* ImagePipelineTask.swift */; };
+		0C2CD7B425B7BFD80017018F /* ImagePipelineMemoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2CD7B325B7BFD80017018F /* ImagePipelineMemoryTests.swift */; };
+		0C2CD7BA25B7C0100017018F /* MockDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockDataLoader.swift */; };
+		0C2CD7C025B7C0200017018F /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068D1BCA888800089D7F /* Helpers.swift */; };
+		0C2CD7C625B7C0280017018F /* XCTestCase+Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C49232820BACA81001DFCC8 /* XCTestCase+Nuke.swift */; };
+		0C2CD7C725B7C0280017018F /* XCTestCaseExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068E1BCA888800089D7F /* XCTestCaseExtensions.swift */; };
+		0C2CD7C825B7C0280017018F /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
+		0C2CD7CE25B7C0780017018F /* fixture.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C09B1651FE9A65600E8FE3B /* fixture.jpeg */; };
 		0C3261F41FEBC232009276AC /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
 		0C3261F51FEBC232009276AC /* MockDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockDataLoader.swift */; };
 		0C3261F71FEBC232009276AC /* MockImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE745741D4767B900123F65 /* MockImageDecoder.swift */; };
@@ -176,6 +183,8 @@
 		0C2A8CF620970B790013FD65 /* ImagePipelineResumableDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineResumableDataTests.swift; sourceTree = "<group>"; };
 		0C2A8CFA20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineProgressiveDecodingTests.swift; sourceTree = "<group>"; };
 		0C2CD6EA25B67FB30017018F /* ImagePipelineTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineTask.swift; sourceTree = "<group>"; };
+		0C2CD79025B7BF770017018F /* Nuke Memory Management Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke Memory Management Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C2CD7B325B7BFD80017018F /* ImagePipelineMemoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineMemoryTests.swift; sourceTree = "<group>"; };
 		0C42D4C422A283140094CB5A /* Deprecated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deprecated.swift; sourceTree = "<group>"; };
 		0C4326262424338200799446 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		0C45706A2377874500AB20DD /* ImagePipelineObservingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineObservingTests.swift; sourceTree = "<group>"; };
@@ -278,6 +287,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		0C2CD78D25B7BF770017018F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0C4F8FDC22E4B6ED0070ECFD /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -384,6 +400,15 @@
 			name = Scripts;
 			sourceTree = "<group>";
 		};
+		0C2CD7B225B7BFBF0017018F /* MemoryManagementTests */ = {
+			isa = PBXGroup;
+			children = (
+				0C2CD7B325B7BFD80017018F /* ImagePipelineMemoryTests.swift */,
+			);
+			name = MemoryManagementTests;
+			path = Tests/MemoryManagementTests;
+			sourceTree = SOURCE_ROOT;
+		};
 		0C4F8FE722E4B7260070ECFD /* ThreadSafety */ = {
 			isa = PBXGroup;
 			children = (
@@ -420,6 +445,7 @@
 				0C0F7BF02287F6EE0034E656 /* TaskTests.swift */,
 				0C8D74201D9D6EEB0036349E /* PerformanceTests.swift */,
 				0C4F8FE722E4B7260070ECFD /* ThreadSafety */,
+				0C2CD7B225B7BFBF0017018F /* MemoryManagementTests */,
 				0C7C069B1BCA889000089D7F /* Extensions */,
 				0C8D7BD11D9DBF1600D12EB7 /* Host */,
 				0C7C069A1BCA888C00089D7F /* Mocks */,
@@ -488,6 +514,7 @@
 				0C8D7BD01D9DBF1600D12EB7 /* Nuke Tests Host.app */,
 				0C8D7BE81D9DC02B00D12EB7 /* Nuke Performance Tests.xctest */,
 				0C4F8FDF22E4B6ED0070ECFD /* Nuke Thread Safety Tests.xctest */,
+				0C2CD79025B7BF770017018F /* Nuke Memory Management Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -611,6 +638,23 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		0C2CD78F25B7BF770017018F /* Nuke Memory Management Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0C2CD79725B7BF780017018F /* Build configuration list for PBXNativeTarget "Nuke Memory Management Tests" */;
+			buildPhases = (
+				0C2CD78C25B7BF770017018F /* Sources */,
+				0C2CD78D25B7BF770017018F /* Frameworks */,
+				0C2CD78E25B7BF770017018F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Nuke Memory Management Tests";
+			productName = "Nuke Memory Management Tests";
+			productReference = 0C2CD79025B7BF770017018F /* Nuke Memory Management Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		0C4F8FDE22E4B6ED0070ECFD /* Nuke Thread Safety Tests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0C4F8FE422E4B6ED0070ECFD /* Build configuration list for PBXNativeTarget "Nuke Thread Safety Tests" */;
@@ -707,10 +751,14 @@
 		0C9174871BAE99EE004A7905 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 1020;
+				LastSwiftUpdateCheck = 1230;
 				LastUpgradeCheck = 1230;
 				ORGANIZATIONNAME = "Alexander Grebenyuk";
 				TargetAttributes = {
+					0C2CD78F25B7BF770017018F = {
+						CreatedOnToolsVersion = 12.3;
+						LastSwiftMigration = 1230;
+					};
 					0C4F8FDE22E4B6ED0070ECFD = {
 						CreatedOnToolsVersion = 10.2.1;
 					};
@@ -753,12 +801,21 @@
 				0C7C06761BCA882A00089D7F /* Nuke Unit Tests */,
 				0C4F8FDE22E4B6ED0070ECFD /* Nuke Thread Safety Tests */,
 				0C8D7BE71D9DC02B00D12EB7 /* Nuke Performance Tests */,
+				0C2CD78F25B7BF770017018F /* Nuke Memory Management Tests */,
 				0C8D7BCF1D9DBF1600D12EB7 /* Nuke Tests Host */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		0C2CD78E25B7BF770017018F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0C2CD7CE25B7C0780017018F /* fixture.jpeg in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0C4F8FDD22E4B6ED0070ECFD /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -845,6 +902,19 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		0C2CD78C25B7BF770017018F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0C2CD7C725B7C0280017018F /* XCTestCaseExtensions.swift in Sources */,
+				0C2CD7BA25B7C0100017018F /* MockDataLoader.swift in Sources */,
+				0C2CD7C825B7C0280017018F /* NukeExtensions.swift in Sources */,
+				0C2CD7C625B7C0280017018F /* XCTestCase+Nuke.swift in Sources */,
+				0C2CD7C025B7C0200017018F /* Helpers.swift in Sources */,
+				0C2CD7B425B7BFD80017018F /* ImagePipelineMemoryTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0C4F8FDB22E4B6ED0070ECFD /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -998,6 +1068,68 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		0C2CD79525B7BF780017018F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = Tests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-Memory-Management-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		0C2CD79625B7BF780017018F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = Tests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-Memory-Management-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		0C4F8FE522E4B6ED0070ECFD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1343,6 +1475,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		0C2CD79725B7BF780017018F /* Build configuration list for PBXNativeTarget "Nuke Memory Management Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0C2CD79525B7BF780017018F /* Debug */,
+				0C2CD79625B7BF780017018F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		0C4F8FE422E4B6ED0070ECFD /* Build configuration list for PBXNativeTarget "Nuke Thread Safety Tests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
