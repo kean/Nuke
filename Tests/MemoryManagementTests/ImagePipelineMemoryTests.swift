@@ -20,17 +20,6 @@ class ImagePipelineMemoryTests: XCTestCase {
         }
     }
 
-    override func tearDown() {
-        super.tearDown()
-
-        dataLoader = nil
-        pipeline = nil
-
-        #if TRACK_ALLOCATIONS
-        Allocations.printAllocations()
-        #endif
-    }
-
     func waitAndDeinitPipeline() {
         pipeline = nil
         dataLoader = nil
