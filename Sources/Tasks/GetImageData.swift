@@ -13,24 +13,8 @@ final class GetImageData: ImagePipelineTask<(Data, URLResponse?)> {
     private lazy var data = Data()
 
     override func start() {
-        if let rateLimiter = pipeline.rateLimiter {
-            // Rate limiter is synchronized on pipeline's queue. Delayed work is
-            // executed asynchronously also on this same queue.
-            rateLimiter.execute { [weak self] in
-                guard let self = self, !self.isDisposed else {
-                    return false
-                }
-                self.actuallyStart()
-                return true
-            }
-        } else { // Start loading immediately.
-            actuallyStart()
-        }
-    }
-
-    private func actuallyStart() {
         guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData), request.cachePolicy != .reloadIgnoringCachedData else {
-            loadImageData() // Skip disk cache lookup, load data
+            loadData() // Skip disk cache lookup, load data
             return
         }
         operation = configuration.dataCachingQueue.add { [weak self] in
@@ -47,12 +31,28 @@ final class GetImageData: ImagePipelineTask<(Data, URLResponse?)> {
             if let data = data {
                 self.send(value: (data, nil), isCompleted: true)
             } else {
-                self.loadImageData()
+                self.loadData()
             }
         }
     }
 
-    private func loadImageData() {
+    private func loadData() {
+        if let rateLimiter = pipeline.rateLimiter {
+            // Rate limiter is synchronized on pipeline's queue. Delayed work is
+            // executed asynchronously also on this same queue.
+            rateLimiter.execute { [weak self] in
+                guard let self = self, !self.isDisposed else {
+                    return false
+                }
+                self.actuallyLoadData()
+                return true
+            }
+        } else { // Start loading immediately.
+            actuallyLoadData()
+        }
+    }
+
+    private func actuallyLoadData() {
         // Wrap data request in an operation to limit maximum number of
         // concurrent data tasks.
         operation = configuration.dataLoadingQueue.add { [weak self] finish in
