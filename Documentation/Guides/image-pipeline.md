@@ -152,7 +152,7 @@ In Nuke, each of the resources is represented by a task (`Task`). A task retriev
 
 When the request is started, the system creates a chain of tasks needed to produce the final image. Tasks send events *upstream*: data chunks, image scans, progress updates, errors. Tasks send priority updates and cancellation requests *downstream*.
 
-<img align="right" src="https://raw.githubusercontent.com/kean/Nuke/master/Documentation/Assets/tasks.png">
+<img align="right" src="https://raw.githubusercontent.com/kean/Nuke/master/Documentation/Assets/tasks-light.png">
 
 A task can have one or more *subscriptions*. This is how Nuke implements [coalescing](#coalescing) and prefetching. A *priority* of a task is set to be the maximum priority of its upstream subscriptions. When all of the subscriptions are removed, the task is canceled.
 
