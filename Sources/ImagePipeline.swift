@@ -359,28 +359,28 @@ private extension ImagePipeline {
 // Each task can be reuse of the same resource requested multiple times.
 
 extension ImagePipeline {
-    func getDecompressedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
-        decompressedImageTasks.taskForKey(request.makeLoadKeyForFinalImage()) {
+    func getDecompressedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
+        decompressedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
             DecompressedImageTask(self, request, queue, log)
         }
     }
 
-    func getProcessedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
+    func getProcessedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
         request.processors.isEmpty ?
             getOriginalImage(for: request) : // No processing needed
-            processedImageTasks.taskForKey(request.makeLoadKeyForFinalImage()) {
+            processedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
                 ProcessedImageTask(self, request, queue, log)
             }
     }
 
-    func getOriginalImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error> {
-        originalImageTasks.taskForKey(request.makeLoadKeyForOriginalImage()) {
+    func getOriginalImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
+        originalImageTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
             OriginalImageTask(self, request, queue, log)
         }
     }
 
-    func getOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error> {
-        originalImageDataTasks.taskForKey(request.makeLoadKeyForOriginalImage()) {
+    func getOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error>.Publisher {
+        originalImageDataTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
             OriginalDataTask(self, request, queue, log)
         }
     }

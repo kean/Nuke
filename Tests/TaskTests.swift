@@ -463,3 +463,9 @@ private final class SimpleTask<T, E>: Task<T, E> {
         starter = nil
     }
 }
+
+extension Task {
+    func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
+        publisher.subscribe(priority: priority, observer)
+    }
+}

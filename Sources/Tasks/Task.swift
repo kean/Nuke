@@ -58,6 +58,9 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         }
     }
 
+    /// Publishes the results of the task.
+    var publisher: Publisher { Publisher(task: self) }
+
     #if TRACK_ALLOCATIONS
     deinit {
         Allocations.decrement("Task")
@@ -74,7 +77,7 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     // MARK: - Managing Observers
 
     /// - notes: Returns `nil` if the task was disposed.
-    func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
+    private func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
         guard !isDisposed else { return nil }
 
         nextSubscriptionId += 1
@@ -93,23 +96,6 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         guard !isDisposed else { return nil }
 
         return subscription
-    }
-
-    /// Attaches the subscriber to the task. Automatically forwards progress
-    /// andd error events to the given task.
-    /// - notes: Returns `nil` if the task is already disposed.
-    func subscribe<NewValue>(_ task: Task<NewValue, Error>, onValue: @escaping (Value, Bool) -> Void) -> TaskSubscription? {
-        subscribe { [weak task] event in
-            guard let task = task else { return }
-            switch event {
-            case let .value(value, isCompleted):
-                onValue(value, isCompleted)
-            case let .progress(progress):
-                task.send(progress: progress)
-            case let .error(error):
-                task.send(error: error)
-            }
-        }
     }
 
     // MARK: - TaskSubscriptionDelegate
@@ -187,6 +173,38 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
 
     private func updatePriority() {
         priority = subscriptions.values.map({ $0.priority }).max() ?? .normal
+    }
+}
+
+// MARK: - Task (Publisher)
+
+extension Task {
+    /// Publishes the results of the task.
+    struct Publisher {
+        fileprivate let task: Task
+
+        /// Attaches the subscriber to the task.
+        /// - notes: Returns `nil` if the task is already disposed.
+        func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
+            task.subscribe(priority: priority, observer)
+        }
+
+        /// Attaches the subscriber to the task. Automatically forwards progress
+        /// andd error events to the given task.
+        /// - notes: Returns `nil` if the task is already disposed.
+        func subscribe<NewValue>(_ task: Task<NewValue, Error>, onValue: @escaping (Value, Bool) -> Void) -> TaskSubscription? {
+            subscribe { [weak task] event in
+                guard let task = task else { return }
+                switch event {
+                case let .value(value, isCompleted):
+                    onValue(value, isCompleted)
+                case let .progress(progress):
+                    task.send(progress: progress)
+                case let .error(error):
+                    task.send(error: error)
+                }
+            }
+        }
     }
 }
 
@@ -281,18 +299,18 @@ final class TaskPool<Value, Error> {
     /// Creates a task with the given key. If there is an outstanding task with
     /// the given key in the pool, the existing task is returned. Tasks are
     /// automatically removed from the pool when they are disposed.
-    func taskForKey(_ key: AnyHashable, _ make: () -> Task<Value, Error>) -> Task<Value, Error> {
+    func publisherForKey(_ key: AnyHashable, _ make: () -> Task<Value, Error>) -> Task<Value, Error>.Publisher {
         guard isDeduplicationEnabled else {
-            return make()
+            return make().publisher
         }
         if let task = map[key] {
-            return task
+            return task.publisher
         }
         let task = make()
         map[key] = task
         task.onDisposed = { [weak self] in
             self?.map[key] = nil
         }
-        return task
+        return task.publisher
     }
 }
