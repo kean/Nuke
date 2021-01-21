@@ -298,8 +298,6 @@ class ImagePipelineMemoryTests: XCTestCase {
     }
 
 
-    // MARK: - Memory Management
-
     // ImagePipeline retains itself until there are any pending tasks.
     func testPipelineRetainsItselfWhileTasksPending() {
         let expectation = self.expectation(description: "ImageLoaded")
@@ -315,4 +313,22 @@ class ImagePipelineMemoryTests: XCTestCase {
         // Cleanup
         waitAndDeinitPipeline()
     }
+
+    func testWhenInvalidatedTasksAreCancelledAndPipelineIsDeallocated() {
+        dataLoader.queue.isSuspended = true
+
+        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
+        pipeline.loadImage(with: Test.request) { _ in
+            XCTFail()
+        }
+        wait() // Wait till operation is created
+
+        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
+        pipeline.invalidate()
+        wait()
+
+        // Cleanup
+        waitAndDeinitPipeline()
+    }
+
 }

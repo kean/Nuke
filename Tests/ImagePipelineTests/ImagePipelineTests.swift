@@ -401,6 +401,36 @@ class ImagePipelineTests: XCTestCase {
         request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
         XCTAssertEqual(pipeline.cacheKey(for: request, item: .finalImage), Test.url.absoluteString + "1")
     }
+
+    // MARK: - Invalidate
+
+    func testWhenInvalidatedTasksAreCancelled() {
+        dataLoader.queue.isSuspended = true
+
+        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
+        pipeline.loadImage(with: Test.request) { _ in
+            XCTFail()
+        }
+        wait() // Wait till operation is created
+
+        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
+        pipeline.invalidate()
+        wait()
+    }
+
+    func testWhenInvalidatedNewTasksCantBeStarted() {
+        dataLoader.queue.isSuspended = true
+        pipeline.invalidate()
+
+        let didStartExpectation = expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
+        didStartExpectation.isInverted = true
+
+        pipeline.loadImage(with: Test.request) { _ in
+            XCTFail()
+        }
+
+        waitForExpectations(timeout: 0.02, handler: nil)
+    }
 }
 
 /// Test how well image pipeline interacts with memory cache.
