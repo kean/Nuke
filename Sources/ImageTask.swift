@@ -57,8 +57,6 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     private(set) var _isCancelled = false
     private let lock: NSLock?
 
-    let queue: DispatchQueue?
-
     /// A completion handler to be called when task finishes or fails.
     public typealias Completion = (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
 
@@ -71,13 +69,12 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     }
     #endif
 
-    init(taskId: Int, request: ImageRequest, isMainThreadConfined: Bool = false, isDataTask: Bool, queue: DispatchQueue?) {
+    init(taskId: Int, request: ImageRequest, isMainThreadConfined: Bool = false, isDataTask: Bool) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
         self.priority = request.priority
         self.isDataTask = isDataTask
-        self.queue = queue
         lock = isMainThreadConfined ? nil : NSLock()
 
         #if TRACK_ALLOCATIONS

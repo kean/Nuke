@@ -339,7 +339,6 @@ private final class ImageViewController {
 
     // MARK: - Loading Images
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func loadImage(with request: ImageRequest,
                    options: ImageLoadingOptions,
                    progress progressHandler: ImageTask.ProgressHandler? = nil,
@@ -388,25 +387,15 @@ private final class ImageViewController {
 
         // Uses a special internal API (`isMainThreadConfined`) for performance
         // reasons, it attributes for about than 20% performance improvement.
-        task = pipeline.loadImage(with: request, isMainThreadConfined: true, queue: .main) { [weak self] task, event in
-            switch event {
-            case .progress:
-                progressHandler?(nil, task.completedUnitCount, task.totalUnitCount)
-            case let .value(response, isCompleted):
-                if isCompleted {
-                    self?.handle(result: .success(response), fromMemCache: false, options: options)
-                    completion?(.success(response))
-                } else {
-                    if options.isProgressiveRenderingEnabled {
-                        self?.handle(partialImage: response, options: options)
-                    }
-                    progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
-                }
-            case let .error(error):
-                self?.handle(result: .failure(error), fromMemCache: false, options: options)
-                completion?(.failure(error))
+        task = pipeline.loadImage(with: request, isMainThreadConfined: true, queue: .main, progress: { [weak self] response, completedCount, totalCount in
+            if let response = response, options.isProgressiveRenderingEnabled {
+                self?.handle(partialImage: response, options: options)
             }
-        }
+            progressHandler?(response, completedCount, totalCount)
+        }, completion: { [weak self] result in
+            self?.handle(result: result, fromMemCache: false, options: options)
+            completion?(result)
+        })
         return task
     }
 

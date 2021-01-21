@@ -10,7 +10,7 @@ private class MockImageTask: ImageTask {
     var __isCancelled = false
 
     init(request: ImageRequest) {
-        super.init(taskId: 0, request: request, isDataTask: false, queue: nil)
+        super.init(taskId: 0, request: request, isDataTask: false)
     }
 
     override func cancel() {
@@ -33,7 +33,7 @@ class MockImagePipeline: ImagePipeline {
         return queue
     }()
 
-    override func loadImage(with request: ImageRequest, isMainThreadConfined: Bool, queue: DispatchQueue?, observer: @escaping (ImageTask, Task<ImageResponse, ImagePipeline.Error>.Event) -> Void) -> ImageTask {
+    override func loadImage(with request: ImageRequest, isMainThreadConfined: Bool, queue callbackQueue: DispatchQueue?, progress progressHandler: ImageTask.ProgressHandler?, completion: ImageTask.Completion?) -> ImageTask {
         let task = MockImageTask(request: request)
 
         createdTaskCount += 1
@@ -46,14 +46,14 @@ class MockImagePipeline: ImagePipeline {
                     if !task.__isCancelled {
                         task.completedUnitCount = completed
                         task.totalUnitCount = total
-                        observer(task, .progress(TaskProgress(completed: completed, total: total)))
+                        progressHandler?(nil, completed, total)
                     }
                 }
             }
 
             DispatchQueue.main.async {
                 if !task.__isCancelled {
-                    observer(task, .value(Test.response, isCompleted: true))
+                    completion?(.success(Test.response))
                 }
                 _ = task // Retain task
                 NotificationCenter.default.post(name: MockImagePipeline.DidFinishTask, object: self)

@@ -142,36 +142,24 @@ public /* final */ class ImagePipeline {
     /// request is finished. `nil` by default.
     @discardableResult
     public func loadImage(with request: ImageRequestConvertible,
-                          queue: DispatchQueue? = nil,
+                          queue callbackQueue: DispatchQueue? = nil,
                           progress progressHandler: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        loadImage(with: request.asImageRequest(), isMainThreadConfined: false, queue: queue) { task, event in
-            switch event {
-            case let .value(response, isCompleted):
-                if isCompleted {
-                    completion?(.success(response))
-                } else {
-                    progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
-                }
-            case let .progress(progress):
-                progressHandler?(nil, progress.completed, progress.total)
-            case let .error(error):
-                completion?(.failure(error))
-            }
-        }
+        loadImage(with: request.asImageRequest(), isMainThreadConfined: false, queue: callbackQueue, progress: progressHandler, completion: completion)
     }
 
     /// - parameter isMainThreadConfined: Enables some performance optimizations like
     /// lock-free `ImageTask`.
     func loadImage(with request: ImageRequest,
                    isMainThreadConfined: Bool,
-                   queue: DispatchQueue?,
-                   observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) -> ImageTask {
+                   queue callbackQueue: DispatchQueue?,
+                   progress progressHandler: ImageTask.ProgressHandler?,
+                   completion: ImageTask.Completion?) -> ImageTask {
         let request = inheritOptions(request)
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isMainThreadConfined: isMainThreadConfined, isDataTask: false, queue: queue)
+        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isMainThreadConfined: isMainThreadConfined, isDataTask: false)
         task.pipeline = self
         self.queue.async {
-            self.startImageTask(task, observer: observer)
+            self.startImageTask(task, callbackQueue: callbackQueue, progress: progressHandler, completion: completion)
         }
         return task
     }
@@ -180,7 +168,7 @@ public /* final */ class ImagePipeline {
 
     @discardableResult
     public func loadData(with request: ImageRequestConvertible,
-                         queue: DispatchQueue? = nil,
+                         queue callbackQueue: DispatchQueue? = nil,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
         loadData(with: request, queue: queue, progress: nil, completion: completion)
     }
@@ -199,14 +187,14 @@ public /* final */ class ImagePipeline {
     /// request is finished.
     @discardableResult
     public func loadData(with request: ImageRequestConvertible,
-                         queue: DispatchQueue? = nil,
+                         queue callbackQueue: DispatchQueue? = nil,
                          progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
         let request = request.asImageRequest()
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isDataTask: true, queue: queue)
+        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isDataTask: true)
         task.pipeline = self
         self.queue.async {
-            self.startDataTask(task, progress: progress, completion: completion)
+            self.startDataTask(task, callbackQueue: callbackQueue, progress: progress, completion: completion)
         }
         return task
     }
@@ -288,7 +276,10 @@ public extension ImagePipeline {
 // MARK: - Starting Image Tasks (Private)
 
 private extension ImagePipeline {
-    func startImageTask(_ task: ImageTask, observer: @escaping (ImageTask, Task<ImageResponse, Error>.Event) -> Void) {
+    func startImageTask(_ task: ImageTask,
+                        callbackQueue: DispatchQueue?,
+                        progress progressHandler: ImageTask.ProgressHandler?,
+                        completion: ImageTask.Completion?) {
         guard !isInvalidated else { return }
 
         self.send(.started, task)
@@ -303,17 +294,31 @@ private extension ImagePipeline {
                     self.tasks[task] = nil
                 }
 
-                (task.queue ?? self.configuration.callbackQueue).async {
+                (callbackQueue ?? self.configuration.callbackQueue).async {
                     guard !task.isCancelled else { return }
+
                     if case let .progress(progress) = event {
                         task.setProgress(progress)
                     }
-                    observer(task, event)
+
+                    switch event {
+                    case let .value(response, isCompleted):
+                        if isCompleted {
+                            completion?(.success(response))
+                        } else {
+                            progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
+                        }
+                    case let .progress(progress):
+                        progressHandler?(nil, progress.completed, progress.total)
+                    case let .error(error):
+                        completion?(.failure(error))
+                    }
                 }
         }
     }
 
     func startDataTask(_ task: ImageTask,
+                       callbackQueue: DispatchQueue?,
                        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
                        completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
         guard !isInvalidated else { return }
@@ -326,7 +331,7 @@ private extension ImagePipeline {
                     self.tasks[task] = nil
                 }
 
-                (task.queue ?? self.configuration.callbackQueue).async {
+                (callbackQueue ?? self.configuration.callbackQueue).async {
                     guard !task.isCancelled else { return }
 
                     switch event {
