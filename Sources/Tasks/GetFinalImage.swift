@@ -6,7 +6,7 @@ import Foundation
 
 /// Tries to load processed image data from disk and if not available, starts
 /// `ProcessedImageTask` and subscribes to it.
-final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
+final class GetFinalImage: ImagePipelineTask<ImageResponse> {
     override func start() {
         if let image = pipeline.cachedImage(for: request) {
             let response = ImageResponse(container: image)

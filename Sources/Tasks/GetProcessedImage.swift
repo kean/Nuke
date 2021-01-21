@@ -4,9 +4,9 @@
 
 import Foundation
 
-/// Receives images from `OriginalDataTask` or intermidiate `ProcessedImageTask`
+/// Receives images from `GetOriginalImage` or intermidiate `GetProcessedImage`
 /// and applies respective processors.
-final class ProcessedImageTask: ImagePipelineTask<ImageResponse> {
+final class GetProcessedImage: ImagePipelineTask<ImageResponse> {
     override func start() {
         assert(!request.processors.isEmpty)
         guard !isDisposed, !request.processors.isEmpty else { return }

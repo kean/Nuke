@@ -293,7 +293,7 @@ private extension ImagePipeline {
 
         self.send(.started, task)
 
-        tasks[task] = getDecompressedImage(for: task.request)
+        tasks[task] = getFinalImage(for: task.request)
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
@@ -349,19 +349,15 @@ private extension ImagePipeline {
 
 // When you request an image, the pipeline creates the following dependency graph:
 //
-// DecompressedImageTask ->
-// ProcessedImageTask ->
-//   ProcessedImageTask* ->
-// OriginalImageTask ->
-// OriginalImageDataTask
+// GetFinalImage -> GetProcessedImage* -> GetOriginalImage -> GetImageData
 //
 // Each task represents a resource to be retrieved - processed image, original image, etc.
 // Each task can be reuse of the same resource requested multiple times.
 
 extension ImagePipeline {
-    func getDecompressedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
+    func getFinalImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
         decompressedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
-            DecompressedImageTask(self, request, queue, log)
+            GetFinalImage(self, request, queue, log)
         }
     }
 
@@ -369,19 +365,19 @@ extension ImagePipeline {
         request.processors.isEmpty ?
             getOriginalImage(for: request) : // No processing needed
             processedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
-                ProcessedImageTask(self, request, queue, log)
+                GetProcessedImage(self, request, queue, log)
             }
     }
 
     func getOriginalImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
         originalImageTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
-            OriginalImageTask(self, request, queue, log)
+            GetOriginalImage(self, request, queue, log)
         }
     }
 
     func getOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error>.Publisher {
         originalImageDataTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
-            OriginalDataTask(self, request, queue, log)
+            GetImageData(self, request, queue, log)
         }
     }
 }
