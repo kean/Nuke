@@ -6,7 +6,7 @@ import Foundation
 
 /// Fetches original image data from data cache (`DataCaching`) or data loader
 /// (`DataLoading`) in case data is not available in cache.
-final class GetImageData: ImagePipelineTask<(Data, URLResponse?)> {
+final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
     private var urlResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0

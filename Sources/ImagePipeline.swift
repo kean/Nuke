@@ -284,7 +284,7 @@ private extension ImagePipeline {
 
         self.send(.started, task)
 
-        tasks[task] = getFinalImage(for: task.request)
+        tasks[task] = makeTaskLoadImage(for: task.request)
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
@@ -320,7 +320,7 @@ private extension ImagePipeline {
                        completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
         guard !isInvalidated else { return }
 
-        tasks[task] = getOriginalImageData(for: task.request)
+        tasks[task] = makeTaskLoadImageData(for: task.request)
             .subscribe(priority: task._priority) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
@@ -351,35 +351,35 @@ private extension ImagePipeline {
 
 // When you request an image, the pipeline creates the following dependency graph:
 //
-// GetFinalImage -> GetProcessedImage* -> GetOriginalImage -> GetImageData
+// TaskLoadImage -> TaskProcessImage* -> TaskDecodeImage -> TaskLoadImageData
 //
 // Each task represents a resource to be retrieved - processed image, original image, etc.
 // Each task can be reuse of the same resource requested multiple times.
 
 extension ImagePipeline {
-    func getFinalImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
+    func makeTaskLoadImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
         decompressedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
-            GetFinalImage(self, request, queue, log)
+            TaskLoadImage(self, request, queue, log)
         }
     }
 
-    func getProcessedImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
+    func makeTaskProcessImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
         request.processors.isEmpty ?
-            getOriginalImage(for: request) : // No processing needed
+            makeTaskDecodeImage(for: request) : // No processing needed
             processedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
-                GetProcessedImage(self, request, queue, log)
+                TaskProcessImage(self, request, queue, log)
             }
     }
 
-    func getOriginalImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
+    func makeTaskDecodeImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
         originalImageTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
-            GetOriginalImage(self, request, queue, log)
+            TaskDecodeImage(self, request, queue, log)
         }
     }
 
-    func getOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error>.Publisher {
+    func makeTaskLoadImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error>.Publisher {
         originalImageDataTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
-            GetImageData(self, request, queue, log)
+            TaskLoadImageData(self, request, queue, log)
         }
     }
 }

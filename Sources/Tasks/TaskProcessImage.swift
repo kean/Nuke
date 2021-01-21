@@ -4,9 +4,9 @@
 
 import Foundation
 
-/// Receives images from `GetOriginalImage` or intermidiate `GetProcessedImage`
+/// Receives images from `TaskDecodeImage` or intermidiate `TaskProcessImage`
 /// and applies respective processors.
-final class GetProcessedImage: ImagePipelineTask<ImageResponse> {
+final class TaskProcessImage: ImagePipelineTask<ImageResponse> {
     override func start() {
         assert(!request.processors.isEmpty)
         guard !isDisposed, !request.processors.isEmpty else { return }
@@ -28,7 +28,7 @@ final class GetProcessedImage: ImagePipelineTask<ImageResponse> {
             processor = ImageProcessors.Composition(request.processors)
             subRequest.processors = []
         }
-        dependency = pipeline.getProcessedImage(for: subRequest).subscribe(self) { [weak self] in
+        dependency = pipeline.makeTaskProcessImage(for: subRequest).subscribe(self) { [weak self] in
             self?.processImage($0, isCompleted: $1, processor: processor)
         }
     }

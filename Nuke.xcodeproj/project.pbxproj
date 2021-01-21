@@ -115,10 +115,10 @@
 		0CB26807208F25C2004C83F4 /* DataCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB26806208F25C2004C83F4 /* DataCacheTests.swift */; };
 		0CB2EFD22110F38600F7C63F /* ImagePipelineConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB2EFD12110F38600F7C63F /* ImagePipelineConfigurationTests.swift */; };
 		0CB2EFD62110F52C00F7C63F /* RateLimiterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB2EFD52110F52C00F7C63F /* RateLimiterTests.swift */; };
-		0CB402D525B6569700F5A241 /* GetImageData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB402D425B6569700F5A241 /* GetImageData.swift */; };
-		0CB402DB25B656D200F5A241 /* GetOriginalImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB402DA25B656D200F5A241 /* GetOriginalImage.swift */; };
-		0CB402F725B6616F00F5A241 /* GetProcessedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB402F625B6616F00F5A241 /* GetProcessedImage.swift */; };
-		0CB4030125B6639200F5A241 /* GetFinalImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB4030025B6639200F5A241 /* GetFinalImage.swift */; };
+		0CB402D525B6569700F5A241 /* TaskLoadImageData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB402D425B6569700F5A241 /* TaskLoadImageData.swift */; };
+		0CB402DB25B656D200F5A241 /* TaskDecodeImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB402DA25B656D200F5A241 /* TaskDecodeImage.swift */; };
+		0CB402F725B6616F00F5A241 /* TaskProcessImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB402F625B6616F00F5A241 /* TaskProcessImage.swift */; };
+		0CB4030125B6639200F5A241 /* TaskLoadImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB4030025B6639200F5A241 /* TaskLoadImage.swift */; };
 		0CC36A1225B8BC0800811018 /* Allocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A1125B8BC0800811018 /* Allocations.swift */; };
 		0CC36A1925B8BC2500811018 /* RateLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A1825B8BC2500811018 /* RateLimiter.swift */; };
 		0CC36A2525B8BC4900811018 /* Operation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A2425B8BC4900811018 /* Operation.swift */; };
@@ -267,10 +267,10 @@
 		0CB26806208F25C2004C83F4 /* DataCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataCacheTests.swift; sourceTree = "<group>"; };
 		0CB2EFD12110F38600F7C63F /* ImagePipelineConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineConfigurationTests.swift; sourceTree = "<group>"; };
 		0CB2EFD52110F52C00F7C63F /* RateLimiterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimiterTests.swift; sourceTree = "<group>"; };
-		0CB402D425B6569700F5A241 /* GetImageData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetImageData.swift; sourceTree = "<group>"; };
-		0CB402DA25B656D200F5A241 /* GetOriginalImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetOriginalImage.swift; sourceTree = "<group>"; };
-		0CB402F625B6616F00F5A241 /* GetProcessedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetProcessedImage.swift; sourceTree = "<group>"; };
-		0CB4030025B6639200F5A241 /* GetFinalImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetFinalImage.swift; sourceTree = "<group>"; };
+		0CB402D425B6569700F5A241 /* TaskLoadImageData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskLoadImageData.swift; sourceTree = "<group>"; };
+		0CB402DA25B656D200F5A241 /* TaskDecodeImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDecodeImage.swift; sourceTree = "<group>"; };
+		0CB402F625B6616F00F5A241 /* TaskProcessImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskProcessImage.swift; sourceTree = "<group>"; };
+		0CB4030025B6639200F5A241 /* TaskLoadImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskLoadImage.swift; sourceTree = "<group>"; };
 		0CC36A1125B8BC0800811018 /* Allocations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Allocations.swift; sourceTree = "<group>"; };
 		0CC36A1825B8BC2500811018 /* RateLimiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimiter.swift; sourceTree = "<group>"; };
 		0CC36A2425B8BC4900811018 /* Operation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Operation.swift; sourceTree = "<group>"; };
@@ -588,10 +588,10 @@
 			children = (
 				0C505B6B2286F3AD006D5399 /* Task.swift */,
 				0C2CD6EA25B67FB30017018F /* ImagePipelineTask.swift */,
-				0CB4030025B6639200F5A241 /* GetFinalImage.swift */,
-				0CB402F625B6616F00F5A241 /* GetProcessedImage.swift */,
-				0CB402DA25B656D200F5A241 /* GetOriginalImage.swift */,
-				0CB402D425B6569700F5A241 /* GetImageData.swift */,
+				0CB4030025B6639200F5A241 /* TaskLoadImage.swift */,
+				0CB402F625B6616F00F5A241 /* TaskProcessImage.swift */,
+				0CB402DA25B656D200F5A241 /* TaskDecodeImage.swift */,
+				0CB402D425B6569700F5A241 /* TaskLoadImageData.swift */,
 			);
 			path = Tasks;
 			sourceTree = "<group>";
@@ -1046,7 +1046,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C0FD6001CA47FE1002A78FB /* ImageProcessing.swift in Sources */,
-				0CB402F725B6616F00F5A241 /* GetProcessedImage.swift in Sources */,
+				0CB402F725B6616F00F5A241 /* TaskProcessImage.swift in Sources */,
 				0CC36A4125B8BCAC00811018 /* Log.swift in Sources */,
 				0C0FD5FC1CA47FE1002A78FB /* ImageCache.swift in Sources */,
 				0C0FD5EC1CA47FE1002A78FB /* ImagePipeline.swift in Sources */,
@@ -1055,9 +1055,9 @@
 				0C505B6C2286F3AD006D5399 /* Task.swift in Sources */,
 				0CC36A2C25B8BC6300811018 /* LinkedList.swift in Sources */,
 				0C179C7B2283597F008AB488 /* ImageEncoding.swift in Sources */,
-				0CB4030125B6639200F5A241 /* GetFinalImage.swift in Sources */,
+				0CB4030125B6639200F5A241 /* TaskLoadImage.swift in Sources */,
 				0CC36A2525B8BC4900811018 /* Operation.swift in Sources */,
-				0CB402DB25B656D200F5A241 /* GetOriginalImage.swift in Sources */,
+				0CB402DB25B656D200F5A241 /* TaskDecodeImage.swift in Sources */,
 				0CC36A3325B8BC7900811018 /* ResumableData.swift in Sources */,
 				0C0FD61C1CA47FE1002A78FB /* ImageViewExtensions.swift in Sources */,
 				0CB26802208F2565004C83F4 /* DataCache.swift in Sources */,
@@ -1069,7 +1069,7 @@
 				0C42D4C722A286260094CB5A /* Deprecated.swift in Sources */,
 				0CE2D9BA2084FDDD00934B28 /* ImageDecoding.swift in Sources */,
 				0CC36A1925B8BC2500811018 /* RateLimiter.swift in Sources */,
-				0CB402D525B6569700F5A241 /* GetImageData.swift in Sources */,
+				0CB402D525B6569700F5A241 /* TaskLoadImageData.swift in Sources */,
 				0C2CD6EB25B67FB30017018F /* ImagePipelineTask.swift in Sources */,
 				0CF4DE7D1D412A9E00170289 /* ImagePreheater.swift in Sources */,
 			);
