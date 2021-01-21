@@ -9,11 +9,12 @@ This guide describes in detail what happens when you call `Nuke.loadImage(with: 
   * [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache)
   * [Resumable Downloads](#resumable-downloads)
   * [Memory Cache](#memory-cache)
-  * [Deduplication](#deduplication)
+  * [Coalescing](#coalescing)
   * [Decompression](#decompression)
   * [Progressive Decoding](#progressive-decoding)
   * [Performance](#performance)
 - [Benchmarks](#benchmarks)
+- [Tasks](#tasks)
 
 ## `Nuke.loadImage(with:into)`
 
@@ -86,7 +87,7 @@ If the data task is terminated (either because of a failure or a cancellation) a
 
 The processed images are stored in a fast in-memory cache (`ImageCache`). It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a limit of ~20% of available RAM. `ImageCache` automatically evicts images on memory warnings and removes a portion of its contents when the application enters background mode.
 
-### Deduplication
+### Coalescing
 
 The pipeline avoids doing any duplicated work when loading images. For example, let's take these two requests:
 
@@ -137,3 +138,24 @@ Image loading frameworks are often used in table and collection views with large
 
 <img src="https://user-images.githubusercontent.com/1567433/61174515-92a33d00-a5a1-11e9-839f-c2a1a1237f52.png" width="800"/>
 <img src="https://user-images.githubusercontent.com/1567433/61174516-92a33d00-a5a1-11e9-8915-55cf9ba519a2.png" width="800"/>
+
+## Tasks
+
+For every image request, the system needs to fetch the following resources:
+
+- Image data
+- Original image
+- One or more processed images (depending on the number of processors)
+- Decompressed image (if needed)
+
+In Nuke, each of the resources is represented by a task (`Task`). A task retrieves its resource incrementally, enabling progressive image decoding (see [progressive JPEG](https://github.com/kean/Nuke/blob/9.2.0/Documentation/Guides/image-formats.md#progressive-jpeg)).
+
+When the request is started, the system creates a chain of tasks needed to produce the final image. Tasks send events *upstream*: data chunks, image scans, progress updates, errors. Tasks send priority updates and cancellation requests *downstream*.
+
+<img align="right" src="https://raw.githubusercontent.com/kean/Nuke/master/Documentation/Assets/tasks.png">
+
+A task can have one or more *subscriptions*. This is how Nuke implements [coalescing](#coalescing) and prefetching. A *priority* of a task is set to be the maximum priority of its upstream subscriptions. When all of the subscriptions are removed, the task is canceled.
+
+Some tasks implement *back-pressure*. For example, if you are fetching a progressive JPEG and have an expensive processor, such as blur, the processing task will only produce processed images as fast as it can, skipping the scans it has no capacity to handle.
+
+All of the tasks are synchronozied on a single serial dispatch queue. This a simple and reliable way to achieve performance and thread safety.
