@@ -148,7 +148,7 @@ For every image request, the system needs to fetch the following resources:
 - One or more processed images (depending on the number of processors)
 - Decompressed image (if needed)
 
-In Nuke, each of the resources is represented by a task (`Task`). A task retrieves its resource incrementally, enabling progressive image decoding (see [progressive JPEG](https://github.com/kean/Nuke/blob/9.2.0/Documentation/Guides/image-formats.md#progressive-jpeg)).
+In Nuke, each of the resources is represented by a task ([`Task`](https://github.com/kean/Nuke/blob/9.2.4/Sources/Task.swift)). A task retrieves its resource incrementally, enabling progressive image decoding (see [progressive JPEG](https://github.com/kean/Nuke/blob/9.2.0/Documentation/Guides/image-formats.md#progressive-jpeg)).
 
 When the request is started, the system creates a chain of tasks needed to produce the final image. Tasks send events *upstream*: data chunks, image scans, progress updates, errors. Tasks send priority updates and cancellation requests *downstream*.
 
