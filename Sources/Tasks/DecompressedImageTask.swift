@@ -65,7 +65,7 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
 
     private func loadDecompressedImage() {
         dependency = pipeline.getProcessedImage(for: request).subscribe(self) { [weak self] in
-            self?.storeDecompressedImageInDataCache($0)
+            self?.storeImageInDataCache($0)
             self?.decompressProcessedImage($0, isCompleted: $1)
         }
     }
@@ -112,7 +112,7 @@ final class DecompressedImageTask: ImagePipelineTask<ImageResponse> {
     }
     #endif
 
-    private func storeDecompressedImageInDataCache(_ response: ImageResponse) {
+    private func storeImageInDataCache(_ response: ImageResponse) {
         guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage), !response.container.isPreview else {
             return
         }
