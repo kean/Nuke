@@ -27,7 +27,7 @@ Nuke is proudly sponsored by [Stream](https://getstream.io/?utm_source=github&ut
 
 Nuke is easy to learn and use. Here is an overview of its APIs and features:
 
-- **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) · [Table View](#in-a-table-view) · [Placeholders, Transitions](#placeholders-transitions-content-modes) · [`ImageRequest`](#imagerequest)
+- **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) · [Table View](#in-a-table-view) · [Placeholders, Transitions](#placeholders-transitions-content-modes-tint-colors) · [`ImageRequest`](#imagerequest)
 - **Image Processing** ‣ [`Resize`](#resize) · [`Circle`](#circle) · [`RoundedCorners`](#roundedcorners) · [`GaussianBlur`](#gaussianblur) · [`CoreImage`](#coreimagefilter) · [Custom Processors](#custom-processors)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) · [`ImageTask`](#imagetask) · [Customize Image Pipeline](#customize-image-pipeline) · [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) · [HTTP Disk Cache](#http-disk-cache) · [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache) · [Reloading Images](#reloading-images)
