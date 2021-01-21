@@ -625,4 +625,51 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
             XCTAssertEqual(processors.numberOfProcessorsApplied, 3)
         }
     }
+
+    func testThatDataOnlyLoadedOnceWithDifferentCachePolicy() {
+        // Given
+        let dataCache = MockDataCache()
+
+        pipeline = pipeline.reconfigured {
+            $0.dataCache = dataCache
+            $0.dataCacheOptions.storedItems = [.originalImageData]
+        }
+
+        // When
+        func makeRequest(cachePolicy: ImageRequest.CachePolicy) -> ImageRequest {
+            ImageRequest(urlRequest: URLRequest(url: Test.url), cachePolicy: cachePolicy)
+        }
+        expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .default))
+        expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .reloadIgnoringCachedData))
+
+        // Then
+        wait { _ in
+            // TODO: improve coalescing, this should be 1
+            XCTAssertEqual(self.dataLoader.createdTaskCount, 2, "Expected only one data task to be performed")
+        }
+    }
+
+    func testThatDataOnlyLoadedOnceWithDifferentCachePolicyPassingURL() {
+        // Given
+        let dataCache = MockDataCache()
+
+        pipeline = pipeline.reconfigured {
+            $0.dataCache = dataCache
+            $0.dataCacheOptions.storedItems = [.originalImageData]
+        }
+
+        // When
+        // - One request reloading cache data, another one not
+        func makeRequest(cachePolicy: ImageRequest.CachePolicy) -> ImageRequest {
+            ImageRequest(url: Test.url, cachePolicy: cachePolicy)
+        }
+        expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .default))
+        expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .reloadIgnoringCachedData))
+
+        // Then
+        wait { _ in
+            // TODO: improve coalescing, this should be 1
+            XCTAssertEqual(self.dataLoader.createdTaskCount, 2, "Expected only one data task to be performed")
+        }
+    }
 }
