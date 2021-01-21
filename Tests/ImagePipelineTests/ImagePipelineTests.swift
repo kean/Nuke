@@ -81,6 +81,31 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
+    func testTaskProgressIsUpdated() {
+        // Given
+        let request = ImageRequest(url: Test.url)
+
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        // When
+        let expectedProgress = expectProgress([(10, 20), (20, 20)])
+
+        var task: ImageTask!
+        task = pipeline.loadImage(
+            with: request,
+            progress: { _, completed, total in
+                // Then
+                XCTAssertTrue(Thread.isMainThread)
+                expectedProgress.received((task.completedUnitCount, task.totalUnitCount))
+            },
+            completion: { _ in }
+        )
+
+        wait()
+    }
+
     // MARK: - Callback Queues
 
     func testChangingCallbackQueueLoadImage() {
@@ -92,23 +117,6 @@ class ImagePipelineTests: XCTestCase {
         // When/Then
         let expectation = self.expectation(description: "Image Loaded")
         pipeline.loadImage(with: Test.url, queue: queue, progress: { _, _, _ in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
-        }, completion: { _ in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
-            expectation.fulfill()
-        })
-        wait()
-    }
-
-    func testChangingCallbackQueueLoadData() {
-        // Given
-        let queue = DispatchQueue(label: "testChangingCallbackQueue")
-        let queueKey = DispatchSpecificKey<Void>()
-        queue.setSpecific(key: queueKey, value: ())
-
-        // When/Then
-        let expectation = self.expectation(description: "Image data Loaded")
-        pipeline.loadData(with: Test.request,queue: queue, progress: { _, _ in
             XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
         }, completion: { _ in
             XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))

@@ -170,7 +170,7 @@ public /* final */ class ImagePipeline {
     public func loadData(with request: ImageRequestConvertible,
                          queue callbackQueue: DispatchQueue? = nil,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
-        loadData(with: request, queue: queue, progress: nil, completion: completion)
+        loadData(with: request, queue: callbackQueue, progress: nil, completion: completion)
     }
 
     /// Loads the image data for the given request. The data doesn't get decoded or processed in any
@@ -297,10 +297,6 @@ private extension ImagePipeline {
                 (callbackQueue ?? self.configuration.callbackQueue).async {
                     guard !task.isCancelled else { return }
 
-                    if case let .progress(progress) = event {
-                        task.setProgress(progress)
-                    }
-
                     switch event {
                     case let .value(response, isCompleted):
                         if isCompleted {
@@ -309,6 +305,7 @@ private extension ImagePipeline {
                             progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
                         }
                     case let .progress(progress):
+                        task.setProgress(progress)
                         progressHandler?(nil, progress.completed, progress.total)
                     case let .error(error):
                         completion?(.failure(error))
