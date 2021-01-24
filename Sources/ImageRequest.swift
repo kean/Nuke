@@ -371,10 +371,15 @@ extension ImageRequest {
 
         init(request: ImageRequest) {
             self.urlString = request.ref.urlString
-            let urlRequest = request.urlRequest
             self.requestCachePolicy = request.cachePolicy
-            self.cachePolicy = urlRequest.cachePolicy
-            self.allowsCellularAccess = urlRequest.allowsCellularAccess
+            switch request.ref.resource {
+            case .url:
+                self.cachePolicy = .useProtocolCachePolicy
+                self.allowsCellularAccess = true
+            case let .urlRequest(urlRequest):
+                self.cachePolicy = urlRequest.cachePolicy
+                self.allowsCellularAccess = urlRequest.allowsCellularAccess
+            }
         }
     }
 }
