@@ -81,7 +81,7 @@ public /* final */ class ImagePipeline {
     }
 
     /// Invalidates the pipeline and cancels all outstanding tasks.
-    public func invalidate() {
+    func invalidate() {
         queue.async {
             guard !self.isInvalidated else { return }
             self.isInvalidated = true
