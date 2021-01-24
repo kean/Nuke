@@ -126,6 +126,7 @@
 		0CC36A3325B8BC7900811018 /* ResumableData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A3225B8BC7900811018 /* ResumableData.swift */; };
 		0CC36A3A25B8BC9400811018 /* Atomic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A3925B8BC9400811018 /* Atomic.swift */; };
 		0CC36A4125B8BCAC00811018 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A4025B8BCAC00811018 /* Log.swift */; };
+		0CC6271525BDF7A100466F04 /* ImagePipelineMemoryCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6271425BDF7A100466F04 /* ImagePipelineMemoryCacheTests.swift */; };
 		0CCBB530217D0B6A0026F552 /* ImageViewIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCBB52F217D0B6A0026F552 /* ImageViewIntegrationTests.swift */; };
 		0CCBB534217D0B980026F552 /* MockProgressiveDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCBB533217D0B980026F552 /* MockProgressiveDataLoader.swift */; };
 		0CD37C9A25BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD37C9925BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift */; };
@@ -278,6 +279,7 @@
 		0CC36A3225B8BC7900811018 /* ResumableData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResumableData.swift; sourceTree = "<group>"; };
 		0CC36A3925B8BC9400811018 /* Atomic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Atomic.swift; sourceTree = "<group>"; };
 		0CC36A4025B8BCAC00811018 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
+		0CC6271425BDF7A100466F04 /* ImagePipelineMemoryCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineMemoryCacheTests.swift; sourceTree = "<group>"; };
 		0CCBB52F217D0B6A0026F552 /* ImageViewIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewIntegrationTests.swift; sourceTree = "<group>"; };
 		0CCBB533217D0B980026F552 /* MockProgressiveDataLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProgressiveDataLoader.swift; sourceTree = "<group>"; };
 		0CCDB8D121D576F00032518B /* Nuke.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Nuke.xcconfig; sourceTree = "<group>"; };
@@ -541,6 +543,7 @@
 			isa = PBXGroup;
 			children = (
 				0CE3992C1D4697CE00A87D47 /* ImagePipelineTests.swift */,
+				0CC6271425BDF7A100466F04 /* ImagePipelineMemoryCacheTests.swift */,
 				0C9B6E7520B9F3E2001924B8 /* ImagePipelineDeduplicationTests.swift */,
 				0CB2EFD12110F38600F7C63F /* ImagePipelineConfigurationTests.swift */,
 				0C2A8CF620970B790013FD65 /* ImagePipelineResumableDataTests.swift */,
@@ -1015,6 +1018,7 @@
 				0C68F609208A1F40007DC696 /* ImageDecoderRegistryTests.swift in Sources */,
 				0C91B0EE2438E307007F9100 /* CircleTests.swift in Sources */,
 				0C0F7BF12287F6EE0034E656 /* TaskTests.swift in Sources */,
+				0CC6271525BDF7A100466F04 /* ImagePipelineMemoryCacheTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
