@@ -63,6 +63,14 @@ class ImagePipelinePerfomanceTests: XCTestCase {
     /// data, decode, and decomperss 50+ images. It's very useful to get a
     /// broad picture about how loader options affect perofmance.
     func testLoaderOverallPerformance() {
+        struct MockDecoder: ImageDecoding {
+            static let container = ImageContainer(image: Test.image)
+
+            func decode(_ data: Data) -> ImageContainer? {
+                MockDecoder.container
+            }
+        }
+
         let pipeline = ImagePipeline {
             $0.imageCache = nil
 
@@ -73,9 +81,12 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             // This must be off for this test, because rate limiter is optimized for
             // the actual loading in the apps and not the syntetic tests like this.
             $0.isRateLimiterEnabled = false
+
+            // Remove decoding from the equation
+            $0.makeImageDecoder = { _ in MockDecoder() }
         }
 
-        let urls = (0...700).map { URL(string: "http://test.com/\($0)")! }
+        let urls = (0...1000).map { URL(string: "http://test.com/\($0)")! }
         measure {
             let expectation = self.expectation(description: "Image loaded")
             var finished: Int = 0
