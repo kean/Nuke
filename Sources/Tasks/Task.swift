@@ -54,6 +54,7 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
 
     weak var operation: Foundation.Operation? {
         didSet {
+            guard priority != .normal else { return }
             operation?.queuePriority = priority.queuePriority
         }
     }
