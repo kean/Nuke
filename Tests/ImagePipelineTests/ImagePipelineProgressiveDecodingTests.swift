@@ -342,6 +342,53 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
         wait()
     }
+
+    func testBackpressureProcessingImageProcessingOperationCancelled() throws {
+        // Given
+        let imageProcessingQueue = pipeline.configuration.imageProcessingQueue
+        imageProcessingQueue.isSuspended = true
+
+        // When the first chunk is delivered
+        // Then the first processing operation is enqueue
+        let observer = expect(imageProcessingQueue).toEnqueueOperationsWithCount(1)
+
+        let imageLoadCompleted = NSNotification.Name(rawValue: "ImageLoadCompleted")
+
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
+        pipeline.loadImage(
+            with: request,
+            progress: { image, _, _ in
+
+            },
+            completion: { result in
+                XCTAssertTrue(result.isSuccess)
+                NotificationCenter.default.post(name: imageLoadCompleted, object: nil)
+            }
+        )
+        wait()
+
+        // When the second chunk is deliverd, the new operation
+        // is not created
+        dataLoader.serveNextChunk()
+        let expectation = self.expectation(description: "NoOperationCreated")
+        expectation.isInverted = true
+        wait(for: [expectation], timeout: 0.2)
+
+        XCTAssertEqual(imageProcessingQueue.operationCount, 1)
+
+        // When last chunk is delivered, initial processing
+        // operation is cancelled
+        let operation = try XCTUnwrap(observer.operations.first)
+        expect(operation).toCancel()
+
+        dataLoader.serveNextChunk()
+        wait()
+
+        // Then final image is loaded
+        expectNotification(imageLoadCompleted)
+        imageProcessingQueue.isSuspended = false
+        wait()
+    }
 }
 
 private extension XCTestCase {

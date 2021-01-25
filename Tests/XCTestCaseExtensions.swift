@@ -62,8 +62,8 @@ struct TestExpectationOperationQueue {
 
     @discardableResult
     func toEnqueueOperationsWithCount(_ count: Int) -> OperationQueueObserver {
-        let observer = OperationQueueObserver(queue: queue)
         let expectation = test.expectation(description: "Expect queue to enqueue \(count) operations")
+        let observer = OperationQueueObserver(queue: queue)
         observer.didAddOperation = { _ in
             if observer.operations.count == count {
                 observer.didAddOperation = nil
@@ -81,8 +81,8 @@ struct TestExpectationOperationQueue {
     func toFinishWithEnqueuedOperationCount(_ count: Int) -> OperationQueueObserver {
         precondition(queue.isSuspended, "Queue must be suspended in order to reliably track when all expected operations are enqueued.")
 
-        let observer = OperationQueueObserver(queue: queue)
         let expectation = test.expectation(description: "Expect queue to finish with \(count) operations")
+        let observer = OperationQueueObserver(queue: queue)
 
         observer.didAddOperation = { _ in
             // We don't expect any more operations added after that

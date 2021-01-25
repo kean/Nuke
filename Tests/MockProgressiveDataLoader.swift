@@ -33,6 +33,21 @@ final class MockProgressiveDataLoader: DataLoading {
         return _MockTask()
     }
 
+    func resumeServingChunks(_ count: Int) {
+        for _ in 0..<count {
+            serveNextChunk()
+        }
+    }
+
+    func serveNextChunk() {
+        guard let chunk = chunks.first else { return }
+        chunks.removeFirst()
+        didReceiveData(chunk, urlResponse)
+        if chunks.isEmpty {
+            completion(nil)
+        }
+    }
+
     // Serves the next chunk.
     func resume(_ completed: @escaping () -> Void = {}) {
         DispatchQueue.main.async {
