@@ -86,7 +86,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             $0.makeImageDecoder = { _ in MockDecoder() }
         }
 
-        let urls = (0...1000).map { URL(string: "http://test.com/\($0)")! }
+        let urls = (0...5000).map { URL(string: "http://test.com/\($0)")! }
         measure {
             let expectation = self.expectation(description: "Image loaded")
             var finished: Int = 0

@@ -22,8 +22,8 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         var priority: TaskPriority
     }
 
-    private var subscriptions = [TaskSubscriptionKey: Subscription]()
-    private var nextSubscriptionId = 0
+    private var subscriptions = SmallArray<Subscription>()
+    private var nextSubscriptionIndex = 0
 
     /// Returns `true` if the task was either cancelled, or was completed.
     private(set) var isDisposed = false
@@ -81,11 +81,11 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     private func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
         guard !isDisposed else { return nil }
 
-        nextSubscriptionId += 1
-        let subscriptionKey = nextSubscriptionId
+        let subscriptionKey = nextSubscriptionIndex
+        nextSubscriptionIndex += 1
         let subscription = TaskSubscription(task: self, key: subscriptionKey)
 
-        subscriptions[subscriptionKey] = Subscription(observer: observer, priority: priority)
+        subscriptions.insert(Subscription(observer: observer, priority: priority))
         updatePriority()
 
         if !isStarted {
@@ -104,12 +104,14 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     fileprivate func setPriority(_ priority: TaskPriority, for key: TaskSubscriptionKey) {
         guard !isDisposed else { return }
 
-        subscriptions[key]?.priority = priority
+        subscriptions.updateElement(at: key) {
+            $0.priority = priority
+        }
         updatePriority()
     }
 
     fileprivate func unsubsribe(key: TaskSubscriptionKey) {
-        guard subscriptions.removeValue(forKey: key) != nil else { return } // Already unsubscribed from this task
+        guard subscriptions.removeElement(at: key) != nil else { return } // Already unsubscribed from this task
         guard !isDisposed else { return }
 
         if subscriptions.isEmpty {
@@ -147,8 +149,8 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
             terminate(reason: .finished)
         }
 
-        for context in subscriptions.values {
-            context.observer(event)
+        subscriptions.enumerateValues { subscription in
+            subscription.observer(event)
         }
     }
 
@@ -173,7 +175,15 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     // MARK: - Priority
 
     private func updatePriority() {
-        priority = subscriptions.values.map({ $0.priority }).max() ?? .normal
+        var priority: TaskPriority?
+        subscriptions.enumerateValues {
+            if priority == nil {
+                priority = $0.priority
+            } else if $0.priority > priority! {
+                priority = $0.priority
+            }
+        }
+        self.priority = priority ?? .normal
     }
 }
 
