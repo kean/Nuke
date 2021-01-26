@@ -13,20 +13,28 @@ struct InlineArray<Element>: Sequence {
     private var e2: Element?
 
     // The remaining elements (allocated lazily)
-    private var array: ContiguousArray<Element>?
+    private var elements: ContiguousArray<Element>?
 
     init() {}
 
     subscript(index: Int) -> Element {
-        get {
-            element(at: index)!
+        get { element(at: index) }
+        set { replaceElement(newValue, at: index) }
+    }
+
+    private mutating func replaceElement(_ element: Element, at index: Int) {
+        switch index {
+        case 0: e1 = element
+        case 1: e2 = element
+        default: elements![index - 2] = element
         }
-        set {
-            switch index {
-            case 0: e1 = newValue
-            case 1: e2 = newValue
-            default: array![index - 2] = newValue
-            }
+    }
+
+    private func element(at index: Int) -> Element {
+        switch index {
+        case 0: return e1!
+        case 1: return e2!
+        default: return elements![index - 2]
         }
     }
 
@@ -35,23 +43,15 @@ struct InlineArray<Element>: Sequence {
         case 0: e1 = element
         case 1: e2 = element
         default:
-            if array == nil {
-                array = ContiguousArray()
+            if elements == nil {
+                elements = ContiguousArray()
             }
-            array!.append(element)
+            elements!.append(element)
         }
         count += 1
     }
 
     // MARK: Sequence
-
-    private func element(at index: Int) -> Element? {
-        switch index {
-        case 0: return e1
-        case 1: return e2
-        default: return array![index - 2]
-        }
-    }
 
     __consuming func makeIterator() -> Iterator {
         Iterator(array: self)

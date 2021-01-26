@@ -107,7 +107,11 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         guard !isDisposed else { return }
 
         subscriptions[key]?.priority = priority
-        updatePriority()
+        if priority > self.priority {
+            self.priority = priority // No need to iterate over all subscriptions
+        } else {
+            updatePriority()
+        }
     }
 
     fileprivate func unsubsribe(key: TaskSubscriptionKey) {
@@ -177,7 +181,18 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     // MARK: - Priority
 
     private func updatePriority() {
-        self.priority = subscriptions.compactMap { $0?.priority }.max() ?? .normal
+        // Same as subscriptions.compactMap { $0?.priority }.max() ?? .normal
+        // but without creating a new array every time.
+        var newPriority: TaskPriority?
+        for subscription in subscriptions {
+            guard let priority = subscription?.priority else { continue }
+            if newPriority == nil {
+                newPriority = priority
+            } else if priority > newPriority! {
+                newPriority = priority
+            }
+        }
+        self.priority = newPriority ?? .normal
     }
 }
 

@@ -7,7 +7,7 @@ import Nuke
 
 // `Task.swift` is added directly to this target.
 class TaskPerformanceTests: XCTestCase {
-    func testAddOneSubscription() {
+    func testSubscribe() {
         measure {
             for _ in 0..<100_000 {
                 let task = SimpleTask()
@@ -36,6 +36,16 @@ class TaskPerformanceTests: XCTestCase {
         measure {
             for _ in 0..<100_000 {
                 let task = EmptyTask()
+                let subscription = task.publisher.subscribe { _ in }
+                subscription?.unsubscribe()
+            }
+        }
+    }
+
+    func testAddManySubscriptions() {
+        let task = EmptyTask()
+        measure {
+            for _ in 0..<100_000 {
                 let subscription = task.publisher.subscribe { _ in }
                 subscription?.unsubscribe()
             }
