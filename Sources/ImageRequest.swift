@@ -38,7 +38,7 @@ public struct ImageRequest: CustomStringConvertible {
     public enum Priority: Int, Comparable {
         case veryLow = 0, low, normal, high, veryHigh
 
-        var queuePriority: Operation.QueuePriority {
+        var taskPriority: TaskPriority {
             switch self {
             case .veryLow: return .veryLow
             case .low: return .low

@@ -22,7 +22,8 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         var priority: TaskPriority
     }
 
-    private var subscriptions = SmallArray<Subscription>()
+    private var subscriptions = InlineArray<Subscription?>()
+    private var activeSubscriptionCount = 0
     private var nextSubscriptionIndex = 0
 
     /// Returns `true` if the task was either cancelled, or was completed.
@@ -85,7 +86,8 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         nextSubscriptionIndex += 1
         let subscription = TaskSubscription(task: self, key: subscriptionKey)
 
-        subscriptions.insert(Subscription(observer: observer, priority: priority))
+        subscriptions.append(Subscription(observer: observer, priority: priority))
+        activeSubscriptionCount += 1
         updatePriority()
 
         if !isStarted {
@@ -104,17 +106,17 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     fileprivate func setPriority(_ priority: TaskPriority, for key: TaskSubscriptionKey) {
         guard !isDisposed else { return }
 
-        subscriptions.updateElement(at: key) {
-            $0.priority = priority
-        }
+        subscriptions[key]?.priority = priority
         updatePriority()
     }
 
     fileprivate func unsubsribe(key: TaskSubscriptionKey) {
-        guard subscriptions.removeElement(at: key) != nil else { return } // Already unsubscribed from this task
+        guard subscriptions[key] != nil else { return } // Already unsubscribed from this task
+        subscriptions[key] = nil
+        activeSubscriptionCount -= 1
         guard !isDisposed else { return }
 
-        if subscriptions.isEmpty {
+        if activeSubscriptionCount == 0 {
             terminate(reason: .cancelled)
         } else {
             updatePriority()
@@ -149,8 +151,8 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
             terminate(reason: .finished)
         }
 
-        subscriptions.enumerateValues { subscription in
-            subscription.observer(event)
+        for subscription in subscriptions {
+            subscription?.observer(event)
         }
     }
 
@@ -175,15 +177,7 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     // MARK: - Priority
 
     private func updatePriority() {
-        var priority: TaskPriority?
-        subscriptions.enumerateValues {
-            if priority == nil {
-                priority = $0.priority
-            } else if $0.priority > priority! {
-                priority = $0.priority
-            }
-        }
-        self.priority = priority ?? .normal
+        self.priority = subscriptions.compactMap { $0?.priority }.max() ?? .normal
     }
 }
 
@@ -224,7 +218,23 @@ struct TaskProgress: Hashable {
     let total: Int64
 }
 
-typealias TaskPriority = ImageRequest.Priority // typealias will do for now
+enum TaskPriority: Int, Comparable {
+    case veryLow = 0, low, normal, high, veryHigh
+
+    var queuePriority: Operation.QueuePriority {
+        switch self {
+        case .veryLow: return .veryLow
+        case .low: return .low
+        case .normal: return .normal
+        case .high: return .high
+        case .veryHigh: return .veryHigh
+        }
+    }
+
+    static func < (lhs: TaskPriority, rhs: TaskPriority) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
 
 // MARK: - Task.Event {
 extension Task {

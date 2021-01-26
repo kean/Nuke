@@ -87,21 +87,22 @@ class ImagePipelinePerfomanceTests: XCTestCase {
         }
 
         let urls = (0...5000).map { URL(string: "http://test.com/\($0)")! }
+        let callbackQueue = DispatchQueue(label: "testLoaderOverallPerformance")
         measure {
-            let expectation = self.expectation(description: "Image loaded")
             var finished: Int = 0
+            let semaphore = DispatchSemaphore(value: 0)
             for url in urls {
                 var request = ImageRequest(url: url)
                 request.processors = [] // Remove processing time from equation
 
-                pipeline.loadImage(with: url) { _ in
+                pipeline.loadImage(with: url, queue: callbackQueue) { _ in
                     finished += 1
                     if finished == urls.count {
-                        expectation.fulfill()
+                        semaphore.signal()
                     }
                 }
             }
-            wait(10)
+            semaphore.wait()
         }
     }
 }
