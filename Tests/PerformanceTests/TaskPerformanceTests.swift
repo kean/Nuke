@@ -7,14 +7,37 @@ import Nuke
 
 // `Task.swift` is added directly to this target.
 class TaskPerformanceTests: XCTestCase {
-    func testCompleteFlowOneSubscription() {
-
+    func testAddOneSubscription() {
         measure {
             for _ in 0..<100_000 {
                 let task = SimpleTask()
                 _ = task.publisher.subscribe { _ in
                     // Do nothing
                 }
+            }
+        }
+    }
+
+    func testChangePriority() {
+        let task = EmptyTask()
+        var priority = TaskPriority.normal
+        let subscription = task.publisher.subscribe { _ in }
+        _ = task.publisher.subscribe { _ in }
+        measure {
+            for _ in 0..<100_000 {
+                let newPriority: TaskPriority = priority == .high ? .normal : .high
+                subscription?.setPriority(newPriority)
+                priority = newPriority
+            }
+        }
+    }
+
+    func testUnsubscribe() {
+        measure {
+            for _ in 0..<100_000 {
+                let task = EmptyTask()
+                let subscription = task.publisher.subscribe { _ in }
+                subscription?.unsubscribe()
             }
         }
     }
@@ -30,5 +53,10 @@ private final class SimpleTask: Task<Int, MyError> {
         send(value: 1)
         send(progress: TaskProgress(completed: 2, total: 2))
         send(value: 2, isCompleted: true)
+    }
+}
+
+private final class EmptyTask: Task<Int, MyError> {
+    override func start() {
     }
 }
