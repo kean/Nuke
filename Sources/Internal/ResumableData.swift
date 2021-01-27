@@ -99,14 +99,18 @@ final class ResumableDataStorage {
 
     // MARK: Storage
 
-    func removeResumableData(for request: URLRequest, pipeline: ImagePipeline) -> ResumableData? {
+    func removeResumableData(for request: ImageRequest, pipeline: ImagePipeline) -> ResumableData? {
         lock.lock(); defer { lock.unlock() }
 
-        guard let key = Key(request: request, pipeline: pipeline) else { return nil }
-        return cache?.removeValue(forKey: key)
+        guard let cache = cache,
+              cache.totalCount > 0,
+              let key = Key(request: request, pipeline: pipeline) else {
+            return nil
+        }
+        return cache.removeValue(forKey: key)
     }
 
-    func storeResumableData(_ data: ResumableData, for request: URLRequest, pipeline: ImagePipeline) {
+    func storeResumableData(_ data: ResumableData, for request: ImageRequest, pipeline: ImagePipeline) {
         lock.lock(); defer { lock.unlock() }
 
         guard let key = Key(request: request, pipeline: pipeline) else { return }
@@ -117,8 +121,8 @@ final class ResumableDataStorage {
         let pipelineId: UUID
         let url: String
 
-        init?(request: URLRequest, pipeline: ImagePipeline) {
-            guard let url = request.url?.absoluteString else {
+        init?(request: ImageRequest, pipeline: ImagePipeline) {
+            guard let url = request.urlString else {
                 return nil
             }
             self.pipelineId = pipeline.id

@@ -33,6 +33,10 @@ public struct ImageRequest: CustomStringConvertible {
         }
     }
 
+    var urlString: String? {
+        ref.urlString
+    }
+
     /// The execution priority of the request. The priority affects the order in which the image
     /// requests are executed.
     public enum Priority: Int, Comparable {

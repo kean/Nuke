@@ -160,7 +160,7 @@ final class Cache<Key: Hashable, Value> {
     var ttl: TimeInterval = 0
 
     var totalCount: Int {
-        return map.count
+        map.count
     }
 
     init(costLimit: Int, countLimit: Int) {
