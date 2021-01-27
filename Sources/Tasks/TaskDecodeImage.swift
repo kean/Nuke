@@ -16,7 +16,7 @@ final class TaskDecodeImage: ImagePipelineTask<ImageResponse> {
 
     /// Receiving data from `OriginalDataTask`.
     private func didReceiveData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool) {
-        guard isCompleted || configuration.isProgressiveDecodingEnabled else {
+        guard isCompleted || pipeline.configuration.isProgressiveDecodingEnabled else {
             return
         }
 
@@ -43,7 +43,7 @@ final class TaskDecodeImage: ImagePipelineTask<ImageResponse> {
             return
         }
 
-        operation = configuration.imageDecodingQueue.add { [weak self] in
+        operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
             guard let self = self else { return }
 
             let response = signpost(self.log, "DecodeImageData", isCompleted ? "FinalImage" : "ProgressiveImage") {
@@ -67,7 +67,7 @@ final class TaskDecodeImage: ImagePipelineTask<ImageResponse> {
             return decoder
         }
         let decoderContext = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
-        let decoder = configuration.makeImageDecoder(decoderContext)
+        let decoder = pipeline.configuration.makeImageDecoder(decoderContext)
         self.decoder = decoder
         return decoder
     }

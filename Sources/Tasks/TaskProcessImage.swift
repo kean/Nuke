@@ -17,7 +17,7 @@ final class TaskProcessImage: ImagePipelineTask<ImageResponse> {
 
         let processor: ImageProcessing
         var subRequest = request
-        if configuration.isDeduplicationEnabled {
+        if pipeline.configuration.isDeduplicationEnabled {
             // Recursively call getProcessedImage until there are no more processors left.
             // Each time getProcessedImage is called it tries to find an existing
             // task ("deduplication") to avoid doing any duplicated work.
@@ -45,7 +45,7 @@ final class TaskProcessImage: ImagePipelineTask<ImageResponse> {
             return  // Back pressure - already processing another progressive image
         }
 
-        operation = configuration.imageProcessingQueue.add { [weak self] in
+        operation = pipeline.configuration.imageProcessingQueue.add { [weak self] in
             guard let self = self else { return }
 
             let context = ImageProcessingContext(request: self.request, response: response, isFinal: isCompleted)

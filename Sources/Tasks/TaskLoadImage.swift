@@ -17,12 +17,12 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
         }
 
-        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage), request.cachePolicy != .reloadIgnoringCachedData else {
+        guard let dataCache = pipeline.configuration.dataCache, pipeline.configuration.dataCacheOptions.storedItems.contains(.finalImage), request.cachePolicy != .reloadIgnoringCachedData else {
             return loadDecompressedImage()
         }
 
         // Load processed image from data cache and decompress it.
-        operation = configuration.dataCachingQueue.add { [weak self] in
+        operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
             guard let self = self else { return }
             let key = self.request.makeCacheKeyForFinalImageData()
             let data = signpost(self.log, "ReadCachedProcessedImageData") {
@@ -42,13 +42,13 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         guard !isDisposed else { return }
 
         let decoderContext = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
-        guard let decoder = configuration.makeImageDecoder(decoderContext) else {
+        guard let decoder = pipeline.configuration.makeImageDecoder(decoderContext) else {
             // This shouldn't happen in practice unless encoder/decoder pair
             // for data cache is misconfigured.
             return loadDecompressedImage()
         }
 
-        operation = configuration.imageDecodingQueue.add { [weak self] in
+        operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
             guard let self = self else { return }
             let response = signpost(self.log, "DecodeCachedProcessedImageData") {
                 decoder.decode(data, urlResponse: nil, isCompleted: true)
@@ -91,7 +91,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         guard !isDisposed else { return }
 
-        operation = configuration.imageDecompressingQueue.add { [weak self] in
+        operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
             guard let self = self else { return }
 
             let response = signpost(self.log, "DecompressImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
@@ -106,19 +106,19 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     private func isDecompressionNeeded(for response: ImageResponse) -> Bool {
-        return configuration.isDecompressionEnabled &&
+        return pipeline.configuration.isDecompressionEnabled &&
             ImageDecompression.isDecompressionNeeded(for: response.image) ?? false &&
             !(ImagePipeline.Configuration._isAnimatedImageDataEnabled && response.image._animatedImageData != nil)
     }
     #endif
 
     private func storeImageInDataCache(_ response: ImageResponse) {
-        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.finalImage), !response.container.isPreview else {
+        guard let dataCache = pipeline.configuration.dataCache, pipeline.configuration.dataCacheOptions.storedItems.contains(.finalImage), !response.container.isPreview else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
-        let encoder = configuration.makeImageEncoder(context)
-        configuration.imageEncodingQueue.addOperation { [request, log] in
+        let encoder = pipeline.configuration.makeImageEncoder(context)
+        pipeline.configuration.imageEncodingQueue.addOperation { [request, log] in
             let encodedData = signpost(log, "EncodeImage") {
                 encoder.encode(response.container, context: context)
             }

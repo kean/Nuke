@@ -13,11 +13,11 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
     private lazy var data = Data()
 
     override func start() {
-        guard let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData), request.cachePolicy != .reloadIgnoringCachedData else {
+        guard let dataCache = pipeline.configuration.dataCache, pipeline.configuration.dataCacheOptions.storedItems.contains(.originalImageData), request.cachePolicy != .reloadIgnoringCachedData else {
             loadData() // Skip disk cache lookup, load data
             return
         }
-        operation = configuration.dataCachingQueue.add { [weak self] in
+        operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
             self?.getCachedData(dataCache: dataCache)
         }
     }
@@ -55,7 +55,7 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
     private func actuallyLoadData() {
         // Wrap data request in an operation to limit maximum number of
         // concurrent data tasks.
-        operation = configuration.dataLoadingQueue.add { [weak self] finish in
+        operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
             guard let self = self else {
                 return finish()
             }
@@ -75,7 +75,7 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
 
         // Read and remove resumable data from cache (we're going to insert it
         // back in the cache if the request fails to complete again).
-        if configuration.isResumableDataEnabled,
+        if pipeline.configuration.isResumableDataEnabled,
            let resumableData = ResumableDataStorage.shared.removeResumableData(for: request, pipeline: pipeline) {
             // Update headers to add "Range" and "If-Range" headers
             resumableData.resume(request: &urlRequest)
@@ -86,7 +86,7 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
 
         signpost(log, self, "LoadImageData", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
 
-        let dataTask = configuration.dataLoader.loadData(
+        let dataTask = pipeline.configuration.dataLoader.loadData(
             with: urlRequest,
             didReceiveData: { [weak self] data, response in
                 guard let self = self else { return }
@@ -155,7 +155,7 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
         }
 
         // Store in data cache
-        if let dataCache = configuration.dataCache, configuration.dataCacheOptions.storedItems.contains(.originalImageData) {
+        if let dataCache = pipeline.configuration.dataCache, pipeline.configuration.dataCacheOptions.storedItems.contains(.originalImageData) {
             let key = request.makeCacheKeyForOriginalImageData()
             dataCache.storeData(data, for: key)
         }
@@ -166,7 +166,7 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
     private func tryToSaveResumableData() {
         // Try to save resumable data in case the task was cancelled
         // (`URLError.cancelled`) or failed to complete with other error.
-        if configuration.isResumableDataEnabled,
+        if pipeline.configuration.isResumableDataEnabled,
            let response = urlResponse, !data.isEmpty,
            let resumableData = ResumableData(response: response, data: data) {
             ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
