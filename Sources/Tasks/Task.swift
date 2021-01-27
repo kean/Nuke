@@ -22,9 +22,11 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         var priority: TaskPriority
     }
 
-    private var subscriptions = InlineArray<Subscription?>()
-    private var activeSubscriptionCount = 0
-    private var nextSubscriptionIndex = 0
+    // In most situations, especially for intermediate tasks, the almost almost
+    // only one subscription.
+    private var inlineSubscription: Subscription?
+    private var subscriptions: [TaskSubscriptionKey: Subscription]? // Create lazily
+    private var nextSubscriptionKey = 0
 
     /// Returns `true` if the task was either cancelled, or was completed.
     private(set) var isDisposed = false
@@ -82,13 +84,18 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     private func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
         guard !isDisposed else { return nil }
 
-        let subscriptionKey = nextSubscriptionIndex
-        nextSubscriptionIndex += 1
+        let subscriptionKey = nextSubscriptionKey
+        nextSubscriptionKey += 1
         let subscription = TaskSubscription(task: self, key: subscriptionKey)
 
-        subscriptions.append(Subscription(observer: observer, priority: priority))
-        activeSubscriptionCount += 1
-        updatePriority()
+        if subscriptionKey == 0 {
+            inlineSubscription = Subscription(observer: observer, priority: priority)
+        } else {
+            if subscriptions == nil { subscriptions = [:] }
+            subscriptions![subscriptionKey] = Subscription(observer: observer, priority: priority)
+        }
+
+        updatePriority(suggestedPriority: priority)
 
         if !isStarted {
             isStarted = true
@@ -106,24 +113,28 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     fileprivate func setPriority(_ priority: TaskPriority, for key: TaskSubscriptionKey) {
         guard !isDisposed else { return }
 
-        subscriptions[key]?.priority = priority
-        if priority > self.priority {
-            self.priority = priority // No need to iterate over all subscriptions
+        if key == 0 {
+            inlineSubscription?.priority = priority
         } else {
-            updatePriority()
+            subscriptions![key]?.priority = priority
         }
+        updatePriority(suggestedPriority: priority)
     }
 
     fileprivate func unsubsribe(key: TaskSubscriptionKey) {
-        guard subscriptions[key] != nil else { return } // Already unsubscribed from this task
-        subscriptions[key] = nil
-        activeSubscriptionCount -= 1
+        if key == 0 {
+            guard inlineSubscription != nil else { return }
+            inlineSubscription = nil
+        } else {
+            guard subscriptions!.removeValue(forKey: key) != nil else { return }
+        }
+
         guard !isDisposed else { return }
 
-        if activeSubscriptionCount == 0 {
+        if inlineSubscription == nil && subscriptions?.isEmpty ?? true {
             terminate(reason: .cancelled)
         } else {
-            updatePriority()
+            updatePriority(suggestedPriority: nil)
         }
     }
 
@@ -155,8 +166,11 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
             terminate(reason: .finished)
         }
 
-        for subscription in subscriptions {
-            subscription?.observer(event)
+        inlineSubscription?.observer(event)
+        if let subscriptions = subscriptions {
+            for subscription in subscriptions.values {
+                subscription.observer(event)
+            }
         }
     }
 
@@ -180,16 +194,23 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
 
     // MARK: - Priority
 
-    private func updatePriority() {
-        // Same as subscriptions.compactMap { $0?.priority }.max() ?? .normal
-        // but without creating a new array every time.
-        var newPriority: TaskPriority?
-        for subscription in subscriptions {
-            guard let priority = subscription?.priority else { continue }
-            if newPriority == nil {
-                newPriority = priority
-            } else if priority > newPriority! {
-                newPriority = priority
+    private func updatePriority(suggestedPriority: TaskPriority?) {
+        if let suggestedPriority = suggestedPriority, suggestedPriority >= priority {
+            // No need to recompute, won't go higher than that
+            priority = suggestedPriority
+            return
+        }
+
+        var newPriority = inlineSubscription?.priority
+        // Same as subscriptions.map { $0?.priority }.max() but without allocating
+        // any memory for redundant arrays
+        if let subscriptions = subscriptions {
+            for subscription in subscriptions.values {
+                if newPriority == nil {
+                    newPriority = subscription.priority
+                } else if subscription.priority > newPriority! {
+                    newPriority = subscription.priority
+                }
             }
         }
         self.priority = newPriority ?? .normal

@@ -128,10 +128,8 @@
 		0CC36A4125B8BCAC00811018 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A4025B8BCAC00811018 /* Log.swift */; };
 		0CC6271525BDF7A100466F04 /* ImagePipelineMemoryCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6271425BDF7A100466F04 /* ImagePipelineMemoryCacheTests.swift */; };
 		0CC6272125BDF7EA00466F04 /* ImageRequestConvertibleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6272025BDF7EA00466F04 /* ImageRequestConvertibleTests.swift */; };
-		0CC6275A25BFC96C00466F04 /* InlineArray.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6275925BFC96C00466F04 /* InlineArray.swift */; };
 		0CC6276725C0A18300466F04 /* TaskPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6276625C0A18300466F04 /* TaskPerformanceTests.swift */; };
 		0CC6277225C0A29500466F04 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C505B6B2286F3AD006D5399 /* Task.swift */; };
-		0CC6277825C0A29B00466F04 /* InlineArray.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6275925BFC96C00466F04 /* InlineArray.swift */; };
 		0CCBB530217D0B6A0026F552 /* ImageViewIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCBB52F217D0B6A0026F552 /* ImageViewIntegrationTests.swift */; };
 		0CCBB534217D0B980026F552 /* MockProgressiveDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCBB533217D0B980026F552 /* MockProgressiveDataLoader.swift */; };
 		0CD37C9A25BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD37C9925BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift */; };
@@ -286,7 +284,6 @@
 		0CC36A4025B8BCAC00811018 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		0CC6271425BDF7A100466F04 /* ImagePipelineMemoryCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineMemoryCacheTests.swift; sourceTree = "<group>"; };
 		0CC6272025BDF7EA00466F04 /* ImageRequestConvertibleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRequestConvertibleTests.swift; sourceTree = "<group>"; };
-		0CC6275925BFC96C00466F04 /* InlineArray.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineArray.swift; sourceTree = "<group>"; };
 		0CC6276625C0A18300466F04 /* TaskPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPerformanceTests.swift; sourceTree = "<group>"; };
 		0CCBB52F217D0B6A0026F552 /* ImageViewIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewIntegrationTests.swift; sourceTree = "<group>"; };
 		0CCBB533217D0B980026F552 /* MockProgressiveDataLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProgressiveDataLoader.swift; sourceTree = "<group>"; };
@@ -619,7 +616,6 @@
 				0CC36A3925B8BC9400811018 /* Atomic.swift */,
 				0CC36A4025B8BCAC00811018 /* Log.swift */,
 				0C7150081FC9724C00B880AC /* Extensions.swift */,
-				0CC6275925BFC96C00466F04 /* InlineArray.swift */,
 			);
 			path = Internal;
 			sourceTree = "<group>";
@@ -1061,7 +1057,6 @@
 				0C3261F41FEBC232009276AC /* MockImageProcessor.swift in Sources */,
 				0CAAB0131E45D6DA00924450 /* NukeExtensions.swift in Sources */,
 				0CC6276725C0A18300466F04 /* TaskPerformanceTests.swift in Sources */,
-				0CC6277825C0A29B00466F04 /* InlineArray.swift in Sources */,
 				0C3261F51FEBC232009276AC /* MockDataLoader.swift in Sources */,
 				0CC6277225C0A29500466F04 /* Task.swift in Sources */,
 				0C8D7BF51D9DC07E00D12EB7 /* PerformanceTests.swift in Sources */,
@@ -1091,7 +1086,6 @@
 				0C0FD6041CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0CF1754C22913F9800A8946E /* ImagePipelineConfiguration.swift in Sources */,
 				0C86AB6A228B3B5100A81BA1 /* ImageTask.swift in Sources */,
-				0CC6275A25BFC96C00466F04 /* InlineArray.swift in Sources */,
 				0C7150091FC9724C00B880AC /* Extensions.swift in Sources */,
 				0CC36A1225B8BC0800811018 /* Allocations.swift in Sources */,
 				0C42D4C722A286260094CB5A /* Deprecated.swift in Sources */,
