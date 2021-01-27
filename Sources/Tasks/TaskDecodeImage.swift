@@ -16,10 +16,16 @@ final class TaskDecodeImage: ImagePipelineTask<ImageResponse> {
 
     /// Receiving data from `OriginalDataTask`.
     private func didReceiveData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool) {
+        guard isCompleted || configuration.isProgressiveDecodingEnabled else {
+            return
+        }
+
+        if !isCompleted && operation != nil {
+            return // Back pressure - already decoding another progressive data chunk
+        }
+
         if isCompleted {
             operation?.cancel() // Cancel any potential pending progressive decoding tasks
-        } else if !configuration.isProgressiveDecodingEnabled || operation != nil {
-            return // Back pressure - already decoding another progressive data chunk
         }
 
         // Sanity check
