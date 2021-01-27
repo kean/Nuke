@@ -335,9 +335,9 @@ private typealias TaskSubscriptionKey = Int
 // MARK: - TaskPool
 
 /// Contains the tasks which haven't completed yet.
-final class TaskPool<Value, Error> {
+final class TaskPool<Key: Hashable, Value, Error> {
     private let isDeduplicationEnabled: Bool
-    private var map = [AnyHashable: Task<Value, Error>]()
+    private var map = [Key: Task<Value, Error>]()
 
     init(_ isDeduplicationEnabled: Bool) {
         self.isDeduplicationEnabled = isDeduplicationEnabled
@@ -346,7 +346,7 @@ final class TaskPool<Value, Error> {
     /// Creates a task with the given key. If there is an outstanding task with
     /// the given key in the pool, the existing task is returned. Tasks are
     /// automatically removed from the pool when they are disposed.
-    func publisherForKey(_ key: AnyHashable, _ make: () -> Task<Value, Error>) -> Task<Value, Error>.Publisher {
+    func publisherForKey(_ key: Key, _ make: () -> Task<Value, Error>) -> Task<Value, Error>.Publisher {
         guard isDeduplicationEnabled else {
             return make().publisher
         }

@@ -23,10 +23,10 @@ public /* final */ class ImagePipeline {
 
     private var tasks = [ImageTask: TaskSubscription]()
 
-    private let decompressedImageTasks: TaskPool<ImageResponse, Error>
-    private let processedImageTasks: TaskPool<ImageResponse, Error>
-    private let originalImageTasks: TaskPool<ImageResponse, Error>
-    private let originalImageDataTasks: TaskPool<(Data, URLResponse?), Error>
+    private let decompressedImageTasks: TaskPool<ImageRequest.LoadKeyForProcessedImage, ImageResponse, Error>
+    private let processedImageTasks: TaskPool<ImageRequest.LoadKeyForProcessedImage, ImageResponse, Error>
+    private let originalImageTasks: TaskPool<ImageRequest.LoadKeyForOriginalImage, ImageResponse, Error>
+    private let originalImageDataTasks: TaskPool<ImageRequest.LoadKeyForOriginalImage, (Data, URLResponse?), Error>
 
     private var nextTaskId = Atomic<Int>(0)
 

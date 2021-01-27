@@ -319,7 +319,7 @@ extension ImageRequest {
     // MARK: - Load Keys
 
     /// A key for deduplicating operations for fetching the processed image.
-    func makeLoadKeyForFinalImage() -> AnyHashable {
+    func makeLoadKeyForFinalImage() -> LoadKeyForProcessedImage {
         LoadKeyForProcessedImage(
             cacheKey: makeCacheKeyForFinalImage(),
             loadKey: makeLoadKeyForOriginalImage()
@@ -327,11 +327,8 @@ extension ImageRequest {
     }
 
     /// A key for deduplicating operations for fetching the original image.
-    func makeLoadKeyForOriginalImage() -> AnyHashable {
-        if let loadKey = self.options.loadKey {
-            return loadKey
-        }
-        return LoadKeyForOriginalImage(request: self)
+    func makeLoadKeyForOriginalImage() -> LoadKeyForOriginalImage {
+        LoadKeyForOriginalImage(request: self)
     }
 
     // MARK: - Internals (Keys)
@@ -358,27 +355,48 @@ extension ImageRequest {
     }
 
     // Uniquely identifies a task of retrieving the processed image.
-    private struct LoadKeyForProcessedImage: Hashable {
+    struct LoadKeyForProcessedImage: Hashable {
         let cacheKey: CacheKey
         let loadKey: AnyHashable
     }
 
-    private struct LoadKeyForOriginalImage: Hashable {
-        let urlString: String?
-        let requestCachePolicy: CachePolicy
-        let cachePolicy: URLRequest.CachePolicy
-        let allowsCellularAccess: Bool
+    // Uniquely identifies a task of retrieving the original image.
+    struct LoadKeyForOriginalImage: Hashable {
+        let request: ImageRequest
 
-        init(request: ImageRequest) {
-            self.urlString = request.ref.urlString
-            self.requestCachePolicy = request.cachePolicy
-            switch request.ref.resource {
-            case .url:
-                self.cachePolicy = .useProtocolCachePolicy
-                self.allowsCellularAccess = true
-            case let .urlRequest(urlRequest):
-                self.cachePolicy = urlRequest.cachePolicy
-                self.allowsCellularAccess = urlRequest.allowsCellularAccess
+        func hash(into hasher: inout Hasher) {
+            if let customKey = request.ref.options.loadKey {
+                hasher.combine(customKey)
+            } else {
+                hasher.combine(request.ref.preferredURLString)
+            }
+        }
+
+        static func == (lhs: LoadKeyForOriginalImage, rhs: LoadKeyForOriginalImage) -> Bool {
+            let (lhs, rhs) = (lhs.request, rhs.request)
+            if lhs.options.loadKey != nil || rhs.options.loadKey != nil {
+                return lhs.options.loadKey == rhs.options.loadKey
+            }
+            return Parameters(lhs) == Parameters(rhs)
+        }
+
+        private struct Parameters: Hashable {
+            let urlString: String?
+            let requestCachePolicy: CachePolicy
+            let cachePolicy: URLRequest.CachePolicy
+            let allowsCellularAccess: Bool
+
+            init(_ request: ImageRequest) {
+                self.urlString = request.ref.urlString
+                self.requestCachePolicy = request.cachePolicy
+                switch request.ref.resource {
+                case .url:
+                    self.cachePolicy = .useProtocolCachePolicy
+                    self.allowsCellularAccess = true
+                case let .urlRequest(urlRequest):
+                    self.cachePolicy = urlRequest.cachePolicy
+                    self.allowsCellularAccess = urlRequest.allowsCellularAccess
+                }
             }
         }
     }
