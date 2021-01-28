@@ -124,7 +124,9 @@ Every image preview goes through the same processing and decompression phases th
 
 <img align="right" src="https://user-images.githubusercontent.com/1567433/59372512-f7bc0680-8d47-11e9-865e-f739f013ad49.png" width="360"/>
 
-Nuke is tuned to do as little work on the main thread as possible. It uses multiple optimization techniques to achieve that: reducing the number of allocations, reducing dynamic dispatch, CoW, etc.
+Nuke is tuned to have at little overhead as possible. It uses multiple optimization techniques to achieve that: reducing the number of allocations, reducing dynamic dispatch, CoW, etc. There is virtually nothing left in Nuke that could be changed to improve main thread performance.
+
+If you take out image decoding and other system calls that Nuke has no control over Nuke takes only about **0.004 ms** (4 *micro*seconds) on the main thread per request and about **0.03 ms** (30 microseconds) overall, as measured on iPhone 11 Pro using Nuke 9.3.0.
 
 Nuke is fully asynchronous and performs well under stress. `ImagePipeline` schedules its operations on dedicated queues. Each queue limits the number of concurrent tasks, respects the request priorities, and cancels the work as soon as possible. Under extreme load, `ImagePipeline` will also rate limit requests to prevent saturation of the underlying systems.
 
