@@ -151,8 +151,7 @@ public final class DataCache: DataCaching {
 
     // MARK: DataCaching
 
-    /// Retrieves data for the given key. The completion will be called
-    /// syncrhonously if there is no cached data for the given key.
+    /// Retrieves data for the given key.
     public func cachedData(for key: Key) -> Data? {
         lock.lock()
         if let change = staging.change(for: key) {
