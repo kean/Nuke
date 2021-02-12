@@ -42,8 +42,18 @@ extension UIImageView: Nuke_ImageDisplaying {
 }
 #elseif os(macOS)
 import Cocoa
-/// An `NSView` that implements `ImageDisplaying` protocol.
-public typealias ImageDisplayingView = NSView & Nuke_ImageDisplaying
+/// An `NSObject` that implements `ImageDisplaying`  and `Animating` protocols.
+/// Can support `NSView` and `NSCell`. The latter can return nil for layer.
+public typealias ImageDisplayingView = NSObject & Nuke_ImageDisplaying & Nuke_Animating
+
+@objc public protocol Nuke_Animating {
+
+  @objc var layer: CALayer? { get }
+}
+
+// A view already has a layer property definied in AppKit.
+// Hence, no action required for conforming to Animating protocol.
+extension NSView: Nuke_Animating { }
 
 extension NSImageView: Nuke_ImageDisplaying {
     /// Displays an image.
@@ -54,7 +64,7 @@ extension NSImageView: Nuke_ImageDisplaying {
 #elseif os(watchOS)
 import WatchKit
 
-/// An `NSView` that implements `ImageDisplaying` protocol.
+/// A `WKInterfaceObject` that implements `ImageDisplaying` protocol.
 public typealias ImageDisplayingView = WKInterfaceObject & Nuke_ImageDisplaying
 
 extension WKInterfaceImage: Nuke_ImageDisplaying {
