@@ -79,7 +79,7 @@ class ImagePipelineMemoryTests: XCTestCase {
 
     // MARK: - Callback Queues
 
-    func testChangingCallbackQueueLoadImage() {
+    func _testChangingCallbackQueueLoadImage() {
         // Given
         let queue = DispatchQueue(label: "testChangingCallbackQueue")
         let queueKey = DispatchSpecificKey<Void>()
@@ -99,7 +99,7 @@ class ImagePipelineMemoryTests: XCTestCase {
         waitAndDeinitPipeline()
     }
 
-    func testChangingCallbackQueueLoadData() {
+    func _testChangingCallbackQueueLoadData() {
         // Given
         let queue = DispatchQueue(label: "testChangingCallbackQueue")
         let queueKey = DispatchSpecificKey<Void>()
