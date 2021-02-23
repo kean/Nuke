@@ -27,7 +27,17 @@ public typealias PlatformImage = NSImage
 @objc public protocol Nuke_ImageDisplaying {
     /// Display a given image.
     @objc func nuke_display(image: PlatformImage?)
+
+    #if os(macOS)
+    @objc var layer: CALayer? { get }
+    #endif
 }
+
+#if os(macOS)
+public extension Nuke_ImageDisplaying {
+    var layer: CALayer? { nil }
+}
+#endif
 
 #if os(iOS) || os(tvOS)
 import UIKit
@@ -44,16 +54,7 @@ extension UIImageView: Nuke_ImageDisplaying {
 import Cocoa
 /// An `NSObject` that implements `ImageDisplaying`  and `Animating` protocols.
 /// Can support `NSView` and `NSCell`. The latter can return nil for layer.
-public typealias ImageDisplayingView = NSObject & Nuke_ImageDisplaying & Nuke_Animating
-
-@objc public protocol Nuke_Animating {
-
-  @objc var layer: CALayer? { get }
-}
-
-// A view already has a layer property definied in AppKit.
-// Hence, no action required for conforming to Animating protocol.
-extension NSView: Nuke_Animating { }
+public typealias ImageDisplayingView = NSObject & Nuke_ImageDisplaying
 
 extension NSImageView: Nuke_ImageDisplaying {
     /// Displays an image.
@@ -363,7 +364,8 @@ private final class ImageViewController {
             #if os(iOS) || os(tvOS)
             imageView.layer.removeAllAnimations()
             #elseif os(macOS)
-            imageView.layer?.removeAllAnimations()
+            let layer = (imageView as? NSView)?.layer ?? imageView.layer
+            layer?.removeAllAnimations()
             #endif
         }
 
