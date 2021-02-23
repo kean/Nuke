@@ -52,7 +52,7 @@ public extension ImagePipeline.Configuration {
     /// - warning: Soft-deprecated in 9.0. The default image decoder now
     /// automatically attaches image data to the newly added ImageContainer type.
     /// To learn how to implement animated image support using this new type,
-    /// see the new Image Formats guide https://github.com/kean/Nuke/blob/9.2.0/Documentation/Guides/image-formats.md"
+    /// see the new Image Formats guide https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md"
     static var isAnimatedImageDataEnabled: Bool {
         get { _isAnimatedImageDataEnabled }
         set { _isAnimatedImageDataEnabled = newValue }

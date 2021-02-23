@@ -31,7 +31,7 @@ If the image is stored in the [memory cache](#memory-cache), it is displayed imm
 
 This section describes the basic steps that pipeline performs when delivering an image.
 
-> As a visual aid, use this [Block Diagram](https://github.com/kean/Nuke/blob/9.2.0/Documentation/Assets/image-pipeline.svg) (warning: the data cache portion does not yet reflect changes from Nuke 9).
+> As a visual aid, use this [Block Diagram](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Assets/image-pipeline.svg) (warning: the data cache portion does not yet reflect changes from Nuke 9).
 
 1. Check if the requested image is already stored in the [memory cache](#memory-cache). If it is, deliver it to the client.
 2. Check if the encoded requested image is stored in the disk cache (this feature is disabled by default). If yes, the image is
@@ -61,7 +61,7 @@ The `URLSession` class natively supports the following URL schemes: `data`, `fil
 
 Most developers either implement their own networking layer or use a third-party framework. Nuke supports both of these workflows. You can integrate your custom networking layer by implementing `DataLoading` protocol.
 
-> See [Third Party Libraries](https://github.com/kean/Nuke/blob/9.2.0/Documentation/Guides/third-party-libraries.md#using-other-caching-libraries) guide to learn more. See also [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin).
+> See [Third Party Libraries](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/third-party-libraries.md#using-other-caching-libraries) guide to learn more. See also [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin).
 
 ### Aggressive LRU Disk Cache
 
@@ -150,7 +150,7 @@ For every image request, the system needs to fetch the following resources:
 - One or more processed images (depending on the number of processors)
 - Decompressed image (if needed)
 
-In Nuke, each of the resources is represented by a task ([`Task`](https://github.com/kean/Nuke/blob/9.2.4/Sources/Task.swift)). A task retrieves its resource incrementally, enabling progressive image decoding (see [progressive JPEG](https://github.com/kean/Nuke/blob/9.2.0/Documentation/Guides/image-formats.md#progressive-jpeg)).
+In Nuke, each of the resources is represented by a task ([`Task`](https://github.com/kean/Nuke/blob/9.2.4/Sources/Task.swift)). A task retrieves its resource incrementally, enabling progressive image decoding (see [progressive JPEG](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md#progressive-jpeg)).
 
 When the request is started, the system creates a chain of tasks needed to produce the final image. Tasks send events *upstream*: data chunks, image scans, progress updates, errors. Tasks send priority updates and cancellation requests *downstream*.
 
