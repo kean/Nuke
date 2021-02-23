@@ -1,5 +1,15 @@
 # Nuke 9
 
+## Nuke 9.3.0
+
+*Feb 22, 2021*
+
+- Improve ImagePipeline background performance by **~40%** (measuring after taking out system calls)
+- Reduce number of allocations per task
+- Improve Task infrastructure, make ImagePipeline vastly easier to read and understand
+- Add more performance and unit tests. Tests are now clocking at 6000 lines of code.
+- Add infrastructure for automated memory management testing
+
 ## Nuke 9.2.4
 
 *Jan 16, 2021*
