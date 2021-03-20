@@ -374,7 +374,7 @@ ImageCache.shared.removeAll()
 
 ### HTTP Disk Cache
 
-Unprocessed image data is stored with `URLCache`.
+By default, unprocessed image data is stored using `URLCache`.
 
 ```swift
 // Configure cache
