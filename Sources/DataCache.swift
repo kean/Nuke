@@ -360,12 +360,13 @@ public final class DataCache: DataCaching {
         }
         var size = items.reduce(0) { $0 + ($1.meta.totalFileAllocatedSize ?? 0) }
         var count = items.count
-        let sizeLimit = Int(Double(self.sizeLimit) * trimRatio)
-        let countLimit = Int(Double(self.countLimit) * trimRatio)
 
         guard size > sizeLimit || count > countLimit else {
             return // All good, no need to perform any work.
         }
+
+        let sizeLimit = Int(Double(self.sizeLimit) * trimRatio)
+        let countLimit = Int(Double(self.countLimit) * trimRatio)
 
         // Most recently accessed items first
         let past = Date.distantPast
