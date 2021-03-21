@@ -2,7 +2,7 @@
 
 ## Nuke 9.3.1
 
-*Mar 1, 2021*
+*Mar 21, 2021*
 
 - Fix `DataCache` trim ratio, previously was applying size limit too aggressively.
 - Deprecate `DataCache.countLimit`. The default limit is now `Int.max`.
