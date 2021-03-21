@@ -54,10 +54,10 @@ public final class DataCache: DataCaching {
     /// A cache key.
     public typealias Key = String
 
-    /// The maximum number of items. `1000` by default.
+    /// The maximum number of items. `Int.max` by default.
     ///
     /// Changes tos `countLimit` will take effect when the next LRU sweep is run.
-    public var countLimit: Int = 1000
+    var deprecatedCountLimit: Int = Int.max
 
     /// Size limit in bytes. `100 Mb` by default.
     ///
@@ -361,12 +361,12 @@ public final class DataCache: DataCaching {
         var size = items.reduce(0) { $0 + ($1.meta.totalFileAllocatedSize ?? 0) }
         var count = items.count
 
-        guard size > sizeLimit || count > countLimit else {
+        guard size > sizeLimit || count > deprecatedCountLimit else {
             return // All good, no need to perform any work.
         }
 
         let sizeLimit = Int(Double(self.sizeLimit) * trimRatio)
-        let countLimit = Int(Double(self.countLimit) * trimRatio)
+        let countLimit = Int(Double(self.deprecatedCountLimit) * trimRatio)
 
         // Most recently accessed items first
         let past = Date.distantPast
