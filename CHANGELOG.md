@@ -1,5 +1,13 @@
 # Nuke 9
 
+## Nuke 9.3.1
+
+*Mar 1, 2021*
+
+- Fix `DataCache` trim ratio, previously was applying size limit too aggressively.
+- Deprecate `DataCache.countLimit`. The default limit is now `Int.max`.
+- Move demo project to a [separate repo](https://github.com/kean/NukeDemo). Fixes [#442](https://github.com/kean/Nuke/issues/442).
+
 ## Nuke 9.3.0
 
 *Feb 22, 2021*
