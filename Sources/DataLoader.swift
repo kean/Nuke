@@ -29,6 +29,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     private let impl = _DataLoader()
 
     public var observer: DataLoaderObserving?
+    weak var pipeline: ImagePipeline?
 
     deinit {
         session.invalidateAndCancel()
@@ -52,6 +53,12 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
         #if TRACK_ALLOCATIONS
         Allocations.increment("DataLoader")
         #endif
+    }
+
+    // Performance optimization to reduce number of switched between queues.
+    func attach(pipeline: ImagePipeline) {
+        self.pipeline = pipeline
+        self.session.delegateQueue.underlyingQueue = pipeline.queue
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set

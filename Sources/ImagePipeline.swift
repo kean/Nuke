@@ -20,6 +20,7 @@ import os
 public /* final */ class ImagePipeline {
     public let configuration: Configuration
     public var observer: ImagePipelineObserving?
+    private(set) var dataLoader: DataLoader?
 
     private var tasks = [ImageTask: TaskSubscription]()
 
@@ -67,6 +68,11 @@ public /* final */ class ImagePipeline {
             self.log = .disabled
         }
 
+        // Performance optimization to reduce number of queue switches.
+        if let dataLoader = configuration.dataLoader as? DataLoader {
+            dataLoader.attach(pipeline: self)
+            self.dataLoader = dataLoader
+        }
         ResumableDataStorage.shared.register(self)
 
         #if TRACK_ALLOCATIONS

@@ -86,18 +86,28 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
 
         signpost(log, self, "LoadImageData", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
 
+        let isDispatchNeeded = self.pipeline.dataLoader?.pipeline !== self.pipeline
         let dataTask = pipeline.configuration.dataLoader.loadData(
             with: urlRequest,
             didReceiveData: { [weak self] data, response in
                 guard let self = self else { return }
-                self.async {
+                if isDispatchNeeded {
+                    self.async {
+                        self.dataTask(didReceiveData: data, response: response)
+                    }
+                } else {
                     self.dataTask(didReceiveData: data, response: response)
                 }
             },
             completion: { [weak self] error in
                 finish() // Finish the operation!
                 guard let self = self else { return }
-                self.async {
+                if isDispatchNeeded {
+                    self.async {
+                        signpost(self.log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
+                        self.dataTaskDidFinish(error: error)
+                    }
+                } else {
                     signpost(self.log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
                     self.dataTaskDidFinish(error: error)
                 }
