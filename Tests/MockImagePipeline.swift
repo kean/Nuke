@@ -27,7 +27,7 @@ class MockImagePipeline: ImagePipeline {
     var isCancellationEnabled = true
 
     var createdTaskCount = 0
-    let queue: OperationQueue = {
+    let operationQueue: OperationQueue = {
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 1
         return queue
@@ -59,7 +59,7 @@ class MockImagePipeline: ImagePipeline {
                 NotificationCenter.default.post(name: MockImagePipeline.DidFinishTask, object: self)
             }
         }
-        self.queue.addOperation(operation)
+        self.operationQueue.addOperation(operation)
 
         if isCancellationEnabled {
             task.onCancel = { [weak operation] in
@@ -69,5 +69,9 @@ class MockImagePipeline: ImagePipeline {
         }
 
         return task
+    }
+
+    override func loadImageQueueConfined(with request: ImageRequest, completion: ImageTask.Completion?) -> ImageTask {
+        self.loadImage(with: request, isMainThreadConfined: true, queue: self.queue, progress: nil, completion: completion)
     }
 }

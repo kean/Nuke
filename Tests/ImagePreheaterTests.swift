@@ -21,10 +21,10 @@ class ImagePreheaterTests: XCTestCase {
     // MARK: - Starting Preheating
 
     func testStartPreheatingWithTheSameRequests() {
-        pipeline.queue.isSuspended = true
+        pipeline.operationQueue.isSuspended = true
 
         // When starting preheating for the same requests (same cacheKey, loadKey).
-        expect(pipeline.queue).toFinishWithEnqueuedOperationCount(1)
+        expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(1)
 
         let request = Test.request
         preheater.startPreheating(with: [request])
@@ -34,11 +34,11 @@ class ImagePreheaterTests: XCTestCase {
     }
 
     func testStartPreheatingWithDifferentProcessors() {
-        pipeline.queue.isSuspended = true
+        pipeline.operationQueue.isSuspended = true
 
         // When starting preheating for the requests with the same URL (same loadKey)
         // but different processors (different cacheKey).
-        expect(pipeline.queue).toFinishWithEnqueuedOperationCount(2)
+        expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(2)
 
         preheater.startPreheating(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])])
         preheater.startPreheating(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "2", { $0 })])])
@@ -47,12 +47,12 @@ class ImagePreheaterTests: XCTestCase {
     }
 
     func testStartPreheatingSameProcessorsDifferentURLRequests() {
-        pipeline.queue.isSuspended = true
+        pipeline.operationQueue.isSuspended = true
 
         // When starting preheating for the requests with the same URL, but
         // different URL requests (different loadKey) but the same processors
         // (same cacheKey).
-        expect(pipeline.queue).toFinishWithEnqueuedOperationCount(2)
+        expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(2)
 
         preheater.startPreheating(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 100))])
         preheater.startPreheating(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 100))])
@@ -61,9 +61,9 @@ class ImagePreheaterTests: XCTestCase {
     }
 
     func testStartingPreheatingWithURLS() {
-        pipeline.queue.isSuspended = true
+        pipeline.operationQueue.isSuspended = true
 
-        expect(pipeline.queue).toFinishWithEnqueuedOperationCount(1)
+        expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(1)
 
         preheater.startPreheating(with: [Test.url])
 
@@ -73,7 +73,7 @@ class ImagePreheaterTests: XCTestCase {
     // MARK: - Stoping Preheating
 
     func testThatPreheatingRequestsAreStopped() {
-        pipeline.queue.isSuspended = true
+        pipeline.operationQueue.isSuspended = true
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
@@ -86,7 +86,7 @@ class ImagePreheaterTests: XCTestCase {
     }
 
     func testThatEquaivalentRequestsAreStoppedWithSingleStopCall() {
-        pipeline.queue.isSuspended = true
+        pipeline.operationQueue.isSuspended = true
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
@@ -102,7 +102,7 @@ class ImagePreheaterTests: XCTestCase {
     }
 
     func testThatAllPreheatingRequestsAreStopped() {
-        pipeline.queue.isSuspended = true
+        pipeline.operationQueue.isSuspended = true
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
@@ -115,7 +115,7 @@ class ImagePreheaterTests: XCTestCase {
     }
 
     func testThatAllPreheatingRequestsAreStoppedWhenPreheaterIsDeallocated() {
-        pipeline.queue.isSuspended = true
+        pipeline.operationQueue.isSuspended = true
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)

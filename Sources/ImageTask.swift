@@ -69,13 +69,13 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     }
     #endif
 
-    init(taskId: Int, request: ImageRequest, isMainThreadConfined: Bool = false, isDataTask: Bool) {
+    init(taskId: Int, request: ImageRequest, isLockingNeeded: Bool = false, isDataTask: Bool) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
         self.priority = request.priority
         self.isDataTask = isDataTask
-        lock = isMainThreadConfined ? nil : NSLock()
+        lock = isLockingNeeded ? nil : NSLock()
 
         #if TRACK_ALLOCATIONS
         Allocations.increment("ImageTask")

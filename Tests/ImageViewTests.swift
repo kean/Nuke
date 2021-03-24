@@ -190,7 +190,7 @@ class ImageViewTests: XCTestCase {
     // MARK: - Cancellation
 
     func testRequestCancelled() {
-        mockPipeline.queue.isSuspended = true
+        mockPipeline.operationQueue.isSuspended = true
 
         // Given an image view with an associated image task
         expectNotification(MockImagePipeline.DidStartTask, object: mockPipeline)
@@ -206,7 +206,7 @@ class ImageViewTests: XCTestCase {
     }
 
     func testRequestCancelledWhenNewRequestStarted() {
-        mockPipeline.queue.isSuspended = true
+        mockPipeline.operationQueue.isSuspended = true
 
         // Given an image view with an associated image task
         expectNotification(MockImagePipeline.DidStartTask, object: mockPipeline)
@@ -221,7 +221,7 @@ class ImageViewTests: XCTestCase {
     }
 
     func testRequestCancelledWhenTargetGetsDeallocated() {
-        mockPipeline.queue.isSuspended = true
+        mockPipeline.operationQueue.isSuspended = true
 
         // Wrap everything in autorelease pool to make sure that imageView
         // gets deallocated immediately.
@@ -242,7 +242,7 @@ class ImageViewTests: XCTestCase {
     }
 
     func testCancellingTheTaskAndWaitingForCompletion() {
-        mockPipeline.queue.isSuspended = true
+        mockPipeline.operationQueue.isSuspended = true
 
         // Given pipeline with cancellation disabled (important!)
         mockPipeline.isCancellationEnabled = false
@@ -259,7 +259,7 @@ class ImageViewTests: XCTestCase {
 
         // When the pipeline finishes loading the image B.
         expectNotification(MockImagePipeline.DidFinishTask)
-        mockPipeline.queue.isSuspended = false
+        mockPipeline.operationQueue.isSuspended = false
         wait()
 
         // Expect an image view to still be displaying the image B.
@@ -267,7 +267,7 @@ class ImageViewTests: XCTestCase {
     }
 
     func testCancellingTheTaskByRequestingNewImageStoredInCache() {
-        mockPipeline.queue.isSuspended = true
+        mockPipeline.operationQueue.isSuspended = true
 
         let requestA = ImageRequest(url: URL(string: "test://imageA")!)
         let requestB = ImageRequest(url: URL(string: "test://imageB")!)
@@ -294,7 +294,7 @@ class ImageViewTests: XCTestCase {
 
         // When the pipeline finishes loading the image B.
         expectNotification(MockImagePipeline.DidFinishTask)
-        mockPipeline.queue.isSuspended = false
+        mockPipeline.operationQueue.isSuspended = false
         wait()
 
         // Expect an image view to still be displaying the image B.
