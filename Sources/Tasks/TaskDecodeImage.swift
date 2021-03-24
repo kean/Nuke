@@ -43,20 +43,32 @@ final class TaskDecodeImage: ImagePipelineTask<ImageResponse> {
             return
         }
 
-        operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
-            guard let self = self else { return }
-
+        // Fast-track default decoders, most work is already done during
+        // initialization anyway.
+        if decoder is ImageDecoders.Default || decoder is ImageDecoders.Empty {
             let response = signpost(self.log, "DecodeImageData", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted)
             }
+            self.sendResponse(response, isCompleted: isCompleted)
+        } else {
+            operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
+                guard let self = self else { return }
 
-            self.async {
-                if let response = response {
-                    self.send(value: response, isCompleted: isCompleted)
-                } else if isCompleted {
-                    self.send(error: .decodingFailed)
+                let response = signpost(self.log, "DecodeImageData", isCompleted ? "FinalImage" : "ProgressiveImage") {
+                    decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted)
+                }
+                self.async {
+                    self.sendResponse(response, isCompleted: isCompleted)
                 }
             }
+        }
+    }
+
+    private func sendResponse(_ response: ImageResponse?, isCompleted: Bool) {
+        if let response = response {
+            send(value: response, isCompleted: isCompleted)
+        } else if isCompleted {
+            send(error: .decodingFailed)
         }
     }
 

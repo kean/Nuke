@@ -110,7 +110,7 @@ public extension ImageDecoders {
         }
 
         public func decode(_ data: Data) -> ImageContainer? {
-            return container ?? _decode(data)
+            container ?? _decode(data)
         }
 
         private func _decode(_ data: Data) -> ImageContainer? {

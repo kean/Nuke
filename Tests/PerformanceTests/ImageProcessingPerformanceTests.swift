@@ -29,4 +29,15 @@ class ImageProcessingPerformanceTests: XCTestCase {
             }
         }
     }
+
+    func testImageDecoding() {
+        let decoder = ImageDecoders.Default()
+
+        let data = Test.data
+        measure {
+            for _ in 0..<1_000 {
+                let _ = decoder.decode(data)
+            }
+        }
+    }
 }

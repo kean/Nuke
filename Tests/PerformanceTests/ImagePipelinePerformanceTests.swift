@@ -30,10 +30,10 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             $0.isRateLimiterEnabled = false
 
             // Remove decoding from the equation
-            $0.makeImageDecoder = { _ in MockDecoder() }
+//            $0.makeImageDecoder = { _ in MockDecoder() }
         }
 
-        let urls = (0...5000).map { URL(string: "http://test.com/\($0)")! }
+        let urls = (0...1000).map { URL(string: "http://test.com/\($0)")! }
         let callbackQueue = DispatchQueue(label: "testLoaderOverallPerformance")
         measure {
             var finished: Int = 0
