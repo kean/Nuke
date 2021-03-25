@@ -166,6 +166,8 @@ extension ImagePipeline {
         /// https://developer.apple.com/videos/play/wwdc2018/405/.
         public static var isSignpostLoggingEnabled = false
 
+        static var isFastTrackDecodingEnabled = true
+
         // MARK: - Initializer
 
         public init(dataLoader: DataLoading = DataLoader()) {

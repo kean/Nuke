@@ -33,6 +33,12 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             $0.isStoringPreviewsInMemoryCache = true
             $0.imageProcessingQueue.maxConcurrentOperationCount = 1
         }
+
+        ImagePipeline.Configuration.isFastTrackDecodingEnabled = false
+    }
+
+    override func tearDown() {
+        ImagePipeline.Configuration.isFastTrackDecodingEnabled = true
     }
 
     // MARK: - Basics

@@ -45,7 +45,7 @@ final class TaskDecodeImage: ImagePipelineTask<ImageResponse> {
 
         // Fast-track default decoders, most work is already done during
         // initialization anyway.
-        if decoder is ImageDecoders.Default || decoder is ImageDecoders.Empty {
+        if ImagePipeline.Configuration.isFastTrackDecodingEnabled && (decoder is ImageDecoders.Default || decoder is ImageDecoders.Empty) {
             let response = signpost(self.log, "DecodeImageData", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted)
             }
