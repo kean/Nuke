@@ -151,6 +151,9 @@ class ImagePipelineMemoryTests: XCTestCase {
     }
 
     func testDecodingPriorityUpdated() {
+        ImagePipeline.Configuration.isFastTrackDecodingEnabled = false
+        defer { ImagePipeline.Configuration.isFastTrackDecodingEnabled = true }
+
         // Given
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
@@ -232,6 +235,9 @@ class ImagePipelineMemoryTests: XCTestCase {
      }
 
     func testDecodingOperationCancelled() {
+        ImagePipeline.Configuration.isFastTrackDecodingEnabled = false
+        defer { ImagePipeline.Configuration.isFastTrackDecodingEnabled = true }
+
         // Given
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
