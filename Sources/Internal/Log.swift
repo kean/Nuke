@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import OSLog
+import os
 
 func signpost(_ log: OSLog, _ object: AnyObject, _ name: StaticString, _ type: SignpostType) {
     guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return }
