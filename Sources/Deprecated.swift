@@ -5,19 +5,6 @@
 import Foundation
 import CoreGraphics
 
-public extension ImageProcessors.Resize {
-    // Deprecated in 9.2.2
-    @available(*, deprecated, message: "Please use an initialzier without `crop` parameter.")
-    init(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool, upscale: Bool = false) {
-        self.init(size: CGSize(width: width, height: 9999), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
-    }
-
-    @available(*, deprecated, message: "Please use an initialzier without `crop` parameter.")
-    init(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool, upscale: Bool = false) {
-        self.init(size: CGSize(width: 9999, height: height), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
-    }
-}
-
 public extension ImagePipeline.Configuration {
     // Deprecated in 9.0
     @available(*, deprecated, message: "Please use `dataCacheOptions.contents` instead.")
@@ -109,6 +96,20 @@ public extension DataLoading {
     // Deprecated in 9.2
     @available(*, deprecated, message: "This method exists for backward-compatibility with Nuke 9.1.x and lower.")
     func removeData(for request: URLRequest) {}
+}
+
+public extension ImageProcessors.Resize {
+    // Deprecated in 9.2.2
+    @available(*, deprecated, message: "Please use an initialzier without `crop` parameter.")
+    init(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool, upscale: Bool = false) {
+        self.init(size: CGSize(width: width, height: 9999), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
+    }
+
+    // Deprecated in 9.2.2
+    @available(*, deprecated, message: "Please use an initialzier without `crop` parameter.")
+    init(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, crop: Bool, upscale: Bool = false) {
+        self.init(size: CGSize(width: 9999, height: height), unit: unit, contentMode: .aspectFit, crop: crop, upscale: upscale)
+    }
 }
 
 public extension DataCache {
