@@ -123,11 +123,10 @@ public extension DataCache {
 
 public extension ImageTask {
     // Deprecated in 9.4.0
-    @available(*, deprecated, message: "Count limit is deprecated and will be removed in the next major release")
+    @available(*, deprecated, message: "Please use the closure type directly")
     typealias Completion = ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)
 
     // Deprecated in 9.4.0
-    /// A progress handler to be called periodically during the lifetime of a task.
-    @available(*, deprecated, message: "Count limit is deprecated and will be removed in the next major release")
+    @available(*, deprecated, message: "Please use the closure type directly")
     typealias ProgressHandler = (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
 }
