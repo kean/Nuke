@@ -82,7 +82,7 @@ extension WKInterfaceImage: Nuke_ImageDisplaying {
 public func loadImage(with request: ImageRequestConvertible,
                       options: ImageLoadingOptions = ImageLoadingOptions.shared,
                       into view: ImageDisplayingView,
-                      completion: @escaping ImageTask.Completion) -> ImageTask? {
+                      completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void) -> ImageTask? {
     loadImage(with: request, options: options, into: view, progress: nil, completion: completion)
 }
 
@@ -110,8 +110,8 @@ public func loadImage(with request: ImageRequestConvertible,
 public func loadImage(with request: ImageRequestConvertible,
                       options: ImageLoadingOptions = ImageLoadingOptions.shared,
                       into view: ImageDisplayingView,
-                      progress: ImageTask.ProgressHandler? = nil,
-                      completion: ImageTask.Completion? = nil) -> ImageTask? {
+                      progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                      completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask? {
     assert(Thread.isMainThread)
     let controller = ImageViewController.controller(for: view)
     return controller.loadImage(with: request.asImageRequest(), options: options, progress: progress, completion: completion)
@@ -353,7 +353,7 @@ private final class ImageViewController {
     func loadImage(with request: ImageRequest,
                    options: ImageLoadingOptions,
                    progress progressHandler: ImageTask.ProgressHandler? = nil,
-                   completion: ImageTask.Completion? = nil) -> ImageTask? {
+                   completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask? {
         cancelOutstandingTask()
 
         guard let imageView = imageView else {

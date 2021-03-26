@@ -52,12 +52,6 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     var isCancelled: Bool { _isCancelled.pointee == 1 }
     private let _isCancelled: UnsafeMutablePointer<Int32>
 
-    /// A completion handler to be called when task finishes or fails.
-    public typealias Completion = (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
-
-    /// A progress handler to be called periodically during the lifetime of a task.
-    public typealias ProgressHandler = (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
-
     deinit {
         self._isCancelled.deallocate()
         #if TRACK_ALLOCATIONS

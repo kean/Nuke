@@ -107,7 +107,7 @@ public /* final */ class ImagePipeline {
     @discardableResult
     public func loadImage(with request: ImageRequestConvertible,
                           queue: DispatchQueue? = nil,
-                          completion: @escaping ImageTask.Completion) -> ImageTask {
+                          completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void) -> ImageTask {
         loadImage(with: request, queue: queue, progress: nil, completion: completion)
     }
 
@@ -156,8 +156,8 @@ public /* final */ class ImagePipeline {
     @discardableResult
     public func loadImage(with request: ImageRequestConvertible,
                           queue callbackQueue: DispatchQueue? = nil,
-                          progress progressHandler: ImageTask.ProgressHandler? = nil,
-                          completion: ImageTask.Completion? = nil) -> ImageTask {
+                          progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                          completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
         loadImage(with: request.asImageRequest(), isConfined: false, queue: callbackQueue, progress: progressHandler, completion: completion)
     }
 
@@ -165,7 +165,7 @@ public /* final */ class ImagePipeline {
                    isConfined: Bool,
                    queue callbackQueue: DispatchQueue?,
                    progress progressHandler: ImageTask.ProgressHandler?,
-                   completion: ImageTask.Completion?) -> ImageTask {
+                   completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)?) -> ImageTask {
         let request = inheritOptions(request)
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
         task.pipeline = self
@@ -305,7 +305,7 @@ private extension ImagePipeline {
     func startImageTask(_ task: ImageTask,
                         callbackQueue: DispatchQueue?,
                         progress progressHandler: ImageTask.ProgressHandler?,
-                        completion: ImageTask.Completion?) {
+                        completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)?) {
         guard !isInvalidated else { return }
 
         self.send(.started, task)

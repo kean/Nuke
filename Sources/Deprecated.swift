@@ -112,13 +112,19 @@ public extension DataLoading {
 }
 
 public extension DataCache {
-    /// The maximum number of items. `Int.max` by default.
-    ///
-    /// Changes tos `countLimit` will take effect when the next LRU sweep is run.
     // Deprecated in 9.3.1
     @available(*, deprecated, message: "Count limit is deprecated and will be removed in the next major release")
     var countLimit: Int {
         get { deprecatedCountLimit }
         set { deprecatedCountLimit = newValue }
     }
+}
+
+public extension ImageTask {
+    @available(*, deprecated, message: "Count limit is deprecated and will be removed in the next major release")
+    typealias Completion = ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)
+
+    /// A progress handler to be called periodically during the lifetime of a task.
+    @available(*, deprecated, message: "Count limit is deprecated and will be removed in the next major release")
+    typealias ProgressHandler = (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
 }
