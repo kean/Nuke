@@ -53,7 +53,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
             guard let self = self else { return }
-            let response = signpost(self.log, "DecodeCachedProcessedImageData") {
+            let response = signpost(log, "DecodeCachedProcessedImageData") {
                 decoder.decode(data, urlResponse: nil, isCompleted: true)
             }
             self.async {
@@ -97,7 +97,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
             guard let self = self else { return }
 
-            let response = signpost(self.log, "DecompressImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
+            let response = signpost(log, "DecompressImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 response.map { $0.map(ImageDecompression.decompress(image:)) } ?? response
             }
 

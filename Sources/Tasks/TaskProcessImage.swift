@@ -49,7 +49,7 @@ final class TaskProcessImage: ImagePipelineTask<ImageResponse> {
             guard let self = self else { return }
 
             let context = ImageProcessingContext(request: self.request, response: response, isFinal: isCompleted)
-            let response = signpost(self.log, "ProcessImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
+            let response = signpost(log, "ProcessImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 response.map { processor.process($0, context: context) }
             }
 

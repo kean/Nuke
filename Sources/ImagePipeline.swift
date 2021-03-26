@@ -3,7 +3,6 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import os
 
 /// `ImagePipeline` loads and decodes image data, processes loaded images and
 /// stores them in caches.
@@ -31,7 +30,6 @@ public /* final */ class ImagePipeline {
 
     // The queue on which the entire subsystem is synchronized.
     let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
-    private let log: OSLog
     private var isInvalidated = false
 
     private var nextTaskId: Int64 { OSAtomicIncrement64(underlyingNextTaskId) }
@@ -64,12 +62,6 @@ public /* final */ class ImagePipeline {
         self.processedImageTasks = TaskPool(isDeduplicationEnabled)
         self.originalImageTasks = TaskPool(isDeduplicationEnabled)
         self.originalImageDataTasks = TaskPool(isDeduplicationEnabled)
-
-        if Configuration.isSignpostLoggingEnabled {
-            self.log = OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading")
-        } else {
-            self.log = .disabled
-        }
 
         self.underlyingNextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
         self.underlyingNextTaskId.initialize(to: 0)
@@ -393,7 +385,7 @@ private extension ImagePipeline {
 extension ImagePipeline {
     func makeTaskLoadImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
         decompressedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
-            TaskLoadImage(self, request, queue, log)
+            TaskLoadImage(self, request, queue)
         }
     }
 
@@ -401,19 +393,19 @@ extension ImagePipeline {
         request.processors.isEmpty ?
             makeTaskDecodeImage(for: request) : // No processing needed
             processedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
-                TaskProcessImage(self, request, queue, log)
+                TaskProcessImage(self, request, queue)
             }
     }
 
     func makeTaskDecodeImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
         originalImageTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
-            TaskDecodeImage(self, request, queue, log)
+            TaskDecodeImage(self, request, queue)
         }
     }
 
     func makeTaskLoadImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error>.Publisher {
         originalImageDataTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
-            TaskLoadImageData(self, request, queue, log)
+            TaskLoadImageData(self, request, queue)
         }
     }
 }

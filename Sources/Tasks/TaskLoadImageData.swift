@@ -104,11 +104,11 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
                 guard let self = self else { return }
                 if isDispatchNeeded {
                     self.async {
-                        signpost(self.log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
+                        signpost(log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
                         self.dataTaskDidFinish(error: error)
                     }
                 } else {
-                    signpost(self.log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
+                    signpost(log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
                     self.dataTaskDidFinish(error: error)
                 }
             })
@@ -116,7 +116,7 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
         onCancelled = { [weak self] in
             guard let self = self else { return }
 
-            signpost(self.log, self, "LoadImageData", .end, "Cancelled")
+            signpost(log, self, "LoadImageData", .end, "Cancelled")
             dataTask.cancel()
             finish() // Finish the operation!
 

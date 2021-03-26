@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import os
+import OSLog
 
 func signpost(_ log: OSLog, _ object: AnyObject, _ name: StaticString, _ type: SignpostType) {
     guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return }
@@ -44,6 +44,8 @@ func signpost<T>(_ log: OSLog, _ name: StaticString, _ message: @autoclosure () 
         return work()
     }
 }
+
+var log: OSLog = .disabled
 
 private let byteFormatter = ByteCountFormatter()
 

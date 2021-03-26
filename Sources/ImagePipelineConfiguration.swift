@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import OSLog
 
 // MARK: - ImagePipeline.Configuration
 
@@ -164,7 +165,13 @@ extension ImagePipeline {
         /// metrics in `os_signpost` Instrument. For more information see
         /// https://developer.apple.com/documentation/os/logging and
         /// https://developer.apple.com/videos/play/wwdc2018/405/.
-        public static var isSignpostLoggingEnabled = false
+        public static var isSignpostLoggingEnabled = false {
+            didSet {
+                log = isSignpostLoggingEnabled ?
+                    OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading") :
+                    .disabled
+            }
+        }
 
         static var isFastTrackDecodingEnabled = true
 
