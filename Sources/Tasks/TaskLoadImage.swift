@@ -23,17 +23,20 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         // Load processed image from data cache and decompress it.
         operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
-            guard let self = self else { return }
-            let key = self.request.makeCacheKeyForFinalImageData()
-            let data = signpost(self.log, "ReadCachedProcessedImageData") {
-                dataCache.cachedData(for: key)
-            }
-            self.async {
-                if let data = data {
-                    self.decodeProcessedImageData(data)
-                } else {
-                    self.loadDecompressedImage()
-                }
+            self?.getCachedData(dataCache: dataCache)
+        }
+    }
+
+    private func getCachedData(dataCache: DataCaching) {
+        let key = request.makeCacheKeyForFinalImageData()
+        let data = signpost(log, "ReadCachedProcessedImageData") {
+            dataCache.cachedData(for: key)
+        }
+        async {
+            if let data = data {
+                self.decodeProcessedImageData(data)
+            } else {
+                self.loadDecompressedImage()
             }
         }
     }
