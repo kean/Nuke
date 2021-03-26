@@ -106,8 +106,6 @@ class ThreadSafetyTests: XCTestCase {
         }
 
         ops += [
-            { cache.costLimit = rnd_cost() },
-            { cache.countLimit = rnd(10) },
             { cache.trim(toCost: rnd_cost()) },
             { cache.removeAll() }
         ]
