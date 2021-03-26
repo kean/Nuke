@@ -114,15 +114,15 @@ public final class ImagePreheater {
         let imageTask: ImageTask
         switch destination {
         case .diskCache:
-            imageTask = pipeline.loadDataQueueConfined(with: request) { [weak self] _ in
+            imageTask = pipeline.loadData(with: request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
                 self?._remove(task)
                 finish()
             }
         case .memoryCache:
-            imageTask = pipeline.loadImageQueueConfined(with: request, completion: { [weak self] _ in
+            imageTask = pipeline.loadImage(with: request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
                 self?._remove(task)
                 finish()
-            })
+            }
         }
         task.onCancelled = {
             imageTask.cancel()

@@ -71,7 +71,7 @@ class MockImagePipeline: ImagePipeline {
         return task
     }
 
-    override func loadImageQueueConfined(with request: ImageRequest, completion: ImageTask.Completion?) -> ImageTask {
-        self.loadImage(with: request, queue: self.queue, progress: nil, completion: completion)
+    override func loadImage(with request: ImageRequest, isConfined: Bool, queue callbackQueue: DispatchQueue?, progress progressHandler: ImageTask.ProgressHandler?, completion: ImageTask.Completion?) -> ImageTask {
+        self.loadImage(with: request, queue: callbackQueue, progress: progressHandler, completion: completion)
     }
 }
