@@ -19,7 +19,7 @@ import AppKit.NSImage
 public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     /// An identifier that uniquely identifies the task within a given pipeline. Only
     /// unique within that pipeline.
-    public let taskId: Int
+    public let taskId: Int64
 
     let isDataTask: Bool
 
@@ -69,7 +69,7 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     }
     #endif
 
-    init(taskId: Int, request: ImageRequest, isLockingNeeded: Bool = false, isDataTask: Bool) {
+    init(taskId: Int64, request: ImageRequest, isLockingNeeded: Bool = false, isDataTask: Bool) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority

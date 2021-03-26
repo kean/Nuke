@@ -29,12 +29,13 @@ public /* final */ class ImagePipeline {
     private let originalImageTasks: TaskPool<ImageRequest.LoadKeyForOriginalImage, ImageResponse, Error>
     private let originalImageDataTasks: TaskPool<ImageRequest.LoadKeyForOriginalImage, (Data, URLResponse?), Error>
 
-    private var nextTaskId = Atomic<Int>(0)
-
     // The queue on which the entire subsystem is synchronized.
     let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
     private let log: OSLog
     private var isInvalidated = false
+
+    private var nextTaskId: Int64 { OSAtomicIncrement64(underlyingNextTaskId) }
+    private let underlyingNextTaskId: UnsafeMutablePointer<Int64>
 
     let rateLimiter: RateLimiter?
     let id = UUID()
@@ -43,6 +44,8 @@ public /* final */ class ImagePipeline {
     public static var shared = ImagePipeline()
 
     deinit {
+        underlyingNextTaskId.deallocate()
+
         ResumableDataStorage.shared.unregister(self)
         #if TRACK_ALLOCATIONS
         Allocations.decrement("ImagePipeline")
@@ -68,11 +71,15 @@ public /* final */ class ImagePipeline {
             self.log = .disabled
         }
 
+        self.underlyingNextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
+        self.underlyingNextTaskId.initialize(to: 0)
+
         // Performance optimization to reduce number of queue switches.
         if let dataLoader = configuration.dataLoader as? DataLoader {
             dataLoader.attach(pipeline: self)
             self.dataLoader = dataLoader
         }
+
         ResumableDataStorage.shared.register(self)
 
         #if TRACK_ALLOCATIONS
@@ -162,7 +169,7 @@ public /* final */ class ImagePipeline {
                    progress progressHandler: ImageTask.ProgressHandler?,
                    completion: ImageTask.Completion?) -> ImageTask {
         let request = inheritOptions(request)
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isLockingNeeded: isMainThreadConfined, isDataTask: false)
+        let task = ImageTask(taskId: nextTaskId, request: request, isLockingNeeded: isMainThreadConfined, isDataTask: false)
         task.pipeline = self
         self.queue.async {
             self.startImageTask(task, callbackQueue: callbackQueue, progress: progressHandler, completion: completion)
@@ -172,7 +179,7 @@ public /* final */ class ImagePipeline {
 
     func loadImageQueueConfined(with request: ImageRequest, completion: ImageTask.Completion?) -> ImageTask {
         let request = inheritOptions(request)
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isLockingNeeded: true, isDataTask: false)
+        let task = ImageTask(taskId: nextTaskId, request: request, isLockingNeeded: true, isDataTask: false)
         task.pipeline = self
         startImageTask(task, callbackQueue: self.queue, progress: nil, completion: completion)
         return task
@@ -205,7 +212,7 @@ public /* final */ class ImagePipeline {
                          progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
         let request = request.asImageRequest()
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isDataTask: true)
+        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: true)
         task.pipeline = self
         self.queue.async {
             self.startDataTask(task, callbackQueue: callbackQueue, progress: progress, completion: completion)
@@ -215,7 +222,7 @@ public /* final */ class ImagePipeline {
 
     func loadDataQueueConfined(with request: ImageRequestConvertible, completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
         let request = request.asImageRequest()
-        let task = ImageTask(taskId: nextTaskId.increment(), request: request, isLockingNeeded: false, isDataTask: true)
+        let task = ImageTask(taskId: nextTaskId, request: request, isLockingNeeded: false, isDataTask: true)
         task.pipeline = self
         startDataTask(task, callbackQueue: self.queue, progress: nil, completion: completion)
         return task
