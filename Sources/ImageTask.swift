@@ -49,13 +49,8 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     }
     private(set) var _progress: Progress?
 
-    var isCancelled: Bool {
-        lock?.lock()
-        defer { lock?.unlock() }
-        return _isCancelled
-    }
-    private(set) var _isCancelled = false
-    private let lock: NSLock?
+    var isCancelled: Bool { _isCancelled.pointee == 1 }
+    private let _isCancelled: UnsafeMutablePointer<Int32>
 
     /// A completion handler to be called when task finishes or fails.
     public typealias Completion = (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
@@ -63,19 +58,22 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     /// A progress handler to be called periodically during the lifetime of a task.
     public typealias ProgressHandler = (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
 
-    #if TRACK_ALLOCATIONS
     deinit {
+        self._isCancelled.deallocate()
+        #if TRACK_ALLOCATIONS
         Allocations.decrement("ImageTask")
+        #endif
     }
-    #endif
 
-    init(taskId: Int64, request: ImageRequest, isLockingNeeded: Bool = false, isDataTask: Bool) {
+    init(taskId: Int64, request: ImageRequest, isDataTask: Bool) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
         self.priority = request.priority
         self.isDataTask = isDataTask
-        lock = isLockingNeeded ? nil : NSLock()
+
+        self._isCancelled = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
+        self._isCancelled.initialize(to: 0)
 
         #if TRACK_ALLOCATIONS
         Allocations.increment("ImageTask")
@@ -88,19 +86,7 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     /// unless there is an equivalent outstanding task running (see
     /// `ImagePipeline.Configuration.isDeduplicationEnabled` for more info).
     public func cancel() {
-        if let lock = lock {
-            lock.lock()
-            defer { lock.unlock() }
-            _cancel()
-        } else {
-            assert(Thread.isMainThread, "Must be cancelled only from the main thread")
-            _cancel()
-        }
-    }
-
-    private func _cancel() {
-        if !_isCancelled {
-            _isCancelled = true
+        if OSAtomicCompareAndSwap32(0, 1, _isCancelled) {
             pipeline?.imageTaskCancelCalled(self)
         }
     }

@@ -397,9 +397,7 @@ private final class ImageViewController {
             imageView.nuke_display(image: nil) // Remove previously displayed images (if any)
         }
 
-        // Uses a special internal API (`isMainThreadConfined`) for performance
-        // reasons, it attributes for about than 20% performance improvement.
-        task = pipeline.loadImage(with: request, isMainThreadConfined: true, queue: .main, progress: { [weak self] response, completedCount, totalCount in
+        task = pipeline.loadImage(with: request, queue: .main, progress: { [weak self] response, completedCount, totalCount in
             if let response = response, options.isProgressiveRenderingEnabled {
                 self?.handle(partialImage: response, options: options)
             }

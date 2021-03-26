@@ -158,18 +158,8 @@ public /* final */ class ImagePipeline {
                           queue callbackQueue: DispatchQueue? = nil,
                           progress progressHandler: ImageTask.ProgressHandler? = nil,
                           completion: ImageTask.Completion? = nil) -> ImageTask {
-        loadImage(with: request.asImageRequest(), isMainThreadConfined: false, queue: callbackQueue, progress: progressHandler, completion: completion)
-    }
-
-    /// - parameter isMainThreadConfined: Enables some performance optimizations like
-    /// lock-free `ImageTask`.
-    func loadImage(with request: ImageRequest,
-                   isMainThreadConfined: Bool,
-                   queue callbackQueue: DispatchQueue?,
-                   progress progressHandler: ImageTask.ProgressHandler?,
-                   completion: ImageTask.Completion?) -> ImageTask {
-        let request = inheritOptions(request)
-        let task = ImageTask(taskId: nextTaskId, request: request, isLockingNeeded: isMainThreadConfined, isDataTask: false)
+        let request = inheritOptions(request.asImageRequest())
+        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
         task.pipeline = self
         self.queue.async {
             self.startImageTask(task, callbackQueue: callbackQueue, progress: progressHandler, completion: completion)
@@ -179,7 +169,7 @@ public /* final */ class ImagePipeline {
 
     func loadImageQueueConfined(with request: ImageRequest, completion: ImageTask.Completion?) -> ImageTask {
         let request = inheritOptions(request)
-        let task = ImageTask(taskId: nextTaskId, request: request, isLockingNeeded: true, isDataTask: false)
+        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
         task.pipeline = self
         startImageTask(task, callbackQueue: self.queue, progress: nil, completion: completion)
         return task
@@ -222,7 +212,7 @@ public /* final */ class ImagePipeline {
 
     func loadDataQueueConfined(with request: ImageRequestConvertible, completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
         let request = request.asImageRequest()
-        let task = ImageTask(taskId: nextTaskId, request: request, isLockingNeeded: false, isDataTask: true)
+        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: true)
         task.pipeline = self
         startDataTask(task, callbackQueue: self.queue, progress: nil, completion: completion)
         return task
