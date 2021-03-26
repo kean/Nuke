@@ -5,33 +5,27 @@
 import Foundation
 
 final class Operation: Foundation.Operation {
-    private var _isExecuting = Atomic(false)
-    private var _isFinished = Atomic(false)
-    private var isFinishCalled = Atomic(false)
+    private let _isExecuting: UnsafeMutablePointer<Int32>
+    private let _isFinished: UnsafeMutablePointer<Int32>
+    private let isFinishCalled: UnsafeMutablePointer<Int32>
 
     override var isExecuting: Bool {
-        get {
-            _isExecuting.value
-        }
+        get { _isExecuting.pointee == 1 }
         set {
-            guard _isExecuting.value != newValue else {
-                fatalError("Invalid state, operation is already (not) executing")
+            guard OSAtomicCompareAndSwap32(newValue ? 0 : 1, newValue ? 1 : 0, _isExecuting) else {
+                return assertionFailure("Invalid state, operation is already (not) executing")
             }
             willChangeValue(forKey: "isExecuting")
-            _isExecuting.value = newValue
             didChangeValue(forKey: "isExecuting")
         }
     }
     override var isFinished: Bool {
-        get {
-            _isFinished.value
-        }
+        get { _isFinished.pointee == 1 }
         set {
-            guard !_isFinished.value else {
-                fatalError("Invalid state, operation is already finished")
+            guard OSAtomicCompareAndSwap32(newValue ? 0 : 1, newValue ? 1 : 0, _isFinished) else {
+                return assertionFailure("Invalid state, operation is already finished")
             }
             willChangeValue(forKey: "isFinished")
-            _isFinished.value = newValue
             didChangeValue(forKey: "isFinished")
         }
     }
@@ -39,14 +33,27 @@ final class Operation: Foundation.Operation {
     typealias Starter = (_ finish: @escaping () -> Void) -> Void
     private let starter: Starter
 
-    #if TRACK_ALLOCATIONS
     deinit {
+        self._isExecuting.deallocate()
+        self._isFinished.deallocate()
+        self.isFinishCalled.deallocate()
+
+        #if TRACK_ALLOCATIONS
         Allocations.decrement("Operation")
+        #endif
     }
-    #endif
 
     init(starter: @escaping Starter) {
         self.starter = starter
+
+        self._isExecuting = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
+        self._isExecuting.initialize(to: 0)
+
+        self._isFinished = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
+        self._isFinished.initialize(to: 0)
+
+        self.isFinishCalled = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
+        self.isFinishCalled.initialize(to: 0)
 
         #if TRACK_ALLOCATIONS
         Allocations.increment("Operation")
@@ -66,7 +73,7 @@ final class Operation: Foundation.Operation {
 
     private func _finish() {
         // Make sure that we ignore if `finish` is called more than once.
-        if isFinishCalled.swap(to: true, ifEqual: false) {
+        if OSAtomicCompareAndSwap32(0, 1, isFinishCalled) {
             isExecuting = false
             isFinished = true
         }
