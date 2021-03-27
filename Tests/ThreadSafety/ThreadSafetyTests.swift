@@ -70,7 +70,7 @@ class ThreadSafetyTests: XCTestCase {
         let pipeline = MockImagePipeline {
             $0.imageCache = nil
         }
-        let preheater = ImagePreheater(pipeline: pipeline)
+        let preheater = ImagePrefetcher(pipeline: pipeline)
 
         func makeRequests() -> [ImageRequest] {
             return (0...rnd(30)).map { _ in
@@ -81,8 +81,8 @@ class ThreadSafetyTests: XCTestCase {
         queue.maxConcurrentOperationCount = 4
         for _ in 0...300 {
             queue.addOperation {
-                preheater.stopPreheating(with: makeRequests())
-                preheater.startPreheating(with: makeRequests())
+                preheater.stopPrefetching(with: makeRequests())
+                preheater.startPrefetching(with: makeRequests())
             }
         }
         queue.waitUntilAllOperationsAreFinished()

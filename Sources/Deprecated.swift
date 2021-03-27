@@ -130,3 +130,39 @@ public extension ImageTask {
     @available(*, deprecated, message: "Please use the closure type directly")
     typealias ProgressHandler = (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
 }
+
+// Deprecated in 9.4.1
+@available(*, deprecated, message: "Renamed to ImagePrefetcher")
+public typealias ImagePreheater = ImagePrefetcher
+
+public extension ImagePrefetcher {
+    // Deprecated in 9.4.1
+    @available(*, deprecated, message: "Renamed to startPrefetching")
+    func startPreheating(with urls: [URL]) {
+        startPrefetching(with: urls)
+    }
+
+    // Deprecated in 9.4.1
+    @available(*, deprecated, message: "Renamed to startPrefetching")
+    func startPreheating(with requests: [ImageRequest]) {
+        startPrefetching(with: requests)
+    }
+
+    // Deprecated in 9.4.1
+    @available(*, deprecated, message: "Renamed to stopPrefetching")
+    func stopPreheating(with urls: [URL]) {
+        stopPrefetching(with: urls)
+    }
+
+    // Deprecated in 9.4.1
+    @available(*, deprecated, message: "Renamed to stopPrefetching")
+    func stopPreheating(with requests: [ImageRequest]) {
+        stopPrefetching(with: requests)
+    }
+
+    // Deprecated in 9.4.1
+    @available(*, deprecated, message: "Renamed to stopPrefetching")
+    func stopPreheating() {
+        stopPrefetching()
+    }
+}

@@ -35,7 +35,7 @@ Nuke is easy to learn and use. Here is an overview of its APIs and features:
 - **Image Processing** ‣ [`Resize`](#resize) · [`Circle`](#circle) · [`RoundedCorners`](#roundedcorners) · [`GaussianBlur`](#gaussianblur) · [`CoreImage`](#coreimagefilter) · [Custom Processors](#custom-processors)
 - **Image Pipeline** ‣ [Load Image](#image-pipeline) · [`ImageTask`](#imagetask) · [Customize Image Pipeline](#customize-image-pipeline) · [Default Pipeline](#default-image-pipeline)
 - **Caching** ‣ [LRU Memory Cache](#lru-memory-cache) · [HTTP Disk Cache](#http-disk-cache) · [Aggressive LRU Disk Cache](#aggressive-lru-disk-cache) · [Reloading Images](#reloading-images)
-- **Advanced Features** ‣ [Preheat Images](#image-preheating) · [Progressive Decoding](#progressive-decoding)
+- **Advanced Features** ‣ [Prefetching Images](#image-prefetching) · [Progressive Decoding](#progressive-decoding)
 - [**Extensions**](#h_plugins) ‣ [FetchImage](#fetch-image) · [Builder](#builder) · [Combine](#combine) · [RxNuke](#rxnuke) · [And More](#h_plugins) 
 
 To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/9.3.0/), and check out the [demo project](https://github.com/kean/NukeDemo). When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/installation-guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, please refer to [**FAQ**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/faq.md) or [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/troubleshooting.md). 
@@ -46,7 +46,7 @@ To learn more about the pipeline and the supported formats, see the dedicated gu
 
 - [**Image Formats**](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md) ‣ [Progressive JPEG](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md#progressive-jpeg) · [HEIF](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md#heif) · [GIF](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md#gif) · [SVG](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md#svg) · [WebP](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md#webp)
 - [**Guides**](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides) ‣ [Image Pipeline](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-pipeline.md) · [Performance](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/performance-guide.md) · [Third-Party Libraries](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/third-party-libraries.md)
-- [**Articles**](https://kean.blog) ‣ [Performance](https://kean.blog/post/nuke-9) · [Concurrency](https://kean.blog/post/concurrency) · [Caching](https://kean.blog/post/image-caching) · [Prefetching](https://kean.blog/post/image-preheating)
+- [**Articles**](https://kean.blog) ‣ [Performance](https://kean.blog/post/nuke-9) · [Concurrency](https://kean.blog/post/concurrency) · [Caching](https://kean.blog/post/image-caching)
 
 If you'd like to contribute to Nuke see [**Contributing**](#h_contribute).
 
@@ -431,18 +431,20 @@ Nuke.loadImage(with: request, into: imageView)
 
 # Advanced Features
 
-### Image Preheating
+### Image Prefetching
 
 Prefetching images in advance can dramatically improve your app's user experience.
 
 ```swift
-// Make sure to keep a strong reference to preheater.
-let preheater = ImagePreheater()
+// Make sure to keep a strong reference to the prefetcher.
+let prefetcher = ImagePrefetcher()
 
-preheater.startPreheating(with: urls)
+prefetcher.startPrefetching(with: urls)
 
-// Cancels all of the preheating tasks created for the given requests.
-preheater.stopPreheating(with: urls)
+// Cancels all of the prefetching tasks. You don't need to balance the number of
+// `start` and `stop` requests. If you have multiple screens with prefetching,
+// create multiple `ImagePrefetcher` instances.
+prefetcher.stopPrefetching(with: urls)
 ```
 
 > To learn more about other performance optimizations you can do, see [Performance Guide](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/performance-guide.md).
@@ -450,13 +452,13 @@ preheater.stopPreheating(with: urls)
 Keep in mind that prefetching takes up users' data and puts extra pressure on CPU and memory. To reduce the CPU and memory usage, you have an option to choose only the disk cache as a prefetching destination:
 
 ```swift
-// The preheater with `.diskCache` destination will skip image data decoding
+// The prefetcher with `.diskCache` destination will skip image data decoding
 // entirely to reduce CPU and memory usage. It will still load the image data
 // and store it in disk caches to be used later.
-let preheater = ImagePreheater(destination: .diskCache)
+let prefetcher = ImagePrefetcher(destination: .diskCache)
 ```
 
-> On iOS, you can use [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) in combination with `ImagePreheater` to automate the process.
+> On iOS, you can use [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) in combination with `ImagePrefetcher` to automate the process.
 
 ### Progressive Decoding
 

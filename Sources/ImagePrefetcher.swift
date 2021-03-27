@@ -4,18 +4,19 @@
 
 import Foundation
 
-/// Prefetches and caches image to eliminate delays when requesting the same
+/// Prefetches and caches images to eliminate delays when requesting the same
 /// images later.
 ///
-/// To start preheating call `startPreheating(with:)` method. When you
-/// need an individual image, just start loading them, the pipeline will
-/// automatically reuse the existing tasks and add new obsevers to them instead
-/// of starting the new downloads.
+/// To start prefetching, call `startPrefetching(with:)` method. When you need
+/// the same image later to display it, just use the `ImagePipeline` or view
+/// extensions to load the image. The pipeline will take care of coalescing the
+/// requests for new without starting any new downloads.
 ///
-/// Preheater automatically cancels all of the outstanding tasks when deallocated.
+/// The prefetcher automatically cancels all of the outstanding tasks when deallocated.
 ///
-/// All `Preheater` methods are thread-safe.
-public final class ImagePreheater {
+/// All `ImagePrefetcher` methods are thread-safe and are optimized to be used
+/// even from the main thread during scrolling.
+public final class ImagePrefetcher {
     private let pipeline: ImagePipeline
     /* private */ let queue = OperationQueue()
     private var tasks = [AnyHashable: Task]()
@@ -23,20 +24,19 @@ public final class ImagePreheater {
 
     /// Prefetching destination.
     public enum Destination {
-        /// Prefetches the image and stores it both in memory and disk caches
-        /// (in case they are enabled, naturally, there is no reason to prefetch
-        /// unless they are).
+        /// Prefetches the image and stores it in both memory and disk caches
+        /// (they should be enabled).
         case memoryCache
 
-        /// Prefetches image data and stores in disk cache. Will no decode
-        /// the image data and will therefore use less CPU.
+        /// Prefetches image data and stores it in disk caches. This does not
+        /// require decoding the image data and therefore uses less CPU.
         case diskCache
     }
 
-    /// Initializes the `Preheater` instance.
+    /// Initializes the `ImagePrefetcher` instance.
     /// - parameter manager: `Loader.shared` by default.
-    /// - parameter `maxConcurrentRequestCount`: 2 by default.
     /// - parameter destination: `.memoryCache` by default.
+    /// - parameter `maxConcurrentRequestCount`: 2 by default.
     public init(pipeline: ImagePipeline = ImagePipeline.shared,
                 destination: Destination = .memoryCache,
                 maxConcurrentRequestCount: Int = 2) {
@@ -46,7 +46,7 @@ public final class ImagePreheater {
         self.queue.underlyingQueue = pipeline.queue
 
         #if TRACK_ALLOCATIONS
-        Allocations.increment("ImagePreheater")
+        Allocations.increment("ImagePrefetcher")
         #endif
     }
 
@@ -59,30 +59,32 @@ public final class ImagePreheater {
         }
 
         #if TRACK_ALLOCATIONS
-        Allocations.decrement("ImagePreheater")
+        Allocations.decrement("ImagePrefetcher")
         #endif
     }
 
-    /// Starte preheating images for the given urls.
-    /// - note: See `func startPreheating(with requests: [ImageRequest])` for more info
-    public func startPreheating(with urls: [URL]) {
-        startPreheating(with: _requests(for: urls))
+    /// Starts prefetching images for the given urls.
+    /// - note: See `func startPrefetching(with requests: [ImageRequest])` for more info.
+    public func startPrefetching(with urls: [URL]) {
+        startPrefetching(with: _requests(for: urls))
     }
 
-    /// Starts preheating images for the given requests.
+    /// Starts prefetching images for the given requests.
     ///
-    /// When you call this method, `Preheater` starts to load and cache images
-    /// for the given requests. At any time afterward, you can create tasks
-    /// for individual images with equivalent requests.
-    public func startPreheating(with requests: [ImageRequest]) {
+    /// When you call this method, `ImagePrefetcher` starts to load and cache images
+    /// for the given requests. When you need the same image later to display it,
+    /// just use the `ImagePipeline` or view extensions to load the image.
+    /// The pipeline will take care of coalescing the requests for new without
+    /// starting any new downloads.
+    public func startPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
             for request in requests {
-                self._startPreheating(with: request)
+                self._startPrefetching(with: request)
             }
         }
     }
 
-    private func _startPreheating(with request: ImageRequest) {
+    private func _startPrefetching(with request: ImageRequest) {
         let key = request.makeLoadKeyForFinalImage()
 
         guard tasks[key] == nil else {
@@ -95,7 +97,7 @@ public final class ImagePreheater {
 
         let task = Task(request: request, key: key)
 
-        // Use `Operation` to limit maximum number of concurrent preheating jobs
+        // Use `Operation` to limit maximum number of concurrent prefetch jobs
         task.operation = queue.add { [weak self, weak task] finish in
             guard let self = self, let task = task else {
                 return finish()
@@ -136,32 +138,36 @@ public final class ImagePreheater {
         tasks[task.key] = nil
     }
 
-    /// Stops preheating images for the given urls.
-    public func stopPreheating(with urls: [URL]) {
-        stopPreheating(with: _requests(for: urls))
+    /// Stops prefetching images for the given urls.
+    public func stopPrefetching(with urls: [URL]) {
+        stopPrefetching(with: _requests(for: urls))
     }
 
-    /// Stops preheating images for the given requests and cancels outstanding
+    /// Stops prefetching images for the given requests and cancels outstanding
     /// requests.
     ///
+    /// - note: You don't need to balance the number of `start` and `stop` requests.
+    /// If you have multiple screens with prefetching, create multiple instances
+    /// of `ImagePrefetcher`.
+    ///
     /// - parameter destination: `.memoryCache` by default.
-    public func stopPreheating(with requests: [ImageRequest]) {
+    public func stopPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
             for request in requests {
-                self._stopPreheating(with: request)
+                self._stopPrefetching(with: request)
             }
         }
     }
 
-    private func _stopPreheating(with request: ImageRequest) {
+    private func _stopPrefetching(with request: ImageRequest) {
         if let task = tasks[request.makeLoadKeyForFinalImage()] {
             tasks[task.key] = nil
             task.cancel()
         }
     }
 
-    /// Stops all preheating tasks.
-    public func stopPreheating() {
+    /// Stops all prefetching tasks.
+    public func stopPrefetching() {
         pipeline.queue.async {
             self.tasks.values.forEach { $0.cancel() }
             self.tasks.removeAll()

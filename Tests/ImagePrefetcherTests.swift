@@ -7,7 +7,7 @@ import XCTest
 
 class ImagePreheaterTests: XCTestCase {
     var pipeline: MockImagePipeline!
-    var preheater: ImagePreheater!
+    var preheater: ImagePrefetcher!
 
     override func setUp() {
         super.setUp()
@@ -15,7 +15,7 @@ class ImagePreheaterTests: XCTestCase {
         pipeline = MockImagePipeline {
             $0.imageCache = nil
         }
-        preheater = ImagePreheater(pipeline: pipeline)
+        preheater = ImagePrefetcher(pipeline: pipeline)
     }
 
     // MARK: - Starting Preheating
@@ -27,8 +27,8 @@ class ImagePreheaterTests: XCTestCase {
         expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(1)
 
         let request = Test.request
-        preheater.startPreheating(with: [request])
-        preheater.startPreheating(with: [request])
+        preheater.startPrefetching(with: [request])
+        preheater.startPrefetching(with: [request])
 
         wait()
     }
@@ -40,8 +40,8 @@ class ImagePreheaterTests: XCTestCase {
         // but different processors (different cacheKey).
         expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(2)
 
-        preheater.startPreheating(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])])
-        preheater.startPreheating(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "2", { $0 })])])
+        preheater.startPrefetching(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])])
+        preheater.startPrefetching(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "2", { $0 })])])
 
         wait()
     }
@@ -54,8 +54,8 @@ class ImagePreheaterTests: XCTestCase {
         // (same cacheKey).
         expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(2)
 
-        preheater.startPreheating(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 100))])
-        preheater.startPreheating(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 100))])
+        preheater.startPrefetching(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 100))])
+        preheater.startPrefetching(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 100))])
 
         wait()
     }
@@ -65,7 +65,7 @@ class ImagePreheaterTests: XCTestCase {
 
         expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(1)
 
-        preheater.startPreheating(with: [Test.url])
+        preheater.startPrefetching(with: [Test.url])
 
         wait()
     }
@@ -77,11 +77,11 @@ class ImagePreheaterTests: XCTestCase {
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        preheater.startPreheating(with: [request])
+        preheater.startPrefetching(with: [request])
         wait()
 
         _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
-        preheater.stopPreheating(with: [request])
+        preheater.stopPrefetching(with: [request])
         wait()
     }
 
@@ -90,11 +90,11 @@ class ImagePreheaterTests: XCTestCase {
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        preheater.startPreheating(with: [request, request])
+        preheater.startPrefetching(with: [request, request])
         wait()
 
         _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
-        preheater.stopPreheating(with: [request])
+        preheater.stopPrefetching(with: [request])
 
         wait { _ in
             XCTAssertEqual(self.pipeline.createdTaskCount, 1, "")
@@ -106,11 +106,11 @@ class ImagePreheaterTests: XCTestCase {
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        preheater.startPreheating(with: [request])
+        preheater.startPrefetching(with: [request])
         wait()
 
         _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
-        preheater.stopPreheating()
+        preheater.stopPrefetching()
         wait()
     }
 
@@ -119,7 +119,7 @@ class ImagePreheaterTests: XCTestCase {
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        preheater.startPreheating(with: [request])
+        preheater.startPrefetching(with: [request])
         wait()
 
         _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
@@ -132,13 +132,13 @@ class ImagePreheaterTests: XCTestCase {
     func testIntegration() {
         // GIVEN
         let pipeline = ImagePipeline()
-        let preheater = ImagePreheater(pipeline: pipeline, destination: .memoryCache, maxConcurrentRequestCount: 2)
+        let preheater = ImagePrefetcher(pipeline: pipeline, destination: .memoryCache, maxConcurrentRequestCount: 2)
 
         // WHEN
         preheater.queue.isSuspended = true
         expect(preheater.queue).toFinishWithEnqueuedOperationCount(1)
         let url = Test.url(forResource: "fixture", extension: "jpeg")
-        preheater.startPreheating(with: [url])
+        preheater.startPrefetching(with: [url])
         wait()
 
         // THEN
