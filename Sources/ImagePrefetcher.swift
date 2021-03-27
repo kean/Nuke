@@ -72,6 +72,10 @@ public final class ImagePrefetcher {
     }
 
     /// Starts prefetching images for the given urls.
+    ///
+    /// The requests created by the prefetcher all have `.low` priority to make
+    /// sure they don't interfere with the "regular" requests.
+    ///
     /// - note: See `func startPrefetching(with requests: [ImageRequest])` for more info.
     public func startPrefetching(with urls: [URL]) {
         startPrefetching(with: _requests(for: urls))
@@ -81,9 +85,12 @@ public final class ImagePrefetcher {
     ///
     /// When you call this method, `ImagePrefetcher` starts to load and cache images
     /// for the given requests. When you need the same image later to display it,
-    /// just use the `ImagePipeline` or view extensions to load the image.
+    /// use the `ImagePipeline` or view extensions to load the image.
     /// The pipeline will take care of coalescing the requests for new without
     /// starting any new downloads.
+    ///
+    /// - note: Make sure to specify a low priority for your requests to ensure
+    /// they don't interfere with the "regular" requests.
     public func startPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
             for request in requests {
