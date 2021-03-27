@@ -55,7 +55,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
         #endif
     }
 
-    // Performance optimization to reduce number of switched between queues.
+    // Performance optimization to reduce number of context switches.
     func attach(pipeline: ImagePipeline) {
         self.pipeline = pipeline
         self.session.delegateQueue.underlyingQueue = pipeline.queue

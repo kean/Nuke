@@ -32,8 +32,8 @@ public /* final */ class ImagePipeline {
     let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
     private var isInvalidated = false
 
-    private var nextTaskId: Int64 { OSAtomicIncrement64(underlyingNextTaskId) }
-    private let underlyingNextTaskId: UnsafeMutablePointer<Int64>
+    private var nextTaskId: Int64 { OSAtomicIncrement64(_nextTaskId) }
+    private let _nextTaskId: UnsafeMutablePointer<Int64>
 
     let rateLimiter: RateLimiter?
     let id = UUID()
@@ -42,7 +42,7 @@ public /* final */ class ImagePipeline {
     public static var shared = ImagePipeline()
 
     deinit {
-        underlyingNextTaskId.deallocate()
+        _nextTaskId.deallocate()
 
         ResumableDataStorage.shared.unregister(self)
         #if TRACK_ALLOCATIONS
@@ -63,8 +63,8 @@ public /* final */ class ImagePipeline {
         self.originalImageTasks = TaskPool(isDeduplicationEnabled)
         self.originalImageDataTasks = TaskPool(isDeduplicationEnabled)
 
-        self.underlyingNextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
-        self.underlyingNextTaskId.initialize(to: 0)
+        self._nextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
+        self._nextTaskId.initialize(to: 0)
 
         // Performance optimization to reduce number of queue switches.
         if let dataLoader = configuration.dataLoader as? DataLoader {
