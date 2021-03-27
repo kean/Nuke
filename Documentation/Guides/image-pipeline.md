@@ -161,3 +161,5 @@ A task can have one or more *subscriptions*. This is how Nuke implements [coales
 Some tasks implement *back-pressure*. For example, if you are fetching a progressive JPEG and have an expensive processor, such as blur, the processing task will only produce processed images as fast as it can, skipping the scans it has no capacity to handle.
 
 All of the tasks are synchronozied on a single serial dispatch queue. This a simple and reliable way to achieve performance and thread safety.
+
+> To learn more about how Nuke manages concurrency, see [Concurrency in Nuke](https://kean.blog/post/concurrency)
