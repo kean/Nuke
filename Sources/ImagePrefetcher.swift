@@ -19,7 +19,7 @@ import Foundation
 public final class ImagePrefetcher {
     private let pipeline: ImagePipeline
     /* private */ let queue = OperationQueue()
-    private var tasks = [AnyHashable: Task]()
+    private var tasks = [ImageRequest.LoadKeyForProcessedImage: Task]()
     private let destination: Destination
 
     /// Pauses the prefetching.
@@ -191,13 +191,13 @@ public final class ImagePrefetcher {
     }
 
     private final class Task {
-        let key: AnyHashable
+        let key: ImageRequest.LoadKeyForProcessedImage
         let request: ImageRequest
         var isCancelled = false
         var onCancelled: (() -> Void)?
         weak var operation: Operation?
 
-        init(request: ImageRequest, key: AnyHashable) {
+        init(request: ImageRequest, key: ImageRequest.LoadKeyForProcessedImage) {
             self.request = request
             self.key = key
         }
