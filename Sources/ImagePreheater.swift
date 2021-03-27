@@ -96,13 +96,12 @@ public final class ImagePreheater {
         let task = Task(request: request, key: key)
 
         // Use `Operation` to limit maximum number of concurrent preheating jobs
-        let operation = Operation(starter: { [weak self, weak task] finish in
+        task.operation = queue.add { [weak self, weak task] finish in
             guard let self = self, let task = task else {
                 return finish()
             }
             self.loadImage(with: request, task: task, finish: finish)
-        })
-        queue.addOperation(operation)
+        }
         tasks[key] = task
     }
 
