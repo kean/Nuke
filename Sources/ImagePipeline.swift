@@ -312,7 +312,7 @@ private extension ImagePipeline {
                     self.tasks[task] = nil
                 }
 
-                self.dispatchUpdate(to: callbackQueue) {
+                self.dispatchCallback(to: callbackQueue) {
                     guard !task.isCancelled else { return }
 
                     switch event {
@@ -346,7 +346,7 @@ private extension ImagePipeline {
                     self.tasks[task] = nil
                 }
 
-                self.dispatchUpdate(to: callbackQueue) {
+                self.dispatchCallback(to: callbackQueue) {
                     guard !task.isCancelled else { return }
 
                     switch event {
@@ -364,7 +364,7 @@ private extension ImagePipeline {
             }
     }
 
-    func dispatchUpdate(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
+    func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
         if callbackQueue == self.queue {
             closure()
         } else {
