@@ -365,7 +365,7 @@ private extension ImagePipeline {
     }
 
     func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
-        if callbackQueue == self.queue {
+        if callbackQueue === self.queue {
             closure()
         } else {
             (callbackQueue ?? self.configuration.callbackQueue).async(execute: closure)
