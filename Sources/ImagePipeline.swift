@@ -156,7 +156,7 @@ public /* final */ class ImagePipeline {
     func loadImage(with request: ImageRequest,
                    isConfined: Bool,
                    queue callbackQueue: DispatchQueue?,
-                   progress progressHandler: ImageTask.ProgressHandler?,
+                   progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)?,
                    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)?) -> ImageTask {
         let request = inheritOptions(request)
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
@@ -296,7 +296,7 @@ public extension ImagePipeline {
 private extension ImagePipeline {
     func startImageTask(_ task: ImageTask,
                         callbackQueue: DispatchQueue?,
-                        progress progressHandler: ImageTask.ProgressHandler?,
+                        progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)?,
                         completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)?) {
         guard !isInvalidated else { return }
 

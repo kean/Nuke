@@ -34,7 +34,9 @@ struct TestExpectationImagePipeline {
     }
 
     @discardableResult
-    func toLoadImage(with request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
+    func toLoadImage(with request: ImageRequest,
+                     progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                     completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
         let expectation = test.expectation(description: "Image loaded for \(request)")
         return pipeline.loadImage(with: request, progress: progress) { result in
             completion?(result)
@@ -50,7 +52,9 @@ struct TestExpectationImagePipeline {
     }
 
     @discardableResult
-    func toFailRequest(_ request: ImageRequest, progress: ImageTask.ProgressHandler? = nil, completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
+    func toFailRequest(_ request: ImageRequest,
+                       progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                       completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
         let expectation = test.expectation(description: "Image request failed \(request)")
         return pipeline.loadImage(with: request, progress: progress) { result in
             completion?(result)
@@ -82,7 +86,10 @@ struct TestExpectationImagePipeline {
 }
 
 extension XCTestCase {
-    func expectToFinishLoadingImage(with request: ImageRequest, options: ImageLoadingOptions = ImageLoadingOptions.shared, into imageView: ImageDisplayingView, completion: ImageTask.Completion? = nil) {
+    func expectToFinishLoadingImage(with request: ImageRequest,
+                                    options: ImageLoadingOptions = ImageLoadingOptions.shared,
+                                    into imageView: ImageDisplayingView,
+                                    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
         let expectation = self.expectation(description: "Image loaded for \(request)")
         Nuke.loadImage(
             with: request,

@@ -33,7 +33,10 @@ class MockImagePipeline: ImagePipeline {
         return queue
     }()
 
-    override func loadImage(with request: ImageRequestConvertible, queue callbackQueue: DispatchQueue? = nil, progress progressHandler: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) -> ImageTask {
+    override func loadImage(with request: ImageRequestConvertible,
+                            queue callbackQueue: DispatchQueue? = nil,
+                            progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                            completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
         let task = MockImageTask(request: request.asImageRequest())
 
         createdTaskCount += 1
@@ -71,7 +74,11 @@ class MockImagePipeline: ImagePipeline {
         return task
     }
 
-    override func loadImage(with request: ImageRequest, isConfined: Bool, queue callbackQueue: DispatchQueue?, progress progressHandler: ImageTask.ProgressHandler?, completion: ImageTask.Completion?) -> ImageTask {
+    override func loadImage(with request: ImageRequest,
+                            isConfined: Bool,
+                            queue callbackQueue: DispatchQueue?,
+                            progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)?,
+                            completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)?) -> ImageTask {
         self.loadImage(with: request, queue: callbackQueue, progress: progressHandler, completion: completion)
     }
 }

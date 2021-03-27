@@ -352,7 +352,7 @@ private final class ImageViewController {
 
     func loadImage(with request: ImageRequest,
                    options: ImageLoadingOptions,
-                   progress progressHandler: ImageTask.ProgressHandler? = nil,
+                   progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
                    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask? {
         cancelOutstandingTask()
 
