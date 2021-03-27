@@ -195,7 +195,7 @@ public /* final */ class ImagePipeline {
     @discardableResult
     public func loadData(with request: ImageRequestConvertible,
                          queue: DispatchQueue? = nil,
-                         progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
+                         progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
         loadData(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
