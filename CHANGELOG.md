@@ -756,7 +756,7 @@ This update addresses tech debt introduces in version 7.1 and 7.2. All of the ch
 
 *May 10, 2018*
 
-Nuke 7 is the biggest release yet. It has a lot of  massive new features, new performance improvements, and some API refinements. Check out new [Nuke website](http://kean.github.io/nuke) to see quick videos showcasing some of the new features.
+Nuke 7 is the biggest release yet. It has a lot of  massive new features, new performance improvements, and some API refinements. Check out new [Nuke website](http://kean.blog/nuke) to see quick videos showcasing some of the new features.
 
 Nuke 7 is almost completely source-compatible with Nuke 6.
 
@@ -958,7 +958,7 @@ Resumable Data {
 
 There are three main areas of improvements in Nuke 6:
 
-- Performance. Nuke 6 is fast! The primary `loadImage(with:into:)` method is now **1.5x** faster thanks to performance improvements of [`CancellationToken`](https://kean.github.io/post/cancellation-token), `Manager`, `Request` and `Cache` types. And it's not just main thread performance, many of the background operations were also optimized.
+- Performance. Nuke 6 is fast! The primary `loadImage(with:into:)` method is now **1.5x** faster thanks to performance improvements of [`CancellationToken`](https://kean.blog/post/cancellation-token), `Manager`, `Request` and `Cache` types. And it's not just main thread performance, many of the background operations were also optimized.
 - API refinements. Some common operations that were surprisingly hard to do are not super easy. And there are no more implementation details leaking into a public API (e.g. classes like `Deduplicator`).
 - Fixes some inconveniences like Thread Sanitizer warnings (false positives!). Improved compile time. Better documentation.
 
@@ -971,7 +971,7 @@ There are three main areas of improvements in Nuke 6:
 
 ### Improvements
 
-- Improve performance of [`CancellationTokenSource`](https://kean.github.io/post/cancellation-token), `Loader`, `TaskQueue`
+- Improve performance of [`CancellationTokenSource`](https://kean.blog/post/cancellation-token), `Loader`, `TaskQueue`
 - Improve `Manager` performance by reusing contexts objects between requests
 - Improve `Cache` by ~30% for most operations (hits, misses, writes)
 - `Request` now stores all of the parameters in the underlying reference typed container (it used to store just reference typed ones). The `Request` struct now only has a single property with a reference to an underlying container.
@@ -1269,7 +1269,7 @@ Make sure to check out new [Toucan plugin](https://github.com/kean/Nuke-Toucan-P
 
 *Feb 6, 2016*
 
-Nuke now has an [official website](http://kean.github.io/Nuke/)!
+Nuke now has an [official website](http://kean.blog/Nuke/)!
 
 #### Main Changes
 

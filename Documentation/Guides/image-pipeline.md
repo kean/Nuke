@@ -55,7 +55,7 @@ During each of these steps, the pipeline creates and performs operations, each o
 
 A `DataLoader` class uses [`URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) to load image data. The data is cached on disk using [`URLCache`](https://developer.apple.com/reference/foundation/urlcache), which by default is initialized with memory capacity of 0 MB (only stores processed images in memory) and disk capacity of 150 MB.
 
-> See [Image Caching Guide](https://kean.github.io/post/image-caching) to learn more about HTTP cache.
+> See [Image Caching Guide](https://kean.blog/post/image-caching) to learn more about HTTP cache.
 
 The `URLSession` class natively supports the following URL schemes: `data`, `file`, `ftp`, `http`, and `https`.
 

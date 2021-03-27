@@ -17,7 +17,7 @@ Last-Modified: Mon, 12 Jan 2016 17:45:57 GMT
 ETag: "686897696a7c876b7e"
 ```
 
-> To learn more about HTTP caching, see [Image Caching](https://kean.github.io/post/image-caching)
+> To learn more about HTTP caching, see [Image Caching](https://kean.blog/post/image-caching)
 
 **Solution**
 

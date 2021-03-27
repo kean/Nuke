@@ -27,7 +27,7 @@ You can use [Alamofire plugin](https://github.com/kean/Nuke-Alamofire-Plugin) as
 
 By default, Nuke uses a `Foundation.URLCache` which is a part of Foundation URL Loading System. However sometimes built-in cache might not be performant enough, or might not fit your needs.
 
-> See [Image Caching Guide](https://kean.github.io/post/image-caching) to learn more about URLCache, HTTP caching, and more
+> See [Image Caching Guide](https://kean.blog/post/image-caching) to learn more about URLCache, HTTP caching, and more
 
 > See [Performance Guide: On-Disk Caching](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/performance-guide.md#on-disk-caching) for more info
 
