@@ -22,6 +22,14 @@ public final class ImagePrefetcher {
     private var tasks = [AnyHashable: Task]()
     private let destination: Destination
 
+    /// Pauses the prefetching.
+    ///
+    /// - note: When you pause, the prefetcher will finish outstanding tasks
+    /// (by default, there are only 2 at a time), and pause the rest.
+    public var isPaused: Bool = false {
+        didSet { queue.isSuspended = isPaused }
+    }
+
     /// Prefetching destination.
     public enum Destination {
         /// Prefetches the image and stores it in both memory and disk caches

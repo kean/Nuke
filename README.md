@@ -458,6 +458,8 @@ Keep in mind that prefetching takes up users' data and puts extra pressure on CP
 let prefetcher = ImagePrefetcher(destination: .diskCache)
 ```
 
+When the user leaves the screen, you can either continue/stop prefetching, or you can pause it using `prefetcher.isPaused` property. The prefetching will finish outstanding tasks (by default, there are only 2 at a time), and pause the rest.
+
 > On iOS, you can use [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) in combination with `ImagePrefetcher` to automate the process.
 
 ### Progressive Decoding
