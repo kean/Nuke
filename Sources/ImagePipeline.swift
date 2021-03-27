@@ -147,10 +147,10 @@ public /* final */ class ImagePipeline {
     /// request is finished. `nil` by default.
     @discardableResult
     public func loadImage(with request: ImageRequestConvertible,
-                          queue callbackQueue: DispatchQueue? = nil,
-                          progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                          queue: DispatchQueue? = nil,
+                          progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
                           completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
-        loadImage(with: request.asImageRequest(), isConfined: false, queue: callbackQueue, progress: progressHandler, completion: completion)
+        loadImage(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
 
     func loadImage(with request: ImageRequest,
@@ -175,9 +175,9 @@ public /* final */ class ImagePipeline {
 
     @discardableResult
     public func loadData(with request: ImageRequestConvertible,
-                         queue callbackQueue: DispatchQueue? = nil,
+                         queue: DispatchQueue? = nil,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
-        loadData(with: request, queue: callbackQueue, progress: nil, completion: completion)
+        loadData(with: request, queue: queue, progress: nil, completion: completion)
     }
 
     /// Loads the image data for the given request. The data doesn't get decoded or processed in any
@@ -194,10 +194,10 @@ public /* final */ class ImagePipeline {
     /// request is finished.
     @discardableResult
     public func loadData(with request: ImageRequestConvertible,
-                         queue callbackQueue: DispatchQueue? = nil,
+                         queue: DispatchQueue? = nil,
                          progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
-        loadData(with: request.asImageRequest(), isConfined: false, queue: callbackQueue, progress: progress, completion: completion)
+        loadData(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
 
     func loadData(with request: ImageRequest,
