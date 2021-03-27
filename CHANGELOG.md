@@ -1,5 +1,17 @@
 # Nuke 9
 
+## Nuke 9.4.0
+
+*Mar 26, 2021*
+
+- Reduce the number of context switches in `ImagePrefetcher` and `DataLoader`
+- Atomics are back, improves direct `ImagePipeline` usage performance
+- Fast-track default decoding operations
+- Reduce the number of allocations per task
+- Deprecate typealiases for progress and completion closures to improve auto-completion
+- You can now toggle `ImagePipeline.Configuration.isSignpostLoggingEnabled` while the app is running and without re-creating the pipeline, [#443](https://github.com/kean/Nuke/issues/443)
+- Add convenience `subscript` that takes `URL` to `ImageCaching` protocol as extension
+
 ## Nuke 9.3.1
 
 *Mar 21, 2021*
