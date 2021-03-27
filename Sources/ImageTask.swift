@@ -80,7 +80,7 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     /// unless there is an equivalent outstanding task running (see
     /// `ImagePipeline.Configuration.isDeduplicationEnabled` for more info).
     public func cancel() {
-        if OSAtomicCompareAndSwap32(0, 1, _isCancelled) {
+        if OSAtomicCompareAndSwap32Barrier(0, 1, _isCancelled) {
             pipeline?.imageTaskCancelCalled(self)
         }
     }

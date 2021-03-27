@@ -12,7 +12,7 @@ final class Operation: Foundation.Operation {
     override var isExecuting: Bool {
         get { _isExecuting.pointee == 1 }
         set {
-            guard OSAtomicCompareAndSwap32(newValue ? 0 : 1, newValue ? 1 : 0, _isExecuting) else {
+            guard OSAtomicCompareAndSwap32Barrier(newValue ? 0 : 1, newValue ? 1 : 0, _isExecuting) else {
                 return assertionFailure("Invalid state, operation is already (not) executing")
             }
             willChangeValue(forKey: "isExecuting")
@@ -22,7 +22,7 @@ final class Operation: Foundation.Operation {
     override var isFinished: Bool {
         get { _isFinished.pointee == 1 }
         set {
-            guard OSAtomicCompareAndSwap32(newValue ? 0 : 1, newValue ? 1 : 0, _isFinished) else {
+            guard OSAtomicCompareAndSwap32Barrier(newValue ? 0 : 1, newValue ? 1 : 0, _isFinished) else {
                 return assertionFailure("Invalid state, operation is already finished")
             }
             willChangeValue(forKey: "isFinished")
@@ -73,7 +73,7 @@ final class Operation: Foundation.Operation {
 
     private func _finish() {
         // Make sure that we ignore if `finish` is called more than once.
-        if OSAtomicCompareAndSwap32(0, 1, isFinishCalled) {
+        if OSAtomicCompareAndSwap32Barrier(0, 1, isFinishCalled) {
             isExecuting = false
             isFinished = true
         }
