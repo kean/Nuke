@@ -105,7 +105,14 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     public func loadData(with request: URLRequest,
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
                          completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
-        return impl.loadData(with: request, session: session, didReceiveData: didReceiveData, completion: completion)
+        return loadData(with: request, isConfined: false, didReceiveData: didReceiveData, completion: completion)
+    }
+
+    func loadData(with request: URLRequest,
+                  isConfined: Bool,
+                  didReceiveData: @escaping (Data, URLResponse) -> Void,
+                  completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
+        return impl.loadData(with: request, session: session, isConfined: isConfined, didReceiveData: didReceiveData, completion: completion)
     }
 
     public func removeData(for request: URLRequest) {
@@ -143,12 +150,17 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     /// Loads data with the given request.
     func loadData(with request: URLRequest,
                   session: URLSession,
+                  isConfined: Bool,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
                   completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = session.dataTask(with: request)
         let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
-        session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
-            self.handlers[task] = handler
+        if isConfined {
+            handlers[task] = handler
+        } else {
+            session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
+                self.handlers[task] = handler
+            }
         }
         task.resume()
         send(task, .resumed)
