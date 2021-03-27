@@ -17,6 +17,13 @@ public protocol ImageCaching: AnyObject {
     subscript(request: ImageRequest) -> ImageContainer? { get set }
 }
 
+public extension ImageCaching {
+    subscript(url: URL) -> ImageContainer? {
+        get { self[ImageRequest(url: url)] }
+        set { self[ImageRequest(url: url)] = newValue }
+    }
+}
+
 /// Memory cache with LRU cleanup policy (least recently used are removed first).
 ///
 /// The elements stored in cache are automatically discarded if either *cost* or

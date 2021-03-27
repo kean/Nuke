@@ -128,4 +128,20 @@ class ImagePreheaterTests: XCTestCase {
         }
         wait()
     }
+
+    func testIntegration() {
+        // GIVEN
+        let pipeline = ImagePipeline()
+        let preheater = ImagePreheater(pipeline: pipeline, destination: .memoryCache, maxConcurrentRequestCount: 2)
+
+        // WHEN
+        preheater.queue.isSuspended = true
+        expect(preheater.queue).toFinishWithEnqueuedOperationCount(1)
+        let url = Test.url(forResource: "fixture", extension: "jpeg")
+        preheater.startPreheating(with: [url])
+        wait()
+
+        // THEN
+        XCTAssertNotNil(pipeline.configuration.imageCache?[url])
+    }
 }

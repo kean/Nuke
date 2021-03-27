@@ -17,7 +17,7 @@ import Foundation
 /// All `Preheater` methods are thread-safe.
 public final class ImagePreheater {
     private let pipeline: ImagePipeline
-    private let preheatQueue = OperationQueue()
+    /* private */ let queue = OperationQueue()
     private var tasks = [AnyHashable: Task]()
     private let destination: Destination
 
@@ -42,8 +42,8 @@ public final class ImagePreheater {
                 maxConcurrentRequestCount: Int = 2) {
         self.pipeline = pipeline
         self.destination = destination
-        self.preheatQueue.maxConcurrentOperationCount = maxConcurrentRequestCount
-        self.preheatQueue.underlyingQueue = pipeline.queue
+        self.queue.maxConcurrentOperationCount = maxConcurrentRequestCount
+        self.queue.underlyingQueue = pipeline.queue
 
         #if TRACK_ALLOCATIONS
         Allocations.increment("ImagePreheater")
@@ -102,7 +102,7 @@ public final class ImagePreheater {
             }
             self.loadImage(with: request, task: task, finish: finish)
         })
-        preheatQueue.addOperation(operation)
+        queue.addOperation(operation)
         tasks[key] = task
     }
 
