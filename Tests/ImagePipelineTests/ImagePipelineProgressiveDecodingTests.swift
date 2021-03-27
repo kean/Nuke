@@ -409,7 +409,10 @@ private struct TestExpectationProgressivePipeline {
     let dataLoader: MockProgressiveDataLoader
 
     // We expect two partial images (at 5 scans, and 9 scans marks).
-    func toProducePartialImages(for request: ImageRequest = Test.request, withCount count: Int = 2, progress: ImageTask.ProgressHandler? = nil, completion: ImageTask.Completion? = nil) {
+    func toProducePartialImages(for request: ImageRequest = Test.request,
+                                withCount count: Int = 2,
+                                progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                                completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
         let expectPartialImageProduced = test.expectation(description: "Partial Image Is Produced")
         expectPartialImageProduced.expectedFulfillmentCount = count
 
