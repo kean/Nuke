@@ -1,5 +1,13 @@
 # Nuke 9
 
+## Nuke 9.4.1
+
+*Mar 27, 2021*
+
+- Shorter names for parameters in `loadImage()` and `loadData` methods to improve ImagePipeline APIs ergonomics
+- Rename `ImagePreheater` to `ImagePrefetcher` (via deprecation) 
+- Rewrite `ImagePrefetcher` documentation
+
 ## Nuke 9.4.0
 
 *Mar 26, 2021*
