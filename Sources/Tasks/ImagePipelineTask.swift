@@ -9,16 +9,14 @@ import Foundation
 class ImagePipelineTask<Value>: Task<Value, ImagePipeline.Error> {
     let pipeline: ImagePipeline
     let request: ImageRequest
-    private let queue: DispatchQueue
 
-    init(_ pipeline: ImagePipeline, _ request: ImageRequest, _ queue: DispatchQueue) {
+    init(_ pipeline: ImagePipeline, _ request: ImageRequest) {
         self.pipeline = pipeline
         self.request = request
-        self.queue = queue
     }
 
     /// Executes work on the pipeline synchronization queue.
     func async(_ work: @escaping () -> Void) {
-        queue.async(execute: work)
+        pipeline.queue.async(execute: work)
     }
 }

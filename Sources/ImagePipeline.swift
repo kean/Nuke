@@ -385,7 +385,7 @@ private extension ImagePipeline {
 extension ImagePipeline {
     func makeTaskLoadImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
         decompressedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
-            TaskLoadImage(self, request, queue)
+            TaskLoadImage(self, request)
         }
     }
 
@@ -393,19 +393,19 @@ extension ImagePipeline {
         request.processors.isEmpty ?
             makeTaskDecodeImage(for: request) : // No processing needed
             processedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
-                TaskProcessImage(self, request, queue)
+                TaskProcessImage(self, request)
             }
     }
 
     func makeTaskDecodeImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
         originalImageTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
-            TaskDecodeImage(self, request, queue)
+            TaskDecodeImage(self, request)
         }
     }
 
     func makeTaskLoadImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error>.Publisher {
         originalImageDataTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
-            TaskLoadImageData(self, request, queue)
+            TaskLoadImageData(self, request)
         }
     }
 }
