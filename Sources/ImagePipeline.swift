@@ -99,7 +99,7 @@ public /* final */ class ImagePipeline {
     @discardableResult
     public func loadImage(with request: ImageRequestConvertible,
                           queue: DispatchQueue? = nil,
-                          completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void) -> ImageTask {
+                          completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void) -> ImageTask {
         loadImage(with: request, queue: queue, progress: nil, completion: completion)
     }
 
@@ -149,7 +149,7 @@ public /* final */ class ImagePipeline {
     public func loadImage(with request: ImageRequestConvertible,
                           queue: DispatchQueue? = nil,
                           progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
-                          completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
+                          completion: ((_ result: Result<ImageResponse, Error>) -> Void)? = nil) -> ImageTask {
         loadImage(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
 
@@ -157,7 +157,7 @@ public /* final */ class ImagePipeline {
                    isConfined: Bool,
                    queue callbackQueue: DispatchQueue?,
                    progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)?,
-                   completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)?) -> ImageTask {
+                   completion: ((_ result: Result<ImageResponse, Error>) -> Void)?) -> ImageTask {
         let request = inheritOptions(request)
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
         task.pipeline = self
@@ -176,7 +176,7 @@ public /* final */ class ImagePipeline {
     @discardableResult
     public func loadData(with request: ImageRequestConvertible,
                          queue: DispatchQueue? = nil,
-                         completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
+                         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
         loadData(with: request, queue: queue, progress: nil, completion: completion)
     }
 
@@ -196,7 +196,7 @@ public /* final */ class ImagePipeline {
     public func loadData(with request: ImageRequestConvertible,
                          queue: DispatchQueue? = nil,
                          progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
-                         completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
+                         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
         loadData(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
 
@@ -204,7 +204,7 @@ public /* final */ class ImagePipeline {
                   isConfined: Bool,
                   queue callbackQueue: DispatchQueue?,
                   progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
-                  completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) -> ImageTask {
+                  completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: true)
         task.pipeline = self
         if isConfined {
@@ -297,7 +297,7 @@ private extension ImagePipeline {
     func startImageTask(_ task: ImageTask,
                         callbackQueue: DispatchQueue?,
                         progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)?,
-                        completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)?) {
+                        completion: ((_ result: Result<ImageResponse, Error>) -> Void)?) {
         guard !isInvalidated else { return }
 
         self.send(.started, task)
@@ -335,7 +335,7 @@ private extension ImagePipeline {
     func startDataTask(_ task: ImageTask,
                        callbackQueue: DispatchQueue?,
                        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
-                       completion: @escaping (Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void) {
+                       completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) {
         guard !isInvalidated else { return }
 
         tasks[task] = makeTaskLoadImageData(for: task.request)
@@ -383,13 +383,13 @@ private extension ImagePipeline {
 // Each task can be reuse of the same resource requested multiple times.
 
 extension ImagePipeline {
-    func makeTaskLoadImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
+    func makeTaskLoadImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
         decompressedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
             TaskLoadImage(self, request)
         }
     }
 
-    func makeTaskProcessImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
+    func makeTaskProcessImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
         request.processors.isEmpty ?
             makeTaskDecodeImage(for: request) : // No processing needed
             processedImageTasks.publisherForKey(request.makeLoadKeyForFinalImage()) {
@@ -397,13 +397,13 @@ extension ImagePipeline {
             }
     }
 
-    func makeTaskDecodeImage(for request: ImageRequest) -> Task<ImageResponse, ImagePipeline.Error>.Publisher {
+    func makeTaskDecodeImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
         originalImageTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
             TaskDecodeImage(self, request)
         }
     }
 
-    func makeTaskLoadImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), ImagePipeline.Error>.Publisher {
+    func makeTaskLoadImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), Error>.Publisher {
         originalImageDataTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
             TaskLoadImageData(self, request)
         }
