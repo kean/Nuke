@@ -1,6 +1,8 @@
 <br/>
 
-<p align="left"><img src="https://cloud.githubusercontent.com/assets/1567433/13918338/f8670eea-ef7f-11e5-814d-f15bdfd6b2c0.png" height="180"/></p>
+<!-- <p align="left"><img src="https://cloud.githubusercontent.com/assets/1567433/13918338/f8670eea-ef7f-11e5-814d-f15bdfd6b2c0.png" height="180"/></p> -->
+
+<img src="https://user-images.githubusercontent.com/1567433/106092470-5c360000-60fc-11eb-8a41-28229fbf0512.png">
 
 # Powerful Image Loading System
 
