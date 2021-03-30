@@ -29,7 +29,7 @@ public /* final */ class ImagePipeline {
     private let originalImageDataTasks: TaskPool<ImageRequest.LoadKeyForOriginalImage, (Data, URLResponse?), Error>
 
     // The queue on which the entire subsystem is synchronized.
-    let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", target: .global(qos: .userInitiated))
+    let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", qos: .userInitiated)
     private var isInvalidated = false
 
     private var nextTaskId: Int64 { OSAtomicIncrement64(_nextTaskId) }
