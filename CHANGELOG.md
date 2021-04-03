@@ -1,5 +1,13 @@
 # Nuke 9
 
+## Nuke 9.5.0
+
+*Apr 3, 2021*
+
+- Add `priority` property to `ImagePrefetcher` which changes the priority of both new and outstanding tasks. By default, `.low`. Use-case: reducing the priority to `.veryLow` when moving to a new screen.
+- Further `ImagePrefetcher` performance improvements: one less allocation per request, `ImageRequest` instances are now created in background, reduce closure capture lists, optimize cancellation
+- `ImagePrefetcher` now automatically sets the proper request priority even when you start prefetching with`ImageRequest`
+
 ## Nuke 9.4.1
 
 *Mar 27, 2021*
