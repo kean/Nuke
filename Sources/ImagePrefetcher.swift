@@ -139,10 +139,6 @@ public final class ImagePrefetcher {
     }
 
     private func loadImage(with request: ImageRequest, task: Task, finish: @escaping () -> Void) {
-        guard !task.isCancelled else {
-            return finish()
-        }
-
         switch destination {
         case .diskCache:
             task.imageTask = pipeline.loadData(with: request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
@@ -226,7 +222,6 @@ public final class ImagePrefetcher {
     private final class Task {
         let key: ImageRequest.LoadKeyForProcessedImage
         let request: ImageRequest
-        var isCancelled = false
         var onCancelled: (() -> Void)?
         weak var imageTask: ImageTask?
         weak var operation: Operation?
@@ -236,11 +231,9 @@ public final class ImagePrefetcher {
             self.key = key
         }
 
+        // When task is cancelled, it is removed from the prefetcher and can
+        // never get cancelled twice.
         func cancel() {
-            guard !isCancelled else {
-                return // Should never get called
-            }
-            isCancelled = true
             operation?.cancel()
             imageTask?.cancel()
             onCancelled?()
