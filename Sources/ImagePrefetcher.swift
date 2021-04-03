@@ -110,6 +110,10 @@ public final class ImagePrefetcher {
     public func startPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
             for request in requests {
+                var request = request
+                if request.priority > self._priority {
+                    request.priority = self._priority
+                }
                 self._startPrefetching(with: request)
             }
         }

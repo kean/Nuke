@@ -142,60 +142,6 @@ class ImagePrefetcherTests: XCTestCase {
         wait()
     }
 
-
-    // MARK: Change Priority
-
-    func testChangePriority() {
-        // Given
-        let pipeline = ImagePipeline {
-            $0.imageCache = nil
-            $0.dataLoader = MockDataLoader()
-        }
-        let prefetcher = ImagePrefetcher(pipeline: pipeline)
-        prefetcher.priority = .veryHigh
-
-        // When
-        pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
-        prefetcher.startPrefetching(with: [Test.url])
-        wait()
-
-        // Then
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-        XCTAssertEqual(operation.queuePriority, .veryHigh)
-
-        // Cleanup
-        prefetcher.stopPrefetching()
-    }
-
-    func testChangePriorityOfOutstandingTasks() {
-        // Given
-        let pipeline = ImagePipeline {
-            $0.imageCache = nil
-            $0.dataLoader = MockDataLoader()
-        }
-        let prefetcher = ImagePrefetcher(pipeline: pipeline)
-
-        // When
-        pipeline.configuration.dataLoadingQueue.isSuspended = true
-        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
-        prefetcher.startPrefetching(with: [Test.url])
-        wait()
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-
-        // When/Then
-        expect(operation).toUpdatePriority(from: .low, to: .veryLow)
-        prefetcher.priority = .veryLow
-        wait()
-
-        // Cleanup
-        prefetcher.stopPrefetching()
-    }
-
     // MARK: Integration Tests
 
     func testIntegration() {
@@ -212,5 +158,108 @@ class ImagePrefetcherTests: XCTestCase {
 
         // Then
         XCTAssertNotNil(pipeline.configuration.imageCache?[url])
+    }
+}
+
+class ImagePrefetcherPriorityTests: XCTestCase {
+    var pipeline: ImagePipeline!
+    var prefetcher: ImagePrefetcher!
+
+    override func setUp() {
+        super.setUp()
+
+        pipeline = ImagePipeline {
+            $0.imageCache = nil
+            $0.dataLoader = MockDataLoader()
+        }
+        prefetcher = ImagePrefetcher(pipeline: pipeline)
+    }
+
+    func testDefaultPrioritySetToLow() {
+        // Given default prefetcher
+
+        // When start prefetching with URL
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
+        prefetcher.startPrefetching(with: [Test.url])
+        wait()
+
+        // Then priority is set to .low
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        XCTAssertEqual(operation.queuePriority, .low)
+
+        // Cleanup
+        prefetcher.stopPrefetching()
+    }
+
+    func testDefaultPriorityAffectsRequests() {
+        // Given default prefetcher
+
+        // When start prefetching with ImageRequest
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
+        let request = Test.request
+        XCTAssertEqual(request.priority, .normal) // Default is .normal
+        prefetcher.startPrefetching(with: [request])
+        wait()
+
+        // Then priority is set to .low
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        XCTAssertEqual(operation.queuePriority, .low)
+    }
+
+    func testLowerPriorityThanDefaultNotAffected() {
+        // Given default prefetcher
+
+        // When start prefetching with ImageRequest with .veryLow priority
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
+        var request = Test.request
+        request.priority = .veryLow
+        prefetcher.startPrefetching(with: [request])
+        wait()
+
+        // Then priority is set to .veryLow (not changed by prefetcher)
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        XCTAssertEqual(operation.queuePriority, .veryLow)
+    }
+
+    func testChangePriority() {
+        // Given
+        prefetcher.priority = .veryHigh
+
+        // When
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
+        prefetcher.startPrefetching(with: [Test.url])
+        wait()
+
+        // Then
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        XCTAssertEqual(operation.queuePriority, .veryHigh)
+    }
+
+    func testChangePriorityOfOutstandingTasks() {
+        // When
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
+        prefetcher.startPrefetching(with: [Test.url])
+        wait()
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+
+        // When/Then
+        expect(operation).toUpdatePriority(from: .low, to: .veryLow)
+        prefetcher.priority = .veryLow
+        wait()
     }
 }
