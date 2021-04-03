@@ -72,6 +72,19 @@ class ImagePrefetcherTests: XCTestCase {
 
     // MARK: Stoping Prefetching
 
+    func testStopPrefetchingWithURLs() {
+        pipeline.operationQueue.isSuspended = true
+
+        let url = Test.url
+        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
+        prefetcher.startPrefetching(with: [url])
+        wait()
+
+        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
+        prefetcher.stopPrefetching(with: [url])
+        wait()
+    }
+
     func testThatPrefetchingRequestsAreStopped() {
         pipeline.operationQueue.isSuspended = true
 
