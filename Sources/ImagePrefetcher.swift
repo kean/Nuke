@@ -30,6 +30,12 @@ public final class ImagePrefetcher {
         didSet { queue.isSuspended = isPaused }
     }
 
+    /// The priority of the requests. By default, `.low`.
+    ///
+    /// Changing the priority also changes the priority of all of the outstanding
+    /// tasks managed by the prefetcher.
+    public var priority: ImageRequest.Priority = .low
+
     /// Prefetching destination.
     public enum Destination {
         /// Prefetches the image and stores it in both memory and disk caches
@@ -192,7 +198,7 @@ public final class ImagePrefetcher {
     private func _requests(for urls: [URL]) -> [ImageRequest] {
         return urls.map {
             var request = ImageRequest(url: $0)
-            request.priority = .low
+            request.priority = priority
             return request
         }
     }

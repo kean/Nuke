@@ -18,7 +18,7 @@ class ImagePrefetcherTests: XCTestCase {
         prefetcher = ImagePrefetcher(pipeline: pipeline)
     }
 
-    // MARK: - Starting Prefetching
+    // MARK: Starting Prefetching
 
     func testStartPrefetchingWithTheSameRequests() {
         pipeline.operationQueue.isSuspended = true
@@ -70,7 +70,7 @@ class ImagePrefetcherTests: XCTestCase {
         wait()
     }
 
-    // MARK: - Stoping Prefetching
+    // MARK: Stoping Prefetching
 
     func testThatPrefetchingRequestsAreStopped() {
         pipeline.operationQueue.isSuspended = true
@@ -129,19 +129,47 @@ class ImagePrefetcherTests: XCTestCase {
         wait()
     }
 
+
+    // MARK: Change Priority
+
+    func testChangePriority() {
+        // Given
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+        }
+        let prefetcher = ImagePrefetcher(pipeline: pipeline)
+        prefetcher.priority = .veryHigh
+
+        // When
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
+        prefetcher.startPrefetching(with: [Test.url])
+        wait()
+
+        // Then
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        XCTAssertEqual(operation.queuePriority, .veryHigh)
+
+        prefetcher.stopPrefetching()
+    }
+
+    // MARK: Integration Tests
+
     func testIntegration() {
-        // GIVEN
+        // Given
         let pipeline = ImagePipeline()
         let preheater = ImagePrefetcher(pipeline: pipeline, destination: .memoryCache, maxConcurrentRequestCount: 2)
 
-        // WHEN
+        // When
         preheater.queue.isSuspended = true
         expect(preheater.queue).toFinishWithEnqueuedOperationCount(1)
         let url = Test.url(forResource: "fixture", extension: "jpeg")
         preheater.startPrefetching(with: [url])
         wait()
 
-        // THEN
+        // Then
         XCTAssertNotNil(pipeline.configuration.imageCache?[url])
     }
 }

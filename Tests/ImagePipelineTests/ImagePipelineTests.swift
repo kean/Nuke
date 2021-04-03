@@ -167,7 +167,7 @@ class ImagePipelineTests: XCTestCase {
         let request = Test.request
         XCTAssertEqual(request.priority, .normal)
 
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
+        let observer = expect(queue).toEnqueueOperationsWithCount(1)
 
         let task = pipeline.loadImage(with: request)
         wait() // Wait till the operation is created.
@@ -190,7 +190,7 @@ class ImagePipelineTests: XCTestCase {
         let request = Test.request
         XCTAssertEqual(request.priority, .normal)
 
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
+        let observer = expect(queue).toEnqueueOperationsWithCount(1)
 
         let task = pipeline.loadImage(with: request)
         wait() // Wait till the operation is created.
@@ -213,7 +213,7 @@ class ImagePipelineTests: XCTestCase {
         let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
         XCTAssertEqual(request.priority, .normal)
 
-        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
+        let observer = expect(queue).toEnqueueOperationsWithCount(1)
 
         let task = pipeline.loadImage(with: request)
         wait() // Wait till the operation is created.
