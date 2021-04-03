@@ -34,7 +34,13 @@ public final class ImagePrefetcher {
     ///
     /// Changing the priority also changes the priority of all of the outstanding
     /// tasks managed by the prefetcher.
-    public var priority: ImageRequest.Priority = .low
+    public var priority: ImageRequest.Priority = .low {
+        didSet {
+            let newValue = priority
+            pipeline.queue.async { self.didUpdatePriority(to: newValue) }
+        }
+    }
+    private var _priority: ImageRequest.Priority = .low
 
     /// Prefetching destination.
     public enum Destination {
@@ -84,7 +90,11 @@ public final class ImagePrefetcher {
     ///
     /// - note: See `func startPrefetching(with requests: [ImageRequest])` for more info.
     public func startPrefetching(with urls: [URL]) {
-        startPrefetching(with: _requests(for: urls))
+        pipeline.queue.async {
+            for url in urls {
+                self._startPrefetching(with: self.makeRequest(url: url))
+            }
+        }
     }
 
     /// Starts prefetching images for the given requests.
@@ -133,21 +143,19 @@ public final class ImagePrefetcher {
             return finish()
         }
 
-        let imageTask: ImageTask
         switch destination {
         case .diskCache:
-            imageTask = pipeline.loadData(with: request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
+            task.imageTask = pipeline.loadData(with: request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
                 self?._remove(task)
                 finish()
             }
         case .memoryCache:
-            imageTask = pipeline.loadImage(with: request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
+            task.imageTask = pipeline.loadImage(with: request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
                 self?._remove(task)
                 finish()
             }
         }
         task.onCancelled = {
-            imageTask.cancel()
             finish()
         }
     }
@@ -161,7 +169,11 @@ public final class ImagePrefetcher {
 
     /// Stops prefetching images for the given urls.
     public func stopPrefetching(with urls: [URL]) {
-        stopPrefetching(with: _requests(for: urls))
+        pipeline.queue.async {
+            for url in urls {
+                self._stopPrefetching(with: self.makeRequest(url: url))
+            }
+        }
     }
 
     /// Stops prefetching images for the given requests and cancels outstanding
@@ -195,11 +207,19 @@ public final class ImagePrefetcher {
         }
     }
 
-    private func _requests(for urls: [URL]) -> [ImageRequest] {
-        return urls.map {
-            var request = ImageRequest(url: $0)
-            request.priority = priority
-            return request
+    private func makeRequest(url: URL) -> ImageRequest {
+        var request = ImageRequest(url: url)
+        request.priority = _priority
+        return request
+    }
+
+    private func didUpdatePriority(to priority: ImageRequest.Priority) {
+        guard _priority != priority else {
+            return
+        }
+        _priority = priority
+        for task in tasks.values {
+            task.imageTask?.priority = priority
         }
     }
 
@@ -208,6 +228,7 @@ public final class ImagePrefetcher {
         let request: ImageRequest
         var isCancelled = false
         var onCancelled: (() -> Void)?
+        weak var imageTask: ImageTask?
         weak var operation: Operation?
 
         init(request: ImageRequest, key: ImageRequest.LoadKeyForProcessedImage) {
@@ -216,9 +237,12 @@ public final class ImagePrefetcher {
         }
 
         func cancel() {
-            guard !isCancelled else { return }
+            guard !isCancelled else {
+                return // Should never get called
+            }
             isCancelled = true
             operation?.cancel()
+            imageTask?.cancel()
             onCancelled?()
         }
     }

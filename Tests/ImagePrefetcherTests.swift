@@ -135,6 +135,7 @@ class ImagePrefetcherTests: XCTestCase {
     func testChangePriority() {
         // Given
         let pipeline = ImagePipeline {
+            $0.imageCache = nil
             $0.dataLoader = MockDataLoader()
         }
         let prefetcher = ImagePrefetcher(pipeline: pipeline)
@@ -152,6 +153,33 @@ class ImagePrefetcherTests: XCTestCase {
         }
         XCTAssertEqual(operation.queuePriority, .veryHigh)
 
+        // Cleanup
+        prefetcher.stopPrefetching()
+    }
+
+    func testChangePriorityOfOutstandingTasks() {
+        // Given
+        let pipeline = ImagePipeline {
+            $0.imageCache = nil
+            $0.dataLoader = MockDataLoader()
+        }
+        let prefetcher = ImagePrefetcher(pipeline: pipeline)
+
+        // When
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
+        prefetcher.startPrefetching(with: [Test.url])
+        wait()
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+
+        // When/Then
+        expect(operation).toUpdatePriority(from: .low, to: .veryLow)
+        prefetcher.priority = .veryLow
+        wait()
+
+        // Cleanup
         prefetcher.stopPrefetching()
     }
 
