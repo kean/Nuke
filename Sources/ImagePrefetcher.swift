@@ -133,20 +133,20 @@ public final class ImagePrefetcher {
             guard let self = self, let task = task else {
                 return finish()
             }
-            self.loadImage(with: request, task: task, finish: finish)
+            self.loadImage(task: task, finish: finish)
         }
         tasks[key] = task
     }
 
-    private func loadImage(with request: ImageRequest, task: Task, finish: @escaping () -> Void) {
+    private func loadImage(task: Task, finish: @escaping () -> Void) {
         switch destination {
         case .diskCache:
-            task.imageTask = pipeline.loadData(with: request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
+            task.imageTask = pipeline.loadData(with: task.request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
                 self?._remove(task)
                 finish()
             }
         case .memoryCache:
-            task.imageTask = pipeline.loadImage(with: request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
+            task.imageTask = pipeline.loadImage(with: task.request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
                 self?._remove(task)
                 finish()
             }
