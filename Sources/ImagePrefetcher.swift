@@ -186,8 +186,7 @@ public final class ImagePrefetcher {
     }
 
     private func _stopPrefetching(with request: ImageRequest) {
-        if let task = tasks[request.makeLoadKeyForFinalImage()] {
-            tasks[task.key] = nil
+        if let task = tasks.removeValue(forKey: request.makeLoadKeyForFinalImage()) {
             task.cancel()
         }
     }
