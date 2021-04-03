@@ -151,14 +151,11 @@ public final class ImagePrefetcher {
                 finish()
             }
         }
-        task.onCancelled = {
-            finish()
-        }
     }
 
     private func _remove(_ task: Task) {
         guard tasks[task.key] === task else {
-            return
+            return // Should never happen
         }
         tasks[task.key] = nil
     }
@@ -222,7 +219,6 @@ public final class ImagePrefetcher {
     private final class Task {
         let key: ImageRequest.LoadKeyForProcessedImage
         let request: ImageRequest
-        var onCancelled: (() -> Void)?
         weak var imageTask: ImageTask?
         weak var operation: Operation?
 
@@ -236,7 +232,7 @@ public final class ImagePrefetcher {
         func cancel() {
             operation?.cancel()
             imageTask?.cancel()
-            onCancelled?()
+            operation?.finish()
         }
     }
 }

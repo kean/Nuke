@@ -67,11 +67,11 @@ final class Operation: Foundation.Operation {
         }
         isExecuting = true
         starter { [weak self] in
-            self?._finish()
+            self?.finish()
         }
     }
 
-    private func _finish() {
+    func finish() {
         // Make sure that we ignore if `finish` is called more than once.
         if OSAtomicCompareAndSwap32Barrier(0, 1, isFinishCalled) {
             isExecuting = false
