@@ -5,9 +5,9 @@
 import XCTest
 @testable import Nuke
 
-class ImagePreheaterTests: XCTestCase {
+class ImagePrefetcherTests: XCTestCase {
     var pipeline: MockImagePipeline!
-    var preheater: ImagePrefetcher!
+    var prefetcher: ImagePrefetcher!
 
     override func setUp() {
         super.setUp()
@@ -15,73 +15,73 @@ class ImagePreheaterTests: XCTestCase {
         pipeline = MockImagePipeline {
             $0.imageCache = nil
         }
-        preheater = ImagePrefetcher(pipeline: pipeline)
+        prefetcher = ImagePrefetcher(pipeline: pipeline)
     }
 
-    // MARK: - Starting Preheating
+    // MARK: - Starting Prefetching
 
-    func testStartPreheatingWithTheSameRequests() {
+    func testStartPrefetchingWithTheSameRequests() {
         pipeline.operationQueue.isSuspended = true
 
-        // When starting preheating for the same requests (same cacheKey, loadKey).
+        // When starting prefetching for the same requests (same cacheKey, loadKey).
         expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(1)
 
         let request = Test.request
-        preheater.startPrefetching(with: [request])
-        preheater.startPrefetching(with: [request])
+        prefetcher.startPrefetching(with: [request])
+        prefetcher.startPrefetching(with: [request])
 
         wait()
     }
 
-    func testStartPreheatingWithDifferentProcessors() {
+    func testStartPrefetchingWithDifferentProcessors() {
         pipeline.operationQueue.isSuspended = true
 
-        // When starting preheating for the requests with the same URL (same loadKey)
+        // When starting prefetching for the requests with the same URL (same loadKey)
         // but different processors (different cacheKey).
         expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(2)
 
-        preheater.startPrefetching(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])])
-        preheater.startPrefetching(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "2", { $0 })])])
+        prefetcher.startPrefetching(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])])
+        prefetcher.startPrefetching(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "2", { $0 })])])
 
         wait()
     }
 
-    func testStartPreheatingSameProcessorsDifferentURLRequests() {
+    func testStartPrefetchingSameProcessorsDifferentURLRequests() {
         pipeline.operationQueue.isSuspended = true
 
-        // When starting preheating for the requests with the same URL, but
+        // When starting prefetching for the requests with the same URL, but
         // different URL requests (different loadKey) but the same processors
         // (same cacheKey).
         expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(2)
 
-        preheater.startPrefetching(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 100))])
-        preheater.startPrefetching(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 100))])
+        prefetcher.startPrefetching(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 100))])
+        prefetcher.startPrefetching(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 100))])
 
         wait()
     }
 
-    func testStartingPreheatingWithURLS() {
+    func testStartingPrefetchingWithURLS() {
         pipeline.operationQueue.isSuspended = true
 
         expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(1)
 
-        preheater.startPrefetching(with: [Test.url])
+        prefetcher.startPrefetching(with: [Test.url])
 
         wait()
     }
 
-    // MARK: - Stoping Preheating
+    // MARK: - Stoping Prefetching
 
-    func testThatPreheatingRequestsAreStopped() {
+    func testThatPrefetchingRequestsAreStopped() {
         pipeline.operationQueue.isSuspended = true
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        preheater.startPrefetching(with: [request])
+        prefetcher.startPrefetching(with: [request])
         wait()
 
         _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
-        preheater.stopPrefetching(with: [request])
+        prefetcher.stopPrefetching(with: [request])
         wait()
     }
 
@@ -90,41 +90,41 @@ class ImagePreheaterTests: XCTestCase {
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        preheater.startPrefetching(with: [request, request])
+        prefetcher.startPrefetching(with: [request, request])
         wait()
 
         _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
-        preheater.stopPrefetching(with: [request])
+        prefetcher.stopPrefetching(with: [request])
 
         wait { _ in
             XCTAssertEqual(self.pipeline.createdTaskCount, 1, "")
         }
     }
 
-    func testThatAllPreheatingRequestsAreStopped() {
+    func testThatAllPrefetchingRequestsAreStopped() {
         pipeline.operationQueue.isSuspended = true
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        preheater.startPrefetching(with: [request])
+        prefetcher.startPrefetching(with: [request])
         wait()
 
         _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
-        preheater.stopPrefetching()
+        prefetcher.stopPrefetching()
         wait()
     }
 
-    func testThatAllPreheatingRequestsAreStoppedWhenPreheaterIsDeallocated() {
+    func testThatAllPrefetchingRequestsAreStoppedWhenPrefetcherIsDeallocated() {
         pipeline.operationQueue.isSuspended = true
 
         let request = Test.request
         _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        preheater.startPrefetching(with: [request])
+        prefetcher.startPrefetching(with: [request])
         wait()
 
         _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
         autoreleasepool {
-            preheater = nil
+            prefetcher = nil
         }
         wait()
     }
