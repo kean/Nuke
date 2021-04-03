@@ -38,7 +38,7 @@ Nuke is easy to learn and use. Here is an overview of its APIs and features:
 - **Advanced Features** ‣ [Prefetching Images](#image-prefetching) · [Progressive Decoding](#progressive-decoding)
 - [**Extensions**](#h_plugins) ‣ [FetchImage](#fetch-image) · [Builder](#builder) · [Combine](#combine) · [RxNuke](#rxnuke) · [And More](#h_plugins) 
 
-To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/9.3.0/), and check out the [demo project](https://github.com/kean/NukeDemo). When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/installation-guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, please refer to [**FAQ**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/faq.md) or [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/troubleshooting.md). 
+To learn more see a full [**API Reference**](https://kean-org.github.io/docs/nuke/reference/9.3.0/), and check out the [demo project](https://github.com/kean/NukeDemo). When you are ready to install, follow the [**Installation Guide**](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/installation-guide.md). See [**Requirements**](#h_requirements) for a list of supported platforms. If you encounter any issues, please refer to [**FAQ**](https://github.com/kean/Nuke/blob/master/Documentation/Guides/faq.md) or [**Troubleshooting Guide**](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/troubleshooting.md).
 
 <img src="https://img.shields.io/badge/supports-Swift%20Package%20Manager%2C%20CocoaPods%2C%20Carthage-green.svg">
 
@@ -46,7 +46,7 @@ To learn more about the pipeline and the supported formats, see the dedicated gu
 
 - [**Image Formats**](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md) ‣ [Progressive JPEG](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md#progressive-jpeg) · [HEIF](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md#heif) · [GIF](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md#gif) · [SVG](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md#svg) · [WebP](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-formats.md#webp)
 - [**Guides**](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides) ‣ [Image Pipeline](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/image-pipeline.md) · [Performance](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/performance-guide.md) · [Third-Party Libraries](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/third-party-libraries.md)
-- [**Articles**](https://kean.blog) ‣ [Performance](https://kean.blog/post/nuke-9) · [Concurrency](https://kean.blog/post/concurrency) · [Caching](https://kean.blog/post/image-caching)
+- [**Articles**](https://kean.blog) ‣ [Performance](https://kean.blog/post/nuke-9) · [Concurrency](https://kean.blog/post/concurrency) · [Caching](https://kean.blog/post/image-caching) · [Prefetching](https://kean.blog/post/image-preheating)
 
 If you'd like to contribute to Nuke see [**Contributing**](#h_contribute).
 
@@ -460,7 +460,7 @@ let prefetcher = ImagePrefetcher(destination: .diskCache)
 
 When the user leaves the screen, you can either continue/stop prefetching, or you can pause it using `prefetcher.isPaused` property. The prefetching will finish outstanding tasks (by default, there are only 2 at a time), and pause the rest.
 
-> On iOS, you can use [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) in combination with `ImagePrefetcher` to automate the process.
+> On iOS, you can use [prefetching APIs](https://developer.apple.com/reference/uikit/uitableviewdatasourceprefetching) in combination with `ImagePrefetcher` to automate the process. To learn more about prefetching, see the [dedicated guide](https://kean.blog/post/image-preheating). 
 
 ### Progressive Decoding
 
