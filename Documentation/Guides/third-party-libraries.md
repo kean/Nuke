@@ -29,7 +29,7 @@ By default, Nuke uses a `Foundation.URLCache` which is a part of Foundation URL 
 
 > See [Image Caching Guide](https://kean.blog/post/image-caching) to learn more about URLCache, HTTP caching, and more
 
-> See [Performance Guide: On-Disk Caching](https://github.com/kean/Nuke/blob/9.3.0/Documentation/Guides/performance-guide.md#on-disk-caching) for more info
+> See [Performance Guide: On-Disk Caching](https://github.com/kean/Nuke/blob/9.5.0/Documentation/Guides/performance-guide.md#on-disk-caching) for more info
 
 Nuke can be used with any third party caching library.
 
