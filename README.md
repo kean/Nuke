@@ -29,6 +29,8 @@ Nuke is proudly sponsored by [Stream](https://getstream.io/?utm_source=github&ut
 
 ## Getting Started
 
+> **Check out** new Nuke [documentation](https://kean.blog/nuke/guides/welcome) (beta)
+
 Nuke is easy to learn and use. Here is an overview of its APIs and features:
 
 - **Image View Extensions** ‣ [UI Extensions](#image-view-extensions) · [Table View](#in-a-table-view) · [Placeholders, Transitions](#placeholders-transitions-content-modes-tint-colors) · [`ImageRequest`](#imagerequest)
