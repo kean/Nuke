@@ -16,9 +16,9 @@
 
 > Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/9.5.0/Documentation/Migrations).
 
-Nuke provides a simple and efficient way to download and display images in your app. Its primary feature is [performance](https://kean.blog/post/nuke-9). Nuke is trusted by $1B+ apps.
+Nuke provides a simple and efficient way to download and display images in your app.
 
-Behind Nuke's clear and concise API is an advanced architecture that enables its unique features and offers virtually unlimited possibilities for customization. Despite the number of features, the framework is lean and compiles in under 2 seconds.
+Behind Nuke's clear and concise API is an advanced architecture that enables its unique features and offers virtually unlimited possibilities for customization. Despite the number of features, the framework is lean and compiles in under 2 seconds. Nuke's primary feature is [performance](https://kean.blog/post/nuke-9).
 
 > **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Elegant builder API** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Low data mode** · **Prefetching** · **Rate limiting** · **Progressive JPEG, HEIF, WebP, SVG, GIF** · **Alamofire** · **Combine** · **Reactive extensions**
 
@@ -33,13 +33,11 @@ Nuke is proudly sponsored by [Stream](https://getstream.io/?utm_source=github&ut
 
 # Documentation
 
-Nuke is easy to learn and use thanks to beautiful [Nuke Docs](https://kean.blog/nuke/guides/welcome).
+Nuke is easy to learn and use thanks to beautiful [**Nuke Docs**](https://kean.blog/nuke/guides/welcome). Make sure to also check out [**Nuke Demo**](https://github.com/kean/NukeDemo).
 
 <a href="https://kean.blog/nuke/guides/welcome">
 <img src="https://user-images.githubusercontent.com/1567433/114312077-59259b80-9abf-11eb-93f9-29fb87eb025a.png">
 </a>
-
-Make sure to also check out the [demo project](https://github.com/kean/NukeDemo).
 
 <a name="h_plugins"></a>
 # Extensions
@@ -53,10 +51,10 @@ The image pipeline is easy to customize and extend. Check out the following firs
 |[**ImageTaskBuilder**](https://github.com/kean/ImageTaskBuilder)|A fun and convenient way to use Nuke|
 |[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks|
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples of common use cases solved by Rx|
-|[**WebP Plugin**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **[Community]** [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
+|[**WebP Plugin**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **Community**. [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
 |[**Gifu Plugin**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
 |[**FLAnimatedImage Plugin**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
-|[**Xamarin NuGet**](https://github.com/roubachof/Xamarin.Forms.Nuke)| **[Community]** Makes it possible to use Nuke from Xamarin|
+|[**Xamarin NuGet**](https://github.com/roubachof/Xamarin.Forms.Nuke)| **Community**. Makes it possible to use Nuke from Xamarin|
 
 <a name="h_contribute"></a>
 # Contribution
