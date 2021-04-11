@@ -16,7 +16,9 @@
 
 > Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/9.5.0/Documentation/Migrations).
 
-Nuke provides a simple and efficient way to download and display images in your app. Behind its clear and concise API is an advanced architecture that enables its unique features and offers virtually unlimited possibilities for customization. The primary Nuke feature is [performance](https://kean.blog/post/nuke-9). Nuke is trusted by $1B+ apps.
+Nuke provides a simple and efficient way to download and display images in your app. Its primary feature is [performance](https://kean.blog/post/nuke-9). Nuke is trusted by $1B+ apps.
+
+Behind Nuke's clear and concise API is an advanced architecture that enables its unique features and offers virtually unlimited possibilities for customization. Despite the number of features, the framework is lean and compiles in under 2 seconds.
 
 > **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Elegant builder API** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Low data mode** · **Prefetching** · **Rate limiting** · **Progressive JPEG, HEIF, WebP, SVG, GIF** · **Alamofire** · **Combine** · **Reactive extensions**
 
