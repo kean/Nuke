@@ -1,7 +1,5 @@
 <br/>
 
-<!-- <p align="left"><img src="https://cloud.githubusercontent.com/assets/1567433/13918338/f8670eea-ef7f-11e5-814d-f15bdfd6b2c0.png" height="180"/></p> -->
-
 <img src="https://user-images.githubusercontent.com/1567433/106092470-5c360000-60fc-11eb-8a41-28229fbf0512.png">
 
 # Powerful Image Loading System
@@ -11,10 +9,6 @@
 <img src="https://img.shields.io/badge/platforms-iOS%2C%20macOS%2C%20watchOS%2C%20tvOS-lightgrey.svg">
 <img src="https://github.com/kean/Nuke/workflows/Nuke%20CI/badge.svg">
 </p>
-
-<img src="https://img.shields.io/badge/supports-Swift%20Package%20Manager%2C%20CocoaPods%2C%20Carthage-green.svg">
-
-> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/9.5.0/Documentation/Migrations).
 
 Nuke provides a simple and efficient way to download and display images in your app.
 
@@ -34,6 +28,8 @@ Nuke is proudly sponsored by [Stream](https://getstream.io/?utm_source=github&ut
 # Documentation
 
 Nuke is easy to learn and use thanks to beautiful [**Nuke Docs**](https://kean.blog/nuke/guides/welcome). Make sure to also check out [**Nuke Demo**](https://github.com/kean/NukeDemo).
+
+> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/9.5.0/Documentation/Migrations).
 
 <a href="https://kean.blog/nuke/guides/welcome">
 <img src="https://user-images.githubusercontent.com/1567433/114312077-59259b80-9abf-11eb-93f9-29fb87eb025a.png">
