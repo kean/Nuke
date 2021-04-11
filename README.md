@@ -59,7 +59,7 @@ The image pipeline is easy to customize and extend. Check out the following firs
 <a name="h_contribute"></a>
 # Contribution
 
-[Nuke's roadmap](https://trello.com/b/Us4rHryT/nuke) is managed in Trello and is publicly available. If you'd like to contribute, please feel free to create a PR.
+[Nuke's roadmap](https://trello.com/b/Us4rHryT/nuke) is managed in Trello and is publicly available.
 
 <a name="h_requirements"></a>
 # Minimum Requirements
