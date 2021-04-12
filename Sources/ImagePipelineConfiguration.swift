@@ -95,10 +95,10 @@ extension ImagePipeline {
             /// It can be configured to encode and store processed images instead.
             ///
             /// - note: If you are creating multiple versions of the same image using
-            /// different processors, it might be worth enabling both `.originalData`
-            /// and `.encodedImages` cache to reuse the same downloaded data.
+            /// different processors, it might be worth enabling both `.originalImageData`
+            /// and `.finalImage` cache to reuse the same downloaded data.
             ///
-            /// - note: It might be worth enabling `.encodedImages` if you want to
+            /// - note: It might be worth enabling `.finalImage` if you want to
             /// transcode downloaded images into a more efficient format, like HEIF.
             public var storedItems: Set<DataCacheItem> = [.originalImageData]
         }
