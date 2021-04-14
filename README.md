@@ -1,6 +1,6 @@
 <br/>
 
-<img src="https://user-images.githubusercontent.com/1567433/106092470-5c360000-60fc-11eb-8a41-28229fbf0512.png">
+<img src="https://user-images.githubusercontent.com/1567433/114792417-57c1d080-9d56-11eb-8035-dc07cfd7557f.png" height="220">
 
 # Powerful Image Loading System
 
