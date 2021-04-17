@@ -21,7 +21,7 @@ Behind Nuke's clear and concise API is an advanced architecture that enables its
 
 Nuke is proudly sponsored by [Stream](https://getstream.io/?utm_source=github&utm_medium=nuke&utm_campaign=sponsorship), the leading provider in enterprise grade [Feed](https://getstream.io/activity-feeds/?utm_source=github&utm_medium=nuke&utm_campaign=sponsorship) & [Chat](https://getstream.io/chat/?utm_source=github&utm_medium=nuke&utm_campaign=sponsorship) APIs. [Try the iOS Chat Tutorial](https://getstream.io/tutorials/ios-chat/?utm_source=github&utm_medium=nuke&utm_campaign=sponsorship).
 
-# Documentation
+## Documentation
 
 Nuke is easy to learn and use thanks to beautiful [**Nuke Docs**](https://kean.blog/nuke/guides/welcome). Make sure to also check out [**Nuke Demo**](https://github.com/kean/NukeDemo).
 
@@ -32,7 +32,7 @@ Nuke is easy to learn and use thanks to beautiful [**Nuke Docs**](https://kean.b
 </a>
 
 <a name="h_plugins"></a>
-# Extensions
+## Extensions
 
 The image pipeline is easy to customize and extend. Check out the following first-class extensions and packages built by the community.
 
@@ -49,12 +49,12 @@ The image pipeline is easy to customize and extend. Check out the following firs
 |[**Xamarin NuGet**](https://github.com/roubachof/Xamarin.Forms.Nuke)| **Community**. Makes it possible to use Nuke from Xamarin|
 
 <a name="h_contribute"></a>
-# Contribution
+## Contribution
 
 [Nuke's roadmap](https://trello.com/b/Us4rHryT/nuke) is managed in Trello and is publicly available.
 
 <a name="h_requirements"></a>
-# Minimum Requirements
+## Minimum Requirements
 
 | Nuke          | Swift           | Xcode           | Platforms                                         |
 |---------------|-----------------|-----------------|---------------------------------------------------|
@@ -63,6 +63,6 @@ The image pipeline is easy to customize and extend. Check out the following firs
 
 See [Installation Guide](https://github.com/kean/Nuke/blob/9.5.0/Documentation/Guides/installation-guide.md#h_requirements) for information about the older versions.
 
-# License
+## License
 
 Nuke is available under the MIT license. See the LICENSE file for more info.
