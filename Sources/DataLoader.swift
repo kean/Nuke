@@ -244,6 +244,6 @@ public protocol DataLoaderObserving {
     func dataLoader(_ loader: DataLoader, urlSession: URLSession, dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent)
 }
 
-protocol _DataLoaderObserving: class {
+protocol _DataLoaderObserving: AnyObject {
     func dataTask(_ dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent)
 }

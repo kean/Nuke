@@ -274,7 +274,7 @@ public struct ImageLoadingOptions {
         /// Fade-in transition (cross-fade in case the image view is already
         /// displaying an image).
         public static func fadeIn(duration: TimeInterval, options: UIView.AnimationOptions = .allowUserInteraction) -> Transition {
-            Transition(style: .fadeIn(parameters:  Parameters(duration: duration, options: options)))
+            Transition(style: .fadeIn(parameters: Parameters(duration: duration, options: options)))
         }
 
         /// Custom transition. Only runs when the image was not found in memory cache.
@@ -300,7 +300,7 @@ public struct ImageLoadingOptions {
 
         /// Fade-in transition.
         public static func fadeIn(duration: TimeInterval) -> Transition {
-            Transition(style: .fadeIn(parameters:  Parameters(duration: duration)))
+            Transition(style: .fadeIn(parameters: Parameters(duration: duration)))
         }
 
         /// Custom transition. Only runs when the image was not found in memory cache.
