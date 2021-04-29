@@ -1,5 +1,11 @@
 # Nuke 9
 
+## Nuke 9.5.1
+
+*Apr 28, 2021*
+
+- Update to Xcode 12.5. Fixes [#454](https://github.com/kean/Nuke/issues/454). 
+
 ## Nuke 9.5.0
 
 *Apr 3, 2021*
