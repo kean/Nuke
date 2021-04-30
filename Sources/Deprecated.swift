@@ -32,6 +32,15 @@ extension PlatformImage {
     }
 }
 
+public extension DataCache {
+    // Deprecated in 9.3.1
+    @available(*, deprecated, message: "Count limit is deprecated and will be removed in the next major release")
+    var countLimit: Int {
+        get { deprecatedCountLimit }
+        set { deprecatedCountLimit = newValue }
+    }
+}
+
 public extension ImageTask {
     // Deprecated in 9.4.0
     @available(*, deprecated, message: "Please use the closure type directly")
