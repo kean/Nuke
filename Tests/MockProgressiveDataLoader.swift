@@ -61,4 +61,8 @@ final class MockProgressiveDataLoader: DataLoading {
             }
         }
     }
+
+    func removeData(for request: URLRequest) {
+        
+    }
 }

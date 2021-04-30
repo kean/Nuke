@@ -55,6 +55,10 @@ class MockDataLoader: DataLoading {
 
         return task
     }
+
+    func removeData(for request: URLRequest) {
+        
+    }
 }
 
 // MARK: - Result

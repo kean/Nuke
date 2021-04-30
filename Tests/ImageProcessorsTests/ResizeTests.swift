@@ -288,12 +288,6 @@ class ImageProcessorsResizeTests: XCTestCase {
         _ = ImageProcessors.Resize(width: 10, upscale: true)
         _ = ImageProcessors.Resize(width: 10, unit: .pixels, upscale: true)
     }
-
-    @available(*, deprecated, message: "Deprecated")
-    func testDeprecatedInitializer() {
-        _ = ImageProcessors.Resize(height: 10, unit: .points, crop: true, upscale: true)
-        _ = ImageProcessors.Resize(width: 10, unit: .points, crop: true, upscale: true)
-    }
 }
 
 class CoreGraphicsExtensionsTests: XCTestCase {
