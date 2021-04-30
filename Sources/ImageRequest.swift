@@ -71,6 +71,9 @@ public struct ImageRequest: CustomStringConvertible {
         /// If you initialize the request with `URLRequest`, make sure to provide
         /// the correct policy in the request too.
         case reloadIgnoringCachedData
+
+        /// Use existing cache data, regardless or age or expiration date, and fail if no cached data is available.
+        case returnCacheDataDontLoad
     }
 
     public var cachePolicy: CachePolicy {
