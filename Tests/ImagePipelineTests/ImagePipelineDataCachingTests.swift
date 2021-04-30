@@ -119,6 +119,53 @@ class ImagePipelineDataCachingTests: XCTestCase {
         // Then
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
     }
+
+    func testLoadFromCacheOnlyDataCache() {
+        // Given
+        dataCache.store[Test.url.absoluteString] = Test.data
+
+        var request = Test.request
+        request.cachePolicy = .returnCacheDataDontLoad
+
+        // When
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // Then
+        XCTAssertEqual(dataLoader.createdTaskCount, 0)
+    }
+
+    func testLoadFromCacheOnlyMemoryCache() {
+        // Given
+        let imageCache = MockImageCache()
+        imageCache[Test.request] = ImageContainer(image: Test.image)
+        pipeline = pipeline.reconfigured {
+            $0.imageCache = imageCache
+        }
+
+        var request = Test.request
+        request.cachePolicy = .returnCacheDataDontLoad
+
+        // When
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // Then
+        XCTAssertEqual(dataLoader.createdTaskCount, 0)
+    }
+
+    func testLoadFromCacheOnlyFailsIfNoMemoryCache() {
+        // Given no cache
+        var request = Test.request
+        request.cachePolicy = .returnCacheDataDontLoad
+
+        // When
+        expect(pipeline).toFailRequest(request)
+        wait()
+
+        // Then
+        XCTAssertEqual(dataLoader.createdTaskCount, 0)
+    }
 }
 
 class ImagePipelineProcessedDataCachingTests: XCTestCase {
