@@ -37,6 +37,14 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
     }
 
     private func loadData() {
+        guard request.cachePolicy != .returnCacheDataDontLoad else {
+            // Same error that URLSession produces when .returnCacheDataDontLoad is specified and the
+            // data is no found in the cache.
+            let error = NSError(domain: URLError.errorDomain, code: URLError.resourceUnavailable.rawValue, userInfo: nil)
+            self.send(error: .dataLoadingFailed(error))
+            return
+        }
+
         if let rateLimiter = pipeline.rateLimiter {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
             // executed asynchronously also on this same queue.
