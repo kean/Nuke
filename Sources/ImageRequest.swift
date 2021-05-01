@@ -72,7 +72,7 @@ public struct ImageRequest: CustomStringConvertible {
         /// the correct policy in the request too.
         case reloadIgnoringCachedData
 
-        /// Use existing cache data, regardless or age or expiration date, and fail if no cached data is available.
+        /// Use existing cache data and fail if no cached data is available.
         case returnCacheDataDontLoad
     }
 
