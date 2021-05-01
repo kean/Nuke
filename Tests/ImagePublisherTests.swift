@@ -60,6 +60,31 @@ class ImagePublisherTests: XCTestCase {
         })
         wait()
     }
+
+    func testSyncCacheLookup() {
+        // GIVEN
+        let cache = MockImageCache()
+        cache[Test.request] = ImageContainer(image: Test.image)
+        pipeline = pipeline.reconfigured {
+            $0.imageCache = cache
+        }
+
+        // WHEN
+        var image: PlatformImage?
+        cancellable = pipeline.imagePublisher(with: Test.url).sink(receiveCompletion: { result in
+            switch result {
+            case .finished:
+                break // Expected result
+            case .failure:
+                XCTFail()
+            }
+        }, receiveValue: {
+            image = $0.image
+        })
+
+        // THEN image returned synchronously
+        XCTAssertNotNil(image)
+    }
 }
 
 /// We have to mock it because there is no way to construct native `URLError`
