@@ -155,29 +155,9 @@ public final class ImageResponse {
     public var image: PlatformImage { container.image }
     public let urlResponse: URLResponse?
 
-    // the response is only nil when new disk cache is enabled (it only stores
-    // data for now, but this might change in the future).
-    @available(*, deprecated, message: "Please use `container.userInfo[ImageDecoders.Default.scanNumberKey]` instead.") // Deprecated in Nuke 9.0
-    public var scanNumber: Int? {
-        if let number = _scanNumber {
-            return number // Deprecated version
-        }
-        return container.userInfo[ImageDecoders.Default.scanNumberKey] as? Int
-    }
-
-    private let _scanNumber: Int?
-
-    @available(*, deprecated, message: "Please use `ImageResponse.init(container:urlResponse:)` instead.") // Deprecated in Nuke 9.0
-    public init(image: PlatformImage, urlResponse: URLResponse? = nil, scanNumber: Int? = nil) {
-        self.container = ImageContainer(image: image)
-        self.urlResponse = urlResponse
-        self._scanNumber = scanNumber
-    }
-
     public init(container: ImageContainer, urlResponse: URLResponse? = nil) {
         self.container = container
         self.urlResponse = urlResponse
-        self._scanNumber = nil
     }
 
     func map(_ transformation: (ImageContainer) -> ImageContainer?) -> ImageResponse? {
