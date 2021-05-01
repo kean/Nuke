@@ -447,6 +447,16 @@ public extension ImagePipeline {
             case .processingFailed: return "Failed to process the image"
             }
         }
+
+        /// Returns underlying data loading error.
+        public var dataLoadingError: Swift.Error? {
+            switch self {
+            case .dataLoadingFailed(let error):
+                return error
+            default:
+                return nil
+            }
+        }
     }
 }
 
