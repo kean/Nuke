@@ -85,6 +85,18 @@ class ImagePublisherTests: XCTestCase {
         // THEN image returned synchronously
         XCTAssertNotNil(image)
     }
+
+    func testCancellation() {
+        dataLoader.queue.isSuspended = true
+
+        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
+        let cancellable = pipeline.imagePublisher(with: Test.url).sink(receiveCompletion: { _ in }, receiveValue: { _ in })
+        wait() // Wait till operation is created
+
+        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
+        cancellable.cancel()
+        wait()
+    }
 }
 
 /// We have to mock it because there is no way to construct native `URLError`
