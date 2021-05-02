@@ -106,11 +106,13 @@ public extension ImagePipeline {
         cachedImage(for: ImageRequest(url: url))
     }
 
+    // Deprecated in 10.0.0
     @available(*, deprecated, message: "Use pipeline.cache[request] instead")
     func cachedImage(for request: ImageRequest) -> ImageContainer? {
         cache.cachedImageFromMemoryCache(for: request)
     }
 
+    // Deprecated in 10.0.0
     @available(*, deprecated, message: "If needed, use pipeline.cache.makeDiskCacheKey(for:) instead. For original image data, remove the processors from the request. In general, there should be no need to create the keys manually anymore.")
     func cacheKey(for request: ImageRequest, item: DataCacheItem) -> String {
         switch item {
