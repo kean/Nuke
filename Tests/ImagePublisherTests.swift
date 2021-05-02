@@ -69,7 +69,7 @@ class ImagePublisherTests: XCTestCase {
 
         // WHEN
         let publisher = pipeline.imagePublisher(with: Test.url)
-            .retry(count: 2, delay: .milliseconds(5))
+            .retry(count: 3, delay: .milliseconds(5))
 
         let expectation = self.expectation(description: "RequestFailed")
         cancellable = publisher.sink(receiveCompletion: { result in
