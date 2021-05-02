@@ -6,8 +6,8 @@
 
 - Add `ImageRequest.CachePolicy.returnCacheDataDontLoad`, [#456](https://github.com/kean/Nuke/pull/456)
 - Add `ImagePublisher` (Combine extensions)
-- Add convenience `dataLoadingError` extension to `ImagePipeline.Error`
-- Remove APIs deprecated in version Nuke 9.0-9.1
+- Add a convenience `dataLoadingError` property to `ImagePipeline.Error`
+- Remove APIs deprecated in versions 9.0-9.1
 - Add a note on [`waitsForConnectivity`](https://developer.apple.com/documentation/foundation/urlsessionconfiguration/2908812-waitsforconnectivity) in [Nuke Docs](https://kean.blog/nuke/guides/performance#auto-retry)
 - Add ["Low Data Mode"](https://kean.blog/nuke/guides/combine#low-data-mode) in Nuke Docs
 
