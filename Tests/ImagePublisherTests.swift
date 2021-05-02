@@ -22,6 +22,8 @@ class ImagePublisherTests: XCTestCase {
         }
     }
 
+    // MARK: Common Use Cases
+
     func testLowDataMode() {
         // GIVEN
         let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
@@ -39,7 +41,7 @@ class ImagePublisherTests: XCTestCase {
         let request = ImageRequest(urlRequest: urlRequest)
 
         // WHEN
-        let image = pipeline.imagePublisher(with: request).tryCatch { error -> ImagePublisher in
+        let publisher = pipeline.imagePublisher(with: request).tryCatch { error -> ImagePublisher in
             guard (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
                 throw error
             }
@@ -47,7 +49,7 @@ class ImagePublisherTests: XCTestCase {
         }
 
         let expectation = self.expectation(description: "LowDataImageFetched")
-        cancellable = image.sink(receiveCompletion: { result in
+        cancellable = publisher.sink(receiveCompletion: { result in
             switch result {
             case .finished:
                 break // Expected result
@@ -60,6 +62,33 @@ class ImagePublisherTests: XCTestCase {
         })
         wait()
     }
+
+    func testRetry() {
+        // GIVEN
+        dataLoader.results[Test.url] = .failure(URLError(networkUnavailableReason: nil) as NSError)
+
+        // WHEN
+        let publisher = pipeline.imagePublisher(with: Test.url)
+            .retry(count: 2, delay: .milliseconds(5))
+
+        let expectation = self.expectation(description: "RequestFailed")
+        cancellable = publisher.sink(receiveCompletion: { result in
+            switch result {
+            case .finished:
+                XCTFail()
+            case .failure:
+                expectation.fulfill()
+            }
+        }, receiveValue: { _ in
+            XCTFail()
+        })
+        wait()
+
+        // THEN
+        XCTAssertEqual(dataLoader.createdTaskCount, 3)
+    }
+
+    // MARK: Basics
 
     func testSyncCacheLookup() {
         // GIVEN
@@ -96,6 +125,20 @@ class ImagePublisherTests: XCTestCase {
         expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
         cancellable.cancel()
         wait()
+    }
+}
+
+@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
+private extension Publisher {
+    func retry(count: Int, delay: DispatchTimeInterval) -> AnyPublisher<Output, Failure> {
+        self.catch { error -> AnyPublisher<Output, Failure> in
+            Just(())
+                .setFailureType(to: Failure.self)
+                .delay(for: .init(delay), scheduler: DispatchQueue.global())
+                .flatMap { _ in self }
+                .retry(Swift.max(0, count - 1))
+                .eraseToAnyPublisher()
+        }.eraseToAnyPublisher()
     }
 }
 
