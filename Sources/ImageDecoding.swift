@@ -335,7 +335,7 @@ public struct ImageType: ExpressibleByStringLiteral, Hashable {
     public static let png: ImageType = "public.png"
     public static let jpeg: ImageType = "public.jpeg"
     public static let gif: ImageType = "com.compuserve.gif"
-    /// HEIF (High Effeciency Image Format) by Apple.
+    /// HEIF (High Efficiency Image Format) by Apple.
     public static let heic: ImageType = "public.heic"
 
     /// WebP
