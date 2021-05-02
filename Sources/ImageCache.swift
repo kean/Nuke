@@ -14,17 +14,40 @@ import Cocoa
 /// The implementation must be thread safe.
 public protocol ImageCaching: AnyObject {
     /// Access the image cached for the given request.
-    subscript(key: AnyHashable) -> ImageContainer? { get set }
+    subscript(key: ImageCacheKey) -> ImageContainer? { get set }
 }
 
+/// An opaque container that acts as a cache key.
+///
+/// In general, you don't construct it directly, and use `ImagePipeline` or `ImagePipeline.Cache` APIs.
+public struct ImageCacheKey: Hashable {
+    let key: Inner
+
+    /// This is faster than using AnyHashable (and it shows up on performance tests).
+    enum Inner: Hashable {
+        case custom(AnyHashable)
+        case `default`(ImageRequest.CacheKey)
+    }
+    // This primarily exists as a performance optimization (faster than AnyHashable)
+
+    public init(key: AnyHashable) {
+        self.key = .custom(key)
+    }
+
+    init(request: ImageRequest) {
+        self.key = .default(request.makeCacheKeyForFinalImage())
+    }
+}
+
+#warning("deprecate these?")
 public extension ImageCaching {
     /// A convenience API for getting an image for the given request.
     ///
     /// - warning: If you provide a custom key using `ImagePipelineDelegate`, make
     /// sure to use it instead.
     subscript(request: ImageRequest) -> ImageContainer? {
-        get { self[request.makeCacheKeyForFinalImage()] }
-        set { self[request.makeCacheKeyForFinalImage()] = newValue }
+        get { self[ImageCacheKey(request: request)] }
+        set { self[ImageCacheKey(request: request)] = newValue }
     }
 
     subscript(url: URL) -> ImageContainer? {
@@ -44,7 +67,7 @@ public extension ImageCaching {
 /// memory warning. It also automatically removes *most* stored elements
 /// when the app enters the background.
 public final class ImageCache: ImageCaching {
-    private let impl: Cache<Key, ImageContainer>
+    private let impl: Cache<ImageCacheKey, ImageContainer>
 
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int {
@@ -105,14 +128,7 @@ public final class ImageCache: ImageCaching {
         return limit > UInt64(Int.max) ? Int.max : Int(limit)
     }
 
-    /// Returns the `ImageResponse` stored in the cache with the given request.
-    public subscript(key: AnyHashable) -> ImageContainer? {
-        get { self[Key.custom(key)] }
-        set { self[Key.custom(key)] = newValue }
-    }
-
-    /// This version exists purely as a performance optimization to avoid `AnyHashable` overhead.
-    subscript(key: Key) -> ImageContainer? {
+    public subscript(key: ImageCacheKey) -> ImageContainer? {
         get {
             return impl.value(forKey: key)
         }
@@ -157,12 +173,6 @@ public final class ImageCache: ImageCaching {
             return 1 + dataCost
         }
         return cgImage.bytesPerRow * cgImage.height + dataCost
-    }
-
-    /// This is faster than using AnyHashable (and it shows up on performance tests).
-    enum Key: Hashable {
-        case custom(AnyHashable)
-        case `default`(ImageRequest.CacheKey)
     }
 }
 

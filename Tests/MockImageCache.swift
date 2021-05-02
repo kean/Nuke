@@ -12,7 +12,7 @@ class MockImageCache: ImageCaching {
     
     init() {}
 
-    subscript(key: AnyHashable) -> ImageContainer? {
+    subscript(key: ImageCacheKey) -> ImageContainer? {
         get {
             return queue.sync {
                 enabled ? images[key] : nil
