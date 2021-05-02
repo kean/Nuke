@@ -23,12 +23,11 @@ public protocol ImageCaching: AnyObject {
 public struct ImageCacheKey: Hashable {
     let key: Inner
 
-    /// This is faster than using AnyHashable (and it shows up on performance tests).
+    // This is faster than using AnyHashable (and it shows in performance tests).
     enum Inner: Hashable {
         case custom(AnyHashable)
         case `default`(ImageRequest.CacheKey)
     }
-    // This primarily exists as a performance optimization (faster than AnyHashable)
 
     public init(key: AnyHashable) {
         self.key = .custom(key)
