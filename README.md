@@ -25,7 +25,7 @@ Nuke is proudly sponsored by [Stream](https://getstream.io/?utm_source=github&ut
 
 Nuke is easy to learn and use thanks to beautiful [**Nuke Docs**](https://kean.blog/nuke/guides/welcome). Make sure to also check out [**Nuke Demo**](https://github.com/kean/NukeDemo).
 
-> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/9.5.0/Documentation/Migrations).
+> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/9.6.0/Documentation/Migrations).
 
 <a href="https://kean.blog/nuke/guides/welcome">
 <img src="https://user-images.githubusercontent.com/1567433/114312077-59259b80-9abf-11eb-93f9-29fb87eb025a.png">
@@ -61,7 +61,7 @@ The image pipeline is easy to customize and extend. Check out the following firs
 | Nuke 9.0      | Swift 5.1       | Xcode 11.0      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
 | Nuke 8.0      | Swift 5.0       | Xcode 10.2      | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
 
-See [Installation Guide](https://github.com/kean/Nuke/blob/9.5.0/Documentation/Guides/installation-guide.md#h_requirements) for information about the older versions.
+See [Installation Guide](https://github.com/kean/Nuke/blob/9.6.0/Documentation/Guides/installation-guide.md#h_requirements) for information about the older versions.
 
 ## License
 

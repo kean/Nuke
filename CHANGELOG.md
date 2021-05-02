@@ -1,5 +1,15 @@
 # Nuke 9
 
+## Nuke 9.6.0
+
+*May 2, 2021*
+
+- Add `ImageRequest.CachePolicy.returnCacheDataDontLoad`, [#456](https://github.com/kean/Nuke/pull/456)
+- Add `ImagePublisher` (Combine extensions)
+- Add convenience `dataLoadingError` extension to `ImagePipeline.Error`
+- Remove APIs deprecated in version Nuke 9.0-9.2
+- Add a note on [`waitsForConnectivity`](https://developer.apple.com/documentation/foundation/urlsessionconfiguration/2908812-waitsforconnectivity) in [Nuke Docs](https://kean.blog/nuke/guides/performance#auto-retry)
+
 ## Nuke 9.5.1
 
 *Apr 28, 2021*
