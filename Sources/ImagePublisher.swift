@@ -81,7 +81,7 @@ private final class ImageSubscription: Subscription {
     var task: ImageTask?
 
     func request(_ demand: Subscribers.Demand) {
-        // Ignore the demand
+        // The `loadImage()` call should probably ideally happen here instead
     }
 
     func cancel() {
