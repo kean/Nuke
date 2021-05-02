@@ -44,7 +44,6 @@ public extension DataLoading {
     func removeData(for request: URLRequest) {}
 }
 
-
 public extension DataCache {
     // Deprecated in 9.3.1
     @available(*, deprecated, message: "Count limit is deprecated and will be removed in the next major release")

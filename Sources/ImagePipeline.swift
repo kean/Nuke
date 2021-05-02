@@ -18,6 +18,7 @@ public /* final */ class ImagePipeline {
     public let configuration: Configuration
     public var observer: ImagePipelineObserving?
     private(set) var dataLoader: DataLoader?
+    private var imageCache: ImageCache?
 
     private var tasks = [ImageTask: TaskSubscription]()
 
@@ -68,6 +69,9 @@ public /* final */ class ImagePipeline {
         if let dataLoader = configuration.dataLoader as? DataLoader {
             dataLoader.attach(pipeline: self)
             self.dataLoader = dataLoader
+        }
+        if let imageCache = configuration.imageCache as? ImageCache {
+            self.imageCache = imageCache
         }
 
         ResumableDataStorage.shared.register(self)
@@ -223,9 +227,13 @@ public extension ImagePipeline {
     /// memory cache reads.
     func cachedImage(for request: ImageRequest) -> ImageContainer? {
         guard request.options.memoryCacheOptions.isReadAllowed && request.cachePolicy != .reloadIgnoringCachedData else { return nil }
-
         let request = inheritOptions(request)
-        return configuration.imageCache?[request]
+        let key = request.makeCacheKeyForFinalImage()
+        if let imageCache = self.imageCache { // Fast path for a custom cache
+            return imageCache[ImageCache.Key.default(key)]
+        } else {
+            return configuration.imageCache?[key]
+        }
     }
 
     internal func storeResponse(_ image: ImageContainer, for request: ImageRequest) {
