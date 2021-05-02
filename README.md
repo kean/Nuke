@@ -39,7 +39,6 @@ The image pipeline is easy to customize and extend. Check out the following firs
 |Name|Description|
 |--|--|
 |[**FetchImage**](https://github.com/kean/FetchImage)|SwiftUI integration|
-|[**ImagePublisher**](https://github.com/kean/ImagePublisher)|Combine publishers for Nuke|
 |[**ImageTaskBuilder**](https://github.com/kean/ImageTaskBuilder)|A fun and convenient way to use Nuke|
 |[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire)|
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples|
