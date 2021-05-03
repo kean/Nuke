@@ -57,16 +57,23 @@ public extension ImagePipeline {
             }
         }
 
-        func decodeImageData(_ data: Data, for request: ImageRequest) -> ImageContainer? {
-            let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
-            guard let decoder = pipeline.configuration.makeImageDecoder(context) else {
-                return nil
+        /// Stores the image in the memory cache. Add `.disk` as a source to also
+        /// store it in the disk cache (image will be encoded).
+        ///
+        /// - note: Respects request cache options.
+        ///
+        /// - parameter request: The request. Make sure to remove the processors
+        /// if you want to retrieve an original image (if it's stored).
+        /// - parameter sources: `[.memory]`, by default.
+        public func storeCachedImage(_ image: ImageContainer, for request: ImageRequest, sources: Set<ImageCacheType> = [.memory]) {
+            if sources.contains(.memory) {
+                storeCachedImageInMemoryCache(image, for: request)
             }
-            return decoder.decode(data, urlResponse: nil, isCompleted: true)?.container
-        }
-
-        public func storeCachedImage(_ container: ImageContainer, for request: ImageRequest, sources: Set<ImageCacheType> = [.memory, .disk]) {
-            fatalError("Not implemented")
+            if sources.contains(.disk) {
+                if let data = encodeImage(image, for: request) {
+                    storeCachedData(data, for: request)
+                }
+            }
         }
 
         func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) {
@@ -98,7 +105,11 @@ public extension ImagePipeline {
         }
 
         public func storeCachedData(_ data: Data, for request: ImageRequest) {
-            fatalError("Not implemented")
+            guard let dataCache = pipeline.configuration.dataCache else {
+                return
+            }
+            let key = makeDiskCacheKey(for: request)
+            dataCache.storeData(data, for: key)
         }
 
         public func removeCachedData(request: ImageRequest) {
@@ -119,6 +130,22 @@ public extension ImagePipeline {
 
         public func removeAll(sources: Set<ImageCacheType> = [.memory, .disk]) {
             fatalError("Not implemented")
+        }
+
+        // MARK: Encode/Decode (Private)
+
+        private func decodeImageData(_ data: Data, for request: ImageRequest) -> ImageContainer? {
+            let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
+            guard let decoder = pipeline.configuration.makeImageDecoder(context) else {
+                return nil
+            }
+            return decoder.decode(data, urlResponse: nil, isCompleted: true)?.container
+        }
+
+        private func encodeImage(_ image: ImageContainer, for request: ImageRequest) -> Data? {
+            let context = ImageEncodingContext(request: request, image: image.image, urlResponse: nil)
+            let encoder = pipeline.configuration.makeImageEncoder(context)
+            return encoder.encode(image, context: context)
         }
     }
 }
