@@ -9,6 +9,7 @@ public extension ImagePipeline {
     struct Cache {
         let pipeline: ImagePipeline
 
+        #warning("do something with this non-mutating subscript")
         /// A convenience API that returns processed image from the memory cache
         /// for the given request.
         public subscript(request: ImageRequestConvertible) -> PlatformImage? {

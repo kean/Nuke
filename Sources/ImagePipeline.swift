@@ -221,13 +221,13 @@ public /* final */ class ImagePipeline {
 
 // MARK: - Cache
 
-#warning("deprecate these")
+#warning("reimplement this")
 public extension ImagePipeline {
     /// Removes cached image from all cache layers.
     func removeCachedImage(for request: ImageRequest) {
         let request = inheritOptions(request)
 
-        configuration.imageCache?[request] = nil
+        cache.removeCachedImage(for: request)
 
         if let dataCache = configuration.dataCache {
             dataCache.removeData(for: request.makeCacheKeyForOriginalImageData())

@@ -126,7 +126,7 @@ public final class ImagePrefetcher {
             return // Already started prefetching
         }
 
-        guard pipeline.configuration.imageCache?[request] == nil else {
+        guard pipeline.cache[request] == nil else {
             return // The image is already in memory cache
         }
 
