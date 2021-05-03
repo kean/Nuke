@@ -242,3 +242,19 @@ extension ImageTaskEvent {
         }
     }
 }
+
+// MARK: - Helpers
+
+extension ImagePipeline.Configuration {
+    /// Inherits some of the pipeline configuration options like processors.
+    func inheritOptions(_ request: ImageRequest) -> ImageRequest {
+        // Do not manipulate is the request has some processors already.
+        guard request.processors.isEmpty, !processors.isEmpty else {
+            return request
+        }
+
+        var request = request
+        request.processors = processors
+        return request
+    }
+}

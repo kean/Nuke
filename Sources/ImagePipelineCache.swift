@@ -6,10 +6,17 @@ import Foundation
 
 public extension ImagePipeline {
     /// Thread-safe.
-    struct Cache {
-        let pipeline: ImagePipeline
+    final class Cache {
+        private let configuration: ImagePipeline.Configuration
+        private(set) var imageCache: ImageCache?
 
-        #warning("do something with this non-mutating subscript")
+        init(configuration: ImagePipeline.Configuration) {
+            self.configuration = configuration
+            if let imageCache = configuration.imageCache as? ImageCache {
+                self.imageCache = imageCache
+            }
+        }
+
         /// A convenience API that returns processed image from the memory cache
         /// for the given request.
         public subscript(request: ImageRequestConvertible) -> PlatformImage? {
@@ -54,12 +61,11 @@ public extension ImagePipeline {
             guard request.cachePolicy != .reloadIgnoringCachedData && request.options.memoryCacheOptions.isReadAllowed else {
                 return nil
             }
-            let request = pipeline.inheritOptions(request)
             let key = makeMemoryCacheKey(for: request)
-            if let imageCache = pipeline.imageCache {
+            if let imageCache = self.imageCache {
                 return imageCache[key] // Fast path for a default cache (no protocol call)
             } else {
-                return pipeline.configuration.imageCache?[key]
+                return configuration.imageCache?[key]
             }
         }
 
@@ -75,6 +81,7 @@ public extension ImagePipeline {
         /// if you want to retrieve an original image (if it's stored).
         /// - parameter caches: `[.memory]`, by default.
         public func storeCachedImage(_ image: ImageContainer, for request: ImageRequest, caches: Caches = [.memory]) {
+            let request = configuration.inheritOptions(request)
             if caches.contains(.memory) {
                 storeCachedImageInMemoryCache(image, for: request)
             }
@@ -89,11 +96,11 @@ public extension ImagePipeline {
             guard request.options.memoryCacheOptions.isWriteAllowed else {
                 return
             }
-            guard !image.isPreview || pipeline.configuration.isStoringPreviewsInMemoryCache else {
+            guard !image.isPreview || configuration.isStoringPreviewsInMemoryCache else {
                 return
             }
             let key = makeMemoryCacheKey(for: request)
-            pipeline.configuration.imageCache?[key] = image
+            configuration.imageCache?[key] = image
         }
 
         public func removeCachedImage(for request: ImageRequest, caches: Caches = [.memory]) {
@@ -107,7 +114,7 @@ public extension ImagePipeline {
 
         func removeCachedImageFromMemoryCache(for request: ImageRequest) {
             let key = makeMemoryCacheKey(for: request)
-            pipeline.configuration.imageCache?[key] = nil
+            configuration.imageCache?[key] = nil
         }
 
         // MARK: Cached Data
@@ -116,7 +123,7 @@ public extension ImagePipeline {
             guard request.cachePolicy != .reloadIgnoringCachedData else {
                 return nil
             }
-            guard let dataCache = pipeline.configuration.dataCache else {
+            guard let dataCache = configuration.dataCache else {
                 return nil
             }
             let key = makeDiskCacheKey(for: request)
@@ -124,7 +131,7 @@ public extension ImagePipeline {
         }
 
         public func storeCachedData(_ data: Data, for request: ImageRequest) {
-            guard let dataCache = pipeline.configuration.dataCache else {
+            guard let dataCache = configuration.dataCache else {
                 return
             }
             let key = makeDiskCacheKey(for: request)
@@ -132,7 +139,7 @@ public extension ImagePipeline {
         }
 
         public func removeCachedData(request: ImageRequest) {
-            guard let dataCache = pipeline.configuration.dataCache else {
+            guard let dataCache = configuration.dataCache else {
                 return
             }
             let key = makeDiskCacheKey(for: request)
@@ -153,10 +160,10 @@ public extension ImagePipeline {
 
         public func removeAll(caches: Caches = [.all]) {
             if caches.contains(.memory) {
-                pipeline.configuration.imageCache?.removeAll()
+                configuration.imageCache?.removeAll()
             }
             if caches.contains(.disk) {
-                pipeline.configuration.dataCache?.removeAll()
+                configuration.dataCache?.removeAll()
             }
         }
 
@@ -164,7 +171,7 @@ public extension ImagePipeline {
 
         private func decodeImageData(_ data: Data, for request: ImageRequest) -> ImageContainer? {
             let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
-            guard let decoder = pipeline.configuration.makeImageDecoder(context) else {
+            guard let decoder = configuration.makeImageDecoder(context) else {
                 return nil
             }
             return decoder.decode(data, urlResponse: nil, isCompleted: true)?.container
@@ -172,7 +179,7 @@ public extension ImagePipeline {
 
         private func encodeImage(_ image: ImageContainer, for request: ImageRequest) -> Data? {
             let context = ImageEncodingContext(request: request, image: image.image, urlResponse: nil)
-            let encoder = pipeline.configuration.makeImageEncoder(context)
+            let encoder = configuration.makeImageEncoder(context)
             return encoder.encode(image, context: context)
         }
 

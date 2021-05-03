@@ -16,9 +16,9 @@ import Foundation
 /// `ImagePipeline` is fully thread-safe.
 public /* final */ class ImagePipeline {
     public let configuration: Configuration
+    public let cache: ImagePipeline.Cache
     public var observer: ImagePipelineObserving?
     private(set) var dataLoader: DataLoader?
-    private(set) var imageCache: ImageCache?
 
     private var tasks = [ImageTask: TaskSubscription]()
 
@@ -40,10 +40,6 @@ public /* final */ class ImagePipeline {
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
 
-    public var cache: ImagePipeline.Cache {
-        ImagePipeline.Cache(pipeline: self)
-    }
-
     deinit {
         _nextTaskId.deallocate()
 
@@ -59,6 +55,7 @@ public /* final */ class ImagePipeline {
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
+        self.cache = ImagePipeline.Cache(configuration: configuration)
 
         let isDeduplicationEnabled = configuration.isDeduplicationEnabled
         self.decompressedImageTasks = TaskPool(isDeduplicationEnabled)
@@ -73,9 +70,6 @@ public /* final */ class ImagePipeline {
         if let dataLoader = configuration.dataLoader as? DataLoader {
             dataLoader.attach(pipeline: self)
             self.dataLoader = dataLoader
-        }
-        if let imageCache = configuration.imageCache as? ImageCache {
-            self.imageCache = imageCache
         }
 
         ResumableDataStorage.shared.register(self)
@@ -132,7 +126,7 @@ public /* final */ class ImagePipeline {
                    queue callbackQueue: DispatchQueue?,
                    progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)?,
                    completion: ((_ result: Result<ImageResponse, Error>) -> Void)?) -> ImageTask {
-        let request = inheritOptions(request)
+        let request = configuration.inheritOptions(request)
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
         task.pipeline = self
         if isConfined {
@@ -225,7 +219,7 @@ public /* final */ class ImagePipeline {
 public extension ImagePipeline {
     /// Removes cached image from all cache layers.
     func removeCachedImage(for request: ImageRequest) {
-        let request = inheritOptions(request)
+        let request = configuration.inheritOptions(request)
 
         cache.removeCachedImage(for: request)
 
@@ -360,16 +354,6 @@ extension ImagePipeline {
 // MARK: - Misc (Private)
 
 extension ImagePipeline {
-    /// Inherits some of the pipeline configuration options like processors.
-    func inheritOptions(_ request: ImageRequest) -> ImageRequest {
-        // Do not manipulate is the request has some processors already.
-        guard request.processors.isEmpty, !configuration.processors.isEmpty else { return request }
-
-        var request = request
-        request.processors = configuration.processors
-        return request
-    }
-
     func send(_ event: ImageTaskEvent, _ task: ImageTask) {
         observer?.pipeline(self, imageTask: task, didReceiveEvent: event)
     }
