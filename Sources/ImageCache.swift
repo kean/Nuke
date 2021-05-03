@@ -14,10 +14,41 @@ import Cocoa
 /// The implementation must be thread safe.
 public protocol ImageCaching: AnyObject {
     /// Access the image cached for the given request.
-    subscript(request: ImageRequest) -> ImageContainer? { get set }
+    subscript(key: ImageCacheKey) -> ImageContainer? { get set }
 }
 
+/// An opaque container that acts as a cache key.
+///
+/// In general, you don't construct it directly, and use `ImagePipeline` or `ImagePipeline.Cache` APIs.
+public struct ImageCacheKey: Hashable {
+    let key: Inner
+
+    // This is faster than using AnyHashable (and it shows in performance tests).
+    enum Inner: Hashable {
+        case custom(AnyHashable)
+        case `default`(ImageRequest.CacheKey)
+    }
+
+    public init(key: AnyHashable) {
+        self.key = .custom(key)
+    }
+
+    init(request: ImageRequest) {
+        self.key = .default(request.makeCacheKeyForFinalImage())
+    }
+}
+
+#warning("deprecate these?")
 public extension ImageCaching {
+    /// A convenience API for getting an image for the given request.
+    ///
+    /// - warning: If you provide a custom key using `ImagePipelineDelegate`, make
+    /// sure to use it instead.
+    subscript(request: ImageRequest) -> ImageContainer? {
+        get { self[ImageCacheKey(request: request)] }
+        set { self[ImageCacheKey(request: request)] = newValue }
+    }
+
     subscript(url: URL) -> ImageContainer? {
         get { self[ImageRequest(url: url)] }
         set { self[ImageRequest(url: url)] = newValue }
@@ -35,7 +66,7 @@ public extension ImageCaching {
 /// memory warning. It also automatically removes *most* stored elements
 /// when the app enters the background.
 public final class ImageCache: ImageCaching {
-    private let impl: Cache<ImageRequest.CacheKey, ImageContainer>
+    private let impl: Cache<ImageCacheKey, ImageContainer>
 
     /// The maximum total cost that the cache can hold.
     public var costLimit: Int {
@@ -96,14 +127,11 @@ public final class ImageCache: ImageCaching {
         return limit > UInt64(Int.max) ? Int.max : Int(limit)
     }
 
-    /// Returns the `ImageResponse` stored in the cache with the given request.
-    public subscript(request: ImageRequest) -> ImageContainer? {
+    public subscript(key: ImageCacheKey) -> ImageContainer? {
         get {
-            let key = request.makeCacheKeyForFinalImage()
             return impl.value(forKey: key)
         }
         set {
-            let key = request.makeCacheKeyForFinalImage()
             if let image = newValue {
                 impl.set(image, forKey: key, cost: self.cost(for: image))
             } else {

@@ -18,6 +18,7 @@ public /* final */ class ImagePipeline {
     public let configuration: Configuration
     public var observer: ImagePipelineObserving?
     private(set) var dataLoader: DataLoader?
+    private(set) var imageCache: ImageCache?
 
     private var tasks = [ImageTask: TaskSubscription]()
 
@@ -38,6 +39,10 @@ public /* final */ class ImagePipeline {
 
     /// Shared image pipeline.
     public static var shared = ImagePipeline()
+
+    public var cache: ImagePipeline.Cache {
+        ImagePipeline.Cache(pipeline: self)
+    }
 
     deinit {
         _nextTaskId.deallocate()
@@ -68,6 +73,9 @@ public /* final */ class ImagePipeline {
         if let dataLoader = configuration.dataLoader as? DataLoader {
             dataLoader.attach(pipeline: self)
             self.dataLoader = dataLoader
+        }
+        if let imageCache = configuration.imageCache as? ImageCache {
+            self.imageCache = imageCache
         }
 
         ResumableDataStorage.shared.register(self)
@@ -213,33 +221,12 @@ public /* final */ class ImagePipeline {
 
 // MARK: - Cache
 
+#warning("deprecate these")
 public extension ImagePipeline {
-    /// Returns a cached response from the memory cache.
-    func cachedImage(for url: URL) -> ImageContainer? {
-        cachedImage(for: ImageRequest(url: url))
-    }
-
-    /// Returns a cached response from the memory cache. Returns `nil` if the request disables
-    /// memory cache reads.
-    func cachedImage(for request: ImageRequest) -> ImageContainer? {
-        guard request.options.memoryCacheOptions.isReadAllowed && request.cachePolicy != .reloadIgnoringCachedData else { return nil }
-
-        let request = inheritOptions(request)
-        return configuration.imageCache?[request]
-    }
-
     internal func storeResponse(_ image: ImageContainer, for request: ImageRequest) {
         guard request.options.memoryCacheOptions.isWriteAllowed,
             !image.isPreview || configuration.isStoringPreviewsInMemoryCache else { return }
         configuration.imageCache?[request] = image
-    }
-
-    /// Returns a key used for disk cache (see `DataCaching`).
-    func cacheKey(for request: ImageRequest, item: DataCacheItem) -> String {
-        switch item {
-        case .originalImageData: return request.makeCacheKeyForOriginalImageData()
-        case .finalImage: return request.makeCacheKeyForFinalImageData()
-        }
     }
 
     /// Removes cached image from all cache layers.
@@ -378,7 +365,7 @@ extension ImagePipeline {
 
 // MARK: - Misc (Private)
 
-private extension ImagePipeline {
+extension ImagePipeline {
     /// Inherits some of the pipeline configuration options like processors.
     func inheritOptions(_ request: ImageRequest) -> ImageRequest {
         // Do not manipulate is the request has some processors already.

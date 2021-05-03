@@ -8,7 +8,7 @@ import Foundation
 /// `ProcessedImageTask` and subscribes to it.
 final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     override func start() {
-        if let image = pipeline.cachedImage(for: request) {
+        if let image = pipeline.cache.cachedImageFromMemoryCache(for: request) {
             let response = ImageResponse(container: image)
             if image.isPreview {
                 send(value: response)
@@ -44,8 +44,8 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     private func decodeProcessedImageData(_ data: Data) {
         guard !isDisposed else { return }
 
-        let decoderContext = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
-        guard let decoder = pipeline.configuration.makeImageDecoder(decoderContext) else {
+        let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
+        guard let decoder = pipeline.configuration.makeImageDecoder(context) else {
             // This shouldn't happen in practice unless encoder/decoder pair
             // for data cache is misconfigured.
             return loadDecompressedImage()

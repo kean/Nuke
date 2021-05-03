@@ -44,7 +44,6 @@ public extension DataLoading {
     func removeData(for request: URLRequest) {}
 }
 
-
 public extension DataCache {
     // Deprecated in 9.3.1
     @available(*, deprecated, message: "Count limit is deprecated and will be removed in the next major release")
@@ -97,5 +96,28 @@ public extension ImagePrefetcher {
     @available(*, deprecated, message: "Renamed to stopPrefetching")
     func stopPreheating() {
         stopPrefetching()
+    }
+}
+
+public extension ImagePipeline {
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Use pipeline.cache[url] instead")
+    func cachedImage(for url: URL) -> ImageContainer? {
+        cachedImage(for: ImageRequest(url: url))
+    }
+
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Use pipeline.cache[request] instead")
+    func cachedImage(for request: ImageRequest) -> ImageContainer? {
+        cache.cachedImageFromMemoryCache(for: request)
+    }
+
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "If needed, use pipeline.cache.makeDiskCacheKey(for:) instead. For original image data, remove the processors from the request. In general, there should be no need to create the keys manually anymore.")
+    func cacheKey(for request: ImageRequest, item: DataCacheItem) -> String {
+        switch item {
+        case .originalImageData: return request.makeCacheKeyForOriginalImageData()
+        case .finalImage: return request.makeCacheKeyForFinalImageData()
+        }
     }
 }

@@ -297,7 +297,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         wait()
 
         // Then
-        let key = pipeline.cacheKey(for: request, item: .finalImage)
+        let key = pipeline.cache.makeDiskCacheKey(for: request)
         XCTAssertNotNil(dataCache.cachedData(for: key), "Expected processed image data to be stored")
         XCTAssertEqual(dataCache.store.count, 1)
     }
@@ -318,7 +318,7 @@ class ImagePipelineProcessedDataCachingTests: XCTestCase {
         wait()
 
         // Then
-        let key = pipeline.cacheKey(for: request, item: .originalImageData)
+        let key = pipeline.cache.makeDiskCacheKey(for: request)
         XCTAssertNotNil(dataCache.cachedData(for: key), "Expected processed image data to be stored")
         XCTAssertEqual(dataCache.store.count, 1)
     }

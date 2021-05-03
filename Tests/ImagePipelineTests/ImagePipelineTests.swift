@@ -398,14 +398,15 @@ class ImagePipelineTests: XCTestCase {
 
     // MARK: - CacheKey
 
-    func testCacheKeyForOriginalData() {
-        XCTAssertEqual(pipeline.cacheKey(for: Test.request, item: .originalImageData), Test.url.absoluteString)
+    func testCacheKeyForRequest() {
+        let request = Test.request
+        XCTAssertEqual(pipeline.cache.makeDiskCacheKey(for: request), Test.url.absoluteString)
     }
 
-    func testCacheKeyForFinalImage() {
+    func testCacheKeyForRequestWithProcessors() {
         var request = Test.request
         request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
-        XCTAssertEqual(pipeline.cacheKey(for: request, item: .finalImage), Test.url.absoluteString + "1")
+        XCTAssertEqual(pipeline.cache.makeDiskCacheKey(for: request), Test.url.absoluteString + "1")
     }
 
     // MARK: - Invalidate

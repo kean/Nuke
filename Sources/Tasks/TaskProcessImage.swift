@@ -11,7 +11,8 @@ final class TaskProcessImage: ImagePipelineTask<ImageResponse> {
         assert(!request.processors.isEmpty)
         guard !isDisposed, !request.processors.isEmpty else { return }
 
-        if let image = pipeline.cachedImage(for: request), !image.isPreview {
+        // Equivalent to pipeline.cache[request], but with a bit less overhead
+        if let image = pipeline.cache.cachedImageFromMemoryCache(for: request), !image.isPreview {
             return send(value: ImageResponse(container: image), isCompleted: true)
         }
 
