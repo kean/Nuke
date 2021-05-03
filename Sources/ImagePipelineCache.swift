@@ -69,13 +69,23 @@ public extension ImagePipeline {
             fatalError("Not implemented")
         }
 
+        func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) {
+            guard request.options.memoryCacheOptions.isWriteAllowed else {
+                return
+            }
+            guard !image.isPreview || pipeline.configuration.isStoringPreviewsInMemoryCache else {
+                return
+            }
+            let key = makeMemoryCacheKey(for: request)
+            pipeline.configuration.imageCache?[key] = image
+        }
+
         public func removeCachedImage(for request: ImageRequest, sources: Set<ImageCacheType> = [.memory, .disk]) {
             fatalError("Not implemented")
         }
 
         // MARK: Cached Data
 
-        #warning("Should it also work for a URL cache?")
         public func cachedData(for request: ImageRequest) -> Data? {
             guard request.cachePolicy != .reloadIgnoringCachedData else {
                 return nil

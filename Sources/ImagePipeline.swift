@@ -224,9 +224,7 @@ public /* final */ class ImagePipeline {
 #warning("deprecate these")
 public extension ImagePipeline {
     internal func storeResponse(_ image: ImageContainer, for request: ImageRequest) {
-        guard request.options.memoryCacheOptions.isWriteAllowed,
-            !image.isPreview || configuration.isStoringPreviewsInMemoryCache else { return }
-        configuration.imageCache?[request] = image
+        cache.storeCachedImageInMemoryCache(image, for: request)
     }
 
     /// Removes cached image from all cache layers.
