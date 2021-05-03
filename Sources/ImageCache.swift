@@ -15,6 +15,9 @@ import Cocoa
 public protocol ImageCaching: AnyObject {
     /// Access the image cached for the given request.
     subscript(key: ImageCacheKey) -> ImageContainer? { get set }
+
+    /// Removes all caches items.
+    func removeAll()
 }
 
 /// An opaque container that acts as a cache key.

@@ -28,4 +28,8 @@ class MockImageCache: ImageCaching {
             }
         }
     }
+
+    func removeAll() {
+        images.removeAll()
+    }
 }

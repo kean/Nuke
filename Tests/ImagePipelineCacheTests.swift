@@ -192,4 +192,66 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
         XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
     }
+
+    // MARK: Remove
+
+    func testRemoveFromMemoryCache() {
+        // GIVEN
+        let request = Test.request
+        cache.storeCachedImage(Test.container, for: request)
+
+        // WHEN
+        cache.removeCachedImage(for: request)
+
+        // THEN
+        XCTAssertNil(cache.cachedImage(for: request))
+        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+    }
+
+    func testRemoveFromDiskCache() {
+        // GIVEN
+        let request = Test.request
+        cache.storeCachedImage(Test.container, for: request, caches: [.disk])
+
+        // WHEN
+        cache.removeCachedImage(for: request, caches: [.disk])
+
+        // THEN
+        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+    }
+
+    func testRemoveFromAllCaches() {
+        // GIVEN
+        let request = Test.request
+        cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
+
+        // WHEN
+        cache.removeCachedImage(for: request, caches: [.memory, .disk])
+
+        // THEN
+        XCTAssertNil(cache.cachedImage(for: request))
+        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+
+        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+    }
+
+    // MARK: Remove All
+
+    func testRemoveAll() {
+        // GIVEM
+        let request = Test.request
+        cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
+
+        // WHEN
+        cache.removeAll()
+
+        // THEN
+        XCTAssertNil(cache.cachedImage(for: request))
+        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+
+        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+    }
 }

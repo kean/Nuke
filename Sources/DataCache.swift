@@ -20,6 +20,9 @@ public protocol DataCaching {
 
     /// Removes data for the given key.
     func removeData(for key: String)
+
+    /// Removes all items.
+    func removeAll()
 }
 
 // MARK: - DataCache

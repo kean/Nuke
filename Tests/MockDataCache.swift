@@ -19,4 +19,8 @@ final class MockDataCache: DataCaching {
     func removeData(for key: String) {
         store[key] = nil
     }
+
+    func removeAll() {
+        store.removeAll()
+    }
 }

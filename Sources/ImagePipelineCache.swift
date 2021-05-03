@@ -9,7 +9,8 @@ public extension ImagePipeline {
     struct Cache {
         let pipeline: ImagePipeline
 
-        /// Returns processed image from the memory cache for the given request.
+        /// A convenience API that returns processed image from the memory cache
+        /// for the given request.
         public subscript(request: ImageRequestConvertible) -> PlatformImage? {
             get {
                 cachedImageFromMemoryCache(for: request.asImageRequest())?.image
@@ -18,7 +19,7 @@ public extension ImagePipeline {
                 if let image = newValue {
                     storeCachedImageInMemoryCache(ImageContainer(image: image), for: request.asImageRequest())
                 } else {
-                    fatalError("Not implemented")
+                    removeCachedImageFromMemoryCache(for: request.asImageRequest())
                 }
             }
         }
@@ -94,8 +95,18 @@ public extension ImagePipeline {
             pipeline.configuration.imageCache?[key] = image
         }
 
-        public func removeCachedImage(for request: ImageRequest, sources: Set<ImageCacheType> = [.memory, .disk]) {
-            fatalError("Not implemented")
+        public func removeCachedImage(for request: ImageRequest, caches: Set<ImageCacheType> = [.memory]) {
+            if caches.contains(.memory) {
+                removeCachedImageFromMemoryCache(for: request)
+            }
+            if caches.contains(.disk) {
+                removeCachedData(request: request)
+            }
+        }
+
+        func removeCachedImageFromMemoryCache(for request: ImageRequest) {
+            let key = makeMemoryCacheKey(for: request)
+            pipeline.configuration.imageCache?[key] = nil
         }
 
         // MARK: Cached Data
@@ -120,7 +131,11 @@ public extension ImagePipeline {
         }
 
         public func removeCachedData(request: ImageRequest) {
-            fatalError("Not implemented")
+            guard let dataCache = pipeline.configuration.dataCache else {
+                return
+            }
+            let key = makeDiskCacheKey(for: request)
+            dataCache.removeData(for: key)
         }
 
         // MARK: Keys
@@ -136,7 +151,12 @@ public extension ImagePipeline {
         // MARK: Misc
 
         public func removeAll(caches: Set<ImageCacheType> = [.memory, .disk]) {
-            fatalError("Not implemented")
+            if caches.contains(.memory) {
+                pipeline.configuration.imageCache?.removeAll()
+            }
+            if caches.contains(.disk) {
+                pipeline.configuration.dataCache?.removeAll()
+            }
         }
 
         // MARK: Encode/Decode (Private)
