@@ -254,4 +254,20 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
         XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
     }
+
+    func testRemoveAllWithAllStatic() {
+        // GIVEM
+        let request = Test.request
+        cache.storeCachedImage(Test.container, for: request, caches: [.all])
+
+        // WHEN
+        cache.removeAll()
+
+        // THEN
+        XCTAssertNil(cache.cachedImage(for: request))
+        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+
+        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+    }
 }
