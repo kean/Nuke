@@ -223,10 +223,6 @@ public /* final */ class ImagePipeline {
 
 #warning("deprecate these")
 public extension ImagePipeline {
-    internal func storeResponse(_ image: ImageContainer, for request: ImageRequest) {
-        cache.storeCachedImageInMemoryCache(image, for: request)
-    }
-
     /// Removes cached image from all cache layers.
     func removeCachedImage(for request: ImageRequest) {
         let request = inheritOptions(request)

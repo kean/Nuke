@@ -81,7 +81,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     #else
     private func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
         guard isDecompressionNeeded(for: response) else {
-            pipeline.storeResponse(response.container, for: request)
+            pipeline.cache.storeCachedImageInMemoryCache(response.container, for: request)
             send(value: response, isCompleted: isCompleted)
             return
         }
@@ -102,7 +102,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
 
             self.async {
-                self.pipeline.storeResponse(response.container, for: self.request)
+                self.pipeline.cache.storeCachedImageInMemoryCache(response.container, for: self.request)
                 self.send(value: response, isCompleted: isCompleted)
             }
         }
