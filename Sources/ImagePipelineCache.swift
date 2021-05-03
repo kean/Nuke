@@ -32,14 +32,14 @@ public extension ImagePipeline {
         ///
         /// - parameter request: The request. Make sure to remove the processors
         /// if you want to retrieve an original image (if it's stored).
-        /// - parameter sources: `[.memory]`, by default.
-        public func cachedImage(for request: ImageRequest, sources: Set<ImageCacheType> = [.memory]) -> ImageContainer? {
-            if sources.contains(.memory) {
+        /// - parameter caches: `[.memory]`, by default.
+        public func cachedImage(for request: ImageRequest, caches: Set<ImageCacheType> = [.memory]) -> ImageContainer? {
+            if caches.contains(.memory) {
                 if let image = cachedImageFromMemoryCache(for: request) {
                     return image
                 }
             }
-            if sources.contains(.disk) {
+            if caches.contains(.disk) {
                 if let data = cachedData(for: request),
                    let image = decodeImageData(data, for: request) {
                     return image
@@ -66,14 +66,17 @@ public extension ImagePipeline {
         ///
         /// - note: Respects request cache options.
         ///
+        /// - note: Default `DiskCache` stores data asynchronously, so it's safe
+        /// to call this method even from the main thread.
+        ///
         /// - parameter request: The request. Make sure to remove the processors
         /// if you want to retrieve an original image (if it's stored).
-        /// - parameter sources: `[.memory]`, by default.
-        public func storeCachedImage(_ image: ImageContainer, for request: ImageRequest, sources: Set<ImageCacheType> = [.memory]) {
-            if sources.contains(.memory) {
+        /// - parameter caches: `[.memory]`, by default.
+        public func storeCachedImage(_ image: ImageContainer, for request: ImageRequest, caches: Set<ImageCacheType> = [.memory]) {
+            if caches.contains(.memory) {
                 storeCachedImageInMemoryCache(image, for: request)
             }
-            if sources.contains(.disk) {
+            if caches.contains(.disk) {
                 if let data = encodeImage(image, for: request) {
                     storeCachedData(data, for: request)
                 }
@@ -132,7 +135,7 @@ public extension ImagePipeline {
 
         // MARK: Misc
 
-        public func removeAll(sources: Set<ImageCacheType> = [.memory, .disk]) {
+        public func removeAll(caches: Set<ImageCacheType> = [.memory, .disk]) {
             fatalError("Not implemented")
         }
 

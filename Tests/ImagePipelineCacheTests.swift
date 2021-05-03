@@ -58,7 +58,7 @@ class ImagePipelineCacheTests: XCTestCase {
         diskCache.storeData(Test.data, for: cache.makeDiskCacheKey(for: request))
 
         // WHEN
-        let image = cache.cachedImage(for: request, sources: [.disk])
+        let image = cache.cachedImage(for: request, caches: [.disk])
 
         // THEN returns nil because queries only memory cache by default
         XCTAssertNotNil(image)
@@ -95,7 +95,7 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // WHEN
         request.cachePolicy = .reloadIgnoringCachedData
-        let image = cache.cachedImage(for: request, sources: [.disk])
+        let image = cache.cachedImage(for: request, caches: [.disk])
 
         // THEN
         XCTAssertNil(image)
@@ -107,7 +107,7 @@ class ImagePipelineCacheTests: XCTestCase {
         memoryCache[cache.makeMemoryCacheKey(for: request)] = Test.container
 
         // WHEN
-        let image = cache.cachedImage(for: request, sources: [.memory])
+        let image = cache.cachedImage(for: request, caches: [.memory])
 
         // THEN
         XCTAssertNotNil(image)
@@ -119,9 +119,77 @@ class ImagePipelineCacheTests: XCTestCase {
         diskCache.storeData(Test.data, for: cache.makeDiskCacheKey(for: request))
 
         // WHEN
-        let image = cache.cachedImage(for: request, sources: [.memory])
+        let image = cache.cachedImage(for: request, caches: [.memory])
 
         // THEN
         XCTAssertNil(image)
+    }
+
+    // MARK: Store Cached Image
+
+    func testStoreCachedImageMemoryCache() {
+        // WHEN
+        let request = Test.request
+        cache.storeCachedImage(Test.container, for: request)
+
+        // THEN
+        XCTAssertNotNil(cache.cachedImage(for: request))
+        XCTAssertNotNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+
+        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+    }
+
+    func testStoreCachedImageInDiskCache() {
+        // WHEN
+        let request = Test.request
+        cache.storeCachedImage(Test.container, for: request, caches: [.disk])
+
+        // THEN
+        XCTAssertNil(cache.cachedImage(for: request))
+        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+
+        XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
+        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+    }
+
+    func testStoreCachedImageInBothLayers() {
+        // WHEN
+        let request = Test.request
+        cache.storeCachedImage(Test.container, for: request, caches: [.memory, .disk])
+
+        // THEN
+        XCTAssertNotNil(cache.cachedImage(for: request))
+        XCTAssertNotNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+
+        XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
+        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+    }
+
+    func testStoreCachedData() {
+        // WHEN
+        let request = Test.request
+        cache.storeCachedData(Test.data, for: request)
+
+        // THEN
+        XCTAssertNil(cache.cachedImage(for: request))
+        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+
+        XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
+        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+    }
+
+    func testStoreCacheImageWhenMemoryCacheWriteDisabled() {
+        // WHEN
+        var request = Test.request
+        request.options.memoryCacheOptions.isWriteAllowed = false
+        cache.storeCachedImage(Test.container, for: request, caches: [.memory])
+
+        // THEN
+        XCTAssertNil(cache.cachedImage(for: request))
+        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+
+        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
     }
 }
