@@ -34,7 +34,7 @@ public extension ImagePipeline {
         /// - parameter request: The request. Make sure to remove the processors
         /// if you want to retrieve an original image (if it's stored).
         /// - parameter caches: `[.memory]`, by default.
-        public func cachedImage(for request: ImageRequest, caches: Set<ImageCacheType> = [.memory]) -> ImageContainer? {
+        public func cachedImage(for request: ImageRequest, caches: Caches = [.memory]) -> ImageContainer? {
             if caches.contains(.memory) {
                 if let image = cachedImageFromMemoryCache(for: request) {
                     return image
@@ -49,7 +49,7 @@ public extension ImagePipeline {
             return nil
         }
 
-        func cachedImageFromMemoryCache(for request: ImageRequest) -> ImageContainer? {
+        private func cachedImageFromMemoryCache(for request: ImageRequest) -> ImageContainer? {
             guard request.cachePolicy != .reloadIgnoringCachedData && request.options.memoryCacheOptions.isReadAllowed else {
                 return nil
             }
@@ -73,7 +73,7 @@ public extension ImagePipeline {
         /// - parameter request: The request. Make sure to remove the processors
         /// if you want to retrieve an original image (if it's stored).
         /// - parameter caches: `[.memory]`, by default.
-        public func storeCachedImage(_ image: ImageContainer, for request: ImageRequest, caches: Set<ImageCacheType> = [.memory]) {
+        public func storeCachedImage(_ image: ImageContainer, for request: ImageRequest, caches: Caches = [.memory]) {
             if caches.contains(.memory) {
                 storeCachedImageInMemoryCache(image, for: request)
             }
@@ -84,7 +84,7 @@ public extension ImagePipeline {
             }
         }
 
-        func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) {
+        private func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) {
             guard request.options.memoryCacheOptions.isWriteAllowed else {
                 return
             }
@@ -95,7 +95,7 @@ public extension ImagePipeline {
             pipeline.configuration.imageCache?[key] = image
         }
 
-        public func removeCachedImage(for request: ImageRequest, caches: Set<ImageCacheType> = [.memory]) {
+        public func removeCachedImage(for request: ImageRequest, caches: Caches = [.memory]) {
             if caches.contains(.memory) {
                 removeCachedImageFromMemoryCache(for: request)
             }
@@ -150,7 +150,7 @@ public extension ImagePipeline {
 
         // MARK: Misc
 
-        public func removeAll(caches: Set<ImageCacheType> = [.memory, .disk]) {
+        public func removeAll(caches: Caches = [.all]) {
             if caches.contains(.memory) {
                 pipeline.configuration.imageCache?.removeAll()
             }
@@ -174,10 +174,18 @@ public extension ImagePipeline {
             let encoder = pipeline.configuration.makeImageEncoder(context)
             return encoder.encode(image, context: context)
         }
-    }
-}
 
-public enum ImageCacheType {
-    case memory
-    case disk
+        // MARK: Options
+
+        public struct Caches: OptionSet {
+            public let rawValue: Int
+            public init(rawValue: Int) {
+                self.rawValue = rawValue
+            }
+
+            public static let memory = Caches(rawValue: 1 << 0)
+            public static let disk = Caches(rawValue: 1 << 1)
+            public static let all: Caches = [.memory, .disk]
+        }
+    }
 }

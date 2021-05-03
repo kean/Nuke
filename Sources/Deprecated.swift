@@ -109,7 +109,7 @@ public extension ImagePipeline {
     // Deprecated in 10.0.0
     @available(*, deprecated, message: "Use pipeline.cache[request] instead")
     func cachedImage(for request: ImageRequest) -> ImageContainer? {
-        cache.cachedImageFromMemoryCache(for: request)
+        cache.cachedImage(for: request)
     }
 
     // Deprecated in 10.0.0

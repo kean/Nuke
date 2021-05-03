@@ -372,8 +372,7 @@ private final class ImageViewController {
         let pipeline = options.pipeline ?? ImagePipeline.shared
 
         // Quick synchronous memory cache lookup.
-        // Equivalent to pipeline.cache[request] but with a bit less overhead
-        if let image = pipeline.cache.cachedImageFromMemoryCache(for: request) {
+        if let image = pipeline.cache.cachedImage(for: request) {
             let response = ImageResponse(container: image)
             handle(result: .success(response), fromMemCache: true, options: options)
             if !image.isPreview { // Final image was downloaded

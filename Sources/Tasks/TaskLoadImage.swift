@@ -8,7 +8,7 @@ import Foundation
 /// `ProcessedImageTask` and subscribes to it.
 final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     override func start() {
-        if let image = pipeline.cache.cachedImageFromMemoryCache(for: request) {
+        if let image = pipeline.cache.cachedImage(for: request) {
             let response = ImageResponse(container: image)
             if image.isPreview {
                 send(value: response)
@@ -81,7 +81,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     #else
     private func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
         guard isDecompressionNeeded(for: response) else {
-            pipeline.cache.storeCachedImageInMemoryCache(response.container, for: request)
+            pipeline.cache.storeCachedImage(response.container, for: request)
             send(value: response, isCompleted: isCompleted)
             return
         }
@@ -102,7 +102,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
 
             self.async {
-                self.pipeline.cache.storeCachedImageInMemoryCache(response.container, for: self.request)
+                self.pipeline.cache.storeCachedImage(response.container, for: self.request)
                 self.send(value: response, isCompleted: isCompleted)
             }
         }
