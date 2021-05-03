@@ -15,7 +15,11 @@ public extension ImagePipeline {
                 cachedImageFromMemoryCache(for: request.asImageRequest())?.image
             }
             set {
-                fatalError("Not implemented")
+                if let image = newValue {
+                    storeCachedImageInMemoryCache(ImageContainer(image: image), for: request.asImageRequest())
+                } else {
+                    fatalError("Not implemented")
+                }
             }
         }
 
