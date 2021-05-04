@@ -120,4 +120,12 @@ public extension ImagePipeline {
         case .finalImage: return request.makeCacheKeyForFinalImageData()
         }
     }
+
+    @available(*, deprecated, message: "Please use `diskCachePolicy` instead. The recommended policy is the new `.automatic` policy.")
+    enum DataCacheItem {
+        /// Same as the new `DiskCachePolicy.storeOriginalImageData`
+        case originalImageData
+        /// Same as the new `DiskCachePolicy.storeEncodedImages`
+        case finalImage
+    }
 }

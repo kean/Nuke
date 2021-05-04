@@ -25,8 +25,6 @@ class MockDataLoader: DataLoading {
     func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = MockDataTask()
 
-        print("retry")
-
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
 
         createdTaskCount += 1

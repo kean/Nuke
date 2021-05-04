@@ -87,19 +87,52 @@ extension ImagePipeline {
         public var isDecompressionEnabled = true
         #endif
 
-        public var dataCacheOptions = DataCacheOptions()
+        /// `automatic` by default.
+        public var diskCachePolicy = DiskCachePolicy.automatic
 
+        /// Determines what images are stored in the disk cache.
+        public enum DiskCachePolicy {
+            /// For requests with processors, encode and store processed images.
+            /// For requests with no processors, store original image data, unless
+            /// the resource is local (file:// or data:// scheme is used).
+            case automatic
+
+            /// For all requests, only store the original image data, unless
+            /// the resource is local (file:// or data:// scheme is used).
+            case storeOriginalImageData
+
+            /// For all requests, encode and store decoded images after all
+            /// processors are applied.
+            ///
+            /// - note: This is useful if you want to store images in a format
+            /// different than provided by a server, e.g. decompressed.
+            ///
+            /// - warning: If you are using `loadData` method, the disk cache
+            /// is not going to work.
+            #warning("Can we do something about it? how does if affects ImagePrefetcher? Should it be a default?")
+            case storeEncodedImages
+        }
+
+        // Deprecated in 10.0.0
+        @available(*, deprecated, message: "Please use `diskCachePolicy` instead. The recommended policy is the new `.automatic` policy.")
+        public var dataCacheOptions: DataCacheOptions = DataCacheOptions() {
+            didSet {
+                let items = dataCacheOptions.storedItems
+                if items == [.finalImage] {
+                    debugPrint("The [.finalImage] configuration is not supported, falling back to `DiskCachePolicy.automatic`")
+                    diskCachePolicy = .storeEncodedImages
+                } else if items == [.originalImageData] {
+                    diskCachePolicy = .storeOriginalImageData
+                } else if items == [.finalImage, .originalImageData] {
+                    debugPrint("The [.finalImage, .originalImageData] configuration is not supported, falling back to `DiskCachePolicy.automatic`")
+                    diskCachePolicy = .automatic
+                }
+            }
+        }
+
+        // Deprecated in 10.0.0
+        @available(*, deprecated, message: "Please use `diskCachePolicy` instead. The recommended policy is the new `.automatic` policy.")
         public struct DataCacheOptions {
-            /// Specifies which content to store in the `dataCache`. By default, the
-            /// pipeline only stores the original image data downloaded using `dataLoader`.
-            /// It can be configured to encode and store processed images instead.
-            ///
-            /// - note: If you are creating multiple versions of the same image using
-            /// different processors, it might be worth enabling both `.originalImageData`
-            /// and `.finalImage` cache to reuse the same downloaded data.
-            ///
-            /// - note: It might be worth enabling `.finalImage` if you want to
-            /// transcode downloaded images into a more efficient format, like HEIF.
             public var storedItems: Set<DataCacheItem> = [.originalImageData]
         }
 
@@ -175,6 +208,8 @@ extension ImagePipeline {
 
         static var isFastTrackDecodingEnabled = true
 
+        var debugIsSyncImageEncoding = false
+
         // MARK: - Initializer
 
         public init(dataLoader: DataLoading = DataLoader()) {
@@ -198,13 +233,6 @@ extension ImagePipeline {
             self.customImageCache = imageCache
             self.isCustomImageCacheProvided = true
         } // This init is going to be removed in the future
-    }
-
-    public enum DataCacheItem {
-        /// Original image data.
-        case originalImageData
-        /// Final image with all processors applied.
-        case finalImage
     }
 }
 

@@ -17,8 +17,10 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
         }
 
-        guard let dataCache = pipeline.configuration.dataCache, pipeline.configuration.dataCacheOptions.storedItems.contains(.finalImage), request.cachePolicy != .reloadIgnoringCachedData else {
-            return loadDecompressedImage()
+        guard let dataCache = pipeline.configuration.dataCache,
+              pipeline.configuration.diskCachePolicy != .storeOriginalImageData,
+              request.cachePolicy != .reloadIgnoringCachedData else {
+            return loadProcessedImage()
         }
 
         // Load processed image from data cache and decompress it.
@@ -36,7 +38,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             if let data = data {
                 self.decodeProcessedImageData(data)
             } else {
-                self.loadDecompressedImage()
+                self.loadProcessedImage()
             }
         }
     }
@@ -48,7 +50,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         guard let decoder = pipeline.configuration.makeImageDecoder(context) else {
             // This shouldn't happen in practice unless encoder/decoder pair
             // for data cache is misconfigured.
-            return loadDecompressedImage()
+            return loadProcessedImage()
         }
 
         operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
@@ -60,13 +62,13 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
                 if let response = response {
                     self.decompressProcessedImage(response, isCompleted: true)
                 } else {
-                    self.loadDecompressedImage()
+                    self.loadProcessedImage()
                 }
             }
         }
     }
 
-    private func loadDecompressedImage() {
+    private func loadProcessedImage() {
         dependency = pipeline.makeTaskProcessImage(for: request).subscribe(self) { [weak self] in
             self?.storeImageInDataCache($0)
             self?.decompressProcessedImage($0, isCompleted: $1)
@@ -75,7 +77,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     #if os(macOS)
     private func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
-        pipeline.storeResponse(response.container, for: request)
+        pipeline.cache.storeCachedImage(response.container, for: request)
         send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
     }
     #else
@@ -116,7 +118,10 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     #endif
 
     private func storeImageInDataCache(_ response: ImageResponse) {
-        guard let dataCache = pipeline.configuration.dataCache, pipeline.configuration.dataCacheOptions.storedItems.contains(.finalImage), !response.container.isPreview else {
+        guard !response.container.isPreview else {
+            return
+        }
+        guard let dataCache = pipeline.configuration.dataCache, shouldStoreImageInDiskCache() else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
@@ -129,5 +134,14 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             let key = request.makeCacheKeyForFinalImageData()
             dataCache.storeData(data, for: key) // This is instant
         }
+        #warning("should it always be sync?")
+        if pipeline.configuration.debugIsSyncImageEncoding { // Only for debug
+            pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
+        }
+    }
+
+    private func shouldStoreImageInDiskCache() -> Bool {
+        let policy = pipeline.configuration.diskCachePolicy
+        return (policy == .automatic && !request.processors.isEmpty) || policy == .storeEncodedImages
     }
 }

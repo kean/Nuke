@@ -8,6 +8,7 @@ import Foundation
 // user does not need to hold a strong reference to the pipeline.
 class ImagePipelineTask<Value>: Task<Value, ImagePipeline.Error> {
     let pipeline: ImagePipeline
+    // A canonical request representing the unit work performed by the task.
     let request: ImageRequest
 
     init(_ pipeline: ImagePipeline, _ request: ImageRequest) {
@@ -18,5 +19,25 @@ class ImagePipelineTask<Value>: Task<Value, ImagePipeline.Error> {
     /// Executes work on the pipeline synchronization queue.
     func async(_ work: @escaping () -> Void) {
         pipeline.queue.async(execute: work)
+    }
+}
+
+// Returns all image tasks subscribed to the current pipeline task.
+// A suboptimal approach just to make the new DiskCachPolicy.automatic work.
+protocol ImageTaskSubscribers {
+    var imageTasks: [ImageTask] { get }
+}
+
+extension ImageTask: ImageTaskSubscribers {
+    var imageTasks: [ImageTask] {
+        [self]
+    }
+}
+
+extension ImagePipelineTask: ImageTaskSubscribers {
+    var imageTasks: [ImageTask] {
+        subscribers.flatMap {
+            ($0 as? ImageTaskSubscribers)?.imageTasks ?? []
+        }
     }
 }

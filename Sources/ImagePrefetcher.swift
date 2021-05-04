@@ -44,11 +44,11 @@ public final class ImagePrefetcher {
 
     /// Prefetching destination.
     public enum Destination {
-        /// Prefetches the image and stores it in both memory and disk caches
-        /// (they should be enabled).
+        /// Prefetches the image and stores it in both the memory and the disk
+        /// cache (make sure to enable it).
         case memoryCache
 
-        /// Prefetches image data and stores it in disk caches. This does not
+        /// Prefetches the image data and stores it in disk caches. This does not
         /// require decoding the image data and therefore uses less CPU.
         case diskCache
     }
