@@ -13,7 +13,8 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
     private lazy var data = Data()
 
     override func start() {
-        guard let dataCache = pipeline.configuration.dataCache, pipeline.configuration.dataCacheOptions.storedItems.contains(.originalImageData), request.cachePolicy != .reloadIgnoringCachedData else {
+        guard let dataCache = pipeline.configuration.dataCache,
+              request.cachePolicy != .reloadIgnoringCachedData else {
             loadData() // Skip disk cache lookup, load data
             return
         }
@@ -173,12 +174,17 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
         }
 
         // Store in data cache
-        if let dataCache = pipeline.configuration.dataCache, pipeline.configuration.dataCacheOptions.storedItems.contains(.originalImageData) {
+        if let dataCache = pipeline.configuration.dataCache, shouldStoreDataInDiskCache() {
             let key = request.makeCacheKeyForOriginalImageData()
             dataCache.storeData(data, for: key)
         }
 
         send(value: (data, urlResponse), isCompleted: true)
+    }
+
+    private func shouldStoreDataInDiskCache() -> Bool {
+        let policy = pipeline.configuration.diskCachePolicy
+        return policy == .storeOriginalImageData || (policy == .automatic && imageTasks.contains { $0.request.processors.isEmpty })
     }
 
     private func tryToSaveResumableData() {

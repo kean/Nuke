@@ -244,7 +244,7 @@ private extension ImagePipeline {
         self.send(.started, task)
 
         tasks[task] = makeTaskLoadImage(for: task.request)
-            .subscribe(priority: task._priority.taskPriority) { [weak self, weak task] event in
+            .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
                 self.send(ImageTaskEvent(event), task)
@@ -280,7 +280,7 @@ private extension ImagePipeline {
         guard !isInvalidated else { return }
 
         tasks[task] = makeTaskLoadImageData(for: task.request)
-            .subscribe(priority: task._priority.taskPriority) { [weak self, weak task] event in
+            .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
                 if event.isCompleted {
