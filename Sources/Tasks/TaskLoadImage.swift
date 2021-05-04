@@ -141,7 +141,10 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     private func shouldStoreImageInDiskCache() -> Bool {
+        guard request.url?.isCacheable ?? false else {
+            return false
+        }
         let policy = pipeline.configuration.diskCachePolicy
-        return (policy == .automatic && !request.processors.isEmpty) || policy == .storeEncodedImages
+        return ((policy == .automatic && !request.processors.isEmpty) || policy == .storeEncodedImages)
     }
 }

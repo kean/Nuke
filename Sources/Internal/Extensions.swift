@@ -34,3 +34,11 @@ extension NSLock {
         return closure()
     }
 }
+
+extension URL {
+    var isCacheable: Bool {
+        let scheme = self.scheme
+        return scheme != "file" && scheme != "data"
+    }
+}
+

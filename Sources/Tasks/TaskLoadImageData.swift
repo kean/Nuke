@@ -183,6 +183,9 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
     }
 
     private func shouldStoreDataInDiskCache() -> Bool {
+        guard request.url?.isCacheable ?? false else {
+            return false
+        }
         let policy = pipeline.configuration.diskCachePolicy
         return policy == .storeOriginalImageData || (policy == .automatic && imageTasks.contains { $0.request.processors.isEmpty })
     }

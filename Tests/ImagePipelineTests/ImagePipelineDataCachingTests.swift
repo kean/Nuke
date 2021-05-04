@@ -462,6 +462,46 @@ class ImagePipelineDataCacheOptionsTests: XCTestCase {
         XCTAssertEqual(dataCache.store.count, 1)
     }
 
+    // MARK: Local Storage
+
+    func testImagesFromLocalStorageNotCached() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.diskCachePolicy = .automatic
+        }
+
+        // GIVEN request without a processor
+        let request = ImageRequest(url: URL(string: "file://example/image.jpeg")!)
+
+        // WHEN
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // THEN original image data is stored in disk cache
+        XCTAssertEqual(encoder.encodeCount, 0)
+        XCTAssertEqual(dataCache.writeCount, 0)
+        XCTAssertEqual(dataCache.store.count, 0)
+    }
+
+    func testImagesFromMemoryNotCached() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.diskCachePolicy = .automatic
+        }
+
+        // GIVEN request without a processor
+        let request = ImageRequest(url: URL(string: "data://example/image.jpeg")!)
+
+        // WHEN
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // THEN original image data is stored in disk cache
+        XCTAssertEqual(encoder.encodeCount, 0)
+        XCTAssertEqual(dataCache.writeCount, 0)
+        XCTAssertEqual(dataCache.store.count, 0)
+    }
+
     // MARK Misc
 
     func testSetCustomImageEncoder() {
