@@ -30,9 +30,8 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     private func getCachedData(dataCache: DataCaching) {
-        let key = request.makeCacheKeyForFinalImageData()
         let data = signpost(log, "ReadCachedProcessedImageData") {
-            dataCache.cachedData(for: key)
+            pipeline.cache.cachedData(for: request)
         }
         async {
             if let data = data {
@@ -126,12 +125,12 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = pipeline.configuration.makeImageEncoder(context)
-        pipeline.configuration.imageEncodingQueue.addOperation { [request, log] in
+        let key = pipeline.cache.makeDataCacheKey(for: request)
+        pipeline.configuration.imageEncodingQueue.addOperation {
             let encodedData = signpost(log, "EncodeImage") {
                 encoder.encode(response.container, context: context)
             }
             guard let data = encodedData else { return }
-            let key = request.makeCacheKeyForFinalImageData()
             dataCache.storeData(data, for: key) // This is instant
         }
         #warning("should it always be sync?")

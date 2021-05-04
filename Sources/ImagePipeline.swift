@@ -17,7 +17,10 @@ import Foundation
 public /* final */ class ImagePipeline {
     public let configuration: Configuration
     public let cache: ImagePipeline.Cache
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please use ImagePipelineDelegate")
     public var observer: ImagePipelineObserving?
+    private let delegate: ImagePipelineDelegate // swiftlint:disable:this all
     private(set) var dataLoader: DataLoader?
 
     private var tasks = [ImageTask: TaskSubscription]()
@@ -56,6 +59,7 @@ public /* final */ class ImagePipeline {
         self.configuration = configuration
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
         self.cache = ImagePipeline.Cache(configuration: configuration)
+        self.delegate = configuration.delegate ?? ImagePipelineDefaultDelegate()
 
         let isDeduplicationEnabled = configuration.isDeduplicationEnabled
         self.decompressedImageTasks = TaskPool(isDeduplicationEnabled)
@@ -224,8 +228,8 @@ public extension ImagePipeline {
         cache.removeCachedImage(for: request)
 
         if let dataCache = configuration.dataCache {
-            dataCache.removeData(for: request.makeCacheKeyForOriginalImageData())
-            dataCache.removeData(for: request.makeCacheKeyForFinalImageData())
+            dataCache.removeData(for: cacheKey(for: request, item: .originalImageData))
+            dataCache.removeData(for: cacheKey(for: request, item: .finalImage))
         }
 
         configuration.dataLoader.removeData(for: request.urlRequest)
@@ -353,10 +357,21 @@ extension ImagePipeline {
 
 // MARK: - Misc (Private)
 
-extension ImagePipeline {
+extension ImagePipeline: SendEventProtocol {
     func send(_ event: ImageTaskEvent, _ task: ImageTask) {
+        delegate.imageTask(task, didReceiveEvent: event)
+        (self as SendEventProtocol)._send(event, task)
+    }
+
+    @available(*, deprecated, message: "Please use ImagePipelineDelegate")
+    func _send(_ event: ImageTaskEvent, _ task: ImageTask) {
         observer?.pipeline(self, imageTask: task, didReceiveEvent: event)
     }
+}
+
+// Just to workaround the deprecation warning.
+private protocol SendEventProtocol {
+    func _send(_ event: ImageTaskEvent, _ task: ImageTask)
 }
 
 // MARK: - Errors

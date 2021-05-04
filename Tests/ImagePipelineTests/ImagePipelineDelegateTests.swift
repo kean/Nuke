@@ -1,28 +1,73 @@
-// The MIT License (MIT)
+//// The MIT License (MIT)
 //
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 @testable import Nuke
 
-class ImagePipelineObservingTests: XCTestCase {
-    var dataLoader: MockDataLoader!
-    var pipeline: ImagePipeline!
-    private var observer: MockImagePipelineObserver!
+class ImagePipelineDelegateTests: XCTestCase {
+    private var dataLoader: MockDataLoader!
+    private var dataCache: MockDataCache!
+    private var pipeline: ImagePipeline!
+    private var delegate: MockImagePipelineDelegate!
 
     override func setUp() {
         super.setUp()
 
         dataLoader = MockDataLoader()
+        dataCache = MockDataCache()
+        delegate = MockImagePipelineDelegate()
+
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
+            $0.dataCache = dataCache
+            $0.diskCachePolicy = .automatic
             $0.imageCache = nil
+            $0.delegate = delegate
+            $0.debugIsSyncImageEncoding = true
         }
-        observer = MockImagePipelineObserver()
-        pipeline.observer = observer
     }
 
-    // MARK: - Completion
+    func testCustomizingDataCacheKey() throws {
+        // GIVEN
+        let imageURLSmall = URL(string: "https://example.com/image-01-small.jpeg")!
+        let imageURLMedium = URL(string: "https://example.com/image-01-medium.jpeg")!
+
+        dataLoader.results[imageURLMedium] = .success(
+            (Test.data, URLResponse(url: imageURLMedium, mimeType: "jpeg", expectedContentLength: Test.data.count, textEncodingName: nil))
+        )
+
+        // GIVEN image is loaded from medium size URL and saved in cache using imageId "image-01-small"
+        let requestA = ImageRequest(
+            url: imageURLMedium,
+            processors: [ImageProcessors.Resize(width: 44)],
+            options: .init(userInfo: ["imageId": "image-01-small"])
+        )
+        expect(pipeline).toLoadImage(with: requestA)
+        wait()
+
+        let data = try XCTUnwrap(dataCache.cachedData(for: "image-01-small"))
+        let image = try XCTUnwrap(PlatformImage(data: data))
+        XCTAssertEqual(image.sizeInPixels.width, 44 * Screen.scale)
+
+        // GIVEN a request for a small image
+        let requestB = ImageRequest(
+            url: imageURLSmall,
+            options: .init(userInfo: ["imageId": "image-01-small"])
+        )
+
+        // WHEN/THEN the image is returned from the disk cache
+        expect(pipeline).toLoadImage(with: requestB, completion: { result in
+            guard let image = result.value?.image else {
+                return XCTFail()
+            }
+            XCTAssertEqual(image.sizeInPixels.width, 44 * Screen.scale)
+        })
+        wait()
+        XCTAssertEqual(dataLoader.createdTaskCount, 1)
+    }
+
+    // MARK: Monitoring
 
     func testStartAndCompletedEvents() throws {
         var result: Result<ImageResponse, ImagePipeline.Error>?
@@ -30,7 +75,7 @@ class ImagePipelineObservingTests: XCTestCase {
         wait()
 
         // Then
-        XCTAssertEqual(observer.events, [
+        XCTAssertEqual(delegate.events, [
             ImageTaskEvent.started,
             .progressUpdated(completedUnitCount: 22789, totalUnitCount: -1),
             .completed(result: try XCTUnwrap(result))
@@ -48,7 +93,7 @@ class ImagePipelineObservingTests: XCTestCase {
         wait()
 
         // Then
-        XCTAssertEqual(observer.events, [
+        XCTAssertEqual(delegate.events, [
             ImageTaskEvent.started,
             .progressUpdated(completedUnitCount: 10, totalUnitCount: 20),
             .progressUpdated(completedUnitCount: 20, totalUnitCount: 20),
@@ -77,7 +122,7 @@ class ImagePipelineObservingTests: XCTestCase {
         wait()
 
         // Then
-        XCTAssertEqual(observer.events, [
+        XCTAssertEqual(delegate.events, [
             ImageTaskEvent.started,
             .priorityUpdated(priority: .high)
         ])
@@ -97,17 +142,24 @@ class ImagePipelineObservingTests: XCTestCase {
         wait()
 
         // Then
-        XCTAssertEqual(observer.events, [
+        XCTAssertEqual(delegate.events, [
             ImageTaskEvent.started,
             .cancelled
         ])
     }
 }
 
-private final class MockImagePipelineObserver: ImagePipelineObserving {
+private final class MockImagePipelineDelegate: ImagePipelineDelegate {
+    func makeDataCacheKey(for request: ImageRequest) -> ImagePipeline.CacheKey<String> {
+        guard let imageId = request.options.userInfo["imageId"] as? String else {
+            return .default
+        }
+        return .custom(key: imageId)
+    }
+
     var events = [ImageTaskEvent]()
 
-    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
+    func imageTask(_ imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
         events.append(event)
     }
 }
