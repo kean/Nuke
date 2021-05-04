@@ -89,7 +89,7 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     // MARK: - Managing Observers
 
     /// - notes: Returns `nil` if the task was disposed.
-    private func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
+    private func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject? = nil, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
         guard !isDisposed else { return nil }
 
         let subscriptionKey = nextSubscriptionKey
@@ -234,7 +234,7 @@ extension Task {
 
         /// Attaches the subscriber to the task.
         /// - notes: Returns `nil` if the task is already disposed.
-        func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
+        func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject? = nil, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
             task.subscribe(priority: priority, subscriber: subscriber, closure)
         }
 
