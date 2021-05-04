@@ -41,12 +41,11 @@ public struct ImageCacheKey: Hashable {
     }
 }
 
-#warning("deprecate these?")
 public extension ImageCaching {
     /// A convenience API for getting an image for the given request.
     ///
-    /// - warning: If you provide a custom key using `ImagePipelineDelegate`, make
-    /// sure to use it instead.
+    /// - warning: If you provide a custom key using `ImagePipelineDelegate`, use
+    /// `ImagePipeline.Cache` instead.
     subscript(request: ImageRequest) -> ImageContainer? {
         get { self[ImageCacheKey(request: request)] }
         set { self[ImageCacheKey(request: request)] = newValue }
