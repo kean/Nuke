@@ -33,6 +33,16 @@ public struct ImageRequest: CustomStringConvertible {
         }
     }
 
+    /// Returns the request URL.
+    public var url: URL? {
+        switch ref.resource {
+        case .url(let url):
+            return url
+        case .urlRequest(let request):
+            return request.url
+        }
+    }
+
     var urlString: String? {
         ref.urlString
     }
