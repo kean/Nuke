@@ -147,4 +147,11 @@ public extension ImageRequestOptions {
         get { nil }
         set { debugPrint("The ImageRequestOptions.cacheKey API does nothing starting with Nuke 10") } // swiftlint:disable:this unused_setter_value
     }
+
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "This API does nothing starting with Nuke 10. If you found an issue in coalescing, please report it on GitHub and consider disabling it using ImagePipeline.Configuration.")
+    var loadKey: AnyHashable? {
+        get { nil }
+        set { debugPrint("The ImageRequestOptions.loadKey API does nothing starting with Nuke 10") } // swiftlint:disable:this unused_setter_value
+    }
 }

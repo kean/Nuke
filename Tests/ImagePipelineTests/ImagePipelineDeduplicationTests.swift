@@ -127,68 +127,6 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         }
     }
 
-    // MARK: - Deduplication (Custom Load Keys)
-
-    func testDeduplicationWhenUsingCustomLoadKeys() {
-        dataLoader.queue.isSuspended = true
-
-        // Given custom load keys (e.g. you'd like to trim tokens from the URL)
-        let request1 = ImageRequest(url: Test.url.appendingPathComponent("token=123"),
-                                    options: .init(loadKey: Test.url))
-        let request2 = ImageRequest(url: Test.url.appendingPathComponent("token=456"),
-                                    options: .init(loadKey: Test.url))
-
-        // Then both image are loaded
-        expect(pipeline).toLoadImage(with: request1)
-        expect(pipeline).toLoadImage(with: request2)
-
-        dataLoader.queue.isSuspended = false
-
-        wait { _ in
-            // Then the original image is loaded once
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
-        }
-    }
-
-    func testUsingLoadKeysWithLegacyBehaviour() {
-        dataLoader.queue.isSuspended = true
-
-        // When using custom load keys with legacy semantics (those keys were
-        // comparing processors
-
-        // WARNING This is legacy behaviour, don't use it
-        let request1 = ImageRequest(
-            url: Test.url,
-            processors: [MockImageProcessor(id: "1")],
-            options: .init(loadKey: Test.url.absoluteString + "processor=1")
-        )
-        let request2 = ImageRequest(
-            url: Test.url,
-            processors: [MockImageProcessor(id: "2")],
-            options: .init(loadKey: Test.url.absoluteString + "processor=2")
-        )
-
-        // Then both images are loaded and processors are applied
-        expect(pipeline).toLoadImage(with: request1) { result in
-            let image = result.value?.image
-            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
-        }
-        expect(pipeline).toLoadImage(with: request2) { result in
-            let image = result.value?.image
-            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["2"])
-        }
-
-        dataLoader.queue.isSuspended = false
-
-        wait { _ in
-            // Then original image is loaded twice - this is how it would work
-            // if you were using ImagePipeline form version 7.0 with a legacy
-            // `loadKey` semantics which were taking processors into account
-            // when comparing load keys.
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 2)
-        }
-    }
-
     // MARK: - Processing
 
     func testProcessorsAreDeduplicated() {
@@ -466,7 +404,6 @@ class ImagePipelineDeduplicationTests: XCTestCase {
         // When/Then
         let request1 = Test.request
         let request2 = Test.request
-        XCTAssertEqual(request1.options.loadKey, request2.options.loadKey)
 
         expect(pipeline).toLoadImage(with: request1)
         expect(pipeline).toLoadImage(with: request2)

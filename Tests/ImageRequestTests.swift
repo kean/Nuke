@@ -27,8 +27,6 @@ class ImageRequestTests: XCTestCase {
         // Given
         var request = ImageRequest(url: URL(string: "http://test.com/1.png")!)
         request.options.memoryCacheOptions.isReadAllowed = false
-        request.options.loadKey = "1"
-        request.options.cacheKey = "2"
         request.options.userInfo["key"] = "3"
         request.options.filteredURL = "4"
         request.processors = [MockImageProcessor(id: "4")]
@@ -41,8 +39,6 @@ class ImageRequestTests: XCTestCase {
 
         // Then
         XCTAssertEqual(copy.options.memoryCacheOptions.isReadAllowed, false)
-        XCTAssertEqual(copy.options.loadKey, "1")
-        XCTAssertEqual(copy.options.cacheKey, "2")
         XCTAssertEqual(copy.options.userInfo["key"] as? String, "3")
         XCTAssertEqual(copy.options.filteredURL, "4")
         XCTAssertEqual((copy.processors.first as? MockImageProcessor)?.identifier, "4")
@@ -107,38 +103,6 @@ class ImageRequestCacheKeyTests: XCTestCase {
         let request2 = ImageRequest(url: Test.url, processors: request1.processors)
         AssertHashableEqual(CacheKey(request: request1), CacheKey(request: request2))
     }
-
-    func testRequestWithDefaultAndCustomKeysAreNotEquivalent() {
-        let request1 = ImageRequest(url: Test.url)
-        let request2 = ImageRequest(url: Test.url, options: .init(cacheKey: "2"))
-        XCTAssertNotEqual(CacheKey(request: request1), CacheKey(request: request2))
-    }
-
-    // MARK: Custom Cache Key
-
-    func testRequestsWithSameCustomKeysAreEquivalent() {
-        var request1 = ImageRequest(url: Test.url)
-        request1.options.cacheKey = "1"
-        var request2 = ImageRequest(url: Test.url)
-        request2.options.cacheKey = "1"
-        AssertHashableEqual(CacheKey(request: request1), CacheKey(request: request2))
-    }
-
-    func testRequestsWithSameCustomKeysButDifferentURLsAreEquivalent() {
-        var request1 = ImageRequest(url: URL(string: "https://example.com/photo1.jpg")!)
-        request1.options.cacheKey = "1"
-        var request2 = ImageRequest(url: URL(string: "https://example.com/photo2.jpg")!)
-        request2.options.cacheKey = "1"
-        AssertHashableEqual(CacheKey(request: request1), CacheKey(request: request2))
-    }
-
-    func testRequestsWithDifferentCustomKeysAreNotEquivalent() {
-        var request1 = ImageRequest(url: Test.url)
-        request1.options.cacheKey = "1"
-        var request2 = ImageRequest(url: Test.url)
-        request2.options.cacheKey = "2"
-        XCTAssertNotEqual(CacheKey(request: request1), CacheKey(request: request2))
-    }
 }
 
 class ImageRequestLoadKeyTests: XCTestCase {
@@ -183,32 +147,6 @@ class ImageRequestLoadKeyTests: XCTestCase {
 
         XCTAssertNotEqual(MockImageProcessor(id: "1").identifier, MockImageProcessor(id: "2").identifier)
         XCTAssertNotEqual(MockImageProcessor(id: "1").hashableIdentifier, MockImageProcessor(id: "2").hashableIdentifier)
-    }
-
-    // MARK: - Custom Load Key
-
-    func testRequestsWithSameCustomKeysAreEquivalent() {
-        var request1 = ImageRequest(url: Test.url)
-        request1.options.loadKey = "1"
-        var request2 = ImageRequest(url: Test.url)
-        request2.options.loadKey = "1"
-        AssertHashableEqual(request1.makeLoadKeyForOriginalImage(), request2.makeLoadKeyForOriginalImage())
-    }
-
-    func testRequestsWithSameCustomKeysButDifferentURLsAreEquivalent() {
-        var request1 = ImageRequest(url: URL(string: "https://example.com/photo1.jpg")!)
-        request1.options.loadKey = "1"
-        var request2 = ImageRequest(url: URL(string: "https://example.com/photo2.jpg")!)
-        request2.options.loadKey = "1"
-        AssertHashableEqual(request1.makeLoadKeyForOriginalImage(), request2.makeLoadKeyForOriginalImage())
-    }
-
-    func testRequestsWithDifferentCustomKeysAreNotEquivalent() {
-        var request1 = ImageRequest(url: Test.url)
-        request1.options.loadKey = "1"
-        var request2 = ImageRequest(url: Test.url)
-        request2.options.loadKey = "2"
-        XCTAssertNotEqual(request1.makeLoadKeyForOriginalImage(), request2.makeLoadKeyForOriginalImage())
     }
 }
 

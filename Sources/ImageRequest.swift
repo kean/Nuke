@@ -238,7 +238,6 @@ public struct ImageRequest: CustomStringConvertible {
             options: {
                 memoryCacheOptions: \(ref.options.memoryCacheOptions)
                 filteredURL: \(String(describing: ref.options.filteredURL))
-                loadKey: \(String(describing: ref.options.loadKey))
                 userInfo: \(String(describing: ref.options.userInfo))
             }
         }
@@ -281,23 +280,14 @@ public struct ImageRequestOptions {
     /// ```
     public var filteredURL: String?
 
-    /// Returns a key that compares requests with regards to loading images.
-    ///
-    /// The default key considers two requests equivalent if they have the same
-    /// `URLRequests` and the same processors. `URLRequests` are compared by
-    /// their `URL`, `cachePolicy`, and `allowsCellularAccess` properties.
-    public var loadKey: AnyHashable?
-
     /// Custom info passed alongside the request.
     public var userInfo: [AnyHashable: Any]
 
     public init(memoryCacheOptions: MemoryCacheOptions = .init(),
                 filteredURL: String? = nil,
-                loadKey: AnyHashable? = nil,
                 userInfo: [AnyHashable: Any] = [:]) {
         self.memoryCacheOptions = memoryCacheOptions
         self.filteredURL = filteredURL
-        self.loadKey = loadKey
         self.userInfo = userInfo
     }
 }
@@ -360,19 +350,11 @@ extension ImageRequest {
         let request: ImageRequest
 
         func hash(into hasher: inout Hasher) {
-            if let customKey = request.ref.options.loadKey {
-                hasher.combine(customKey)
-            } else {
-                hasher.combine(request.ref.preferredURLString)
-            }
+            hasher.combine(request.ref.preferredURLString)
         }
 
         static func == (lhs: LoadKeyForOriginalImage, rhs: LoadKeyForOriginalImage) -> Bool {
-            let (lhs, rhs) = (lhs.request, rhs.request)
-            if lhs.options.loadKey != nil || rhs.options.loadKey != nil {
-                return lhs.options.loadKey == rhs.options.loadKey
-            }
-            return Parameters(lhs) == Parameters(rhs)
+            Parameters(lhs.request) == Parameters(rhs.request)
         }
 
         private struct Parameters: Hashable {
