@@ -139,3 +139,12 @@ public protocol ImagePipelineObserving {
     /// Delivers the events produced by the image tasks started via `loadImage` method.
     func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent)
 }
+
+public extension ImageRequestOptions {
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please use `ImagePipeline.Delegate` instead. This API does nothing starting with Nuke 10.")
+    var cacheKey: AnyHashable? {
+        get { nil }
+        set { debugPrint("The ImageRequestOptions.cacheKey API does nothing starting with Nuke 10") } // swiftlint:disable:this unused_setter_value
+    }
+}

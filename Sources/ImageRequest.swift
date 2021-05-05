@@ -238,7 +238,6 @@ public struct ImageRequest: CustomStringConvertible {
             options: {
                 memoryCacheOptions: \(ref.options.memoryCacheOptions)
                 filteredURL: \(String(describing: ref.options.filteredURL))
-                cacheKey: \(String(describing: ref.options.cacheKey))
                 loadKey: \(String(describing: ref.options.loadKey))
                 userInfo: \(String(describing: ref.options.userInfo))
             }
@@ -282,13 +281,6 @@ public struct ImageRequestOptions {
     /// ```
     public var filteredURL: String?
 
-    /// The **memory** cache key for final processed images. Set if you are not
-    /// happy with the default behavior.
-    ///
-    /// By default, two requests are considered equivalent if they have the same
-    /// URLs and the same processors.
-    public var cacheKey: AnyHashable?
-
     /// Returns a key that compares requests with regards to loading images.
     ///
     /// The default key considers two requests equivalent if they have the same
@@ -301,12 +293,10 @@ public struct ImageRequestOptions {
 
     public init(memoryCacheOptions: MemoryCacheOptions = .init(),
                 filteredURL: String? = nil,
-                cacheKey: AnyHashable? = nil,
                 loadKey: AnyHashable? = nil,
                 userInfo: [AnyHashable: Any] = [:]) {
         self.memoryCacheOptions = memoryCacheOptions
         self.filteredURL = filteredURL
-        self.cacheKey = cacheKey
         self.loadKey = loadKey
         self.userInfo = userInfo
     }
@@ -350,18 +340,11 @@ extension ImageRequest {
         let request: ImageRequest
 
         func hash(into hasher: inout Hasher) {
-            if let customKey = request.ref.options.cacheKey {
-                hasher.combine(customKey)
-            } else {
-                hasher.combine(request.ref.preferredURLString)
-            }
+            hasher.combine(request.ref.preferredURLString)
         }
 
         static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
             let lhs = lhs.request.ref, rhs = rhs.request.ref
-            if lhs.options.cacheKey != nil || rhs.options.cacheKey != nil {
-                return lhs.options.cacheKey == rhs.options.cacheKey
-            }
             return lhs.preferredURLString == rhs.preferredURLString && lhs.processors == rhs.processors
         }
     }
