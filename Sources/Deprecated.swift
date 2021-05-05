@@ -116,8 +116,11 @@ public extension ImagePipeline {
     @available(*, deprecated, message: "If needed, use pipeline.cache.makeDataCacheKey(for:) instead. For original image data, remove the processors from the request. In general, there should be no need to create the keys manually anymore.")
     func cacheKey(for request: ImageRequest, item: DataCacheItem) -> String {
         switch item {
-        case .originalImageData: return request.makeCacheKeyForOriginalImageData()
-        case .finalImage: return request.makeCacheKeyForFinalImageData()
+        case .originalImageData:
+            var request = request
+            request.processors = []
+            return request.makeDataCacheKey()
+        case .finalImage: return request.makeDataCacheKey()
         }
     }
 

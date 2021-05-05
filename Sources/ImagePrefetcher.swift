@@ -120,7 +120,7 @@ public final class ImagePrefetcher {
     }
 
     private func _startPrefetching(with request: ImageRequest) {
-        let key = request.makeLoadKeyForFinalImage()
+        let key = request.makeLoadKeyForProcessedImage()
 
         guard tasks[key] == nil else {
             return // Already started prefetching
@@ -191,7 +191,7 @@ public final class ImagePrefetcher {
     }
 
     private func _stopPrefetching(with request: ImageRequest) {
-        if let task = tasks.removeValue(forKey: request.makeLoadKeyForFinalImage()) {
+        if let task = tasks.removeValue(forKey: request.makeLoadKeyForProcessedImage()) {
             task.cancel()
         }
     }

@@ -37,7 +37,7 @@ public struct ImageCacheKey: Hashable {
     }
 
     init(request: ImageRequest) {
-        self.key = .default(request.makeCacheKeyForFinalImage())
+        self.key = .default(request.makeImageCacheKey())
     }
 }
 

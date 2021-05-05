@@ -159,7 +159,7 @@ public extension ImagePipeline {
 
         public func makeDataCacheKey(for request: ImageRequest) -> String {
             switch delegate.makeDataCacheKey(for: request) {
-            case .default: return request.makeCacheKeyForFinalImageData()
+            case .default: return request.makeDataCacheKey()
             case .custom(let key): return key
             }
         }
