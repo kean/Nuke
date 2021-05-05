@@ -113,11 +113,14 @@ public extension ImagePipeline {
     }
 
     // Deprecated in 10.0.0
-    @available(*, deprecated, message: "If needed, use pipeline.cache.makeDiskCacheKey(for:) instead. For original image data, remove the processors from the request. In general, there should be no need to create the keys manually anymore.")
+    @available(*, deprecated, message: "If needed, use pipeline.cache.makeDataCacheKey(for:) instead. For original image data, remove the processors from the request. In general, there should be no need to create the keys manually anymore.")
     func cacheKey(for request: ImageRequest, item: DataCacheItem) -> String {
         switch item {
-        case .originalImageData: return request.makeCacheKeyForOriginalImageData()
-        case .finalImage: return request.makeCacheKeyForFinalImageData()
+        case .originalImageData:
+            var request = request
+            request.processors = []
+            return request.makeDataCacheKey()
+        case .finalImage: return request.makeDataCacheKey()
         }
     }
 
@@ -128,4 +131,11 @@ public extension ImagePipeline {
         /// Same as the new `DiskCachePolicy.storeEncodedImages`
         case finalImage
     }
+}
+
+// Deprecated in 10.0.0
+@available(*, deprecated, message: "Please use ImagePipelineDelegate")
+public protocol ImagePipelineObserving {
+    /// Delivers the events produced by the image tasks started via `loadImage` method.
+    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent)
 }

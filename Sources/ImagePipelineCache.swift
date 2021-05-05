@@ -8,10 +8,12 @@ public extension ImagePipeline {
     /// Thread-safe.
     final class Cache {
         private let configuration: ImagePipeline.Configuration
+        private let delegate: ImagePipelineDelegate // swiftlint:disable:this all
         private(set) var imageCache: ImageCache?
 
         init(configuration: ImagePipeline.Configuration) {
             self.configuration = configuration
+            self.delegate = configuration.delegate ?? ImagePipelineDefaultDelegate()
             if let imageCache = configuration.imageCache as? ImageCache {
                 self.imageCache = imageCache
             }
@@ -61,7 +63,7 @@ public extension ImagePipeline {
             guard request.cachePolicy != .reloadIgnoringCachedData && request.options.memoryCacheOptions.isReadAllowed else {
                 return nil
             }
-            let key = makeMemoryCacheKey(for: request)
+            let key = makeImageCacheKey(for: request)
             if let imageCache = self.imageCache {
                 return imageCache[key] // Fast path for a default cache (no protocol call)
             } else {
@@ -99,7 +101,7 @@ public extension ImagePipeline {
             guard !image.isPreview || configuration.isStoringPreviewsInMemoryCache else {
                 return
             }
-            let key = makeMemoryCacheKey(for: request)
+            let key = makeImageCacheKey(for: request)
             configuration.imageCache?[key] = image
         }
 
@@ -113,7 +115,7 @@ public extension ImagePipeline {
         }
 
         func removeCachedImageFromMemoryCache(for request: ImageRequest) {
-            let key = makeMemoryCacheKey(for: request)
+            let key = makeImageCacheKey(for: request)
             configuration.imageCache?[key] = nil
         }
 
@@ -126,7 +128,7 @@ public extension ImagePipeline {
             guard let dataCache = configuration.dataCache else {
                 return nil
             }
-            let key = makeDiskCacheKey(for: request)
+            let key = makeDataCacheKey(for: request)
             return dataCache.cachedData(for: key)
         }
 
@@ -134,7 +136,7 @@ public extension ImagePipeline {
             guard let dataCache = configuration.dataCache else {
                 return
             }
-            let key = makeDiskCacheKey(for: request)
+            let key = makeDataCacheKey(for: request)
             dataCache.storeData(data, for: key)
         }
 
@@ -142,18 +144,24 @@ public extension ImagePipeline {
             guard let dataCache = configuration.dataCache else {
                 return
             }
-            let key = makeDiskCacheKey(for: request)
+            let key = makeDataCacheKey(for: request)
             dataCache.removeData(for: key)
         }
 
         // MARK: Keys
 
-        public func makeMemoryCacheKey(for request: ImageRequest) -> ImageCacheKey {
-            ImageCacheKey(request: request)
+        public func makeImageCacheKey(for request: ImageRequest) -> ImageCacheKey {
+            switch delegate.makeImageCacheKey(for: request) {
+            case .default: return ImageCacheKey(request: request)
+            case .custom(let key): return ImageCacheKey(key: key)
+            }
         }
 
-        public func makeDiskCacheKey(for request: ImageRequest) -> String {
-            request.makeCacheKeyForFinalImageData()
+        public func makeDataCacheKey(for request: ImageRequest) -> String {
+            switch delegate.makeDataCacheKey(for: request) {
+            case .default: return request.makeDataCacheKey()
+            case .custom(let key): return key
+            }
         }
 
         // MARK: Misc

@@ -41,4 +41,3 @@ extension URL {
         return scheme != "file" && scheme != "data"
     }
 }
-

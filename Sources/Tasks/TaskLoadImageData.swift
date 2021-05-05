@@ -24,9 +24,8 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
     }
 
     private func getCachedData(dataCache: DataCaching) {
-        let key = request.makeCacheKeyForOriginalImageData()
         let data = signpost(log, "ReadCachedImageData") {
-            dataCache.cachedData(for: key)
+            pipeline.cache.cachedData(for: request)
         }
         async {
             if let data = data {
@@ -175,7 +174,7 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
 
         // Store in data cache
         if let dataCache = pipeline.configuration.dataCache, shouldStoreDataInDiskCache() {
-            let key = request.makeCacheKeyForOriginalImageData()
+            let key = pipeline.cache.makeDataCacheKey(for: request)
             dataCache.storeData(data, for: key)
         }
 

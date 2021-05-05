@@ -31,7 +31,7 @@ class ImagePipelineCacheTests: XCTestCase {
     func testGetCachedImageDefaultFromMemoryCache() {
         // GIVEN
         let request = Test.request
-        memoryCache[cache.makeMemoryCacheKey(for: request)] = Test.container
+        memoryCache[cache.makeImageCacheKey(for: request)] = Test.container
 
         // WHEN
         let image = cache.cachedImage(for: request)
@@ -43,7 +43,7 @@ class ImagePipelineCacheTests: XCTestCase {
     func testGetCachedImageDefaultFromDiskCache() {
         // GIVEN
         let request = Test.request
-        diskCache.storeData(Test.data, for: cache.makeDiskCacheKey(for: request))
+        diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
         // WHEN
         let image = cache.cachedImage(for: request)
@@ -55,7 +55,7 @@ class ImagePipelineCacheTests: XCTestCase {
     func testGetCachedImageDefaultFromDiskCacheWhenOptionEnabled() {
         // GIVEN
         let request = Test.request
-        diskCache.storeData(Test.data, for: cache.makeDiskCacheKey(for: request))
+        diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
         // WHEN
         let image = cache.cachedImage(for: request, caches: [.disk])
@@ -78,7 +78,7 @@ class ImagePipelineCacheTests: XCTestCase {
     func testGetCachedImageDefaultFromMemoryCacheWhenCachePolicyPreventsLookup() {
         // GIVEN
         var request = Test.request
-        memoryCache[cache.makeMemoryCacheKey(for: request)] = Test.container
+        memoryCache[cache.makeImageCacheKey(for: request)] = Test.container
 
         // WHEN
         request.cachePolicy = .reloadIgnoringCachedData
@@ -91,7 +91,7 @@ class ImagePipelineCacheTests: XCTestCase {
     func testGetCachedImageDefaultFromDiskCacheWhenCachePolicyPreventsLookup() {
         // GIVEN
         var request = Test.request
-        diskCache.storeData(Test.data, for: cache.makeDiskCacheKey(for: request))
+        diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
         // WHEN
         request.cachePolicy = .reloadIgnoringCachedData
@@ -104,7 +104,7 @@ class ImagePipelineCacheTests: XCTestCase {
     func testGetCachedImageOnlyFromMemoryStoredInMemory() {
         // GIVEN
         let request = Test.request
-        memoryCache[cache.makeMemoryCacheKey(for: request)] = Test.container
+        memoryCache[cache.makeImageCacheKey(for: request)] = Test.container
 
         // WHEN
         let image = cache.cachedImage(for: request, caches: [.memory])
@@ -116,7 +116,7 @@ class ImagePipelineCacheTests: XCTestCase {
     func testGetCachedImageOnlyFromMemoryStoredOnDisk() {
         // GIVEN
         let request = Test.request
-        diskCache.storeData(Test.data, for: cache.makeDiskCacheKey(for: request))
+        diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
         // WHEN
         let image = cache.cachedImage(for: request, caches: [.memory])
@@ -134,10 +134,10 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // THEN
         XCTAssertNotNil(cache.cachedImage(for: request))
-        XCTAssertNotNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+        XCTAssertNotNil(memoryCache[cache.makeImageCacheKey(for: request)])
 
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 
     func testStoreCachedImageInDiskCache() {
@@ -147,10 +147,10 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // THEN
         XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
 
         XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 
     func testStoreCachedImageInBothLayers() {
@@ -160,10 +160,10 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // THEN
         XCTAssertNotNil(cache.cachedImage(for: request))
-        XCTAssertNotNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+        XCTAssertNotNil(memoryCache[cache.makeImageCacheKey(for: request)])
 
         XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 
     func testStoreCachedData() {
@@ -173,10 +173,10 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // THEN
         XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
 
         XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 
     func testStoreCacheImageWhenMemoryCacheWriteDisabled() {
@@ -187,10 +187,10 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // THEN
         XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
 
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 
     // MARK: Remove
@@ -205,7 +205,7 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // THEN
         XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
     }
 
     func testRemoveFromDiskCache() {
@@ -218,7 +218,7 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // THEN
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 
     func testRemoveFromAllCaches() {
@@ -231,10 +231,10 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // THEN
         XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
 
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 
     // MARK: Remove All
@@ -249,10 +249,10 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // THEN
         XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
 
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 
     func testRemoveAllWithAllStatic() {
@@ -265,9 +265,9 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // THEN
         XCTAssertNil(cache.cachedImage(for: request))
-        XCTAssertNil(memoryCache[cache.makeMemoryCacheKey(for: request)])
+        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
 
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDiskCacheKey(for: request)))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 }
