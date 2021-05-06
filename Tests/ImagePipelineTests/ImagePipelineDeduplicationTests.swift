@@ -579,8 +579,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
 
         // Then
         wait { _ in
-            // TODO: improve coalescing, this should be 1
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 2, "Expected only one data task to be performed")
+            XCTAssertEqual(self.dataLoader.createdTaskCount, 1, "Expected only one data task to be performed")
         }
     }
 
@@ -602,8 +601,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
 
         // Then
         wait { _ in
-            // TODO: improve coalescing, this should be 1
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 2, "Expected only one data task to be performed")
+            XCTAssertEqual(self.dataLoader.createdTaskCount, 1, "Expected only one data task to be performed")
         }
     }
 }
