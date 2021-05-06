@@ -19,7 +19,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
 
         guard let dataCache = pipeline.configuration.dataCache,
-              pipeline.configuration.diskCachePolicy != .storeOriginalImageData,
               request.cachePolicy != .reloadIgnoringCachedData else {
             return loadImage()
         }
@@ -99,9 +98,20 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
         }
 
-        let request = self.request.withProcessors([])
-        dependency = pipeline.makeTaskDecodeImage(for: request).subscribe(self) { [weak self] in
-            self?.didReceiveImage($0, isCompleted: $1, processors: remaining)
+        if request.cachePolicy == .returnCacheDataDontLoad {
+            // Same error that URLSession produces when .returnCacheDataDontLoad is specified and the
+            // data is no found in the cache.
+            let error = NSError(domain: URLError.errorDomain, code: URLError.resourceUnavailable.rawValue, userInfo: nil)
+            send(error: .dataLoadingFailed(error))
+        } else if request.processors.isEmpty {
+            dependency = pipeline.makeTaskDecodeImage(for: request).subscribe(self) { [weak self] in
+                self?.didReceiveImage($0, isCompleted: $1, processors: remaining)
+            }
+        } else {
+            let request = self.request.withProcessors([])
+            dependency = pipeline.makeTaskLoadImage(for: request).subscribe(self) { [weak self] in
+                self?.didReceiveImage($0, isCompleted: $1, processors: remaining)
+            }
         }
     }
 
@@ -204,7 +214,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         guard !response.container.isPreview else {
             return
         }
-        guard let dataCache = pipeline.configuration.dataCache, shouldStoreImageInDiskCache() else {
+        guard let dataCache = pipeline.configuration.dataCache, shouldStoreFinalImageInDiskCache() else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
@@ -223,9 +233,12 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
     }
 
-    private func shouldStoreImageInDiskCache() -> Bool {
+    private func shouldStoreFinalImageInDiskCache() -> Bool {
         guard request.url?.isCacheable ?? false else {
             return false
+        }
+        guard subscribers.contains(where: { $0 is ImageTask }) else {
+            return false // This a virtual task
         }
         let policy = pipeline.configuration.diskCachePolicy
         return ((policy == .automatic && !request.processors.isEmpty) || policy == .storeEncodedImages)

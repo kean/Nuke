@@ -25,6 +25,7 @@ public /* final */ class ImagePipeline {
 
     private var tasks = [ImageTask: TaskSubscription]()
 
+    private let loadDataTasks: TaskPool<ImageRequest.LoadKeyForProcessedImage, (Data, URLResponse?), Error>
     private let decompressedImageTasks: TaskPool<ImageRequest.LoadKeyForProcessedImage, ImageResponse, Error>
     private let originalImageTasks: TaskPool<ImageRequest.LoadKeyForOriginalImage, ImageResponse, Error>
     private let originalImageDataTasks: TaskPool<ImageRequest.LoadKeyForOriginalImage, (Data, URLResponse?), Error>
@@ -62,6 +63,7 @@ public /* final */ class ImagePipeline {
         self.delegate = configuration.delegate ?? ImagePipelineDefaultDelegate()
 
         let isDeduplicationEnabled = configuration.isDeduplicationEnabled
+        self.loadDataTasks = TaskPool(isDeduplicationEnabled)
         self.decompressedImageTasks = TaskPool(isDeduplicationEnabled)
         self.originalImageTasks = TaskPool(isDeduplicationEnabled)
         self.originalImageDataTasks = TaskPool(isDeduplicationEnabled)
@@ -283,7 +285,7 @@ private extension ImagePipeline {
                        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) {
         guard !isInvalidated else { return }
 
-        tasks[task] = makeTaskLoadImageData(for: task.request)
+        tasks[task] = makeTaskLoadData(for: task.request)
             .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
@@ -331,6 +333,13 @@ extension ImagePipeline {
     func makeTaskLoadImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
         decompressedImageTasks.publisherForKey(request.makeLoadKeyForProcessedImage()) {
             TaskLoadImage(self, request)
+        }
+    }
+
+    #warning("correct key?")
+    func makeTaskLoadData(for request: ImageRequest) -> Task<(Data, URLResponse?), Error>.Publisher {
+        loadDataTasks.publisherForKey(request.makeLoadKeyForProcessedImage()) {
+            TaskLoadData(self, request)
         }
     }
 

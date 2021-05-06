@@ -13,38 +13,6 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
     private lazy var data = Data()
 
     override func start() {
-        guard let dataCache = pipeline.configuration.dataCache,
-              request.cachePolicy != .reloadIgnoringCachedData else {
-            loadData() // Skip disk cache lookup, load data
-            return
-        }
-        operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
-            self?.getCachedData(dataCache: dataCache)
-        }
-    }
-
-    private func getCachedData(dataCache: DataCaching) {
-        let data = signpost(log, "ReadCachedImageData") {
-            pipeline.cache.cachedData(for: request)
-        }
-        async {
-            if let data = data {
-                self.send(value: (data, nil), isCompleted: true)
-            } else {
-                self.loadData()
-            }
-        }
-    }
-
-    private func loadData() {
-        guard request.cachePolicy != .returnCacheDataDontLoad else {
-            // Same error that URLSession produces when .returnCacheDataDontLoad is specified and the
-            // data is no found in the cache.
-            let error = NSError(domain: URLError.errorDomain, code: URLError.resourceUnavailable.rawValue, userInfo: nil)
-            self.send(error: .dataLoadingFailed(error))
-            return
-        }
-
         if let rateLimiter = pipeline.rateLimiter {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
             // executed asynchronously also on this same queue.
@@ -52,15 +20,15 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
                 guard let self = self, !self.isDisposed else {
                     return false
                 }
-                self.actuallyLoadData()
+                self.loadData()
                 return true
             }
         } else { // Start loading immediately.
-            actuallyLoadData()
+            loadData()
         }
     }
 
-    private func actuallyLoadData() {
+    private func loadData() {
         // Wrap data request in an operation to limit maximum number of
         // concurrent data tasks.
         operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
@@ -68,13 +36,13 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
                 return finish()
             }
             self.async {
-                self.loadImageData(finish: finish)
+                self.loadData(finish: finish)
             }
         }
     }
 
     // This methods gets called inside data loading operation (Operation).
-    private func loadImageData(finish: @escaping () -> Void) {
+    private func loadData(finish: @escaping () -> Void) {
         guard !isDisposed else {
             return finish() // Task was cancelled by the time it got a chance to start
         }
