@@ -26,9 +26,9 @@ public /* final */ class ImagePipeline {
     private var tasks = [ImageTask: TaskSubscription]()
 
     private let decompressedImageTasks: TaskPool<ImageRequest.LoadKeyForProcessedImage, ImageResponse, Error>
-    private let processedImageTasks: TaskPool<ImageRequest.LoadKeyForProcessedImage, ImageResponse, Error>
     private let originalImageTasks: TaskPool<ImageRequest.LoadKeyForOriginalImage, ImageResponse, Error>
     private let originalImageDataTasks: TaskPool<ImageRequest.LoadKeyForOriginalImage, (Data, URLResponse?), Error>
+    private let imageProcessingTasks: TaskPool<ImageProcessingKey, ImageResponse, Swift.Error>
 
     // The queue on which the entire subsystem is synchronized.
     let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", qos: .userInitiated)
@@ -63,9 +63,9 @@ public /* final */ class ImagePipeline {
 
         let isDeduplicationEnabled = configuration.isDeduplicationEnabled
         self.decompressedImageTasks = TaskPool(isDeduplicationEnabled)
-        self.processedImageTasks = TaskPool(isDeduplicationEnabled)
         self.originalImageTasks = TaskPool(isDeduplicationEnabled)
         self.originalImageDataTasks = TaskPool(isDeduplicationEnabled)
+        self.imageProcessingTasks = TaskPool(isDeduplicationEnabled)
 
         self._nextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
         self._nextTaskId.initialize(to: 0)
@@ -322,7 +322,7 @@ private extension ImagePipeline {
 
 // When you request an image, the pipeline creates the following dependency graph:
 //
-// TaskLoadImage -> TaskProcessImage* -> TaskDecodeImage -> TaskLoadImageData
+// TaskLoadImage+ -> TaskLoadDecodedImage -> TaskLoadImageData
 //
 // Each task represents a resource to be retrieved - processed image, original image, etc.
 // Each task can be reuse of the same resource requested multiple times.
@@ -334,17 +334,15 @@ extension ImagePipeline {
         }
     }
 
-    func makeTaskProcessImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
-        request.processors.isEmpty ?
-            makeTaskDecodeImage(for: request) : // No processing needed
-            processedImageTasks.publisherForKey(request.makeLoadKeyForProcessedImage()) {
-                TaskProcessImage(self, request)
-            }
+    func makeTaskProcessImage(key: ImageProcessingKey, process: @escaping () -> ImageResponse?) -> Task<ImageResponse, Swift.Error>.Publisher {
+        imageProcessingTasks.publisherForKey(key) {
+            OperationTask(self, configuration.imageProcessingQueue, process)
+        }
     }
 
     func makeTaskDecodeImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
         originalImageTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
-            TaskDecodeImage(self, request)
+            TaskLoadDecodedImage(self, request)
         }
     }
 

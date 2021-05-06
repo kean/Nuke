@@ -243,6 +243,12 @@ public struct ImageRequest: CustomStringConvertible {
         }
         """
     }
+
+    func withProcessors(_ processors: [ImageProcessing]) -> ImageRequest {
+        var request = self
+        request.processors = processors
+        return request
+    }
 }
 
 // MARK: - ImageRequestOptions (Advanced Options)
@@ -376,6 +382,16 @@ extension ImageRequest {
                 }
             }
         }
+    }
+}
+
+struct ImageProcessingKey: Equatable, Hashable {
+    let imageId: ObjectIdentifier
+    let processorId: AnyHashable
+
+    init(image: ImageResponse, processor: ImageProcessing) {
+        self.imageId = ObjectIdentifier(image)
+        self.processorId = processor.hashableIdentifier
     }
 }
 
