@@ -25,10 +25,11 @@ public /* final */ class ImagePipeline {
 
     private var tasks = [ImageTask: TaskSubscription]()
 
-    private let decompressedImageTasks: TaskPool<ImageRequest.LoadKeyForProcessedImage, ImageResponse, Error>
-    private let originalImageTasks: TaskPool<ImageRequest.LoadKeyForOriginalImage, ImageResponse, Error>
-    private let originalImageDataTasks: TaskPool<ImageRequest.LoadKeyForOriginalImage, (Data, URLResponse?), Error>
-    private let imageProcessingTasks: TaskPool<ImageProcessingKey, ImageResponse, Swift.Error>
+    private let tasksLoadData: TaskPool<ImageRequest.LoadKeyForProcessedImage, (Data, URLResponse?), Error>
+    private let tasksLoadImage: TaskPool<ImageRequest.LoadKeyForProcessedImage, ImageResponse, Error>
+    private let tasksFetchDecodedImage: TaskPool<ImageRequest.LoadKeyForOriginalImage, ImageResponse, Error>
+    private let tasksFetchOriginalImageData: TaskPool<ImageRequest.LoadKeyForOriginalImage, (Data, URLResponse?), Error>
+    private let tasksProcessImage: TaskPool<ImageProcessingKey, ImageResponse, Swift.Error>
 
     // The queue on which the entire subsystem is synchronized.
     let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", qos: .userInitiated)
@@ -62,10 +63,11 @@ public /* final */ class ImagePipeline {
         self.delegate = configuration.delegate ?? ImagePipelineDefaultDelegate()
 
         let isDeduplicationEnabled = configuration.isDeduplicationEnabled
-        self.decompressedImageTasks = TaskPool(isDeduplicationEnabled)
-        self.originalImageTasks = TaskPool(isDeduplicationEnabled)
-        self.originalImageDataTasks = TaskPool(isDeduplicationEnabled)
-        self.imageProcessingTasks = TaskPool(isDeduplicationEnabled)
+        self.tasksLoadData = TaskPool(isDeduplicationEnabled)
+        self.tasksLoadImage = TaskPool(isDeduplicationEnabled)
+        self.tasksFetchDecodedImage = TaskPool(isDeduplicationEnabled)
+        self.tasksFetchOriginalImageData = TaskPool(isDeduplicationEnabled)
+        self.tasksProcessImage = TaskPool(isDeduplicationEnabled)
 
         self._nextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
         self._nextTaskId.initialize(to: 0)
@@ -283,7 +285,7 @@ private extension ImagePipeline {
                        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) {
         guard !isInvalidated else { return }
 
-        tasks[task] = makeTaskLoadImageData(for: task.request)
+        tasks[task] = makeTaskLoadData(for: task.request)
             .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
@@ -320,35 +322,52 @@ private extension ImagePipeline {
 
 // MARK: - Task Factory (Private)
 
-// When you request an image, the pipeline creates the following dependency graph:
+// When you request an image or image data, the pipeline creates a graph of tasks
+// (some tasks are added to the graph on demand).
 //
-// TaskLoadImage+ -> TaskLoadDecodedImage -> TaskLoadImageData
+// `loadImage()` call is represented by TaskLoadImage:
 //
-// Each task represents a resource to be retrieved - processed image, original image, etc.
-// Each task can be reuse of the same resource requested multiple times.
-
+// TaskLoadImage+ -> TaskFetchDecodedImage -> TaskFetchOriginalImageData
+//                -> TaskProcessImage
+//
+// `loadData()` call is represented by TaskLoadData:
+//
+// TaskLoadData -> TaskFetchOriginalImageData
+//
+//
+// Each task represents a resource or a piece of work required to produce the
+// final result. The pipeline reduces the amount of duplicated work by coalescing
+// the tasks that represent the same work. For example, if you all `loadImage()`
+// and `loadData()` with the same request, only on `TaskFetchOriginalImageData`
+// is created. The work is split between tasks to minimize any duplicated work.
 extension ImagePipeline {
     func makeTaskLoadImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
-        decompressedImageTasks.publisherForKey(request.makeLoadKeyForProcessedImage()) {
+        tasksLoadImage.publisherForKey(request.makeLoadKeyForProcessedImage()) {
             TaskLoadImage(self, request)
         }
     }
 
+    func makeTaskLoadData(for request: ImageRequest) -> Task<(Data, URLResponse?), Error>.Publisher {
+        tasksLoadData.publisherForKey(request.makeLoadKeyForProcessedImage()) {
+            TaskLoadData(self, request)
+        }
+    }
+
     func makeTaskProcessImage(key: ImageProcessingKey, process: @escaping () -> ImageResponse?) -> Task<ImageResponse, Swift.Error>.Publisher {
-        imageProcessingTasks.publisherForKey(key) {
+        tasksProcessImage.publisherForKey(key) {
             OperationTask(self, configuration.imageProcessingQueue, process)
         }
     }
 
-    func makeTaskDecodeImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
-        originalImageTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
-            TaskLoadDecodedImage(self, request)
+    func makeTaskFetchDecodedImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
+        tasksFetchDecodedImage.publisherForKey(request.makeLoadKeyForOriginalImage()) {
+            TaskFetchDecodedImage(self, request)
         }
     }
 
-    func makeTaskLoadImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), Error>.Publisher {
-        originalImageDataTasks.publisherForKey(request.makeLoadKeyForOriginalImage()) {
-            TaskLoadImageData(self, request)
+    func makeTaskFetchOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), Error>.Publisher {
+        tasksFetchOriginalImageData.publisherForKey(request.makeLoadKeyForOriginalImage()) {
+            TaskFetchOriginalImageData(self, request)
         }
     }
 }

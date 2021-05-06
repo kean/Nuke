@@ -316,10 +316,12 @@ extension ImageRequest {
 
     // MARK: - Load Keys
 
+    #warning("better naming for keys")
     /// A key for deduplicating operations for fetching the processed image.
     func makeLoadKeyForProcessedImage() -> LoadKeyForProcessedImage {
         LoadKeyForProcessedImage(
             cacheKey: makeImageCacheKey(),
+            cachePolicy: ref.cachePolicy,
             loadKey: makeLoadKeyForOriginalImage()
         )
     }
@@ -348,7 +350,8 @@ extension ImageRequest {
     // Uniquely identifies a task of retrieving the processed image.
     struct LoadKeyForProcessedImage: Hashable {
         let cacheKey: CacheKey
-        let loadKey: AnyHashable
+        let cachePolicy: CachePolicy
+        let loadKey: LoadKeyForOriginalImage
     }
 
     // Uniquely identifies a task of retrieving the original image.
@@ -365,13 +368,11 @@ extension ImageRequest {
 
         private struct Parameters: Hashable {
             let urlString: String?
-            let requestCachePolicy: CachePolicy
             let cachePolicy: URLRequest.CachePolicy
             let allowsCellularAccess: Bool
 
             init(_ request: ImageRequest) {
                 self.urlString = request.ref.urlString
-                self.requestCachePolicy = request.cachePolicy
                 switch request.ref.resource {
                 case .url:
                     self.cachePolicy = .useProtocolCachePolicy

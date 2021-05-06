@@ -4,31 +4,49 @@
 
 import Foundation
 
+/// Wrapper for tasks created by `loadData` calls.
+///
 /// Performs all the quick cache lookups and also manages image processing.
 /// The coalesing for image processing is implemented on demand (extends the
 /// scenarios in which coalescing can kick in).
+///
+/// Tasks with processors also create a "virtual" TaskLoadImage.
 final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     override func start() {
-        if let image = pipeline.cache.cachedImage(for: request) {
-            let response = ImageResponse(container: image)
-            if image.isPreview {
-                send(value: response)
-            } else {
-                return send(value: response, isCompleted: true)
+        // Memory cache lookup (including intermediate images)
+        var current = request.processors
+        var remaining: [ImageProcessing] = []
+        repeat {
+            #warning("do this without creating new requests")
+            let request = self.request.withProcessors(current)
+            if let image = pipeline.cache.cachedImage(for: request) {
+                let response = ImageResponse(container: image)
+                if image.isPreview {
+                    didReceiveImage(response, isCompleted: false, processors: remaining)
+                } else {
+                    didReceiveImage(response, isCompleted: true, processors: remaining)
+                    return // Nothing left to do, just apply the processors
+                }
             }
+            if let last = current.popLast() {
+                remaining.append(last)
+            }
+        } while !current.isEmpty
+
+        // Disk cache lookup
+        if let dataCache = pipeline.configuration.dataCache,
+           request.cachePolicy != .reloadIgnoringCachedData {
+            operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
+                self?.getCachedData(dataCache: dataCache)
+            }
+            return
         }
 
-        guard let dataCache = pipeline.configuration.dataCache,
-              pipeline.configuration.diskCachePolicy != .storeOriginalImageData,
-              request.cachePolicy != .reloadIgnoringCachedData else {
-            return loadImage()
-        }
-
-        // Load processed image from data cache and decompress it.
-        operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
-            self?.getCachedData(dataCache: dataCache)
-        }
+        // Fetch image
+        fetchImage()
     }
+
+    // MARK: Disk Cache Lookup
 
     private func getCachedData(dataCache: DataCaching) {
         let data = signpost(log, "ReadCachedProcessedImageData") {
@@ -36,23 +54,21 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
         async {
             if let data = data {
-                self.decodeProcessedImageData(data)
+                self.didReceiveCachedData(data)
             } else {
-                self.loadImage()
+                self.fetchImage()
             }
         }
     }
 
-    // MARK: Decoding Processed Images
-
-    private func decodeProcessedImageData(_ data: Data) {
+    private func didReceiveCachedData(_ data: Data) {
         guard !isDisposed else { return }
 
         let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
         guard let decoder = pipeline.configuration.makeImageDecoder(context) else {
             // This shouldn't happen in practice unless encoder/decoder pair
             // for data cache is misconfigured.
-            return loadImage()
+            return fetchImage()
         }
 
         let decode = {
@@ -61,50 +77,50 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
         }
         if ImagePipeline.Configuration.isFastTrackDecodingEnabled(for: decoder) {
-            didFinishDecodingProcessedImageData(decode())
+            didDecodeCachedData(decode())
         } else {
             operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
                 guard let self = self else { return }
                 let response = decode()
                 self.async {
-                    self.didFinishDecodingProcessedImageData(response)
+                    self.didDecodeCachedData(response)
                 }
             }
         }
     }
 
-    private func didFinishDecodingProcessedImageData(_ response: ImageResponse?) {
+    private func didDecodeCachedData(_ response: ImageResponse?) {
         if let response = response {
-            decompressProcessedImage(response, isCompleted: true)
+            decompressImage(response, isCompleted: true)
         } else {
-            loadImage()
+            fetchImage()
         }
     }
 
-    // MARK: Loading Original Image + Processing
+    // MARK: Fetch Image
 
-    private func loadImage() {
-        // Check if any of the intermediate processed images (or the original image)
-        // available in the memory cache.
-        var current = request.processors
-        var remaining: [ImageProcessing] = []
-        while !current.isEmpty {
-            let request = self.request.withProcessors(current)
-            if let image = pipeline.cache.cachedImage(for: request), !image.isPreview {
-                didReceiveImage(ImageResponse(container: image), isCompleted: true, processors: remaining)
-                return
+    private func fetchImage() {
+        let processors: [ImageProcessing] = request.processors.reversed()
+        // The only remaining choice is to fetch the image
+        if request.cachePolicy == .returnCacheDataDontLoad {
+            // Same error that URLSession produces when .returnCacheDataDontLoad
+            // is specified and the data is no found in the cache.
+            let error = NSError(domain: URLError.errorDomain, code: URLError.resourceUnavailable.rawValue, userInfo: nil)
+            send(error: .dataLoadingFailed(error))
+        } else if request.processors.isEmpty {
+            dependency = pipeline.makeTaskFetchDecodedImage(for: request).subscribe(self) { [weak self] in
+                self?.didReceiveImage($0, isCompleted: $1, processors: processors)
             }
-            if let last = current.popLast() {
-                remaining.append(last)
+        } else {
+            #warning("can we just perform disk cache lookup here without creating a new task?")
+            let request = self.request.withProcessors([])
+            dependency = pipeline.makeTaskLoadImage(for: request).subscribe(self) { [weak self] in
+                self?.didReceiveImage($0, isCompleted: $1, processors: processors)
             }
-        }
-
-        let request = self.request.withProcessors([])
-        dependency = pipeline.makeTaskDecodeImage(for: request).subscribe(self) { [weak self] in
-            self?.didReceiveImage($0, isCompleted: $1, processors: remaining)
         }
     }
 
+    /// - parameter processors: Remaining processors to by applied
     private func didReceiveImage(_ response: ImageResponse, isCompleted: Bool, processors: [ImageProcessing]) {
         guard !(ImagePipeline.Configuration._isAnimatedImageDataEnabled && response.image._animatedImageData != nil) else {
             self.didProduceProcessedImage(response, isCompleted: isCompleted)
@@ -120,6 +136,9 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         _processImage(response, isCompleted: isCompleted, processors: processors)
     }
 
+    // MARK: Processing
+
+    /// - parameter processors: Remaining processors to by applied
     private func _processImage(_ response: ImageResponse, isCompleted: Bool, processors: [ImageProcessing]) {
         dependency2 = nil
 
@@ -151,18 +170,18 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     private func didProduceProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
         storeImageInDataCache(response)
-        decompressProcessedImage(response, isCompleted: isCompleted)
+        decompressImage(response, isCompleted: isCompleted)
     }
 
     // MARK: Decompression
 
     #if os(macOS)
-    private func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
+    private func decompressImage(_ response: ImageResponse, isCompleted: Bool) {
         pipeline.cache.storeCachedImage(response.container, for: request)
         send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
     }
     #else
-    private func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
+    private func decompressImage(_ response: ImageResponse, isCompleted: Bool) {
         guard isDecompressionNeeded(for: response) else {
             pipeline.cache.storeCachedImage(response.container, for: request)
             send(value: response, isCompleted: isCompleted)
@@ -204,7 +223,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         guard !response.container.isPreview else {
             return
         }
-        guard let dataCache = pipeline.configuration.dataCache, shouldStoreImageInDiskCache() else {
+        guard let dataCache = pipeline.configuration.dataCache, shouldStoreFinalImageInDiskCache() else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
@@ -223,9 +242,12 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
     }
 
-    private func shouldStoreImageInDiskCache() -> Bool {
+    private func shouldStoreFinalImageInDiskCache() -> Bool {
         guard request.url?.isCacheable ?? false else {
             return false
+        }
+        guard subscribers.contains(where: { $0 is ImageTask }) else {
+            return false // This a virtual task
         }
         let policy = pipeline.configuration.diskCachePolicy
         return ((policy == .automatic && !request.processors.isEmpty) || policy == .storeEncodedImages)
