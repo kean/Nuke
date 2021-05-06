@@ -9,12 +9,14 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     private var dataLoader: MockProgressiveDataLoader!
     private var pipeline: ImagePipeline!
     private var cache: MockImageCache!
+    private var processorsFactory: MockProcessorFactory!
 
     override func setUp() {
         dataLoader = MockProgressiveDataLoader()
         ResumableDataStorage.shared.removeAll()
 
         cache = MockImageCache()
+        processorsFactory = MockProcessorFactory()
 
         // We make two important assumptions with this setup:
         //
@@ -393,6 +395,37 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         // Then final image is loaded
         expectNotification(imageLoadCompleted)
         imageProcessingQueue.isSuspended = false
+        wait()
+    }
+
+    // MARK: Memory Cache
+
+    func testIntermediateMemoryCachedResultsAreDelivered() {
+        // GIVEN intermediate result stored in memory cache
+        let request = ImageRequest(url: Test.url, processors: [
+            processorsFactory.make(id: "1"),
+            processorsFactory.make(id: "2")
+        ])
+        let intermediateRequest = ImageRequest(url: Test.url, processors: [
+            processorsFactory.make(id: "1")
+        ])
+        cache[intermediateRequest] = ImageContainer(image: Test.image, isPreview: true)
+
+        pipeline.configuration.dataLoadingQueue.isSuspended = true // Make sure no data is loaded
+
+        // WHEN/THEN the pipeline find the first preview in the memory cache,
+        // applies the remaining processors and delivers it
+        let previewDelivered = self.expectation(description: "previewDelivered")
+        pipeline.loadImage(with: request) { response, _, _ in
+            guard let response = response else {
+                return XCTFail()
+            }
+            XCTAssertEqual(response.image.nk_test_processorIDs, ["2"])
+            XCTAssertTrue(response.container.isPreview)
+            previewDelivered.fulfill()
+        } completion: { _ in
+            // Do nothing
+        }
         wait()
     }
 }

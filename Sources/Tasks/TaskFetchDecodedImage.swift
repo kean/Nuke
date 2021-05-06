@@ -5,11 +5,11 @@
 import Foundation
 
 /// Receives data from ``TaskLoadImageData` and decodes it as it arrives.
-final class TaskLoadDecodedImage: ImagePipelineTask<ImageResponse> {
+final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
     private var decoder: ImageDecoding?
 
     override func start() {
-        dependency = pipeline.makeTaskLoadImageData(for: request).subscribe(self) { [weak self] in
+        dependency = pipeline.makeTaskFetchOriginalImageData(for: request).subscribe(self) { [weak self] in
             self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
         }
     }

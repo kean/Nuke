@@ -4,9 +4,9 @@
 
 import Foundation
 
-/// Fetches original image data from data cache (`DataCaching`) or data loader
-/// (`DataLoading`) in case data is not available in cache.
-final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
+/// Fetches original image from the data loader (`DataLoading`) and stores it
+/// in the disk cache (`DataCaching`).
+final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> {
     private var urlResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
@@ -15,7 +15,7 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
     override func start() {
         if let rateLimiter = pipeline.rateLimiter {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
-            // executed asynchronously also on this same queue.
+            // executed asynchronously also on the same queue.
             rateLimiter.execute { [weak self] in
                 guard let self = self, !self.isDisposed else {
                     return false
@@ -29,10 +29,10 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
     }
 
     private func loadData() {
-        // Wrap data request in an operation to limit maximum number of
+        // Wrap data request in an operation to limit the maximum number of
         // concurrent data tasks.
         operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
-            guard let self = self else {
+            guard let self = self, !self.isDisposed else {
                 return finish()
             }
             self.async {
@@ -43,14 +43,9 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
 
     // This methods gets called inside data loading operation (Operation).
     private func loadData(finish: @escaping () -> Void) {
-        guard !isDisposed else {
-            return finish() // Task was cancelled by the time it got a chance to start
-        }
-
-        var urlRequest = request.urlRequest
-
         // Read and remove resumable data from cache (we're going to insert it
         // back in the cache if the request fails to complete again).
+        var urlRequest = request.urlRequest
         if pipeline.configuration.isResumableDataEnabled,
            let resumableData = ResumableDataStorage.shared.removeResumableData(for: request, pipeline: pipeline) {
             // Update headers to add "Range" and "If-Range" headers
@@ -82,8 +77,8 @@ final class TaskLoadImageData: ImagePipelineTask<(Data, URLResponse?)> {
             }, completion: { [weak self] error in
                 finish() // Finish the operation!
                 guard let self = self else { return }
+                signpost(log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
                 self.async {
-                    signpost(log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
                     self.dataTaskDidFinish(error: error)
                 }
             })

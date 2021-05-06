@@ -4,7 +4,7 @@
 
 import Foundation
 
-/// Wrapper for tasks created for `loadData` calls.
+/// Wrapper for tasks created by `loadData` calls.
 final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
     override func start() {
         guard let dataCache = pipeline.configuration.dataCache,
@@ -31,7 +31,14 @@ final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
     }
 
     private func loadData() {
-        dependency = pipeline.makeTaskLoadImageData(for: request).subscribe(self) { [weak self] in
+        guard request.cachePolicy != .returnCacheDataDontLoad else {
+            // Same error that URLSession produces when .returnCacheDataDontLoad is specified and the
+            // data is no found in the cache.
+            let error = NSError(domain: URLError.errorDomain, code: URLError.resourceUnavailable.rawValue, userInfo: nil)
+            return send(error: .dataLoadingFailed(error))
+        }
+
+        dependency = pipeline.makeTaskFetchOriginalImageData(for: request).subscribe(self) { [weak self] in
             self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
         }
     }

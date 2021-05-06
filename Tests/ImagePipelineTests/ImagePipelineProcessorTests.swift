@@ -20,6 +20,7 @@ class ImagePipelineProcessorTests: XCTestCase {
         mockDataLoader = MockDataLoader()
         pipeline = ImagePipeline {
             $0.dataLoader = mockDataLoader
+            $0.imageCache = nil
         }
     }
 

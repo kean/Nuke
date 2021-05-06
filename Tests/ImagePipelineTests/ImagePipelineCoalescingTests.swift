@@ -5,7 +5,7 @@
 import XCTest
 @testable import Nuke
 
-class ImagePipelineDeduplicationTests: XCTestCase {
+class ImagePipelineCoalescingTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
     var observations = [NSKeyValueObservation]()
@@ -565,10 +565,10 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
     func testThatDataOnlyLoadedOnceWithDifferentCachePolicy() {
         // Given
         let dataCache = MockDataCache()
-
         pipeline = pipeline.reconfigured {
             $0.dataCache = dataCache
         }
+        dataLoader.queue.isSuspended = true
 
         // When
         func makeRequest(cachePolicy: ImageRequest.CachePolicy) -> ImageRequest {
@@ -576,6 +576,8 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         }
         expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .default))
         expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .reloadIgnoringCachedData))
+        pipeline.queue.sync {}
+        dataLoader.queue.isSuspended = false
 
         // Then
         wait { _ in
@@ -586,10 +588,10 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
     func testThatDataOnlyLoadedOnceWithDifferentCachePolicyPassingURL() {
         // Given
         let dataCache = MockDataCache()
-
         pipeline = pipeline.reconfigured {
             $0.dataCache = dataCache
         }
+        dataLoader.queue.isSuspended = true
 
         // When
         // - One request reloading cache data, another one not
@@ -598,6 +600,8 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         }
         expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .default))
         expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .reloadIgnoringCachedData))
+        pipeline.queue.sync {}
+        dataLoader.queue.isSuspended = false
 
         // Then
         wait { _ in
