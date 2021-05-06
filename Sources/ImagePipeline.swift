@@ -327,8 +327,8 @@ private extension ImagePipeline {
 //
 // `loadImage()` call is represented by TaskLoadImage:
 //
-// TaskLoadImage+ -> TaskFetchDecodedImage -> TaskFetchOriginalImageData
-//                -> TaskProcessImage
+// TaskLoadImage -> TaskFetchDecodedImage -> TaskFetchOriginalImageData
+//               -> TaskProcessImage
 //
 // `loadData()` call is represented by TaskLoadData:
 //

@@ -9,29 +9,25 @@ import Foundation
 /// Performs all the quick cache lookups and also manages image processing.
 /// The coalesing for image processing is implemented on demand (extends the
 /// scenarios in which coalescing can kick in).
-///
-/// Tasks with processors also create a "virtual" TaskLoadImage.
 final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     override func start() {
+        #warning("check in data cache before checking the remaining processors?")
         // Memory cache lookup (including intermediate images)
-        var current = request.processors
+        var processors = request.processors
         var remaining: [ImageProcessing] = []
         repeat {
-            #warning("do this without creating new requests")
-            let request = self.request.withProcessors(current)
-            if let image = pipeline.cache.cachedImage(for: request) {
+            if let image = pipeline.cache.cachedImage(for: request.withProcessors(processors)) {
                 let response = ImageResponse(container: image)
-                if image.isPreview {
-                    didReceiveImage(response, isCompleted: false, processors: remaining)
-                } else {
-                    didReceiveImage(response, isCompleted: true, processors: remaining)
-                    return // Nothing left to do, just apply the processors
+                #warning("don't store in cache")
+                process(response, isCompleted: !image.isPreview, processors: remaining)
+                if !image.isPreview {
+                    return  // Nothing left to do, just apply the processors
                 }
             }
-            if let last = current.popLast() {
+            if let last = processors.popLast() {
                 remaining.append(last)
             }
-        } while !current.isEmpty
+        } while !processors.isEmpty
 
         // Disk cache lookup
         if let dataCache = pipeline.configuration.dataCache,
@@ -109,19 +105,21 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             send(error: .dataLoadingFailed(error))
         } else if request.processors.isEmpty {
             dependency = pipeline.makeTaskFetchDecodedImage(for: request).subscribe(self) { [weak self] in
-                self?.didReceiveImage($0, isCompleted: $1, processors: processors)
+                self?.process($0, isCompleted: $1, processors: processors)
             }
         } else {
             #warning("can we just perform disk cache lookup here without creating a new task?")
             let request = self.request.withProcessors([])
             dependency = pipeline.makeTaskLoadImage(for: request).subscribe(self) { [weak self] in
-                self?.didReceiveImage($0, isCompleted: $1, processors: processors)
+                self?.process($0, isCompleted: $1, processors: processors)
             }
         }
     }
 
+    // MARK: Processing
+
     /// - parameter processors: Remaining processors to by applied
-    private func didReceiveImage(_ response: ImageResponse, isCompleted: Bool, processors: [ImageProcessing]) {
+    private func process(_ response: ImageResponse, isCompleted: Bool, processors: [ImageProcessing]) {
         guard !(ImagePipeline.Configuration._isAnimatedImageDataEnabled && response.image._animatedImageData != nil) else {
             self.didProduceProcessedImage(response, isCompleted: isCompleted)
             return
@@ -133,37 +131,36 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             return  // Back pressure - already processing another progressive image
         }
 
-        _processImage(response, isCompleted: isCompleted, processors: processors)
+        _process(response, isCompleted: isCompleted, processors: processors)
     }
 
-    // MARK: Processing
-
     /// - parameter processors: Remaining processors to by applied
-    private func _processImage(_ response: ImageResponse, isCompleted: Bool, processors: [ImageProcessing]) {
-        dependency2 = nil
-
+    private func _process(_ response: ImageResponse, isCompleted: Bool, processors: [ImageProcessing]) {
         guard let processor = processors.last else {
             self.didProduceProcessedImage(response, isCompleted: isCompleted)
             return
         }
 
         let key = ImageProcessingKey(image: response, processor: processor)
-        dependency2 = pipeline.makeTaskProcessImage(key: key, process: {
-            let context = ImageProcessingContext(request: self.request, response: response, isFinal: isCompleted)
+        dependency2 = pipeline.makeTaskProcessImage(key: key, process: { [request] in
+            let context = ImageProcessingContext(request: request, response: response, isFinal: isCompleted)
             return signpost(log, "ProcessImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 response.map { processor.process($0, context: context) }
             }
         }).subscribe(priority: priority) { [weak self] event in
             guard let self = self else { return }
+            if event.isCompleted {
+                self.dependency2 = nil
+            }
             switch event {
             case .value(let response, _):
-                self._processImage(response, isCompleted: isCompleted, processors: processors.dropLast())
+                self._process(response, isCompleted: isCompleted, processors: processors.dropLast())
             case .error:
                 if isCompleted {
                     self.send(error: .processingFailed)
                 }
             case .progress:
-                break // Do nothing
+                break // Do nothing (Not reported by OperationTask)
             }
         }
     }
