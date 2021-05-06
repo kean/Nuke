@@ -4,8 +4,8 @@
 
 import Foundation
 
-/// Receives data from ``GetOriginalImageData` and decodes it as it arrives.
-final class TaskDecodeImage: ImagePipelineTask<ImageResponse> {
+/// Receives data from ``TaskLoadImageData` and decodes it as it arrives.
+final class TaskLoadDecodedImage: ImagePipelineTask<ImageResponse> {
     private var decoder: ImageDecoding?
 
     override func start() {

@@ -45,11 +45,12 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
 
     var onCancelled: (() -> Void)?
 
-    private var priority: TaskPriority = .normal {
+    var priority: TaskPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
             operation?.queuePriority = priority.queuePriority
             dependency?.setPriority(priority)
+            dependency2?.setPriority(priority)
         }
     }
 
@@ -60,6 +61,13 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     var dependency: TaskSubscription? {
         didSet {
             dependency?.setPriority(priority)
+        }
+    }
+
+    #warning("rework this")
+    var dependency2: TaskSubscription? {
+        didSet {
+            dependency2?.setPriority(priority)
         }
     }
 
@@ -195,6 +203,7 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         if reason == .cancelled {
             operation?.cancel()
             dependency?.unsubscribe()
+            dependency2?.unsubscribe()
             onCancelled?()
         }
         onDisposed?()
