@@ -43,6 +43,8 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
     }
 
+    // MARK: Decoding Processed Images
+
     private func decodeProcessedImageData(_ data: Data) {
         guard !isDisposed else { return }
 
@@ -53,20 +55,33 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             return loadImage()
         }
 
-        operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
-            guard let self = self else { return }
-            let response = signpost(log, "DecodeCachedProcessedImageData") {
+        let decode = {
+            signpost(log, "DecodeCachedProcessedImageData") {
                 decoder.decode(data, urlResponse: nil, isCompleted: true)
             }
-            self.async {
-                if let response = response {
-                    self.decompressProcessedImage(response, isCompleted: true)
-                } else {
-                    self.loadImage()
+        }
+        if ImagePipeline.Configuration.isFastTrackDecodingEnabled(for: decoder) {
+            didFinishDecodingProcessedImageData(decode())
+        } else {
+            operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
+                guard let self = self else { return }
+                let response = decode()
+                self.async {
+                    self.didFinishDecodingProcessedImageData(response)
                 }
             }
         }
     }
+
+    private func didFinishDecodingProcessedImageData(_ response: ImageResponse?) {
+        if let response = response {
+            decompressProcessedImage(response, isCompleted: true)
+        } else {
+            loadImage()
+        }
+    }
+
+    // MARK: Loading Original Image + Processing
 
     private func loadImage() {
         // Check if any of the intermediate processed images (or the original image)
@@ -139,6 +154,8 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         decompressProcessedImage(response, isCompleted: isCompleted)
     }
 
+    // MARK: Decompression
+
     #if os(macOS)
     private func decompressProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
         pipeline.cache.storeCachedImage(response.container, for: request)
@@ -180,6 +197,8 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             !(ImagePipeline.Configuration._isAnimatedImageDataEnabled && response.image._animatedImageData != nil)
     }
     #endif
+
+    // MARK: Caching
 
     private func storeImageInDataCache(_ response: ImageResponse) {
         guard !response.container.isPreview else {

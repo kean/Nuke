@@ -252,4 +252,9 @@ extension ImagePipeline.Configuration {
         request.processors = processors
         return request
     }
+
+    /// Fast-track decoding isn't performed on the operation queue.
+    static func isFastTrackDecodingEnabled(for decoder: ImageDecoding) -> Bool {
+        isFastTrackDecodingEnabled && (decoder is ImageDecoders.Default || decoder is ImageDecoders.Empty)
+    }
 }
