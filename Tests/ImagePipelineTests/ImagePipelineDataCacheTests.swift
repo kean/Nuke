@@ -9,6 +9,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var dataCache: MockDataCache!
     var pipeline: ImagePipeline!
+    var processorFactory: MockProcessorFactory!
 
     override func setUp() {
         super.setUp()
@@ -89,7 +90,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
         wait() // Wait till operation is created
     }
 
-    // MARK: - Cache Policy
+    // MARK: ImageRequest.CachePolicy
 
     func testReloadIgnoringCacheData() {
         // Given
@@ -168,7 +169,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
     }
 }
 
-class ImagePipelineDataCacheOptionsTests: XCTestCase {
+class ImagePipelineDataCachePolicyTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var dataCache: MockDataCache!
     var pipeline: ImagePipeline!
@@ -335,6 +336,28 @@ class ImagePipelineDataCacheOptionsTests: XCTestCase {
         XCTAssertNotNil(dataCache.cachedData(for: Test.url.absoluteString))
         XCTAssertEqual(dataCache.writeCount, 2)
         XCTAssertEqual(dataCache.store.count, 2)
+    }
+
+    func testPolicyAutomaticGivenOriginalImageInMemoryCache() {
+        // GIVEN
+        let imageCache = MockImageCache()
+        pipeline = pipeline.reconfigured {
+            $0.diskCachePolicy = .automatic
+            $0.imageCache = imageCache
+        }
+        imageCache[ImageRequest(url: Test.url)] = Test.container
+
+        // WHEN
+        expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+        wait()
+
+        // THEN
+        // encoded processed image is stored in disk cache
+        XCTAssertEqual(encoder.encodeCount, 1)
+        XCTAssertNotNil(dataCache.cachedData(for: Test.url.absoluteString + "p1"))
+        XCTAssertEqual(dataCache.writeCount, 1)
+        XCTAssertEqual(dataCache.store.count, 1)
+        XCTAssertEqual(dataLoader.createdTaskCount, 0)
     }
 
     // MARK: DiskCachePolicy.storeEncodedImages
@@ -521,14 +544,13 @@ class ImagePipelineDataCacheOptionsTests: XCTestCase {
         }
 
         pipeline = pipeline.reconfigured {
+            $0.diskCachePolicy = .automatic
             $0.makeImageEncoder = { _ in
                 return encoder
             }
         }
 
         // When
-        pipeline.configuration.imageEncodingQueue.isSuspended = true
-        expect(pipeline.configuration.imageEncodingQueue).toFinishWithEnqueuedOperationCount(1)
         expect(pipeline).toLoadImage(with: request)
 
         // Then

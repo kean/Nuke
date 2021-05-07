@@ -11,23 +11,14 @@ import Foundation
 /// scenarios in which coalescing can kick in).
 final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     override func start() {
-        #warning("check in data cache before checking the remaining processors?")
-        // Memory cache lookup (including intermediate images)
-        var processors = request.processors
-        var remaining: [ImageProcessing] = []
-        repeat {
-            if let image = pipeline.cache.cachedImage(for: request.withProcessors(processors)) {
-                let response = ImageResponse(container: image)
-                #warning("don't store in cache")
-                process(response, isCompleted: !image.isPreview, processors: remaining)
-                if !image.isPreview {
-                    return  // Nothing left to do, just apply the processors
-                }
+        // Memory cache lookup
+        if let image = pipeline.cache.cachedImage(for: request) {
+            let response = ImageResponse(container: image)
+            send(value: response, isCompleted: !image.isPreview)
+            if !image.isPreview {
+                return // Already got the result!
             }
-            if let last = processors.popLast() {
-                remaining.append(last)
-            }
-        } while !processors.isEmpty
+        }
 
         // Disk cache lookup
         if let dataCache = pipeline.configuration.dataCache,
@@ -96,6 +87,33 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     // MARK: Fetch Image
 
     private func fetchImage() {
+        // Memory cache lookup for intermediate images.
+        // For example, for processors ["p1", "p2"], check only ["p1"].
+        // Then apply the remaining processors.
+        //
+        // We are not performing data cache lookup for intermediate requests
+        // for now (because it's not free), but maybe adding an option would be worth it.
+        // You can emulate this behavior by manually creating intermediate requests.
+        if request.processors.count > 1 {
+            var processors = request.processors
+            var remaining: [ImageProcessing] = []
+            if let last = processors.popLast() {
+                remaining.append(last)
+            }
+            while !processors.isEmpty {
+                if let image = pipeline.cache.cachedImage(for: request.withProcessors(processors)) {
+                    let response = ImageResponse(container: image)
+                    process(response, isCompleted: !image.isPreview, processors: remaining)
+                    if !image.isPreview {
+                        return  // Nothing left to do, just apply the processors
+                    }
+                }
+                if let last = processors.popLast() {
+                    remaining.append(last)
+                }
+            }
+        }
+
         let processors: [ImageProcessing] = request.processors.reversed()
         // The only remaining choice is to fetch the image
         if request.cachePolicy == .returnCacheDataDontLoad {
@@ -108,7 +126,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
                 self?.process($0, isCompleted: $1, processors: processors)
             }
         } else {
-            #warning("can we just perform disk cache lookup here without creating a new task?")
             let request = self.request.withProcessors([])
             dependency = pipeline.makeTaskLoadImage(for: request).subscribe(self) { [weak self] in
                 self?.process($0, isCompleted: $1, processors: processors)
