@@ -89,8 +89,8 @@ extension ImagePipeline {
         public var isDecompressionEnabled = true
         #endif
 
-        /// `automatic` by default.
-        public var diskCachePolicy = DiskCachePolicy.automatic
+        /// `.storeOriginalImageData` by default.
+        public var diskCachePolicy = DiskCachePolicy.storeOriginalImageData
 
         /// Determines what images are stored in the disk cache.
         public enum DiskCachePolicy {
