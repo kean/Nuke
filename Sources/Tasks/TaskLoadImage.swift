@@ -138,7 +138,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     /// - parameter processors: Remaining processors to by applied
     private func process(_ response: ImageResponse, isCompleted: Bool, processors: [ImageProcessing]) {
         guard !(ImagePipeline.Configuration._isAnimatedImageDataEnabled && response.image._animatedImageData != nil) else {
-            self.didProduceProcessedImage(response, isCompleted: isCompleted)
+            self.decompressImage(response, isCompleted: isCompleted)
             return
         }
 
@@ -154,7 +154,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     /// - parameter processors: Remaining processors to by applied
     private func _process(_ response: ImageResponse, isCompleted: Bool, processors: [ImageProcessing]) {
         guard let processor = processors.last else {
-            self.didProduceProcessedImage(response, isCompleted: isCompleted)
+            self.decompressImage(response, isCompleted: isCompleted)
             return
         }
 
@@ -180,10 +180,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
                 break // Do nothing (Not reported by OperationTask)
             }
         }
-    }
-
-    private func didProduceProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
-        decompressImage(response, isCompleted: isCompleted)
     }
 
     // MARK: Decompression
