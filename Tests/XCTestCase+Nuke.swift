@@ -29,21 +29,24 @@ struct TestExpectationImagePipeline {
     let pipeline: ImagePipeline
 
     @discardableResult
-    func toLoadImage(with request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> ImageTask {
+    func toLoadImage(with request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> TestRecordedImageRequest {
         toLoadImage(with: request, progress: nil, completion: completion)
     }
 
     @discardableResult
     func toLoadImage(with request: ImageRequest,
                      progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
-                     completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
+                     completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> TestRecordedImageRequest {
+        let record = TestRecordedImageRequest()
         let expectation = test.expectation(description: "Image loaded for \(request)")
-        return pipeline.loadImage(with: request, progress: progress) { result in
+        record._task = pipeline.loadImage(with: request, progress: progress) { result in
             completion?(result)
+            record.result = result
             XCTAssertTrue(Thread.isMainThread)
             XCTAssertTrue(result.isSuccess)
             expectation.fulfill()
         }
+        return record
     }
 
     @discardableResult
@@ -109,6 +112,22 @@ extension XCTestCase {
     }
 }
 
+final class TestRecordedImageRequest {
+    var task: ImageTask {
+        _task
+    }
+    fileprivate var _task: ImageTask!
+
+    var result: Result<ImageResponse, ImagePipeline.Error>?
+
+    var response: ImageResponse? {
+        result?.value
+    }
+
+    var image: PlatformImage? {
+        response?.image
+    }
+}
 
 // MARK: - UIImage
 

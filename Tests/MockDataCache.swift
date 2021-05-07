@@ -7,9 +7,11 @@ import Nuke
 
 final class MockDataCache: DataCaching {
     var store = [String: Data]()
+    var readCount = 0
     var writeCount = 0
 
     func cachedData(for key: String) -> Data? {
+        readCount += 1
         return store[key]
     }
 

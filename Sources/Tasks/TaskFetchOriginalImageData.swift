@@ -32,7 +32,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         // Wrap data request in an operation to limit the maximum number of
         // concurrent data tasks.
         operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
-            guard let self = self, !self.isDisposed else {
+            guard let self = self else {
                 return finish()
             }
             self.async {
@@ -43,6 +43,9 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
 
     // This methods gets called inside data loading operation (Operation).
     private func loadData(finish: @escaping () -> Void) {
+        guard !isDisposed else {
+            return
+        }
         // Read and remove resumable data from cache (we're going to insert it
         // back in the cache if the request fails to complete again).
         var urlRequest = request.urlRequest
