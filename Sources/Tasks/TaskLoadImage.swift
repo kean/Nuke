@@ -229,6 +229,9 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     // MARK: Caching
 
     private func storeImageInCaches(_ response: ImageResponse) {
+        guard subscribers.contains(where: { $0 is ImageTask }) else {
+            return // Only store for direct requests
+        }
         // Memory cache (ImageCaching)
         pipeline.cache.storeCachedImage(response.container, for: request)
         // Disk cache (DataCaching)
@@ -261,9 +264,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     private func shouldStoreFinalImageInDiskCache() -> Bool {
         guard request.url?.isCacheable ?? false else {
             return false
-        }
-        guard subscribers.contains(where: { $0 is ImageTask }) else {
-            return false // This a virtual task
         }
         let policy = pipeline.configuration.diskCachePolicy
         return ((policy == .automatic && !request.processors.isEmpty) || policy == .storeEncodedImages)
