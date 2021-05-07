@@ -183,7 +183,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     private func didProduceProcessedImage(_ response: ImageResponse, isCompleted: Bool) {
-        storeImageInDataCache(response)
         decompressImage(response, isCompleted: isCompleted)
     }
 
@@ -191,13 +190,13 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     #if os(macOS)
     private func decompressImage(_ response: ImageResponse, isCompleted: Bool) {
-        pipeline.cache.storeCachedImage(response.container, for: request)
+        storeImageInCaches(response)
         send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
     }
     #else
     private func decompressImage(_ response: ImageResponse, isCompleted: Bool) {
         guard isDecompressionNeeded(for: response) else {
-            pipeline.cache.storeCachedImage(response.container, for: request)
+            storeImageInCaches(response)
             send(value: response, isCompleted: isCompleted)
             return
         }
@@ -218,7 +217,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
 
             self.async {
-                self.pipeline.cache.storeCachedImage(response.container, for: self.request)
+                self.storeImageInCaches(response)
                 self.send(value: response, isCompleted: isCompleted)
             }
         }
@@ -232,6 +231,13 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     #endif
 
     // MARK: Caching
+
+    private func storeImageInCaches(_ response: ImageResponse) {
+        // Memory cache (ImageCaching)
+        pipeline.cache.storeCachedImage(response.container, for: request)
+        // Disk cache (DataCaching)
+        storeImageInDataCache(response)
+    }
 
     private func storeImageInDataCache(_ response: ImageResponse) {
         guard !response.container.isPreview else {
