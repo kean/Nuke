@@ -135,7 +135,7 @@ class ImagePipelineLoadDataTests: XCTestCase {
     func _testPolicyAutomaticGivenRequestWithProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .automatic
+            $0.dataCachePolicy = .automatic
         }
 
         // GIVEN request with a processor
@@ -155,7 +155,7 @@ class ImagePipelineLoadDataTests: XCTestCase {
     func testPolicyAutomaticGivenRequestWithoutProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .automatic
+            $0.dataCachePolicy = .automatic
         }
 
         // GIVEN request without a processor
@@ -176,7 +176,7 @@ class ImagePipelineLoadDataTests: XCTestCase {
     func _testPolicyAutomaticGivenTwoRequests() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .automatic
+            $0.dataCachePolicy = .automatic
         }
 
         // WHEN

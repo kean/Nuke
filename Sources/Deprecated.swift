@@ -124,11 +124,11 @@ public extension ImagePipeline {
         }
     }
 
-    @available(*, deprecated, message: "Please use `diskCachePolicy` instead. The recommended policy is the new `.automatic` policy.")
+    @available(*, deprecated, message: "Please use `dataCachePolicy` instead. The recommended policy is the new `.automatic` policy.")
     enum DataCacheItem {
-        /// Same as the new `DiskCachePolicy.storeOriginalImageData`
+        /// Same as the new `DataCachePolicy.storeOriginalImageData`
         case originalImageData
-        /// Same as the new `DiskCachePolicy.storeEncodedImages`
+        /// Same as the new `DataCachePolicy.storeEncodedImages`
         case finalImage
     }
 }

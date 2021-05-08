@@ -265,7 +265,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         guard request.url?.isCacheable ?? false else {
             return false
         }
-        let policy = pipeline.configuration.diskCachePolicy
+        let policy = pipeline.configuration.dataCachePolicy
         return ((policy == .automatic && !request.processors.isEmpty) || policy == .storeEncodedImages)
     }
 }

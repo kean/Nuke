@@ -151,7 +151,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         guard request.url?.isCacheable ?? false else {
             return false
         }
-        let policy = pipeline.configuration.diskCachePolicy
+        let policy = pipeline.configuration.dataCachePolicy
         return policy == .storeOriginalImageData || (policy == .automatic && imageTasks.contains { $0.request.processors.isEmpty })
     }
 

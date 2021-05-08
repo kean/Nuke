@@ -90,10 +90,10 @@ extension ImagePipeline {
         #endif
 
         /// `.storeOriginalImageData` by default.
-        public var diskCachePolicy = DiskCachePolicy.storeOriginalImageData
+        public var dataCachePolicy = DataCachePolicy.storeOriginalImageData
 
         /// Determines what images are stored in the disk cache.
-        public enum DiskCachePolicy {
+        public enum DataCachePolicy {
             /// For requests with processors, encode and store processed images.
             /// For requests with no processors, store original image data, unless
             /// the resource is local (file:// or data:// scheme is used).
@@ -116,24 +116,24 @@ extension ImagePipeline {
         }
 
         // Deprecated in 10.0.0
-        @available(*, deprecated, message: "Please use `diskCachePolicy` instead. The recommended policy is the new `.automatic` policy.")
+        @available(*, deprecated, message: "Please use `dataCachePolicy` instead. The recommended policy is the new `.automatic` policy.")
         public var dataCacheOptions: DataCacheOptions = DataCacheOptions() {
             didSet {
                 let items = dataCacheOptions.storedItems
                 if items == [.finalImage] {
-                    debugPrint("The [.finalImage] configuration is not supported, falling back to `DiskCachePolicy.automatic`")
-                    diskCachePolicy = .storeEncodedImages
+                    debugPrint("The [.finalImage] configuration is not supported, falling back to `DataCachePolicy.automatic`")
+                    dataCachePolicy = .storeEncodedImages
                 } else if items == [.originalImageData] {
-                    diskCachePolicy = .storeOriginalImageData
+                    dataCachePolicy = .storeOriginalImageData
                 } else if items == [.finalImage, .originalImageData] {
-                    debugPrint("The [.finalImage, .originalImageData] configuration is not supported, falling back to `DiskCachePolicy.automatic`")
-                    diskCachePolicy = .automatic
+                    debugPrint("The [.finalImage, .originalImageData] configuration is not supported, falling back to `DataCachePolicy.automatic`")
+                    dataCachePolicy = .automatic
                 }
             }
         }
 
         // Deprecated in 10.0.0
-        @available(*, deprecated, message: "Please use `diskCachePolicy` instead. The recommended policy is the new `.automatic` policy.")
+        @available(*, deprecated, message: "Please use `dataCachePolicy` instead. The recommended policy is the new `.automatic` policy.")
         public struct DataCacheOptions {
             public var storedItems: Set<DataCacheItem> = [.originalImageData]
         }

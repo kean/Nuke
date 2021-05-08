@@ -280,7 +280,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
     func testPolicyAutomaticGivenRequestWithProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .automatic
+            $0.dataCachePolicy = .automatic
         }
 
         // GIVEN request with a processor
@@ -300,7 +300,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
     func testPolicyAutomaticGivenRequestWithoutProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .automatic
+            $0.dataCachePolicy = .automatic
         }
 
         // GIVEN request without a processor
@@ -320,7 +320,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
     func testPolicyAutomaticGivenTwoRequests() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .automatic
+            $0.dataCachePolicy = .automatic
         }
 
         // WHEN
@@ -342,7 +342,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         // GIVEN
         let imageCache = MockImageCache()
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .automatic
+            $0.dataCachePolicy = .automatic
             $0.imageCache = imageCache
         }
         imageCache[ImageRequest(url: Test.url)] = Test.container
@@ -360,12 +360,12 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         XCTAssertEqual(dataLoader.createdTaskCount, 0)
     }
 
-    // MARK: DiskCachePolicy.storeEncodedImages
+    // MARK: dataCachePolicy.storeEncodedImages
 
     func testPolicyStoreEncodedImagesGivenRequestWithProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .storeEncodedImages
+            $0.dataCachePolicy = .storeEncodedImages
         }
 
         // GIVEN request with a processor
@@ -385,7 +385,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
     func testPolicyStoreEncodedImagesGivenRequestWithoutProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .storeEncodedImages
+            $0.dataCachePolicy = .storeEncodedImages
         }
 
         // GIVEN request without a processor
@@ -405,7 +405,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
     func testPolicyStoreEncodedImagesGivenTwoRequests() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .storeEncodedImages
+            $0.dataCachePolicy = .storeEncodedImages
         }
 
         // WHEN
@@ -423,12 +423,12 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         XCTAssertEqual(dataCache.store.count, 2)
     }
 
-    // MARK: DiskCachePolicy.storeOriginalImageData
+    // MARK: dataCachePolicy.storeOriginalImageData
 
     func testPolicyStoreOriginalImageDataGivenRequestWithProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .storeOriginalImageData
+            $0.dataCachePolicy = .storeOriginalImageData
         }
 
         // GIVEN request with a processor
@@ -448,7 +448,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
     func testPolicyStoreOriginalImageDataGivenRequestWithoutProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .storeOriginalImageData
+            $0.dataCachePolicy = .storeOriginalImageData
         }
 
         // GIVEN request without a processor
@@ -468,7 +468,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
     func testPolicyStoreOriginalImageDataGivenTwoRequests() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .storeOriginalImageData
+            $0.dataCachePolicy = .storeOriginalImageData
         }
 
         // WHEN
@@ -490,7 +490,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
     func testImagesFromLocalStorageNotCached() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .automatic
+            $0.dataCachePolicy = .automatic
         }
 
         // GIVEN request without a processor
@@ -509,7 +509,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
     func testImagesFromMemoryNotCached() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .automatic
+            $0.dataCachePolicy = .automatic
         }
 
         // GIVEN request without a processor
@@ -544,7 +544,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
 
         pipeline = pipeline.reconfigured {
-            $0.diskCachePolicy = .automatic
+            $0.dataCachePolicy = .automatic
             $0.makeImageEncoder = { _ in
                 return encoder
             }

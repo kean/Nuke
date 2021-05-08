@@ -21,7 +21,7 @@ class ImagePipelineDelegateTests: XCTestCase {
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.dataCache = dataCache
-            $0.diskCachePolicy = .automatic
+            $0.dataCachePolicy = .automatic
             $0.imageCache = nil
             $0.delegate = delegate
             $0.debugIsSyncImageEncoding = true
