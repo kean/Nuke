@@ -154,4 +154,19 @@ public extension ImageRequestOptions {
         get { nil }
         set { debugPrint("The ImageRequestOptions.loadKey API does nothing starting with Nuke 10") } // swiftlint:disable:this unused_setter_value
     }
+
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "ImageRequestOptions are deprecated")
+    init(memoryCacheOptions: MemoryCacheOptions = .init(),
+         filteredURL: String? = nil,
+         cacheKey: AnyHashable? = nil,
+         loadKey: AnyHashable? = nil,
+         userInfo: [AnyHashable: Any] = [:]) {
+        self.init()
+        self.memoryCacheOptions = memoryCacheOptions
+        self.cacheKey = cacheKey
+        self.loadKey = loadKey
+        self.filteredURL = filteredURL
+        self.userInfo = userInfo
+    }
 }
