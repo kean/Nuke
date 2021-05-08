@@ -152,7 +152,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
             return false
         }
         let policy = pipeline.configuration.dataCachePolicy
-        return policy == .storeOriginalImageData || (policy == .automatic && imageTasks.contains { $0.request.processors.isEmpty })
+        return policy == .storeOriginalImageData || policy == .storeAll || (policy == .automatic && imageTasks.contains { $0.request.processors.isEmpty })
     }
 
     private func tryToSaveResumableData() {

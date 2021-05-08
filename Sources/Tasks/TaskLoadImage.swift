@@ -266,6 +266,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             return false
         }
         let policy = pipeline.configuration.dataCachePolicy
-        return ((policy == .automatic && !request.processors.isEmpty) || policy == .storeEncodedImages)
+        return ((policy == .automatic || policy == .storeAll) && !request.processors.isEmpty) || policy == .storeEncodedImages
     }
 }

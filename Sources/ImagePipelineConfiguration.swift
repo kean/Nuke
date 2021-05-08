@@ -113,6 +113,10 @@ extension ImagePipeline {
             /// is not going to work.
             #warning("Can we do something about it? how does if affects ImagePrefetcher? Should it be a default?")
             case storeEncodedImages
+
+            /// For requests with processors, encode and store processed images.
+            /// For all requests, store original image data.
+            case storeAll
         }
 
         // Deprecated in 10.0.0
