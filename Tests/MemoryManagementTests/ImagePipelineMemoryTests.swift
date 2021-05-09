@@ -17,6 +17,7 @@ class ImagePipelineMemoryTests: XCTestCase {
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
+            $0.dataCache = nil
         }
     }
 
@@ -310,6 +311,7 @@ class ImagePipelineMemoryTests: XCTestCase {
         ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
+            $0.dataCache = nil
         }.loadImage(with: Test.request) { result in
             XCTAssertTrue(result.isSuccess)
             expectation.fulfill()

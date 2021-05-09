@@ -31,8 +31,8 @@ extension ImagePipeline {
         /// Data loader used by the pipeline.
         public var dataLoader: DataLoading
 
-        /// Data cache used by the pipeline.
-        public var dataCache: DataCaching?
+        /// Data cache used by the pipeline. By default, `DataCache.shared`.
+        public var dataCache: DataCaching? = DataCache.shared
 
         /// Default implementation uses shared `ImageDecoderRegistry` to create
         /// a decoder that matches the context.
