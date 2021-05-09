@@ -47,7 +47,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
         // initialization anyway.
         let decode = {
             signpost(log, "DecodeImageData", isCompleted ? "FinalImage" : "ProgressiveImage") {
-                decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted)
+                decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted, cacheType: nil)
             }
         }
         if ImagePipeline.Configuration.isFastTrackDecodingEnabled(for: decoder) {

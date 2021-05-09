@@ -193,6 +193,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertTrue(record.image === processedImage.image)
+        XCTAssertEqual(record.response?.cacheType, .memory)
 
         // THEN
         XCTAssertEqual(imageCache.readCount, 1)
@@ -210,6 +211,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertTrue(record.image === processedImage.image)
+        XCTAssertEqual(record.response?.cacheType, .memory)
 
         // THEN
         XCTAssertEqual(imageCache.readCount, 1)
@@ -227,6 +229,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertNotNil(record.image)
+        XCTAssertEqual(record.response?.cacheType, .disk)
 
         // THEN
         XCTAssertEqual(imageCache.readCount, 1)
@@ -245,6 +248,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertNotNil(record.image)
+        XCTAssertEqual(record.response?.cacheType, .disk)
 
         // THEN
         XCTAssertEqual(imageCache.readCount, 1)
@@ -264,6 +268,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertEqual(record.image?.nk_test_processorIDs, ["1", "2"])
+        XCTAssertEqual(record.response?.cacheType, .memory)
 
         // THEN
         XCTAssertEqual(imageCache.readCount, 2) // Processed + intermediate
@@ -284,6 +289,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertEqual(record.image?.nk_test_processorIDs, ["1", "2"])
+        XCTAssertEqual(record.response?.cacheType, .memory)
 
         // THEN
         XCTAssertEqual(imageCache.readCount, 2) // Processed + intermediate
@@ -304,6 +310,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertEqual(record.image?.nk_test_processorIDs, ["1", "2"])
+        XCTAssertEqual(record.response?.cacheType, .memory)
 
         // THEN
         XCTAssertEqual(imageCache.readCount, 3) // Processed + intermediate + original
@@ -323,6 +330,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertEqual(record.image?.nk_test_processorIDs, ["1", "2"])
+        XCTAssertEqual(record.response?.cacheType, .disk)
 
         // THEN
         XCTAssertEqual(imageCache.readCount, 3) // Processed + intermediate + original

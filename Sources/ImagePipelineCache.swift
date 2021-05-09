@@ -182,7 +182,7 @@ public extension ImagePipeline {
             guard let decoder = configuration.makeImageDecoder(context) else {
                 return nil
             }
-            return decoder.decode(data, urlResponse: nil, isCompleted: true)?.container
+            return decoder.decode(data, urlResponse: nil, isCompleted: true, cacheType: .disk)?.container
         }
 
         private func encodeImage(_ image: ImageContainer, for request: ImageRequest) -> Data? {

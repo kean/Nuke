@@ -41,7 +41,7 @@ public extension ImageDecoding {
 }
 
 extension ImageDecoding {
-    func decode(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool) -> ImageResponse? {
+    func decode(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool, cacheType: ImageResponse.CacheType?) -> ImageResponse? {
         func _decode() -> ImageContainer? {
             if isCompleted {
                 return decode(data)
@@ -55,7 +55,7 @@ extension ImageDecoding {
         #if !os(macOS)
         ImageDecompression.setDecompressionNeeded(true, for: container.image)
         #endif
-        return ImageResponse(container: container, urlResponse: urlResponse)
+        return ImageResponse(container: container, urlResponse: urlResponse, cacheType: cacheType)
     }
 }
 

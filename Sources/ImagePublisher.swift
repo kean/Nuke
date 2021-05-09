@@ -49,7 +49,7 @@ public struct ImagePublisher: Publisher {
         subscriber.receive(subscription: subscription)
 
         if let image = pipeline.cache.cachedImage(for: request) {
-            _ = subscriber.receive(ImageResponse(container: image))
+            _ = subscriber.receive(ImageResponse(container: image, cacheType: .memory))
             subscriber.receive(completion: .finished)
             return
         }
