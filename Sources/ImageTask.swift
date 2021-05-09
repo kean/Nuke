@@ -154,10 +154,14 @@ public final class ImageResponse {
     /// A convenience computed property which returns an image from the container.
     public var image: PlatformImage { container.image }
     public let urlResponse: URLResponse?
+    /// Contains a cache type in case the image was returned from one of the
+    /// pipeline caches (not including any of the HTTP caches if enabled).
+    public let cacheType: CacheType?
 
-    public init(container: ImageContainer, urlResponse: URLResponse? = nil) {
+    public init(container: ImageContainer, urlResponse: URLResponse? = nil, cacheType: CacheType? = nil) {
         self.container = container
         self.urlResponse = urlResponse
+        self.cacheType = cacheType
     }
 
     func map(_ transformation: (ImageContainer) -> ImageContainer?) -> ImageResponse? {
@@ -165,7 +169,12 @@ public final class ImageResponse {
             guard let output = transformation(container) else {
                 return nil
             }
-            return ImageResponse(container: output, urlResponse: urlResponse)
+            return ImageResponse(container: output, urlResponse: urlResponse, cacheType: cacheType)
         }
+    }
+
+    public enum CacheType {
+        case memory
+        case disk
     }
 }
