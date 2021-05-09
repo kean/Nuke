@@ -315,6 +315,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = mockCache
+            $0.dataCache = nil
         }
         // Nuke.loadImage(...) methods use shared pipeline by default.
         ImagePipeline.pushShared(pipeline)
@@ -564,6 +565,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
+            $0.dataCache = nil
         }
 
         var options = ImageLoadingOptions()

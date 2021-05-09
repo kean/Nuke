@@ -62,10 +62,10 @@ public final class DataCache: DataCaching {
     /// Changes tos `countLimit` will take effect when the next LRU sweep is run.
     var deprecatedCountLimit: Int = Int.max
 
-    /// Size limit in bytes. `100 Mb` by default.
+    /// Size limit in bytes. `150 Mb` by default.
     ///
     /// Changes to `sizeLimit` will take effect when the next LRU sweep is run.
-    public var sizeLimit: Int = 1024 * 1024 * 100
+    public var sizeLimit: Int = 1024 * 1024 * 150
 
     /// When performing a sweep, the cache will remote entries until the size of
     /// the remaining items is lower than or equal to `sizeLimit * trimRatio` and
@@ -87,6 +87,9 @@ public final class DataCache: DataCaching {
     /// The initial sweep is performed after a delay to avoid competing with
     /// other subsystems for the resources.
     private var initialSweepDelay: TimeInterval = 10
+
+    /// The default cache with 150 MB capacity.
+    public static let shared: DataCache? = try? DataCache(name: "com.github.kean.Nuke.DataCache")
 
     // Staging
 

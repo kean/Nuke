@@ -14,6 +14,7 @@ class ImagePrefetcherTests: XCTestCase {
 
         pipeline = MockImagePipeline {
             $0.imageCache = nil
+            $0.dataCache = nil
         }
         prefetcher = ImagePrefetcher(pipeline: pipeline)
     }
@@ -170,6 +171,7 @@ class ImagePrefetcherPriorityTests: XCTestCase {
 
         pipeline = ImagePipeline {
             $0.imageCache = nil
+            $0.dataCache = nil
             $0.dataLoader = MockDataLoader()
         }
         prefetcher = ImagePrefetcher(pipeline: pipeline)

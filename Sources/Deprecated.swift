@@ -155,8 +155,9 @@ public extension ImageRequestOptions {
         set { debugPrint("The ImageRequestOptions.loadKey API does nothing starting with Nuke 10") } // swiftlint:disable:this unused_setter_value
     }
 
+    #warning("make sure it doesn't break the source compatibility")
     // Deprecated in 10.0.0
-    @available(*, deprecated, message: "ImageRequestOptions are deprecated")
+    @available(*, deprecated, message: "This initializer is deprecated")
     init(memoryCacheOptions: MemoryCacheOptions = .init(),
          filteredURL: String? = nil,
          cacheKey: AnyHashable? = nil,
@@ -168,5 +169,37 @@ public extension ImageRequestOptions {
         self.loadKey = loadKey
         self.filteredURL = filteredURL
         self.userInfo = userInfo
+    }
+}
+
+public extension DataLoader {
+    @available(*, deprecated, message: "By default, the pipeline is now configured with a custom DataCache instance and no URLCache")
+    static let sharedUrlCache: URLCache = {
+        let diskCapacity = 150 * 1024 * 1024 // 150 MB
+        #if targetEnvironment(macCatalyst)
+        return URLCache(memoryCapacity: 0, diskCapacity: diskCapacity, directory: URL(fileURLWithPath: cachePath))
+        #else
+        return URLCache(memoryCapacity: 0, diskCapacity: diskCapacity, diskPath: cachePath)
+        #endif
+    }()
+
+    #if !os(macOS) && !targetEnvironment(macCatalyst)
+    private static let cachePath = "com.github.kean.Nuke.Cache"
+    #else
+    private static let cachePath: String = {
+        let cachePaths = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true)
+        if let cachePath = cachePaths.first, let identifier = Bundle.main.bundleIdentifier {
+            return cachePath.appending("/" + identifier)
+        }
+
+        return ""
+    }()
+    #endif
+
+    @available(*, deprecated, message: "By default, the pipeline is now configured URLSessionConfiguration.default")
+    static var defaultConfiguration: URLSessionConfiguration {
+        let conf = URLSessionConfiguration.default
+        conf.urlCache = DataLoader.sharedUrlCache
+        return conf
     }
 }

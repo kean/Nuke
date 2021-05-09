@@ -40,9 +40,9 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     }
 
     /// Initializes `DataLoader` with the given configuration.
-    /// - parameter configuration: `URLSessionConfiguration.default` with
-    /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
-    public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
+    /// - parameter configuration: `URLSessionConfiguration.default` without a
+    /// `URLCache` to avoid storing data twice.
+    public init(configuration: URLSessionConfiguration = .default,
                 validate: @escaping (URLResponse) -> Swift.Error? = DataLoader.validate) {
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 1
@@ -61,14 +61,6 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
         self.session.delegateQueue.underlyingQueue = pipeline.queue
     }
 
-    /// Returns a default configuration which has a `sharedUrlCache` set
-    /// as a `urlCache`.
-    public static var defaultConfiguration: URLSessionConfiguration {
-        let conf = URLSessionConfiguration.default
-        conf.urlCache = DataLoader.sharedUrlCache
-        return conf
-    }
-
     /// Validates `HTTP` responses by checking that the status code is 2xx. If
     /// it's not returns `DataLoader.Error.statusCodeUnacceptable`.
     public static func validate(response: URLResponse) -> Swift.Error? {
@@ -77,30 +69,6 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
         }
         return (200..<300).contains(response.statusCode) ? nil : Error.statusCodeUnacceptable(response.statusCode)
     }
-
-    #if !os(macOS) && !targetEnvironment(macCatalyst)
-    private static let cachePath = "com.github.kean.Nuke.Cache"
-    #else
-    private static let cachePath: String = {
-        let cachePaths = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true)
-        if let cachePath = cachePaths.first, let identifier = Bundle.main.bundleIdentifier {
-            return cachePath.appending("/" + identifier)
-        }
-
-        return ""
-    }()
-    #endif
-
-    /// Shared url cached used by a default `DataLoader`. The cache is
-    /// initialized with 0 MB memory capacity and 150 MB disk capacity.
-    public static let sharedUrlCache: URLCache = {
-        let diskCapacity = 150 * 1024 * 1024 // 150 MB
-        #if targetEnvironment(macCatalyst)
-        return URLCache(memoryCapacity: 0, diskCapacity: diskCapacity, directory: URL(fileURLWithPath: cachePath))
-        #else
-        return URLCache(memoryCapacity: 0, diskCapacity: diskCapacity, diskPath: cachePath)
-        #endif
-    }()
 
     public func loadData(with request: URLRequest,
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
