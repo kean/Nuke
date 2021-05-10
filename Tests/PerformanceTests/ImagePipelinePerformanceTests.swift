@@ -20,7 +20,6 @@ class ImagePipelinePerfomanceTests: XCTestCase {
 
         let pipeline = ImagePipeline {
             $0.imageCache = nil
-            $0.dataCache = nil
 
             $0.dataLoader = MockDataLoader()
 

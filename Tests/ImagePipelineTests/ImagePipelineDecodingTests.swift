@@ -16,7 +16,6 @@ class ImagePipelineDecodingTests: XCTestCase {
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.dataCache = nil
         }
     }
 

@@ -11,7 +11,6 @@ class ThreadSafetyTests: XCTestCase {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.dataCache = nil
         }
 
         _testPipelineThreadSafety(pipeline)
@@ -70,7 +69,6 @@ class ThreadSafetyTests: XCTestCase {
     func testPrefetcherThreadSafety() {
         let pipeline = MockImagePipeline {
             $0.imageCache = nil
-            $0.dataCache = nil
         }
         let prefetcher = ImagePrefetcher(pipeline: pipeline)
 
@@ -194,7 +192,6 @@ final class RandomizedTests: XCTestCase {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.dataCache = nil
             $0.isRateLimiterEnabled = false
         }
 

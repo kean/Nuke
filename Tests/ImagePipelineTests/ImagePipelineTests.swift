@@ -16,7 +16,6 @@ class ImagePipelineTests: XCTestCase {
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.dataCache = nil
         }
 
         ImagePipeline.Configuration.isFastTrackDecodingEnabled = false
@@ -315,7 +314,6 @@ class ImagePipelineTests: XCTestCase {
                 }
             }
             $0.imageCache = nil
-            $0.dataCache = nil
 
             $0.isDecompressionEnabled = false
         }
@@ -346,7 +344,6 @@ class ImagePipelineTests: XCTestCase {
                 }
             }
             $0.imageCache = nil
-            $0.dataCache = nil
         }
 
         // When
@@ -450,7 +447,6 @@ class ImagePipelineTests: XCTestCase {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.dataCache = nil
         }
 
         let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
@@ -469,7 +465,6 @@ class ImagePipelineTests: XCTestCase {
                 return MockFailingDecoder()
             }
             $0.imageCache = nil
-            $0.dataCache = nil
         }
 
         // When/Then

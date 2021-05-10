@@ -17,7 +17,6 @@ class ImagePipelineCoalescingTests: XCTestCase {
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.dataCache = nil
         }
     }
 
@@ -398,8 +397,6 @@ class ImagePipelineCoalescingTests: XCTestCase {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.isDeduplicationEnabled = false
-            $0.imageCache = nil
-            $0.dataCache = nil
         }
 
         dataLoader.queue.isSuspended = true
@@ -431,7 +428,6 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.dataCache = nil
         }
     }
 

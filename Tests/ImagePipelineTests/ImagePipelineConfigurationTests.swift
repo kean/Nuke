@@ -13,7 +13,6 @@ class ImagePipelineConfigurationTests: XCTestCase {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.dataCache = nil
 
             $0.isRateLimiterEnabled = false
         }
@@ -35,7 +34,6 @@ class ImagePipelineConfigurationTests: XCTestCase {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.dataCache = nil
 
             $0.callbackQueue = queue
         }
@@ -61,7 +59,6 @@ class ImagePipelineConfigurationTests: XCTestCase {
         let pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
-            $0.dataCache = nil
 
             $0.callbackQueue = queue
         }
