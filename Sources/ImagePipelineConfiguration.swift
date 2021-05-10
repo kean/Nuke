@@ -120,18 +120,16 @@ extension ImagePipeline {
         }
 
         // Deprecated in 10.0.0
-        @available(*, deprecated, message: "Please use `dataCachePolicy` instead. The recommended policy is the new `.automatic` policy.")
+        @available(*, deprecated, message: "Please use `dataCachePolicy` instead.")
         public var dataCacheOptions: DataCacheOptions = DataCacheOptions() {
             didSet {
                 let items = dataCacheOptions.storedItems
                 if items == [.finalImage] {
-                    debugPrint("The [.finalImage] configuration is not supported, falling back to `DataCachePolicy.automatic`")
                     dataCachePolicy = .storeEncodedImages
                 } else if items == [.originalImageData] {
                     dataCachePolicy = .storeOriginalImageData
                 } else if items == [.finalImage, .originalImageData] {
-                    debugPrint("The [.finalImage, .originalImageData] configuration is not supported, falling back to `DataCachePolicy.automatic`")
-                    dataCachePolicy = .automatic
+                    dataCachePolicy = .storeAll
                 }
             }
         }
