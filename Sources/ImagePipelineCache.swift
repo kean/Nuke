@@ -6,28 +6,19 @@ import Foundation
 
 public extension ImagePipeline {
     /// Thread-safe.
-    final class Cache {
-        private let configuration: ImagePipeline.Configuration
-        private let delegate: ImagePipelineDelegate // swiftlint:disable:this all
-        private(set) var imageCache: ImageCache?
-
-        init(configuration: ImagePipeline.Configuration) {
-            self.configuration = configuration
-            self.delegate = configuration.delegate ?? ImagePipelineDefaultDelegate()
-            if let imageCache = configuration.imageCache as? ImageCache {
-                self.imageCache = imageCache
-            }
-        }
+    struct Cache {
+        let pipeline: ImagePipeline
+        private var configuration: ImagePipeline.Configuration { pipeline.configuration }
 
         /// A convenience API that returns processed image from the memory cache
         /// for the given request.
-        public subscript(request: ImageRequestConvertible) -> PlatformImage? {
+        public subscript(request: ImageRequestConvertible) -> ImageContainer? {
             get {
-                cachedImageFromMemoryCache(for: request.asImageRequest())?.image
+                cachedImageFromMemoryCache(for: request.asImageRequest())
             }
-            set {
+            nonmutating set {
                 if let image = newValue {
-                    storeCachedImageInMemoryCache(ImageContainer(image: image), for: request.asImageRequest())
+                    storeCachedImageInMemoryCache(image, for: request.asImageRequest())
                 } else {
                     removeCachedImageFromMemoryCache(for: request.asImageRequest())
                 }
@@ -64,7 +55,7 @@ public extension ImagePipeline {
                 return nil
             }
             let key = makeImageCacheKey(for: request)
-            if let imageCache = self.imageCache {
+            if let imageCache = pipeline.imageCache {
                 return imageCache[key] // Fast path for a default cache (no protocol call)
             } else {
                 return configuration.imageCache?[key]
@@ -151,14 +142,14 @@ public extension ImagePipeline {
         // MARK: Keys
 
         public func makeImageCacheKey(for request: ImageRequest) -> ImageCacheKey {
-            switch delegate.makeImageCacheKey(for: request) {
+            switch pipeline.delegate.makeImageCacheKey(for: request) {
             case .default: return ImageCacheKey(request: request)
             case .custom(let key): return ImageCacheKey(key: key)
             }
         }
 
         public func makeDataCacheKey(for request: ImageRequest) -> String {
-            switch delegate.makeDataCacheKey(for: request) {
+            switch pipeline.delegate.makeDataCacheKey(for: request) {
             case .default: return request.makeDataCacheKey()
             case .custom(let key): return key
             }

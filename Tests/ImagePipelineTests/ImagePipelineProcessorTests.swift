@@ -130,6 +130,6 @@ class ImagePipelineProcessorTests: XCTestCase {
         let cachedImage = pipeline.cache[Test.url]
 
         // Then
-        XCTAssertEqual(cachedImage, image)
+        XCTAssertEqual(cachedImage?.image, image)
     }
 }

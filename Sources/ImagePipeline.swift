@@ -16,12 +16,13 @@ import Foundation
 /// `ImagePipeline` is fully thread-safe.
 public /* final */ class ImagePipeline {
     public let configuration: Configuration
-    public let cache: ImagePipeline.Cache
+    public var cache: ImagePipeline.Cache { ImagePipeline.Cache(pipeline: self) }
     // Deprecated in 10.0.0
     @available(*, deprecated, message: "Please use ImagePipelineDelegate")
     public var observer: ImagePipelineObserving?
-    private let delegate: ImagePipelineDelegate // swiftlint:disable:this all
+    let delegate: ImagePipelineDelegate // swiftlint:disable:this all
     private(set) var dataLoader: DataLoader?
+    private(set) var imageCache: ImageCache?
 
     private var tasks = [ImageTask: TaskSubscription]()
 
@@ -59,7 +60,6 @@ public /* final */ class ImagePipeline {
     public init(configuration: Configuration = Configuration()) {
         self.configuration = configuration
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
-        self.cache = ImagePipeline.Cache(configuration: configuration)
         self.delegate = configuration.delegate ?? ImagePipelineDefaultDelegate()
 
         let isDeduplicationEnabled = configuration.isDeduplicationEnabled
@@ -76,6 +76,9 @@ public /* final */ class ImagePipeline {
         if let dataLoader = configuration.dataLoader as? DataLoader {
             dataLoader.attach(pipeline: self)
             self.dataLoader = dataLoader
+        }
+        if let imageCache = configuration.imageCache as? ImageCache {
+            self.imageCache = imageCache
         }
 
         ResumableDataStorage.shared.register(self)

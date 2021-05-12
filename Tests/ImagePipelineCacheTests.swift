@@ -26,6 +26,14 @@ class ImagePipelineCacheTests: XCTestCase {
         }
     }
 
+    // MARK: Subscripts
+
+    func testSubscript() {
+        // WHEN/THEN
+        cache[Test.request] = Test.container
+        XCTAssertNotNil(cache[Test.request])
+    }
+
     // MARK: Cached Image
 
     func testGetCachedImageDefaultFromMemoryCache() {
