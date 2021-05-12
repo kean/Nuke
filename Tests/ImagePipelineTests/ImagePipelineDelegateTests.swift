@@ -18,12 +18,11 @@ class ImagePipelineDelegateTests: XCTestCase {
         dataCache = MockDataCache()
         delegate = MockImagePipelineDelegate()
 
-        pipeline = ImagePipeline {
+        pipeline = ImagePipeline(delegate: delegate) {
             $0.dataLoader = dataLoader
             $0.dataCache = dataCache
             $0.dataCachePolicy = .automatic
             $0.imageCache = nil
-            $0.delegate = delegate
             $0.debugIsSyncImageEncoding = true
         }
     }

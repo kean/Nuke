@@ -9,8 +9,6 @@ import os
 
 extension ImagePipeline {
     public struct Configuration {
-        public var delegate: ImagePipelineDelegate? // swiftlint:disable:this all
-
         // MARK: - Dependencies
 
         /// Image cache used by the pipeline.

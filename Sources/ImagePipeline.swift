@@ -57,10 +57,11 @@ public /* final */ class ImagePipeline {
     /// Initializes `ImagePipeline` instance with the given configuration.
     ///
     /// - parameter configuration: `Configuration()` by default.
-    public init(configuration: Configuration = Configuration()) {
+    /// - parameter delegate: `nil` by default.
+    public init(configuration: Configuration = Configuration(), delegate: ImagePipeline.Delegate? = nil) {
         self.configuration = configuration
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
-        self.delegate = configuration.delegate ?? ImagePipelineDefaultDelegate()
+        self.delegate = delegate ?? ImagePipelineDefaultDelegate()
 
         let isDeduplicationEnabled = configuration.isDeduplicationEnabled
         self.tasksLoadData = TaskPool(isDeduplicationEnabled)
@@ -88,10 +89,10 @@ public /* final */ class ImagePipeline {
         #endif
     }
 
-    public convenience init(_ configure: (inout ImagePipeline.Configuration) -> Void) {
+    public convenience init(delegate: ImagePipeline.Delegate? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
         var configuration = ImagePipeline.Configuration()
         configure(&configuration)
-        self.init(configuration: configuration)
+        self.init(configuration: configuration, delegate: delegate)
     }
 
     /// Invalidates the pipeline and cancels all outstanding tasks.
