@@ -142,14 +142,14 @@ public extension ImagePipeline {
         // MARK: Keys
 
         public func makeImageCacheKey(for request: ImageRequest) -> ImageCacheKey {
-            switch pipeline.delegate.makeImageCacheKey(for: request) {
+            switch pipeline.delegate.pipeline(pipeline, imageCacheKeyFor: request) {
             case .default: return ImageCacheKey(request: request)
             case .custom(let key): return ImageCacheKey(key: key)
             }
         }
 
         public func makeDataCacheKey(for request: ImageRequest) -> String {
-            switch pipeline.delegate.makeDataCacheKey(for: request) {
+            switch pipeline.delegate.pipeline(pipeline, dataCacheKeyFor: request) {
             case .default: return request.makeDataCacheKey()
             case .custom(let key): return key
             }

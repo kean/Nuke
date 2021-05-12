@@ -379,7 +379,7 @@ extension ImagePipeline {
 
 extension ImagePipeline: SendEventProtocol {
     func send(_ event: ImageTaskEvent, _ task: ImageTask) {
-        delegate.imageTask(task, didReceiveEvent: event)
+        delegate.pipeline(self, imageTask: task, didReceiveEvent: event)
         (self as SendEventProtocol)._send(event, task)
     }
 

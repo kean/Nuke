@@ -150,7 +150,7 @@ class ImagePipelineDelegateTests: XCTestCase {
 }
 
 private final class MockImagePipelineDelegate: ImagePipelineDelegate {
-    func makeDataCacheKey(for request: ImageRequest) -> ImagePipeline.CacheKey<String> {
+    func pipeline(_ pipeline: ImagePipeline, dataCacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<String> {
         guard let imageId = request.options.userInfo["imageId"] as? String else {
             return .default
         }
@@ -159,7 +159,7 @@ private final class MockImagePipelineDelegate: ImagePipelineDelegate {
 
     var events = [ImageTaskEvent]()
 
-    func imageTask(_ imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
+    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
         events.append(event)
     }
 }

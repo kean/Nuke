@@ -12,15 +12,15 @@ public protocol ImagePipelineDelegate: AnyObject {
     // MARK: Caching
 
     /// Returns the image (in-memory) cache key for the given request.
-    func makeImageCacheKey(for request: ImageRequest) -> ImagePipeline.CacheKey<AnyHashable>
+    func pipeline(_ pipeline: ImagePipeline, imageCacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<AnyHashable>
 
     /// Returns the data cache (typically on-disk) key for the given request.
-    func makeDataCacheKey(for request: ImageRequest) -> ImagePipeline.CacheKey<String>
+    func pipeline(_ pipeline: ImagePipeline, dataCacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<String>
 
     // MARK: Monitoring
 
     /// Delivers the events produced by the image tasks started via `loadImage` method.
-    func imageTask(_ imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent)
+    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent)
 }
 
 public extension ImagePipeline {
@@ -31,15 +31,15 @@ public extension ImagePipeline {
 }
 
 public extension ImagePipelineDelegate {
-    func makeImageCacheKey(for request: ImageRequest) -> ImagePipeline.CacheKey<AnyHashable> {
+    func pipeline(_ pipeline: ImagePipeline, imageCacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<AnyHashable> {
         .default
     }
 
-    func makeDataCacheKey(for request: ImageRequest) -> ImagePipeline.CacheKey<String> {
+    func pipeline(_ pipeline: ImagePipeline, dataCacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<String> {
         .default
     }
 
-    func imageTask(_ imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
+    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
         // Do nothing
     }
 }
