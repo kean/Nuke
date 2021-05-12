@@ -3,17 +3,7 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-
-#if !os(macOS)
-import UIKit.UIImage
-import UIKit.UIColor
-/// Alias for `UIImage`.
-public typealias PlatformImage = UIImage
-#else
-import AppKit.NSImage
-/// Alias for `NSImage`.
-public typealias PlatformImage = NSImage
-#endif
+import Nuke
 
 /// Displays images. Add the conformance to this protocol to your views to make
 /// them compatible with Nuke image loading extensions.

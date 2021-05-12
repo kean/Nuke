@@ -4,6 +4,7 @@
 
 import Foundation
 import Nuke
+import NukeUI
 
 extension ImagePipeline.Error: Equatable {
     public static func == (lhs: ImagePipeline.Error, rhs: ImagePipeline.Error) -> Bool {

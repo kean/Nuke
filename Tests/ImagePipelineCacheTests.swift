@@ -27,10 +27,12 @@ class ImagePipelineCacheTests: XCTestCase {
     }
 
     // MARK: Subscripts
-
     func testSubscript() {
-        // WHEN/THEN
+        // GIVEN
+        let request = Test.request
         cache[Test.request] = Test.container
+
+        // THE
         XCTAssertNotNil(cache[Test.request])
     }
 

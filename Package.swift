@@ -10,9 +10,11 @@ let package = Package(
         .watchOS(.v4)
     ],
     products: [
-        .library(name: "Nuke", targets: ["Nuke"])
+        .library(name: "Nuke", targets: ["Nuke"]),
+        .library(name: "NukeUI", targets: ["NukeUI"])
     ],
     targets: [
-        .target(name: "Nuke", path: "Sources")
+        .target(name: "Nuke", path: "Sources/Nuke"),
+        .target(name: "NukeUI", path: "Sources/NukeUI")
     ]
 )

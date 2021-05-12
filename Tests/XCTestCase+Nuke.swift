@@ -5,6 +5,7 @@
 import XCTest
 import Foundation
 @testable import Nuke
+@testable import NukeUI
 
 #if os(iOS) || os(tvOS) || os(watchOS)
 import UIKit
@@ -94,7 +95,7 @@ extension XCTestCase {
                                     into imageView: ImageDisplayingView,
                                     completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
         let expectation = self.expectation(description: "Image loaded for \(request)")
-        Nuke.loadImage(
+        NukeUI.loadImage(
             with: request,
             options: options,
             into: imageView,

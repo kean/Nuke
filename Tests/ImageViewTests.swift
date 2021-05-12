@@ -4,6 +4,7 @@
 
 import XCTest
 @testable import Nuke
+@testable import NukeUI
 
 class ImageViewTests: XCTestCase {
     var imageView: _ImageView!
@@ -42,7 +43,7 @@ class ImageViewTests: XCTestCase {
     func testImageLoadedWithURL() {
         // When requesting an image with URL
         let expectation = self.expectation(description: "Image loaded")
-        Nuke.loadImage(with: Test.url, into: imageView) { _ in
+        NukeUI.loadImage(with: Test.url, into: imageView) { _ in
             expectation.fulfill()
         }
         wait()
@@ -55,7 +56,7 @@ class ImageViewTests: XCTestCase {
 
     func testTaskReturned() {
         // When requesting an image
-        let task = Nuke.loadImage(with: Test.request, into: imageView)
+        let task = NukeUI.loadImage(with: Test.request, into: imageView)
 
         // Expect Nuke to return a task
         XCTAssertNotNil(task)
@@ -70,7 +71,7 @@ class ImageViewTests: XCTestCase {
         mockCache[request] = ImageContainer(image: PlatformImage())
 
         // When requesting an image
-        let task = Nuke.loadImage(with: request, into: imageView)
+        let task = NukeUI.loadImage(with: request, into: imageView)
 
         // Expect Nuke to not return any tasks
         XCTAssertNil(task)
@@ -83,7 +84,7 @@ class ImageViewTests: XCTestCase {
         imageView.image = Test.image
 
         // When requesting the new image
-        Nuke.loadImage(with: Test.request, into: imageView)
+        NukeUI.loadImage(with: Test.request, into: imageView)
 
         // Then
         XCTAssertNil(imageView.image)
@@ -97,7 +98,7 @@ class ImageViewTests: XCTestCase {
         // When requesting the new image with prepare for reuse disabled
         var options = ImageLoadingOptions()
         options.isPrepareForReuseEnabled = false
-        Nuke.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
 
         // Expect the original image to still be displayed
         XCTAssertEqual(imageView.image, image)
@@ -111,7 +112,7 @@ class ImageViewTests: XCTestCase {
         mockCache[Test.request] = ImageContainer(image: image)
 
         // When requesting the new image
-        Nuke.loadImage(with: Test.request, into: imageView)
+        NukeUI.loadImage(with: Test.request, into: imageView)
 
         // Expect image to be displayed immediatelly
         XCTAssertEqual(imageView.image, image)
@@ -124,7 +125,7 @@ class ImageViewTests: XCTestCase {
         // When requesting the image with memory cache read disabled
         var request = Test.request
         request.options.memoryCacheOptions.isReadAllowed = false
-        Nuke.loadImage(with: request, into: imageView)
+        NukeUI.loadImage(with: request, into: imageView)
 
         // Expect image to not be displayed, loaded asyncrounously instead
         XCTAssertNil(imageView.image)
@@ -135,7 +136,7 @@ class ImageViewTests: XCTestCase {
     func testCompletionCalled() {
         var didCallCompletion = false
         let expectation = self.expectation(description: "Image loaded")
-        Nuke.loadImage(
+        NukeUI.loadImage(
             with: Test.request,
             into: imageView,
             completion: { result in
@@ -157,7 +158,7 @@ class ImageViewTests: XCTestCase {
         mockCache[Test.request] = Test.container
 
         var didCallCompletion = false
-        Nuke.loadImage(
+        NukeUI.loadImage(
             with: Test.request,
             into: imageView,
             completion: { result in
@@ -174,7 +175,7 @@ class ImageViewTests: XCTestCase {
         let expectedProgress = expectProgress([(10, 20), (20, 20)])
 
         // When loading an image into a view
-        Nuke.loadImage(
+        NukeUI.loadImage(
             with: Test.request,
             into: imageView,
             progress: { _, completed, total in
@@ -194,14 +195,14 @@ class ImageViewTests: XCTestCase {
 
         // Given an image view with an associated image task
         expectNotification(MockImagePipeline.DidStartTask, object: mockPipeline)
-        Nuke.loadImage(with: Test.url, into: imageView)
+        NukeUI.loadImage(with: Test.url, into: imageView)
         wait()
 
         // Expect the task to get cancelled
         expectNotification(MockImagePipeline.DidCancelTask, object: mockPipeline)
 
         // When asking Nuke to cancel the request for the view
-        Nuke.cancelRequest(for: imageView)
+        NukeUI.cancelRequest(for: imageView)
         wait()
     }
 
@@ -210,13 +211,13 @@ class ImageViewTests: XCTestCase {
 
         // Given an image view with an associated image task
         expectNotification(MockImagePipeline.DidStartTask, object: mockPipeline)
-        Nuke.loadImage(with: Test.url, into: imageView)
+        NukeUI.loadImage(with: Test.url, into: imageView)
         wait()
 
         // When starting loading a new image
         // Expect previous task to get cancelled
         expectNotification(MockImagePipeline.DidCancelTask, object: mockPipeline)
-        Nuke.loadImage(with: Test.url, into: imageView)
+        NukeUI.loadImage(with: Test.url, into: imageView)
         wait()
     }
 
@@ -229,7 +230,7 @@ class ImageViewTests: XCTestCase {
             // Given an image view with an associated image task
             var imageView: _ImageView! = _ImageView()
             expectNotification(MockImagePipeline.DidStartTask, object: mockPipeline)
-            Nuke.loadImage(with: Test.url, into: imageView)
+            NukeUI.loadImage(with: Test.url, into: imageView)
             wait()
 
             // Expect the task to be cancelled automatically
@@ -248,14 +249,14 @@ class ImageViewTests: XCTestCase {
         mockPipeline.isCancellationEnabled = false
 
         // Given an image view which is in the process of loading the image
-        Nuke.loadImage(with: Test.request, into: imageView) { _ in
+        NukeUI.loadImage(with: Test.request, into: imageView) { _ in
             // Expect completion to never get called, we're already displaying
             // the image B by that point.
             XCTFail("Enexpected completion")
         }
 
         // When cancelling the request
-        Nuke.cancelRequest(for: imageView)
+        NukeUI.cancelRequest(for: imageView)
 
         // When the pipeline finishes loading the image B.
         expectNotification(MockImagePipeline.DidFinishTask)
@@ -280,14 +281,14 @@ class ImageViewTests: XCTestCase {
         mockCache[requestB] = ImageContainer(image: imageB)
 
         // Given an image view which is in the process of loading the image A.
-        Nuke.loadImage(with: requestA, into: imageView) { _ in
+        NukeUI.loadImage(with: requestA, into: imageView) { _ in
             // Expect completion to never get called, we're already displaying
             // the image B by that point.
             XCTFail("Enexpected completion for requestA")
         }
 
         // When starting a starting a new request for the image B.
-        Nuke.loadImage(with: requestB, into: imageView)
+        NukeUI.loadImage(with: requestB, into: imageView)
 
         // Expect an image B to be displayed immediatelly.
         XCTAssertEqual(imageB, imageView.image)
@@ -369,7 +370,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         options.placeholder = placeholder
 
         // When
-        Nuke.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         XCTAssertEqual(imageView.image, placeholder)
@@ -458,7 +459,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         mockCache[Test.request] = Test.container
 
         // When
-        Nuke.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         XCTAssertEqual(imageView.contentMode, .scaleAspectFill)
@@ -524,7 +525,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         mockCache[Test.request] = Test.container
         
         // When
-        Nuke.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
         
         // Then
         XCTAssertEqual(imageView.tintColor, .blue)
@@ -591,7 +592,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         ImageLoadingOptions.pushShared(options)
 
         // When
-        Nuke.loadImage(with: Test.request, options: options, into: imageView)
+        NukeUI.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         XCTAssertEqual(imageView.image, placeholder)

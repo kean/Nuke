@@ -4,6 +4,7 @@
 
 import XCTest
 import Nuke
+import NukeUI
 
 class ImageViewPerformanceTests: XCTestCase {
     private let dummyCacheRequest = ImageRequest(url: URL(string: "http://test.com/9999999)")!, processors: [ImageProcessors.Resize(size: CGSize(width: 2, height: 2))])

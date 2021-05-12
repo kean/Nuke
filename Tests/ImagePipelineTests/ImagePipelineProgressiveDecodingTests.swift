@@ -4,6 +4,7 @@
 
 import XCTest
 @testable import Nuke
+@testable import NukeUI
 
 class ImagePipelineProgressiveDecodingTests: XCTestCase {
     private var dataLoader: MockProgressiveDataLoader!
@@ -206,7 +207,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         let expectedFinalLoaded = self.expectation(description: "Final Image Produced")
 
         // When/Then
-        Nuke.loadImage(
+        NukeUI.loadImage(
             with: Test.request,
             into: imageView,
             progress: { response, _, _ in
@@ -242,7 +243,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         let expectedFinalLoaded = self.expectation(description: "Final Image Produced")
 
         // When/Then
-        Nuke.loadImage(
+        NukeUI.loadImage(
             with: Test.request,
             options: options,
             into: imageView,

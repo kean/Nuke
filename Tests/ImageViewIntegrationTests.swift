@@ -4,6 +4,7 @@
 
 import XCTest
 @testable import Nuke
+@testable import NukeUI
 
 class ImageViewIntegrationTests: XCTestCase {
     var imageView: _ImageView!
@@ -47,11 +48,11 @@ class ImageViewIntegrationTests: XCTestCase {
 
     func testImageLoadedWithURL() {
 
-        Nuke.loadImage(with: url, into: imageView)
+        NukeUI.loadImage(with: url, into: imageView)
 
         // When
         let expectation = self.expectation(description: "Image loaded")
-        Nuke.loadImage(with: url, into: imageView) { _ in
+        NukeUI.loadImage(with: url, into: imageView) { _ in
             expectation.fulfill()
         }
         wait()
