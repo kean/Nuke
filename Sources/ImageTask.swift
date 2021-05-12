@@ -78,7 +78,7 @@ public /* final */ class ImageTask: Hashable, CustomStringConvertible {
     ///
     /// The pipeline will immediately cancel any work associated with a task
     /// unless there is an equivalent outstanding task running (see
-    /// `ImagePipeline.Configuration.isDeduplicationEnabled` for more info).
+    /// `ImagePipeline.Configuration.isCoalescingEnabled` for more info).
     public func cancel() {
         if OSAtomicCompareAndSwap32Barrier(0, 1, _isCancelled) {
             pipeline?.imageTaskCancelCalled(self)

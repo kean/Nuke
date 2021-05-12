@@ -170,3 +170,12 @@ public extension ImageRequestOptions {
         self.userInfo = userInfo
     }
 }
+
+public extension ImagePipeline.Configuration {
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Renamed to isTaskCoalescingEnabled")
+    var isDeduplicationEnabled: Bool {
+        get { isTaskCoalescingEnabled }
+        set { isTaskCoalescingEnabled = newValue }
+    }
+}

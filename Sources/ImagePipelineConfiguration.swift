@@ -159,7 +159,7 @@ extension ImagePipeline {
         /// Nuke will load the image data only once, resize the image once and
         /// apply the blur also only once. There is no duplicated work done at
         /// any stage.
-        public var isDeduplicationEnabled = true
+        public var isTaskCoalescingEnabled = true
 
         /// `true` by default. If `true` the pipeline will rate limit requests
         /// to prevent trashing of the underlying systems (e.g. `URLSession`).

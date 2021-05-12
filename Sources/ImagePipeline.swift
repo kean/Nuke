@@ -63,12 +63,12 @@ public /* final */ class ImagePipeline {
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()
 
-        let isDeduplicationEnabled = configuration.isDeduplicationEnabled
-        self.tasksLoadData = TaskPool(isDeduplicationEnabled)
-        self.tasksLoadImage = TaskPool(isDeduplicationEnabled)
-        self.tasksFetchDecodedImage = TaskPool(isDeduplicationEnabled)
-        self.tasksFetchOriginalImageData = TaskPool(isDeduplicationEnabled)
-        self.tasksProcessImage = TaskPool(isDeduplicationEnabled)
+        let isCoalescingEnabled = configuration.isTaskCoalescingEnabled
+        self.tasksLoadData = TaskPool(isCoalescingEnabled)
+        self.tasksLoadImage = TaskPool(isCoalescingEnabled)
+        self.tasksFetchDecodedImage = TaskPool(isCoalescingEnabled)
+        self.tasksFetchOriginalImageData = TaskPool(isCoalescingEnabled)
+        self.tasksProcessImage = TaskPool(isCoalescingEnabled)
 
         self._nextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
         self._nextTaskId.initialize(to: 0)
