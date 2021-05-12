@@ -319,38 +319,6 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         wait()
     }
 
-    func testBackpressureImageProcessing() {
-        let queue = pipeline.configuration.imageProcessingQueue
-
-        // When we receive progressive image data at a higher rate that we can
-        // process (we suspended the queue in test) we don't try to process
-        // new scans until we finished processing the first one.
-
-        queue.isSuspended = true
-        expect(queue).toFinishWithEnqueuedOperationCount(2) // 1 partial, 1 final
-
-        let finalLoaded = self.expectation(description: "Final image produced")
-
-        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
-        pipeline.loadImage(
-            with: request,
-            progress: { image, _, _ in
-                if image != nil {
-                    // We don't expect partial to finish, because as soon as
-                    // we create operation to create final image, partial
-                    // operations is going to be finished before even starting
-                }
-                self.dataLoader.resume()
-            },
-            completion: { result in
-                XCTAssertTrue(result.isSuccess)
-                finalLoaded.fulfill()
-            }
-        )
-
-        wait()
-    }
-
     func testBackpressureProcessingImageProcessingOperationCancelled() throws {
         // Given
         let imageProcessingQueue = pipeline.configuration.imageProcessingQueue
