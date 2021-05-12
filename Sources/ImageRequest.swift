@@ -316,7 +316,6 @@ extension ImageRequest {
 
     // MARK: - Load Keys
 
-    #warning("better naming for keys")
     /// A key for deduplicating operations for fetching the processed image.
     func makeLoadKeyForProcessedImage() -> LoadKeyForProcessedImage {
         LoadKeyForProcessedImage(
