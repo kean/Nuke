@@ -235,6 +235,21 @@ extension ImagePipeline {
             self.customImageCache = imageCache
             self.isCustomImageCacheProvided = true
         } // This init is going to be removed in the future
+
+        /// Creates a configuration with an aggressive disk cache (`DataCache`)
+        /// enabled and HTTT cache (`URLCache`) disabled.
+        public static var withDataCache: Configuration {
+            let dataLoader: DataLoader = {
+                let config = URLSessionConfiguration.default
+                config.urlCache = nil
+                return DataLoader(configuration: config)
+            }()
+
+            var config = Configuration(dataLoader: dataLoader)
+            config.dataCache = try? DataCache(name: "com.github.kean.Nuke.DataCache")
+
+            return config
+        }
     }
 }
 

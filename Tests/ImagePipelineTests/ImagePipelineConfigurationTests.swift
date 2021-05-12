@@ -22,6 +22,13 @@ class ImagePipelineConfigurationTests: XCTestCase {
         wait()
     }
 
+    // MARK: DataCache
+
+    func testWithDataCache() {
+        let pipeline = ImagePipeline(configuration: .withDataCache)
+        XCTAssertNotNil(pipeline.configuration.dataCache)
+    }
+
     // MARK: Changing Callback Queue
 
     func testChangingCallbackQueueLoadImage() {
