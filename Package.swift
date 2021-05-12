@@ -1,4 +1,4 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.3
 import PackageDescription
 
 let package = Package(
@@ -15,6 +15,6 @@ let package = Package(
     ],
     targets: [
         .target(name: "Nuke", path: "Sources/Nuke"),
-        .target(name: "NukeUI", path: "Sources/NukeUI")
+        .target(name: "NukeUI", dependencies: ["Nuke"], path: "Sources/NukeUI")
     ]
 )
