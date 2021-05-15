@@ -126,24 +126,24 @@ public /* final */ class ImagePipeline {
     @discardableResult
     public func loadImage(with request: ImageRequestConvertible,
                           queue: DispatchQueue? = nil,
-                          progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                          progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
                           completion: ((_ result: Result<ImageResponse, Error>) -> Void)? = nil) -> ImageTask {
         loadImage(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
 
     func loadImage(with request: ImageRequest,
                    isConfined: Bool,
-                   queue callbackQueue: DispatchQueue?,
-                   progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)?,
+                   queue: DispatchQueue?,
+                   progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
                    completion: ((_ result: Result<ImageResponse, Error>) -> Void)?) -> ImageTask {
         let request = configuration.inheritOptions(request)
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
         task.pipeline = self
         if isConfined {
-            self.startImageTask(task, callbackQueue: callbackQueue, progress: progressHandler, completion: completion)
+            self.startImageTask(task, callbackQueue: queue, progress: progress, completion: completion)
         } else {
             self.queue.async {
-                self.startImageTask(task, callbackQueue: callbackQueue, progress: progressHandler, completion: completion)
+                self.startImageTask(task, callbackQueue: queue, progress: progress, completion: completion)
             }
         }
         return task
