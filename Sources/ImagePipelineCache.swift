@@ -88,6 +88,18 @@ public extension ImagePipeline {
             }
         }
 
+        /// Returns `true` if any of the caches contain the image.
+        public func containsCachedImage(for request: ImageRequest, caches: Caches = [.all]) -> Bool {
+            if caches.contains(.memory) && cachedImageFromMemoryCache(for: request) != nil {
+                return true
+            }
+            if caches.contains(.disk), let dataCache = configuration.dataCache {
+                let key = makeDataCacheKey(for: request)
+                return dataCache.containsData(for: key)
+            }
+            return false
+        }
+
         private func cachedImageFromMemoryCache(for request: ImageRequest) -> ImageContainer? {
             guard request.cachePolicy != .reloadIgnoringCachedData && request.options.memoryCacheOptions.isReadAllowed else {
                 return nil

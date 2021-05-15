@@ -15,6 +15,10 @@ final class MockDataCache: DataCaching {
         return store[key]
     }
 
+    func containsData(for key: String) -> Bool {
+        store[key] != nil
+    }
+
     func storeData(_ data: Data, for key: String) {
         writeCount += 1
         store[key] = data

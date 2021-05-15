@@ -13,6 +13,9 @@ public protocol DataCaching {
     /// Retrieves data from cache for the given key.
     func cachedData(for key: String) -> Data?
 
+    /// Returns `true` if the cache contains data for the given key.
+    func containsData(for key: String) -> Bool
+
     /// Stores data for the given key.
     /// - note: The implementation must return immediately and store data
     /// asynchronously.
@@ -156,9 +159,7 @@ public final class DataCache: DataCaching {
 
     /// Retrieves data for the given key.
     public func cachedData(for key: Key) -> Data? {
-        lock.lock()
-        if let change = staging.change(for: key) {
-            lock.unlock()
+        if let change = change(for: key) {
             switch change { // Change wasn't flushed to disk yet
             case let .add(data):
                 return data
@@ -166,12 +167,32 @@ public final class DataCache: DataCaching {
                 return nil
             }
         }
-        lock.unlock()
-
         guard let url = url(for: key) else {
             return nil
         }
         return try? Data(contentsOf: url)
+    }
+
+    /// Returns `true` if the cache contains the data for the given key.
+    public func containsData(for key: String) -> Bool {
+        if let change = change(for: key) {
+            switch change { // Change wasn't flushed to disk yet
+            case .add:
+                return true
+            case .remove:
+                return false
+            }
+        }
+        guard let url = url(for: key) else {
+            return false
+        }
+        return FileManager.default.fileExists(atPath: url.path)
+    }
+
+    private func change(for key: String) -> Staging.ChangeType? {
+        lock.lock()
+        defer { lock.unlock() }
+        return staging.change(for: key)
     }
 
     /// Stores data for the given key. The method returns instantly and the data

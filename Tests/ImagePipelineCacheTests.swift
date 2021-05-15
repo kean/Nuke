@@ -201,6 +201,41 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 
+    // MARK: Contains
+
+    func testContainsWhenStoredInMemoryCache() {
+        // GIVEN
+        cache.storeCachedImage(Test.container, for: Test.request, caches: [.memory])
+
+        // WHEN/THEN
+        XCTAssertTrue(cache.containsCachedImage(for: Test.request))
+        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.all]))
+        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.memory]))
+        XCTAssertFalse(cache.containsCachedImage(for: Test.request, caches: [.disk]))
+    }
+
+    func testContainsWhenStoredInDiskCache() {
+        // GIVEN
+        cache.storeCachedImage(Test.container, for: Test.request, caches: [.disk])
+
+        // WHEN/THEN
+        XCTAssertTrue(cache.containsCachedImage(for: Test.request))
+        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.all]))
+        XCTAssertFalse(cache.containsCachedImage(for: Test.request, caches: [.memory]))
+        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.disk]))
+    }
+
+    func testsContainsStoredInBoth() {
+        // GIVEN
+        cache.storeCachedImage(Test.container, for: Test.request, caches: [.all])
+
+        // WHEN/THEN
+        XCTAssertTrue(cache.containsCachedImage(for: Test.request))
+        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.all]))
+        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.memory]))
+        XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.disk]))
+    }
+
     // MARK: Remove
 
     func testRemoveFromMemoryCache() {

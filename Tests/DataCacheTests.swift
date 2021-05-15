@@ -370,6 +370,35 @@ class DataCacheTests: XCTestCase {
 
     // MARK: Inspection
 
+    func testContainsData() {
+        // GIVEN
+        cache["key"] = blob
+        cache.flush(for: "key")
+
+        // WHEN/THEN
+        XCTAssertTrue(cache.containsData(for: "key"))
+    }
+
+    func testContainsDataInStaging() {
+        // GIVEN
+        cache.flushInterval = .seconds(20)
+        cache["key"] = blob
+
+        // WHEN/THEN
+        XCTAssertTrue(cache.containsData(for: "key"))
+    }
+
+    func testContainsDataAfterRemoval() {
+        // GIVEN
+        cache.flushInterval = .seconds(20)
+        cache["key"] = blob
+        cache.flush(for: "key")
+        cache["key"] = nil
+
+        // WHEN/THEN
+        XCTAssertFalse(cache.containsData(for: "key"))
+    }
+
     func testTotalCount() {
         XCTAssertEqual(cache.totalCount, 0)
 
