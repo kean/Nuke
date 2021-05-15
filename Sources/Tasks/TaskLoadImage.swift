@@ -255,7 +255,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             guard let data = encodedData else { return }
             dataCache.storeData(data, for: key) // This is instant
         }
-        #warning("should it always be sync?")
         if pipeline.configuration.debugIsSyncImageEncoding { // Only for debug
             pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
         }

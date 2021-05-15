@@ -64,7 +64,8 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
         }
     }
 
-    #warning("rework this")
+    // The tasks only ever need up to 2 dependencies and this code is much faster
+    // than creating an array.
     var dependency2: TaskSubscription? {
         didSet {
             dependency2?.setPriority(priority)
