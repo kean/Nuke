@@ -64,6 +64,8 @@ public extension ImagePipeline {
         /// - note: Default `DiskCache` stores data asynchronously, so it's safe
         /// to call this method even from the main thread.
         ///
+        /// - note: Image previews are not stored.
+        ///
         /// - parameter request: The request. Make sure to remove the processors
         /// if you want to retrieve an original image (if it's stored).
         /// - parameter caches: `[.all]`, by default.

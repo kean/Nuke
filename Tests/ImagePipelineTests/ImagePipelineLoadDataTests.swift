@@ -113,22 +113,6 @@ class ImagePipelineLoadDataTests: XCTestCase {
         wait()
     }
 
-    // MARK: Cache Lookup
-
-    func testCacheLookupReturnedFromCacheWhenOriginalDataStored() {
-
-    }
-
-    #warning("todo")
-    func testCacheLookupReturedFromCacheWhenProcessedImageDataStored() {
-
-    }
-
-    #warning("todo")
-    func _testCacheLookupReturnsEncodedImageWhenOriginalImageDataStored() {
-
-    }
-
     // MARK: - Callback Queues
 
     func testChangingCallbackQueueLoadData() {
@@ -147,6 +131,42 @@ class ImagePipelineLoadDataTests: XCTestCase {
         })
         wait()
     }
+}
+
+// MARK: - ImagePipelineLoadDataTests (ImageRequest.CachePolicy)
+
+extension ImagePipelineLoadDataTests {
+    func testCacheLookupWithDefaultPolicyImageStored() {
+        // GIVEN
+        pipeline.cache.storeCachedImage(Test.container, for: Test.request)
+
+        // WHEN
+        let record = expect(pipeline).toLoadData(with: Test.request)
+        wait()
+
+        // THEN
+        XCTAssertEqual(dataCache.readCount, 1)
+        XCTAssertEqual(dataCache.writeCount, 1) // Initial write
+        XCTAssertEqual(dataLoader.createdTaskCount, 0)
+        XCTAssertNotNil(record.data)
+    }
+
+    func testCacheLookupWithReloadPolicyImageStored() {
+        // GIVEN
+        pipeline.cache.storeCachedImage(Test.container, for: Test.request)
+
+        // WHEN
+        let request = ImageRequest(url: Test.url, cachePolicy: .reloadIgnoringCachedData)
+        let record = expect(pipeline).toLoadData(with: request)
+        wait()
+
+        // THEN
+        XCTAssertEqual(dataCache.readCount, 0)
+        XCTAssertEqual(dataCache.writeCount, 2) // Initial write + write after fetch
+        XCTAssertEqual(dataLoader.createdTaskCount, 1)
+        XCTAssertNotNil(record.data)
+    }
+
 }
 
 // MARK: - ImagePipelineLoadDataTests (DataCachePolicy)

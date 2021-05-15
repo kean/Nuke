@@ -73,18 +73,16 @@ struct TestExpectationImagePipeline {
         }
     }
 
-    func toLoadData(with request: ImageRequest) {
+    @discardableResult
+    func toLoadData(with request: ImageRequest) -> TestRecorededDataTask {
+        let record = TestRecorededDataTask()
         let expectation = test.expectation(description: "Data loaded for \(request)")
-        pipeline.loadData(with: request, progress: nil) { result in
+        record._task = pipeline.loadData(with: request, progress: nil) { result in
             XCTAssertTrue(Thread.isMainThread)
-            switch result {
-            case .success:
-                break
-            case let .failure(error):
-                XCTFail("Failed to load data with error: \(error)")
-            }
+            record.result = result
             expectation.fulfill()
         }
+        return record
     }
 }
 
@@ -126,6 +124,22 @@ final class TestRecordedImageRequest {
 
     var image: PlatformImage? {
         response?.image
+    }
+}
+
+final class TestRecorededDataTask {
+    var task: ImageTask {
+        _task
+    }
+    fileprivate var _task: ImageTask!
+
+    var result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>?
+
+    var data: Data? {
+        guard case .success(let response)? = result else {
+            return nil
+        }
+        return response.data
     }
 }
 
