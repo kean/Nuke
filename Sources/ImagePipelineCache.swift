@@ -154,6 +154,14 @@ public extension ImagePipeline {
             dataCache.storeData(data, for: key)
         }
 
+        /// Returns true if the data cache contains data for the given image
+        public func containsData(for request: ImageRequest) -> Bool {
+            guard let dataCache = configuration.dataCache else {
+                return false
+            }
+            return dataCache.containsData(for: makeDataCacheKey(for: request))
+        }
+
         /// Removes cached data for the given request.
         public func removeCachedData(request: ImageRequest) {
             guard let dataCache = configuration.dataCache else {

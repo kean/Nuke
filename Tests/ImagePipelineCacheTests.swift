@@ -236,6 +236,14 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertTrue(cache.containsCachedImage(for: Test.request, caches: [.disk]))
     }
 
+    func testContainsData() {
+        // GIVEN
+        cache.storeCachedImage(Test.container, for: Test.request, caches: [.disk])
+
+        // WHEN/THEN
+        XCTAssertTrue(cache.containsData(for: Test.request))
+    }
+
     // MARK: Remove
 
     func testRemoveFromMemoryCache() {
