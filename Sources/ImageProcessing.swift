@@ -363,9 +363,7 @@ extension ImageProcessors {
 struct ImageDecompression {
 
     static func decompress(image: PlatformImage) -> PlatformImage {
-        let output = image.decompressed() ?? image
-        ImageDecompression.setDecompressionNeeded(false, for: output)
-        return output
+        image.decompressed() ?? image
     }
 
     // MARK: Managing Decompression State

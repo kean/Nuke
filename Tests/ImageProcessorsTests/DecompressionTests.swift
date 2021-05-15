@@ -16,7 +16,7 @@ class ImageDecompressionTests: XCTestCase {
         let output = ImageDecompression.decompress(image: input)
 
         // Then
-        XCTAssertFalse(try XCTUnwrap(ImageDecompression.isDecompressionNeeded(for: output)))
+        XCTAssertFalse(ImageDecompression.isDecompressionNeeded(for: output) ?? false)
     }
 
     func testGrayscalePreserved() throws {
