@@ -9,6 +9,14 @@ public extension ImagePipeline {
 }
 
 public protocol ImagePipelineDelegate: AnyObject {
+    // MARK: Configuration
+
+    /// Returns image decoder for the given context.
+    func pipeline(_ pipeline: ImagePipeline, imageDecoderFor context: ImageDecodingContext) -> ImageDecoding?
+
+    /// Returns image encoder for the given context.
+    func pipeline(_ pipeline: ImagePipeline, imageEncoderFor context: ImageEncodingContext) -> ImageEncoding
+
     // MARK: Caching
 
     /// Returns the image (in-memory) cache key for the given request.
@@ -31,6 +39,14 @@ public extension ImagePipeline {
 }
 
 public extension ImagePipelineDelegate {
+    func pipeline(_ pipeline: ImagePipeline, imageDecoderFor context: ImageDecodingContext) -> ImageDecoding? {
+        pipeline.configuration.makeImageDecoder(context)
+    }
+
+    func pipeline(_ pipeline: ImagePipeline, imageEncoderFor context: ImageEncodingContext) -> ImageEncoding {
+        pipeline.configuration.makeImageEncoder(context)
+    }
+
     func pipeline(_ pipeline: ImagePipeline, imageCacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<AnyHashable> {
         .default
     }

@@ -215,7 +215,7 @@ public extension ImagePipeline {
 
         private func encodeImage(_ image: ImageContainer, for request: ImageRequest) -> Data? {
             let context = ImageEncodingContext(request: request, image: image.image, urlResponse: nil)
-            let encoder = configuration.makeImageEncoder(context)
+            let encoder = pipeline.delegate.pipeline(pipeline, imageEncoderFor: context)
             return encoder.encode(image, context: context)
         }
 
