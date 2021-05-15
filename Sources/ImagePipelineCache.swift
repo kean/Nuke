@@ -34,15 +34,14 @@ public extension ImagePipeline {
 
         // MARK: Cached Images
 
-        /// Returns a cached image from the memory cache. Add `.disk` as a source
-        /// to also check the disk cache.
+        /// Returns a cached image any of the caches.
         ///
         /// - note: Respects request options such as `cachePolicy`.
         ///
         /// - parameter request: The request. Make sure to remove the processors
         /// if you want to retrieve an original image (if it's stored).
-        /// - parameter caches: `[.memory]`, by default.
-        public func cachedImage(for request: ImageRequest, caches: Caches = [.memory]) -> ImageContainer? {
+        /// - parameter caches: `[.all]`, by default.
+        public func cachedImage(for request: ImageRequest, caches: Caches = [.all]) -> ImageContainer? {
             if caches.contains(.memory) {
                 if let image = cachedImageFromMemoryCache(for: request) {
                     return image
@@ -57,6 +56,38 @@ public extension ImagePipeline {
             return nil
         }
 
+        /// Stores the image in all caches. To store image in the disk cache, it
+        /// will be encoded (see `ImageEncoding`)
+        ///
+        /// - note: Respects request cache options.
+        ///
+        /// - note: Default `DiskCache` stores data asynchronously, so it's safe
+        /// to call this method even from the main thread.
+        ///
+        /// - parameter request: The request. Make sure to remove the processors
+        /// if you want to retrieve an original image (if it's stored).
+        /// - parameter caches: `[.all]`, by default.
+        public func storeCachedImage(_ image: ImageContainer, for request: ImageRequest, caches: Caches = [.all]) {
+            if caches.contains(.memory) {
+                storeCachedImageInMemoryCache(image, for: request)
+            }
+            if caches.contains(.disk) {
+                if let data = encodeImage(image, for: request) {
+                    storeCachedData(data, for: request)
+                }
+            }
+        }
+
+        /// Removes the image from all caches.
+        public func removeCachedImage(for request: ImageRequest, caches: Caches = [.all]) {
+            if caches.contains(.memory) {
+                removeCachedImageFromMemoryCache(for: request)
+            }
+            if caches.contains(.disk) {
+                removeCachedData(request: request)
+            }
+        }
+
         private func cachedImageFromMemoryCache(for request: ImageRequest) -> ImageContainer? {
             guard request.cachePolicy != .reloadIgnoringCachedData && request.options.memoryCacheOptions.isReadAllowed else {
                 return nil
@@ -69,29 +100,6 @@ public extension ImagePipeline {
             }
         }
 
-        /// Stores the image in the memory cache. Add `.disk` as a source to also
-        /// store it in the disk cache (image will be encoded).
-        ///
-        /// - note: Respects request cache options.
-        ///
-        /// - note: Default `DiskCache` stores data asynchronously, so it's safe
-        /// to call this method even from the main thread.
-        ///
-        /// - parameter request: The request. Make sure to remove the processors
-        /// if you want to retrieve an original image (if it's stored).
-        /// - parameter caches: `[.memory]`, by default.
-        public func storeCachedImage(_ image: ImageContainer, for request: ImageRequest, caches: Caches = [.memory]) {
-            let request = configuration.inheritOptions(request)
-            if caches.contains(.memory) {
-                storeCachedImageInMemoryCache(image, for: request)
-            }
-            if caches.contains(.disk) {
-                if let data = encodeImage(image, for: request) {
-                    storeCachedData(data, for: request)
-                }
-            }
-        }
-
         private func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) {
             guard request.options.memoryCacheOptions.isWriteAllowed else {
                 return
@@ -101,15 +109,6 @@ public extension ImagePipeline {
             }
             let key = makeImageCacheKey(for: request)
             configuration.imageCache?[key] = image
-        }
-
-        public func removeCachedImage(for request: ImageRequest, caches: Caches = [.memory]) {
-            if caches.contains(.memory) {
-                removeCachedImageFromMemoryCache(for: request)
-            }
-            if caches.contains(.disk) {
-                removeCachedData(request: request)
-            }
         }
 
         private func removeCachedImageFromMemoryCache(for request: ImageRequest) {

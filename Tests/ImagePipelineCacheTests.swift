@@ -56,8 +56,8 @@ class ImagePipelineCacheTests: XCTestCase {
         // WHEN
         let image = cache.cachedImage(for: request)
 
-        // THEN returns nil because queries only memory cache by default
-        XCTAssertNil(image)
+        // THEN
+        XCTAssertNotNil(image)
     }
 
     func testGetCachedImageDefaultFromDiskCacheWhenOptionEnabled() {
@@ -144,8 +144,8 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertNotNil(cache.cachedImage(for: request))
         XCTAssertNotNil(memoryCache[cache.makeImageCacheKey(for: request)])
 
-        XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+        XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
+        XCTAssertNotNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 
     func testStoreCachedImageInDiskCache() {
@@ -154,7 +154,7 @@ class ImagePipelineCacheTests: XCTestCase {
         cache.storeCachedImage(Test.container, for: request, caches: [.disk])
 
         // THEN
-        XCTAssertNil(cache.cachedImage(for: request))
+        XCTAssertNotNil(cache.cachedImage(for: request))
         XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
 
         XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
@@ -180,7 +180,7 @@ class ImagePipelineCacheTests: XCTestCase {
         cache.storeCachedData(Test.data, for: request)
 
         // THEN
-        XCTAssertNil(cache.cachedImage(for: request))
+        XCTAssertNotNil(cache.cachedImage(for: request))
         XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
 
         XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))

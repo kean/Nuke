@@ -12,7 +12,7 @@ import Foundation
 final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     override func start() {
         // Memory cache lookup
-        if let image = pipeline.cache.cachedImage(for: request) {
+        if let image = pipeline.cache[request] {
             let response = ImageResponse(container: image, cacheType: .memory)
             send(value: response, isCompleted: !image.isPreview)
             if !image.isPreview {
@@ -101,7 +101,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
                 remaining.append(last)
             }
             while !processors.isEmpty {
-                if let image = pipeline.cache.cachedImage(for: request.withProcessors(processors)) {
+                if let image = pipeline.cache[request.withProcessors(processors)] {
                     let response = ImageResponse(container: image, cacheType: .memory)
                     process(response, isCompleted: !image.isPreview, processors: remaining)
                     if !image.isPreview {
@@ -233,7 +233,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             return // Only store for direct requests
         }
         // Memory cache (ImageCaching)
-        pipeline.cache.storeCachedImage(response.container, for: request)
+        pipeline.cache[request] = response.container
         // Disk cache (DataCaching)
         storeImageInDataCache(response)
     }

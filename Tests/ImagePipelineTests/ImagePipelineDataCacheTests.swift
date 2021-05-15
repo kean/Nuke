@@ -229,7 +229,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         wait()
 
         // Then decompressed image is stored in disk cache
-        let container = cache[self.request]
+        let container = cache[request]
         XCTAssertNotNil(container)
 
         let image = try XCTUnwrap(container?.image)
