@@ -13,7 +13,7 @@ extension String {
     /// // prints "50334ee0b51600df6397ce93ceed4728c37fee4e"
     /// ```
     var sha1: String? {
-        guard let input = self.data(using: .utf8) else {
+        guard !isEmpty, let input = self.data(using: .utf8) else {
             return nil
         }
 
