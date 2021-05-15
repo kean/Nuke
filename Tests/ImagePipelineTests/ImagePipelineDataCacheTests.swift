@@ -210,8 +210,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
                 return XCTFail("Expected image to be loaded")
             }
 
-            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
-            XCTAssertEqual(isDecompressionNeeded, false, "Expected image to be decompressed")
+            XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: image))
         }
         wait()
     }
@@ -234,8 +233,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         XCTAssertNotNil(container)
 
         let image = try XCTUnwrap(container?.image)
-        let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
-        XCTAssertEqual(isDecompressionNeeded, false, "Expected image to be decompressed")
+        XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: image))
     }
 
     func testProcessedImageNotDecompressedWhenDecompressionDisabled() {

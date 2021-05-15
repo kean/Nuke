@@ -354,8 +354,7 @@ class ImagePipelineTests: XCTestCase {
 
             XCTAssertTrue(output !== image)
 
-            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: output)
-            XCTAssertEqual(isDecompressionNeeded, false)
+            XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: output))
         }
         wait()
     }
@@ -388,8 +387,7 @@ class ImagePipelineTests: XCTestCase {
             }
 
             // Expect decompression to be performed (processor was applied but it did nothing)
-            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
-            XCTAssertEqual(isDecompressionNeeded, false)
+            XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: image))
         }
         wait()
     }
