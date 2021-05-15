@@ -5,13 +5,20 @@
 import Foundation
 
 public extension ImagePipeline {
+    /// Provides a set of convenience APIs for managing the pipeline cache layers,
+    /// including `ImageCaching` (memory cache) and `DataCaching` (disk cache).
+    ///
+    /// - warning: This class doesn't work with a `URLCache`. For more info,
+    /// see ["Caching"](https://kean.blog/nuke/guides/caching).
+    ///
     /// Thread-safe.
     struct Cache {
         let pipeline: ImagePipeline
         private var configuration: ImagePipeline.Configuration { pipeline.configuration }
 
-        /// A convenience API that returns processed image from the memory cache
-        /// for the given request.
+        // MARK: Subscript (Memory Cache)
+
+        /// Returns an image from the memory cache for the given request.
         public subscript(request: ImageRequestConvertible) -> ImageContainer? {
             get {
                 cachedImageFromMemoryCache(for: request.asImageRequest())
@@ -105,13 +112,14 @@ public extension ImagePipeline {
             }
         }
 
-        func removeCachedImageFromMemoryCache(for request: ImageRequest) {
+        private func removeCachedImageFromMemoryCache(for request: ImageRequest) {
             let key = makeImageCacheKey(for: request)
             configuration.imageCache?[key] = nil
         }
 
         // MARK: Cached Data
 
+        /// Returns cached data for the given request.
         public func cachedData(for request: ImageRequest) -> Data? {
             guard request.cachePolicy != .reloadIgnoringCachedData else {
                 return nil
@@ -123,6 +131,10 @@ public extension ImagePipeline {
             return dataCache.cachedData(for: key)
         }
 
+        /// Stores data for the given request.
+        ///
+        /// - note: Default `DiskCache` stores data asynchronously, so it's safe
+        /// to call this method even from the main thread.
         public func storeCachedData(_ data: Data, for request: ImageRequest) {
             guard let dataCache = configuration.dataCache else {
                 return
@@ -131,6 +143,7 @@ public extension ImagePipeline {
             dataCache.storeData(data, for: key)
         }
 
+        /// Removes cached data for the given request.
         public func removeCachedData(request: ImageRequest) {
             guard let dataCache = configuration.dataCache else {
                 return
@@ -141,6 +154,7 @@ public extension ImagePipeline {
 
         // MARK: Keys
 
+        /// Returns image cache (memory cache) key for the given request.
         public func makeImageCacheKey(for request: ImageRequest) -> ImageCacheKey {
             switch pipeline.delegate.pipeline(pipeline, imageCacheKeyFor: request) {
             case .default: return ImageCacheKey(request: request)
@@ -148,6 +162,7 @@ public extension ImagePipeline {
             }
         }
 
+        /// Returns data cache (disk cache) key for the given request.
         public func makeDataCacheKey(for request: ImageRequest) -> String {
             switch pipeline.delegate.pipeline(pipeline, dataCacheKeyFor: request) {
             case .default: return request.makeDataCacheKey()
@@ -157,6 +172,7 @@ public extension ImagePipeline {
 
         // MARK: Misc
 
+        /// Removes both images and data from all cache layes.
         public func removeAll(caches: Caches = [.all]) {
             if caches.contains(.memory) {
                 configuration.imageCache?.removeAll()
