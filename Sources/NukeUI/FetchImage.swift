@@ -56,13 +56,7 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// Starts loading the image if not already loaded and the download is not
     /// already in progress.
-    ///
-    /// - note: Low Data Mode. If the `lowDataRequest` is provided and the regular
-    /// request fails because of the constrained network access, the fetcher tries
-    /// to download the low-quality image. The fetcher always tries to get the high
-    /// quality image. If the first attempt fails, the next time you call `fetch`,
-    /// it is going to attempt to fetch the regular quality image again.
-    public func load(_ request: ImageRequest, lowDataRequest: ImageRequest? = nil) {
+    public func load(_ request: ImageRequest) {
         _reset()
 
         // Cancel previous task after starting a new one to make sure that if
