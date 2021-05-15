@@ -38,6 +38,7 @@ final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
             return send(error: .dataLoadingFailed(error))
         }
 
+        let request = request.withProcessors([])
         dependency = pipeline.makeTaskFetchOriginalImageData(for: request).subscribe(self) { [weak self] in
             self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
         }
