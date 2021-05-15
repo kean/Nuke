@@ -418,3 +418,9 @@ extension URLRequest: ImageRequestConvertible {
         ImageRequest(urlRequest: self)
     }
 }
+
+extension String: ImageRequestConvertible {
+    public func asImageRequest() -> ImageRequest {
+        ImageRequest(url: URL(string: self) ?? URL(fileURLWithPath: "/dev/null"))
+    }
+}
