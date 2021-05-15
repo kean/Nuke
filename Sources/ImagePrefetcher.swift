@@ -50,6 +50,9 @@ public final class ImagePrefetcher {
 
         /// Prefetches the image data and stores it in disk caches. This does not
         /// require decoding the image data and therefore uses less CPU.
+        ///
+        /// - warning: This option is incompatible with `DataCachePolicy.automatic`
+        /// (when you use image processors) and `DataCachePolicy.storeEncodedImages`.
         case diskCache
     }
 

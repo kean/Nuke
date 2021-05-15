@@ -116,7 +116,6 @@ extension ImagePipeline {
             /// - warning: With this policy, the pipeline `loadData()` method
             /// will not store the images in the disk cache – this method only
             /// loads data and doesn't decode images.
-            #warning("Can we do something about it? how does if affects ImagePrefetcher? Should it be a default?")
             case storeEncodedImages
 
             /// For requests with processors, encode and store processed images.
