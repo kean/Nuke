@@ -95,6 +95,11 @@ extension ImagePipeline {
             /// For requests with processors, encode and store processed images.
             /// For requests with no processors, store original image data, unless
             /// the resource is local (file:// or data:// scheme is used).
+            ///
+            /// - warning: With this policy, the pipeline `loadData()` method
+            /// will not store the images in the disk cache for requests with
+            /// any processors applied – this method only loads data and doesn't
+            /// decode images.
             case automatic
 
             /// For all requests, only store the original image data, unless
@@ -105,10 +110,12 @@ extension ImagePipeline {
             /// processors are applied.
             ///
             /// - note: This is useful if you want to store images in a format
-            /// different than provided by a server, e.g. decompressed.
+            /// different than provided by a server, e.g. decompressed. In other
+            /// scenarios, consider using `.automatic` policy instead.
             ///
-            /// - warning: If you are using `loadData` method, the disk cache
-            /// is not going to work.
+            /// - warning: With this policy, the pipeline `loadData()` method
+            /// will not store the images in the disk cache – this method only
+            /// loads data and doesn't decode images.
             #warning("Can we do something about it? how does if affects ImagePrefetcher? Should it be a default?")
             case storeEncodedImages
 
