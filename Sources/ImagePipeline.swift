@@ -223,25 +223,6 @@ public /* final */ class ImagePipeline {
     }
 }
 
-// MARK: - Cache
-
-#warning("reimplement this")
-public extension ImagePipeline {
-    /// Removes cached image from all cache layers.
-    func removeCachedImage(for request: ImageRequest) {
-        let request = configuration.inheritOptions(request)
-
-        cache.removeCachedImage(for: request)
-
-        if let dataCache = configuration.dataCache {
-            dataCache.removeData(for: cacheKey(for: request, item: .originalImageData))
-            dataCache.removeData(for: cacheKey(for: request, item: .finalImage))
-        }
-
-        configuration.dataLoader.removeData(for: request.urlRequest)
-    }
-}
-
 // MARK: - Starting Image Tasks (Private)
 
 private extension ImagePipeline {

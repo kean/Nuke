@@ -117,8 +117,4 @@ private class _MockResumableDataLoader: DataLoading {
     private class _Task: Cancellable {
         func cancel() { }
     }
-
-    func removeData(for request: URLRequest) {
-        
-    }
 }

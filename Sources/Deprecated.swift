@@ -38,12 +38,6 @@ public extension DataCaching {
     func removeData(for key: String) {}
 }
 
-public extension DataLoading {
-    // Deprecated in 9.2
-    @available(*, deprecated, message: "This method exists for backward-compatibility with Nuke 9.1.x and lower.")
-    func removeData(for request: URLRequest) {}
-}
-
 public extension DataCache {
     // Deprecated in 9.3.1
     @available(*, deprecated, message: "Count limit is deprecated and will be removed in the next major release")

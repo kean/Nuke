@@ -107,20 +107,6 @@ class ImagePipelineDataCachingTests: XCTestCase {
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
     }
 
-    func testReloadRemovingCacheData() {
-        // Given
-        let request = Test.request
-        dataCache.store[request.urlRequest.url!.absoluteString] = Test.data
-
-        // When
-        pipeline.removeCachedImage(for: request)
-        expect(pipeline).toLoadImage(with: request)
-        wait()
-
-        // Then
-        XCTAssertEqual(dataLoader.createdTaskCount, 1)
-    }
-
     func testLoadFromCacheOnlyDataCache() {
         // Given
         dataCache.store[Test.url.absoluteString] = Test.data

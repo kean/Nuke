@@ -111,21 +111,6 @@ class ImagePipelineImageCacheTests: XCTestCase {
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
         XCTAssertNotNil(cache[Test.request])
     }
-
-    func testReloadRemovingCacheData() {
-        // Given
-        let request = Test.request
-        cache[request] = ImageContainer(image: Test.image)
-
-        // When
-        pipeline.removeCachedImage(for: request)
-        expect(pipeline).toLoadImage(with: request)
-        wait()
-
-        // Then
-        XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertNotNil(cache[request])
-    }
 }
 
 /// Make sure that cache layers are checked in the correct order and the
