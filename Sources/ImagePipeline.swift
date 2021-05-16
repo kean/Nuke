@@ -384,7 +384,7 @@ public extension ImagePipeline {
         /// Decoder failed to produce a final image.
         case decodingFailed
         /// Processor failed to produce a final image.
-        case processingFailed
+        case processingFailed(ImageProcessing)
 
         public var debugDescription: String {
             switch self {

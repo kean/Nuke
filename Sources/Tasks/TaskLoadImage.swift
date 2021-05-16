@@ -174,7 +174,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
                 self._process(response, isCompleted: isCompleted, processors: processors.dropLast())
             case .error:
                 if isCompleted {
-                    self.send(error: .processingFailed)
+                    self.send(error: .processingFailed(processor))
                 }
             case .progress:
                 break // Do nothing (Not reported by OperationTask)

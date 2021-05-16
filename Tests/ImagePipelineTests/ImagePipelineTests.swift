@@ -481,7 +481,13 @@ class ImagePipelineTests: XCTestCase {
         let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
 
         // When/Then
-        expect(pipeline).toFailRequest(request, with: .processingFailed)
+        expect(pipeline).toFailRequest(request) { result in
+            guard case .failure(let error) = result,
+                  case .processingFailed(let processor) = error else {
+                return XCTFail()
+            }
+            XCTAssertTrue(processor is MockFailingProcessor)
+        }
         wait()
     }
 }
