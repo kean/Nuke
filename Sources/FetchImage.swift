@@ -2,7 +2,9 @@
 //
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
+#if canImport(Combine) && canImport(SwiftUI)
 import SwiftUI
+import Combine
 
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 public final class FetchImage: ObservableObject, Identifiable {
@@ -41,6 +43,10 @@ public final class FetchImage: ObservableObject, Identifiable {
     public var pipeline: ImagePipeline = .shared
     private var task: ImageTask?
 
+    // publisher support
+    private var lastResponse: ImageResponse?
+    private var cancellable: AnyCancellable?
+
     deinit {
         cancel()
     }
@@ -72,6 +78,29 @@ public final class FetchImage: ObservableObject, Identifiable {
 
         isLoading = true
         _load(request: request)
+    }
+
+    public func load(_ publisher: AnyPublisher<ImageResponse, ImagePipeline.Error>) {
+        _reset()
+
+        cancellable = publisher.sink(receiveCompletion: { [weak self] completion in
+            guard let self = self else { return }
+            self.isLoading = false
+            switch completion {
+            case .finished:
+                if let response = self.lastResponse {
+                    self.result = .success(response)
+                } // else was cancelled, do nothing
+            case .failure(let error):
+                self.result = .failure(error)
+            }
+        }, receiveValue: { [weak self] response in
+            guard let self = self else { return }
+            self.lastResponse = response
+            self.image = response.image
+        })
+
+        isLoading = true
     }
 
     private func _load(request: ImageRequest) {
@@ -137,3 +166,4 @@ public final class FetchImage: ObservableObject, Identifiable {
         #endif
     }
 }
+#endif
