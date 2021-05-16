@@ -110,7 +110,7 @@ class ImagePipelineDelegateTests: XCTestCase {
 
         let operationQueueObserver = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        let task = pipeline.loadImage(with: request)
+        let task = pipeline.loadImage(with: request) { _ in }
         wait() // Wait till the operation is created.
 
         guard let operation = operationQueueObserver.operations.first else {

@@ -56,7 +56,8 @@ class ImagePipelineTests: XCTestCase {
                 // Then
                 XCTAssertTrue(Thread.isMainThread)
                 expectedProgress.received((completed, total))
-            }
+            },
+            completion: { _ in }
         )
 
         wait()
@@ -169,7 +170,7 @@ class ImagePipelineTests: XCTestCase {
 
         let observer = expect(queue).toEnqueueOperationsWithCount(1)
 
-        let task = pipeline.loadImage(with: request)
+        let task = pipeline.loadImage(with: request) { _ in }
         wait() // Wait till the operation is created.
 
         // When/Then
@@ -192,7 +193,7 @@ class ImagePipelineTests: XCTestCase {
 
         let observer = expect(queue).toEnqueueOperationsWithCount(1)
 
-        let task = pipeline.loadImage(with: request)
+        let task = pipeline.loadImage(with: request) { _ in }
         wait() // Wait till the operation is created.
 
         // When/Then
@@ -215,7 +216,7 @@ class ImagePipelineTests: XCTestCase {
 
         let observer = expect(queue).toEnqueueOperationsWithCount(1)
 
-        let task = pipeline.loadImage(with: request)
+        let task = pipeline.loadImage(with: request) { _ in }
         wait() // Wait till the operation is created.
 
         // When/Then

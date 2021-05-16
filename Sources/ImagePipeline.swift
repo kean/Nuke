@@ -108,9 +108,8 @@ public /* final */ class ImagePipeline {
 
     @discardableResult
     public func loadImage(with request: ImageRequestConvertible,
-                          queue: DispatchQueue? = nil,
                           completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void) -> ImageTask {
-        loadImage(with: request, queue: queue, progress: nil, completion: completion)
+        loadImage(with: request, queue: nil, progress: nil, completion: completion)
     }
 
     /// Loads an image for the given request.
@@ -126,8 +125,8 @@ public /* final */ class ImagePipeline {
     @discardableResult
     public func loadImage(with request: ImageRequestConvertible,
                           queue: DispatchQueue? = nil,
-                          progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
-                          completion: ((_ result: Result<ImageResponse, Error>) -> Void)? = nil) -> ImageTask {
+                          progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
+                          completion: @escaping ((_ result: Result<ImageResponse, Error>) -> Void)) -> ImageTask {
         loadImage(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
 
@@ -153,9 +152,8 @@ public /* final */ class ImagePipeline {
 
     @discardableResult
     public func loadData(with request: ImageRequestConvertible,
-                         queue: DispatchQueue? = nil,
                          completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
-        loadData(with: request, queue: queue, progress: nil, completion: completion)
+        loadData(with: request, queue: nil, progress: nil, completion: completion)
     }
 
     /// Loads the image data for the given request. The data doesn't get decoded or processed in any

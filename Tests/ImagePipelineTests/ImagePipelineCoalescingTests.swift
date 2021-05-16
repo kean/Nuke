@@ -234,8 +234,8 @@ class ImagePipelineCoalescingTests: XCTestCase {
         // When both tasks are cancelled the image loading session is cancelled
 
         _ = expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-        let task1 = pipeline.loadImage(with: Test.request)
-        let task2 = pipeline.loadImage(with: Test.request)
+        let task1 = pipeline.loadImage(with: Test.request) { _ in }
+        let task2 = pipeline.loadImage(with: Test.request) { _ in }
         wait() // wait until the tasks is started or we might be cancelling non-exisitng task
 
         _ = expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
@@ -277,8 +277,8 @@ class ImagePipelineCoalescingTests: XCTestCase {
         let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
 
-        let _ = pipeline.loadImage(with: request1)
-        let task2 = pipeline.loadImage(with: request2)
+        let _ = pipeline.loadImage(with: request1) { _ in }
+        let task2 = pipeline.loadImage(with: request2) { _ in }
 
         dataLoader.queue.isSuspended = false
 
@@ -307,7 +307,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         // Given
         let operations = expect(queue).toEnqueueOperationsWithCount(1)
 
-        pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low))
+        pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low)) { _ in }
 
         dataLoader.queue.isSuspended = false
         wait { _ in
@@ -316,7 +316,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
         // When/Then
         expect(operations.operations.first!).toUpdatePriority(from: .low, to: .high)
-        let task = pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .high))
+        let task = pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .high)) { _ in }
         wait()
 
         // When/Then
@@ -333,7 +333,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
         // Given
         let operations = expect(queue).toEnqueueOperationsWithCount(1)
-        pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low))
+        pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low)) { _ in }
         dataLoader.queue.isSuspended = false
         wait()
 
@@ -341,7 +341,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         // Note: adding a second task separately because we should guarantee
         // that both are subscribed by the time we start our test.
         expect(operations.operations.first!).toUpdatePriority(from: .low, to: .high)
-        let task = pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .high))
+        let task = pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .high)) { _ in }
         wait()
 
         // When/Then
@@ -384,7 +384,8 @@ class ImagePipelineCoalescingTests: XCTestCase {
                 progress: { _, completed, total in
                     XCTAssertTrue(Thread.isMainThread)
                     expectedProgress.received((completed, total))
-                }
+                },
+                completion: { _ in }
             )
         }
         dataLoader.queue.isSuspended = false

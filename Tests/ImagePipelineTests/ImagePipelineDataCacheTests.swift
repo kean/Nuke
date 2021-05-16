@@ -58,7 +58,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
 
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-        let task = pipeline.loadImage(with: request)
+        let task = pipeline.loadImage(with: request) { _ in }
         wait() // Wait till the operation is created.
 
         // When/Then
@@ -78,7 +78,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
         let queue = pipeline.configuration.dataCachingQueue
         queue.isSuspended = true
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
-        let task = pipeline.loadImage(with: Test.request)
+        let task = pipeline.loadImage(with: Test.request) { _ in }
         wait() // Wait till the operation is created.
 
         // When/Then
