@@ -28,11 +28,11 @@ public struct ImageCacheKey: Hashable {
 
     // This is faster than using AnyHashable (and it shows in performance tests).
     enum Inner: Hashable {
-        case custom(AnyHashable)
+        case custom(String)
         case `default`(ImageRequest.CacheKey)
     }
 
-    public init(key: AnyHashable) {
+    public init(key: String) {
         self.key = .custom(key)
     }
 
