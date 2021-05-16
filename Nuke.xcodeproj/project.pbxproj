@@ -407,7 +407,6 @@
 				0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */,
 				0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */,
 				0CB26801208F2565004C83F4 /* DataCache.swift */,
-				0C42D4C422A283140094CB5A /* Deprecated.swift */,
 				0CB402D325B6568800F5A241 /* Tasks */,
 				0CC36A0B25B8BBF800811018 /* Internal */,
 			);
@@ -642,6 +641,7 @@
 				0CC36A3225B8BC7900811018 /* ResumableData.swift */,
 				0CC36A4025B8BCAC00811018 /* Log.swift */,
 				0C7150081FC9724C00B880AC /* Extensions.swift */,
+				0C42D4C422A283140094CB5A /* Deprecated.swift */,
 			);
 			path = Internal;
 			sourceTree = "<group>";
