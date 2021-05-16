@@ -19,11 +19,9 @@ public protocol ImagePipelineDelegate: AnyObject {
 
     // MARK: Caching
 
-    /// Returns the image (in-memory) cache key for the given request.
-    func pipeline(_ pipeline: ImagePipeline, imageCacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<AnyHashable>
-
-    /// Returns the data cache (typically on-disk) key for the given request.
-    func pipeline(_ pipeline: ImagePipeline, dataCacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<String>
+    /// Returns a cache key identifying the image produced for the given request
+    /// (including image processors).
+    func pipeline(_ pipeline: ImagePipeline, cacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<String>
 
     // MARK: Monitoring
 
@@ -47,11 +45,7 @@ public extension ImagePipelineDelegate {
         pipeline.configuration.makeImageEncoder(context)
     }
 
-    func pipeline(_ pipeline: ImagePipeline, imageCacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<AnyHashable> {
-        .default
-    }
-
-    func pipeline(_ pipeline: ImagePipeline, dataCacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<String> {
+    func pipeline(_ pipeline: ImagePipeline, cacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<String> {
         .default
     }
 
