@@ -106,6 +106,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         reset()
 
         // Not using `first()` because it also supported progressive decoding
+        isLoading = true
         cancellable = publisher.sink(receiveCompletion: { [weak self] completion in
             guard let self = self else { return }
             self.isLoading = false
@@ -122,8 +123,6 @@ public final class FetchImage: ObservableObject, Identifiable {
             self.lastResponse = response
             self.image = response.image
         })
-
-        isLoading = true
     }
 
     // MARK: Cancel

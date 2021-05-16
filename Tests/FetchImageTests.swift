@@ -131,4 +131,19 @@ class FetchImageTests: XCTestCase {
         // THEN
         XCTAssertEqual(isLoading.values, [false, true, false])
     }
+
+    func testPublisherMemoryCacheLookup() throws {
+        // GIVEN
+        pipeline.cache[Test.request] = Test.container
+
+        // WHEN
+        image.load(pipeline.imagePublisher(with: Test.request).eraseToAnyPublisher())
+
+        // THEN image loaded synchronously
+        let result = try XCTUnwrap(image.result)
+        XCTAssertTrue(result.isSuccess)
+        let response = try XCTUnwrap(result.value)
+        XCTAssertEqual(response.cacheType, .memory)
+        XCTAssertNotNil(image.image)
+    }
 }
