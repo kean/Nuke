@@ -24,7 +24,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// Returns `true` if the image is being loaded.
     @Published public private(set) var isLoading: Bool = false
 
-    public struct Progress {
+    public struct Progress: Equatable {
         /// The number of bytes that the task has received.
         public let completed: Int64
 
@@ -151,7 +151,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         cancellable = nil
 
         // common
-        isLoading = false
+        if isLoading { isLoading = false }
     }
 
     /// Resets the `FetchImage` instance by cancelling the request and removing
@@ -162,11 +162,12 @@ public final class FetchImage: ObservableObject, Identifiable {
     }
 
     private func _reset() {
-        isLoading = false
-        image = nil
-        result = nil
+        // Avoid publishing unchanged values
+        if isLoading { isLoading = false }
+        if image != nil { image = nil }
+        if result != nil { result = nil }
         lastResponse = nil // publisher-only
-        progress = Progress(completed: 0, total: 0)
+        if progress != Progress(completed: 0, total: 0) { progress = Progress(completed: 0, total: 0) }
         request = nil
     }
 
