@@ -145,10 +145,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// all of the state including the loaded image.
     public func reset() {
         cancel()
-        _reset()
-    }
 
-    private func _reset() {
         // Avoid publishing unchanged values
         if isLoading { isLoading = false }
         if image != nil { image = nil }
