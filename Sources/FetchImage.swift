@@ -53,13 +53,11 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     public init() {}
 
-    public func load(_ url: URL) {
-        self.load(ImageRequest(url: url))
-    }
+    // MARK: Load (ImageRequestConvertible)
 
     /// Starts loading the image if not already loaded and the download is not
     /// already in progress.
-    public func load(_ request: ImageRequest) {
+    public func load(_ request: ImageRequestConvertible) {
         _reset()
 
         // Cancel previous task after starting a new one to make sure that if
@@ -68,6 +66,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         let previousTask = self.task
         defer { previousTask?.cancel() }
 
+        let request = request.asImageRequest()
         self.request = request
 
         // Try to display the regular image if it is available in memory cache
@@ -77,33 +76,6 @@ public final class FetchImage: ObservableObject, Identifiable {
         }
 
         isLoading = true
-        _load(request: request)
-    }
-
-    public func load(_ publisher: AnyPublisher<ImageResponse, ImagePipeline.Error>) {
-        _reset()
-
-        cancellable = publisher.sink(receiveCompletion: { [weak self] completion in
-            guard let self = self else { return }
-            self.isLoading = false
-            switch completion {
-            case .finished:
-                if let response = self.lastResponse {
-                    self.result = .success(response)
-                } // else was cancelled, do nothing
-            case .failure(let error):
-                self.result = .failure(error)
-            }
-        }, receiveValue: { [weak self] response in
-            guard let self = self else { return }
-            self.lastResponse = response
-            self.image = response.image
-        })
-
-        isLoading = true
-    }
-
-    private func _load(request: ImageRequest) {
         progress = Progress(completed: 0, total: 0)
 
         task = pipeline.loadImage(
@@ -136,11 +108,44 @@ public final class FetchImage: ObservableObject, Identifiable {
         self.result = result
     }
 
+    // MARK: Load (Publisher)
+
+    public func load(_ publisher: AnyPublisher<ImageResponse, ImagePipeline.Error>) {
+        _reset()
+
+        cancellable = publisher.sink(receiveCompletion: { [weak self] completion in
+            guard let self = self else { return }
+            self.isLoading = false
+            switch completion {
+            case .finished:
+                if let response = self.lastResponse {
+                    self.result = .success(response)
+                } // else was cancelled, do nothing
+            case .failure(let error):
+                self.result = .failure(error)
+            }
+        }, receiveValue: { [weak self] response in
+            guard let self = self else { return }
+            self.lastResponse = response
+            self.image = response.image
+        })
+
+        isLoading = true
+    }
+
+    // MARK: Cancel
+
     /// Marks the request as being cancelled. Continues to display a downloaded
     /// image.
     public func cancel() {
+        // pipeline-based
         task?.cancel() // Guarantees that no more callbacks are will be delivered
         task = nil
+
+        // publisher-based
+        cancellable = nil
+
+        // common
         isLoading = false
     }
 
@@ -155,6 +160,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         isLoading = false
         image = nil
         result = nil
+        lastResponse = nil // publisher-only
         progress = Progress(completed: 0, total: 0)
         request = nil
     }
