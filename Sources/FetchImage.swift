@@ -130,6 +130,9 @@ public final class FetchImage: ObservableObject, Identifiable {
     private func didFinishRequest(result: Result<ImageResponse, ImagePipeline.Error>) {
         task = nil
         isLoading = false
+        if case .success(let response) = result {
+            self.image = response.image
+        }
         self.result = result
     }
 
