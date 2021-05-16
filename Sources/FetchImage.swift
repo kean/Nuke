@@ -105,6 +105,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     public func load(_ publisher: AnyPublisher<ImageResponse, ImagePipeline.Error>) {
         reset()
 
+        // Not using `first()` because it also supported progressive decoding
         cancellable = publisher.sink(receiveCompletion: { [weak self] completion in
             guard let self = self else { return }
             self.isLoading = false

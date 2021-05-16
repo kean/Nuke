@@ -42,6 +42,7 @@ class FetchImageTests: XCTestCase {
         let result = try XCTUnwrap(try XCTUnwrap(record.last))
         XCTAssertTrue(result.isSuccess)
         XCTAssertNotNil(image.image)
+        XCTAssertNotNil(image.view)
     }
 
     func testIsLoadingUpdated() {
@@ -71,5 +72,63 @@ class FetchImageTests: XCTestCase {
         XCTAssertEqual(response.cacheType, .memory)
         XCTAssertNotNil(image.image)
     }
-}
 
+    func testPriorityUpdated() {
+        let queue = pipeline.configuration.dataCachingQueue
+        queue.isSuspended = true
+        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
+
+        image.priority = .high
+        image.load(Test.request)
+        wait() // Wait till the operation is created.
+
+        guard let operation = observer.operations.first else {
+            return XCTFail("No operations gor registered")
+        }
+        XCTAssertEqual(operation.queuePriority, .high)
+    }
+
+    func testPriorityUpdatedDynamically() {
+        let queue = pipeline.configuration.dataCachingQueue
+        queue.isSuspended = true
+        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
+
+        image.load(Test.request)
+        wait() // Wait till the operation is created.
+
+        guard let operation = observer.operations.first else {
+            return XCTFail("No operations gor registered")
+        }
+        expect(operation).toUpdatePriority()
+        image.priority = .high
+        wait()
+    }
+
+    func testPublisherImageLoaded() throws {
+        // RECORD
+        let record = expect(image.$result.dropFirst()).toPublishSingleValue()
+
+        // WHEN
+        image.load(pipeline.imagePublisher(with: Test.request).eraseToAnyPublisher())
+        wait()
+
+        // THEN
+        let result = try XCTUnwrap(try XCTUnwrap(record.last))
+        XCTAssertTrue(result.isSuccess)
+        XCTAssertNotNil(image.image)
+        XCTAssertNotNil(image.view)
+    }
+
+    func testPublisherIsLoadingUpdated() {
+        // RECORD
+        expect(image.$result.dropFirst()).toPublishSingleValue()
+        let isLoading = record(image.$isLoading)
+
+        // WHEN
+        image.load(pipeline.imagePublisher(with: Test.request).eraseToAnyPublisher())
+        wait()
+
+        // THEN
+        XCTAssertEqual(isLoading.values, [false, true, false])
+    }
+}
