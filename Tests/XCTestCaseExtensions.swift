@@ -27,6 +27,16 @@ extension XCTestCase {
         TestExpectationPublisher(test: self, publisher: publisher)
     }
 
+    func record<P: Publisher>(_ publisher: P) -> TestRecordedPublisher<P> {
+        let record = TestRecordedPublisher<P>()
+        publisher.sink(receiveCompletion: {
+            record.completion = $0
+        }, receiveValue: {
+            record.values.append($0)
+        }).store(in: &cancellables)
+        return record
+    }
+
     private static var cancellablesAK = "TestExpectationPublisher.AssociatedKey"
 
     fileprivate var cancellables: [AnyCancellable] {
@@ -60,6 +70,7 @@ struct TestExpectationPublisher<P: Publisher> {
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 final class TestRecordedPublisher<P: Publisher> {
     fileprivate(set) var values = [P.Output]()
+    fileprivate(set) var completion: Subscribers.Completion<P.Failure>?
 
     var last: P.Output? {
         values.last

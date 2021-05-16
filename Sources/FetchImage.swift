@@ -58,13 +58,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// Starts loading the image if not already loaded and the download is not
     /// already in progress.
     public func load(_ request: ImageRequestConvertible) {
-        _reset()
-
-        // Cancel previous task after starting a new one to make sure that if
-        // there is an existing task already running we don't cancel it and start
-        // a new once.
-        let previousTask = self.task
-        defer { previousTask?.cancel() }
+        reset()
 
         let request = request.asImageRequest()
         self.request = request
@@ -72,19 +66,17 @@ public final class FetchImage: ObservableObject, Identifiable {
         // Try to display the regular image if it is available in memory cache
         if let container = pipeline.cache[request] {
             image = container.image
+            result = .success(ImageResponse(container: container, urlResponse: nil, cacheType: .memory))
             return // Nothing to do
         }
 
         isLoading = true
         progress = Progress(completed: 0, total: 0)
-
         task = pipeline.loadImage(
             with: request,
             progress: { [weak self] response, completed, total in
                 guard let self = self else { return }
-
                 self.progress = Progress(completed: completed, total: total)
-
                 if let image = response?.image {
                     self.image = image // Display progressively decoded image
                 }
@@ -93,7 +85,6 @@ public final class FetchImage: ObservableObject, Identifiable {
                 self?.didFinishRequest(result: $0)
             }
         )
-
         if priority != request.priority {
             task?.priority = priority
         }
@@ -116,7 +107,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// dynamically changing the request priority, are not available when
     /// working with a publisher.
     public func load(_ publisher: AnyPublisher<ImageResponse, ImagePipeline.Error>) {
-        _reset()
+        reset()
 
         cancellable = publisher.sink(receiveCompletion: { [weak self] completion in
             guard let self = self else { return }
