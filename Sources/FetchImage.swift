@@ -8,9 +8,6 @@ import Combine
 
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 public final class FetchImage: ObservableObject, Identifiable {
-    /// The original request.
-    public private(set) var request: ImageRequest?
-
     /// Returns the current fetch result.
     @Published public private(set) var result: Result<ImageResponse, ImagePipeline.Error>?
 
@@ -61,7 +58,6 @@ public final class FetchImage: ObservableObject, Identifiable {
         reset()
 
         let request = request.asImageRequest()
-        self.request = request
 
         // Try to display the regular image if it is available in memory cache
         if let container = pipeline.cache[request] {
@@ -159,7 +155,6 @@ public final class FetchImage: ObservableObject, Identifiable {
         if result != nil { result = nil }
         lastResponse = nil // publisher-only
         if progress != Progress(completed: 0, total: 0) { progress = Progress(completed: 0, total: 0) }
-        request = nil
     }
 
     // MARK: View
