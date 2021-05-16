@@ -18,6 +18,7 @@
 		0C0FD6041CA47FE1002A78FB /* ImageRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */; };
 		0C0FD61C1CA47FE1002A78FB /* ImageViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5DF1CA47FE1002A78FB /* ImageViewExtensions.swift */; };
 		0C179C7B2283597F008AB488 /* ImageEncoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C179C7A2283597F008AB488 /* ImageEncoding.swift */; };
+		0C18BEBC2650C7F20002C55B /* FetchImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C18BEBB2650C7F20002C55B /* FetchImage.swift */; };
 		0C1E620B1D6F817700AD5CF5 /* ImageRequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E620A1D6F817700AD5CF5 /* ImageRequestTests.swift */; };
 		0C1ECA421D526461009063A9 /* ImageCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* ImageCacheTests.swift */; };
 		0C1ECA501D52811D009063A9 /* ImageViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C94466D1D47EC0E006DB314 /* ImageViewTests.swift */; };
@@ -199,6 +200,7 @@
 		0C0FD5DF1CA47FE1002A78FB /* ImageViewExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewExtensions.swift; sourceTree = "<group>"; };
 		0C179C772282AC50008AB488 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text; path = .swiftlint.yml; sourceTree = "<group>"; };
 		0C179C7A2283597F008AB488 /* ImageEncoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEncoding.swift; sourceTree = "<group>"; };
+		0C18BEBB2650C7F20002C55B /* FetchImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FetchImage.swift; sourceTree = "<group>"; };
 		0C1E59662372EBBC00674B63 /* lint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = lint.sh; path = Scripts/lint.sh; sourceTree = "<group>"; };
 		0C1E59672372EBBC00674B63 /* validate_demo.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = validate_demo.sh; path = Scripts/validate_demo.sh; sourceTree = "<group>"; };
 		0C1E59682372EBBC00674B63 /* validate.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = validate.sh; path = Scripts/validate.sh; sourceTree = "<group>"; };
@@ -390,6 +392,7 @@
 			isa = PBXGroup;
 			children = (
 				0C0FD5DF1CA47FE1002A78FB /* ImageViewExtensions.swift */,
+				0C18BEBB2650C7F20002C55B /* FetchImage.swift */,
 				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
 				0C86AB69228B3B5100A81BA1 /* ImageTask.swift */,
 				0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */,
@@ -1110,6 +1113,7 @@
 				0CB26802208F2565004C83F4 /* DataCache.swift in Sources */,
 				0C2A368B26437BF100F1D000 /* TaskLoadData.swift in Sources */,
 				0C0FD6041CA47FE1002A78FB /* ImageRequest.swift in Sources */,
+				0C18BEBC2650C7F20002C55B /* FetchImage.swift in Sources */,
 				0CF1754C22913F9800A8946E /* ImagePipelineConfiguration.swift in Sources */,
 				0C86AB6A228B3B5100A81BA1 /* ImageTask.swift in Sources */,
 				0C7150091FC9724C00B880AC /* Extensions.swift in Sources */,
