@@ -9,16 +9,15 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// The original request.
     public private(set) var request: ImageRequest?
 
+    /// Returns the current fetch result.
+    @Published public private(set) var result: Result<ImageResponse, ImagePipeline.Error>?
+
     /// Returns the fetched image.
     ///
     /// - note: In case pipeline has `isProgressiveDecodingEnabled` option enabled
     /// and the image being downloaded supports progressive decoding, the `image`
     /// might be updated multiple times during the download.
     @Published public private(set) var image: PlatformImage?
-
-    /// Returns an error if the previous attempt to fetch the image failed with an error.
-    /// Error is cleared out when the download is restarted.
-    @Published public private(set) var error: Error?
 
     /// Returns `true` if the image is being loaded.
     @Published public private(set) var isLoading: Bool = false
@@ -102,13 +101,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     private func didFinishRequest(result: Result<ImageResponse, ImagePipeline.Error>) {
         task = nil
         isLoading = false
-
-        switch result {
-        case let .success(response):
-            self.image = response.image
-        case let .failure(error):
-            self.error = error
-        }
+        self.result = result
     }
 
     /// Marks the request as being cancelled. Continues to display a downloaded
@@ -129,14 +122,14 @@ public final class FetchImage: ObservableObject, Identifiable {
     private func _reset() {
         isLoading = false
         image = nil
-        error = nil
+        result = nil
         progress = Progress(completed: 0, total: 0)
         request = nil
     }
-}
 
-public extension FetchImage {
-    var view: SwiftUI.Image? {
+    // MARK: View
+
+    public var view: SwiftUI.Image? {
         #if os(macOS)
         return image.map(Image.init(nsImage:))
         #else
