@@ -109,7 +109,7 @@ class FetchImageTests: XCTestCase {
         let record = expect(image.$result.dropFirst()).toPublishSingleValue()
 
         // WHEN
-        image.load(pipeline.imagePublisher(with: Test.request).eraseToAnyPublisher())
+        image.load(pipeline.imagePublisher(with: Test.request))
         wait()
 
         // THEN
@@ -125,7 +125,7 @@ class FetchImageTests: XCTestCase {
         let isLoading = record(image.$isLoading)
 
         // WHEN
-        image.load(pipeline.imagePublisher(with: Test.request).eraseToAnyPublisher())
+        image.load(pipeline.imagePublisher(with: Test.request))
         wait()
 
         // THEN
@@ -137,7 +137,7 @@ class FetchImageTests: XCTestCase {
         pipeline.cache[Test.request] = Test.container
 
         // WHEN
-        image.load(pipeline.imagePublisher(with: Test.request).eraseToAnyPublisher())
+        image.load(pipeline.imagePublisher(with: Test.request))
 
         // THEN image loaded synchronously
         let result = try XCTUnwrap(image.result)

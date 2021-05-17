@@ -102,7 +102,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// - warning: Some `FetchImage` features, such as progress reporting and
     /// dynamically changing the request priority, are not available when
     /// working with a publisher.
-    public func load(_ publisher: AnyPublisher<ImageResponse, ImagePipeline.Error>) {
+    public func load<P: Publisher>(_ publisher: P) where P.Output == ImageResponse, P.Failure == ImagePipeline.Error {
         reset()
 
         // Not using `first()` because it also supported progressive decoding
