@@ -26,10 +26,10 @@ public /* final */ class ImagePipeline {
 
     private var tasks = [ImageTask: TaskSubscription]()
 
-    private let tasksLoadData: TaskPool<ImageRequest.LoadKeyForProcessedImage, (Data, URLResponse?), Error>
-    private let tasksLoadImage: TaskPool<ImageRequest.LoadKeyForProcessedImage, ImageResponse, Error>
-    private let tasksFetchDecodedImage: TaskPool<ImageRequest.LoadKeyForOriginalImage, ImageResponse, Error>
-    private let tasksFetchOriginalImageData: TaskPool<ImageRequest.LoadKeyForOriginalImage, (Data, URLResponse?), Error>
+    private let tasksLoadData: TaskPool<ImageRequest.ImageLoadKey, (Data, URLResponse?), Error>
+    private let tasksLoadImage: TaskPool<ImageRequest.ImageLoadKey, ImageResponse, Error>
+    private let tasksFetchDecodedImage: TaskPool<ImageRequest.DataLoadKey, ImageResponse, Error>
+    private let tasksFetchOriginalImageData: TaskPool<ImageRequest.DataLoadKey, (Data, URLResponse?), Error>
     private let tasksProcessImage: TaskPool<ImageProcessingKey, ImageResponse, Swift.Error>
 
     // The queue on which the entire subsystem is synchronized.
@@ -325,13 +325,13 @@ private extension ImagePipeline {
 // is created. The work is split between tasks to minimize any duplicated work.
 extension ImagePipeline {
     func makeTaskLoadImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
-        tasksLoadImage.publisherForKey(request.makeLoadKeyForProcessedImage()) {
+        tasksLoadImage.publisherForKey(request.makeImageLoadKey()) {
             TaskLoadImage(self, request)
         }
     }
 
     func makeTaskLoadData(for request: ImageRequest) -> Task<(Data, URLResponse?), Error>.Publisher {
-        tasksLoadData.publisherForKey(request.makeLoadKeyForProcessedImage()) {
+        tasksLoadData.publisherForKey(request.makeImageLoadKey()) {
             TaskLoadData(self, request)
         }
     }
@@ -343,13 +343,13 @@ extension ImagePipeline {
     }
 
     func makeTaskFetchDecodedImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
-        tasksFetchDecodedImage.publisherForKey(request.makeLoadKeyForOriginalImage()) {
+        tasksFetchDecodedImage.publisherForKey(request.makeDataLoadKey()) {
             TaskFetchDecodedImage(self, request)
         }
     }
 
     func makeTaskFetchOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), Error>.Publisher {
-        tasksFetchOriginalImageData.publisherForKey(request.makeLoadKeyForOriginalImage()) {
+        tasksFetchOriginalImageData.publisherForKey(request.makeDataLoadKey()) {
             TaskFetchOriginalImageData(self, request)
         }
     }

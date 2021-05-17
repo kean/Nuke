@@ -19,7 +19,7 @@ import Foundation
 public final class ImagePrefetcher {
     private let pipeline: ImagePipeline
     /* private */ let queue = OperationQueue()
-    private var tasks = [ImageRequest.LoadKeyForProcessedImage: Task]()
+    private var tasks = [ImageRequest.ImageLoadKey: Task]()
     private let destination: Destination
 
     /// Pauses the prefetching.
@@ -123,7 +123,7 @@ public final class ImagePrefetcher {
     }
 
     private func _startPrefetching(with request: ImageRequest) {
-        let key = request.makeLoadKeyForProcessedImage()
+        let key = request.makeImageLoadKey()
 
         guard tasks[key] == nil else {
             return // Already started prefetching
@@ -194,7 +194,7 @@ public final class ImagePrefetcher {
     }
 
     private func _stopPrefetching(with request: ImageRequest) {
-        if let task = tasks.removeValue(forKey: request.makeLoadKeyForProcessedImage()) {
+        if let task = tasks.removeValue(forKey: request.makeImageLoadKey()) {
             task.cancel()
         }
     }
@@ -224,13 +224,13 @@ public final class ImagePrefetcher {
     }
 
     private final class Task {
-        let key: ImageRequest.LoadKeyForProcessedImage
+        let key: ImageRequest.ImageLoadKey
         let request: ImageRequest
         weak var imageTask: ImageTask?
         weak var operation: Operation?
         var onCancelled: (() -> Void)?
 
-        init(request: ImageRequest, key: ImageRequest.LoadKeyForProcessedImage) {
+        init(request: ImageRequest, key: ImageRequest.ImageLoadKey) {
             self.request = request
             self.key = key
         }

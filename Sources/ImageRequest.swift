@@ -317,17 +317,17 @@ extension ImageRequest {
     // MARK: - Load Keys
 
     /// A key for deduplicating operations for fetching the processed image.
-    func makeLoadKeyForProcessedImage() -> LoadKeyForProcessedImage {
-        LoadKeyForProcessedImage(
+    func makeImageLoadKey() -> ImageLoadKey {
+        ImageLoadKey(
             cacheKey: makeImageCacheKey(),
             cachePolicy: ref.cachePolicy,
-            loadKey: makeLoadKeyForOriginalImage()
+            loadKey: makeDataLoadKey()
         )
     }
 
     /// A key for deduplicating operations for fetching the original image.
-    func makeLoadKeyForOriginalImage() -> LoadKeyForOriginalImage {
-        LoadKeyForOriginalImage(request: self)
+    func makeDataLoadKey() -> DataLoadKey {
+        DataLoadKey(request: self)
     }
 
     // MARK: - Internals (Keys)
@@ -347,21 +347,21 @@ extension ImageRequest {
     }
 
     // Uniquely identifies a task of retrieving the processed image.
-    struct LoadKeyForProcessedImage: Hashable {
+    struct ImageLoadKey: Hashable {
         let cacheKey: CacheKey
         let cachePolicy: CachePolicy
-        let loadKey: LoadKeyForOriginalImage
+        let loadKey: DataLoadKey
     }
 
-    // Uniquely identifies a task of retrieving the original image.
-    struct LoadKeyForOriginalImage: Hashable {
+    // Uniquely identifies a task of retrieving the original image dataa.
+    struct DataLoadKey: Hashable {
         let request: ImageRequest
 
         func hash(into hasher: inout Hasher) {
             hasher.combine(request.ref.preferredURLString)
         }
 
-        static func == (lhs: LoadKeyForOriginalImage, rhs: LoadKeyForOriginalImage) -> Bool {
+        static func == (lhs: DataLoadKey, rhs: DataLoadKey) -> Bool {
             Parameters(lhs.request) == Parameters(rhs.request)
         }
 
