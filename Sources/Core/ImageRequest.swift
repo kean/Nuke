@@ -15,7 +15,6 @@ public struct ImageRequest: CustomStringConvertible {
 
     // MARK: Parameters of the Request
 
-    #warning("should URLRequest return non-nill value")
     /// The `URLRequest` used for loading an image.
     public var urlRequest: URLRequest? {
         switch ref.resource {

@@ -39,7 +39,9 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
             self.async {
                 switch result {
                 case .finished:
-                    #warning("make sure we are never sending an empty value")
+                    guard !self.data.isEmpty else {
+                        return self.send(error: .dataLoadingFailed(URLError(.resourceUnavailable, userInfo: [:])))
+                    }
                     self.send(value: (self.data, nil), isCompleted: true)
                 case .failure(let error):
                     self.send(error: .dataLoadingFailed(error))
@@ -48,7 +50,6 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
         }, receiveValue: { [weak self] data in
             guard let self = self else { return }
             self.async {
-                #warning("add progressive decoding support")
                 self.data.append(data)
             }
         })
