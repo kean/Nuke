@@ -8,8 +8,8 @@ import Foundation
 import Combine
 #endif
 
-struct BCAnyPublisher<Output, Failure: Error> {
-    private let _sink: (@escaping ((BCCompletion<Failure>) -> Void), @escaping ((Output) -> Void)) -> Cancellable
+struct BCAnyPublisher<Output> {
+    private let _sink: (@escaping ((BCCompletion) -> Void), @escaping ((Output) -> Void)) -> Cancellable
 
     init(data: Data) where Output == Data {
         self._sink = { onCompletion, onValue in
@@ -21,7 +21,7 @@ struct BCAnyPublisher<Output, Failure: Error> {
 
     #if canImport(Combine)
     @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
-    init<P: Publisher>(_ publisher: P) where P.Output == Output, P.Failure == Failure {
+    init<P: Publisher>(_ publisher: P) where P.Output == Output {
         self._sink = { onCompletion, onValue in
             let cancellable = publisher.sink(receiveCompletion: {
                 switch $0 {
@@ -36,7 +36,7 @@ struct BCAnyPublisher<Output, Failure: Error> {
     }
     #endif
 
-    func sink(receiveCompletion: @escaping ((BCCompletion<Failure>) -> Void), receiveValue: @escaping ((Output) -> Void)) -> Cancellable {
+    func sink(receiveCompletion: @escaping ((BCCompletion) -> Void), receiveValue: @escaping ((Output) -> Void)) -> Cancellable {
         _sink(receiveCompletion, receiveValue)
     }
 }
@@ -59,7 +59,7 @@ private final class BCAnyCancellable: Cancellable {
     }
 }
 
-enum BCCompletion<Failure> where Failure: Error {
+enum BCCompletion {
     case finished
-    case failure(Failure)
+    case failure(Error)
 }

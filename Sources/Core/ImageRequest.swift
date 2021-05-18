@@ -174,7 +174,7 @@ public struct ImageRequest: CustomStringConvertible {
                    processors: [ImageProcessing] = [],
                    cachePolicy: CachePolicy = .default,
                    priority: ImageRequest.Priority = .normal,
-                   options: ImageRequestOptions = .init()) where P: Publisher, P.Output == Data, P.Failure == Swift.Error {
+                   options: ImageRequestOptions = .init()) where P: Publisher, P.Output == Data {
         // It could technically be implemented without any special change to the
         // pipeline by using a custom DataLoader, disabling resumable data, and
         // passing a publisher in the request userInfo. The first-class support
@@ -247,7 +247,7 @@ public struct ImageRequest: CustomStringConvertible {
     private enum Resource: CustomStringConvertible {
         case url(URL)
         case urlRequest(URLRequest)
-        case publisher(data: BCAnyPublisher<Data, Error>)
+        case publisher(data: BCAnyPublisher<Data>)
 
         var description: String {
             switch self {
@@ -283,7 +283,7 @@ public struct ImageRequest: CustomStringConvertible {
         ref.imageId
     }
 
-    var publisher: BCAnyPublisher<Data, Error>? {
+    var publisher: BCAnyPublisher<Data>? {
         guard case .publisher(let publisher) = ref.resource else {
             return nil
         }
