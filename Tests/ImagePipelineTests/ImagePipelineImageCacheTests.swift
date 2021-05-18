@@ -66,7 +66,7 @@ class ImagePipelineImageCacheTests: XCTestCase {
         XCTAssertNil(cache[Test.request])
     }
 
-    func testCacheReadDisabled() {
+    func testMemoryCacheReadDisabled() {
         // Given
         cache[Test.request] = ImageContainer(image: Test.image)
 

@@ -29,9 +29,29 @@ class ImagePipelineCacheTests: XCTestCase {
     // MARK: Subscripts
 
     func testSubscript() {
-        // WHEN/THEN
+        // GIVEN
         cache[Test.request] = Test.container
+
+        // THEN
         XCTAssertNotNil(cache[Test.request])
+    }
+
+    func testDisableMemoryCacheRead() {
+        // GIVEN
+        cache[Test.request] = Test.container
+        let request = ImageRequest(url: Test.url, options: [.disableMemoryCacheRead])
+
+        // THEN
+        XCTAssertNil(cache[request])
+    }
+
+    func testDisableMemoryCacheWrite() {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, options: [.disableMemoryCacheWrite])
+        cache[request] = Test.container
+
+        // THEN
+        XCTAssertNil(cache[Test.request])
     }
 
     // MARK: Cached Image
