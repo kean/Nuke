@@ -148,9 +148,27 @@ public struct ImageRequest: CustomStringConvertible {
         self.ref = Container(resource: Resource.urlRequest(urlRequest), imageId: urlRequest.url?.absoluteString, processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
     }
 
-    #warning("document")
     #warning("default cache policy to disable caching?")
     #if canImport(Combine)
+    /// Initializes a request with the given data publisher.
+    ///
+    /// - parameter id: Uniquely identifies the image data.
+    /// - parameter data: A data publisher to be used for fetching image data.
+    /// - parameter priority: The priority of the request, `.normal` by default.
+    /// - parameter options: Advanced image loading options.
+    /// - parameter processors: Image processors to be applied after the image is loaded.
+    ///
+    /// `ImageRequest` allows you to set image processors, change the request priority and more:
+    ///
+    /// ```swift
+    /// let request = ImageRequest(
+    ///     id: asset.localIdentifier,
+    ///     data: PHAssetManager.imageDataPublisher(for: asset),
+    ///     url: URLRequest(url: URL(string: "http://...")!),
+    ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
+    ///     priority: .high
+    /// )
+    /// ```
     @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
     public init<P>(id: String, data: P,
                    processors: [ImageProcessing] = [],

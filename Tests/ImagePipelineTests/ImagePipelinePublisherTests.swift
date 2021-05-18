@@ -4,6 +4,8 @@
 
 import XCTest
 @testable import Nuke
+
+#if canImport(Combine)
 import Combine
 
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
@@ -55,3 +57,5 @@ class ImagePipelinePublisherTests: XCTestCase {
         XCTAssertEqual(image.nk_test_processorIDs, ["1"])
     }
 }
+
+#endif
