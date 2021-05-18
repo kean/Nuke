@@ -161,7 +161,6 @@ public extension ImageRequestOptions {
         self.cacheKey = cacheKey
         self.loadKey = loadKey
         self.filteredURL = filteredURL
-        self.userInfo = userInfo
     }
 }
 

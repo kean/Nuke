@@ -327,14 +327,28 @@ public struct ImageRequestOptions {
     public var filteredURL: String?
 
     /// Custom info passed alongside the request.
-    public var userInfo: [AnyHashable: Any]
+    public var userInfo: [ImageRequest.UserInfoKey: Any]
 
     public init(memoryCacheOptions: MemoryCacheOptions = .init(),
                 filteredURL: String? = nil,
-                userInfo: [AnyHashable: Any] = [:]) {
+                userInfo: [ImageRequest.UserInfoKey: Any] = [:]) {
         self.memoryCacheOptions = memoryCacheOptions
         self.filteredURL = filteredURL
         self.userInfo = userInfo
+    }
+}
+
+public extension ImageRequest {
+    struct UserInfoKey: Hashable, ExpressibleByStringLiteral {
+        public let rawValue: String
+
+        public init(_ rawValue: String) {
+            self.rawValue = rawValue
+        }
+
+        public init(stringLiteral value: String) {
+            self.rawValue = value
+        }
     }
 }
 
