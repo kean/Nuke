@@ -239,7 +239,10 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         var preferredURLString: String {
-            options.filteredURL ?? imageId ?? ""
+            if !options.userInfo.isEmpty, let imageId = options.userInfo[.imageId] as? String {
+                return imageId
+            }
+            return imageId ?? ""
         }
     }
 
@@ -266,7 +269,6 @@ public struct ImageRequest: CustomStringConvertible {
             processors: \(ref.processors)
             options: {
                 memoryCacheOptions: \(ref.options.memoryCacheOptions)
-                filteredURL: \(String(describing: ref.options.filteredURL))
                 userInfo: \(String(describing: ref.options.userInfo))
             }
         }
@@ -313,27 +315,12 @@ public struct ImageRequestOptions {
     /// `MemoryCacheOptions()` (read allowed, write allowed) by default.
     public var memoryCacheOptions: MemoryCacheOptions
 
-    /// Provide a `filteredURL` to be used as a key for caching in case the original URL
-    /// contains transient query parameters.
-    ///
-    /// ```
-    /// let request = ImageRequest(
-    ///     url: URL(string: "http://example.com/image.jpeg?token=123")!,
-    ///     options: ImageRequestOptions(
-    ///         filteredURL: "http://example.com/image.jpeg"
-    ///     )
-    /// )
-    /// ```
-    public var filteredURL: String?
-
     /// Custom info passed alongside the request.
     public var userInfo: [ImageRequest.UserInfoKey: Any]
 
     public init(memoryCacheOptions: MemoryCacheOptions = .init(),
-                filteredURL: String? = nil,
                 userInfo: [ImageRequest.UserInfoKey: Any] = [:]) {
         self.memoryCacheOptions = memoryCacheOptions
-        self.filteredURL = filteredURL
         self.userInfo = userInfo
     }
 }
@@ -350,6 +337,21 @@ public extension ImageRequest {
             self.rawValue = value
         }
     }
+}
+
+public extension ImageRequest.UserInfoKey {
+    /// By default, Nuke uses URL as unique image identifiers for the purpsoses
+    /// of caching and task coalescing. You can override the default behavior
+    /// by providing an `imageId`instead. For example, you can use it to remove
+    /// transient query parameters from the request.
+    ///
+    /// ```
+    /// let request = ImageRequest(
+    ///     url: URL(string: "http://example.com/image.jpeg?token=123")!,
+    ///     userInfo: [.imageId: "http://example.com/image.jpeg"]
+    /// )
+    /// ```
+    static let imageId: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
 }
 
 // MARK: - ImageRequestKeys (Internal)

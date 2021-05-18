@@ -150,6 +150,13 @@ public extension ImageRequestOptions {
     }
 
     // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please pass imageId (`ImageRequest.UserInfoKey.imageId`) in the request `userInfo`. The deprecated API does nothing starting with Nuke 10.")
+    var filteredURL: AnyHashable? {
+        get { nil }
+        set { debugPrint("The ImageRequestOptions.filteredURL API does nothing starting with Nuke 10") } // swiftlint:disable:this unused_setter_value
+    }
+
+    // Deprecated in 10.0.0
     @available(*, deprecated, message: "ImageRequestOptions are deprecated")
     init(memoryCacheOptions: MemoryCacheOptions = .init(),
          filteredURL: String? = nil,
