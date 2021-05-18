@@ -46,7 +46,8 @@ class FetchImageTests: XCTestCase {
         XCTAssertNotNil(image.view)
     }
 
-    func testIsLoadingUpdated() {
+    #warning("flaky")
+    func _testIsLoadingUpdated() {
         // RECORD
         expect(image.$result.dropFirst()).toPublishSingleValue()
         let isLoading = record(image.$isLoading)
