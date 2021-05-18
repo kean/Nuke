@@ -122,7 +122,7 @@ public struct ImageRequest: CustomStringConvertible {
                 cachePolicy: CachePolicy = .default,
                 priority: Priority = .normal,
                 options: ImageRequestOptions = .init()) {
-        self.ref = Container(resource: Resource.url(url), processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
+        self.ref = Container(resource: Resource.url(url), imageId: url.absoluteString, processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
     }
 
     /// Initializes a request with the given request.
@@ -145,7 +145,7 @@ public struct ImageRequest: CustomStringConvertible {
                 cachePolicy: CachePolicy = .default,
                 priority: ImageRequest.Priority = .normal,
                 options: ImageRequestOptions = .init()) {
-        self.ref = Container(resource: Resource.urlRequest(urlRequest), processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
+        self.ref = Container(resource: Resource.urlRequest(urlRequest), imageId: urlRequest.url?.absoluteString, processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
     }
 
     #warning("document")
@@ -161,7 +161,7 @@ public struct ImageRequest: CustomStringConvertible {
         // pipeline by using a custom DataLoader, disabling resumable data, and
         // passing a publisher in the request userInfo. The first-class support
         // is much nicer though.
-        self.ref = Container(resource: .publisher(id: id, data: BCAnyPublisher(data)), processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
+        self.ref = Container(resource: .publisher(data: BCAnyPublisher(data)), imageId: id, processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
     }
     #endif
 
@@ -193,9 +193,9 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, processors: [ImageProcessing], cachePolicy: CachePolicy, priority: Priority, options: ImageRequestOptions) {
+        init(resource: Resource, imageId: String?, processors: [ImageProcessing], cachePolicy: CachePolicy, priority: Priority, options: ImageRequestOptions) {
             self.resource = resource
-            self.imageId = resource.imageId
+            self.imageId = imageId
             self.processors = processors
             self.cachePolicy = cachePolicy
             self.priority = priority
@@ -229,22 +229,13 @@ public struct ImageRequest: CustomStringConvertible {
     private enum Resource: CustomStringConvertible {
         case url(URL)
         case urlRequest(URLRequest)
-        #warning("reduce memory usage by not storing ID here")
-        case publisher(id: String, data: BCAnyPublisher<Data, Error>)
-
-        var imageId: String? {
-            switch self {
-            case let .url(url): return url.absoluteString
-            case let .urlRequest(urlRequest): return urlRequest.url?.absoluteString
-            case let .publisher(id, _): return id
-            }
-        }
+        case publisher(data: BCAnyPublisher<Data, Error>)
 
         var description: String {
             switch self {
             case let .url(url): return "\(url)"
             case let .urlRequest(urlRequest): return "\(urlRequest)"
-            case let .publisher(id, data): return "Publisher(id: \(id), data: \(data))"
+            case let .publisher(data): return "Publisher(\(data))"
             }
         }
     }
@@ -275,7 +266,7 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     var publisher: BCAnyPublisher<Data, Error>? {
-        guard case .publisher(_, let publisher) = ref.resource else {
+        guard case .publisher(let publisher) = ref.resource else {
             return nil
         }
         return publisher

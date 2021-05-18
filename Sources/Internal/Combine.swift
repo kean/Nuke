@@ -21,7 +21,7 @@ struct BCAnyPublisher<Output, Failure: Error> {
 
     #if canImport(Combine)
     @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
-    public init<P: Publisher>(_ publisher: P) where P.Output == Output, P.Failure == Failure {
+    init<P: Publisher>(_ publisher: P) where P.Output == Output, P.Failure == Failure {
         self._sink = { onCompletion, onValue in
             let cancellable = publisher.sink(receiveCompletion: {
                 switch $0 {
