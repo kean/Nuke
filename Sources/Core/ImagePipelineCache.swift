@@ -103,7 +103,7 @@ public extension ImagePipeline {
         }
 
         private func cachedImageFromMemoryCache(for request: ImageRequest) -> ImageContainer? {
-            guard request.cachePolicy != .reloadIgnoringCachedData && !request.options.contains(.disableMemoryCacheRead) else {
+            guard request.cachePolicy != .reloadIgnoringCachedData && !request.options.contains(.disableMemoryCacheReads) else {
                 return nil
             }
             let key = makeImageCacheKey(for: request)
@@ -115,7 +115,7 @@ public extension ImagePipeline {
         }
 
         private func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) {
-            guard !request.options.contains(.disableMemoryCacheWrite) else {
+            guard !request.options.contains(.disableMemoryCacheWrites) else {
                 return
             }
             guard !image.isPreview || configuration.isStoringPreviewsInMemoryCache else {
