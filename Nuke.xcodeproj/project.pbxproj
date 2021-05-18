@@ -393,22 +393,9 @@
 		0C096C7B1BAE9ADD007FE380 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				0C0FD5DF1CA47FE1002A78FB /* ImageViewExtensions.swift */,
-				0C18BEBB2650C7F20002C55B /* FetchImage.swift */,
-				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
-				0C86AB69228B3B5100A81BA1 /* ImageTask.swift */,
-				0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */,
-				0C78A2A6263F4E680051E0FF /* ImagePipelineCache.swift */,
-				0C53C8B0263C968200E62D03 /* ImagePipelineDelegate.swift */,
-				0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */,
-				0C0FD5D71CA47FE1002A78FB /* ImageCache.swift */,
-				0C0FD5D81CA47FE1002A78FB /* ImageProcessing.swift */,
-				0CE2D9B92084FDDD00934B28 /* ImageDecoding.swift */,
-				0C179C7A2283597F008AB488 /* ImageEncoding.swift */,
-				0CF4DE7C1D412A9E00170289 /* ImagePrefetcher.swift */,
-				0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */,
-				0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */,
-				0CB26801208F2565004C83F4 /* DataCache.swift */,
+				0CE6201F265365C000AAB8C3 /* Core */,
+				0CE6201E265365B700AAB8C3 /* Combine */,
+				0CE6201D2653659B00AAB8C3 /* UI */,
 				0CB402D325B6568800F5A241 /* Tasks */,
 				0CC36A0B25B8BBF800811018 /* Internal */,
 			);
@@ -695,6 +682,43 @@
 				0C179C772282AC50008AB488 /* .swiftlint.yml */,
 			);
 			name = Metadata;
+			sourceTree = "<group>";
+		};
+		0CE6201D2653659B00AAB8C3 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				0C0FD5DF1CA47FE1002A78FB /* ImageViewExtensions.swift */,
+				0C18BEBB2650C7F20002C55B /* FetchImage.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		0CE6201E265365B700AAB8C3 /* Combine */ = {
+			isa = PBXGroup;
+			children = (
+				0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */,
+			);
+			path = Combine;
+			sourceTree = "<group>";
+		};
+		0CE6201F265365C000AAB8C3 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
+				0C86AB69228B3B5100A81BA1 /* ImageTask.swift */,
+				0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */,
+				0C53C8B0263C968200E62D03 /* ImagePipelineDelegate.swift */,
+				0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */,
+				0C78A2A6263F4E680051E0FF /* ImagePipelineCache.swift */,
+				0CF4DE7C1D412A9E00170289 /* ImagePrefetcher.swift */,
+				0C0FD5D81CA47FE1002A78FB /* ImageProcessing.swift */,
+				0CE2D9B92084FDDD00934B28 /* ImageDecoding.swift */,
+				0C179C7A2283597F008AB488 /* ImageEncoding.swift */,
+				0C0FD5D71CA47FE1002A78FB /* ImageCache.swift */,
+				0CB26801208F2565004C83F4 /* DataCache.swift */,
+				0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */,
+			);
+			path = Core;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
