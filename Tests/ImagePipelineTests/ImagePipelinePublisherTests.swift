@@ -30,8 +30,7 @@ class ImagePipelinePublisherTests: XCTestCase {
 
     func testLoadWithPublisher() throws {
         // GIVEN
-        #warning("fix how error is populated")
-        let request = ImageRequest(id: "a", data: Just(Test.data).setFailureType(to: Swift.Error.self))
+        let request = ImageRequest(id: "a", data: Just(Test.data))
 
         // WHEN
         let record = expect(pipeline).toLoadImage(with: request)
@@ -44,7 +43,7 @@ class ImagePipelinePublisherTests: XCTestCase {
 
     func testLoadWithPublisherAndApplyProcessor() throws {
         // GIVEN
-        var request = ImageRequest(id: "a", data: Just(Test.data).setFailureType(to: Swift.Error.self))
+        var request = ImageRequest(id: "a", data: Just(Test.data))
         request.processors = [MockImageProcessor(id: "1")]
 
         // WHEN
