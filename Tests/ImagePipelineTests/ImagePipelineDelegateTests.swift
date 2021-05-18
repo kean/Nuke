@@ -40,7 +40,7 @@ class ImagePipelineDelegateTests: XCTestCase {
         let requestA = ImageRequest(
             url: imageURLMedium,
             processors: [ImageProcessors.Resize(width: 44)],
-            options: .init(userInfo: ["imageId": "image-01-small"])
+            userInfo: ["imageId": "image-01-small"]
         )
         expect(pipeline).toLoadImage(with: requestA)
         wait()
@@ -52,7 +52,7 @@ class ImagePipelineDelegateTests: XCTestCase {
         // GIVEN a request for a small image
         let requestB = ImageRequest(
             url: imageURLSmall,
-            options: .init(userInfo: ["imageId": "image-01-small"])
+            userInfo: ["imageId": "image-01-small"]
         )
 
         // WHEN/THEN the image is returned from the disk cache
@@ -150,7 +150,7 @@ class ImagePipelineDelegateTests: XCTestCase {
 
 private final class MockImagePipelineDelegate: ImagePipelineDelegate {
     func pipeline(_ pipeline: ImagePipeline, cacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<String> {
-        guard let imageId = request.options.userInfo["imageId"] as? String else {
+        guard let imageId = request.userInfo["imageId"] as? String else {
             return .default
         }
         return .custom(key: imageId)

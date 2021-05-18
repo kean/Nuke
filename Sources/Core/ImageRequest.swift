@@ -99,6 +99,20 @@ public struct ImageRequest: CustomStringConvertible {
         set { mutate { $0.processors = newValue } }
     }
 
+    /// Custom info passed alongside the request.
+    public var userInfo: [ImageRequest.UserInfoKey: Any] {
+        get {
+            if let userInfo = ref.userInfo {
+                return userInfo
+            }
+            ref.userInfo = [:]
+            return [:]
+        }
+        set {
+            mutate { $0.userInfo = newValue }
+        }
+    }
+
     // MARK: Initializers
 
     /// Initializes a request with the given URL.
@@ -106,6 +120,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// - parameter priority: The priority of the request, `.normal` by default.
     /// - parameter options: Advanced image loading options.
     /// - parameter processors: Image processors to be applied after the image is loaded.
+    /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
     ///
     /// `ImageRequest` allows you to set image processors, change the request priority and more:
     ///
@@ -120,8 +135,17 @@ public struct ImageRequest: CustomStringConvertible {
                 processors: [ImageProcessing] = [],
                 cachePolicy: CachePolicy = .default,
                 priority: Priority = .normal,
-                options: ImageRequestOptions = .init()) {
-        self.ref = Container(resource: Resource.url(url), imageId: url.absoluteString, processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
+                options: ImageRequestOptions = .init(),
+                userInfo: [UserInfoKey: Any]? = nil) {
+        self.ref = Container(
+            resource: Resource.url(url),
+            imageId: url.absoluteString,
+            processors: processors,
+            cachePolicy: cachePolicy,
+            priority: priority,
+            options: options,
+            userInfo: userInfo
+        )
     }
 
     /// Initializes a request with the given request.
@@ -129,6 +153,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// - parameter priority: The priority of the request, `.normal` by default.
     /// - parameter options: Advanced image loading options.
     /// - parameter processors: Image processors to be applied after the image is loaded.
+    /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
     ///
     /// `ImageRequest` allows you to set image processors, change the request priority and more:
     ///
@@ -143,8 +168,17 @@ public struct ImageRequest: CustomStringConvertible {
                 processors: [ImageProcessing] = [],
                 cachePolicy: CachePolicy = .default,
                 priority: ImageRequest.Priority = .normal,
-                options: ImageRequestOptions = .init()) {
-        self.ref = Container(resource: Resource.urlRequest(urlRequest), imageId: urlRequest.url?.absoluteString, processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
+                options: ImageRequestOptions = .init(),
+                userInfo: [UserInfoKey: Any]? = nil) {
+        self.ref = Container(
+            resource: Resource.urlRequest(urlRequest),
+            imageId: urlRequest.url?.absoluteString,
+            processors: processors,
+            cachePolicy: cachePolicy,
+            priority: priority,
+            options: options,
+            userInfo: userInfo
+        )
     }
 
     #if canImport(Combine)
@@ -155,6 +189,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// - parameter priority: The priority of the request, `.normal` by default.
     /// - parameter options: Advanced image loading options.
     /// - parameter processors: Image processors to be applied after the image is loaded.
+    /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
     ///
     /// For example, here is how you can use it with Photos framework (the
     /// `imageDataPublisher()` API is a convenience extension).
@@ -174,12 +209,21 @@ public struct ImageRequest: CustomStringConvertible {
                    processors: [ImageProcessing] = [],
                    cachePolicy: CachePolicy = .default,
                    priority: ImageRequest.Priority = .normal,
-                   options: ImageRequestOptions = .init()) where P: Publisher, P.Output == Data {
+                   options: ImageRequestOptions = .init(),
+                   userInfo: [UserInfoKey: Any]? = nil) where P: Publisher, P.Output == Data {
         // It could technically be implemented without any special change to the
         // pipeline by using a custom DataLoader, disabling resumable data, and
         // passing a publisher in the request userInfo. The first-class support
         // is much nicer though.
-        self.ref = Container(resource: .publisher(data: BCAnyPublisher(data)), imageId: id, processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
+        self.ref = Container(
+            resource: .publisher(data: BCAnyPublisher(data)),
+            imageId: id,
+            processors: processors,
+            cachePolicy: cachePolicy,
+            priority: priority,
+            options: options,
+            userInfo: userInfo
+        )
     }
     #endif
 
@@ -203,6 +247,7 @@ public struct ImageRequest: CustomStringConvertible {
         var priority: ImageRequest.Priority
         var options: ImageRequestOptions
         var processors: [ImageProcessing]
+        var userInfo: [UserInfoKey: Any]?
 
         deinit {
             #if TRACK_ALLOCATIONS
@@ -211,13 +256,14 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, imageId: String?, processors: [ImageProcessing], cachePolicy: CachePolicy, priority: Priority, options: ImageRequestOptions) {
+        init(resource: Resource, imageId: String?, processors: [ImageProcessing], cachePolicy: CachePolicy, priority: Priority, options: ImageRequestOptions, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
             self.imageId = imageId
             self.processors = processors
             self.cachePolicy = cachePolicy
             self.priority = priority
             self.options = options
+            self.userInfo = userInfo
 
             #if TRACK_ALLOCATIONS
             Allocations.increment("ImageRequest.Container")
@@ -232,6 +278,7 @@ public struct ImageRequest: CustomStringConvertible {
             self.cachePolicy = ref.cachePolicy
             self.priority = ref.priority
             self.options = ref.options
+            self.userInfo = ref.userInfo
 
             #if TRACK_ALLOCATIONS
             Allocations.increment("ImageRequest.Container")
@@ -239,7 +286,7 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         var preferredURLString: String {
-            if !options.userInfo.isEmpty, let imageId = options.userInfo[.imageId] as? String {
+            if let imageId = userInfo?[.imageId] as? String {
                 return imageId
             }
             return imageId ?? ""
@@ -269,7 +316,6 @@ public struct ImageRequest: CustomStringConvertible {
             processors: \(ref.processors)
             options: {
                 memoryCacheOptions: \(ref.options.memoryCacheOptions)
-                userInfo: \(String(describing: ref.options.userInfo))
             }
         }
         """
@@ -315,13 +361,8 @@ public struct ImageRequestOptions {
     /// `MemoryCacheOptions()` (read allowed, write allowed) by default.
     public var memoryCacheOptions: MemoryCacheOptions
 
-    /// Custom info passed alongside the request.
-    public var userInfo: [ImageRequest.UserInfoKey: Any]
-
-    public init(memoryCacheOptions: MemoryCacheOptions = .init(),
-                userInfo: [ImageRequest.UserInfoKey: Any] = [:]) {
+    public init(memoryCacheOptions: MemoryCacheOptions = .init()) {
         self.memoryCacheOptions = memoryCacheOptions
-        self.userInfo = userInfo
     }
 }
 
