@@ -148,7 +148,6 @@ public struct ImageRequest: CustomStringConvertible {
         self.ref = Container(resource: Resource.urlRequest(urlRequest), imageId: urlRequest.url?.absoluteString, processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
     }
 
-    #warning("default cache policy to disable caching?")
     #if canImport(Combine)
     /// Initializes a request with the given data publisher.
     ///
@@ -158,15 +157,17 @@ public struct ImageRequest: CustomStringConvertible {
     /// - parameter options: Advanced image loading options.
     /// - parameter processors: Image processors to be applied after the image is loaded.
     ///
-    /// `ImageRequest` allows you to set image processors, change the request priority and more:
+    /// For example, here is how you can use it with Photos framework (the
+    /// `imageDataPublisher()` API is a convenience extension).
+    ///
+    /// - warning: If you don't want data to be stored in the disk cache, make
+    /// sure to create a pipeline without it or disable it on a per-request basis.
+    /// You can also disable it dynamically using `ImagePipeline.Delegate`.
     ///
     /// ```swift
     /// let request = ImageRequest(
     ///     id: asset.localIdentifier,
-    ///     data: PHAssetManager.imageDataPublisher(for: asset),
-    ///     url: URLRequest(url: URL(string: "http://...")!),
-    ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
-    ///     priority: .high
+    ///     data: PHAssetManager.imageDataPublisher(for: asset)
     /// )
     /// ```
     @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)

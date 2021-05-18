@@ -60,5 +60,4 @@ extension AnyPublisher {
     }
 
 }
-
 #endif
