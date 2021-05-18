@@ -134,7 +134,8 @@ public extension ImagePipeline {
 
         /// Returns cached data for the given request.
         public func cachedData(for request: ImageRequest) -> Data? {
-            guard request.cachePolicy != .reloadIgnoringCachedData else {
+            guard request.cachePolicy != .reloadIgnoringCachedData,
+                  !request.options.contains(.disableDiskCacheReads) else {
                 return nil
             }
             guard let dataCache = configuration.dataCache else {
@@ -149,7 +150,8 @@ public extension ImagePipeline {
         /// - note: Default `DiskCache` stores data asynchronously, so it's safe
         /// to call this method even from the main thread.
         public func storeCachedData(_ data: Data, for request: ImageRequest) {
-            guard let dataCache = configuration.dataCache else {
+            guard let dataCache = configuration.dataCache,
+                  !request.options.contains(.disableDiskCacheWrites) else {
                 return
             }
             let key = makeDataCacheKey(for: request)

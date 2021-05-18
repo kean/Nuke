@@ -235,15 +235,15 @@ public struct ImageRequest: CustomStringConvertible {
             self.rawValue = rawValue
         }
 
-        /// Disables memory cache read (`ImageCaching`).
+        /// Disables memory cache reads (`ImageCaching`).
         public static let disableMemoryCacheReads = Options(rawValue: 1 << 0)
-        /// Disables memory cache write (`ImageCaching`).
+        /// Disables memory cache writes (`ImageCaching`).
         public static let disableMemoryCacheWrites = Options(rawValue: 1 << 1)
         /// Disables both memory cache reads and writes (`ImageCaching`).
         public static let disableMemoryCache: Options = [.disableMemoryCacheReads, .disableMemoryCacheWrites]
-        /// Disables disk cache read (`DataCaching`).
+        /// Disables disk cache reads (`DataCaching`).
         public static let disableDiskCacheReads = Options(rawValue: 1 << 2)
-        /// Disables disk cache write (`DataCaching`).
+        /// Disables disk cache writes (`DataCaching`).
         public static let disableDiskCacheWrites = Options(rawValue: 1 << 3)
         /// Disables both disk cache reads and writes (`DataCaching`).
         public static let disableDiskCache: Options = [.disableDiskCacheReads, .disableDiskCacheWrites]

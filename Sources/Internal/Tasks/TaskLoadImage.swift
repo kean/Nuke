@@ -22,7 +22,8 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         // Disk cache lookup
         if let dataCache = pipeline.configuration.dataCache,
-           request.cachePolicy != .reloadIgnoringCachedData {
+           request.cachePolicy != .reloadIgnoringCachedData,
+           !request.options.contains(.disableDiskCacheReads) {
             operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
                 self?.getCachedData(dataCache: dataCache)
             }
@@ -265,6 +266,12 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             return false
         }
         let policy = pipeline.configuration.dataCachePolicy
-        return ((policy == .automatic || policy == .storeAll) && !request.processors.isEmpty) || policy == .storeEncodedImages
+        guard ((policy == .automatic || policy == .storeAll) && !request.processors.isEmpty) || policy == .storeEncodedImages else {
+            return false
+        }
+        guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
+            return false
+        }
+        return true
     }
 }

@@ -8,7 +8,8 @@ import Foundation
 final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
     override func start() {
         guard let dataCache = pipeline.configuration.dataCache,
-              request.cachePolicy != .reloadIgnoringCachedData else {
+              request.cachePolicy != .reloadIgnoringCachedData,
+              !request.options.contains(.disableDiskCacheReads) else {
             loadData()
             return
         }

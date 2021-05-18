@@ -164,9 +164,8 @@ class ImagePipelineCacheTests: XCTestCase {
 
     func testDisableDiskCacheWrites() {
         // GIVEN
-        let request = ImageRequest(url: Test.url, options: [.disableMemoryCacheWrites])
+        let request = ImageRequest(url: Test.url, options: [.disableDiskCacheWrites])
         cache.storeCachedData(Test.data, for: request)
-
 
         // THEN
         XCTAssertNil(cache.cachedData(for: Test.request))
