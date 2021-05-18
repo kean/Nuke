@@ -4,6 +4,10 @@
 
 import Foundation
 
+#if canImport(Combine)
+import Combine
+#endif
+
 // MARK: - ImageRequest
 
 /// Represents an image request.
@@ -11,40 +15,33 @@ public struct ImageRequest: CustomStringConvertible {
 
     // MARK: Parameters of the Request
 
+    #warning("should URLRequest return non-nill value")
     /// The `URLRequest` used for loading an image.
-    public var urlRequest: URLRequest {
-        get {
-            switch ref.resource {
-            case let .url(url):
-                var request = URLRequest(url: url) // create lazily
-                if cachePolicy == .reloadIgnoringCachedData {
-                    request.cachePolicy = .reloadIgnoringLocalCacheData
-                }
-                return request
-            case let .urlRequest(urlRequest):
-                return urlRequest
+    public var urlRequest: URLRequest? {
+        switch ref.resource {
+        case .publisher:
+            return nil
+        case let .url(url):
+            var request = URLRequest(url: url) // create lazily
+            if cachePolicy == .reloadIgnoringCachedData {
+                request.cachePolicy = .reloadIgnoringLocalCacheData
             }
-        }
-        set {
-            mutate {
-                $0.resource = Resource.urlRequest(newValue)
-                $0.urlString = newValue.url?.absoluteString
-            }
+            return request
+        case let .urlRequest(urlRequest):
+            return urlRequest
         }
     }
 
     /// Returns the request URL.
     public var url: URL? {
         switch ref.resource {
+        case .publisher:
+            return nil
         case .url(let url):
             return url
         case .urlRequest(let request):
             return request.url
         }
-    }
-
-    var urlString: String? {
-        ref.urlString
     }
 
     /// The execution priority of the request. The priority affects the order in which the image
@@ -126,9 +123,6 @@ public struct ImageRequest: CustomStringConvertible {
                 priority: Priority = .normal,
                 options: ImageRequestOptions = .init()) {
         self.ref = Container(resource: Resource.url(url), processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
-        self.ref.urlString = url.absoluteString
-        // creating `.absoluteString` takes 50% of time of Request creation,
-        // it's still faster than using URLs as cache keys
     }
 
     /// Initializes a request with the given request.
@@ -152,8 +146,24 @@ public struct ImageRequest: CustomStringConvertible {
                 priority: ImageRequest.Priority = .normal,
                 options: ImageRequestOptions = .init()) {
         self.ref = Container(resource: Resource.urlRequest(urlRequest), processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
-        self.ref.urlString = urlRequest.url?.absoluteString
     }
+
+    #warning("document")
+    #warning("default cache policy to disable caching?")
+    #if canImport(Combine)
+    @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
+    public init<P>(id: String, data: P,
+                   processors: [ImageProcessing] = [],
+                   cachePolicy: CachePolicy = .default,
+                   priority: ImageRequest.Priority = .normal,
+                   options: ImageRequestOptions = .init()) where P: Publisher, P.Output == Data, P.Failure == Swift.Error {
+        // It could technically be implemented without any special change to the
+        // pipeline by using a custom DataLoader, disabling resumable data, and
+        // passing a publisher in the request userInfo. The first-class support
+        // is much nicer though.
+        self.ref = Container(resource: .publisher(id: id, data: BCAnyPublisher(data)), processors: processors, cachePolicy: cachePolicy, priority: priority, options: options)
+    }
+    #endif
 
     // CoW:
 
@@ -169,8 +179,8 @@ public struct ImageRequest: CustomStringConvertible {
     /// Just like many Swift built-in types, `ImageRequest` uses CoW approach to
     /// avoid memberwise retain/releases when `ImageRequest` is passed around.
     private class Container {
-        var resource: Resource
-        var urlString: String? // memoized absoluteString
+        let resource: Resource
+        let imageId: String? // memoized absoluteString
         var cachePolicy: CachePolicy
         var priority: ImageRequest.Priority
         var options: ImageRequestOptions
@@ -185,6 +195,7 @@ public struct ImageRequest: CustomStringConvertible {
         /// Creates a resource with a default processor.
         init(resource: Resource, processors: [ImageProcessing], cachePolicy: CachePolicy, priority: Priority, options: ImageRequestOptions) {
             self.resource = resource
+            self.imageId = resource.imageId
             self.processors = processors
             self.cachePolicy = cachePolicy
             self.priority = priority
@@ -198,7 +209,7 @@ public struct ImageRequest: CustomStringConvertible {
         /// Creates a copy.
         init(container ref: Container) {
             self.resource = ref.resource
-            self.urlString = ref.urlString
+            self.imageId = ref.imageId
             self.processors = ref.processors
             self.cachePolicy = ref.cachePolicy
             self.priority = ref.priority
@@ -210,7 +221,7 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         var preferredURLString: String {
-            options.filteredURL ?? urlString ?? ""
+            options.filteredURL ?? imageId ?? ""
         }
     }
 
@@ -218,13 +229,22 @@ public struct ImageRequest: CustomStringConvertible {
     private enum Resource: CustomStringConvertible {
         case url(URL)
         case urlRequest(URLRequest)
+        #warning("reduce memory usage by not storing ID here")
+        case publisher(id: String, data: BCAnyPublisher<Data, Error>)
+
+        var imageId: String? {
+            switch self {
+            case let .url(url): return url.absoluteString
+            case let .urlRequest(urlRequest): return urlRequest.url?.absoluteString
+            case let .publisher(id, _): return id
+            }
+        }
 
         var description: String {
             switch self {
-            case let .url(url):
-                return "\(url)"
-            case let .urlRequest(urlRequest):
-                return "\(urlRequest)"
+            case let .url(url): return "\(url)"
+            case let .urlRequest(urlRequest): return "\(urlRequest)"
+            case let .publisher(id, data): return "Publisher(id: \(id), data: \(data))"
             }
         }
     }
@@ -248,6 +268,17 @@ public struct ImageRequest: CustomStringConvertible {
         var request = self
         request.processors = processors
         return request
+    }
+
+    var imageId: String? {
+        ref.imageId
+    }
+
+    var publisher: BCAnyPublisher<Data, Error>? {
+        guard case .publisher(_, let publisher) = ref.resource else {
+            return nil
+        }
+        return publisher
     }
 }
 
@@ -366,14 +397,14 @@ extension ImageRequest {
         }
 
         private struct Parameters: Hashable {
-            let urlString: String?
+            let imageId: String?
             let cachePolicy: URLRequest.CachePolicy
             let allowsCellularAccess: Bool
 
             init(_ request: ImageRequest) {
-                self.urlString = request.ref.urlString
+                self.imageId = request.ref.imageId
                 switch request.ref.resource {
-                case .url:
+                case .url, .publisher:
                     self.cachePolicy = .useProtocolCachePolicy
                     self.allowsCellularAccess = true
                 case let .urlRequest(urlRequest):

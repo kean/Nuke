@@ -122,11 +122,11 @@ final class ResumableDataStorage {
         let url: String
 
         init?(request: ImageRequest, pipeline: ImagePipeline) {
-            guard let url = request.urlString else {
+            guard let imageId = request.imageId else {
                 return nil
             }
             self.pipelineId = pipeline.id
-            self.url = url
+            self.url = imageId
         }
     }
 }
