@@ -8,21 +8,6 @@ import XCTest
 class ImageRequestTests: XCTestCase {
     // MARK: - CoW
 
-    func testStructSemanticsArePreserved() {
-        // Given
-        let url1 =  URL(string: "http://test.com/1.png")!
-        let url2 = URL(string: "http://test.com/2.png")!
-        let request = ImageRequest(url: url1)
-
-        // When
-        var copy = request
-        copy.urlRequest = URLRequest(url: url2)
-
-        // Then
-        XCTAssertEqual(url2, copy.urlRequest.url)
-        XCTAssertEqual(url1, request.urlRequest.url)
-    }
-
     func testCopyOnWrite() {
         // Given
         var request = ImageRequest(url: URL(string: "http://test.com/1.png")!)
@@ -35,14 +20,15 @@ class ImageRequestTests: XCTestCase {
         // When
         var copy = request
         // Requst makes a copy at this point under the hood.
-        copy.urlRequest = URLRequest(url: URL(string: "http://test.com/2.png")!)
+        copy.priority = .low
 
         // Then
         XCTAssertEqual(copy.options.memoryCacheOptions.isReadAllowed, false)
         XCTAssertEqual(copy.options.userInfo["key"] as? String, "3")
         XCTAssertEqual(copy.options.filteredURL, "4")
         XCTAssertEqual((copy.processors.first as? MockImageProcessor)?.identifier, "4")
-        XCTAssertEqual(copy.priority, .high)
+        XCTAssertEqual(request.priority, .high) // Original request no updated
+        XCTAssertEqual(copy.priority, .low)
     }
 
     // MARK: - Misc

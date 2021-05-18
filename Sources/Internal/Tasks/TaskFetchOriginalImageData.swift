@@ -44,11 +44,14 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
     // This methods gets called inside data loading operation (Operation).
     private func loadData(finish: @escaping () -> Void) {
         guard !isDisposed else {
-            return
+            return finish()
         }
         // Read and remove resumable data from cache (we're going to insert it
         // back in the cache if the request fails to complete again).
-        var urlRequest = request.urlRequest
+        guard var urlRequest = request.urlRequest else {
+            self.send(error: .dataLoadingFailed(URLError(.unknown, userInfo: [:])))
+            return assertionFailure("This should never happen")
+        }
         if pipeline.configuration.isResumableDataEnabled,
            let resumableData = ResumableDataStorage.shared.removeResumableData(for: request, pipeline: pipeline) {
             // Update headers to add "Range" and "If-Range" headers
