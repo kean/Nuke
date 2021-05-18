@@ -190,7 +190,7 @@ class ImagePipelineCacheTests: XCTestCase {
     func testStoreCacheImageWhenMemoryCacheWriteDisabled() {
         // WHEN
         var request = Test.request
-        request.options.memoryCacheOptions.isWriteAllowed = false
+        request.options.insert(.disableMemoryCacheWrite)
         cache.storeCachedImage(Test.container, for: request, caches: [.memory])
 
         // THEN

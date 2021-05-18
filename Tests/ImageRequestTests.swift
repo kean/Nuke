@@ -11,7 +11,7 @@ class ImageRequestTests: XCTestCase {
     func testCopyOnWrite() {
         // Given
         var request = ImageRequest(url: URL(string: "http://test.com/1.png")!)
-        request.options.memoryCacheOptions.isReadAllowed = false
+        request.options.insert(.disableMemoryCacheRead)
         request.userInfo["key"] = "3"
         request.processors = [MockImageProcessor(id: "4")]
         request.priority = .high
@@ -22,7 +22,7 @@ class ImageRequestTests: XCTestCase {
         copy.priority = .low
 
         // Then
-        XCTAssertEqual(copy.options.memoryCacheOptions.isReadAllowed, false)
+        XCTAssertEqual(copy.options.contains(.disableMemoryCacheRead), true)
         XCTAssertEqual(copy.userInfo["key"] as? String, "3")
         XCTAssertEqual((copy.processors.first as? MockImageProcessor)?.identifier, "4")
         XCTAssertEqual(request.priority, .high) // Original request no updated

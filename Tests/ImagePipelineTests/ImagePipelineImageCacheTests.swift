@@ -55,7 +55,7 @@ class ImagePipelineImageCacheTests: XCTestCase {
     func testCacheWriteDisabled() {
         // Given
         var request = Test.request
-        request.options.memoryCacheOptions.isWriteAllowed = false
+        request.options.insert(.disableMemoryCacheWrite)
 
         // When
         expect(pipeline).toLoadImage(with: request)
@@ -71,7 +71,7 @@ class ImagePipelineImageCacheTests: XCTestCase {
         cache[Test.request] = ImageContainer(image: Test.image)
 
         var request = Test.request
-        request.options.memoryCacheOptions.isReadAllowed = false
+        request.options.insert(.disableMemoryCacheRead)
 
         // When
         expect(pipeline).toLoadImage(with: request)
