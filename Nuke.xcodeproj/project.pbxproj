@@ -396,7 +396,6 @@
 				0CE6201F265365C000AAB8C3 /* Core */,
 				0CE6201E265365B700AAB8C3 /* Combine */,
 				0CE6201D2653659B00AAB8C3 /* UI */,
-				0CB402D325B6568800F5A241 /* Tasks */,
 				0CC36A0B25B8BBF800811018 /* Internal */,
 			);
 			path = Sources;
@@ -624,6 +623,7 @@
 		0CC36A0B25B8BBF800811018 /* Internal */ = {
 			isa = PBXGroup;
 			children = (
+				0CB402D325B6568800F5A241 /* Tasks */,
 				0CC36A1125B8BC0800811018 /* Allocations.swift */,
 				0CC36A1825B8BC2500811018 /* RateLimiter.swift */,
 				0CC36A2425B8BC4900811018 /* Operation.swift */,
