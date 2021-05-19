@@ -84,16 +84,8 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// Custom info passed alongside the request.
     public var userInfo: [ImageRequest.UserInfoKey: Any] {
-        get {
-            if let userInfo = ref.userInfo {
-                return userInfo
-            }
-            ref.userInfo = [:]
-            return [:]
-        }
-        set {
-            mutate { $0.userInfo = newValue }
-        }
+        get { ref.userInfo ?? [:] }
+        set { mutate { $0.userInfo = newValue } }
     }
 
     // MARK: Initializers
