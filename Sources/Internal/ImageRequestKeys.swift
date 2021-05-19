@@ -10,7 +10,7 @@ extension ImageRequest {
 
     /// A key for processed image in memory cache.
     func makeImageCacheKey() -> ImageRequest.CacheKey {
-        CacheKey(request: self)
+        CacheKey(self)
     }
 
     /// A key for processed image data in disk cache.
@@ -23,7 +23,7 @@ extension ImageRequest {
     /// A key for deduplicating operations for fetching the processed image.
     func makeImageLoadKey() -> ImageLoadKey {
         ImageLoadKey(
-            cacheKey: makeImageCacheKey(),
+            cacheKey: CacheKey(self),
             options: options,
             loadKey: makeDataLoadKey()
         )
@@ -38,15 +38,20 @@ extension ImageRequest {
 
     // Uniquely identifies a cache processed image.
     struct CacheKey: Hashable {
-        let request: ImageRequest
+        let imageId: String?
+        let processors: [ImageProcessing]
+
+        init(_ request: ImageRequest) {
+            self.imageId = request.preferredImageId
+            self.processors = request.processors
+        }
 
         func hash(into hasher: inout Hasher) {
-            hasher.combine(request.preferredImageId)
+            hasher.combine(imageId)
         }
 
         static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
-            let lhs = lhs.request, rhs = rhs.request
-            return lhs.preferredImageId == rhs.preferredImageId && lhs.processors == rhs.processors
+            lhs.imageId == rhs.imageId && lhs.processors == rhs.processors
         }
     }
 
