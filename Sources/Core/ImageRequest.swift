@@ -228,8 +228,9 @@ public struct ImageRequest: CustomStringConvertible {
 
         /// The image should be loaded only from the originating source.
         ///
-        /// If you initialize the request with `URLRequest`, make sure to provide
-        /// the correct policy in the request too.
+        /// This option only works `ImageCaching` and `DataCaching`, but not
+        /// `URLCache`. If you want to ignore `URLCache`, initialize the request
+        /// with `URLRequest` with the respective policy
         public static let reloadIgnoringCachedData: Options = [.disableMemoryCacheReads, .disableDiskCacheReads]
 
         /// Use existing cache data and fail if no cached data is available.
