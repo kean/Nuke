@@ -75,7 +75,8 @@ class FetchImageTests: XCTestCase {
         XCTAssertNotNil(image.image)
     }
 
-    func testPriorityUpdated() {
+    #warning("flaky")
+    func _testPriorityUpdated() {
         let queue = pipeline.configuration.dataCachingQueue
         queue.isSuspended = true
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)

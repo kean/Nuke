@@ -22,7 +22,8 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         // Disk cache lookup
         if let dataCache = pipeline.configuration.dataCache,
-           request.cachePolicy != .reloadIgnoringCachedData {
+           request.cachePolicy != .reloadIgnoringCachedData,
+           !request.options.contains(.disableDiskCacheReads) {
             operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
                 self?.getCachedData(dataCache: dataCache)
             }
@@ -253,7 +254,8 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
                 encoder.encode(response.container, context: context)
             }
             guard let data = encodedData else { return }
-            dataCache.storeData(data, for: key) // This is instant
+            // Important! Storing directly ignoring `ImageRequest.Options`.
+            dataCache.storeData(data, for: key) // This is instant, writes are async
         }
         if pipeline.configuration.debugIsSyncImageEncoding { // Only for debug
             pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()

@@ -143,6 +143,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
 
         // Store in data cache
         if let dataCache = pipeline.configuration.dataCache, shouldStoreDataInDiskCache() {
+            // Important! Storing directly ignoring `ImageRequest.Options`.
             let key = pipeline.cache.makeDataCacheKey(for: request)
             dataCache.storeData(data, for: key)
         }
@@ -155,6 +156,9 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
             return false
         }
         let policy = pipeline.configuration.dataCachePolicy
+        guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
+            return false
+        }
         return policy == .storeOriginalImageData || policy == .storeAll || (policy == .automatic && imageTasks.contains { $0.request.processors.isEmpty })
     }
 

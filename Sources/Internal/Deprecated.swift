@@ -134,7 +134,27 @@ public protocol ImagePipelineObserving {
     func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent)
 }
 
-public extension ImageRequestOptions {
+// Deprecated in 10.0.0
+@available(*, deprecated, message: "See the deprecation warnings for invidual properties for migration guidelines.")
+public struct ImageRequestOptions {
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please use `ImagePipeline.Options` instead: `disableMemoryCacheRead`, `disableMemoryCacheWrite`.")
+    public struct MemoryCacheOptions {
+        /// `true` by default.
+        public var isReadAllowed = true
+
+        /// `true` by default.
+        public var isWriteAllowed = true
+
+        public init(isReadAllowed: Bool = true, isWriteAllowed: Bool = true) {
+            self.isReadAllowed = isReadAllowed
+            self.isWriteAllowed = isWriteAllowed
+        }
+    }
+
+    /// `MemoryCacheOptions()` (read allowed, write allowed) by default.
+    public var memoryCacheOptions: MemoryCacheOptions
+
     // Deprecated in 10.0.0
     @available(*, deprecated, message: "Please use `ImagePipeline.Delegate` instead. This API does nothing starting with Nuke 10.")
     var cacheKey: AnyHashable? {
@@ -158,23 +178,21 @@ public extension ImageRequestOptions {
 
     // Deprecated in 10.0.0
     @available(*, deprecated, message: "Please pass the `userInfo` directly to the request. The deprecated API does nothing starting with Nuke 10.")
-    var userInfo: [ImageRequest.UserInfoKey: Any] {
+    var userInfo: [AnyHashable: Any] {
         get { [:] }
         set { debugPrint("The ImageRequestOptions.userInfo API does nothing starting with Nuke 10") } // swiftlint:disable:this unused_setter_value
     }
 
-    // Deprecated in 10.0.0
-    @available(*, deprecated, message: "ImageRequestOptions are deprecated")
-    init(memoryCacheOptions: MemoryCacheOptions = .init(),
-         filteredURL: String? = nil,
-         cacheKey: AnyHashable? = nil,
-         loadKey: AnyHashable? = nil,
-         userInfo: [AnyHashable: Any] = [:]) {
-        self.init()
+    public init(memoryCacheOptions: MemoryCacheOptions = .init(),
+                filteredURL: String? = nil,
+                cacheKey: AnyHashable? = nil,
+                loadKey: AnyHashable? = nil,
+                userInfo: [AnyHashable: Any] = [:]) {
         self.memoryCacheOptions = memoryCacheOptions
+        self.filteredURL = filteredURL
         self.cacheKey = cacheKey
         self.loadKey = loadKey
-        self.filteredURL = filteredURL
+        self.userInfo = userInfo
     }
 }
 

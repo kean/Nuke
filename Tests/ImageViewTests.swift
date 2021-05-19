@@ -123,7 +123,7 @@ class ImageViewTests: XCTestCase {
 
         // When requesting the image with memory cache read disabled
         var request = Test.request
-        request.options.memoryCacheOptions.isReadAllowed = false
+        request.options.insert(.disableMemoryCacheReads)
         Nuke.loadImage(with: request, into: imageView)
 
         // Expect image to not be displayed, loaded asyncrounously instead

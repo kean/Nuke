@@ -29,9 +29,29 @@ class ImagePipelineCacheTests: XCTestCase {
     // MARK: Subscripts
 
     func testSubscript() {
-        // WHEN/THEN
+        // GIVEN
         cache[Test.request] = Test.container
+
+        // THEN
         XCTAssertNotNil(cache[Test.request])
+    }
+
+    func testDisableMemoryCacheRead() {
+        // GIVEN
+        cache[Test.request] = Test.container
+        let request = ImageRequest(url: Test.url, options: [.disableMemoryCacheReads])
+
+        // THEN
+        XCTAssertNil(cache[request])
+    }
+
+    func testDisableMemoryCacheWrite() {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, options: [.disableMemoryCacheWrites])
+        cache[request] = Test.container
+
+        // THEN
+        XCTAssertNil(cache[Test.request])
     }
 
     // MARK: Cached Image
@@ -133,6 +153,24 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertNil(image)
     }
 
+    func testDisableDiskCacheReads() {
+        // GIVEN
+        cache.storeCachedData(Test.data, for: Test.request)
+        let request = ImageRequest(url: Test.url, options: [.disableDiskCacheReads])
+
+        // THEN
+        XCTAssertNil(cache.cachedData(for: request))
+    }
+
+    func testDisableDiskCacheWrites() {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, options: [.disableDiskCacheWrites])
+        cache.storeCachedData(Test.data, for: request)
+
+        // THEN
+        XCTAssertNil(cache.cachedData(for: Test.request))
+    }
+
     // MARK: Store Cached Image
 
     func testStoreCachedImageMemoryCache() {
@@ -190,7 +228,7 @@ class ImagePipelineCacheTests: XCTestCase {
     func testStoreCacheImageWhenMemoryCacheWriteDisabled() {
         // WHEN
         var request = Test.request
-        request.options.memoryCacheOptions.isWriteAllowed = false
+        request.options.insert(.disableMemoryCacheWrites)
         cache.storeCachedImage(Test.container, for: request, caches: [.memory])
 
         // THEN

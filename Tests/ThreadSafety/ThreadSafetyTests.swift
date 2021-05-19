@@ -210,9 +210,6 @@ final class RandomizedTests: XCTestCase {
                 let size = every(2) ? CGSize(width: 40, height: 40) : CGSize(width: 60, height: 60)
                 request.processors = [ImageProcessors.Resize(size: size, contentMode: .aspectFit)]
             }
-            if every(10) {
-                request.options.loadKey = url
-            }
             return request
         }
 

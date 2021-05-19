@@ -87,16 +87,16 @@ public struct ImageRequest: CustomStringConvertible {
         set { mutate { $0.cachePolicy = newValue } }
     }
 
-    /// The request options. See `ImageRequestOptions` for more info.
-    public var options: ImageRequestOptions {
-        get { ref.options }
-        set { mutate { $0.options = newValue } }
-    }
-
     /// Processor to be applied to the image. `nil` by default.
     public var processors: [ImageProcessing] {
         get { ref.processors }
         set { mutate { $0.processors = newValue } }
+    }
+
+    /// The request options. See `ImageRequest.Options` for more info.
+    public var options: ImageRequest.Options {
+        get { ref.options }
+        set { mutate { $0.options = newValue } }
     }
 
     /// Custom info passed alongside the request.
@@ -135,7 +135,7 @@ public struct ImageRequest: CustomStringConvertible {
                 processors: [ImageProcessing] = [],
                 cachePolicy: CachePolicy = .default,
                 priority: Priority = .normal,
-                options: ImageRequestOptions = .init(),
+                options: ImageRequest.Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
         self.ref = Container(
             resource: Resource.url(url),
@@ -168,7 +168,7 @@ public struct ImageRequest: CustomStringConvertible {
                 processors: [ImageProcessing] = [],
                 cachePolicy: CachePolicy = .default,
                 priority: ImageRequest.Priority = .normal,
-                options: ImageRequestOptions = .init(),
+                options: ImageRequest.Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
         self.ref = Container(
             resource: Resource.urlRequest(urlRequest),
@@ -209,7 +209,7 @@ public struct ImageRequest: CustomStringConvertible {
                    processors: [ImageProcessing] = [],
                    cachePolicy: CachePolicy = .default,
                    priority: ImageRequest.Priority = .normal,
-                   options: ImageRequestOptions = .init(),
+                   options: ImageRequest.Options = [],
                    userInfo: [UserInfoKey: Any]? = nil) where P: Publisher, P.Output == Data {
         // It could technically be implemented without any special change to the
         // pipeline by using a custom DataLoader, disabling resumable data, and
@@ -226,6 +226,28 @@ public struct ImageRequest: CustomStringConvertible {
         )
     }
     #endif
+
+    // MARK: Options
+
+    public struct Options: OptionSet, Hashable {
+        public let rawValue: Int
+        public init(rawValue: Int) {
+            self.rawValue = rawValue
+        }
+
+        /// Disables memory cache reads (`ImageCaching`).
+        public static let disableMemoryCacheReads = Options(rawValue: 1 << 0)
+        /// Disables memory cache writes (`ImageCaching`).
+        public static let disableMemoryCacheWrites = Options(rawValue: 1 << 1)
+        /// Disables both memory cache reads and writes (`ImageCaching`).
+        public static let disableMemoryCache: Options = [.disableMemoryCacheReads, .disableMemoryCacheWrites]
+        /// Disables disk cache reads (`DataCaching`).
+        public static let disableDiskCacheReads = Options(rawValue: 1 << 2)
+        /// Disables disk cache writes (`DataCaching`).
+        public static let disableDiskCacheWrites = Options(rawValue: 1 << 3)
+        /// Disables both disk cache reads and writes (`DataCaching`).
+        public static let disableDiskCache: Options = [.disableDiskCacheReads, .disableDiskCacheWrites]
+    }
 
     // CoW:
 
@@ -245,7 +267,7 @@ public struct ImageRequest: CustomStringConvertible {
         let imageId: String? // memoized absoluteString
         var cachePolicy: CachePolicy
         var priority: ImageRequest.Priority
-        var options: ImageRequestOptions
+        var options: ImageRequest.Options
         var processors: [ImageProcessing]
         var userInfo: [UserInfoKey: Any]?
 
@@ -256,7 +278,7 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, imageId: String?, processors: [ImageProcessing], cachePolicy: CachePolicy, priority: Priority, options: ImageRequestOptions, userInfo: [UserInfoKey: Any]?) {
+        init(resource: Resource, imageId: String?, processors: [ImageProcessing], cachePolicy: CachePolicy, priority: Priority, options: ImageRequest.Options, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
             self.imageId = imageId
             self.processors = processors
@@ -309,14 +331,13 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     public var description: String {
-        return """
+        """
         ImageRequest {
-            resource: \(ref.resource)
-            priority: \(ref.priority)
-            processors: \(ref.processors)
-            options: {
-                memoryCacheOptions: \(ref.options.memoryCacheOptions)
-            }
+            resource: \(ref.resource),
+            priority: \(ref.priority),
+            processors: \(ref.processors),
+            options: \(ref.options),
+            userInfo: \(ref.userInfo ?? [:])
         }
         """
     }
@@ -339,32 +360,7 @@ public struct ImageRequest: CustomStringConvertible {
     }
 }
 
-// MARK: - ImageRequestOptions (Advanced Options)
-
-public struct ImageRequestOptions {
-    /// The policy to use when reading or writing images to the memory cache.
-    ///
-    /// Soft-deprecated in Nuke 9.2.
-    public struct MemoryCacheOptions {
-        /// `true` by default.
-        public var isReadAllowed = true
-
-        /// `true` by default.
-        public var isWriteAllowed = true
-
-        public init(isReadAllowed: Bool = true, isWriteAllowed: Bool = true) {
-            self.isReadAllowed = isReadAllowed
-            self.isWriteAllowed = isWriteAllowed
-        }
-    }
-
-    /// `MemoryCacheOptions()` (read allowed, write allowed) by default.
-    public var memoryCacheOptions: MemoryCacheOptions
-
-    public init(memoryCacheOptions: MemoryCacheOptions = .init()) {
-        self.memoryCacheOptions = memoryCacheOptions
-    }
-}
+// MARK: - ImageRequest.UserInfoKey
 
 public extension ImageRequest {
     struct UserInfoKey: Hashable, ExpressibleByStringLiteral {
@@ -418,6 +414,7 @@ extension ImageRequest {
         ImageLoadKey(
             cacheKey: makeImageCacheKey(),
             cachePolicy: ref.cachePolicy,
+            options: ref.options,
             loadKey: makeDataLoadKey()
         )
     }
@@ -447,6 +444,7 @@ extension ImageRequest {
     struct ImageLoadKey: Hashable {
         let cacheKey: CacheKey
         let cachePolicy: CachePolicy
+        let options: ImageRequest.Options
         let loadKey: DataLoadKey
     }
 
