@@ -220,8 +220,10 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
+        pipeline.registerMultipelRequests {
+            expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+            expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
+        }
         wait()
 
         // THEN
@@ -282,8 +284,10 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
+        pipeline.registerMultipelRequests {
+            expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+            expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
+        }
         wait()
 
         // THEN
@@ -406,8 +410,10 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
+        pipeline.registerMultipelRequests {
+            expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+            expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
+        }
         wait()
 
         // THEN
@@ -417,5 +423,14 @@ extension ImagePipelineLoadDataTests {
         XCTAssertNotNil(dataCache.cachedData(for: Test.url.absoluteString))
         XCTAssertEqual(dataCache.writeCount, 1)
         XCTAssertEqual(dataCache.store.count, 1)
+    }
+}
+
+extension ImagePipeline {
+    func registerMultipelRequests(_ closure: () -> Void) {
+        configuration.dataLoadingQueue.isSuspended = true
+        closure()
+        queue.sync {} // Important!
+        configuration.dataLoadingQueue.isSuspended = false
     }
 }

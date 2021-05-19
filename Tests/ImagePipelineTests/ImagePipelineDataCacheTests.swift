@@ -308,8 +308,10 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
 
         // WHEN
-        expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url))
+        pipeline.registerMultipelRequests {
+            expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+            expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url))
+        }
         wait()
 
         // THEN
@@ -393,8 +395,10 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
 
         // WHEN
-        expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url))
+        pipeline.registerMultipelRequests {
+            expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+            expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url))
+        }
         wait()
 
         // THEN
@@ -456,8 +460,10 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
 
         // WHEN
-        expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
-        expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url))
+        pipeline.registerMultipelRequests {
+            expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
+            expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url))
+        }
         wait()
 
         // THEN
