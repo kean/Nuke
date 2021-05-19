@@ -298,17 +298,10 @@ public struct ImageRequest: CustomStringConvertible {
             Allocations.increment("ImageRequest.Container")
             #endif
         }
-
-        var preferredURLString: String {
-            if let imageId = userInfo?[.imageId] as? String {
-                return imageId
-            }
-            return imageId ?? ""
-        }
     }
 
     /// Resource representation (either URL or URLRequest).
-    private enum Resource: CustomStringConvertible {
+    enum Resource: CustomStringConvertible {
         case url(URL)
         case urlRequest(URLRequest)
         case publisher(BCAnyPublisher<Data>)
@@ -340,8 +333,19 @@ public struct ImageRequest: CustomStringConvertible {
         return request
     }
 
+    var resource: Resource {
+        ref.resource
+    }
+
     var imageId: String? {
         ref.imageId
+    }
+
+    var preferredImageId: String {
+        if let imageId = ref.userInfo?[.imageId] as? String {
+            return imageId
+        }
+        return imageId ?? ""
     }
 
     var publisher: BCAnyPublisher<Data>? {
@@ -382,103 +386,6 @@ public extension ImageRequest.UserInfoKey {
     /// )
     /// ```
     static let imageId: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
-}
-
-// MARK: - ImageRequestKeys (Internal)
-
-extension ImageRequest {
-
-    // MARK: - Cache Keys
-
-    /// A key for processed image in memory cache.
-    func makeImageCacheKey() -> ImageRequest.CacheKey {
-        CacheKey(request: self)
-    }
-
-    /// A key for processed image data in disk cache.
-    func makeDataCacheKey() -> String {
-        "\(ref.preferredURLString)\(ImageProcessors.Composition(processors).identifier)"
-    }
-
-    // MARK: - Load Keys
-
-    /// A key for deduplicating operations for fetching the processed image.
-    func makeImageLoadKey() -> ImageLoadKey {
-        ImageLoadKey(
-            cacheKey: makeImageCacheKey(),
-            options: ref.options,
-            loadKey: makeDataLoadKey()
-        )
-    }
-
-    /// A key for deduplicating operations for fetching the original image.
-    func makeDataLoadKey() -> DataLoadKey {
-        DataLoadKey(request: self)
-    }
-
-    // MARK: - Internals (Keys)
-
-    // Uniquely identifies a cache processed image.
-    struct CacheKey: Hashable {
-        let request: ImageRequest
-
-        func hash(into hasher: inout Hasher) {
-            hasher.combine(request.ref.preferredURLString)
-        }
-
-        static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
-            let lhs = lhs.request.ref, rhs = rhs.request.ref
-            return lhs.preferredURLString == rhs.preferredURLString && lhs.processors == rhs.processors
-        }
-    }
-
-    // Uniquely identifies a task of retrieving the processed image.
-    struct ImageLoadKey: Hashable {
-        let cacheKey: CacheKey
-        let options: ImageRequest.Options
-        let loadKey: DataLoadKey
-    }
-
-    // Uniquely identifies a task of retrieving the original image dataa.
-    struct DataLoadKey: Hashable {
-        let request: ImageRequest
-
-        func hash(into hasher: inout Hasher) {
-            hasher.combine(request.ref.preferredURLString)
-        }
-
-        static func == (lhs: DataLoadKey, rhs: DataLoadKey) -> Bool {
-            Parameters(lhs.request) == Parameters(rhs.request)
-        }
-
-        private struct Parameters: Hashable {
-            let imageId: String?
-            let cachePolicy: URLRequest.CachePolicy
-            let allowsCellularAccess: Bool
-
-            init(_ request: ImageRequest) {
-                self.imageId = request.ref.imageId
-                switch request.ref.resource {
-                case .url, .publisher:
-                    self.cachePolicy = .useProtocolCachePolicy
-                    self.allowsCellularAccess = true
-                case let .urlRequest(urlRequest):
-                    self.cachePolicy = urlRequest.cachePolicy
-                    self.allowsCellularAccess = urlRequest.allowsCellularAccess
-                }
-            }
-        }
-    }
-}
-
-struct ImageProcessingKey: Equatable, Hashable {
-    let imageId: ObjectIdentifier
-    let processorId: AnyHashable
-
-    init(image: ImageResponse, processor: ImageProcessing) {
-        self.imageId = ObjectIdentifier(image)
-        self.processorId = processor.hashableIdentifier
-    }
 }
 
 // MARK: - ImageRequestConvertible
