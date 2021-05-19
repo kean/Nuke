@@ -143,6 +143,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
 
         // Store in data cache
         if let dataCache = pipeline.configuration.dataCache, shouldStoreDataInDiskCache() {
+            // Important! Storing directly ignoring `ImageRequest.Options`.
             let key = pipeline.cache.makeDataCacheKey(for: request)
             dataCache.storeData(data, for: key)
         }
