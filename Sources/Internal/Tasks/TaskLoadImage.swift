@@ -22,7 +22,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         // Disk cache lookup
         if let dataCache = pipeline.configuration.dataCache,
-           request.cachePolicy != .reloadIgnoringCachedData,
            !request.options.contains(.disableDiskCacheReads) {
             operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
                 self?.getCachedData(dataCache: dataCache)
@@ -117,7 +116,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         let processors: [ImageProcessing] = request.processors.reversed()
         // The only remaining choice is to fetch the image
-        if request.cachePolicy == .returnCacheDataDontLoad {
+        if request.options.contains(.returnCacheDataDontLoad) {
             // Same error that URLSession produces when .returnCacheDataDontLoad
             // is specified and the data is no found in the cache.
             let error = NSError(domain: URLError.errorDomain, code: URLError.resourceUnavailable.rawValue, userInfo: nil)

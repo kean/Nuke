@@ -97,7 +97,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
         dataCache.store[Test.url.absoluteString] = Test.data
 
         var request = Test.request
-        request.cachePolicy = .reloadIgnoringCachedData
+        request.options = [.reloadIgnoringCachedData]
 
         // When
         expect(pipeline).toLoadImage(with: request)
@@ -112,7 +112,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
         dataCache.store[Test.url.absoluteString] = Test.data
 
         var request = Test.request
-        request.cachePolicy = .returnCacheDataDontLoad
+        request.options = [.returnCacheDataDontLoad]
 
         // When
         expect(pipeline).toLoadImage(with: request)
@@ -131,7 +131,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
         }
 
         var request = Test.request
-        request.cachePolicy = .returnCacheDataDontLoad
+        request.options = [.returnCacheDataDontLoad]
 
         // When
         expect(pipeline).toLoadImage(with: request)
@@ -144,7 +144,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
     func testLoadFromCacheOnlyFailsIfNoMemoryCache() {
         // Given no cache
         var request = Test.request
-        request.cachePolicy = .returnCacheDataDontLoad
+        request.options = [.returnCacheDataDontLoad]
 
         // When
         expect(pipeline).toFailRequest(request)

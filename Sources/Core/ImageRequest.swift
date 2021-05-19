@@ -21,11 +21,7 @@ public struct ImageRequest: CustomStringConvertible {
         case .publisher:
             return nil
         case let .url(url):
-            var request = URLRequest(url: url) // create lazily
-            if cachePolicy == .reloadIgnoringCachedData {
-                request.cachePolicy = .reloadIgnoringLocalCacheData
-            }
-            return request
+            return URLRequest(url: url) // create lazily
         case let .urlRequest(urlRequest):
             return urlRequest
         }
@@ -68,23 +64,6 @@ public struct ImageRequest: CustomStringConvertible {
     public var priority: Priority {
         get { ref.priority }
         set { mutate { $0.priority = newValue } }
-    }
-
-    public enum CachePolicy {
-        case `default`
-        /// The image should be loaded only from the originating source.
-        ///
-        /// If you initialize the request with `URLRequest`, make sure to provide
-        /// the correct policy in the request too.
-        case reloadIgnoringCachedData
-
-        /// Use existing cache data and fail if no cached data is available.
-        case returnCacheDataDontLoad
-    }
-
-    public var cachePolicy: CachePolicy {
-        get { ref.cachePolicy }
-        set { mutate { $0.cachePolicy = newValue } }
     }
 
     /// Processor to be applied to the image. `nil` by default.
@@ -133,7 +112,6 @@ public struct ImageRequest: CustomStringConvertible {
     /// ```
     public init(url: URL,
                 processors: [ImageProcessing] = [],
-                cachePolicy: CachePolicy = .default,
                 priority: Priority = .normal,
                 options: ImageRequest.Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
@@ -141,7 +119,6 @@ public struct ImageRequest: CustomStringConvertible {
             resource: Resource.url(url),
             imageId: url.absoluteString,
             processors: processors,
-            cachePolicy: cachePolicy,
             priority: priority,
             options: options,
             userInfo: userInfo
@@ -166,7 +143,6 @@ public struct ImageRequest: CustomStringConvertible {
     /// ```
     public init(urlRequest: URLRequest,
                 processors: [ImageProcessing] = [],
-                cachePolicy: CachePolicy = .default,
                 priority: ImageRequest.Priority = .normal,
                 options: ImageRequest.Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
@@ -174,7 +150,6 @@ public struct ImageRequest: CustomStringConvertible {
             resource: Resource.urlRequest(urlRequest),
             imageId: urlRequest.url?.absoluteString,
             processors: processors,
-            cachePolicy: cachePolicy,
             priority: priority,
             options: options,
             userInfo: userInfo
@@ -207,7 +182,6 @@ public struct ImageRequest: CustomStringConvertible {
     @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
     public init<P>(id: String, data: P,
                    processors: [ImageProcessing] = [],
-                   cachePolicy: CachePolicy = .default,
                    priority: ImageRequest.Priority = .normal,
                    options: ImageRequest.Options = [],
                    userInfo: [UserInfoKey: Any]? = nil) where P: Publisher, P.Output == Data {
@@ -219,7 +193,6 @@ public struct ImageRequest: CustomStringConvertible {
             resource: .publisher(data: BCAnyPublisher(data)),
             imageId: id,
             processors: processors,
-            cachePolicy: cachePolicy,
             priority: priority,
             options: options,
             userInfo: userInfo
@@ -237,16 +210,30 @@ public struct ImageRequest: CustomStringConvertible {
 
         /// Disables memory cache reads (`ImageCaching`).
         public static let disableMemoryCacheReads = Options(rawValue: 1 << 0)
+
         /// Disables memory cache writes (`ImageCaching`).
         public static let disableMemoryCacheWrites = Options(rawValue: 1 << 1)
+
         /// Disables both memory cache reads and writes (`ImageCaching`).
         public static let disableMemoryCache: Options = [.disableMemoryCacheReads, .disableMemoryCacheWrites]
+
         /// Disables disk cache reads (`DataCaching`).
         public static let disableDiskCacheReads = Options(rawValue: 1 << 2)
+
         /// Disables disk cache writes (`DataCaching`).
         public static let disableDiskCacheWrites = Options(rawValue: 1 << 3)
+
         /// Disables both disk cache reads and writes (`DataCaching`).
         public static let disableDiskCache: Options = [.disableDiskCacheReads, .disableDiskCacheWrites]
+
+        /// The image should be loaded only from the originating source.
+        ///
+        /// If you initialize the request with `URLRequest`, make sure to provide
+        /// the correct policy in the request too.
+        public static let reloadIgnoringCachedData: Options = [.disableMemoryCacheReads, .disableDiskCacheReads]
+
+        /// Use existing cache data and fail if no cached data is available.
+        public static let returnCacheDataDontLoad = Options(rawValue: 1 << 4)
     }
 
     // CoW:
@@ -265,7 +252,6 @@ public struct ImageRequest: CustomStringConvertible {
     private class Container {
         let resource: Resource
         let imageId: String? // memoized absoluteString
-        var cachePolicy: CachePolicy
         var priority: ImageRequest.Priority
         var options: ImageRequest.Options
         var processors: [ImageProcessing]
@@ -278,14 +264,15 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, imageId: String?, processors: [ImageProcessing], cachePolicy: CachePolicy, priority: Priority, options: ImageRequest.Options, userInfo: [UserInfoKey: Any]?) {
+        init(resource: Resource, imageId: String?, processors: [ImageProcessing], priority: Priority, options: ImageRequest.Options, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
             self.imageId = imageId
             self.processors = processors
-            self.cachePolicy = cachePolicy
             self.priority = priority
             self.options = options
             self.userInfo = userInfo
+
+            print(class_getInstanceSize(Container.self))
 
             #if TRACK_ALLOCATIONS
             Allocations.increment("ImageRequest.Container")
@@ -297,7 +284,6 @@ public struct ImageRequest: CustomStringConvertible {
             self.resource = ref.resource
             self.imageId = ref.imageId
             self.processors = ref.processors
-            self.cachePolicy = ref.cachePolicy
             self.priority = ref.priority
             self.options = ref.options
             self.userInfo = ref.userInfo
@@ -413,7 +399,6 @@ extension ImageRequest {
     func makeImageLoadKey() -> ImageLoadKey {
         ImageLoadKey(
             cacheKey: makeImageCacheKey(),
-            cachePolicy: ref.cachePolicy,
             options: ref.options,
             loadKey: makeDataLoadKey()
         )
@@ -443,7 +428,6 @@ extension ImageRequest {
     // Uniquely identifies a task of retrieving the processed image.
     struct ImageLoadKey: Hashable {
         let cacheKey: CacheKey
-        let cachePolicy: CachePolicy
         let options: ImageRequest.Options
         let loadKey: DataLoadKey
     }

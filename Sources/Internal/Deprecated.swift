@@ -204,3 +204,68 @@ public extension ImagePipeline.Configuration {
         set { isTaskCoalescingEnabled = newValue }
     }
 }
+
+public extension ImageRequest {
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names.")
+    init(url: URL,
+         processors: [ImageProcessing] = [],
+         cachePolicy: CachePolicy,
+         priority: ImageRequest.Priority = .normal) {
+        self.init(url: url, processors: processors, priority: priority, options: .init(cachePolicy), userInfo: nil)
+    }
+
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names.")
+    init(urlRequest: URLRequest,
+         processors: [ImageProcessing] = [],
+         cachePolicy: CachePolicy,
+         priority: ImageRequest.Priority = .normal) {
+        self.init(urlRequest: urlRequest, processors: processors, priority: priority, options: .init(cachePolicy), userInfo: nil)
+    }
+
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names.")
+    var cachePolicy: CachePolicy {
+        get {
+            if options.contains(.returnCacheDataDontLoad) {
+                return .returnCacheDataDontLoad
+            }
+            if options.contains(.reloadIgnoringCachedData) {
+                return .reloadIgnoringCachedData
+            }
+            return .default
+        }
+        set {
+            options.insert(.init(newValue))
+        }
+    }
+
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names.")
+    enum CachePolicy {
+        case `default`
+        /// The image should be loaded only from the originating source.
+        ///
+        /// If you initialize the request with `URLRequest`, make sure to provide
+        /// the correct policy in the request too.
+        case reloadIgnoringCachedData
+
+        /// Use existing cache data and fail if no cached data is available.
+        case returnCacheDataDontLoad
+    }
+}
+
+private extension ImageRequest.Options {
+    @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names.")
+    init(_ policy: ImageRequest.CachePolicy) {
+        switch policy {
+        case .default:
+            self = []
+        case .reloadIgnoringCachedData:
+            self = .reloadIgnoringCachedData
+        case .returnCacheDataDontLoad:
+            self = .returnCacheDataDontLoad
+        }
+    }
+}

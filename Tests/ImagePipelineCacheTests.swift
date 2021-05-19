@@ -109,7 +109,7 @@ class ImagePipelineCacheTests: XCTestCase {
         memoryCache[cache.makeImageCacheKey(for: request)] = Test.container
 
         // WHEN
-        request.cachePolicy = .reloadIgnoringCachedData
+        request.options = [.reloadIgnoringCachedData]
         let image = cache.cachedImage(for: request)
 
         // THEN
@@ -122,7 +122,7 @@ class ImagePipelineCacheTests: XCTestCase {
         diskCache.storeData(Test.data, for: cache.makeDataCacheKey(for: request))
 
         // WHEN
-        request.cachePolicy = .reloadIgnoringCachedData
+        request.options = [.reloadIgnoringCachedData]
         let image = cache.cachedImage(for: request, caches: [.disk])
 
         // THEN

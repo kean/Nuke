@@ -101,7 +101,7 @@ class ImagePipelineImageCacheTests: XCTestCase {
         cache[Test.request] = ImageContainer(image: Test.image)
 
         var request = Test.request
-        request.cachePolicy = .reloadIgnoringCachedData
+        request.options.insert(.reloadIgnoringCachedData)
 
         // When
         expect(pipeline).toLoadImage(with: request)

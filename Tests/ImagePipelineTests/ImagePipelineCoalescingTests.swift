@@ -572,11 +572,11 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         dataLoader.queue.isSuspended = true
 
         // When
-        func makeRequest(cachePolicy: ImageRequest.CachePolicy) -> ImageRequest {
-            ImageRequest(urlRequest: URLRequest(url: Test.url), cachePolicy: cachePolicy)
+        func makeRequest(options: ImageRequest.Options) -> ImageRequest {
+            ImageRequest(urlRequest: URLRequest(url: Test.url), options: options)
         }
-        expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .default))
-        expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .reloadIgnoringCachedData))
+        expect(pipeline).toLoadImage(with: makeRequest(options: []))
+        expect(pipeline).toLoadImage(with: makeRequest(options: [.reloadIgnoringCachedData]))
         pipeline.queue.sync {}
         dataLoader.queue.isSuspended = false
 
@@ -596,11 +596,11 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
 
         // When
         // - One request reloading cache data, another one not
-        func makeRequest(cachePolicy: ImageRequest.CachePolicy) -> ImageRequest {
-            ImageRequest(url: Test.url, cachePolicy: cachePolicy)
+        func makeRequest(options: ImageRequest.Options) -> ImageRequest {
+            ImageRequest(urlRequest: URLRequest(url: Test.url), options: options)
         }
-        expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .default))
-        expect(pipeline).toLoadImage(with: makeRequest(cachePolicy: .reloadIgnoringCachedData))
+        expect(pipeline).toLoadImage(with: makeRequest(options: []))
+        expect(pipeline).toLoadImage(with: makeRequest(options: [.reloadIgnoringCachedData]))
         pipeline.queue.sync {}
         dataLoader.queue.isSuspended = false
 

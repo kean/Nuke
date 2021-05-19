@@ -606,7 +606,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         var request = Test.request
         mockCache[request] = ImageContainer(image: PlatformImage())
 
-        request.cachePolicy = .reloadIgnoringCachedData
+        request.options = [.reloadIgnoringCachedData]
 
         // When
         expectToFinishLoadingImage(with: request, into: imageView)

@@ -156,7 +156,7 @@ extension ImagePipelineLoadDataTests {
         pipeline.cache.storeCachedImage(Test.container, for: Test.request)
 
         // WHEN
-        let request = ImageRequest(url: Test.url, cachePolicy: .reloadIgnoringCachedData)
+        let request = ImageRequest(url: Test.url, options: [.reloadIgnoringCachedData])
         let record = expect(pipeline).toLoadData(with: request)
         wait()
 
@@ -166,7 +166,6 @@ extension ImagePipelineLoadDataTests {
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
         XCTAssertNotNil(record.data)
     }
-
 }
 
 // MARK: - ImagePipelineLoadDataTests (DataCachePolicy)
