@@ -228,7 +228,7 @@ public /* final */ class ImagePipeline {
 private extension ImagePipeline {
     func startImageTask(_ task: ImageTask,
                         callbackQueue: DispatchQueue?,
-                        progress progressHandler: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)?,
+                        progress progressHandler: ((ImageResponse?, Int64, Int64) -> Void)?,
                         completion: ((_ result: Result<ImageResponse, Error>) -> Void)?) {
         guard !isInvalidated else { return }
 
