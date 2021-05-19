@@ -25,21 +25,21 @@ extension ImageRequest {
         ImageLoadKey(
             cacheKey: CacheKey(self),
             options: options,
-            loadKey: makeDataLoadKey()
+            loadKey: DataLoadKey(self)
         )
     }
 
     /// A key for deduplicating operations for fetching the original image.
     func makeDataLoadKey() -> DataLoadKey {
-        DataLoadKey(request: self)
+        DataLoadKey(self)
     }
 
     // MARK: - Internals (Keys)
 
     // Uniquely identifies a cache processed image.
     struct CacheKey: Hashable {
-        let imageId: String?
-        let processors: [ImageProcessing]
+        private let imageId: String?
+        private let processors: [ImageProcessing]
 
         init(_ request: ImageRequest) {
             self.imageId = request.preferredImageId
@@ -64,31 +64,19 @@ extension ImageRequest {
 
     // Uniquely identifies a task of retrieving the original image dataa.
     struct DataLoadKey: Hashable {
-        let request: ImageRequest
+        private let imageId: String?
+        private let cachePolicy: URLRequest.CachePolicy
+        private let allowsCellularAccess: Bool
 
-        func hash(into hasher: inout Hasher) {
-            hasher.combine(request.preferredImageId)
-        }
-
-        static func == (lhs: DataLoadKey, rhs: DataLoadKey) -> Bool {
-            Parameters(lhs.request) == Parameters(rhs.request)
-        }
-
-        private struct Parameters: Hashable {
-            let imageId: String?
-            let cachePolicy: URLRequest.CachePolicy
-            let allowsCellularAccess: Bool
-
-            init(_ request: ImageRequest) {
-                self.imageId = request.imageId
-                switch request.resource {
-                case .url, .publisher:
-                    self.cachePolicy = .useProtocolCachePolicy
-                    self.allowsCellularAccess = true
-                case let .urlRequest(urlRequest):
-                    self.cachePolicy = urlRequest.cachePolicy
-                    self.allowsCellularAccess = urlRequest.allowsCellularAccess
-                }
+        init(_ request: ImageRequest) {
+            self.imageId = request.imageId
+            switch request.resource {
+            case .url, .publisher:
+                self.cachePolicy = .useProtocolCachePolicy
+                self.allowsCellularAccess = true
+            case let .urlRequest(urlRequest):
+                self.cachePolicy = urlRequest.cachePolicy
+                self.allowsCellularAccess = urlRequest.allowsCellularAccess
             }
         }
     }
