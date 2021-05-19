@@ -409,11 +409,3 @@ public extension ImagePipeline {
         }
     }
 }
-
-// MARK: - Testing
-
-extension ImagePipeline {
-    var taskCount: Int {
-        tasks.count
-    }
-}
