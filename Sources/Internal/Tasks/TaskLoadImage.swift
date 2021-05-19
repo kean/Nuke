@@ -267,12 +267,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             return false
         }
         let policy = pipeline.configuration.dataCachePolicy
-        guard ((policy == .automatic || policy == .storeAll) && !request.processors.isEmpty) || policy == .storeEncodedImages else {
-            return false
-        }
-        guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
-            return false
-        }
-        return true
+        return ((policy == .automatic || policy == .storeAll) && !request.processors.isEmpty) || policy == .storeEncodedImages
     }
 }

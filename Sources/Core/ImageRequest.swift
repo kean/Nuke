@@ -229,7 +229,7 @@ public struct ImageRequest: CustomStringConvertible {
 
     // MARK: Options
 
-    public struct Options: OptionSet {
+    public struct Options: OptionSet, Hashable {
         public let rawValue: Int
         public init(rawValue: Int) {
             self.rawValue = rawValue
@@ -414,6 +414,7 @@ extension ImageRequest {
         ImageLoadKey(
             cacheKey: makeImageCacheKey(),
             cachePolicy: ref.cachePolicy,
+            options: ref.options,
             loadKey: makeDataLoadKey()
         )
     }
@@ -443,6 +444,7 @@ extension ImageRequest {
     struct ImageLoadKey: Hashable {
         let cacheKey: CacheKey
         let cachePolicy: CachePolicy
+        let options: ImageRequest.Options
         let loadKey: DataLoadKey
     }
 
