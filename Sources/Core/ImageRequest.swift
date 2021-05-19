@@ -209,10 +209,10 @@ public struct ImageRequest: CustomStringConvertible {
     /// Image request options.
     public struct Options: OptionSet, Hashable {
         /// Returns a raw value.
-        public let rawValue: Int
+        public let rawValue: UInt16
 
         /// Initialializes options with a given raw values.
-        public init(rawValue: Int) {
+        public init(rawValue: UInt16) {
             self.rawValue = rawValue
         }
 
