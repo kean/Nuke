@@ -26,11 +26,11 @@ public /* final */ class ImagePipeline {
 
     private var tasks = [ImageTask: TaskSubscription]()
 
-    private let tasksLoadData: TaskPool<ImageRequest.ImageLoadKey, (Data, URLResponse?), Error>
-    private let tasksLoadImage: TaskPool<ImageRequest.ImageLoadKey, ImageResponse, Error>
-    private let tasksFetchDecodedImage: TaskPool<ImageRequest.DataLoadKey, ImageResponse, Error>
-    private let tasksFetchOriginalImageData: TaskPool<ImageRequest.DataLoadKey, (Data, URLResponse?), Error>
-    private let tasksFetchWithPublisher: TaskPool<ImageRequest.DataLoadKey, (Data, URLResponse?), Error>
+    private let tasksLoadData: TaskPool<ImageLoadKey, (Data, URLResponse?), Error>
+    private let tasksLoadImage: TaskPool<ImageLoadKey, ImageResponse, Error>
+    private let tasksFetchDecodedImage: TaskPool<DataLoadKey, ImageResponse, Error>
+    private let tasksFetchOriginalImageData: TaskPool<DataLoadKey, (Data, URLResponse?), Error>
+    private let tasksFetchWithPublisher: TaskPool<DataLoadKey, (Data, URLResponse?), Error>
     private let tasksProcessImage: TaskPool<ImageProcessingKey, ImageResponse, Swift.Error>
 
     // The queue on which the entire subsystem is synchronized.

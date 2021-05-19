@@ -19,7 +19,7 @@ import Foundation
 public final class ImagePrefetcher {
     private let pipeline: ImagePipeline
     /* private */ let queue = OperationQueue()
-    private var tasks = [ImageRequest.ImageLoadKey: Task]()
+    private var tasks = [ImageLoadKey: Task]()
     private let destination: Destination
 
     /// Pauses the prefetching.
@@ -224,13 +224,13 @@ public final class ImagePrefetcher {
     }
 
     private final class Task {
-        let key: ImageRequest.ImageLoadKey
+        let key: ImageLoadKey
         let request: ImageRequest
         weak var imageTask: ImageTask?
         weak var operation: Operation?
         var onCancelled: (() -> Void)?
 
-        init(request: ImageRequest, key: ImageRequest.ImageLoadKey) {
+        init(request: ImageRequest, key: ImageLoadKey) {
             self.request = request
             self.key = key
         }

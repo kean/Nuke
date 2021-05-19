@@ -172,8 +172,6 @@ class ImageRequestFilteredURLTests: XCTestCase {
     }
 }
 
-private typealias CacheKey = ImageRequest.CacheKey
-
 private func AssertHashableEqual<T: Hashable>(_ lhs: T, _ rhs: T, file: StaticString = #file, line: UInt = #line) {
     XCTAssertEqual(lhs.hashValue, rhs.hashValue, file: file, line: line)
     XCTAssertEqual(lhs, rhs, file: file, line: line)

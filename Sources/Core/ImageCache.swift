@@ -29,7 +29,7 @@ public struct ImageCacheKey: Hashable {
     // This is faster than using AnyHashable (and it shows in performance tests).
     enum Inner: Hashable {
         case custom(String)
-        case `default`(ImageRequest.CacheKey)
+        case `default`(CacheKey)
     }
 
     public init(key: String) {
