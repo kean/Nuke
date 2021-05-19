@@ -127,9 +127,9 @@ public struct ImageContainer {
     /// - note: The `data`, along with the image container itself gets stored in the memory
     /// cache.
     public var data: Data?
-    public var userInfo: [AnyHashable: Any]
+    public var userInfo: [UserInfoKey: Any]
 
-    public init(image: PlatformImage, type: ImageType? = nil, isPreview: Bool = false, data: Data? = nil, userInfo: [AnyHashable: Any] = [:]) {
+    public init(image: PlatformImage, type: ImageType? = nil, isPreview: Bool = false, data: Data? = nil, userInfo: [UserInfoKey: Any] = [:]) {
         self.image = image
         self.type = type
         self.isPreview = isPreview
@@ -143,6 +143,22 @@ public struct ImageContainer {
             return nil
         }
         return ImageContainer(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
+    }
+
+    /// A key use in `userInfo`.
+    public struct UserInfoKey: Hashable, ExpressibleByStringLiteral {
+        public let rawValue: String
+
+        public init(_ rawValue: String) {
+            self.rawValue = rawValue
+        }
+
+        public init(stringLiteral value: String) {
+            self.rawValue = value
+        }
+
+        /// A user info key to get the scan number (Int).
+        public static let scanNumberKey: UserInfoKey = "github.com/kean/nuke/scan-number"
     }
 }
 

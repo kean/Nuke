@@ -257,6 +257,7 @@ public extension ImageRequest {
 }
 
 private extension ImageRequest.Options {
+    // Deprecated in 10.0.0
     @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names.")
     init(_ policy: ImageRequest.CachePolicy) {
         switch policy {
@@ -268,4 +269,10 @@ private extension ImageRequest.Options {
             self = .returnCacheDataDontLoad
         }
     }
+}
+
+public extension ImageDecoders.Default {
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please use `ImageConatainer.UserInfoKey.scanNumber.")
+    static let scanNumberKey = "ImageDecoders.Default.scanNumberKey"
 }

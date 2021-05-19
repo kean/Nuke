@@ -342,7 +342,7 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     var preferredImageId: String {
-        if let imageId = ref.userInfo?[.imageId] as? String {
+        if let imageId = ref.userInfo?[.imageIdKey] as? String {
             return imageId
         }
         return imageId ?? ""
@@ -385,7 +385,7 @@ public extension ImageRequest.UserInfoKey {
     ///     userInfo: [.imageId: "http://example.com/image.jpeg"]
     /// )
     /// ```
-    static let imageId: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
+    static let imageIdKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
 }
 
 // MARK: - ImageRequestConvertible

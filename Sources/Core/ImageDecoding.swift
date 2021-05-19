@@ -85,9 +85,6 @@ public extension ImageDecoders {
         var numberOfScans: Int { scanner.numberOfScans }
         private var scanner = ProgressiveJPEGScanner()
 
-        /// A user info key to get the scan number (Int).
-        public static let scanNumberKey = "ImageDecoders.Default.scanNumberKey"
-
         private var container: ImageContainer?
 
         public init() { }
@@ -128,7 +125,7 @@ public extension ImageDecoders {
                 container.data = data
             }
             if numberOfScans > 0 {
-                container.userInfo[ImageDecoders.Default.scanNumberKey] = numberOfScans
+                container.userInfo[.scanNumberKey] = numberOfScans
             }
             return container
         }
@@ -140,7 +137,7 @@ public extension ImageDecoders {
             guard let image = ImageDecoder._decode(data[0...endOfScan]) else {
                 return nil
             }
-            return ImageContainer(image: image, type: .jpeg, isPreview: true, userInfo: [ImageDecoders.Default.scanNumberKey: numberOfScans])
+            return ImageContainer(image: image, type: .jpeg, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
         }
     }
 }
