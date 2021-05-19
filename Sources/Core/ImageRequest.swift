@@ -16,6 +16,8 @@ public struct ImageRequest: CustomStringConvertible {
     // MARK: Parameters of the Request
 
     /// The `URLRequest` used for loading an image.
+    ///
+    /// Returns `nil` for publisher-based requests.
     public var urlRequest: URLRequest? {
         switch ref.resource {
         case .publisher:
@@ -27,7 +29,9 @@ public struct ImageRequest: CustomStringConvertible {
         }
     }
 
-    /// Returns the request URL.
+    /// Returns the request `URL`.
+    ///
+    /// Returns `nil` for publisher-based requests.
     public var url: URL? {
         switch ref.resource {
         case .publisher:
@@ -39,8 +43,8 @@ public struct ImageRequest: CustomStringConvertible {
         }
     }
 
-    /// The execution priority of the request. The priority affects the order in which the image
-    /// requests are executed.
+    /// The priority of the request. The priority affects the order in which the
+    /// requests are performed.
     public enum Priority: Int, Comparable {
         case veryLow = 0, low, normal, high, veryHigh
 
@@ -59,14 +63,14 @@ public struct ImageRequest: CustomStringConvertible {
         }
     }
 
-    /// The relative priority of the operation. The priority affects the order in which the image
-    /// requests are executed.`.normal` by default.
+    /// The relative priority of the request. The priority affects the order in
+    /// which the requests are performed.`.normal` by default.
     public var priority: Priority {
         get { ref.priority }
         set { mutate { $0.priority = newValue } }
     }
 
-    /// Processor to be applied to the image. `nil` by default.
+    /// Processor to be applied to the image. Empty by default.
     public var processors: [ImageProcessing] {
         get { ref.processors }
         set { mutate { $0.processors = newValue } }
@@ -96,9 +100,9 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// Initializes a request with the given URL.
     ///
+    /// - parameter processors: Image processors to be applied to the loaded image. Empty by default.
     /// - parameter priority: The priority of the request, `.normal` by default.
-    /// - parameter options: Advanced image loading options.
-    /// - parameter processors: Image processors to be applied after the image is loaded.
+    /// - parameter options: Image loading options. Empty by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
     ///
     /// `ImageRequest` allows you to set image processors, change the request priority and more:
@@ -127,9 +131,9 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// Initializes a request with the given request.
     ///
+    /// - parameter processors: Image processors to be applied to the loaded image. Empty by default.
     /// - parameter priority: The priority of the request, `.normal` by default.
-    /// - parameter options: Advanced image loading options.
-    /// - parameter processors: Image processors to be applied after the image is loaded.
+    /// - parameter options: Image loading options. Empty by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
     ///
     /// `ImageRequest` allows you to set image processors, change the request priority and more:
@@ -161,17 +165,13 @@ public struct ImageRequest: CustomStringConvertible {
     ///
     /// - parameter id: Uniquely identifies the image data.
     /// - parameter data: A data publisher to be used for fetching image data.
+    /// - parameter processors: Image processors to be applied to the loaded image. Empty by default.
     /// - parameter priority: The priority of the request, `.normal` by default.
-    /// - parameter options: Advanced image loading options.
-    /// - parameter processors: Image processors to be applied after the image is loaded.
+    /// - parameter options: Image loading options. Empty by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
     ///
     /// For example, here is how you can use it with Photos framework (the
     /// `imageDataPublisher()` API is a convenience extension).
-    ///
-    /// - warning: If you don't want data to be stored in the disk cache, make
-    /// sure to create a pipeline without it or disable it on a per-request basis.
-    /// You can also disable it dynamically using `ImagePipeline.Delegate`.
     ///
     /// ```swift
     /// let request = ImageRequest(
@@ -179,6 +179,10 @@ public struct ImageRequest: CustomStringConvertible {
     ///     data: PHAssetManager.imageDataPublisher(for: asset)
     /// )
     /// ```
+    ///
+    /// - warning: If you don't want data to be stored in the disk cache, make
+    /// sure to create a pipeline without it or disable it on a per-request basis.
+    /// You can also disable it dynamically using `ImagePipeline.Delegate`.
     @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
     public init<P>(id: String, data: P,
                    processors: [ImageProcessing] = [],
@@ -190,7 +194,7 @@ public struct ImageRequest: CustomStringConvertible {
         // passing a publisher in the request userInfo. The first-class support
         // is much nicer though.
         self.ref = Container(
-            resource: .publisher(data: BCAnyPublisher(data)),
+            resource: .publisher(BCAnyPublisher(data)),
             imageId: id,
             processors: processors,
             priority: priority,
@@ -202,8 +206,12 @@ public struct ImageRequest: CustomStringConvertible {
 
     // MARK: Options
 
+    /// Image request options.
     public struct Options: OptionSet, Hashable {
+        /// Returns a raw value.
         public let rawValue: Int
+
+        /// Initialializes options with a given raw values.
         public init(rawValue: Int) {
             self.rawValue = rawValue
         }
@@ -272,8 +280,6 @@ public struct ImageRequest: CustomStringConvertible {
             self.options = options
             self.userInfo = userInfo
 
-            print(class_getInstanceSize(Container.self))
-
             #if TRACK_ALLOCATIONS
             Allocations.increment("ImageRequest.Container")
             #endif
@@ -305,7 +311,7 @@ public struct ImageRequest: CustomStringConvertible {
     private enum Resource: CustomStringConvertible {
         case url(URL)
         case urlRequest(URLRequest)
-        case publisher(data: BCAnyPublisher<Data>)
+        case publisher(BCAnyPublisher<Data>)
 
         var description: String {
             switch self {
@@ -349,6 +355,7 @@ public struct ImageRequest: CustomStringConvertible {
 // MARK: - ImageRequest.UserInfoKey
 
 public extension ImageRequest {
+    /// A key use in `userInfo`.
     struct UserInfoKey: Hashable, ExpressibleByStringLiteral {
         public let rawValue: String
 
