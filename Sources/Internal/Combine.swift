@@ -8,8 +8,8 @@ import Foundation
 import Combine
 #endif
 
-struct BCAnyPublisher<Output> {
-    private let _sink: (@escaping ((BCCompletion) -> Void), @escaping ((Output) -> Void)) -> Cancellable
+struct AnyPublisher<Output> {
+    private let _sink: (@escaping ((PublisherCompletion) -> Void), @escaping ((Output) -> Void)) -> Cancellable
 
     init(data: Data) where Output == Data {
         self._sink = { onCompletion, onValue in
@@ -31,12 +31,12 @@ struct BCAnyPublisher<Output> {
             }, receiveValue: {
                 onValue($0)
             })
-            return BCAnyCancellable(cancellable.cancel)
+            return AnyCancellable(cancellable.cancel)
         }
     }
     #endif
 
-    func sink(receiveCompletion: @escaping ((BCCompletion) -> Void), receiveValue: @escaping ((Output) -> Void)) -> Cancellable {
+    func sink(receiveCompletion: @escaping ((PublisherCompletion) -> Void), receiveValue: @escaping ((Output) -> Void)) -> Cancellable {
         _sink(receiveCompletion, receiveValue)
     }
 }
@@ -47,7 +47,7 @@ private final class NoopCancellable: Cancellable {
     }
 }
 
-private final class BCAnyCancellable: Cancellable {
+private final class AnyCancellable: Cancellable {
     let closure: () -> Void
 
     init(_ closure: @escaping () -> Void) {
@@ -59,7 +59,7 @@ private final class BCAnyCancellable: Cancellable {
     }
 }
 
-enum BCCompletion {
+enum PublisherCompletion {
     case finished
     case failure(Error)
 }

@@ -194,7 +194,7 @@ public struct ImageRequest: CustomStringConvertible {
         // passing a publisher in the request userInfo. The first-class support
         // is much nicer though.
         self.ref = Container(
-            resource: .publisher(BCAnyPublisher(data)),
+            resource: .publisher(AnyPublisher(data)),
             imageId: id,
             processors: processors,
             priority: priority,
@@ -304,7 +304,7 @@ public struct ImageRequest: CustomStringConvertible {
     enum Resource: CustomStringConvertible {
         case url(URL)
         case urlRequest(URLRequest)
-        case publisher(BCAnyPublisher<Data>)
+        case publisher(AnyPublisher<Data>)
 
         var description: String {
             switch self {
@@ -348,7 +348,7 @@ public struct ImageRequest: CustomStringConvertible {
         return imageId ?? ""
     }
 
-    var publisher: BCAnyPublisher<Data>? {
+    var publisher: AnyPublisher<Data>? {
         guard case .publisher(let publisher) = ref.resource else {
             return nil
         }
