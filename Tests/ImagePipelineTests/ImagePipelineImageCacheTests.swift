@@ -326,6 +326,8 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         XCTAssertEqual(dataLoader.createdTaskCount, 0)
     }
 
+    // MARK: ImageRequest.Options
+
     func testGivenOriginalImageInDiskCacheAndDiskReadsDisabled() {
         // GIVEN
         pipeline.cache.storeCachedImage(originalImage, for: originalRequest, caches: [.disk])
@@ -353,6 +355,23 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         wait()
         XCTAssertEqual(record.image?.nk_test_processorIDs, ["1", "2"])
         XCTAssertNil(record.response?.cacheType)
+
+        // THEN
+        XCTAssertEqual(imageCache.readCount, 3) // Processed + intermediate + original
+        XCTAssertEqual(imageCache.writeCount, 1) // Processed
+        XCTAssertNotNil(imageCache[request])
+        XCTAssertEqual(dataCache.readCount, 2) // Processed + original
+        XCTAssertEqual(dataCache.writeCount, 0)
+        XCTAssertEqual(dataLoader.createdTaskCount, 1)
+    }
+
+    func testGivenTwoRequestWhereOnlyOneHasDiskWritesDisabled() {
+        // WHEN
+        request.options.insert(.disableDiskCacheWrites)
+        expect(pipeline).toLoadImage(with: request)
+        request.options.remove(.disableDiskCacheWrites)
+        expect(pipeline).toLoadImage(with: request)
+        wait()
 
         // THEN
         XCTAssertEqual(imageCache.readCount, 3) // Processed + intermediate + original
