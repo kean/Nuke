@@ -36,8 +36,8 @@ extension ImageTask: ImageTaskSubscribers {
 
 extension ImagePipelineTask: ImageTaskSubscribers {
     var imageTasks: [ImageTask] {
-        subscribers.flatMap {
-            ($0 as? ImageTaskSubscribers)?.imageTasks ?? []
+        subscribers.flatMap { subscribers -> [ImageTask] in
+            (subscribers as? ImageTaskSubscribers)?.imageTasks ?? []
         }
     }
 }

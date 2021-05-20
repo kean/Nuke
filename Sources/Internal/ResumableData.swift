@@ -77,7 +77,8 @@ final class ResumableDataStorage {
         lock.lock(); defer { lock.unlock() }
 
         if registeredPipelines.isEmpty {
-            cache = Cache(costLimit: 32 * 1024 * 1024, countLimit: 100)
+            // 32 MB
+            cache = Cache(costLimit: 32000000, countLimit: 100)
         }
         registeredPipelines.insert(pipeline.id)
     }

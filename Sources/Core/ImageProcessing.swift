@@ -538,8 +538,8 @@ private struct ImageProcessingExtensions {
         guard let squared = byCroppingToSquare(), let cgImage = squared.cgImage else {
             return nil
         }
-        let radius = CGFloat(cgImage.width) / 2.0 // Can use any dimension since image is a square
-        return squared.processed.byAddingRoundedCorners(radius: radius, border: border)
+        let radius = CGFloat(cgImage.width) // Can use any dimension since image is a square
+        return squared.processed.byAddingRoundedCorners(radius: radius / 2.0, border: border)
     }
 
     /// Draws an image in square by preserving an aspect ratio and filling the

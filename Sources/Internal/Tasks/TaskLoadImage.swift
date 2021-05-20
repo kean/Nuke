@@ -106,6 +106,8 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
                     process(response, isCompleted: !image.isPreview, processors: remaining)
                     if !image.isPreview {
                         return  // Nothing left to do, just apply the processors
+                    } else {
+                        break
                     }
                 }
                 if let last = processors.popLast() {
