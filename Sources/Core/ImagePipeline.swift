@@ -108,9 +108,10 @@ public /* final */ class ImagePipeline {
 
     // MARK: - Loading Images
 
-    @discardableResult
-    public func loadImage(with request: ImageRequestConvertible,
-                          completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void) -> ImageTask {
+    @discardableResult public func loadImage(
+        with request: ImageRequestConvertible,
+        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
+    ) -> ImageTask {
         loadImage(with: request, queue: nil, progress: nil, completion: completion)
     }
 
@@ -124,19 +125,22 @@ public /* final */ class ImagePipeline {
     /// when the progress is updated. `nil` by default.
     /// - parameter completion: A closure to be called on the main thread when the
     /// request is finished. `nil` by default.
-    @discardableResult
-    public func loadImage(with request: ImageRequestConvertible,
-                          queue: DispatchQueue? = nil,
-                          progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-                          completion: @escaping ((_ result: Result<ImageResponse, Error>) -> Void)) -> ImageTask {
+    @discardableResult public func loadImage(
+        with request: ImageRequestConvertible,
+        queue: DispatchQueue? = nil,
+        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
+        completion: @escaping ((_ result: Result<ImageResponse, Error>) -> Void)
+    ) -> ImageTask {
         loadImage(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
 
-    func loadImage(with request: ImageRequest,
-                   isConfined: Bool,
-                   queue: DispatchQueue?,
-                   progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-                   completion: ((_ result: Result<ImageResponse, Error>) -> Void)?) -> ImageTask {
+    func loadImage(
+        with request: ImageRequest,
+        isConfined: Bool,
+        queue: DispatchQueue?,
+        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
+        completion: ((_ result: Result<ImageResponse, Error>) -> Void)?
+    ) -> ImageTask {
         let request = configuration.inheritOptions(request)
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
         task.pipeline = self
@@ -150,86 +154,12 @@ public /* final */ class ImagePipeline {
         return task
     }
 
-    // MARK: - Loading Image Data
-
-    @discardableResult
-    public func loadData(with request: ImageRequestConvertible,
-                         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
-        loadData(with: request, queue: nil, progress: nil, completion: completion)
-    }
-
-    /// Loads the image data for the given request. The data doesn't get decoded or processed in any
-    /// other way.
-    ///
-    /// You can call `loadImage(:)` for the request at any point after calling `loadData(:)`, the
-    /// pipeline will use the same operation to load the data, no duplicated work will be performed.
-    ///
-    /// - parameter queue: A queue on which to execute `progress` and `completion`
-    /// callbacks. By default, the pipeline uses `.main` queue.
-    /// - parameter progress: A closure to be called periodically on the main thread
-    /// when the progress is updated. `nil` by default.
-    /// - parameter completion: A closure to be called on the main thread when the
-    /// request is finished.
-    @discardableResult
-    public func loadData(with request: ImageRequestConvertible,
-                         queue: DispatchQueue? = nil,
-                         progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
-                         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
-        loadData(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
-    }
-
-    func loadData(with request: ImageRequest,
-                  isConfined: Bool,
-                  queue callbackQueue: DispatchQueue?,
-                  progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
-                  completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: true)
-        task.pipeline = self
-        if isConfined {
-            self.startDataTask(task, callbackQueue: callbackQueue, progress: progress, completion: completion)
-        } else {
-            self.queue.async {
-                self.startDataTask(task, callbackQueue: callbackQueue, progress: progress, completion: completion)
-            }
-        }
-        return task
-    }
-
-    // MARK: - Image Task Events
-
-    func imageTaskCancelCalled(_ task: ImageTask) {
-        queue.async {
-            self.cancel(task)
-        }
-    }
-
-    private func cancel(_ task: ImageTask) {
-        guard let subscription = self.tasks.removeValue(forKey: task) else { return }
-        if !task.isDataTask {
-            self.send(.cancelled, task)
-        }
-        subscription.unsubscribe()
-    }
-
-    func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
-        queue.async {
-            task._priority = priority
-            guard let subscription = self.tasks[task] else { return }
-            if !task.isDataTask {
-                self.send(.priorityUpdated(priority: priority), task)
-            }
-            subscription.setPriority(priority.taskPriority)
-        }
-    }
-}
-
-// MARK: - Starting Image Tasks (Private)
-
-private extension ImagePipeline {
-    func startImageTask(_ task: ImageTask,
-                        callbackQueue: DispatchQueue?,
-                        progress progressHandler: ((ImageResponse?, Int64, Int64) -> Void)?,
-                        completion: ((_ result: Result<ImageResponse, Error>) -> Void)?) {
+    private func startImageTask(
+        _ task: ImageTask,
+        callbackQueue: DispatchQueue?,
+        progress progressHandler: ((ImageResponse?, Int64, Int64) -> Void)?,
+        completion: ((_ result: Result<ImageResponse, Error>) -> Void)?
+    ) {
         guard !isInvalidated else { return }
 
         self.send(.started, task)
@@ -264,10 +194,61 @@ private extension ImagePipeline {
         }
     }
 
-    func startDataTask(_ task: ImageTask,
-                       callbackQueue: DispatchQueue?,
-                       progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
-                       completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) {
+    // MARK: - Loading Image Data
+
+    @discardableResult public func loadData(
+        with request: ImageRequestConvertible,
+        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+    ) -> ImageTask {
+        loadData(with: request, queue: nil, progress: nil, completion: completion)
+    }
+
+    /// Loads the image data for the given request. The data doesn't get decoded or processed in any
+    /// other way.
+    ///
+    /// You can call `loadImage(:)` for the request at any point after calling `loadData(:)`, the
+    /// pipeline will use the same operation to load the data, no duplicated work will be performed.
+    ///
+    /// - parameter queue: A queue on which to execute `progress` and `completion`
+    /// callbacks. By default, the pipeline uses `.main` queue.
+    /// - parameter progress: A closure to be called periodically on the main thread
+    /// when the progress is updated. `nil` by default.
+    /// - parameter completion: A closure to be called on the main thread when the
+    /// request is finished.
+    @discardableResult public func loadData(
+        with request: ImageRequestConvertible,
+        queue: DispatchQueue? = nil,
+        progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
+        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+    ) -> ImageTask {
+        loadData(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
+    }
+
+    func loadData(
+        with request: ImageRequest,
+        isConfined: Bool,
+        queue callbackQueue: DispatchQueue?,
+        progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
+        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+    ) -> ImageTask {
+        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: true)
+        task.pipeline = self
+        if isConfined {
+            self.startDataTask(task, callbackQueue: callbackQueue, progress: progress, completion: completion)
+        } else {
+            self.queue.async {
+                self.startDataTask(task, callbackQueue: callbackQueue, progress: progress, completion: completion)
+            }
+        }
+        return task
+    }
+
+    private func startDataTask(
+        _ task: ImageTask,
+        callbackQueue: DispatchQueue?,
+        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
+        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+    ) {
         guard !isInvalidated else { return }
 
         tasks[task] = makeTaskLoadData(for: task.request)
@@ -296,36 +277,92 @@ private extension ImagePipeline {
             }
     }
 
-    func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
+    // MARK: - Errors
+
+    /// Represents all possible image pipeline errors.
+    public enum Error: Swift.Error, CustomDebugStringConvertible {
+        /// Data loader failed to load image data with a wrapped error.
+        case dataLoadingFailed(Swift.Error)
+        /// Decoder failed to produce a final image.
+        case decodingFailed
+        /// Processor failed to produce a final image.
+        case processingFailed(ImageProcessing)
+
+        public var debugDescription: String {
+            switch self {
+            case let .dataLoadingFailed(error): return "Failed to load image data: \(error)"
+            case .decodingFailed: return "Failed to create an image from the image data"
+            case .processingFailed: return "Failed to process the image"
+            }
+        }
+
+        /// Returns underlying data loading error.
+        public var dataLoadingError: Swift.Error? {
+            switch self {
+            case .dataLoadingFailed(let error):
+                return error
+            default:
+                return nil
+            }
+        }
+    }
+
+    // MARK: - Image Task Events
+
+    func imageTaskCancelCalled(_ task: ImageTask) {
+        queue.async {
+            self.cancel(task)
+        }
+    }
+
+    private func cancel(_ task: ImageTask) {
+        guard let subscription = self.tasks.removeValue(forKey: task) else { return }
+        if !task.isDataTask {
+            self.send(.cancelled, task)
+        }
+        subscription.unsubscribe()
+    }
+
+    func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
+        queue.async {
+            task._priority = priority
+            guard let subscription = self.tasks[task] else { return }
+            if !task.isDataTask {
+                self.send(.priorityUpdated(priority: priority), task)
+            }
+            subscription.setPriority(priority.taskPriority)
+        }
+    }
+
+    private func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
         if callbackQueue === self.queue {
             closure()
         } else {
             (callbackQueue ?? self.configuration.callbackQueue).async(execute: closure)
         }
     }
-}
 
-// MARK: - Task Factory (Private)
+    // MARK: - Task Factory (Private)
 
-// When you request an image or image data, the pipeline creates a graph of tasks
-// (some tasks are added to the graph on demand).
-//
-// `loadImage()` call is represented by TaskLoadImage:
-//
-// TaskLoadImage -> TaskFetchDecodedImage -> TaskFetchOriginalImageData
-//               -> TaskProcessImage
-//
-// `loadData()` call is represented by TaskLoadData:
-//
-// TaskLoadData -> TaskFetchOriginalImageData
-//
-//
-// Each task represents a resource or a piece of work required to produce the
-// final result. The pipeline reduces the amount of duplicated work by coalescing
-// the tasks that represent the same work. For example, if you all `loadImage()`
-// and `loadData()` with the same request, only on `TaskFetchOriginalImageData`
-// is created. The work is split between tasks to minimize any duplicated work.
-extension ImagePipeline {
+    // When you request an image or image data, the pipeline creates a graph of tasks
+    // (some tasks are added to the graph on demand).
+    //
+    // `loadImage()` call is represented by TaskLoadImage:
+    //
+    // TaskLoadImage -> TaskFetchDecodedImage -> TaskFetchOriginalImageData
+    //               -> TaskProcessImage
+    //
+    // `loadData()` call is represented by TaskLoadData:
+    //
+    // TaskLoadData -> TaskFetchOriginalImageData
+    //
+    //
+    // Each task represents a resource or a piece of work required to produce the
+    // final result. The pipeline reduces the amount of duplicated work by coalescing
+    // the tasks that represent the same work. For example, if you all `loadImage()`
+    // and `loadData()` with the same request, only on `TaskFetchOriginalImageData`
+    // is created. The work is split between tasks to minimize any duplicated work.
+
     func makeTaskLoadImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
         tasksLoadImage.publisherForKey(request.makeImageLoadKey()) {
             TaskLoadImage(self, request)
@@ -376,36 +413,4 @@ extension ImagePipeline: SendEventProtocol {
 // Just to workaround the deprecation warning.
 private protocol SendEventProtocol {
     func _send(_ event: ImageTaskEvent, _ task: ImageTask)
-}
-
-// MARK: - Errors
-
-public extension ImagePipeline {
-    /// Represents all possible image pipeline errors.
-    enum Error: Swift.Error, CustomDebugStringConvertible {
-        /// Data loader failed to load image data with a wrapped error.
-        case dataLoadingFailed(Swift.Error)
-        /// Decoder failed to produce a final image.
-        case decodingFailed
-        /// Processor failed to produce a final image.
-        case processingFailed(ImageProcessing)
-
-        public var debugDescription: String {
-            switch self {
-            case let .dataLoadingFailed(error): return "Failed to load image data: \(error)"
-            case .decodingFailed: return "Failed to create an image from the image data"
-            case .processingFailed: return "Failed to process the image"
-            }
-        }
-
-        /// Returns underlying data loading error.
-        public var dataLoadingError: Swift.Error? {
-            switch self {
-            case .dataLoadingFailed(let error):
-                return error
-            default:
-                return nil
-            }
-        }
-    }
 }

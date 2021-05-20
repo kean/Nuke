@@ -47,10 +47,10 @@ public enum ImageEncoders {}
 
 // MARK: - ImageEncoders.Default
 
-public extension ImageEncoders {
+extension ImageEncoders {
     /// A default adaptive encoder which uses best encoder available depending
     /// on the input image and its configuration.
-    struct Default: ImageEncoding {
+    public struct Default: ImageEncoding {
         public var compressionQuality: Float
 
         /// Set to `true` to switch to HEIF when it is available on the current hardware.
@@ -83,13 +83,13 @@ public extension ImageEncoders {
 
 // MARK: - ImageEncoders.ImageIO
 
-public extension ImageEncoders {
+extension ImageEncoders {
     /// An Image I/O based encoder.
     ///
     /// Image I/O is a system framework that allows applications to read and
     /// write most image file formats. This framework offers high efficiency,
     /// color management, and access to image metadata.
-    struct ImageIO: ImageEncoding {
+    public struct ImageIO: ImageEncoding {
         public let type: ImageType
         public let compressionRatio: Float
 

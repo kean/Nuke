@@ -69,7 +69,7 @@ public enum ImageDecoders {}
 
 // An image decoder that uses native APIs. Supports progressive decoding.
 // The decoder is stateful.
-public extension ImageDecoders {
+extension ImageDecoders {
 
     /// The default decoder which supports all of the formats natively supported
     /// by the system.
@@ -79,7 +79,7 @@ public extension ImageDecoders {
     ///
     /// - note: The default decoder supports progressive JPEG. It produces a new
     /// preview every time it encounters a new full frame.
-    final class Default: ImageDecoding, ImageDecoderRegistering {
+    public final class Default: ImageDecoding, ImageDecoderRegistering {
         // Number of scans that the decoder has found so far. The last scan might be
         // incomplete at this point.
         var numberOfScans: Int { scanner.numberOfScans }
@@ -199,10 +199,10 @@ extension ImageDecoders.Default {
 
 // MARK: - ImageDecoders.Empty
 
-public extension ImageDecoders {
+extension ImageDecoders {
     /// A decoder which returns an empty placeholder image and attaches image
     /// data to the image container.
-    struct Empty: ImageDecoding {
+    public struct Empty: ImageDecoding {
         public let isProgressive: Bool
 
         /// - parameter isProgressive: If `false`, returns nil for every progressive

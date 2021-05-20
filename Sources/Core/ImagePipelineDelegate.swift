@@ -4,8 +4,13 @@
 
 import Foundation
 
-public extension ImagePipeline {
-    typealias Delegate = ImagePipelineDelegate
+extension ImagePipeline {
+    public typealias Delegate = ImagePipelineDelegate
+
+    public enum CacheKey<T> {
+        case `default`
+        case custom(key: T)
+    }
 }
 
 public protocol ImagePipelineDelegate: AnyObject {
@@ -27,13 +32,6 @@ public protocol ImagePipelineDelegate: AnyObject {
 
     /// Delivers the events produced by the image tasks started via `loadImage` method.
     func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent)
-}
-
-public extension ImagePipeline {
-    enum CacheKey<T> {
-        case `default`
-        case custom(key: T)
-    }
 }
 
 public extension ImagePipelineDelegate {

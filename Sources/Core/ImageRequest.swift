@@ -34,26 +34,6 @@ public struct ImageRequest: CustomStringConvertible {
         }
     }
 
-    /// The priority of the request. The priority affects the order in which the
-    /// requests are performed.
-    public enum Priority: Int, Comparable {
-        case veryLow = 0, low, normal, high, veryHigh
-
-        var taskPriority: TaskPriority {
-            switch self {
-            case .veryLow: return .veryLow
-            case .low: return .low
-            case .normal: return .normal
-            case .high: return .high
-            case .veryHigh: return .veryHigh
-            }
-        }
-
-        public static func < (lhs: Priority, rhs: Priority) -> Bool {
-            lhs.rawValue < rhs.rawValue
-        }
-    }
-
     /// The relative priority of the request. The priority affects the order in
     /// which the requests are performed.`.normal` by default.
     public var priority: Priority {
@@ -77,6 +57,52 @@ public struct ImageRequest: CustomStringConvertible {
     public var userInfo: [UserInfoKey: Any] {
         get { ref.userInfo ?? [:] }
         set { mutate { $0.userInfo = newValue } }
+    }
+
+    /// The priority of the request. The priority affects the order in which the
+    /// requests are performed.
+    public enum Priority: Int, Comparable {
+        case veryLow = 0, low, normal, high, veryHigh
+
+        var taskPriority: TaskPriority {
+            switch self {
+            case .veryLow: return .veryLow
+            case .low: return .low
+            case .normal: return .normal
+            case .high: return .high
+            case .veryHigh: return .veryHigh
+            }
+        }
+
+        public static func < (lhs: Priority, rhs: Priority) -> Bool {
+            lhs.rawValue < rhs.rawValue
+        }
+    }
+
+    /// A key use in `userInfo`.
+    public struct UserInfoKey: Hashable, ExpressibleByStringLiteral {
+        public let rawValue: String
+
+        public init(_ rawValue: String) {
+            self.rawValue = rawValue
+        }
+
+        public init(stringLiteral value: String) {
+            self.rawValue = value
+        }
+
+        /// By default, Nuke uses URL as unique image identifiers for the purpsoses
+        /// of caching and task coalescing. You can override the default behavior
+        /// by providing an `imageId`instead. For example, you can use it to remove
+        /// transient query parameters from the request.
+        ///
+        /// ```
+        /// let request = ImageRequest(
+        ///     url: URL(string: "http://example.com/image.jpeg?token=123")!,
+        ///     userInfo: [.imageId: "http://example.com/image.jpeg"]
+        /// )
+        /// ```
+        public static let imageIdKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
     }
 
     // MARK: Initializers
@@ -327,38 +353,6 @@ public struct ImageRequest: CustomStringConvertible {
         }
         return publisher
     }
-}
-
-// MARK: - ImageRequest.UserInfoKey
-
-public extension ImageRequest {
-    /// A key use in `userInfo`.
-    struct UserInfoKey: Hashable, ExpressibleByStringLiteral {
-        public let rawValue: String
-
-        public init(_ rawValue: String) {
-            self.rawValue = rawValue
-        }
-
-        public init(stringLiteral value: String) {
-            self.rawValue = value
-        }
-    }
-}
-
-public extension ImageRequest.UserInfoKey {
-    /// By default, Nuke uses URL as unique image identifiers for the purpsoses
-    /// of caching and task coalescing. You can override the default behavior
-    /// by providing an `imageId`instead. For example, you can use it to remove
-    /// transient query parameters from the request.
-    ///
-    /// ```
-    /// let request = ImageRequest(
-    ///     url: URL(string: "http://example.com/image.jpeg?token=123")!,
-    ///     userInfo: [.imageId: "http://example.com/image.jpeg"]
-    /// )
-    /// ```
-    static let imageIdKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
 }
 
 // MARK: - ImageRequestConvertible

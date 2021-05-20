@@ -4,7 +4,7 @@
 
 import Foundation
 
-public extension ImagePipeline {
+extension ImagePipeline {
     /// Provides a set of convenience APIs for managing the pipeline cache layers,
     /// including `ImageCaching` (memory cache) and `DataCaching` (disk cache).
     ///
@@ -12,7 +12,7 @@ public extension ImagePipeline {
     /// see ["Caching"](https://kean.blog/nuke/guides/caching).
     ///
     /// Thread-safe.
-    struct Cache {
+    public struct Cache {
         let pipeline: ImagePipeline
         private var configuration: ImagePipeline.Configuration { pipeline.configuration }
 
