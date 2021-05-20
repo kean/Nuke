@@ -276,3 +276,18 @@ extension PlatformImage {
         set { objc_setAssociatedObject(self, &_animatedImageDataAK, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 }
+
+extension ImagePipeline.Configuration {
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please use `ImageConfiguration.default` and provide a `dataLoader` afterwards.")
+    public init(dataLoader: DataLoading) {
+        self.dataLoader = dataLoader
+    }
+
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please use `ImageConfiguration.default` and provide a `dataLoader` afterwards.")
+    public init(dataLoader: DataLoading = DataLoader(), imageCache: ImageCaching?) {
+        self.init(dataLoader: dataLoader)
+        self.imageCache = imageCache
+    }
+}

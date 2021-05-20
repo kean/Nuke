@@ -41,3 +41,10 @@ extension URL {
         return scheme != "file" && scheme != "data"
     }
 }
+
+extension OperationQueue {
+    convenience init(maxConcurrentCount: Int) {
+        self.init()
+        self.maxConcurrentOperationCount = maxConcurrentCount
+    }
+}

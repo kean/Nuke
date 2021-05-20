@@ -44,26 +44,26 @@ extension ImagePipeline {
         // MARK: - Operation Queues
 
         /// Data loading queue. Default maximum concurrent task count is 6.
-        public var dataLoadingQueue = OperationQueue()
+        public var dataLoadingQueue = OperationQueue(maxConcurrentCount: 6)
 
         /// Data caching queue. Default maximum concurrent task count is 2.
-        public var dataCachingQueue = OperationQueue()
+        public var dataCachingQueue = OperationQueue(maxConcurrentCount: 2)
 
         /// Image decoding queue. Default maximum concurrent task count is 1.
-        public var imageDecodingQueue = OperationQueue()
+        public var imageDecodingQueue = OperationQueue(maxConcurrentCount: 1)
 
         /// Image encoding queue. Default maximum concurrent task count is 1.
-        public var imageEncodingQueue = OperationQueue()
+        public var imageEncodingQueue = OperationQueue(maxConcurrentCount: 1)
 
         /// Image processing queue. Default maximum concurrent task count is 2.
-        public var imageProcessingQueue = OperationQueue()
+        public var imageProcessingQueue = OperationQueue(maxConcurrentCount: 2)
 
         #if !os(macOS)
         /// Image decompressing queue. Default maximum concurrent task count is 2.
-        public var imageDecompressingQueue = OperationQueue()
+        public var imageDecompressingQueue = OperationQueue(maxConcurrentCount: 2)
         #endif
 
-        // MARK: - Processors
+        // MARK: - Misc
 
         /// Processors to be applied by default to all images loaded by the
         /// pipeline, unless the request overrides the list of processors.
@@ -222,28 +222,13 @@ extension ImagePipeline {
 
         // MARK: - Initializer
 
-        #warning("remove this ")
-        public init(dataLoader: DataLoading = DataLoader()) {
-            self.dataLoader = dataLoader
-
-            self.dataLoadingQueue.maxConcurrentOperationCount = 6
-            self.dataCachingQueue.maxConcurrentOperationCount = 2
-            self.imageDecodingQueue.maxConcurrentOperationCount = 1
-            self.imageEncodingQueue.maxConcurrentOperationCount = 1
-            self.imageProcessingQueue.maxConcurrentOperationCount = 2
-            #if !os(macOS)
-            self.imageDecompressingQueue.maxConcurrentOperationCount = 2
-            #endif
+        /// Instantiates a default pipeline configuration.
+        public init() {
+            self.dataLoader = DataLoader()
         }
 
-        /// Creates a default configuration.
-        /// - parameter dataLoader: `DataLoader()` by default.
-        /// - parameter imageCache: `ImageCache.shared` by default.
-        public init(dataLoader: DataLoading = DataLoader(), imageCache: ImageCaching?) {
-            self.init(dataLoader: dataLoader)
-            self.customImageCache = imageCache
-            self.isCustomImageCacheProvided = true
-        } // This init is going to be removed in the future
+        /// The default pipeline configuration.
+        public static var `default`: Configuration { Configuration() }
 
         /// Creates a configuration with an aggressive disk cache (`DataCache`)
         /// enabled and HTTT cache (`URLCache`) disabled.
@@ -254,7 +239,8 @@ extension ImagePipeline {
                 return DataLoader(configuration: config)
             }()
 
-            var config = Configuration(dataLoader: dataLoader)
+            var config = Configuration()
+            config.dataLoader = dataLoader
             config.dataCache = try? DataCache(name: "com.github.kean.Nuke.DataCache")
 
             return config
