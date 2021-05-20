@@ -360,11 +360,11 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         wait()
 
         // THEN
-        XCTAssertEqual(imageCache.readCount, 3) // Processed + intermediate + original
-        XCTAssertEqual(imageCache.writeCount, 1) // Processed
+        XCTAssertEqual(imageCache.readCount, 6) // Processed + intermediate + original
+        XCTAssertEqual(imageCache.writeCount, 2) // Processed
         XCTAssertNotNil(imageCache[request])
-        XCTAssertEqual(dataCache.readCount, 2) // Processed + original
-        XCTAssertEqual(dataCache.writeCount, 0)
+        XCTAssertEqual(dataCache.readCount, 4) // Processed + original
+        XCTAssertEqual(dataCache.writeCount, 1)
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
     }
 }
