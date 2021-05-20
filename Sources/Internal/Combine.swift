@@ -3,10 +3,7 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-
-#if canImport(Combine)
 import Combine
-#endif
 
 struct AnyPublisher<Output> {
     private let _sink: (@escaping ((PublisherCompletion) -> Void), @escaping ((Output) -> Void)) -> Cancellable
@@ -19,7 +16,6 @@ struct AnyPublisher<Output> {
         }
     }
 
-    #if canImport(Combine)
     @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
     init<P: Publisher>(_ publisher: P) where P.Output == Output {
         self._sink = { onCompletion, onValue in
@@ -34,7 +30,6 @@ struct AnyPublisher<Output> {
             return AnyCancellable(cancellable.cancel)
         }
     }
-    #endif
 
     func sink(receiveCompletion: @escaping ((PublisherCompletion) -> Void), receiveValue: @escaping ((Output) -> Void)) -> Cancellable {
         _sink(receiveCompletion, receiveValue)

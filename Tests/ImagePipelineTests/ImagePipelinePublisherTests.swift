@@ -3,10 +3,8 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-@testable import Nuke
-
-#if canImport(Combine)
 import Combine
+@testable import Nuke
 
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 class ImagePipelinePublisherTests: XCTestCase {
@@ -56,5 +54,3 @@ class ImagePipelinePublisherTests: XCTestCase {
         XCTAssertEqual(image.nk_test_processorIDs, ["1"])
     }
 }
-
-#endif

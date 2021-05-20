@@ -3,8 +3,6 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Nuke
-
-#if canImport(Combine)
 import Combine
 
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
@@ -23,7 +21,6 @@ extension Publishers {
         }
     }
 }
-import Photos
 
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 extension Subscriptions {
@@ -60,4 +57,3 @@ extension AnyPublisher {
     }
 
 }
-#endif

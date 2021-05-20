@@ -4,6 +4,7 @@
 
 import XCTest
 import Foundation
+import Combine
 
 extension XCTestCase {
     @discardableResult
@@ -17,9 +18,6 @@ extension XCTestCase {
 }
 
 // MARK: - Publishers
-
-#if canImport(Combine)
-import Combine
 
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 extension XCTestCase {
@@ -76,7 +74,6 @@ final class TestRecordedPublisher<P: Publisher> {
         values.last
     }
 }
-#endif
 
 // MARK: - XCTestCase (KVO)
 

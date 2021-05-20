@@ -2,7 +2,6 @@
 //
 // Copyright (c) 2020-2021 Alexander Grebenyuk (github.com/kean).
 
-#if canImport(Combine)
 import Foundation
 import Combine
 
@@ -90,4 +89,3 @@ private final class ImageSubscription: Subscription {
         task = nil
     }
 }
-#endif

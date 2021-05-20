@@ -3,10 +3,7 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-
-#if canImport(Combine)
 import Combine
-#endif
 
 // MARK: - ImageRequest
 
@@ -146,7 +143,6 @@ public struct ImageRequest: CustomStringConvertible {
         )
     }
 
-    #if canImport(Combine)
     /// Initializes a request with the given data publisher.
     ///
     /// - parameter id: Uniquely identifies the image data.
@@ -188,7 +184,6 @@ public struct ImageRequest: CustomStringConvertible {
             userInfo: userInfo
         )
     }
-    #endif
 
     // MARK: Options
 
@@ -287,7 +282,6 @@ public struct ImageRequest: CustomStringConvertible {
         }
     }
 
-    /// Resource representation (either URL or URLRequest).
     enum Resource: CustomStringConvertible {
         case url(URL)
         case urlRequest(URLRequest)

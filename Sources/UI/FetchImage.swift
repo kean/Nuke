@@ -2,7 +2,6 @@
 //
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
-#if canImport(Combine) && canImport(SwiftUI)
 import SwiftUI
 import Combine
 
@@ -164,4 +163,3 @@ public final class FetchImage: ObservableObject, Identifiable {
         #endif
     }
 }
-#endif
