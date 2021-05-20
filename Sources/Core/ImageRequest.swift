@@ -257,7 +257,7 @@ public struct ImageRequest: CustomStringConvertible {
     private(set) var ref: Container
 
     private mutating func mutate(_ closure: (Container) -> Void) {
-        if _slowPath(!isKnownUniquelyReferenced(&ref)) {
+        if !isKnownUniquelyReferenced(&ref) {
             ref = Container(ref)
         }
         closure(ref)
