@@ -66,10 +66,12 @@ extension ImagePipeline {
         // MARK: - Processors
 
         /// Processors to be applied by default to all images loaded by the
-        /// pipeline.
-        /// If a request has a non-empty processors list, the pipeline won't
-        /// apply its own processors, leaving the request as is.
-        /// This lets clients have an override point on request basis.
+        /// pipeline, unless the request overrides the list of processors.
+        ///
+        /// If you pass `nil` to the list of processors when creating a request,
+        /// the default processors are applied. If you pass any non-nill value,
+        /// including an empty list, your processors will be applied (or none
+        /// in case of an empty list).
         public var processors: [ImageProcessing] = []
 
         // MARK: - Options
@@ -220,6 +222,7 @@ extension ImagePipeline {
 
         // MARK: - Initializer
 
+        #warning("remove this ")
         public init(dataLoader: DataLoading = DataLoader()) {
             self.dataLoader = dataLoader
 
@@ -264,11 +267,9 @@ extension ImagePipeline {
 extension ImagePipeline.Configuration {
     /// Inherits some of the pipeline configuration options like processors.
     func inheritOptions(_ request: ImageRequest) -> ImageRequest {
-        // Do not manipulate is the request has some processors already.
-        guard request.processors.isEmpty, !processors.isEmpty else {
+        guard _fastPath(!processors.isEmpty), request.ref.processors == nil else {
             return request
         }
-
         var request = request
         request.processors = processors
         return request

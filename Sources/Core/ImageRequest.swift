@@ -13,19 +13,16 @@ import Combine
 /// Represents an image request.
 public struct ImageRequest: CustomStringConvertible {
 
-    // MARK: Parameters of the Request
+    // MARK: Parameters
 
-    /// The `URLRequest` used for loading an image.
+    /// Returns the request `URLRequest`.
     ///
     /// Returns `nil` for publisher-based requests.
     public var urlRequest: URLRequest? {
         switch ref.resource {
-        case .publisher:
-            return nil
-        case let .url(url):
-            return URLRequest(url: url) // create lazily
-        case let .urlRequest(urlRequest):
-            return urlRequest
+        case .url(let url): return URLRequest(url: url) // create lazily
+        case .urlRequest(let urlRequest): return urlRequest
+        case .publisher: return nil
         }
     }
 
@@ -34,12 +31,9 @@ public struct ImageRequest: CustomStringConvertible {
     /// Returns `nil` for publisher-based requests.
     public var url: URL? {
         switch ref.resource {
-        case .publisher:
-            return nil
-        case .url(let url):
-            return url
-        case .urlRequest(let request):
-            return request.url
+        case .url(let url): return url
+        case .urlRequest(let request): return request.url
+        case .publisher: return nil
         }
     }
 
@@ -72,18 +66,18 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// Processor to be applied to the image. Empty by default.
     public var processors: [ImageProcessing] {
-        get { ref.processors }
+        get { ref.processors ?? [] }
         set { mutate { $0.processors = newValue } }
     }
 
     /// The request options. See `ImageRequest.Options` for more info.
-    public var options: ImageRequest.Options {
+    public var options: Options {
         get { ref.options }
         set { mutate { $0.options = newValue } }
     }
 
     /// Custom info passed alongside the request.
-    public var userInfo: [ImageRequest.UserInfoKey: Any] {
+    public var userInfo: [UserInfoKey: Any] {
         get { ref.userInfo ?? [:] }
         set { mutate { $0.userInfo = newValue } }
     }
@@ -92,7 +86,7 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// Initializes a request with the given URL.
     ///
-    /// - parameter processors: Image processors to be applied to the loaded image. Empty by default.
+    /// - parameter processors: Image processors to be applied to the loaded image. `nil` by default.
     /// - parameter priority: The priority of the request, `.normal` by default.
     /// - parameter options: Image loading options. Empty by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
@@ -107,9 +101,9 @@ public struct ImageRequest: CustomStringConvertible {
     /// )
     /// ```
     public init(url: URL,
-                processors: [ImageProcessing] = [],
+                processors: [ImageProcessing]? = nil,
                 priority: Priority = .normal,
-                options: ImageRequest.Options = [],
+                options: Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
         self.ref = Container(
             resource: Resource.url(url),
@@ -138,9 +132,9 @@ public struct ImageRequest: CustomStringConvertible {
     /// )
     /// ```
     public init(urlRequest: URLRequest,
-                processors: [ImageProcessing] = [],
-                priority: ImageRequest.Priority = .normal,
-                options: ImageRequest.Options = [],
+                processors: [ImageProcessing]? = nil,
+                priority: Priority = .normal,
+                options: Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
         self.ref = Container(
             resource: Resource.urlRequest(urlRequest),
@@ -177,9 +171,9 @@ public struct ImageRequest: CustomStringConvertible {
     /// You can also disable it dynamically using `ImagePipeline.Delegate`.
     @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
     public init<P>(id: String, data: P,
-                   processors: [ImageProcessing] = [],
-                   priority: ImageRequest.Priority = .normal,
-                   options: ImageRequest.Options = [],
+                   processors: [ImageProcessing]? = nil,
+                   priority: Priority = .normal,
+                   options: Options = [],
                    userInfo: [UserInfoKey: Any]? = nil) where P: Publisher, P.Output == Data {
         // It could technically be implemented without any special change to the
         // pipeline by using a custom DataLoader, disabling resumable data, and
@@ -237,26 +231,26 @@ public struct ImageRequest: CustomStringConvertible {
         public static let returnCacheDataDontLoad = Options(rawValue: 1 << 4)
     }
 
-    // CoW:
+    // MARK: Internal
 
-    private var ref: Container
+    private(set) var ref: Container
 
     private mutating func mutate(_ closure: (Container) -> Void) {
-        if !isKnownUniquelyReferenced(&ref) {
-            ref = Container(container: ref)
+        if _slowPath(!isKnownUniquelyReferenced(&ref)) {
+            ref = Container(ref)
         }
         closure(ref)
     }
 
     /// Just like many Swift built-in types, `ImageRequest` uses CoW approach to
     /// avoid memberwise retain/releases when `ImageRequest` is passed around.
-    private class Container {
+    final class Container {
         let resource: Resource
         let imageId: String? // memoized absoluteString
-        var priority: ImageRequest.Priority
-        var options: ImageRequest.Options
-        var processors: [ImageProcessing]
-        var userInfo: [UserInfoKey: Any]?
+        fileprivate(set) var priority: Priority
+        fileprivate(set) var options: Options
+        fileprivate(set) var processors: [ImageProcessing]?
+        fileprivate(set) var userInfo: [UserInfoKey: Any]?
 
         deinit {
             #if TRACK_ALLOCATIONS
@@ -265,7 +259,7 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, imageId: String?, processors: [ImageProcessing], priority: Priority, options: ImageRequest.Options, userInfo: [UserInfoKey: Any]?) {
+        init(resource: Resource, imageId: String?, processors: [ImageProcessing]?, priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
             self.imageId = imageId
             self.processors = processors
@@ -279,7 +273,7 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         /// Creates a copy.
-        init(container ref: Container) {
+        init(_ ref: Container) {
             self.resource = ref.resource
             self.imageId = ref.imageId
             self.processors = ref.processors
@@ -301,9 +295,9 @@ public struct ImageRequest: CustomStringConvertible {
 
         var description: String {
             switch self {
-            case let .url(url): return "\(url)"
-            case let .urlRequest(urlRequest): return "\(urlRequest)"
-            case let .publisher(data): return "Publisher(\(data))"
+            case .url(let url): return "\(url)"
+            case .urlRequest(let urlRequest): return "\(urlRequest)"
+            case .publisher(let data): return "\(data)"
             }
         }
     }
@@ -313,7 +307,7 @@ public struct ImageRequest: CustomStringConvertible {
         ImageRequest {
             resource: \(ref.resource),
             priority: \(ref.priority),
-            processors: \(ref.processors),
+            processors: \(ref.processors ?? []),
             options: \(ref.options),
             userInfo: \(ref.userInfo ?? [:])
         }
@@ -326,19 +320,11 @@ public struct ImageRequest: CustomStringConvertible {
         return request
     }
 
-    var resource: Resource {
-        ref.resource
-    }
-
-    var imageId: String? {
-        ref.imageId
-    }
-
     var preferredImageId: String {
         if let imageId = ref.userInfo?[.imageIdKey] as? String {
             return imageId
         }
-        return imageId ?? ""
+        return ref.imageId ?? ""
     }
 
     var publisher: AnyPublisher<Data>? {

@@ -12,7 +12,7 @@
 
 Nuke provides a simple and efficient way to download and display images in your app.
 
-Behind Nuke's clear and concise API is an advanced architecture that enables its unique features and offers virtually unlimited possibilities for customization. Despite the number of features, the framework is lean and compiles in under 2 seconds. Nuke's primary feature is [performance](https://kean.blog/post/nuke-9).
+Behind Nuke's clear and concise API is an advanced architecture that enables its unique features and offers virtually unlimited possibilities for customization. Despite the great number of features, the framework is lean and compiles in under 2 seconds. Nuke's primary feature is [performance](https://kean.blog/post/nuke-9).
 
 > **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Elegant builder API** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG, HEIF, WebP, SVG, GIF** · **Alamofire** · **Combine** · **Reactive extensions**
 

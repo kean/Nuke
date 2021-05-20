@@ -34,11 +34,11 @@ extension ImageRequest {
 // Uniquely identifies a cache processed image.
 struct CacheKey: Hashable {
     private let imageId: String?
-    private let processors: [ImageProcessing]
+    private let processors: [ImageProcessing]?
 
     init(_ request: ImageRequest) {
         self.imageId = request.preferredImageId
-        self.processors = request.processors
+        self.processors = request.ref.processors
     }
 
     func hash(into hasher: inout Hasher) {
@@ -46,7 +46,7 @@ struct CacheKey: Hashable {
     }
 
     static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
-        lhs.imageId == rhs.imageId && lhs.processors == rhs.processors
+        lhs.imageId == rhs.imageId && (lhs.processors ?? []) == (rhs.processors ?? [])
     }
 }
 
@@ -70,8 +70,8 @@ struct DataLoadKey: Hashable {
     private let allowsCellularAccess: Bool
 
     init(_ request: ImageRequest) {
-        self.imageId = request.imageId
-        switch request.resource {
+        self.imageId = request.ref.imageId
+        switch request.ref.resource {
         case .url, .publisher:
             self.cachePolicy = .useProtocolCachePolicy
             self.allowsCellularAccess = true

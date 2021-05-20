@@ -376,6 +376,7 @@ private final class ImageViewController {
         }
 
         let pipeline = options.pipeline ?? ImagePipeline.shared
+        let request = pipeline.configuration.inheritOptions(request)
 
         // Quick synchronous memory cache lookup.
         if let image = pipeline.cache[request] {
