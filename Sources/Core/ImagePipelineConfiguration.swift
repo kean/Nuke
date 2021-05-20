@@ -15,9 +15,7 @@ extension ImagePipeline {
         public var imageCache: ImageCaching? {
             // This exists simply to ensure we don't init ImageCache.shared if the
             // user provides their own instance.
-            get {
-                isCustomImageCacheProvided ? customImageCache : ImageCache.shared
-            }
+            get { isCustomImageCacheProvided ? customImageCache : ImageCache.shared }
             set {
                 customImageCache = newValue
                 isCustomImageCacheProvided = true
@@ -223,8 +221,10 @@ extension ImagePipeline {
         // MARK: - Initializer
 
         /// Instantiates a default pipeline configuration.
-        public init() {
-            self.dataLoader = DataLoader()
+        ///
+        /// - parameter dataLoader: `DataLoader()` by default.
+        public init(dataLoader: DataLoading = DataLoader()) {
+            self.dataLoader = dataLoader
         }
 
         /// The default pipeline configuration.
