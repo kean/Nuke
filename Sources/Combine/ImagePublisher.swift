@@ -43,8 +43,10 @@ public struct ImagePublisher: Publisher {
         let request = pipeline.configuration.inheritOptions(self.request)
         if let image = pipeline.cache[request] {
             _ = subscriber.receive(ImageResponse(container: image, cacheType: .memory))
-            subscriber.receive(completion: .finished)
-            return
+            if !image.isPreview {
+                subscriber.receive(completion: .finished)
+                return
+            }
         }
 
         subscription.task = pipeline.loadImage(
