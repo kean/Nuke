@@ -138,9 +138,12 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
         pipeline.cache[Test.url] = ImageContainer(image: Test.image, isPreview: true)
 
         let imagesProduced = self.expectation(description: "ImagesProduced")
-        // 1 partial from cache, 2 partials, 1 final
+        // 1 preview from sync cache lookup
+        // 1 preview from async cache lookup (we don't want it really though)
+        // 2 previews from data loading
+        // 1 final iamge
         // we also expect resumable data to kick in for real downloads
-        imagesProduced.expectedFulfillmentCount = 4
+        imagesProduced.expectedFulfillmentCount = 5
         var previewsCount = 0
         var isFirstPreviewProduced = false
         let completed = self.expectation(description: "Completed")
@@ -158,12 +161,12 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
 
         }, receiveValue: { response in
             imagesProduced.fulfill()
-            if previewsCount == 3 {
+            previewsCount += 1
+            if previewsCount == 5 {
                 XCTAssertFalse(response.container.isPreview)
             } else {
                 XCTAssertTrue(response.container.isPreview)
-                previewsCount += 1
-                if isFirstPreviewProduced {
+                if previewsCount >= 3 {
                     self.dataLoader.resume()
                 } else {
                     isFirstPreviewProduced = true
@@ -171,6 +174,6 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
             }
         })
         XCTAssertTrue(isFirstPreviewProduced)
-        wait()
+        wait(200, handler: nil)
     }
 }
