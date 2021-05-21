@@ -254,7 +254,7 @@ extension PlatformImage {
 
 extension ImagePipeline.Configuration {
     // Deprecated in 10.0.0
-    @available(*, deprecated, message: "Please use `ImageConfiguration.default` and provide a `dataLoader` afterwards or use a closure-based ImagePipeline initialzier.")
+    @available(*, deprecated, message: "Please use `ImageConfiguration.default` and provide a `dataLoader` afterwards or use a closure-based ImagePipeline initializer.")
     public init(dataLoader: DataLoading = DataLoader(), imageCache: ImageCaching?) {
         self.init(dataLoader: dataLoader)
         self.imageCache = imageCache

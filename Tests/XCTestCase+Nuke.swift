@@ -29,12 +29,12 @@ struct TestExpectationImagePipeline {
     let pipeline: ImagePipeline
 
     @discardableResult
-    func toLoadImage(with request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> TestRecordedImageRequest {
+    func toLoadImage(with request: ImageRequestConvertible, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> TestRecordedImageRequest {
         toLoadImage(with: request, progress: nil, completion: completion)
     }
 
     @discardableResult
-    func toLoadImage(with request: ImageRequest,
+    func toLoadImage(with request: ImageRequestConvertible,
                      progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
                      completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> TestRecordedImageRequest {
         let record = TestRecordedImageRequest()

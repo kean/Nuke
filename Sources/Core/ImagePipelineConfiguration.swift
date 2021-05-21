@@ -227,11 +227,12 @@ extension ImagePipeline {
             self.dataLoader = dataLoader
         }
 
-        /// The default pipeline configuration.
-        public static var `default`: Configuration { Configuration() }
+        /// A configuration with a `DataLoader` with an HTTP disk cache (`URLCache`)
+        /// with a size limit of 150 MB.
+        public static var withURLCache: Configuration { Configuration() }
 
-        /// Creates a configuration with an aggressive disk cache (`DataCache`)
-        /// enabled and HTTT cache (`URLCache`) disabled.
+        /// A configuration with an aggressive disk cache (`DataCache`) with a
+        /// size limit of 150 MB. An HTTP cache (`URLCache`) is disabled.
         public static var withDataCache: Configuration {
             let dataLoader: DataLoader = {
                 let config = URLSessionConfiguration.default

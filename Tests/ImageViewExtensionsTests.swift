@@ -5,7 +5,7 @@
 import XCTest
 @testable import Nuke
 
-class ImageViewTests: XCTestCase {
+class ImageViewExtensionsTests: XCTestCase {
     var imageView: _ImageView!
     var mockPipeline: MockImagePipeline!
     var mockCache: MockImageCache!

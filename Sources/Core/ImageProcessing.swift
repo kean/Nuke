@@ -41,7 +41,8 @@ public protocol ImageProcessing {
     /// - note: Gets called a background queue managed by the pipeline.
     func process(_ image: PlatformImage) -> PlatformImage?
 
-    /// Returns a processed image. By default, this calls the basic `process(image:)` method.
+    /// Optional method. Returns a processed image. By default, this calls the
+    /// basic `process(image:)` method.
     ///
     /// - note: Gets called a background queue managed by the pipeline.
     func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer?

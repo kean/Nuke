@@ -44,7 +44,7 @@ public /* final */ class ImagePipeline {
     let id = UUID()
 
     /// Shared image pipeline.
-    public static var shared = ImagePipeline()
+    public static var shared = ImagePipeline(configuration: .withURLCache)
 
     deinit {
         _nextTaskId.deallocate()

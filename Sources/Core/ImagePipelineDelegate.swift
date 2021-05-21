@@ -13,6 +13,11 @@ extension ImagePipeline {
     }
 }
 
+/// The pipeline delegate that allows you to customize the pipleine on the
+/// per-request level.
+///
+/// - warning: The delegate methods are performed on the pipeline queue in the
+/// background.
 public protocol ImagePipelineDelegate: AnyObject {
     // MARK: Configuration
 

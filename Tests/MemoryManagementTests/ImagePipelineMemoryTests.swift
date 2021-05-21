@@ -8,6 +8,7 @@ import XCTest
 class ImagePipelineMemoryTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
+    var prefetcher: ImagePrefetcher!
 
     override func setUp() {
         super.setUp()
@@ -18,6 +19,8 @@ class ImagePipelineMemoryTests: XCTestCase {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
         }
+
+        prefetcher = ImagePrefetcher(pipeline: pipeline)
     }
 
     func expectDeinit(_ closure: () -> Void) {
@@ -26,6 +29,7 @@ class ImagePipelineMemoryTests: XCTestCase {
 
             pipeline = nil
             dataLoader = nil
+            prefetcher = nil
 
             #if TRACK_ALLOCATIONS
             let allDeinitExpectation = self.expectation(description: "AllDeallocated")
@@ -166,6 +170,22 @@ class ImagePipelineMemoryTests: XCTestCase {
             
             expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
             pipeline.invalidate()
+            wait()
+        }
+        wait()
+    }
+
+    // MARK: Prefetcher
+
+    func testPrefetcherDeallocation() {
+        expectDeinit {
+            let expectation = self.expectation(description: "PrefecherDidComplete")
+            prefetcher.didComplete = {
+                expectation.fulfill()
+            }
+
+            // WHEN
+            prefetcher.startPrefetching(with: [Test.url])
             wait()
         }
         wait()
