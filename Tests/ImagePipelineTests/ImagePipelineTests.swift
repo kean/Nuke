@@ -498,4 +498,15 @@ class ImagePipelineTests: XCTestCase {
         // THEN
         XCTAssertEqual(container.userInfo["a"] as? Int, 1)
     }
+
+    func testErrorDescription() {
+        XCTAssertFalse(ImagePipeline.Error.dataLoadingFailed(URLError(.unknown)).description.isEmpty) // Just padding here
+        XCTAssertFalse(ImagePipeline.Error.decodingFailed.description.isEmpty)
+
+        let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
+        let error = ImagePipeline.Error.processingFailed(processor)
+        let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)"
+        XCTAssertEqual(error.description, expected)
+        XCTAssertEqual("\(error)", expected)
+    }
 }

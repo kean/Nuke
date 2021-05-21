@@ -280,7 +280,7 @@ public final class ImagePipeline {
     // MARK: - Errors
 
     /// Represents all possible image pipeline errors.
-    public enum Error: Swift.Error, CustomDebugStringConvertible {
+    public enum Error: Swift.Error, CustomStringConvertible {
         /// Data loader failed to load image data with a wrapped error.
         case dataLoadingFailed(Swift.Error)
         /// Decoder failed to produce a final image.
@@ -288,11 +288,11 @@ public final class ImagePipeline {
         /// Processor failed to produce a final image.
         case processingFailed(ImageProcessing)
 
-        public var debugDescription: String {
+        public var description: String {
             switch self {
             case let .dataLoadingFailed(error): return "Failed to load image data: \(error)"
             case .decodingFailed: return "Failed to create an image from the image data"
-            case .processingFailed: return "Failed to process the image"
+            case .processingFailed(let processor): return "Failed to process the image using processor \(processor)"
             }
         }
 
