@@ -132,7 +132,7 @@ class ImagePipelineMemoryTests: XCTestCase {
 
             let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-            let task = pipeline.loadImage(with: request)
+            let task = pipeline.loadImage(with: request) { _ in }
             wait() // Wait till the operation is created.
 
             // When/Then
@@ -164,7 +164,7 @@ class ImagePipelineMemoryTests: XCTestCase {
 
             let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-            let task = pipeline.loadImage(with: request)
+            let task = pipeline.loadImage(with: request) { _ in }
             wait() // Wait till the operation is created.
 
             // When/Then
@@ -194,7 +194,7 @@ class ImagePipelineMemoryTests: XCTestCase {
 
             let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
-            let task = pipeline.loadImage(with: request)
+            let task = pipeline.loadImage(with: request) { _ in }
             wait() // Wait till the operation is created.
 
             // When/Then
