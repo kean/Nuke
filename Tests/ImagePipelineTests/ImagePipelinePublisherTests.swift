@@ -92,6 +92,7 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
     override func setUp() {
         dataLoader = MockProgressiveDataLoader()
         imageCache = MockImageCache()
+        ResumableDataStorage.shared.removeAll()
 
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader

@@ -7,19 +7,24 @@ import XCTest
 
 class ImageViewExtensionsTests: XCTestCase {
     var imageView: _ImageView!
-    var mockPipeline: MockImagePipeline!
-    var mockCache: MockImageCache!
+    var observer: ImagePipelineObserver!
+    var imageCache: MockImageCache!
+    var dataLoader: MockDataLoader!
+    var pipeline: ImagePipeline!
 
     override func setUp() {
         super.setUp()
 
-        mockCache = MockImageCache()
-        mockPipeline = MockImagePipeline {
-            $0.imageCache = mockCache
+        imageCache = MockImageCache()
+        dataLoader = MockDataLoader()
+        observer = ImagePipelineObserver()
+        pipeline = ImagePipeline(delegate: observer) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
         }
 
         // Nuke.loadImage(...) methods use shared pipeline by default.
-        ImagePipeline.pushShared(mockPipeline)
+        ImagePipeline.pushShared(pipeline)
 
         imageView = _ImageView()
     }
@@ -67,7 +72,7 @@ class ImageViewExtensionsTests: XCTestCase {
     func testTaskIsNilWhenImageInMemoryCache() {
         // When the requested image is stored in memory cache
         let request = Test.request
-        mockCache[request] = ImageContainer(image: PlatformImage())
+        imageCache[request] = ImageContainer(image: PlatformImage())
 
         // When requesting an image
         let task = Nuke.loadImage(with: request, into: imageView)
@@ -108,7 +113,7 @@ class ImageViewExtensionsTests: XCTestCase {
     func testMemoryCacheUsed() {
         // Given the requested image stored in memory cache
         let image = Test.image
-        mockCache[Test.request] = ImageContainer(image: image)
+        imageCache[Test.request] = ImageContainer(image: image)
 
         // When requesting the new image
         Nuke.loadImage(with: Test.request, into: imageView)
@@ -119,7 +124,7 @@ class ImageViewExtensionsTests: XCTestCase {
 
     func testMemoryCacheDisabled() {
         // Given the requested image stored in memory cache
-        mockCache[Test.request] = Test.container
+        imageCache[Test.request] = Test.container
 
         // When requesting the image with memory cache read disabled
         var request = Test.request
@@ -153,8 +158,8 @@ class ImageViewExtensionsTests: XCTestCase {
     }
 
     func testCompletionCalledImageFromCache() {
-        // Given the requested image stored in memory cache
-        mockCache[Test.request] = Test.container
+        // GIVEN the requested image stored in memory cache
+        imageCache[Test.request] = Test.container
 
         var didCallCompletion = false
         Nuke.loadImage(
@@ -171,9 +176,14 @@ class ImageViewExtensionsTests: XCTestCase {
     }
 
     func testProgressHandlerCalled() {
+        // GIVEN
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
         let expectedProgress = expectProgress([(10, 20), (20, 20)])
 
-        // When loading an image into a view
+        // WHEN loading an image into a view
         Nuke.loadImage(
             with: Test.request,
             into: imageView,
@@ -190,15 +200,15 @@ class ImageViewExtensionsTests: XCTestCase {
     // MARK: - Cancellation
 
     func testRequestCancelled() {
-        mockPipeline.operationQueue.isSuspended = true
+        dataLoader.isSuspended = true
 
         // Given an image view with an associated image task
-        expectNotification(MockImagePipeline.DidStartTask, object: mockPipeline)
+        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
         Nuke.loadImage(with: Test.url, into: imageView)
         wait()
 
         // Expect the task to get cancelled
-        expectNotification(MockImagePipeline.DidCancelTask, object: mockPipeline)
+        expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
 
         // When asking Nuke to cancel the request for the view
         Nuke.cancelRequest(for: imageView)
@@ -206,99 +216,39 @@ class ImageViewExtensionsTests: XCTestCase {
     }
 
     func testRequestCancelledWhenNewRequestStarted() {
-        mockPipeline.operationQueue.isSuspended = true
+        dataLoader.isSuspended = true
 
         // Given an image view with an associated image task
-        expectNotification(MockImagePipeline.DidStartTask, object: mockPipeline)
+        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
         Nuke.loadImage(with: Test.url, into: imageView)
         wait()
 
         // When starting loading a new image
         // Expect previous task to get cancelled
-        expectNotification(MockImagePipeline.DidCancelTask, object: mockPipeline)
+        expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
         Nuke.loadImage(with: Test.url, into: imageView)
         wait()
     }
 
     func testRequestCancelledWhenTargetGetsDeallocated() {
-        mockPipeline.operationQueue.isSuspended = true
+        dataLoader.isSuspended = true
 
         // Wrap everything in autorelease pool to make sure that imageView
         // gets deallocated immediately.
         autoreleasepool {
             // Given an image view with an associated image task
             var imageView: _ImageView! = _ImageView()
-            expectNotification(MockImagePipeline.DidStartTask, object: mockPipeline)
+            expectNotification(ImagePipelineObserver.didStartTask, object: observer)
             Nuke.loadImage(with: Test.url, into: imageView)
             wait()
 
             // Expect the task to be cancelled automatically
-            expectNotification(MockImagePipeline.DidCancelTask, object: mockPipeline)
+            expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
 
             // When the view is deallocated
             imageView = nil
         }
         wait()
-    }
-
-    func testCancellingTheTaskAndWaitingForCompletion() {
-        mockPipeline.operationQueue.isSuspended = true
-
-        // Given pipeline with cancellation disabled (important!)
-        mockPipeline.isCancellationEnabled = false
-
-        // Given an image view which is in the process of loading the image
-        Nuke.loadImage(with: Test.request, into: imageView) { _ in
-            // Expect completion to never get called, we're already displaying
-            // the image B by that point.
-            XCTFail("Enexpected completion")
-        }
-
-        // When cancelling the request
-        Nuke.cancelRequest(for: imageView)
-
-        // When the pipeline finishes loading the image B.
-        expectNotification(MockImagePipeline.DidFinishTask)
-        mockPipeline.operationQueue.isSuspended = false
-        wait()
-
-        // Expect an image view to still be displaying the image B.
-        XCTAssertNil(imageView.image)
-    }
-
-    func testCancellingTheTaskByRequestingNewImageStoredInCache() {
-        mockPipeline.operationQueue.isSuspended = true
-
-        let requestA = ImageRequest(url: URL(string: "test://imageA")!)
-        let requestB = ImageRequest(url: URL(string: "test://imageB")!)
-
-        // Given pipeline with cancellation disabled (important!)
-        mockPipeline.isCancellationEnabled = false
-
-        // Given an image A not stored in cache and image B - stored.
-        let imageB = PlatformImage()
-        mockCache[requestB] = ImageContainer(image: imageB)
-
-        // Given an image view which is in the process of loading the image A.
-        Nuke.loadImage(with: requestA, into: imageView) { _ in
-            // Expect completion to never get called, we're already displaying
-            // the image B by that point.
-            XCTFail("Enexpected completion for requestA")
-        }
-
-        // When starting a starting a new request for the image B.
-        Nuke.loadImage(with: requestB, into: imageView)
-
-        // Expect an image B to be displayed immediatelly.
-        XCTAssertEqual(imageB, imageView.image)
-
-        // When the pipeline finishes loading the image B.
-        expectNotification(MockImagePipeline.DidFinishTask)
-        mockPipeline.operationQueue.isSuspended = false
-        wait()
-
-        // Expect an image view to still be displaying the image B.
-        XCTAssertEqual(imageB, imageView.image)
     }
 }
 
