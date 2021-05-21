@@ -163,9 +163,12 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
             } else {
                 XCTAssertTrue(response.container.isPreview)
                 previewsCount += 1
-                isFirstPreviewProduced = true
+                if isFirstPreviewProduced {
+                    self.dataLoader.resume()
+                } else {
+                    isFirstPreviewProduced = true
+                }
             }
-            self.dataLoader.resume()
         })
         XCTAssertTrue(isFirstPreviewProduced)
         wait()

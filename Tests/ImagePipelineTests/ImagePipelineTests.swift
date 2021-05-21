@@ -508,5 +508,7 @@ class ImagePipelineTests: XCTestCase {
         let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)"
         XCTAssertEqual(error.description, expected)
         XCTAssertEqual("\(error)", expected)
+
+        XCTAssertNil(error.dataLoadingError)
     }
 }

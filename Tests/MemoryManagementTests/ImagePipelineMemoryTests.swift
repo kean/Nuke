@@ -42,14 +42,9 @@ class ImagePipelineMemoryTests: XCTestCase {
 
     // MARK: - Completion
 
-    func testCompletionCalledAsynchronouslyOnMainThread() {
+    func testBasicRequest() {
         expectDeinit {
-            var isCompleted = false
-            expect(pipeline).toLoadImage(with: Test.request) { _ in
-                XCTAssert(Thread.isMainThread)
-                isCompleted = true
-            }
-            XCTAssertFalse(isCompleted)
+            expect(pipeline).toLoadImage(with: Test.request) { _ in }
             wait()
         }
         wait()
