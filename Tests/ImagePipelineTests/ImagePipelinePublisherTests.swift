@@ -62,4 +62,22 @@ class ImagePipelinePublisherTests: XCTestCase {
         XCTAssertNil(request.urlRequest)
         XCTAssertNil(request.url)
     }
+
+    // MARK: ImageRequestConvertible
+
+    func testInitWithString() {
+        let _ = pipeline.imagePublisher(with: "https://example.com/image.jpeg")
+    }
+
+    func testInitWithURL() {
+        let _ = pipeline.imagePublisher(with: URL(string: "https://example.com/image.jpeg")!)
+    }
+
+    func testInitWithURLRequest() {
+        let _ = pipeline.imagePublisher(with: URLRequest(url: URL(string: "https://example.com/image.jpeg")!))
+    }
+
+    func testInitWithImageRequest() {
+        let _ = pipeline.imagePublisher(with: ImageRequest(url: URL(string: "https://example.com/image.jpeg")!))
+    }
 }
