@@ -60,11 +60,6 @@ public final class DataCache: DataCaching {
     /// A cache key.
     public typealias Key = String
 
-    /// The maximum number of items. `Int.max` by default.
-    ///
-    /// Changes tos `countLimit` will take effect when the next LRU sweep is run.
-    var deprecatedCountLimit: Int = Int.max
-
     /// Size limit in bytes. `150 Mb` by default.
     ///
     /// Changes to `sizeLimit` will take effect when the next LRU sweep is run.
@@ -383,14 +378,12 @@ public final class DataCache: DataCaching {
             return
         }
         var size = items.reduce(0) { $0 + ($1.meta.totalFileAllocatedSize ?? 0) }
-        var count = items.count
 
-        guard size > sizeLimit || count > deprecatedCountLimit else {
+        guard size > sizeLimit else {
             return // All good, no need to perform any work.
         }
 
         let sizeLimit = Int(Double(self.sizeLimit) * trimRatio)
-        let countLimit = Int(Double(self.deprecatedCountLimit) * trimRatio)
 
         // Most recently accessed items first
         let past = Date.distantPast
@@ -399,9 +392,8 @@ public final class DataCache: DataCaching {
         }
 
         // Remove the items until it satisfies both size and count limits.
-        while (size > sizeLimit || count > countLimit), let item = items.popLast() {
+        while size > sizeLimit, let item = items.popLast() {
             size -= (item.meta.totalFileAllocatedSize ?? 0)
-            count -= 1
             try? FileManager.default.removeItem(at: item.url)
         }
     }
