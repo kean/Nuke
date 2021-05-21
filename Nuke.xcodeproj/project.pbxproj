@@ -86,6 +86,7 @@
 		0C7527A01D473AF100EC6222 /* MockImagePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C01287F1D43E85100668A1F /* MockImagePipeline.swift */; };
 		0C78A2A7263F4E680051E0FF /* ImagePipelineCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C78A2A6263F4E680051E0FF /* ImagePipelineCache.swift */; };
 		0C78A2A9263F560A0051E0FF /* ImagePipelineCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C78A2A8263F560A0051E0FF /* ImagePipelineCacheTests.swift */; };
+		0C78BD4626575000002FBC6F /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C505B6B2286F3AD006D5399 /* Task.swift */; };
 		0C7C067C1BCA882A00089D7F /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C7C06971BCA888800089D7F /* MockDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockDataLoader.swift */; };
 		0C7C06981BCA888800089D7F /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068D1BCA888800089D7F /* Helpers.swift */; };
@@ -1132,6 +1133,7 @@
 				0C3261F51FEBC232009276AC /* MockDataLoader.swift in Sources */,
 				0CC627A525C100FA00466F04 /* ImageProcessingPerformanceTests.swift in Sources */,
 				0C8D7BF51D9DC07E00D12EB7 /* DataCachePeformanceTests.swift in Sources */,
+				0C78BD4626575000002FBC6F /* Task.swift in Sources */,
 				0CC6279025C100BC00466F04 /* ImageViewPerformanceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
