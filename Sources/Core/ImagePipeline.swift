@@ -14,7 +14,7 @@ import Foundation
 /// individual stage, disable and enable features like deduplication and rate limiting, and more.
 ///
 /// `ImagePipeline` is fully thread-safe.
-public /* final */ class ImagePipeline {
+public final class ImagePipeline {
     public let configuration: Configuration
     public var cache: ImagePipeline.Cache { ImagePipeline.Cache(pipeline: self) }
     // Deprecated in 10.0.0
