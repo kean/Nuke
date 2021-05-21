@@ -53,4 +53,13 @@ class ImagePipelinePublisherTests: XCTestCase {
         XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
         XCTAssertEqual(image.nk_test_processorIDs, ["1"])
     }
+
+    func testImageRequestWithPublisher() {
+        // GIVEN
+        let request = ImageRequest(id: "a", data: Just(Test.data))
+
+        // THEN
+        XCTAssertNil(request.urlRequest)
+        XCTAssertNil(request.url)
+    }
 }

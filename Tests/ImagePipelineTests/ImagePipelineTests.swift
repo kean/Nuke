@@ -472,7 +472,7 @@ class ImagePipelineTests: XCTestCase {
     }
 
     func testProcessingFailedErrorReturned() {
-        // Given
+        // GIVEN
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
             return
@@ -480,7 +480,7 @@ class ImagePipelineTests: XCTestCase {
 
         let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
 
-        // When/Then
+        // WHEN/THEM
         expect(pipeline).toFailRequest(request) { result in
             guard case .failure(let error) = result,
                   case .processingFailed(let processor) = error else {
