@@ -54,6 +54,44 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertNil(cache[Test.request])
     }
 
+    func testSubscriptRemove() {
+        // GIVEN
+        cache[Test.request] = Test.container
+
+        // WHEN
+        cache[Test.request] = nil
+
+        // THEN
+        XCTAssertNil(cache[Test.request])
+    }
+
+    func testSubscriptStoringPreviewWhenDisabled() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.isStoringPreviewsInMemoryCache = false
+        }
+
+        // WHEN
+        cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
+
+        // THEN
+        XCTAssertNil(cache[Test.request])
+    }
+
+    func testSubscriptStoringPreviewWhenEnabled() throws {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.isStoringPreviewsInMemoryCache = true
+        }
+
+        // WHEN
+        cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
+
+        // THEN
+        let response = try XCTUnwrap(cache[Test.request])
+        XCTAssertTrue(response.isPreview)
+    }
+
     // MARK: Cached Image
 
     func testGetCachedImageDefaultFromMemoryCache() {
@@ -239,6 +277,29 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
 
+    func testStoreCacheDataWhenNoDataCache() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.dataCache = nil
+        }
+
+        // WHEN
+        cache.storeCachedData(Test.data, for: Test.request)
+
+        // THEN just make sure it doesn't do anything weird
+        XCTAssertNil(cache.cachedData(for: Test.request))
+    }
+
+    func testGetCachedDataWhenNoDataCache() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.dataCache = nil
+        }
+
+        // THEN just make sure it doesn't do anything weird
+        XCTAssertNil(cache.cachedData(for: Test.request))
+    }
+
     // MARK: Contains
 
     func testContainsWhenStoredInMemoryCache() {
@@ -280,6 +341,16 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // WHEN/THEN
         XCTAssertTrue(cache.containsData(for: Test.request))
+    }
+
+    func testContainsDataWithNoDataCache() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.dataCache = nil
+        }
+
+        // WHEN/THEN
+        XCTAssertFalse(cache.containsData(for: Test.request))
     }
 
     // MARK: Remove
