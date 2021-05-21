@@ -74,8 +74,9 @@ struct TestExpectationImagePipeline {
     }
 
     @discardableResult
-    func toLoadData(with request: ImageRequest) -> TestRecorededDataTask {
+    func toLoadData(with request: ImageRequestConvertible) -> TestRecorededDataTask {
         let record = TestRecorededDataTask()
+        let request = request.asImageRequest()
         let expectation = test.expectation(description: "Data loaded for \(request)")
         record._task = pipeline.loadData(with: request, progress: nil) { result in
             XCTAssertTrue(Thread.isMainThread)
