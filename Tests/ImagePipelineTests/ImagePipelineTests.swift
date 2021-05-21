@@ -490,4 +490,12 @@ class ImagePipelineTests: XCTestCase {
         }
         wait()
     }
+
+    func testImageContainerUserInfo() { // Just to make sure we have 100% coverage
+        // WHEN
+        let container = ImageContainer(image: Test.image, type: nil, isPreview: false, data: nil, userInfo: [.init("a"): 1])
+
+        // THEN
+        XCTAssertEqual(container.userInfo["a"] as? Int, 1)
+    }
 }
