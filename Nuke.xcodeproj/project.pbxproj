@@ -139,7 +139,6 @@
 		0CC6271525BDF7A100466F04 /* ImagePipelineImageCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6271425BDF7A100466F04 /* ImagePipelineImageCacheTests.swift */; };
 		0CC6272125BDF7EA00466F04 /* ImageRequestConvertibleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6272025BDF7EA00466F04 /* ImageRequestConvertibleTests.swift */; };
 		0CC6276725C0A18300466F04 /* TaskPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6276625C0A18300466F04 /* TaskPerformanceTests.swift */; };
-		0CC6277225C0A29500466F04 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C505B6B2286F3AD006D5399 /* Task.swift */; };
 		0CC6278925C100AA00466F04 /* ImagePipelinePerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6278825C100AA00466F04 /* ImagePipelinePerformanceTests.swift */; };
 		0CC6279025C100BC00466F04 /* ImageViewPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6278F25C100BC00466F04 /* ImageViewPerformanceTests.swift */; };
 		0CC6279725C100CE00466F04 /* ImageRequestPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6279625C100CE00466F04 /* ImageRequestPerformanceTests.swift */; };
@@ -1131,7 +1130,6 @@
 				0CC6279E25C100E300466F04 /* ImageCachePerformanceTests.swift in Sources */,
 				0CC6276725C0A18300466F04 /* TaskPerformanceTests.swift in Sources */,
 				0C3261F51FEBC232009276AC /* MockDataLoader.swift in Sources */,
-				0CC6277225C0A29500466F04 /* Task.swift in Sources */,
 				0CC627A525C100FA00466F04 /* ImageProcessingPerformanceTests.swift in Sources */,
 				0C8D7BF51D9DC07E00D12EB7 /* DataCachePeformanceTests.swift in Sources */,
 				0CC6279025C100BC00466F04 /* ImageViewPerformanceTests.swift in Sources */,
