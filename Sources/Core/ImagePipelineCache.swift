@@ -118,9 +118,8 @@ extension ImagePipeline {
             let key = makeImageCacheKey(for: request)
             if let imageCache = pipeline.imageCache {
                 return imageCache[key] // Fast path for a default cache (no protocol call)
-            } else {
-                return configuration.imageCache?[key]
             }
+            return configuration.imageCache?[key]
         }
 
         private func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) {

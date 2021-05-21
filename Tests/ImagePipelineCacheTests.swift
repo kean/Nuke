@@ -92,6 +92,28 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertTrue(response.isPreview)
     }
 
+    func testSubscriptWhenNoImageCache() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.imageCache = nil
+        }
+        cache[Test.request] = Test.container
+
+        // THEN
+        XCTAssertNil(cache[Test.request])
+    }
+
+    func testSubscriptWithRealImageCache() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.imageCache = ImageCache()
+        }
+        cache[Test.request] = Test.container
+
+        // THEN
+        XCTAssertNotNil(cache[Test.request])
+    }
+
     // MARK: Cached Image
 
     func testGetCachedImageDefaultFromMemoryCache() {
@@ -209,6 +231,17 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertNil(cache.cachedData(for: Test.request))
     }
 
+    func testGetCachedImageWhenNoDecoder() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in nil }
+        }
+        cache.storeCachedData(Test.data, for: Test.url)
+
+        // THEM
+        XCTAssertNil(cache.cachedImage(for: Test.url, caches: [.disk]))
+    }
+
     // MARK: Store Cached Image
 
     func testStoreCachedImageMemoryCache() {
@@ -249,6 +282,8 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertNotNil(cache.cachedImage(for: request, caches: [.disk]))
         XCTAssertNotNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
+
+    // MARK: Cached Data
 
     func testStoreCachedData() {
         // WHEN
@@ -298,6 +333,7 @@ class ImagePipelineCacheTests: XCTestCase {
 
         // THEN just make sure it doesn't do anything weird
         XCTAssertNil(cache.cachedData(for: Test.request))
+        cache.removeCachedData(for: Test.request)
     }
 
     // MARK: Contains
@@ -366,6 +402,7 @@ class ImagePipelineCacheTests: XCTestCase {
         // THEN
         XCTAssertNil(cache.cachedImage(for: request))
         XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
+        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: Test.url)])
     }
 
     func testRemoveFromDiskCache() {
@@ -379,6 +416,7 @@ class ImagePipelineCacheTests: XCTestCase {
         // THEN
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
         XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: Test.url)))
     }
 
     func testRemoveFromAllCaches() {
@@ -429,5 +467,14 @@ class ImagePipelineCacheTests: XCTestCase {
 
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
         XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
+    }
+
+    // MARK: ImageRequestConvertible
+
+    func testMakeSureAllAPIsAreAvailable() {
+        cache["https://example.com/image.jpeg"] = nil
+        cache[URL(string: "https://example.com/image.jpeg")!] = nil
+        cache[URLRequest(url: URL(string: "https://example.com/image.jpeg")!)] = nil
+        cache[ImageRequest(url: URL(string: "https://example.com/image.jpeg")!)] = nil
     }
 }
