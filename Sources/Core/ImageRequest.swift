@@ -83,13 +83,13 @@ public struct ImageRequest: CustomStringConvertible {
 
         /// By default, a pipeline uses URLs as unique image identifiers for
         /// caching and task coalescing. You can override this behavior by
-        /// providing an `imageId` instead. For example, you can use it to remove
+        /// providing an `imageIdKey` instead. For example, you can use it to remove
         /// transient query parameters from the request.
         ///
         /// ```
         /// let request = ImageRequest(
         ///     url: URL(string: "http://example.com/image.jpeg?token=123")!,
-        ///     userInfo: [.imageId: "http://example.com/image.jpeg"]
+        ///     userInfo: [.imageIdKey: "http://example.com/image.jpeg"]
         /// )
         /// ```
         public static let imageIdKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
