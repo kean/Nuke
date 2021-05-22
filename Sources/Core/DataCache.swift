@@ -383,7 +383,7 @@ public final class DataCache: DataCaching {
             return // All good, no need to perform any work.
         }
 
-        let sizeLimit = Int(Double(self.sizeLimit) * trimRatio)
+        let targetSizeLimit = Int(Double(self.sizeLimit) * trimRatio)
 
         // Most recently accessed items first
         let past = Date.distantPast
@@ -392,7 +392,7 @@ public final class DataCache: DataCaching {
         }
 
         // Remove the items until it satisfies both size and count limits.
-        while size > sizeLimit, let item = items.popLast() {
+        while size > targetSizeLimit, let item = items.popLast() {
             size -= (item.meta.totalFileAllocatedSize ?? 0)
             try? FileManager.default.removeItem(at: item.url)
         }

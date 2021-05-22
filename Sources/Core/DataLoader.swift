@@ -102,7 +102,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     public func loadData(with request: URLRequest,
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
                          completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
-        return loadData(with: request, isConfined: false, didReceiveData: didReceiveData, completion: completion)
+        loadData(with: request, isConfined: false, didReceiveData: didReceiveData, completion: completion)
     }
 
     func loadData(with request: URLRequest,
