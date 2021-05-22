@@ -11,6 +11,7 @@ class ImagePipelinePublisherTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var imageCache: MockImageCache!
     var dataCache: MockDataCache!
+    var observer: ImagePipelineObserver!
     var pipeline: ImagePipeline!
 
     override func setUp() {
@@ -19,7 +20,8 @@ class ImagePipelinePublisherTests: XCTestCase {
         dataLoader = MockDataLoader()
         imageCache = MockImageCache()
         dataCache = MockDataCache()
-        pipeline = ImagePipeline {
+        observer = ImagePipelineObserver()
+        pipeline = ImagePipeline(delegate: observer) {
             $0.dataLoader = dataLoader
             $0.imageCache = imageCache
             $0.dataCache = dataCache
@@ -61,6 +63,19 @@ class ImagePipelinePublisherTests: XCTestCase {
         // THEN
         XCTAssertNil(request.urlRequest)
         XCTAssertNil(request.url)
+    }
+
+    func testCancellation() {
+        // GIVEN
+        dataLoader.isSuspended = true
+
+        // WHEN
+        let cancellable = pipeline
+            .imagePublisher(with: Test.request)
+            .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
+        expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
+        cancellable.cancel()
+        wait()
     }
 
     // MARK: ImageRequestConvertible
