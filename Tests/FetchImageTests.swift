@@ -10,6 +10,7 @@ class FetchImageTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var imageCache: MockImageCache!
     var dataCache: MockDataCache!
+    var observer: ImagePipelineObserver!
     var pipeline: ImagePipeline!
     var image: FetchImage!
 
@@ -18,9 +19,10 @@ class FetchImageTests: XCTestCase {
 
         dataLoader = MockDataLoader()
         imageCache = MockImageCache()
+        observer = ImagePipelineObserver()
         dataCache = MockDataCache()
 
-        pipeline = ImagePipeline {
+        pipeline = ImagePipeline(delegate: observer) {
             $0.dataLoader = dataLoader
             $0.imageCache = imageCache
             $0.dataCache = dataCache
@@ -30,10 +32,9 @@ class FetchImageTests: XCTestCase {
         image.pipeline = pipeline
     }
 
-    #warning("flaky")
-    func _testImageLoaded() throws {
+    func testImageLoaded() throws {
         // RECORD
-        let record = expect(image.$result.dropFirst()).toPublishSingleValue()
+        let record = expect(image.$result).toPublishSingleValue()
 
         // WHEN
         image.load(Test.request)
@@ -46,8 +47,7 @@ class FetchImageTests: XCTestCase {
         XCTAssertNotNil(image.view)
     }
 
-    #warning("flaky")
-    func _testIsLoadingUpdated() {
+    func testIsLoadingUpdated() {
         // RECORD
         expect(image.$result.dropFirst()).toPublishSingleValue()
         let isLoading = record(image.$isLoading)
@@ -75,8 +75,7 @@ class FetchImageTests: XCTestCase {
         XCTAssertNotNil(image.image)
     }
 
-    #warning("flaky")
-    func _testPriorityUpdated() {
+    func testPriorityUpdated() {
         let queue = pipeline.configuration.dataCachingQueue
         queue.isSuspended = true
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
@@ -148,5 +147,25 @@ class FetchImageTests: XCTestCase {
         let response = try XCTUnwrap(result.value)
         XCTAssertEqual(response.cacheType, .memory)
         XCTAssertNotNil(image.image)
+    }
+
+    func testRequestCancelledWhenTargetGetsDeallocated() {
+        dataLoader.isSuspended = true
+
+        // Wrap everything in autorelease pool to make sure that imageView
+        // gets deallocated immediately.
+        autoreleasepool {
+            // Given an image view with an associated image task
+            expectNotification(ImagePipelineObserver.didStartTask, object: observer)
+            image.load(pipeline.imagePublisher(with: Test.request))
+            wait()
+
+            // Expect the task to be cancelled automatically
+            expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
+
+            // When the fetch image instance is deallocated
+            image = nil
+        }
+        wait()
     }
 }
