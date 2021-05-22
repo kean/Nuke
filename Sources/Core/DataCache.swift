@@ -92,7 +92,7 @@ public final class DataCache: DataCaching {
     private var staging = Staging()
     private var isFlushNeeded = false
     private var isFlushScheduled = false
-    var flushInterval: DispatchTimeInterval = .seconds(2)
+    var flushInterval: DispatchTimeInterval = .seconds(1)
 
     /// A queue which is used for disk I/O.
     public let queue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue", qos: .utility)
