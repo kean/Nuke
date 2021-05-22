@@ -87,8 +87,8 @@ extension ImagePipeline {
         public var isDecompressionEnabled = true
         #endif
 
-        /// `.storeOriginalImageData` by default.
-        public var dataCachePolicy = DataCachePolicy.storeOriginalImageData
+        /// `.storeOriginalData` by default.
+        public var dataCachePolicy = DataCachePolicy.storeOriginalData
 
         /// Determines what images are stored in the disk cache.
         public enum DataCachePolicy {
@@ -104,7 +104,7 @@ extension ImagePipeline {
 
             /// For all requests, only store the original image data, unless
             /// the resource is local (file:// or data:// scheme is used).
-            case storeOriginalImageData
+            case storeOriginalData
 
             /// For all requests, encode and store decoded images after all
             /// processors are applied.
@@ -131,7 +131,7 @@ extension ImagePipeline {
                 if items == [.finalImage] {
                     dataCachePolicy = .storeEncodedImages
                 } else if items == [.originalImageData] {
-                    dataCachePolicy = .storeOriginalImageData
+                    dataCachePolicy = .storeOriginalData
                 } else if items == [.finalImage, .originalImageData] {
                     dataCachePolicy = .storeAll
                 }

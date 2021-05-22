@@ -160,7 +160,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
             return false
         }
-        return policy == .storeOriginalImageData || policy == .storeAll || (policy == .automatic && imageTasks.contains { $0.request.processors.isEmpty })
+        return policy == .storeOriginalData || policy == .storeAll || (policy == .automatic && imageTasks.contains { $0.request.processors.isEmpty })
     }
 
     private func tryToSaveResumableData() {

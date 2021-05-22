@@ -252,12 +252,12 @@ extension ImagePipelineLoadDataTests {
         XCTAssertEqual(dataCache.store.count, 1)
     }
 
-    // MARK: DataCachPolicy.storeOriginalImageData
+    // MARK: DataCachPolicy.storeOriginalData
 
-    func testPolicyStoreOriginalImageDataGivenRequestWithProcessors() {
+    func testPolicystoreOriginalDataGivenRequestWithProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeOriginalImageData
+            $0.dataCachePolicy = .storeOriginalData
         }
 
         // GIVEN request with a processor
@@ -274,10 +274,10 @@ extension ImagePipelineLoadDataTests {
         XCTAssertEqual(dataCache.store.count, 1)
     }
 
-    func testPolicyStoreOriginalImageDataGivenRequestWithoutProcessors() {
+    func testPolicystoreOriginalDataGivenRequestWithoutProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeOriginalImageData
+            $0.dataCachePolicy = .storeOriginalData
         }
 
         // GIVEN request without a processor
@@ -294,10 +294,10 @@ extension ImagePipelineLoadDataTests {
         XCTAssertEqual(dataCache.store.count, 1)
     }
 
-    func testPolicyStoreOriginalImageDataGivenTwoRequests() {
+    func testPolicystoreOriginalDataGivenTwoRequests() {
         // GIVEN
         pipeline = pipeline.reconfigured {
-            $0.dataCachePolicy = .storeOriginalImageData
+            $0.dataCachePolicy = .storeOriginalData
         }
 
         // WHEN
