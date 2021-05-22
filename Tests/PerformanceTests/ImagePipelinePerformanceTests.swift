@@ -39,9 +39,6 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             var finished: Int = 0
             let semaphore = DispatchSemaphore(value: 0)
             for url in urls {
-                var request = ImageRequest(url: url)
-                request.processors = [] // Remove processing time from equation
-
                 pipeline.loadImage(with: url, queue: callbackQueue, progress: nil) { _ in
                     finished += 1
                     if finished == urls.count {
