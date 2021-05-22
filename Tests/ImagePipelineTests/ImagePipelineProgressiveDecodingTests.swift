@@ -9,12 +9,14 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     private var dataLoader: MockProgressiveDataLoader!
     private var pipeline: ImagePipeline!
     private var cache: MockImageCache!
+    private var processorsFactory: MockProcessorFactory!
 
     override func setUp() {
         dataLoader = MockProgressiveDataLoader()
         ResumableDataStorage.shared.removeAll()
 
         cache = MockImageCache()
+        processorsFactory = MockProcessorFactory()
 
         // We make two important assumptions with this setup:
         //
@@ -317,38 +319,6 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         wait()
     }
 
-    func testBackpressureImageProcessing() {
-        let queue = pipeline.configuration.imageProcessingQueue
-
-        // When we receive progressive image data at a higher rate that we can
-        // process (we suspended the queue in test) we don't try to process
-        // new scans until we finished processing the first one.
-
-        queue.isSuspended = true
-        expect(queue).toFinishWithEnqueuedOperationCount(2) // 1 partial, 1 final
-
-        let finalLoaded = self.expectation(description: "Final image produced")
-
-        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
-        pipeline.loadImage(
-            with: request,
-            progress: { image, _, _ in
-                if image != nil {
-                    // We don't expect partial to finish, because as soon as
-                    // we create operation to create final image, partial
-                    // operations is going to be finished before even starting
-                }
-                self.dataLoader.resume()
-            },
-            completion: { result in
-                XCTAssertTrue(result.isSuccess)
-                finalLoaded.fulfill()
-            }
-        )
-
-        wait()
-    }
-
     func testBackpressureProcessingImageProcessingOperationCancelled() throws {
         // Given
         let imageProcessingQueue = pipeline.configuration.imageProcessingQueue
@@ -393,6 +363,37 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         // Then final image is loaded
         expectNotification(imageLoadCompleted)
         imageProcessingQueue.isSuspended = false
+        wait()
+    }
+
+    // MARK: Memory Cache
+
+    func testIntermediateMemoryCachedResultsAreDelivered() {
+        // GIVEN intermediate result stored in memory cache
+        let request = ImageRequest(url: Test.url, processors: [
+            processorsFactory.make(id: "1"),
+            processorsFactory.make(id: "2")
+        ])
+        let intermediateRequest = ImageRequest(url: Test.url, processors: [
+            processorsFactory.make(id: "1")
+        ])
+        cache[intermediateRequest] = ImageContainer(image: Test.image, isPreview: true)
+
+        pipeline.configuration.dataLoadingQueue.isSuspended = true // Make sure no data is loaded
+
+        // WHEN/THEN the pipeline find the first preview in the memory cache,
+        // applies the remaining processors and delivers it
+        let previewDelivered = self.expectation(description: "previewDelivered")
+        pipeline.loadImage(with: request) { response, _, _ in
+            guard let response = response else {
+                return XCTFail()
+            }
+            XCTAssertEqual(response.image.nk_test_processorIDs, ["2"])
+            XCTAssertTrue(response.container.isPreview)
+            previewDelivered.fulfill()
+        } completion: { _ in
+            // Do nothing
+        }
         wait()
     }
 }

@@ -5,14 +5,13 @@
 # Powerful Image Loading System
 
 <p align="left">
-<img src="https://img.shields.io/cocoapods/v/Nuke.svg?label=version">
 <img src="https://img.shields.io/badge/platforms-iOS%2C%20macOS%2C%20watchOS%2C%20tvOS-lightgrey.svg">
 <img src="https://github.com/kean/Nuke/workflows/Nuke%20CI/badge.svg">
 </p>
 
 Nuke provides a simple and efficient way to download and display images in your app.
 
-Behind Nuke's clear and concise API is an advanced architecture that enables its unique features and offers virtually unlimited possibilities for customization. Despite the number of features, the framework is lean and compiles in under 2 seconds. Nuke's primary feature is [performance](https://kean.blog/post/nuke-9).
+Behind Nuke's clear and concise API is an advanced architecture that enables its unique features and offers virtually unlimited possibilities for customization. Despite the great number of features, the framework is lean and compiles in under 2 seconds. Nuke's primary feature is [performance](https://kean.blog/post/nuke-9).
 
 > **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Elegant builder API** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG, HEIF, WebP, SVG, GIF** · **Alamofire** · **Combine** · **Reactive extensions**
 
@@ -38,7 +37,6 @@ The image pipeline is easy to customize and extend. Check out the following firs
 
 |Name|Description|
 |--|--|
-|[**FetchImage**](https://github.com/kean/FetchImage)|SwiftUI integration|
 |[**ImageTaskBuilder**](https://github.com/kean/ImageTaskBuilder)|A fun and convenient way to use Nuke|
 |[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire)|
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples|
@@ -57,8 +55,8 @@ The image pipeline is easy to customize and extend. Check out the following firs
 
 | Nuke          | Swift           | Xcode           | Platforms                                         |
 |---------------|-----------------|-----------------|---------------------------------------------------|
+| Nuke 10.0      | Swift 5.3       | Xcode 12.0      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
 | Nuke 9.0      | Swift 5.1       | Xcode 11.0      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
-| Nuke 8.0      | Swift 5.0       | Xcode 10.2      | iOS 10.0 / watchOS 3.0 / macOS 10.12 / tvOS 10.0  |
 
 See [Installation Guide](https://github.com/kean/Nuke/blob/9.6.0/Documentation/Guides/installation-guide.md#h_requirements) for information about the older versions.
 

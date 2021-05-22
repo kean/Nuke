@@ -22,6 +22,13 @@ class ImagePipelineConfigurationTests: XCTestCase {
         wait()
     }
 
+    // MARK: DataCache
+
+    func testWithDataCache() {
+        let pipeline = ImagePipeline(configuration: .withDataCache)
+        XCTAssertNotNil(pipeline.configuration.dataCache)
+    }
+
     // MARK: Changing Callback Queue
 
     func testChangingCallbackQueueLoadImage() {
@@ -72,5 +79,10 @@ class ImagePipelineConfigurationTests: XCTestCase {
             expectation.fulfill()
         })
         wait()
+    }
+
+    func testEnablingSignposts() {
+        ImagePipeline.Configuration.isSignpostLoggingEnabled = false // Just padding
+        ImagePipeline.Configuration.isSignpostLoggingEnabled = true
     }
 }   

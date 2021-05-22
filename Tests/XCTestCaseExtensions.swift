@@ -4,6 +4,7 @@
 
 import XCTest
 import Foundation
+import Combine
 
 extension XCTestCase {
     @discardableResult
@@ -13,6 +14,64 @@ extension XCTestCase {
 
     func wait(_ timeout: TimeInterval = 10, handler: XCWaitCompletionHandler? = nil) {
         self.waitForExpectations(timeout: timeout, handler: handler)
+    }
+}
+
+// MARK: - Publishers
+
+@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
+extension XCTestCase {
+    func expect<P: Publisher>(_ publisher: P) -> TestExpectationPublisher<P> {
+        TestExpectationPublisher(test: self, publisher: publisher)
+    }
+
+    func record<P: Publisher>(_ publisher: P) -> TestRecordedPublisher<P> {
+        let record = TestRecordedPublisher<P>()
+        publisher.sink(receiveCompletion: {
+            record.completion = $0
+        }, receiveValue: {
+            record.values.append($0)
+        }).store(in: &cancellables)
+        return record
+    }
+
+    private static var cancellablesAK = "TestExpectationPublisher.AssociatedKey"
+
+    fileprivate var cancellables: [AnyCancellable] {
+        get { (objc_getAssociatedObject(self, &XCTestCase.cancellablesAK) as? [AnyCancellable]) ?? [] }
+        set { objc_setAssociatedObject(self, &XCTestCase.cancellablesAK, newValue, .OBJC_ASSOCIATION_RETAIN) }
+    }
+}
+
+@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
+struct TestExpectationPublisher<P: Publisher> {
+    let test: XCTestCase
+    let publisher: P
+
+    @discardableResult
+    func toPublishSingleValue() -> TestRecordedPublisher<P> {
+        let record = TestRecordedPublisher<P>()
+        let expectation = test.expectation(description: "ValueEmitted")
+        publisher.sink(receiveCompletion: { _ in
+            // Do nothing
+        }, receiveValue: {
+            guard record.values.isEmpty else {
+                return XCTFail("Already emitted value")
+            }
+            record.values.append($0)
+            expectation.fulfill()
+        }).store(in: &test.cancellables)
+        return record
+    }
+}
+
+@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
+final class TestRecordedPublisher<P: Publisher> {
+    fileprivate(set) var values = [P.Output]()
+    fileprivate(set) var completion: Subscribers.Completion<P.Failure>?
+
+    var last: P.Output? {
+        values.last
     }
 }
 

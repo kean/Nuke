@@ -5,186 +5,169 @@
 import XCTest
 @testable import Nuke
 
-class ImagePrefetcherTests: XCTestCase {
-    var pipeline: MockImagePipeline!
-    var prefetcher: ImagePrefetcher!
+final class ImagePrefetcherTests: XCTestCase {
+    private var pipeline: ImagePipeline!
+    private var dataLoader: MockDataLoader!
+    private var dataCache: MockDataCache!
+    private var imageCache: MockImageCache!
+    private var observer: ImagePipelineObserver!
+    private var prefetcher: ImagePrefetcher!
 
     override func setUp() {
         super.setUp()
 
-        pipeline = MockImagePipeline {
-            $0.imageCache = nil
+        dataLoader = MockDataLoader()
+        dataCache = MockDataCache()
+        imageCache = MockImageCache()
+        observer = ImagePipelineObserver()
+        pipeline = ImagePipeline(delegate: observer) {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+            $0.dataCache = dataCache
         }
         prefetcher = ImagePrefetcher(pipeline: pipeline)
     }
 
-    // MARK: Starting Prefetching
+    override func tearDown() {
+        super.tearDown()
 
-    func testStartPrefetchingWithTheSameRequests() {
-        pipeline.operationQueue.isSuspended = true
-
-        // When starting prefetching for the same requests (same cacheKey, loadKey).
-        expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(1)
-
-        let request = Test.request
-        prefetcher.startPrefetching(with: [request])
-        prefetcher.startPrefetching(with: [request])
-
-        wait()
+        observer = nil
     }
 
-    func testStartPrefetchingWithDifferentProcessors() {
-        pipeline.operationQueue.isSuspended = true
+    // MARK: Basics
 
-        // When starting prefetching for the requests with the same URL (same loadKey)
-        // but different processors (different cacheKey).
-        expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(2)
+    /// Start prefetching for the request and then request an image separarely.
+    func testBasicScenario() {
+        dataLoader.isSuspended = true
 
-        prefetcher.startPrefetching(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])])
-        prefetcher.startPrefetching(with: [ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "2", { $0 })])])
-
+        expect(prefetcher.queue).toEnqueueOperationsWithCount(1)
+        prefetcher.startPrefetching(with: [Test.url])
         wait()
+
+        expect(pipeline).toLoadImage(with: Test.url)
+        pipeline.queue.async {
+            self.dataLoader.isSuspended = false
+        }
+        wait()
+
+        // THEN
+        XCTAssertEqual(dataLoader.createdTaskCount, 1)
+        XCTAssertEqual(observer.startedTaskCount, 2)
     }
 
-    func testStartPrefetchingSameProcessorsDifferentURLRequests() {
-        pipeline.operationQueue.isSuspended = true
+    // MARK: Start Prefetching
 
-        // When starting prefetching for the requests with the same URL, but
-        // different URL requests (different loadKey) but the same processors
-        // (same cacheKey).
-        expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(2)
+    func testStartPrefetching() {
+        expectPrefetcherToComplete()
 
-        prefetcher.startPrefetching(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 100))])
-        prefetcher.startPrefetching(with: [ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 100))])
-
-        wait()
-    }
-
-    func testStartingPrefetchingWithURLS() {
-        pipeline.operationQueue.isSuspended = true
-
-        expect(pipeline.operationQueue).toFinishWithEnqueuedOperationCount(1)
-
+        // WHEN
         prefetcher.startPrefetching(with: [Test.url])
 
         wait()
+
+        // THEN image saved in both caches
+        XCTAssertNotNil(pipeline.cache[Test.url])
+        XCTAssertNotNil(pipeline.cache.cachedData(for: Test.url))
     }
 
-    // MARK: Stoping Prefetching
+    func testStartPrefetchingWithTwoEquivalentURLs() {
+        dataLoader.isSuspended = true
+        expectPrefetcherToComplete()
 
-    func testStopPrefetchingWithURLs() {
-        pipeline.operationQueue.isSuspended = true
+        // WHEN
+        prefetcher.startPrefetching(with: [Test.url])
+        prefetcher.startPrefetching(with: [Test.url])
 
+        pipeline.queue.async {
+            self.dataLoader.isSuspended = false
+        }
+        wait()
+
+        // THEN only one task is started
+        XCTAssertEqual(observer.startedTaskCount, 1)
+    }
+
+    func testWhenImageIsInMemoryCacheNoTaskStarted() {
+        dataLoader.isSuspended = true
+
+        // GIVEN
+        pipeline.cache[Test.url] = Test.container
+
+        // WHEN
+        prefetcher.startPrefetching(with: [Test.url])
+        pipeline.queue.sync {}
+
+        // THEN
+        XCTAssertEqual(observer.startedTaskCount, 0)
+    }
+
+    // MARK: Stop Prefetching
+
+    func testStopPrefetching() {
+        dataLoader.isSuspended = true
+
+        // WHEN
         let url = Test.url
-        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
+        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
         prefetcher.startPrefetching(with: [url])
         wait()
 
-        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
+        expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
         prefetcher.stopPrefetching(with: [url])
         wait()
     }
 
-    func testThatPrefetchingRequestsAreStopped() {
-        pipeline.operationQueue.isSuspended = true
+    // MARK: Destination
 
-        let request = Test.request
-        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        prefetcher.startPrefetching(with: [request])
-        wait()
-
-        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
-        prefetcher.stopPrefetching(with: [request])
-        wait()
-    }
-
-    func testThatEquaivalentRequestsAreStoppedWithSingleStopCall() {
-        pipeline.operationQueue.isSuspended = true
-
-        let request = Test.request
-        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        prefetcher.startPrefetching(with: [request, request])
-        wait()
-
-        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
-        prefetcher.stopPrefetching(with: [request])
-
-        wait { _ in
-            XCTAssertEqual(self.pipeline.createdTaskCount, 1, "")
+    func testStartPrefetchingDestinationDisk() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in
+                XCTFail("Expect image not to be decoded")
+                return nil
+            }
         }
+        prefetcher = ImagePrefetcher(pipeline: pipeline, destination: .diskCache)
+
+        expectPrefetcherToComplete()
+
+        // WHEN
+        prefetcher.startPrefetching(with: [Test.url])
+
+        wait()
+
+        // THEN image saved in both caches
+        XCTAssertNil(pipeline.cache[Test.url])
+        XCTAssertNotNil(pipeline.cache.cachedData(for: Test.url))
     }
 
-    func testThatAllPrefetchingRequestsAreStopped() {
-        pipeline.operationQueue.isSuspended = true
+    // MARK: Pause
 
-        let request = Test.request
-        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        prefetcher.startPrefetching(with: [request])
-        wait()
+    func testPausingPrefetcher() {
+        // WHEN
+        prefetcher.isPaused = true
+        prefetcher.startPrefetching(with: [Test.url])
 
-        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
-        prefetcher.stopPrefetching()
-        wait()
-    }
-
-    func testThatAllPrefetchingRequestsAreStoppedWhenPrefetcherIsDeallocated() {
-        pipeline.operationQueue.isSuspended = true
-
-        let request = Test.request
-        _ = expectNotification(MockImagePipeline.DidStartTask, object: pipeline)
-        prefetcher.startPrefetching(with: [request])
-        wait()
-
-        _ = expectNotification(MockImagePipeline.DidCancelTask, object: pipeline)
-        autoreleasepool {
-            prefetcher = nil
+        let expectation = self.expectation(description: "TimePassed")
+        pipeline.queue.asyncAfter(deadline: .now() + .milliseconds(10)) {
+            expectation.fulfill()
         }
         wait()
+
+        // THEN
+        XCTAssertEqual(observer.startedTaskCount, 0)
     }
 
-    // MARK: Integration Tests
-
-    func testIntegration() {
-        // Given
-        let pipeline = ImagePipeline()
-        let preheater = ImagePrefetcher(pipeline: pipeline, destination: .memoryCache, maxConcurrentRequestCount: 2)
-
-        // When
-        preheater.queue.isSuspended = true
-        expect(preheater.queue).toFinishWithEnqueuedOperationCount(1)
-        let url = Test.url(forResource: "fixture", extension: "jpeg")
-        preheater.startPrefetching(with: [url])
-        wait()
-
-        // Then
-        XCTAssertNotNil(pipeline.configuration.imageCache?[url])
-    }
-}
-
-class ImagePrefetcherPriorityTests: XCTestCase {
-    var pipeline: ImagePipeline!
-    var prefetcher: ImagePrefetcher!
-
-    override func setUp() {
-        super.setUp()
-
-        pipeline = ImagePipeline {
-            $0.imageCache = nil
-            $0.dataLoader = MockDataLoader()
-        }
-        prefetcher = ImagePrefetcher(pipeline: pipeline)
-    }
+    // MARK: Priority
 
     func testDefaultPrioritySetToLow() {
-        // Given default prefetcher
-
-        // When start prefetching with URL
+        // WHEN start prefetching with URL
         pipeline.configuration.dataLoadingQueue.isSuspended = true
         let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
         prefetcher.startPrefetching(with: [Test.url])
         wait()
 
-        // Then priority is set to .low
+        // THEN priority is set to .low
         guard let operation = observer.operations.first else {
             return XCTFail("Failed to find operation")
         }
@@ -195,9 +178,7 @@ class ImagePrefetcherPriorityTests: XCTestCase {
     }
 
     func testDefaultPriorityAffectsRequests() {
-        // Given default prefetcher
-
-        // When start prefetching with ImageRequest
+        // WHEN start prefetching with ImageRequest
         pipeline.configuration.dataLoadingQueue.isSuspended = true
         let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
         let request = Test.request
@@ -205,7 +186,7 @@ class ImagePrefetcherPriorityTests: XCTestCase {
         prefetcher.startPrefetching(with: [request])
         wait()
 
-        // Then priority is set to .low
+        // THEN priority is set to .low
         guard let operation = observer.operations.first else {
             return XCTFail("Failed to find operation")
         }
@@ -213,9 +194,7 @@ class ImagePrefetcherPriorityTests: XCTestCase {
     }
 
     func testLowerPriorityThanDefaultNotAffected() {
-        // Given default prefetcher
-
-        // When start prefetching with ImageRequest with .veryLow priority
+        // WHEN start prefetching with ImageRequest with .veryLow priority
         pipeline.configuration.dataLoadingQueue.isSuspended = true
         let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
         var request = Test.request
@@ -223,24 +202,24 @@ class ImagePrefetcherPriorityTests: XCTestCase {
         prefetcher.startPrefetching(with: [request])
         wait()
 
-        // Then priority is set to .veryLow (not changed by prefetcher)
+        // THEN priority is set to .low (prefetcher priority)
         guard let operation = observer.operations.first else {
             return XCTFail("Failed to find operation")
         }
-        XCTAssertEqual(operation.queuePriority, .veryLow)
+        XCTAssertEqual(operation.queuePriority, .low)
     }
 
     func testChangePriority() {
-        // Given
+        // GIVEN
         prefetcher.priority = .veryHigh
 
-        // When
+        // WHEN
         pipeline.configuration.dataLoadingQueue.isSuspended = true
         let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
         prefetcher.startPrefetching(with: [Test.url])
         wait()
 
-        // Then
+        // THEN
         guard let operation = observer.operations.first else {
             return XCTFail("Failed to find operation")
         }
@@ -248,7 +227,7 @@ class ImagePrefetcherPriorityTests: XCTestCase {
     }
 
     func testChangePriorityOfOutstandingTasks() {
-        // When
+        // WHEN
         pipeline.configuration.dataLoadingQueue.isSuspended = true
         let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
         prefetcher.startPrefetching(with: [Test.url])
@@ -257,9 +236,33 @@ class ImagePrefetcherPriorityTests: XCTestCase {
             return XCTFail("Failed to find operation")
         }
 
-        // When/Then
+        // WHEN/THEN
         expect(operation).toUpdatePriority(from: .low, to: .veryLow)
         prefetcher.priority = .veryLow
         wait()
+    }
+
+    // MARK: Misc
+
+    func testThatAllPrefetchingRequestsAreStoppedWhenPrefetcherIsDeallocated() {
+        pipeline.configuration.dataLoadingQueue.isSuspended = true
+
+        let request = Test.request
+        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
+        prefetcher.startPrefetching(with: [request])
+        wait()
+
+        expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
+        autoreleasepool {
+            prefetcher = nil
+        }
+        wait()
+    }
+
+    func expectPrefetcherToComplete() {
+        let expectation = self.expectation(description: "PrefecherDidComplete")
+        prefetcher.didComplete = {
+            expectation.fulfill()
+        }
     }
 }

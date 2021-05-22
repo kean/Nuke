@@ -56,7 +56,8 @@ class ImagePipelineTests: XCTestCase {
                 // Then
                 XCTAssertTrue(Thread.isMainThread)
                 expectedProgress.received((completed, total))
-            }
+            },
+            completion: { _ in }
         )
 
         wait()
@@ -169,7 +170,7 @@ class ImagePipelineTests: XCTestCase {
 
         let observer = expect(queue).toEnqueueOperationsWithCount(1)
 
-        let task = pipeline.loadImage(with: request)
+        let task = pipeline.loadImage(with: request) { _ in }
         wait() // Wait till the operation is created.
 
         // When/Then
@@ -192,7 +193,7 @@ class ImagePipelineTests: XCTestCase {
 
         let observer = expect(queue).toEnqueueOperationsWithCount(1)
 
-        let task = pipeline.loadImage(with: request)
+        let task = pipeline.loadImage(with: request) { _ in }
         wait() // Wait till the operation is created.
 
         // When/Then
@@ -215,7 +216,7 @@ class ImagePipelineTests: XCTestCase {
 
         let observer = expect(queue).toEnqueueOperationsWithCount(1)
 
-        let task = pipeline.loadImage(with: request)
+        let task = pipeline.loadImage(with: request) { _ in }
         wait() // Wait till the operation is created.
 
         // When/Then
@@ -354,8 +355,7 @@ class ImagePipelineTests: XCTestCase {
 
             XCTAssertTrue(output !== image)
 
-            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: output)
-            XCTAssertEqual(isDecompressionNeeded, false)
+            XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: output))
         }
         wait()
     }
@@ -388,8 +388,7 @@ class ImagePipelineTests: XCTestCase {
             }
 
             // Expect decompression to be performed (processor was applied but it did nothing)
-            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
-            XCTAssertEqual(isDecompressionNeeded, false)
+            XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: image))
         }
         wait()
     }
@@ -398,14 +397,15 @@ class ImagePipelineTests: XCTestCase {
 
     // MARK: - CacheKey
 
-    func testCacheKeyForOriginalData() {
-        XCTAssertEqual(pipeline.cacheKey(for: Test.request, item: .originalImageData), Test.url.absoluteString)
+    func testCacheKeyForRequest() {
+        let request = Test.request
+        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), Test.url.absoluteString)
     }
 
-    func testCacheKeyForFinalImage() {
+    func testCacheKeyForRequestWithProcessors() {
         var request = Test.request
         request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
-        XCTAssertEqual(pipeline.cacheKey(for: request, item: .finalImage), Test.url.absoluteString + "1")
+        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), Test.url.absoluteString + "1")
     }
 
     // MARK: - Invalidate
@@ -472,7 +472,7 @@ class ImagePipelineTests: XCTestCase {
     }
 
     func testProcessingFailedErrorReturned() {
-        // Given
+        // GIVEN
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
             return
@@ -480,8 +480,35 @@ class ImagePipelineTests: XCTestCase {
 
         let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
 
-        // When/Then
-        expect(pipeline).toFailRequest(request, with: .processingFailed)
+        // WHEN/THEM
+        expect(pipeline).toFailRequest(request) { result in
+            guard case .failure(let error) = result,
+                  case .processingFailed(let processor) = error else {
+                return XCTFail()
+            }
+            XCTAssertTrue(processor is MockFailingProcessor)
+        }
         wait()
+    }
+
+    func testImageContainerUserInfo() { // Just to make sure we have 100% coverage
+        // WHEN
+        let container = ImageContainer(image: Test.image, type: nil, isPreview: false, data: nil, userInfo: [.init("a"): 1])
+
+        // THEN
+        XCTAssertEqual(container.userInfo["a"] as? Int, 1)
+    }
+
+    func testErrorDescription() {
+        XCTAssertFalse(ImagePipeline.Error.dataLoadingFailed(URLError(.unknown)).description.isEmpty) // Just padding here
+        XCTAssertFalse(ImagePipeline.Error.decodingFailed.description.isEmpty)
+
+        let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
+        let error = ImagePipeline.Error.processingFailed(processor)
+        let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)"
+        XCTAssertEqual(error.description, expected)
+        XCTAssertEqual("\(error)", expected)
+
+        XCTAssertNil(error.dataLoadingError)
     }
 }

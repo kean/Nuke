@@ -368,7 +368,55 @@ class DataCacheTests: XCTestCase {
         XCTAssertEqual(cache.contents, [cache.url(for: "key1")].compactMap { $0 })
     }
 
+    // MARK: Sweep
+
+    func testSweep() {
+        // GIVEN
+        let mb = 1024 * 1024 // allocated size is usually about 4 KB on APFS, so use 1 MB just to be sure
+        cache.sizeLimit = mb * 3
+        cache["key1"] = Data(repeating: 1, count: mb)
+        cache["key2"] = Data(repeating: 1, count: mb)
+        cache["key3"] = Data(repeating: 1, count: mb)
+        cache["key4"] = Data(repeating: 1, count: mb)
+        cache.flush()
+
+        // WHEN
+        cache.sweep()
+
+        // THEN
+        XCTAssertEqual(cache.totalSize, mb * 2)
+    }
+
     // MARK: Inspection
+
+    func testContainsData() {
+        // GIVEN
+        cache["key"] = blob
+        cache.flush(for: "key")
+
+        // WHEN/THEN
+        XCTAssertTrue(cache.containsData(for: "key"))
+    }
+
+    func testContainsDataInStaging() {
+        // GIVEN
+        cache.flushInterval = .seconds(20)
+        cache["key"] = blob
+
+        // WHEN/THEN
+        XCTAssertTrue(cache.containsData(for: "key"))
+    }
+
+    func testContainsDataAfterRemoval() {
+        // GIVEN
+        cache.flushInterval = .seconds(20)
+        cache["key"] = blob
+        cache.flush(for: "key")
+        cache["key"] = nil
+
+        // WHEN/THEN
+        XCTAssertFalse(cache.containsData(for: "key"))
+    }
 
     func testTotalCount() {
         XCTAssertEqual(cache.totalCount, 0)

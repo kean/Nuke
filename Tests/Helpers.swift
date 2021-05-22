@@ -60,7 +60,8 @@ enum Test {
 
     static let response = ImageResponse(
         container: .init(image: Test.image),
-        urlResponse: urlResponse
+        urlResponse: urlResponse,
+        cacheType: nil
     )
 
     static func save(_ image: PlatformImage) {

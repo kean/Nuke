@@ -67,9 +67,11 @@ class ThreadSafetyTests: XCTestCase {
     }
 
     func testPrefetcherThreadSafety() {
-        let pipeline = MockImagePipeline {
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
             $0.imageCache = nil
         }
+
         let prefetcher = ImagePrefetcher(pipeline: pipeline)
 
         func makeRequests() -> [ImageRequest] {
@@ -209,9 +211,6 @@ final class RandomizedTests: XCTestCase {
             if every(3) {
                 let size = every(2) ? CGSize(width: 40, height: 40) : CGSize(width: 60, height: 60)
                 request.processors = [ImageProcessors.Resize(size: size, contentMode: .aspectFit)]
-            }
-            if every(10) {
-                request.options.loadKey = url
             }
             return request
         }

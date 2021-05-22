@@ -21,11 +21,13 @@ class MockDataLoader: DataLoading {
     var createdTaskCount = 0
     var results = [URL: Result<(Data, URLResponse), NSError>]()
     let queue = OperationQueue()
+    var isSuspended: Bool {
+        get { queue.isSuspended }
+        set { queue.isSuspended = newValue }
+    }
 
     func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = MockDataTask()
-
-        print("retry")
 
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
 
@@ -56,9 +58,5 @@ class MockDataLoader: DataLoading {
         }
 
         return task
-    }
-
-    func removeData(for request: URLRequest) {
-        
     }
 }

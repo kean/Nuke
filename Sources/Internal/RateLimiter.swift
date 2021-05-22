@@ -59,7 +59,8 @@ final class RateLimiter {
         // bucket is refilled to a point that is able to execute at least one
         // pending task. With a rate of 80 tasks we expect a refill every ~26 ms
         // or as soon as the new tasks are added.
-        let delay = Int(2.1 * (1000 / bucket.rate)) // 14 ms for rate 80 (default)
+        let bucketRate = 1000.0 / bucket.rate
+        let delay = Int(2.1 * bucketRate) // 14 ms for rate 80 (default)
         let bounds = min(100, max(15, delay))
         queue.asyncAfter(deadline: .now() + .milliseconds(bounds), execute: executePendingTasks)
     }

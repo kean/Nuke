@@ -70,7 +70,7 @@ class ImageDecoderTests: XCTestCase {
             #endif
         }
         XCTAssertEqual(decoder.numberOfScans, 2)
-        XCTAssertEqual(scan1?.userInfo[ImageDecoders.Default.scanNumberKey] as? Int, 2)
+        XCTAssertEqual(scan1?.userInfo[.scanNumberKey] as? Int, 2)
 
         // Feed all data and see how many scans are there
         // In practice the moment we finish receiving data we call

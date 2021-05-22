@@ -22,7 +22,7 @@ private struct AssociatedKeys {
 
 // MARK: - MockImageProcessor
 
-class MockImageProcessor: ImageProcessing {
+class MockImageProcessor: ImageProcessing, CustomStringConvertible {
     var identifier: String
 
     init(id: String) {
@@ -42,6 +42,10 @@ class MockImageProcessor: ImageProcessing {
         processorIDs.append(identifier)
         processedImage.nk_test_processorIDs = processorIDs
         return processedImage
+    }
+
+    var description: String {
+        "MockImageProcessor(id: \(identifier))"
     }
 }
 
