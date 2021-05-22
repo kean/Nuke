@@ -51,6 +51,7 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
         XCTAssertNil(processor.process(input))
     }
 
+    #if os(iOS) || os(tvOS)
     func testApplyFilterToCIImage() throws {
         // GIVEN image backed by CIImage
         let input = PlatformImage(ciImage: CIImage(cgImage: Test.image.cgImage!))
@@ -62,6 +63,7 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
         // THEN
         XCTAssertNotNil(output)
     }
+    #endif
 
     func testApplyFilterBackedByNothing() throws {
         // GIVEN empty image

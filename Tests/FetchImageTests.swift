@@ -34,7 +34,7 @@ class FetchImageTests: XCTestCase {
 
     func testImageLoaded() throws {
         // RECORD
-        let record = expect(image.$result).toPublishSingleValue()
+        let record = expect(image.$result.dropFirst()).toPublishSingleValue()
 
         // WHEN
         image.load(Test.request)
