@@ -113,11 +113,11 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     }
 
     /// Errors produced by `DataLoader`.
-    public enum Error: Swift.Error, CustomDebugStringConvertible {
+    public enum Error: Swift.Error, CustomStringConvertible {
         /// Validation failed.
         case statusCodeUnacceptable(Int)
 
-        public var debugDescription: String {
+        public var description: String {
             switch self {
             case let .statusCodeUnacceptable(code):
                 return "Response status code was unacceptable: \(code.description)"
