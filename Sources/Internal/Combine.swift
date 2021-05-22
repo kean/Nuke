@@ -8,14 +8,6 @@ import Combine
 struct AnyPublisher<Output> {
     private let _sink: (@escaping ((PublisherCompletion) -> Void), @escaping ((Output) -> Void)) -> Cancellable
 
-    init(data: Data) where Output == Data {
-        self._sink = { onCompletion, onValue in
-            onValue(data)
-            onCompletion(.finished)
-            return NoopCancellable()
-        }
-    }
-
     @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
     init<P: Publisher>(_ publisher: P) where P.Output == Output {
         self._sink = { onCompletion, onValue in
@@ -33,12 +25,6 @@ struct AnyPublisher<Output> {
 
     func sink(receiveCompletion: @escaping ((PublisherCompletion) -> Void), receiveValue: @escaping ((Output) -> Void)) -> Cancellable {
         _sink(receiveCompletion, receiveValue)
-    }
-}
-
-private final class NoopCancellable: Cancellable {
-    func cancel() {
-        // Do nothing
     }
 }
 

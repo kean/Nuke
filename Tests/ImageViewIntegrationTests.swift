@@ -64,7 +64,7 @@ class ImageViewIntegrationTests: XCTestCase {
     // MARK: - Loading with Invalid URL
 
     func testLoadImageWithInvalidURLString() {
-        // When
+        // WHEN
         let expectation = self.expectation(description: "Image loaded")
         Nuke.loadImage(with: "http://example.com/invalid url", into: imageView) { result in
             XCTAssertNotNil(result.error?.dataLoadingError)
@@ -72,7 +72,25 @@ class ImageViewIntegrationTests: XCTestCase {
         }
         wait()
 
-        // Then
+        // THEN
+        XCTAssertNil(imageView.image)
+    }
+
+    func testLoadingWithNilURL() {
+        // GIVEN
+        var urlRequest = URLRequest(url: Test.url)
+        urlRequest.url = nil // Not sure why this is even possible
+
+        // WHEN
+        let expectation = self.expectation(description: "Image loaded")
+        Nuke.loadImage(with: urlRequest, into: imageView) { result in
+            // THEN
+            XCTAssertNotNil(result.error?.dataLoadingError)
+            expectation.fulfill()
+        }
+        wait()
+
+        // THEN
         XCTAssertNil(imageView.image)
     }
 

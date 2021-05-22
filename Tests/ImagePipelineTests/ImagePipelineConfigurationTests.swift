@@ -80,4 +80,9 @@ class ImagePipelineConfigurationTests: XCTestCase {
         })
         wait()
     }
+
+    func testEnablingSignposts() {
+        ImagePipeline.Configuration.isSignpostLoggingEnabled = false // Just padding
+        ImagePipeline.Configuration.isSignpostLoggingEnabled = true
+    }
 }   

@@ -9,19 +9,19 @@ class ImageRequestTests: XCTestCase {
     // MARK: - CoW
 
     func testCopyOnWrite() {
-        // Given
+        // GIVEN
         var request = ImageRequest(url: URL(string: "http://test.com/1.png")!)
         request.options.insert(.disableMemoryCacheReads)
         request.userInfo["key"] = "3"
         request.processors = [MockImageProcessor(id: "4")]
         request.priority = .high
 
-        // When
+        // WHEN
         var copy = request
         // Requst makes a copy at this point under the hood.
         copy.priority = .low
 
-        // Then
+        // THEN
         XCTAssertEqual(copy.options.contains(.disableMemoryCacheReads), true)
         XCTAssertEqual(copy.userInfo["key"] as? String, "3")
         XCTAssertEqual((copy.processors.first as? MockImageProcessor)?.identifier, "4")
@@ -37,6 +37,14 @@ class ImageRequestTests: XCTestCase {
         XCTAssertTrue(Priority.veryLow < Priority.veryHigh)
         XCTAssertTrue(Priority.low < Priority.normal)
         XCTAssertTrue(Priority.normal == Priority.normal)
+    }
+
+    func testUserInfoKey() {
+        // WHEN
+        let request = ImageRequest(url: Test.url, userInfo: [.init("a"): 1])
+
+        // THEN
+        XCTAssertNotNil(request.userInfo["a"])
     }
 }
 
@@ -134,7 +142,7 @@ class ImageRequestLoadKeyTests: XCTestCase {
     }
 }
 
-class ImageRequestFilteredURLTests: XCTestCase {
+class ImageRequestImageIdTests: XCTestCase {
     func testThatCacheKeyUsesAbsoluteURLByDefault() {
         let lhs = ImageRequest(url: Test.url)
         let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"))

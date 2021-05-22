@@ -67,9 +67,11 @@ class ThreadSafetyTests: XCTestCase {
     }
 
     func testPrefetcherThreadSafety() {
-        let pipeline = MockImagePipeline {
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
             $0.imageCache = nil
         }
+
         let prefetcher = ImagePrefetcher(pipeline: pipeline)
 
         func makeRequests() -> [ImageRequest] {

@@ -8,6 +8,7 @@ import XCTest
 class ImagePipelineMemoryTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
+    var prefetcher: ImagePrefetcher!
 
     override func setUp() {
         super.setUp()
@@ -18,206 +19,43 @@ class ImagePipelineMemoryTests: XCTestCase {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
         }
+
+        prefetcher = ImagePrefetcher(pipeline: pipeline)
     }
 
-    func waitAndDeinitPipeline() {
-        pipeline = nil
-        dataLoader = nil
+    func expectDeinit(_ closure: () -> Void) {
+        autoreleasepool {
+            closure()
 
-        #if TRACK_ALLOCATIONS
-        let allDeinitExpectation = self.expectation(description: "AllDeallocated")
-        Allocations.onDeinitAll {
-            allDeinitExpectation.fulfill()
+            pipeline = nil
+            dataLoader = nil
+            prefetcher = nil
+
+            #if TRACK_ALLOCATIONS
+            let allDeinitExpectation = self.expectation(description: "AllDeallocated")
+            Allocations.onDeinitAll {
+                allDeinitExpectation.fulfill()
+            }
+            #endif
         }
-        wait()
-        #endif
     }
 
     // MARK: - Completion
 
-    func testCompletionCalledAsynchronouslyOnMainThread() {
-        var isCompleted = false
-        expect(pipeline).toLoadImage(with: Test.request) { _ in
-            XCTAssert(Thread.isMainThread)
-            isCompleted = true
-        }
-        XCTAssertFalse(isCompleted)
-        wait()
-
-        // Cleanup
-        waitAndDeinitPipeline()
-    }
-
-    // MARK: - Progress
-
-    func testProgressClosureIsCalled() {
-        // Given
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
-
-        // When
-        let expectedProgress = expectProgress([(10, 20), (20, 20)])
-        let expectedCompletion = expectation(description: "ImageLoaded")
-
-        pipeline.loadImage(
-            with: ImageRequest(url: Test.url),
-            progress: { _, completed, total in
-                // Then
-                XCTAssertTrue(Thread.isMainThread)
-                expectedProgress.received((completed, total))
-            },
-            completion: { _ in
-                expectedCompletion.fulfill()
-            }
-        )
-        wait()
-
-        // Cleanup
-        waitAndDeinitPipeline()
-    }
-
-    // MARK: - Callback Queues
-
-    func _testChangingCallbackQueueLoadImage() {
-        // Given
-        let queue = DispatchQueue(label: "testChangingCallbackQueue")
-        let queueKey = DispatchSpecificKey<Void>()
-        queue.setSpecific(key: queueKey, value: ())
-
-        // When/Then
-        let expectation = self.expectation(description: "Image Loaded")
-        pipeline.loadImage(with: Test.url, queue: queue, progress: { _, _, _ in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
-        }, completion: { _ in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
-            expectation.fulfill()
-        })
-        wait()
-
-        // Cleanup
-        waitAndDeinitPipeline()
-    }
-
-    func _testChangingCallbackQueueLoadData() {
-        // Given
-        let queue = DispatchQueue(label: "testChangingCallbackQueue")
-        let queueKey = DispatchSpecificKey<Void>()
-        queue.setSpecific(key: queueKey, value: ())
-
-        // When/Then
-        let expectation = self.expectation(description: "Image data Loaded")
-        pipeline.loadData(with: Test.request,queue: queue, progress: { _, _ in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
-        }, completion: { _ in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
-            expectation.fulfill()
-        })
-        wait()
-
-        // Cleanup
-        waitAndDeinitPipeline()
-    }
-
-    // MARK: - Updating Priority
-
-    func testDataLoadingPriorityUpdated() {
-        // Given
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-
-        autoreleasepool {
-            let request = Test.request
-            XCTAssertEqual(request.priority, .normal)
-
-            let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
-
-            let task = pipeline.loadImage(with: request)
-            wait() // Wait till the operation is created.
-
-            // When/Then
-            guard let operation = observer.operations.first else {
-                XCTFail("Failed to find operation")
-                return
-            }
-            expect(operation).toUpdatePriority()
-            task.priority = .high
+    func testBasicRequest() {
+        expectDeinit {
+            expect(pipeline).toLoadImage(with: Test.request) { _ in }
             wait()
         }
-
-        // Cleanup
-        queue.isSuspended = false
-        waitAndDeinitPipeline()
-    }
-
-    func testDecodingPriorityUpdated() {
-        ImagePipeline.Configuration.isFastTrackDecodingEnabled = false
-        defer { ImagePipeline.Configuration.isFastTrackDecodingEnabled = true }
-
-        // Given
-        let queue = pipeline.configuration.imageDecodingQueue
-        queue.isSuspended = true
-
-        autoreleasepool {
-            let request = Test.request
-            XCTAssertEqual(request.priority, .normal)
-
-            let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
-
-            let task = pipeline.loadImage(with: request)
-            wait() // Wait till the operation is created.
-
-            // When/Then
-            guard let operation = observer.operations.first else {
-                XCTFail("Failed to find operation")
-                return
-            }
-            expect(operation).toUpdatePriority()
-            task.priority = .high
-
-            wait()
-        }
-
-        // Cleanup
-        queue.isSuspended = false
-        waitAndDeinitPipeline()
-    }
-
-    func testProcessingPriorityUpdated() {
-        // Given
-        let queue = pipeline.configuration.imageProcessingQueue
-        queue.isSuspended = true
-
-        autoreleasepool {
-            let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
-            XCTAssertEqual(request.priority, .normal)
-
-            let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
-
-            let task = pipeline.loadImage(with: request)
-            wait() // Wait till the operation is created.
-
-            // When/Then
-            guard let operation = observer.operations.first else {
-                XCTFail("Failed to find operation")
-                return
-            }
-            expect(operation).toUpdatePriority()
-            task.priority = .high
-            wait()
-        }
-
-        // Cleanup
-        queue.isSuspended = false
-        waitAndDeinitPipeline()
+        wait()
     }
 
     // MARK: - Cancellation
 
     func testDataLoadingOperationCancelled() {
-        dataLoader.queue.isSuspended = true
+        expectDeinit {
+            dataLoader.queue.isSuspended = true
 
-        autoreleasepool {
             expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
             let task = pipeline.loadImage(with: Test.request) { _ in
                 XCTFail()
@@ -227,22 +65,21 @@ class ImagePipelineMemoryTests: XCTestCase {
             expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
             task.cancel()
             wait()
-        }
 
-        // Cleanup
-        dataLoader.queue.isSuspended = false
-        waitAndDeinitPipeline()
-     }
+            dataLoader.queue.isSuspended = false
+        }
+        wait()
+    }
 
     func testDecodingOperationCancelled() {
-        ImagePipeline.Configuration.isFastTrackDecodingEnabled = false
-        defer { ImagePipeline.Configuration.isFastTrackDecodingEnabled = true }
+        expectDeinit {
+            ImagePipeline.Configuration.isFastTrackDecodingEnabled = false
+            defer { ImagePipeline.Configuration.isFastTrackDecodingEnabled = true }
 
-        // Given
-        let queue = pipeline.configuration.imageDecodingQueue
-        queue.isSuspended = true
+            // Given
+            let queue = pipeline.configuration.imageDecodingQueue
+            queue.isSuspended = true
 
-        autoreleasepool {
             let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
             let request = Test.request
@@ -262,19 +99,17 @@ class ImagePipelineMemoryTests: XCTestCase {
             task.cancel()
 
             wait()
-        }
 
-        // Cleanup
-        queue.isSuspended = false
-        waitAndDeinitPipeline()
+            queue.isSuspended = false
+        }
+        wait()
     }
 
     func testProcessingOperationCancelled() {
-        // Given
-        let queue = pipeline.configuration.imageProcessingQueue
-        queue.isSuspended = true
+        expectDeinit {
+            let queue = pipeline.configuration.imageProcessingQueue
+            queue.isSuspended = true
 
-        autoreleasepool {
             let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
             let processor = ImageProcessors.Anonymous(id: "1") {
@@ -296,45 +131,58 @@ class ImagePipelineMemoryTests: XCTestCase {
             task.cancel()
 
             wait()
+            queue.isSuspended = false
         }
-
-        // Cleanup
-        queue.isSuspended = false
-        waitAndDeinitPipeline()
+        wait()
     }
 
 
     // ImagePipeline retains itself until there are any pending tasks.
     func testPipelineRetainsItselfWhileTasksPending() {
-        let expectation = self.expectation(description: "ImageLoaded")
-        ImagePipeline {
-            $0.dataLoader = dataLoader
-            $0.imageCache = nil
-        }.loadImage(with: Test.request) { result in
-            XCTAssertTrue(result.isSuccess)
-            expectation.fulfill()
+        expectDeinit {
+            let expectation = self.expectation(description: "ImageLoaded")
+            ImagePipeline {
+                $0.dataLoader = dataLoader
+                $0.imageCache = nil
+            }.loadImage(with: Test.request) { result in
+                XCTAssertTrue(result.isSuccess)
+                expectation.fulfill()
+            }
+            wait()
         }
         wait()
-
-        // Cleanup
-        waitAndDeinitPipeline()
     }
 
     func testWhenInvalidatedTasksAreCancelledAndPipelineIsDeallocated() {
-        dataLoader.queue.isSuspended = true
-
-        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-        pipeline.loadImage(with: Test.request) { _ in
-            XCTFail()
+        expectDeinit {
+            dataLoader.queue.isSuspended = true
+            
+            expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
+            pipeline.loadImage(with: Test.request) { _ in
+                XCTFail()
+            }
+            wait() // Wait till operation is created
+            
+            expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
+            pipeline.invalidate()
+            wait()
         }
-        wait() // Wait till operation is created
-
-        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
-        pipeline.invalidate()
         wait()
-
-        // Cleanup
-        waitAndDeinitPipeline()
     }
 
+    // MARK: Prefetcher
+
+    func testPrefetcherDeallocation() {
+        expectDeinit {
+            let expectation = self.expectation(description: "PrefecherDidComplete")
+            prefetcher.didComplete = {
+                expectation.fulfill()
+            }
+
+            // WHEN
+            prefetcher.startPrefetching(with: [Test.url])
+            wait()
+        }
+        wait()
+    }
 }

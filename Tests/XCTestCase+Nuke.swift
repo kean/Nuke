@@ -29,12 +29,12 @@ struct TestExpectationImagePipeline {
     let pipeline: ImagePipeline
 
     @discardableResult
-    func toLoadImage(with request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> TestRecordedImageRequest {
+    func toLoadImage(with request: ImageRequestConvertible, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> TestRecordedImageRequest {
         toLoadImage(with: request, progress: nil, completion: completion)
     }
 
     @discardableResult
-    func toLoadImage(with request: ImageRequest,
+    func toLoadImage(with request: ImageRequestConvertible,
                      progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
                      completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> TestRecordedImageRequest {
         let record = TestRecordedImageRequest()
@@ -74,8 +74,9 @@ struct TestExpectationImagePipeline {
     }
 
     @discardableResult
-    func toLoadData(with request: ImageRequest) -> TestRecorededDataTask {
+    func toLoadData(with request: ImageRequestConvertible) -> TestRecorededDataTask {
         let record = TestRecorededDataTask()
+        let request = request.asImageRequest()
         let expectation = test.expectation(description: "Data loaded for \(request)")
         record._task = pipeline.loadData(with: request, progress: nil) { result in
             XCTAssertTrue(Thread.isMainThread)

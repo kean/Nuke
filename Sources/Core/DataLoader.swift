@@ -102,7 +102,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     public func loadData(with request: URLRequest,
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
                          completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
-        return loadData(with: request, isConfined: false, didReceiveData: didReceiveData, completion: completion)
+        loadData(with: request, isConfined: false, didReceiveData: didReceiveData, completion: completion)
     }
 
     func loadData(with request: URLRequest,
@@ -113,11 +113,11 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     }
 
     /// Errors produced by `DataLoader`.
-    public enum Error: Swift.Error, CustomDebugStringConvertible {
+    public enum Error: Swift.Error, CustomStringConvertible {
         /// Validation failed.
         case statusCodeUnacceptable(Int)
 
-        public var debugDescription: String {
+        public var description: String {
             switch self {
             case let .statusCodeUnacceptable(code):
                 return "Response status code was unacceptable: \(code.description)"

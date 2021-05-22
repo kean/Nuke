@@ -368,6 +368,25 @@ class DataCacheTests: XCTestCase {
         XCTAssertEqual(cache.contents, [cache.url(for: "key1")].compactMap { $0 })
     }
 
+    // MARK: Sweep
+
+    func testSweep() {
+        // GIVEN
+        let mb = 1024 * 1024 // allocated size is usually about 4 KB on APFS, so use 1 MB just to be sure
+        cache.sizeLimit = mb * 3
+        cache["key1"] = Data(repeating: 1, count: mb)
+        cache["key2"] = Data(repeating: 1, count: mb)
+        cache["key3"] = Data(repeating: 1, count: mb)
+        cache["key4"] = Data(repeating: 1, count: mb)
+        cache.flush()
+
+        // WHEN
+        cache.sweep()
+
+        // THEN
+        XCTAssertEqual(cache.totalSize, mb * 2)
+    }
+
     // MARK: Inspection
 
     func testContainsData() {

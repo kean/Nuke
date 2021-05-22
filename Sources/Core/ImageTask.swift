@@ -16,7 +16,7 @@ import AppKit.NSImage
 /// reference to the task until the request finishes or fails; you do not need
 /// to maintain a reference to the task unless it is useful to do so for your
 /// app’s internal bookkeeping purposes.
-public /* final */ class ImageTask: Hashable, CustomStringConvertible {
+public final class ImageTask: Hashable, CustomStringConvertible {
     /// An identifier that uniquely identifies the task within a given pipeline. Only
     /// unique within that pipeline.
     public let taskId: Int64

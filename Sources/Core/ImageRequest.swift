@@ -35,7 +35,7 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     /// The relative priority of the request. The priority affects the order in
-    /// which the requests are performed.`.normal` by default.
+    /// which the requests are performed. `.normal` by default.
     public var priority: Priority {
         get { ref.priority }
         set { mutate { $0.priority = newValue } }
@@ -47,7 +47,7 @@ public struct ImageRequest: CustomStringConvertible {
         set { mutate { $0.processors = newValue } }
     }
 
-    /// The request options. See `ImageRequest.Options` for more info.
+    /// The request options.
     public var options: Options {
         get { ref.options }
         set { mutate { $0.options = newValue } }
@@ -63,16 +63,6 @@ public struct ImageRequest: CustomStringConvertible {
     /// requests are performed.
     public enum Priority: Int, Comparable {
         case veryLow = 0, low, normal, high, veryHigh
-
-        var taskPriority: TaskPriority {
-            switch self {
-            case .veryLow: return .veryLow
-            case .low: return .low
-            case .normal: return .normal
-            case .high: return .high
-            case .veryHigh: return .veryHigh
-            }
-        }
 
         public static func < (lhs: Priority, rhs: Priority) -> Bool {
             lhs.rawValue < rhs.rawValue
@@ -91,9 +81,9 @@ public struct ImageRequest: CustomStringConvertible {
             self.rawValue = value
         }
 
-        /// By default, Nuke uses URL as unique image identifiers for the purpsoses
-        /// of caching and task coalescing. You can override the default behavior
-        /// by providing an `imageId`instead. For example, you can use it to remove
+        /// By default, a pipeline uses URLs as unique image identifiers for
+        /// caching and task coalescing. You can override this behavior by
+        /// providing an `imageId` instead. For example, you can use it to remove
         /// transient query parameters from the request.
         ///
         /// ```
@@ -109,12 +99,11 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// Initializes a request with the given URL.
     ///
-    /// - parameter processors: Image processors to be applied to the loaded image. `nil` by default.
+    /// - parameter url: The request URL.
+    /// - parameter processors: Processors to be apply to the image. `nil` by default.
     /// - parameter priority: The priority of the request, `.normal` by default.
-    /// - parameter options: Image loading options. Empty by default.
+    /// - parameter options: Image loading options. `[]` by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
-    ///
-    /// `ImageRequest` allows you to set image processors, change the request priority and more:
     ///
     /// ```swift
     /// let request = ImageRequest(
@@ -140,12 +129,11 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// Initializes a request with the given request.
     ///
-    /// - parameter processors: Image processors to be applied to the loaded image. Empty by default.
+    /// - parameter urlRequest: The URLRequest describing the image request.
+    /// - parameter processors: Processors to be apply to the image. `nil` by default.
     /// - parameter priority: The priority of the request, `.normal` by default.
-    /// - parameter options: Image loading options. Empty by default.
+    /// - parameter options: Image loading options. `[]` by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
-    ///
-    /// `ImageRequest` allows you to set image processors, change the request priority and more:
     ///
     /// ```swift
     /// let request = ImageRequest(
@@ -173,9 +161,9 @@ public struct ImageRequest: CustomStringConvertible {
     ///
     /// - parameter id: Uniquely identifies the image data.
     /// - parameter data: A data publisher to be used for fetching image data.
-    /// - parameter processors: Image processors to be applied to the loaded image. Empty by default.
+    /// - parameter processors: Processors to be apply to the image. `nil` by default.
     /// - parameter priority: The priority of the request, `.normal` by default.
-    /// - parameter options: Image loading options. Empty by default.
+    /// - parameter options: Image loading options. `[]` by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
     ///
     /// For example, here is how you can use it with Photos framework (the
@@ -199,8 +187,7 @@ public struct ImageRequest: CustomStringConvertible {
                    userInfo: [UserInfoKey: Any]? = nil) where P: Publisher, P.Output == Data {
         // It could technically be implemented without any special change to the
         // pipeline by using a custom DataLoader, disabling resumable data, and
-        // passing a publisher in the request userInfo. The first-class support
-        // is much nicer though.
+        // passing a publisher in the request userInfo.
         self.ref = Container(
             resource: .publisher(AnyPublisher(data)),
             imageId: id,

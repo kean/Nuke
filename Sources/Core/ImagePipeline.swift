@@ -14,7 +14,7 @@ import Foundation
 /// individual stage, disable and enable features like deduplication and rate limiting, and more.
 ///
 /// `ImagePipeline` is fully thread-safe.
-public /* final */ class ImagePipeline {
+public final class ImagePipeline {
     public let configuration: Configuration
     public var cache: ImagePipeline.Cache { ImagePipeline.Cache(pipeline: self) }
     // Deprecated in 10.0.0
@@ -44,7 +44,7 @@ public /* final */ class ImagePipeline {
     let id = UUID()
 
     /// Shared image pipeline.
-    public static var shared = ImagePipeline()
+    public static var shared = ImagePipeline(configuration: .withURLCache)
 
     deinit {
         _nextTaskId.deallocate()
@@ -280,7 +280,7 @@ public /* final */ class ImagePipeline {
     // MARK: - Errors
 
     /// Represents all possible image pipeline errors.
-    public enum Error: Swift.Error, CustomDebugStringConvertible {
+    public enum Error: Swift.Error, CustomStringConvertible {
         /// Data loader failed to load image data with a wrapped error.
         case dataLoadingFailed(Swift.Error)
         /// Decoder failed to produce a final image.
@@ -288,11 +288,11 @@ public /* final */ class ImagePipeline {
         /// Processor failed to produce a final image.
         case processingFailed(ImageProcessing)
 
-        public var debugDescription: String {
+        public var description: String {
             switch self {
             case let .dataLoadingFailed(error): return "Failed to load image data: \(error)"
             case .decodingFailed: return "Failed to create an image from the image data"
-            case .processingFailed: return "Failed to process the image"
+            case .processingFailed(let processor): return "Failed to process the image using processor \(processor)"
             }
         }
 

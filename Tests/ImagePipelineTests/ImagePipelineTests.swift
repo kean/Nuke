@@ -472,7 +472,7 @@ class ImagePipelineTests: XCTestCase {
     }
 
     func testProcessingFailedErrorReturned() {
-        // Given
+        // GIVEN
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
             return
@@ -480,7 +480,7 @@ class ImagePipelineTests: XCTestCase {
 
         let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
 
-        // When/Then
+        // WHEN/THEM
         expect(pipeline).toFailRequest(request) { result in
             guard case .failure(let error) = result,
                   case .processingFailed(let processor) = error else {
@@ -489,5 +489,26 @@ class ImagePipelineTests: XCTestCase {
             XCTAssertTrue(processor is MockFailingProcessor)
         }
         wait()
+    }
+
+    func testImageContainerUserInfo() { // Just to make sure we have 100% coverage
+        // WHEN
+        let container = ImageContainer(image: Test.image, type: nil, isPreview: false, data: nil, userInfo: [.init("a"): 1])
+
+        // THEN
+        XCTAssertEqual(container.userInfo["a"] as? Int, 1)
+    }
+
+    func testErrorDescription() {
+        XCTAssertFalse(ImagePipeline.Error.dataLoadingFailed(URLError(.unknown)).description.isEmpty) // Just padding here
+        XCTAssertFalse(ImagePipeline.Error.decodingFailed.description.isEmpty)
+
+        let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
+        let error = ImagePipeline.Error.processingFailed(processor)
+        let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)"
+        XCTAssertEqual(error.description, expected)
+        XCTAssertEqual("\(error)", expected)
+
+        XCTAssertNil(error.dataLoadingError)
     }
 }

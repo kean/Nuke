@@ -41,7 +41,8 @@ public protocol ImageProcessing {
     /// - note: Gets called a background queue managed by the pipeline.
     func process(_ image: PlatformImage) -> PlatformImage?
 
-    /// Returns a processed image. By default, this calls the basic `process(image:)` method.
+    /// Optional method. Returns a processed image. By default, this calls the
+    /// basic `process(image:)` method.
     ///
     /// - note: Gets called a background queue managed by the pipeline.
     func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer?
@@ -152,9 +153,8 @@ extension ImageProcessors {
         public func process(_ image: PlatformImage) -> PlatformImage? {
             if crop && contentMode == .aspectFill {
                 return image.processed.byResizingAndCropping(to: size.cgSize)
-            } else {
-                return image.processed.byResizing(to: size.cgSize, contentMode: contentMode, upscale: upscale)
             }
+            return image.processed.byResizing(to: size.cgSize, contentMode: contentMode, upscale: upscale)
         }
 
         public var identifier: String {
@@ -187,11 +187,8 @@ extension ImageProcessors {
         }
 
         public var identifier: String {
-            if let border = self.border {
-                return "com.github.kean/nuke/circle?border=\(border)"
-            } else {
-                return "com.github.kean/nuke/circle"
-            }
+            let suffix = border.map { "?border=\($0)" }
+            return "com.github.kean/nuke/circle" + (suffix ?? "")
         }
 
         public var hashableIdentifier: AnyHashable { self }
@@ -228,11 +225,8 @@ extension ImageProcessors {
         }
 
         public var identifier: String {
-            if let border = self.border {
-                return "com.github.kean/nuke/rounded_corners?radius=\(radius),border=\(border)"
-            } else {
-                return "com.github.kean/nuke/rounded_corners?radius=\(radius)"
-            }
+            let suffix = border.map { ",border=\($0)" }
+            return "com.github.kean/nuke/rounded_corners?radius=\(radius)" + (suffix ?? "")
         }
 
         public var hashableIdentifier: AnyHashable { self }

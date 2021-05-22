@@ -13,16 +13,16 @@ jobs:
     name: Unit Tests (iOS 14.2, Xcode 12.4)
     runs-on: macOS-latest
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -d "OS=14.2,name=iPhone 11"
+        run: Scripts/test.sh -d "OS=14.4,name=iPhone 12 Pro"
   macos-latest:
     name: Unit Tests (macOS, Xcode 12.4)
     runs-on: macOS-latest
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
@@ -31,16 +31,16 @@ jobs:
     name: Unit Tests (tvOS 14.2, Xcode 12.4)
     runs-on: macOS-latest
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -d "OS=14.2,name=Apple TV 4K"
+        run: Scripts/test.sh -d "OS=14.3,name=Apple TV 4K"
   watchos-latest:
     name: Build (watchOS 7.1, Xcode 12.4)
     runs-on: macOS-latest
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Build
@@ -58,34 +58,34 @@ jobs:
     name: Thread Safety Tests (TSan Enabled)
     runs-on: macOS-latest
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=14.2,name=iPhone 11"
+        run: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=14.4,name=iPhone 12 Pro"
 #  ios-memory-management-tests:
 #    name: Memory Management Tests
 #    runs-on: macOS-latest
 #    env:
-#      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+#      DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
 #    steps:
 #      - uses: actions/checkout@v2
 #      - name: Run Tests
-#        run: Scripts/test.sh -s "Nuke Memory Management Tests" -d "OS=14.2,name=iPhone 11"
+#        run: Scripts/test.sh -s "Nuke Memory Management Tests" -d "OS=14.4,name=iPhone 12 Pro"
   ios-performance-tests:
     name: Performance Tests
     runs-on: macOS-latest
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=14.2,name=iPhone 11"
+        run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=14.4,name=iPhone 12 Pro"
   demo-project:
     name: Build Demo Project
     runs-on: macOS-latest
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Build
@@ -94,7 +94,7 @@ jobs:
     name: Swift Build (SPM)
     runs-on: macOS-latest
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_12.2.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Build

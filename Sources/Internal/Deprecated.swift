@@ -5,31 +5,6 @@
 import Foundation
 import CoreGraphics
 
-public extension DataCaching {
-    // Deprecated in 9.2
-    @available(*, deprecated, message: "This method exists for backward-compatibility with Nuke 9.1.x and lower.")
-    func removeData(for key: String) {}
-}
-
-public extension DataCache {
-    // Deprecated in 9.3.1
-    @available(*, deprecated, message: "Count limit is deprecated and will be removed in the next major release")
-    var countLimit: Int {
-        get { deprecatedCountLimit }
-        set { deprecatedCountLimit = newValue }
-    }
-}
-
-public extension ImageTask {
-    // Deprecated in 9.4.0
-    @available(*, deprecated, message: "Please use the closure type directly")
-    typealias Completion = ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)
-
-    // Deprecated in 9.4.0
-    @available(*, deprecated, message: "Please use the closure type directly")
-    typealias ProgressHandler = (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void
-}
-
 // Deprecated in 9.4.1
 @available(*, deprecated, message: "Renamed to ImagePrefetcher")
 public typealias ImagePreheater = ImagePrefetcher
@@ -279,7 +254,7 @@ extension PlatformImage {
 
 extension ImagePipeline.Configuration {
     // Deprecated in 10.0.0
-    @available(*, deprecated, message: "Please use `ImageConfiguration.default` and provide a `dataLoader` afterwards or use a closure-based ImagePipeline initialzier.")
+    @available(*, deprecated, message: "Please use `ImageConfiguration.default` and provide a `dataLoader` afterwards or use a closure-based ImagePipeline initializer.")
     public init(dataLoader: DataLoading = DataLoader(), imageCache: ImageCaching?) {
         self.init(dataLoader: dataLoader)
         self.imageCache = imageCache
