@@ -565,4 +565,30 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         // Then
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
     }
+
+    // MARK: - Misc
+
+    #if os(iOS) || os(tvOS)
+    func testTransitionCrossDissolve() {
+        // GIVEN
+        var options = ImageLoadingOptions()
+        options.placeholder = Test.image
+        options.transition = .fadeIn(duration: 0.33)
+        options.isPrepareForReuseEnabled = false
+        options.contentModes = .init(
+            success: .scaleAspectFill,
+            failure: .center,
+            placeholder: .center
+        )
+
+        imageView.image = Test.image
+
+        // WHEN
+        expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
+        wait()
+
+        // THEN make sure we run the pass with cross-disolve and at least
+        // it doesn't crash
+    }
+    #endif
 }
