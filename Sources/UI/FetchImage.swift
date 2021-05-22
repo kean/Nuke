@@ -29,7 +29,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     }
 
     /// The progress of the image download.
-    @Published public var progress = Progress(completed: 0, total: 0)
+    @Published public private(set) var progress = Progress(completed: 0, total: 0)
 
     /// Updates the priority of the task, even if the task is already running.
     public var priority: ImageRequest.Priority = .normal {
