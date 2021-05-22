@@ -364,10 +364,11 @@ final class TaskPool<Key: Hashable, Value, Error> {
     /// Creates a task with the given key. If there is an outstanding task with
     /// the given key in the pool, the existing task is returned. Tasks are
     /// automatically removed from the pool when they are disposed.
-    func publisherForKey(_ key: Key, _ make: () -> Task<Value, Error>) -> Task<Value, Error>.Publisher {
+    func publisherForKey(_ key: @autoclosure () -> Key, _ make: () -> Task<Value, Error>) -> Task<Value, Error>.Publisher {
         guard isCoalescingEnabled else {
             return make().publisher
         }
+        let key = key()
         if let task = map[key] {
             return task.publisher
         }
