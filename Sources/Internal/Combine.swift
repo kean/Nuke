@@ -5,11 +5,13 @@
 import Foundation
 import Combine
 
-final class AnyPublisher<Output> {
-    private let _sink: (@escaping ((PublisherCompletion) -> Void), @escaping ((Output) -> Void)) -> Cancellable
+final class DataPublisher {
+    let id: String
+    private let _sink: (@escaping ((PublisherCompletion) -> Void), @escaping ((Data) -> Void)) -> Cancellable
 
     @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
-    init<P: Publisher>(_ publisher: P) where P.Output == Output {
+    init<P: Publisher>(id: String, _ publisher: P) where P.Output == Data {
+        self.id = id
         self._sink = { onCompletion, onValue in
             let cancellable = publisher.sink(receiveCompletion: {
                 switch $0 {
@@ -23,7 +25,7 @@ final class AnyPublisher<Output> {
         }
     }
 
-    func sink(receiveCompletion: @escaping ((PublisherCompletion) -> Void), receiveValue: @escaping ((Output) -> Void)) -> Cancellable {
+    func sink(receiveCompletion: @escaping ((PublisherCompletion) -> Void), receiveValue: @escaping ((Data) -> Void)) -> Cancellable {
         _sink(receiveCompletion, receiveValue)
     }
 }

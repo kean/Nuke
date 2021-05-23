@@ -189,7 +189,7 @@ public struct ImageRequest: CustomStringConvertible {
         // pipeline by using a custom DataLoader, disabling resumable data, and
         // passing a publisher in the request userInfo.
         self.ref = Container(
-            resource: .publisher(AnyPublisher(data)),
+            resource: .publisher(DataPublisher(id: id, data)),
             imageId: id,
             processors: processors,
             priority: priority,
@@ -298,7 +298,7 @@ public struct ImageRequest: CustomStringConvertible {
     enum Resource: CustomStringConvertible {
         case url(URL)
         case urlRequest(URLRequest)
-        case publisher(AnyPublisher<Data>)
+        case publisher(DataPublisher)
 
         var description: String {
             switch self {
@@ -334,7 +334,7 @@ public struct ImageRequest: CustomStringConvertible {
         return ref.imageId ?? ""
     }
 
-    var publisher: AnyPublisher<Data>? {
+    var publisher: DataPublisher? {
         guard case .publisher(let publisher) = ref.resource else {
             return nil
         }
