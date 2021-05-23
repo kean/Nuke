@@ -459,21 +459,20 @@ private final class ImageViewController {
     private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool, options: ImageLoadingOptions) {
         switch result {
         case let .success(response):
-            display(response.container, options.transition, options.alwaysTransition, fromMemCache, options.contentModes?.success, .success)
+            display(response.container, options.transition, options.alwaysTransition, fromMemCache, .success)
         case .failure:
             if let failureImage = options.failureImage {
-                display(ImageContainer(image: failureImage), options.failureImageTransition, options.alwaysTransition, fromMemCache, options.contentModes?.failure, .failure)
+                display(ImageContainer(image: failureImage), options.failureImageTransition, options.alwaysTransition, fromMemCache, .failure)
             }
         }
         self.task = nil
     }
 
     private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
-        display(response.container, options.transition, options.alwaysTransition, false, options.contentModes?.success, .success)
+        display(response.container, options.transition, options.alwaysTransition, false, .success)
     }
 
-    // swiftlint:disable:next function_parameter_count
-    private func display(_ image: ImageContainer, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?, _ response: ImageLoadingOptions.ResponseType) {
+    private func display(_ image: ImageContainer, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
         }
@@ -488,7 +487,7 @@ private final class ImageViewController {
         if !fromMemCache || alwaysTransition, let transition = transition {
             switch transition.style {
             case let .fadeIn(params):
-                runFadeInTransition(image: image, params: params, contentMode: newContentMode)
+                runFadeInTransition(image: image, params: params, contentMode: options.contentMode(for: response))
             case let .custom(closure):
                 // The user is reponsible for both displaying an image and performing
                 // animations.
@@ -497,8 +496,8 @@ private final class ImageViewController {
         } else {
             imageView.display(image)
         }
-        if let newContentMode = newContentMode {
-            imageView.contentMode = newContentMode
+        if let contentMode = options.contentMode(for: response) {
+            imageView.contentMode = contentMode
         }
     }
 
