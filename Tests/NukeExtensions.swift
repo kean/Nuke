@@ -34,7 +34,7 @@ extension ImageTaskEvent: Equatable {
 
 extension ImageResponse: Equatable {
     public static func == (lhs: ImageResponse, rhs: ImageResponse) -> Bool {
-        return lhs === rhs
+        return lhs.image === rhs.image
     }
 }
 
