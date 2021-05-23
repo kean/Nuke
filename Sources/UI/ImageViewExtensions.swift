@@ -131,7 +131,7 @@ public func cancelRequest(for view: ImageDisplayingView) {
 
 // MARK: - ImageLoadingOptions
 
-/// A range of options that control how the image is loaded and displayed.
+/// A set of options that control how the image is loaded and displayed.
 public struct ImageLoadingOptions {
     /// Shared options.
     public static var shared = ImageLoadingOptions()
@@ -155,6 +155,14 @@ public struct ImageLoadingOptions {
     /// If true, the requested image will always appear with transition, even
     /// when loaded from cache.
     public var alwaysTransition = false
+
+    func transition(for response: ResponseType) -> Transition? {
+        switch response {
+        case .success: return transition
+        case .failure: return failureImageTransition
+        case .placeholder: return nil
+        }
+    }
 
     #endif
 
@@ -197,6 +205,14 @@ public struct ImageLoadingOptions {
         }
     }
 
+    func contentMode(for response: ResponseType) -> UIView.ContentMode? {
+        switch response {
+        case .success: return contentModes?.success
+        case .placeholder: return contentModes?.placeholder
+        case .failure: return contentModes?.failure
+        }
+    }
+
     /// Tint colors to be used for each image type (placeholder, success,
     /// failure). `nil`  by default (don't change tint color or rendering mode).
     public var tintColors: TintColors?
@@ -216,6 +232,14 @@ public struct ImageLoadingOptions {
         /// - parameter placeholder: A tint color to be used with a `placeholder`.
         public init(success: UIColor?, failure: UIColor?, placeholder: UIColor?) {
             self.success = success; self.failure = failure; self.placeholder = placeholder
+        }
+    }
+
+    func tintColor(for response: ResponseType) -> UIColor? {
+        switch response {
+        case .success: return tintColors?.success
+        case .placeholder: return tintColors?.placeholder
+        case .failure: return tintColors?.failure
         }
     }
 
@@ -318,6 +342,10 @@ public struct ImageLoadingOptions {
     #endif
 
     public init() {}
+
+    enum ResponseType {
+        case success, failure, placeholder
+    }
 }
 
 // MARK: - ImageViewController
@@ -330,6 +358,7 @@ public struct ImageLoadingOptions {
 private final class ImageViewController {
     private weak var imageView: ImageDisplayingView?
     private var task: ImageTask?
+    private var options: ImageLoadingOptions
 
     // Automatically cancel the request when the view is deallocated.
     deinit {
@@ -338,6 +367,7 @@ private final class ImageViewController {
 
     init(view: /* weak */ ImageDisplayingView) {
         self.imageView = view
+        self.options = .shared
     }
 
     // MARK: - Associating Controller
@@ -377,6 +407,7 @@ private final class ImageViewController {
 
         let pipeline = options.pipeline ?? ImagePipeline.shared
         let request = pipeline.configuration.inheritOptions(request)
+        self.options = options
 
         // Quick synchronous memory cache lookup.
         if let image = pipeline.cache[request] {
@@ -428,30 +459,30 @@ private final class ImageViewController {
     private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool, options: ImageLoadingOptions) {
         switch result {
         case let .success(response):
-            display(response.container, options.transition, options.alwaysTransition, fromMemCache, options.contentModes?.success, options.tintColors?.success)
+            display(response.container, options.transition, options.alwaysTransition, fromMemCache, options.contentModes?.success, .success)
         case .failure:
             if let failureImage = options.failureImage {
-                display(ImageContainer(image: failureImage), options.failureImageTransition, options.alwaysTransition, fromMemCache, options.contentModes?.failure, options.tintColors?.failure)
+                display(ImageContainer(image: failureImage), options.failureImageTransition, options.alwaysTransition, fromMemCache, options.contentModes?.failure, .failure)
             }
         }
         self.task = nil
     }
 
     private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
-        display(response.container, options.transition, options.alwaysTransition, false, options.contentModes?.success, options.tintColors?.success)
+        display(response.container, options.transition, options.alwaysTransition, false, options.contentModes?.success, .success)
     }
 
     // swiftlint:disable:next function_parameter_count
-    private func display(_ image: ImageContainer, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?, _ newTintColor: UIColor?) {
+    private func display(_ image: ImageContainer, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ newContentMode: UIView.ContentMode?, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
         }
 
         var image = image
 
-        if let newTintColor = newTintColor {
+        if let tintColor = options.tintColor(for: response) {
             image = image.map { $0.withRenderingMode(.alwaysTemplate) } ?? image
-            imageView.tintColor = newTintColor
+            imageView.tintColor = tintColor
         }
 
         if !fromMemCache || alwaysTransition, let transition = transition {
@@ -558,7 +589,7 @@ private final class ImageViewController {
         display(response.container, options.transition, options.alwaysTransition, false)
     }
 
-    private func display(_ image: ImageContainer, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool) {
+    private func display(_ image: ImageContainer, _ transition: ImageLoadingOptions.Transition?, _ alwaysTransition: Bool, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
         }

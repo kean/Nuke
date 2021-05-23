@@ -34,7 +34,7 @@ class ImageViewPerformanceTests: XCTestCase {
     func testImageViewMainThreadPerformanceCacheHit() {
         let view = _ImageView()
 
-        let urls = (0..<20_000).map { _ in return URL(string: "http://test.com/1)")! }
+        let urls = (0..<50_000).map { _ in return URL(string: "http://test.com/1)")! }
         for url in urls {
             ImagePipeline.shared.configuration.imageCache?[url] = ImageContainer(image: PlatformImage())
         }
