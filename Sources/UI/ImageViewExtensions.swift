@@ -459,20 +459,20 @@ private final class ImageViewController {
     private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool, options: ImageLoadingOptions) {
         switch result {
         case let .success(response):
-            display(response.container, options.transition, fromMemCache, .success)
+            display(response.container, fromMemCache, .success)
         case .failure:
             if let failureImage = options.failureImage {
-                display(ImageContainer(image: failureImage), options.failureImageTransition, fromMemCache, .failure)
+                display(ImageContainer(image: failureImage), fromMemCache, .failure)
             }
         }
         self.task = nil
     }
 
     private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
-        display(response.container, options.transition, false, .success)
+        display(response.container, false, .success)
     }
 
-    private func display(_ image: ImageContainer, _ transition: ImageLoadingOptions.Transition?, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
+    private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
         }
@@ -484,7 +484,7 @@ private final class ImageViewController {
             imageView.tintColor = tintColor
         }
 
-        if !fromMemCache || options.alwaysTransition, let transition = transition {
+        if !fromMemCache || options.alwaysTransition, let transition = options.transition(for: response) {
             switch transition.style {
             case let .fadeIn(params):
                 runFadeInTransition(image: image, params: params, contentMode: options.contentMode(for: response))
@@ -572,28 +572,27 @@ private final class ImageViewController {
     #elseif os(macOS)
 
     private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool, options: ImageLoadingOptions) {
-        // NSImageView doesn't support content mode, unfortunately.
         switch result {
         case let .success(response):
-            display(response.container, options.transition, fromMemCache)
+            display(response.container, fromMemCache, .success)
         case .failure:
             if let failureImage = options.failureImage {
-                display(ImageContainer(image: failureImage), options.failureImageTransition, fromMemCache)
+                display(ImageContainer(image: failureImage), fromMemCache, .failure)
             }
         }
         self.task = nil
     }
 
     private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
-        display(response.container, options.transition, options.alwaysTransition, false)
+        display(response.container, false, .success)
     }
 
-    private func display(_ image: ImageContainer, _ transition: ImageLoadingOptions.Transition?, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
+    private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
         }
 
-        if !fromMemCache || options.alwaysTransition, let transition = transition {
+        if !fromMemCache || options.alwaysTransition, let transition = options.transition(for: response) {
             switch transition.style {
             case let .fadeIn(params):
                 runFadeInTransition(image: image, params: params)
