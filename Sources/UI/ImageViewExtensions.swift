@@ -411,10 +411,9 @@ private final class ImageViewController {
 
         // Quick synchronous memory cache lookup.
         if let image = pipeline.cache[request] {
-            let response = ImageResponse(container: image, cacheType: .memory)
-            handle(result: .success(response), fromMemCache: true, options: options)
+            display(image, true, .success)
             if !image.isPreview { // Final image was downloaded
-                completion?(.success(response))
+                completion?(.success(ImageResponse(container: image, cacheType: .memory)))
                 return nil // No task to perform
             }
         }
@@ -622,6 +621,10 @@ private final class ImageViewController {
     }
 
     private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
+        imageView?.display(response.container)
+    }
+
+    private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
         imageView?.display(response.container)
     }
 
