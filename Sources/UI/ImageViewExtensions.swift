@@ -477,7 +477,7 @@ private final class ImageViewController {
         if !fromMemCache || options.alwaysTransition, let transition = options.transition(for: response) {
             switch transition.style {
             case let .fadeIn(params):
-                runFadeInTransition(image: image, params: params, contentMode: options.contentMode(for: response))
+                runFadeInTransition(image: image, params: params, response: response)
             case let .custom(closure):
                 // The user is reponsible for both displaying an image and performing
                 // animations.
@@ -495,14 +495,14 @@ private final class ImageViewController {
     // content modes.
     private lazy var transitionImageView = UIImageView()
 
-    private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, contentMode: UIView.ContentMode?) {
+    private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
         }
 
         // Special case where it animates between content modes, only works
         // on imageView subclasses.
-        if let contentMode = contentMode, imageView.contentMode != contentMode, let imageView = imageView as? UIImageView, imageView.image != nil {
+        if let contentMode = options.contentMode(for: response), imageView.contentMode != contentMode, let imageView = imageView as? UIImageView, imageView.image != nil {
             runCrossDissolveWithContentMode(imageView: imageView, image: image, params: params)
         } else {
             runSimpleFadeIn(image: image, params: params)
@@ -569,7 +569,7 @@ private final class ImageViewController {
         if !fromMemCache || options.alwaysTransition, let transition = options.transition(for: response) {
             switch transition.style {
             case let .fadeIn(params):
-                runFadeInTransition(image: image, params: params)
+                runFadeInTransition(image: image, params: params, response: response)
             case let .custom(closure):
                 // The user is reponsible for both displaying an image and performing
                 // animations.
@@ -580,7 +580,7 @@ private final class ImageViewController {
         }
     }
 
-    private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters) {
+    private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, response: ImageLoadingOptions.ResponseType) {
         let animation = CABasicAnimation(keyPath: "opacity")
         animation.duration = params.duration
         animation.fromValue = 0
