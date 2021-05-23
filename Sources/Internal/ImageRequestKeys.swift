@@ -43,6 +43,7 @@ struct CacheKey: Hashable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(imageId)
+        hasher.combine(processors?.count ?? 0)
     }
 
     static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
