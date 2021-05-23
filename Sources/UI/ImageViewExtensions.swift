@@ -360,6 +360,12 @@ private final class ImageViewController {
     private var task: ImageTask?
     private var options: ImageLoadingOptions
 
+    #if os(iOS) || os(tvOS)
+    // Image view used for cross-fade transition between images with different
+    // content modes.
+    private lazy var transitionImageView = UIImageView()
+    #endif
+
     // Automatically cancel the request when the view is deallocated.
     deinit {
         cancelOutstandingTask()
@@ -444,8 +450,6 @@ private final class ImageViewController {
 
     // MARK: - Handling Responses
 
-    #if os(iOS) || os(tvOS)
-
     private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool) {
         switch result {
         case let .success(response):
@@ -462,6 +466,8 @@ private final class ImageViewController {
         display(response.container, false, .success)
     }
 
+    #if os(iOS) || os(tvOS) || os(macOS)
+
     private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
@@ -469,15 +475,17 @@ private final class ImageViewController {
 
         var image = image
 
+        #if os(iOS) || os(tvOS)
         if let tintColor = options.tintColor(for: response) {
             image = image.map { $0.withRenderingMode(.alwaysTemplate) } ?? image
             imageView.tintColor = tintColor
         }
+        #endif
 
         if !fromMemCache || options.alwaysTransition, let transition = options.transition(for: response) {
             switch transition.style {
             case let .fadeIn(params):
-                runFadeInTransition(image: image, params: params, contentMode: options.contentMode(for: response))
+                runFadeInTransition(image: image, params: params, response: response)
             case let .custom(closure):
                 // The user is reponsible for both displaying an image and performing
                 // animations.
@@ -486,23 +494,36 @@ private final class ImageViewController {
         } else {
             imageView.display(image)
         }
+
+        #if os(iOS) || os(tvOS)
         if let contentMode = options.contentMode(for: response) {
             imageView.contentMode = contentMode
         }
+        #endif
     }
 
-    // Image view used for cross-fade transition between images with different
-    // content modes.
-    private lazy var transitionImageView = UIImageView()
+    #elseif os(watchOS)
 
-    private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, contentMode: UIView.ContentMode?) {
+    private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
+        imageView?.display(response.container)
+    }
+
+    #endif
+}
+
+// MARK: - ImageViewController (Transitions)
+
+private extension ImageViewController {
+    #if os(iOS) || os(tvOS)
+
+    private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
         }
 
         // Special case where it animates between content modes, only works
         // on imageView subclasses.
-        if let contentMode = contentMode, imageView.contentMode != contentMode, let imageView = imageView as? UIImageView, imageView.image != nil {
+        if let contentMode = options.contentMode(for: response), imageView.contentMode != contentMode, let imageView = imageView as? UIImageView, imageView.image != nil {
             runCrossDissolveWithContentMode(imageView: imageView, image: image, params: params)
         } else {
             runSimpleFadeIn(image: image, params: params)
@@ -561,42 +582,7 @@ private final class ImageViewController {
 
     #elseif os(macOS)
 
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool) {
-        switch result {
-        case let .success(response):
-            display(response.container, fromMemCache, .success)
-        case .failure:
-            if let failureImage = options.failureImage {
-                display(ImageContainer(image: failureImage), fromMemCache, .failure)
-            }
-        }
-        self.task = nil
-    }
-
-    private func handle(partialImage response: ImageResponse) {
-        display(response.container, false, .success)
-    }
-
-    private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
-        guard let imageView = imageView else {
-            return
-        }
-
-        if !fromMemCache || options.alwaysTransition, let transition = options.transition(for: response) {
-            switch transition.style {
-            case let .fadeIn(params):
-                runFadeInTransition(image: image, params: params)
-            case let .custom(closure):
-                // The user is reponsible for both displaying an image and performing
-                // animations.
-                closure(imageView, image.image)
-            }
-        } else {
-            imageView.display(image)
-        }
-    }
-
-    private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters) {
+    private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, response: ImageLoadingOptions.ResponseType) {
         let animation = CABasicAnimation(keyPath: "opacity")
         animation.duration = params.duration
         animation.fromValue = 0
@@ -604,28 +590,6 @@ private final class ImageViewController {
         imageView?.layer?.add(animation, forKey: "imageTransition")
 
         imageView?.display(image)
-    }
-
-    #elseif os(watchOS)
-
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool) {
-        switch result {
-        case let .success(response):
-            imageView?.display(response.container)
-        case .failure:
-            if let failureImage = options.failureImage {
-                imageView?.nuke_display(image: failureImage, data: nil)
-            }
-        }
-        self.task = nil
-    }
-
-    private func handle(partialImage response: ImageResponse) {
-        imageView?.display(response.container)
-    }
-
-    private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
-        imageView?.display(response.container)
     }
 
     #endif
