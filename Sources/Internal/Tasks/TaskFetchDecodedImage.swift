@@ -78,8 +78,8 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
         if let decoder = self.decoder {
             return decoder
         }
-        let decoderContext = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
-        let decoder = pipeline.delegate.pipeline(pipeline, imageDecoderFor: decoderContext)
+        let context = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
+        let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline)
         self.decoder = decoder
         return decoder
     }

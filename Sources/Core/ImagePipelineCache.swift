@@ -194,7 +194,7 @@ extension ImagePipeline {
         }
 
         func makeImageCacheKey(for request: ImageRequest) -> ImageCacheKey {
-            switch pipeline.delegate.pipeline(pipeline, cacheKeyFor: request) {
+            switch pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
             case .default: return ImageCacheKey(request: request)
             case .custom(let key): return ImageCacheKey(key: key)
             }
@@ -206,7 +206,7 @@ extension ImagePipeline {
         }
 
         func makeDataCacheKey(for request: ImageRequest) -> String {
-            switch pipeline.delegate.pipeline(pipeline, cacheKeyFor: request) {
+            switch pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
             case .default: return request.makeDataCacheKey()
             case .custom(let key): return key
             }
@@ -236,7 +236,7 @@ extension ImagePipeline {
 
         private func encodeImage(_ image: ImageContainer, for request: ImageRequest) -> Data? {
             let context = ImageEncodingContext(request: request, image: image.image, urlResponse: nil)
-            let encoder = pipeline.delegate.pipeline(pipeline, imageEncoderFor: context)
+            let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
             return encoder.encode(image, context: context)
         }
 

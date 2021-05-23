@@ -52,7 +52,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         guard !isDisposed else { return }
 
         let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
-        guard let decoder = pipeline.delegate.pipeline(pipeline, imageDecoderFor: context) else {
+        guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             // This shouldn't happen in practice unless encoder/decoder pair
             // for data cache is misconfigured.
             return fetchImage()
@@ -248,7 +248,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
-        let encoder = pipeline.delegate.pipeline(pipeline, imageEncoderFor: context)
+        let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
         let key = pipeline.cache.makeDataCacheKey(for: request)
         pipeline.configuration.imageEncodingQueue.addOperation {
             let encodedData = signpost(log, "EncodeImage") {

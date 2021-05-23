@@ -22,16 +22,16 @@ public protocol ImagePipelineDelegate: AnyObject {
     // MARK: Configuration
 
     /// Returns image decoder for the given context.
-    func pipeline(_ pipeline: ImagePipeline, imageDecoderFor context: ImageDecodingContext) -> ImageDecoding?
+    func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImageDecoding?
 
     /// Returns image encoder for the given context.
-    func pipeline(_ pipeline: ImagePipeline, imageEncoderFor context: ImageEncodingContext) -> ImageEncoding
+    func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> ImageEncoding
 
     // MARK: Caching
 
     /// Returns a cache key identifying the image produced for the given request
     /// (including image processors).
-    func pipeline(_ pipeline: ImagePipeline, cacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<String>
+    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> ImagePipeline.CacheKey<String>
 
     // MARK: Monitoring
 
@@ -40,15 +40,15 @@ public protocol ImagePipelineDelegate: AnyObject {
 }
 
 public extension ImagePipelineDelegate {
-    func pipeline(_ pipeline: ImagePipeline, imageDecoderFor context: ImageDecodingContext) -> ImageDecoding? {
+    func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImageDecoding? {
         pipeline.configuration.makeImageDecoder(context)
     }
 
-    func pipeline(_ pipeline: ImagePipeline, imageEncoderFor context: ImageEncodingContext) -> ImageEncoding {
+    func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> ImageEncoding {
         pipeline.configuration.makeImageEncoder(context)
     }
 
-    func pipeline(_ pipeline: ImagePipeline, cacheKeyFor request: ImageRequest) -> ImagePipeline.CacheKey<String> {
+    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> ImagePipeline.CacheKey<String> {
         .default
     }
 
