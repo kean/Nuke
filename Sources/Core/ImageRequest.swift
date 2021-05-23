@@ -310,10 +310,10 @@ public struct ImageRequest: CustomStringConvertible {
         """
         ImageRequest {
             resource: \(ref.resource),
-            priority: \(ref.priority),
-            processors: \(ref.processors ?? []),
-            options: \(ref.options),
-            userInfo: \(ref.userInfo ?? [:])
+            priority: \(priority),
+            processors: \(processors),
+            options: \(options),
+            userInfo: \(userInfo)
         }
         """
     }
