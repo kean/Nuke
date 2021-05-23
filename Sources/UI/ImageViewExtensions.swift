@@ -427,11 +427,11 @@ private final class ImageViewController {
 
         task = pipeline.loadImage(with: request, queue: .main, progress: { [weak self] response, completedCount, totalCount in
             if let response = response, options.isProgressiveRenderingEnabled {
-                self?.handle(partialImage: response, options: options)
+                self?.handle(partialImage: response)
             }
             progressHandler?(response, completedCount, totalCount)
         }, completion: { [weak self] result in
-            self?.handle(result: result, fromMemCache: false, options: options)
+            self?.handle(result: result, fromMemCache: false)
             completion?(result)
         })
         return task
@@ -446,7 +446,7 @@ private final class ImageViewController {
 
     #if os(iOS) || os(tvOS)
 
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool, options: ImageLoadingOptions) {
+    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool) {
         switch result {
         case let .success(response):
             display(response.container, fromMemCache, .success)
@@ -458,7 +458,7 @@ private final class ImageViewController {
         self.task = nil
     }
 
-    private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
+    private func handle(partialImage response: ImageResponse) {
         display(response.container, false, .success)
     }
 
@@ -561,7 +561,7 @@ private final class ImageViewController {
 
     #elseif os(macOS)
 
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool, options: ImageLoadingOptions) {
+    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool) {
         switch result {
         case let .success(response):
             display(response.container, fromMemCache, .success)
@@ -573,7 +573,7 @@ private final class ImageViewController {
         self.task = nil
     }
 
-    private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
+    private func handle(partialImage response: ImageResponse) {
         display(response.container, false, .success)
     }
 
@@ -608,7 +608,7 @@ private final class ImageViewController {
 
     #elseif os(watchOS)
 
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool, options: ImageLoadingOptions) {
+    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool) {
         switch result {
         case let .success(response):
             imageView?.display(response.container)
@@ -620,7 +620,7 @@ private final class ImageViewController {
         self.task = nil
     }
 
-    private func handle(partialImage response: ImageResponse, options: ImageLoadingOptions) {
+    private func handle(partialImage response: ImageResponse) {
         imageView?.display(response.container)
     }
 
