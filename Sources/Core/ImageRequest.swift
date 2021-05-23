@@ -119,7 +119,6 @@ public struct ImageRequest: CustomStringConvertible {
                 userInfo: [UserInfoKey: Any]? = nil) {
         self.ref = Container(
             resource: Resource.url(url),
-            imageId: url.absoluteString,
             processors: processors,
             priority: priority,
             options: options,
@@ -149,7 +148,6 @@ public struct ImageRequest: CustomStringConvertible {
                 userInfo: [UserInfoKey: Any]? = nil) {
         self.ref = Container(
             resource: Resource.urlRequest(urlRequest),
-            imageId: urlRequest.url?.absoluteString,
             processors: processors,
             priority: priority,
             options: options,
@@ -190,7 +188,6 @@ public struct ImageRequest: CustomStringConvertible {
         // passing a publisher in the request userInfo.
         self.ref = Container(
             resource: .publisher(DataPublisher(id: id, data)),
-            imageId: id,
             processors: processors,
             priority: priority,
             options: options,
@@ -254,7 +251,6 @@ public struct ImageRequest: CustomStringConvertible {
     /// avoid memberwise retain/releases when `ImageRequest` is passed around.
     final class Container {
         let resource: Resource
-        let imageId: String? // memoized absoluteString
         fileprivate(set) var priority: Priority
         fileprivate(set) var options: Options
         fileprivate(set) var processors: [ImageProcessing]?
@@ -267,9 +263,8 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, imageId: String?, processors: [ImageProcessing]?, priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
+        init(resource: Resource, processors: [ImageProcessing]?, priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
-            self.imageId = imageId
             self.processors = processors
             self.priority = priority
             self.options = options
@@ -283,7 +278,6 @@ public struct ImageRequest: CustomStringConvertible {
         /// Creates a copy.
         init(_ ref: Container) {
             self.resource = ref.resource
-            self.imageId = ref.imageId
             self.processors = ref.processors
             self.priority = ref.priority
             self.options = ref.options
@@ -327,11 +321,19 @@ public struct ImageRequest: CustomStringConvertible {
         return request
     }
 
+    var imageId: String? {
+        switch ref.resource {
+        case .url(let url): return url.absoluteString
+        case .urlRequest(let urlRequest): return urlRequest.url?.absoluteString
+        case .publisher(let publisher): return publisher.id
+        }
+    }
+
     var preferredImageId: String {
         if let imageId = ref.userInfo?[.imageIdKey] as? String {
             return imageId
         }
-        return ref.imageId ?? ""
+        return imageId ?? ""
     }
 
     var publisher: DataPublisher? {

@@ -70,7 +70,7 @@ struct DataLoadKey: Hashable {
     private let allowsCellularAccess: Bool
 
     init(_ request: ImageRequest) {
-        self.imageId = request.ref.imageId
+        self.imageId = request.imageId
         switch request.ref.resource {
         case .url, .publisher:
             self.cachePolicy = .useProtocolCachePolicy
