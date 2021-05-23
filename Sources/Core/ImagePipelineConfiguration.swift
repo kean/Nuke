@@ -22,7 +22,6 @@ extension ImagePipeline {
             }
         }
         private var customImageCache: ImageCaching?
-        private var isCustomImageCacheProvided = false
 
         /// Data loader used by the pipeline.
         public var dataLoader: DataLoading
@@ -215,6 +214,8 @@ extension ImagePipeline {
         }
 
         static var isFastTrackDecodingEnabled = true
+
+        private var isCustomImageCacheProvided = false
 
         var debugIsSyncImageEncoding = false
 
