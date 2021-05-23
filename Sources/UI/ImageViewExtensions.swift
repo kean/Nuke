@@ -360,6 +360,12 @@ private final class ImageViewController {
     private var task: ImageTask?
     private var options: ImageLoadingOptions
 
+    #if os(iOS) || os(tvOS)
+    // Image view used for cross-fade transition between images with different
+    // content modes.
+    private lazy var transitionImageView = UIImageView()
+    #endif
+
     // Automatically cancel the request when the view is deallocated.
     deinit {
         cancelOutstandingTask()
@@ -460,7 +466,7 @@ private final class ImageViewController {
         display(response.container, false, .success)
     }
 
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(tvOS) || os(macOS)
 
     private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
@@ -469,10 +475,12 @@ private final class ImageViewController {
 
         var image = image
 
+        #if os(iOS) || os(tvOS)
         if let tintColor = options.tintColor(for: response) {
             image = image.map { $0.withRenderingMode(.alwaysTemplate) } ?? image
             imageView.tintColor = tintColor
         }
+        #endif
 
         if !fromMemCache || options.alwaysTransition, let transition = options.transition(for: response) {
             switch transition.style {
@@ -486,14 +494,27 @@ private final class ImageViewController {
         } else {
             imageView.display(image)
         }
+
+        #if os(iOS) || os(tvOS)
         if let contentMode = options.contentMode(for: response) {
             imageView.contentMode = contentMode
         }
+        #endif
     }
 
-    // Image view used for cross-fade transition between images with different
-    // content modes.
-    private lazy var transitionImageView = UIImageView()
+    #elseif os(watchOS)
+
+    private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
+        imageView?.display(response.container)
+    }
+
+    #endif
+}
+
+// MARK: - ImageViewController (Transitions)
+
+private extension ImageViewController {
+    #if os(iOS) || os(tvOS)
 
     private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
@@ -561,25 +582,6 @@ private final class ImageViewController {
 
     #elseif os(macOS)
 
-    private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
-        guard let imageView = imageView else {
-            return
-        }
-
-        if !fromMemCache || options.alwaysTransition, let transition = options.transition(for: response) {
-            switch transition.style {
-            case let .fadeIn(params):
-                runFadeInTransition(image: image, params: params, response: response)
-            case let .custom(closure):
-                // The user is reponsible for both displaying an image and performing
-                // animations.
-                closure(imageView, image.image)
-            }
-        } else {
-            imageView.display(image)
-        }
-    }
-
     private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, response: ImageLoadingOptions.ResponseType) {
         let animation = CABasicAnimation(keyPath: "opacity")
         animation.duration = params.duration
@@ -588,12 +590,6 @@ private final class ImageViewController {
         imageView?.layer?.add(animation, forKey: "imageTransition")
 
         imageView?.display(image)
-    }
-
-    #elseif os(watchOS)
-
-    private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
-        imageView?.display(response.container)
     }
 
     #endif
