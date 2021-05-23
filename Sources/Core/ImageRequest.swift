@@ -258,6 +258,9 @@ public struct ImageRequest: CustomStringConvertible {
         fileprivate(set) var options: Options
         fileprivate(set) var processors: [ImageProcessing]?
         fileprivate(set) var userInfo: [UserInfoKey: Any]?
+        // After trimming down the request size, it is no longer
+        // as beneficial using CoW for ImageRequest, but there
+        // still is a small but measurable difference.
 
         deinit {
             #if TRACK_ALLOCATIONS
