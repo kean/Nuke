@@ -420,17 +420,8 @@ private final class ImageViewController {
         }
 
         // Display a placeholder.
-        if var placeholder = options.placeholder {
-            #if os(iOS) || os(tvOS)
-            if let tintColor = options.tintColors?.placeholder {
-                placeholder = placeholder.withRenderingMode(.alwaysTemplate)
-                imageView.tintColor = tintColor
-            }
-            if let contentMode = options.contentModes?.placeholder {
-                imageView.contentMode = contentMode
-            }
-            #endif
-            imageView.nuke_display(image: placeholder, data: nil)
+        if let placeholder = options.placeholder {
+            display(ImageContainer(image: placeholder), true, .placeholder)
         } else if options.isPrepareForReuseEnabled {
             imageView.nuke_display(image: nil, data: nil) // Remove previously displayed images (if any)
         }
