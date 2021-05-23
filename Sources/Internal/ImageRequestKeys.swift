@@ -87,7 +87,7 @@ struct ImageProcessingKey: Equatable, Hashable {
     let processorId: AnyHashable
 
     init(image: ImageResponse, processor: ImageProcessing) {
-        self.imageId = ObjectIdentifier(image)
+        self.imageId = ObjectIdentifier(image.image)
         self.processorId = processor.hashableIdentifier
     }
 }

@@ -165,7 +165,7 @@ public struct ImageContainer {
 // MARK: - ImageResponse
 
 /// Represents a response of a particular image task.
-public final class ImageResponse {
+public struct ImageResponse {
     public let container: ImageContainer
     /// A convenience computed property which returns an image from the container.
     public var image: PlatformImage { container.image }
