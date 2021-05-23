@@ -444,8 +444,6 @@ private final class ImageViewController {
 
     // MARK: - Handling Responses
 
-    #if os(iOS) || os(tvOS)
-
     private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool) {
         switch result {
         case let .success(response):
@@ -461,6 +459,8 @@ private final class ImageViewController {
     private func handle(partialImage response: ImageResponse) {
         display(response.container, false, .success)
     }
+
+    #if os(iOS) || os(tvOS)
 
     private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
@@ -561,22 +561,6 @@ private final class ImageViewController {
 
     #elseif os(macOS)
 
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool) {
-        switch result {
-        case let .success(response):
-            display(response.container, fromMemCache, .success)
-        case .failure:
-            if let failureImage = options.failureImage {
-                display(ImageContainer(image: failureImage), fromMemCache, .failure)
-            }
-        }
-        self.task = nil
-    }
-
-    private func handle(partialImage response: ImageResponse) {
-        display(response.container, false, .success)
-    }
-
     private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
@@ -607,22 +591,6 @@ private final class ImageViewController {
     }
 
     #elseif os(watchOS)
-
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool) {
-        switch result {
-        case let .success(response):
-            imageView?.display(response.container)
-        case .failure:
-            if let failureImage = options.failureImage {
-                imageView?.nuke_display(image: failureImage, data: nil)
-            }
-        }
-        self.task = nil
-    }
-
-    private func handle(partialImage response: ImageResponse) {
-        imageView?.display(response.container)
-    }
 
     private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
         imageView?.display(response.container)
