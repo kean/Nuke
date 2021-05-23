@@ -251,8 +251,8 @@ public struct ImageRequest: CustomStringConvertible {
     /// avoid memberwise retain/releases when `ImageRequest` is passed around.
     final class Container {
         // It's benefitial to put resource before priority and options because
-        // of the resource size/stride of 9/16. Priority (1 byte) and Options (2 bites)
-        // slot just right in the remaining space.
+        // of the resource size/stride of 9/16. Priority (1 byte) and Options
+        // (2 bytes) slot just right in the remaining space.
         let resource: Resource
         fileprivate(set) var priority: Priority
         fileprivate(set) var options: Options
