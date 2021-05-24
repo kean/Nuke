@@ -21,7 +21,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
 
         // Disk cache lookup
-        if let dataCache = pipeline.configuration.dataCache,
+        if let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline),
            !request.options.contains(.disableDiskCacheReads) {
             operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
                 self?.getCachedData(dataCache: dataCache)
@@ -244,7 +244,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         guard !response.container.isPreview else {
             return
         }
-        guard let dataCache = pipeline.configuration.dataCache, shouldStoreFinalImageInDiskCache() else {
+        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreFinalImageInDiskCache() else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)

@@ -21,6 +21,13 @@ extension ImagePipeline {
 public protocol ImagePipelineDelegate: AnyObject {
     // MARK: Configuration
 
+    /// Returns data loader for the given request.
+    func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> DataLoading
+
+    /// Retuns disk cache for the given request. Return `nil` to prevent cache
+    /// reads and writes.
+    func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> DataCaching?
+
     /// Returns image decoder for the given context.
     func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImageDecoding?
 
@@ -40,6 +47,14 @@ public protocol ImagePipelineDelegate: AnyObject {
 }
 
 public extension ImagePipelineDelegate {
+    func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> DataLoading {
+        pipeline.configuration.dataLoader
+    }
+
+    func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> DataCaching? {
+        pipeline.configuration.dataCache
+    }
+
     func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImageDecoding? {
         pipeline.configuration.makeImageDecoder(context)
     }

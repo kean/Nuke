@@ -65,7 +65,10 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         signpost(log, self, "LoadImageData", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
 
         let dataTask: Cancellable
-        if let dataLoader = pipeline.dataLoader, dataLoader.pipeline === pipeline {
+        let proposedDataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
+        if let dataLoader = pipeline.dataLoader,
+           (proposedDataLoader as? DataLoader) === dataLoader,
+           dataLoader.pipeline === pipeline {
             // Fast track with fewer context switches
             dataTask = dataLoader.loadData(with: urlRequest, isConfined: true, didReceiveData: { [weak self] data, response in
                 self?.dataTask(didReceiveData: data, response: response)
@@ -143,7 +146,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         }
 
         // Store in data cache
-        if let dataCache = pipeline.configuration.dataCache, shouldStoreDataInDiskCache() {
+        if let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() {
             // Important! Storing directly ignoring `ImageRequest.Options`.
             let key = pipeline.cache.makeDataCacheKey(for: request)
             dataCache.storeData(data, for: key)

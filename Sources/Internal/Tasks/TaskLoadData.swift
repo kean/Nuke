@@ -7,7 +7,7 @@ import Foundation
 /// Wrapper for tasks created by `loadData` calls.
 final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
     override func start() {
-        guard let dataCache = pipeline.configuration.dataCache,
+        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline),
               !request.options.contains(.disableDiskCacheReads) else {
             loadData()
             return

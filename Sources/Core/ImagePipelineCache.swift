@@ -104,7 +104,7 @@ extension ImagePipeline {
             if caches.contains(.memory) && cachedImageFromMemoryCache(for: request) != nil {
                 return true
             }
-            if caches.contains(.disk), let dataCache = configuration.dataCache {
+            if caches.contains(.disk), let dataCache = dataCache(for: request) {
                 let key = makeDataCacheKey(for: request)
                 return dataCache.containsData(for: key)
             }
@@ -146,7 +146,7 @@ extension ImagePipeline {
             guard !request.options.contains(.disableDiskCacheReads) else {
                 return nil
             }
-            guard let dataCache = configuration.dataCache else {
+            guard let dataCache = dataCache(for: request) else {
                 return nil
             }
             let key = makeDataCacheKey(for: request)
@@ -159,7 +159,7 @@ extension ImagePipeline {
         /// to call this method even from the main thread.
         public func storeCachedData(_ data: Data, for request: ImageRequestConvertible) {
             let request = request.asImageRequest()
-            guard let dataCache = configuration.dataCache,
+            guard let dataCache = dataCache(for: request),
                   !request.options.contains(.disableDiskCacheWrites) else {
                 return
             }
@@ -170,7 +170,7 @@ extension ImagePipeline {
         /// Returns true if the data cache contains data for the given image
         public func containsData(for request: ImageRequestConvertible) -> Bool {
             let request = request.asImageRequest()
-            guard let dataCache = configuration.dataCache else {
+            guard let dataCache = dataCache(for: request) else {
                 return false
             }
             return dataCache.containsData(for: makeDataCacheKey(for: request))
@@ -179,7 +179,7 @@ extension ImagePipeline {
         /// Removes cached data for the given request.
         public func removeCachedData(for request: ImageRequestConvertible) {
             let request = request.asImageRequest()
-            guard let dataCache = configuration.dataCache else {
+            guard let dataCache = dataCache(for: request) else {
                 return
             }
             let key = makeDataCacheKey(for: request)
@@ -224,7 +224,7 @@ extension ImagePipeline {
             }
         }
 
-        // MARK: Encode/Decode (Private)
+        // MARK: Private
 
         private func decodeImageData(_ data: Data, for request: ImageRequest) -> ImageContainer? {
             let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
@@ -238,6 +238,10 @@ extension ImagePipeline {
             let context = ImageEncodingContext(request: request, image: image.image, urlResponse: nil)
             let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
             return encoder.encode(image, context: context)
+        }
+
+        private func dataCache(for request: ImageRequest) -> DataCaching? {
+            pipeline.delegate.dataCache(for: request, pipeline: pipeline)
         }
 
         // MARK: Options
