@@ -17,7 +17,6 @@ import Foundation
 public /* final */ class ImagePipeline {
     public let configuration: Configuration
     public var observer: ImagePipelineObserving?
-    private(set) var dataLoader: DataLoader?
 
     private var tasks = [ImageTask: TaskSubscription]()
 
@@ -63,12 +62,6 @@ public /* final */ class ImagePipeline {
 
         self._nextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
         self._nextTaskId.initialize(to: 0)
-
-        // Performance optimization to reduce number of queue switches.
-        if let dataLoader = configuration.dataLoader as? DataLoader {
-            dataLoader.attach(pipeline: self)
-            self.dataLoader = dataLoader
-        }
 
         ResumableDataStorage.shared.register(self)
 
