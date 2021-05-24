@@ -146,14 +146,41 @@ class ImagePipelineDelegateTests: XCTestCase {
             .cancelled
         ])
     }
+
+    func testDataIsStoredInCache() {
+        // WHEN
+        expect(pipeline).toLoadImage(with: Test.request)
+
+        // THEN
+        wait { _ in
+            XCTAssertFalse(self.dataCache.store.isEmpty)
+        }
+    }
+
+    func testDataIsStoredInCacheWhenCacheDisabled() {
+        // WHEN
+        delegate.isCacheEnabled = false
+        expect(pipeline).toLoadImage(with: Test.request)
+
+        // THEN
+        wait { _ in
+            XCTAssertTrue(self.dataCache.store.isEmpty)
+        }
+    }
 }
 
 private final class MockImagePipelineDelegate: ImagePipelineDelegate {
+    var isCacheEnabled = true
+
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> ImagePipeline.CacheKey<String> {
         guard let imageId = request.userInfo["imageId"] as? String else {
             return .default
         }
         return .custom(key: imageId)
+    }
+
+    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
+        completion(isCacheEnabled ? data : nil)
     }
 
     var events = [ImageTaskEvent]()

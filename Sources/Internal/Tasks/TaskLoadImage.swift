@@ -250,13 +250,17 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
         let key = pipeline.cache.makeDataCacheKey(for: request)
-        pipeline.configuration.imageEncodingQueue.addOperation {
+        pipeline.configuration.imageEncodingQueue.addOperation { [weak pipeline, request] in
+            guard let pipeline = pipeline else { return }
             let encodedData = signpost(log, "EncodeImage") {
                 encoder.encode(response.container, context: context)
             }
             guard let data = encodedData else { return }
-            // Important! Storing directly ignoring `ImageRequest.Options`.
-            dataCache.storeData(data, for: key) // This is instant, writes are async
+            pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
+                guard let data = $0 else { return }
+                // Important! Storing directly ignoring `ImageRequest.Options`.
+                dataCache.storeData(data, for: key) // This is instant, writes are async
+            }
         }
         if pipeline.configuration.debugIsSyncImageEncoding { // Only for debug
             pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
