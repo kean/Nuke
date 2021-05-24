@@ -64,35 +64,20 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
 
         signpost(log, self, "LoadImageData", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
 
-        let dataTask: Cancellable
-        let proposedDataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
-        if let dataLoader = pipeline.dataLoader,
-           (proposedDataLoader as? DataLoader) === dataLoader,
-           dataLoader.pipeline === pipeline {
-            // Fast track with fewer context switches
-            dataTask = dataLoader.loadData(with: urlRequest, isConfined: true, didReceiveData: { [weak self] data, response in
-                self?.dataTask(didReceiveData: data, response: response)
-            }, completion: { [weak self] error in
-                finish() // Finish the operation!
-                guard let self = self else { return }
-                signpost(log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
+        let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
+        let dataTask = dataLoader.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
+            guard let self = self else { return }
+            self.async {
+                self.dataTask(didReceiveData: data, response: response)
+            }
+        }, completion: { [weak self] error in
+            finish() // Finish the operation!
+            guard let self = self else { return }
+            signpost(log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
+            self.async {
                 self.dataTaskDidFinish(error: error)
-            })
-        } else {
-            dataTask = pipeline.configuration.dataLoader.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
-                guard let self = self else { return }
-                self.async {
-                    self.dataTask(didReceiveData: data, response: response)
-                }
-            }, completion: { [weak self] error in
-                finish() // Finish the operation!
-                guard let self = self else { return }
-                signpost(log, self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
-                self.async {
-                    self.dataTaskDidFinish(error: error)
-                }
-            })
-        }
+            }
+        })
 
         onCancelled = { [weak self] in
             guard let self = self else { return }

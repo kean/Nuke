@@ -26,7 +26,6 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     private let impl = _DataLoader()
 
     public var observer: DataLoaderObserving?
-    weak var pipeline: ImagePipeline?
 
     deinit {
         session.invalidateAndCancel()
@@ -50,12 +49,6 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
         #if TRACK_ALLOCATIONS
         Allocations.increment("DataLoader")
         #endif
-    }
-
-    // Performance optimization to reduce number of context switches.
-    func attach(pipeline: ImagePipeline) {
-        self.pipeline = pipeline
-        self.session.delegateQueue.underlyingQueue = pipeline.queue
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
@@ -102,14 +95,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     public func loadData(with request: URLRequest,
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
                          completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
-        loadData(with: request, isConfined: false, didReceiveData: didReceiveData, completion: completion)
-    }
-
-    func loadData(with request: URLRequest,
-                  isConfined: Bool,
-                  didReceiveData: @escaping (Data, URLResponse) -> Void,
-                  completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
-        return impl.loadData(with: request, session: session, isConfined: isConfined, didReceiveData: didReceiveData, completion: completion)
+        impl.loadData(with: request, session: session, didReceiveData: didReceiveData, completion: completion)
     }
 
     /// Errors produced by `DataLoader`.
@@ -143,17 +129,12 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     /// Loads data with the given request.
     func loadData(with request: URLRequest,
                   session: URLSession,
-                  isConfined: Bool,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
                   completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = session.dataTask(with: request)
         let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
-        if isConfined {
-            handlers[task] = handler
-        } else {
-            session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
-                self.handlers[task] = handler
-            }
+        session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
+            self.handlers[task] = handler
         }
         task.resume()
         send(task, .resumed)
