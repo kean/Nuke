@@ -41,7 +41,7 @@ public protocol ImagePipelineDelegate: AnyObject {
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> ImagePipeline.CacheKey<String>
 
     /// Gets called when the pipeline is about to save data for the given request.
-    /// The implementation must call the completion caller passing `non-nil` data
+    /// The implementation must call the completion closure passing `non-nil` data
     /// to enable caching or `nil` to prevent it.
     ///
     /// This method calls only if the request parameters and data caching policy
@@ -50,6 +50,11 @@ public protocol ImagePipelineDelegate: AnyObject {
     /// - parameter data: Either the original data or the encoded image in case
     /// of storing a processed or re-encoded image.
     /// - parameter image: Non-nil in case storing an encoded image.
+    /// - parameter request: The request for which image is being stored.
+    /// - parameter completion: The implementation must call the completion closure
+    /// passing `non-nil` data to enable caching or `nil` to prevent it. You can
+    /// safely call it synchronously. The callback gets called on the background
+    /// thread.
     func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void)
 
     // MARK: Monitoring
