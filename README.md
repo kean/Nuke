@@ -9,7 +9,7 @@
 <img src="https://github.com/kean/Nuke/workflows/Nuke%20CI/badge.svg">
 </p>
 
-**Nuke ICS–10** provides a simple and efficient way to download and display images in your app. It's easy to learn and use thanks to its clear and concise API. Its advanced architecture enables many powerful features while offering virtually unlimited possibilities for customization.
+**Nuke ICS-10** provides a simple and efficient way to download and display images in your app. It's easy to learn and use thanks to its clear and concise API. Its advanced architecture enables many powerful features while offering virtually unlimited possibilities for customization.
 
 Despite the number of features, the framework is lean and compiles in just under 3 seconds[¹](#footnote-1). Nuke has an automated test suite 2x the size of the codebase itself, ensuring excellent reliability. Every feature is carefully designed and optimized for [performance](https://kean.blog/post/nuke-9).
 
