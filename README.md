@@ -58,7 +58,7 @@ The image pipeline is easy to customize and extend. Check out the following firs
 | Nuke 10.0      | Swift 5.3       | Xcode 12.0      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
 | Nuke 9.0      | Swift 5.1       | Xcode 11.0      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
 
-See [Installation Guide](https://github.com/kean/Nuke/blob/9.6.0/Documentation/Guides/installation-guide.md#h_requirements) for information about the older versions.
+See [Installation Guide](https://kean.blog/nuke/guides/installation) for information about the older versions.
 
 ## License
 
