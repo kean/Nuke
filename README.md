@@ -2,16 +2,16 @@
 
 <img src="https://user-images.githubusercontent.com/1567433/114792417-57c1d080-9d56-11eb-8035-dc07cfd7557f.png" height="220">
 
-# Powerful Image Loading System
+# Powerful Image Caching System
 
 <p align="left">
 <img src="https://img.shields.io/badge/platforms-iOS%2C%20macOS%2C%20watchOS%2C%20tvOS-lightgrey.svg">
 <img src="https://github.com/kean/Nuke/workflows/Nuke%20CI/badge.svg">
 </p>
 
-Nuke provides a simple and efficient way to download and display images in your app.
+Nuke ICS–10 provides a simple and efficient way to download and display images in your app. It's easy to learn and use thanks to its clear and concise API. Its advanced architecture enables many powerful features while offering virtually unlimited possibilities for customization.
 
-Behind Nuke's clear and concise API is an advanced architecture that enables its unique features and offers virtually unlimited possibilities for customization. Despite the great number of features, the framework is lean and compiles in under 2 seconds. Nuke's primary feature is [performance](https://kean.blog/post/nuke-9).
+Despite the number of features, the framework is lean and compiles in just under 3 seconds[¹](#footnote-1). Nuke has a test suite 2x the size of the codebase itself, ensuring excellent reliability. Every feature is carefully designed and optimized for [performance](https://kean.blog/post/nuke-9).
 
 > **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Elegant builder API** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG, HEIF, WebP, SVG, GIF** · **Alamofire** · **Combine** · **Reactive extensions**
 
@@ -63,3 +63,7 @@ See [Installation Guide](https://github.com/kean/Nuke/blob/9.6.0/Documentation/G
 ## License
 
 Nuke is available under the MIT license. See the LICENSE file for more info.
+
+----
+
+> <a name="footnote-1">¹</a> Measured on MacBook Pro 2018 (2,2 GHz 6-Core Intel Core i7, 16 GB 2400 MHz DDR4)
