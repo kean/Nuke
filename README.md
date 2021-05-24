@@ -2,14 +2,14 @@
 
 <img src="https://user-images.githubusercontent.com/1567433/114792417-57c1d080-9d56-11eb-8035-dc07cfd7557f.png" height="205">
 
-# Image Caching System
+# Image Loading System
 
 <p align="left">
 <img src="https://img.shields.io/badge/platforms-iOS%2C%20macOS%2C%20watchOS%2C%20tvOS-lightgrey.svg">
 <img src="https://github.com/kean/Nuke/workflows/Nuke%20CI/badge.svg">
 </p>
 
-**Nuke ICS-10** provides a simple and efficient way to download and display images in your app. It's easy to learn and use thanks to a clear and concise API. Its advanced architecture enables many powerful features while offering virtually unlimited possibilities for customization.
+Nuke ILS provides a simple and efficient way to download and display images in your app. It's easy to learn and use thanks to a clear and concise API. Its architecture enables many powerful features while offering virtually unlimited possibilities for customization.
 
 Despite the number of features, the framework is lean and compiles in just under 3 seconds[¹](#footnote-1). Nuke has an automated test suite 2x the size of the codebase itself, ensuring excellent reliability. Every feature is carefully designed and optimized for [performance](https://kean.blog/post/nuke-9).
 
