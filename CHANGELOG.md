@@ -1087,7 +1087,7 @@ Add support for both Swift 3.2 and 4.0.
 
 ## Nuke 5.0
 
-* Feb 1, 2017*
+*Feb 1, 2017*
 
 ### Overview
 
