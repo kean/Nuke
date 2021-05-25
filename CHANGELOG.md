@@ -1,5 +1,11 @@
 # Nuke 9
 
+## Nuke 9.6.1
+
+*May 24, 2021*
+
+- Remove some risky `DataLoader` optimizations
+
 ## Nuke 9.6.0
 
 *May 2, 2021*
