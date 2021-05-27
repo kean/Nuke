@@ -237,7 +237,7 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        pipeline.registerMultipelRequests {
+        pipeline.resgiterMultipleRequests {
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
         }
@@ -301,7 +301,7 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        pipeline.registerMultipelRequests {
+        pipeline.resgiterMultipleRequests {
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
         }
@@ -427,7 +427,7 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        pipeline.registerMultipelRequests {
+        pipeline.resgiterMultipleRequests {
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
         }
@@ -444,7 +444,7 @@ extension ImagePipelineLoadDataTests {
 }
 
 extension ImagePipeline {
-    func registerMultipelRequests(_ closure: () -> Void) {
+    func resgiterMultipleRequests(_ closure: () -> Void) {
         configuration.dataLoadingQueue.isSuspended = true
         closure()
         queue.sync {} // Important!
