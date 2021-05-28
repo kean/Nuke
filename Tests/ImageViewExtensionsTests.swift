@@ -56,6 +56,27 @@ class ImageViewExtensionsTests: XCTestCase {
         XCTAssertNotNil(imageView.image)
     }
 
+    func testLoadImageWithNilRequest() {
+        // WHEN
+        imageView.image = Test.image
+        Nuke.loadImage(with: nil, into: imageView)
+
+        // THEN
+        XCTAssertNil(imageView.image)
+    }
+
+    func testLoadImageWithNilRequestAndPlaceholder() {
+        // GIVEN
+        let failureImage = Test.image
+
+        // WHEN
+        let options = ImageLoadingOptions(failureImage: failureImage)
+        Nuke.loadImage(with: nil, options: options, into: imageView)
+
+        // THEN failure image is displayed
+        XCTAssertTrue(imageView.image === failureImage)
+    }
+
     // MARK: - Managing Tasks
 
     func testTaskReturned() {
