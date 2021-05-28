@@ -118,7 +118,7 @@ public struct ImageRequestOptions {
     }
 
     // Deprecated in 10.0.0
-    @available(*, deprecated, message: "Please pass imageId (`ImageRequest.UserInfoKey.imageId`) in the request `userInfo`. The deprecated API does nothing starting with Nuke 10.")
+    @available(*, deprecated, message: "Please pass imageId (`ImageRequest.UserInfoKey.imageIdKey`) in the request `userInfo`. The deprecated API does nothing starting with Nuke 10.")
     var filteredURL: AnyHashable? {
         get { nil }
         set { debugPrint("The ImageRequestOptions.filteredURL API does nothing starting with Nuke 10") } // swiftlint:disable:this unused_setter_value
@@ -238,6 +238,7 @@ public extension ImagePipeline.Configuration {
 private var _animatedImageDataAK = "Nuke.AnimatedImageData.AssociatedKey"
 
 extension PlatformImage {
+    // Deprecated in 10.0.0
     /// - warning: Soft-deprecated in Nuke 9.0.
     @available(*, deprecated, message: "Please use `ImageConatainer` `data` instead")
     public var animatedImageData: Data? {
