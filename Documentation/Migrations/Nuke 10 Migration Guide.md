@@ -147,6 +147,8 @@ let request = ImageRequest(url: URL(string: "https://example.com/image.jpeg"))
 let originalDataKey = pipeline.cache.makeImageCacheKey(for: request)
 ```
 
+> Learn more about the new cache APIs in ["Caching: Direct Access."](https://kean.blog/nuke/guides/caching#direct-access)
+
 ## ImageRequestOptions
 
 Nuke 10 has a reworked [`ImageRequest.Options`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImageRequest_Options/) option set replacing removed `ImageRequestOptions`. The name is similar, but the options are slightly different. 
