@@ -33,24 +33,22 @@ Replace deprecated `DataCacheOptions.storedItems` in the pipeline configuration 
 ```swift
 var configuration = ImagePipeline.Configuration()
 
-// 1. [.finalImage]
-
 // Before (Nuke 9)
 configuration.dataCacheOptions.storedItems = [.finalImage]
 
 // After (Nuke 10)
 configuration.dataCachePolicy = .storeEncodedImages
+```
 
-// 2. [.originalImageData]
-
+```swift
 // Before (Nuke 9) 
 configuration.dataCacheOptions.storedItems = [.originalImageData]
 
 // After (Nuke 10)
 configuration.dataCachePolicy = .storeOriginalData
+```
 
-// 3. [.finalImage, .originalImageData]
-
+```swift
 // Before (Nuke 9) 
 configuration.dataCacheOptions.storedItems = [.finalImage, .originalImageData]
 
@@ -77,7 +75,9 @@ let dataLoader: DataLoader = {
 var config = ImagePipeline.Configuration()
 config.dataLoader = dataLoader
 config.dataCache = try? DataCache(name: "com.github.kean.Nuke.DataCache")
+```
 
+```swift
 // After (Nuke 10)
 let config = ImagePipeline.Configuration.withDataCache
 ```
@@ -145,33 +145,6 @@ And you can now also access image (memory) cache keys:
 // New (Nuke 10)
 let request = ImageRequest(url: URL(string: "https://example.com/image.jpeg"))
 let originalDataKey = pipeline.cache.makeImageCacheKey(for: request)
-```
-
-## ImagePipelineObserving
-
-`ImagePipelineObserving` protocol is now part of the new `ImagePipelineDelegate` protocol.
-
-```swift
-// Before (Nuke 9)
-let pipeline = ImagePipeline()
-pipeline.observer = MockImagePipelineObserver()
-
-class YourImagePipelineObserver: ImagePipelineObserving {
-    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
-        // ...
-    }
-}
-
-// After (Nuke 10)
-let pipeline = ImagePipeline(delegate: MockImagePipelineObserver())
-
-class YourImagePipelineObserver: ImagePipelineDelegate {
-    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
-        // ...
-    }
-}
-
-ImagePipeline.shared = pipeline // To set the default pipeline
 ```
 
 ## ImageRequestOptions
@@ -271,6 +244,35 @@ let data = response.container.data // Attached automatically for GIFs
 ```
 
 `Nuke_ImageDisplaying` protocol was also updated: you now receive `data` in the callback that you can use for rendering (data is only attached when needed).  
+
+## ImagePipelineObserving
+
+`ImagePipelineObserving` protocol is now part of the new `ImagePipelineDelegate` protocol.
+
+```swift
+// Before (Nuke 9)
+let pipeline = ImagePipeline()
+pipeline.observer = MockImagePipelineObserver()
+
+class YourImagePipelineObserver: ImagePipelineObserving {
+    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
+        // ...
+    }
+}
+```
+
+```swift
+// After (Nuke 10)
+let pipeline = ImagePipeline(delegate: MockImagePipelineObserver())
+
+class YourImagePipelineObserver: ImagePipelineDelegate {
+    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
+        // ...
+    }
+}
+
+ImagePipeline.shared = pipeline // To set the default pipeline
+```
 
 ---
 
