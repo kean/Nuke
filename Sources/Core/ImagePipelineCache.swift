@@ -228,7 +228,7 @@ extension ImagePipeline {
 
         private func decodeImageData(_ data: Data, for request: ImageRequest) -> ImageContainer? {
             let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
-            guard let decoder = configuration.makeImageDecoder(context) else {
+            guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
                 return nil
             }
             return decoder.decode(data, urlResponse: nil, isCompleted: true, cacheType: .disk)?.container
