@@ -234,7 +234,7 @@
 		0C505B6B2286F3AD006D5399 /* Task.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
 		0C53C8AE263C7B1700E62D03 /* ImagePipelineDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDelegateTests.swift; sourceTree = "<group>"; };
 		0C53C8B0263C968200E62D03 /* ImagePipelineDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDelegate.swift; sourceTree = "<group>"; };
-		0C54E64126616E9D00ED1049 /* Nuke 10 Migration Guide.markdown */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 10 Migration Guide.markdown"; sourceTree = "<group>"; };
+		0C54E64126616E9D00ED1049 /* Nuke 10 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 10 Migration Guide.md"; sourceTree = "<group>"; };
 		0C5D81871D46A385000ECCB6 /* ThreadSafetyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThreadSafetyTests.swift; sourceTree = "<group>"; };
 		0C64F73A24383043001983C6 /* ImageEncoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEncoderTests.swift; sourceTree = "<group>"; };
 		0C64F73C243836B5001983C6 /* img_751.heic */ = {isa = PBXFileReference; lastKnownFileType = file; path = img_751.heic; sourceTree = "<group>"; };
@@ -680,7 +680,7 @@
 		0CDB927C1DAF9BA500002905 /* Migrations */ = {
 			isa = PBXGroup;
 			children = (
-				0C54E64126616E9D00ED1049 /* Nuke 10 Migration Guide.markdown */,
+				0C54E64126616E9D00ED1049 /* Nuke 10 Migration Guide.md */,
 				0C6784DC24341207005B8CF5 /* Nuke 9 Migration Guide.md */,
 				0C6784DD24341212005B8CF5 /* Nuke 8 Migration Guide.md */,
 				0CE5F78820A22ABF00BC3283 /* Nuke 7 Migration Guide.md */,
