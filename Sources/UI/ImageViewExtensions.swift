@@ -430,7 +430,7 @@ private final class ImageViewController {
                 imageView.nuke_display(image: nil, data: nil)
             }
             let result: Result<ImageResponse, ImagePipeline.Error> = .failure(.dataLoadingFailed(URLError(.unknown)))
-            handle(result: result, fromMemCache: true)
+            handle(result: result, isFromMemory: true)
             completion?(result)
             return nil
         }
@@ -460,7 +460,7 @@ private final class ImageViewController {
             }
             progress?(response, completedCount, totalCount)
         }, completion: { [weak self] result in
-            self?.handle(result: result, fromMemCache: false)
+            self?.handle(result: result, isFromMemory: false)
             completion?(result)
         })
         return task
@@ -473,13 +473,13 @@ private final class ImageViewController {
 
     // MARK: - Handling Responses
 
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, fromMemCache: Bool) {
+    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, isFromMemory: Bool) {
         switch result {
         case let .success(response):
-            display(response.container, fromMemCache, .success)
+            display(response.container, isFromMemory, .success)
         case .failure:
             if let failureImage = options.failureImage {
-                display(ImageContainer(image: failureImage), fromMemCache, .failure)
+                display(ImageContainer(image: failureImage), isFromMemory, .failure)
             }
         }
         self.task = nil
@@ -491,7 +491,7 @@ private final class ImageViewController {
 
     #if os(iOS) || os(tvOS) || os(macOS)
 
-    private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
+    private func display(_ image: ImageContainer, _ isFromMemory: Bool, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
         }
@@ -505,7 +505,7 @@ private final class ImageViewController {
         }
         #endif
 
-        if !fromMemCache || options.alwaysTransition, let transition = options.transition(for: response) {
+        if !isFromMemory || options.alwaysTransition, let transition = options.transition(for: response) {
             switch transition.style {
             case let .fadeIn(params):
                 runFadeInTransition(image: image, params: params, response: response)
@@ -527,7 +527,7 @@ private final class ImageViewController {
 
     #elseif os(watchOS)
 
-    private func display(_ image: ImageContainer, _ fromMemCache: Bool, _ response: ImageLoadingOptions.ResponseType) {
+    private func display(_ image: ImageContainer, _ isFromMemory: Bool, _ response: ImageLoadingOptions.ResponseType) {
         imageView?.display(response.container)
     }
 
