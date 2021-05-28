@@ -224,13 +224,17 @@ If the request is `nil`, it's handled as a failure scenario.
 
 ## Extended ImageRequestConvertible
 
+`ImageRequestConvertible` now supports `String` types.
+
 ```swift
 // Before (Nuke 9)
 pipeline.loadImage(with: URL(string: "https://example.com/image.jpeg")!) { _ in }
 
-// After (Nuke 10)
+// New (Nuke 10)
 pipeline.loadImage(with: "https://example.com/image.jpeg") { _ in }
 ```
+
+And, of course, you can still pass `URL` values as usual.
 
 ## Animated Images
 
