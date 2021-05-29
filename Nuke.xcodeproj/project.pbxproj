@@ -131,6 +131,7 @@
 		0CB402D525B6569700F5A241 /* TaskFetchOriginalImageData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB402D425B6569700F5A241 /* TaskFetchOriginalImageData.swift */; };
 		0CB402DB25B656D200F5A241 /* TaskFetchDecodedImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB402DA25B656D200F5A241 /* TaskFetchDecodedImage.swift */; };
 		0CB4030125B6639200F5A241 /* TaskLoadImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB4030025B6639200F5A241 /* TaskLoadImage.swift */; };
+		0CBBEA352662C1BC0048A3C6 /* FetchImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBBEA342662C1BC0048A3C6 /* FetchImageView.swift */; };
 		0CC36A1225B8BC0800811018 /* Allocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A1125B8BC0800811018 /* Allocations.swift */; };
 		0CC36A1925B8BC2500811018 /* RateLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A1825B8BC2500811018 /* RateLimiter.swift */; };
 		0CC36A2525B8BC4900811018 /* Operation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A2425B8BC4900811018 /* Operation.swift */; };
@@ -304,6 +305,7 @@
 		0CB402DA25B656D200F5A241 /* TaskFetchDecodedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskFetchDecodedImage.swift; sourceTree = "<group>"; };
 		0CB4030025B6639200F5A241 /* TaskLoadImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskLoadImage.swift; sourceTree = "<group>"; };
 		0CBBEA332662BC6E0048A3C6 /* switch-from-kingfisher.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "switch-from-kingfisher.md"; sourceTree = "<group>"; };
+		0CBBEA342662C1BC0048A3C6 /* FetchImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FetchImageView.swift; sourceTree = "<group>"; };
 		0CC36A1125B8BC0800811018 /* Allocations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Allocations.swift; sourceTree = "<group>"; };
 		0CC36A1825B8BC2500811018 /* RateLimiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimiter.swift; sourceTree = "<group>"; };
 		0CC36A2425B8BC4900811018 /* Operation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Operation.swift; sourceTree = "<group>"; };
@@ -719,6 +721,7 @@
 			children = (
 				0C0FD5DF1CA47FE1002A78FB /* ImageViewExtensions.swift */,
 				0C18BEBB2650C7F20002C55B /* FetchImage.swift */,
+				0CBBEA342662C1BC0048A3C6 /* FetchImageView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -1157,6 +1160,7 @@
 				0C0FD6001CA47FE1002A78FB /* ImageProcessing.swift in Sources */,
 				0CC36A4125B8BCAC00811018 /* Log.swift in Sources */,
 				0C0FD5FC1CA47FE1002A78FB /* ImageCache.swift in Sources */,
+				0CBBEA352662C1BC0048A3C6 /* FetchImageView.swift in Sources */,
 				0C0FD5EC1CA47FE1002A78FB /* ImagePipeline.swift in Sources */,
 				0C0FD5E01CA47FE1002A78FB /* DataLoader.swift in Sources */,
 				0C505B6C2286F3AD006D5399 /* Task.swift in Sources */,
