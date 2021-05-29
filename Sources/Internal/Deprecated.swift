@@ -242,7 +242,7 @@ public extension ImageDecoders.Default {
 
 public extension ImagePipeline.Configuration {
     // Deprecated in 10.0.0
-    @available(*, deprecated, message: "Please use `ImageConatainer` `data` instead. The default image decoder now automatically attaches image data to the ImageContainer type. To learn how to implement animated image support using this new type, see the new Image Formats guide https://github.com/kean/Nuke/blob/9.6.0/Documentation/Guides/image-formats.md")
+    @available(*, deprecated, message: "Please use `ImageConatainer` `data` instead. The default image decoder now automatically attaches image data to the ImageContainer type. To learn how to implement animated image support using this new type, see the new Image Formats guide https://github.com/kean/Nuke/blob/9.6.0/Documentation/Guides/image-formats.md. Also see Nuke 10 migration guide https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%2010%20Migration%20Guide.md.")
     static var isAnimatedImageDataEnabled: Bool {
         get { _isAnimatedImageDataEnabled }
         set { _isAnimatedImageDataEnabled = newValue }
