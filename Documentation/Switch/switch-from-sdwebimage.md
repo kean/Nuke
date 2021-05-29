@@ -1,21 +1,21 @@
-# Switching to Nuke from Kingfisher
+# Switching to Nuke from SDWebImage
 
-Both frameworks appeared at roughly the same time in 2015. So they've been around almost as long as Swift has been.
+SDWebImage is an Objective-C framework first released back in 2009. In comparison, Nuke was released in 2015. Nuke has more than enough time to build out to the same level.
 
-Kingfisher was ["heavily inspired"](https://github.com/onevcat/Kingfisher/tree/1.0.0) by [SDWebImage](https://github.com/SDWebImage/SDWebImage). In fact, many APIs directly match the APIs found in SDWebImage. The most recent versions became better Swift citizens, but you can still find some Objective-C/SDWebImage influences, e.g. `progressBlock` naming.
+One of the main advantages of SDWebImage is the support for many image formats, even obscure ones. Nuke, on the other hand, offers a comprehensive [infrastructure](https://kean.blog/nuke/guides/image-formats) to support different image formats, including progressive decoding support.
 
-Nuke, on the other hand, was designed from the ground up according to the [Swift API Design Guidelines](https://swift.org/documentation/api-design-guidelines/).
+[SDWebImage](https://github.com/SDWebImage/SDWebImage) is still actively maintained today and is still used by many apps. But it has dated Objective-C API and doesn't offer great Swift support. Eventually, it will need to be rewritten or replaced, and that’s where Nuke comes in.
 
-This document is not a comparison between the frameworks. It is designed to help you switch from Kingfisher to Nuke. This guide covers some basic scenarios common across the frameworks.
+This document is not a comparison between the frameworks. It is designed to help you switch from SDWebImage to Nuke. This guide covers some basic scenarios common across the frameworks.
 
 ## Image View Extensions
 
 Both frameworks have `UIKit` and `AppKit` extensions to make it easy to load images into native images views while also facilitating cell reuse.
 
-**Kingfisher**
+**SDWebImage**
 
 ```swift
-imageView.kf.setImage(with: URL(string: "https://example.com/image.jpeg"))
+imageView.sd_setImage(with: URL(string: "https://example.com/image.jpeg"))
 ```     
 
 **Nuke**   
@@ -30,17 +30,19 @@ With Nuke, you can pass `String`, `URL`, `URLRequest`, or `ImageRequest` into th
 
 ## SwiftUI
 
-**Kingfisher**
+**SDWebImage**
+
+SwiftUI is supported via a separate package, [SDWebImageSwiftUI](https://github.com/SDWebImage/SDWebImageSwiftUI).
 
 ```swift
 import SwiftUI
-import Kingfisher
+import SDWebImageSwiftUI
 
 struct ContentView: View {
     let url = URL(string: "https://example.com/image.jpeg")
 
     var body: some View {
-        KFImage(url)
+        WebImage(url: url)
     }
 }
 ```
@@ -89,14 +91,15 @@ struct ImageView: View {
 
 ## Request Options
 
-**Kingfisher**
+**SDWebImage**
 
 ```swift
-imageView.kf.setImage(
+imageView.sd_setImage(
     with: URL(string: "https://example.com/image.jpeg"),
+    placeholderImage: nil,
     options: [
-        .downloadPriority(10),
-        .forceRefresh
+        .highPriority,
+        .refreshCached
     ]
 )
 ```
@@ -112,22 +115,23 @@ let request = ImageRequest(
 Nuke.loadImage(with: request, into: imageView)
 ```
 
-The request API in Nuke not only offers a wide range of options but is also designed for performance. The request takes only 46 bytes in memory (compare with 520 bytes of `KingfisherParsedOptionsInfo`), and, unlike Kingfisher, doesn't require any pre-processing. This is one of the many reasons Nuke is [faster](https://github.com/kean/ImageFrameworksBenchmark).
-
 > Learn more in ["Image Requests."](https://kean.blog/nuke/guides/customizing-requests)
 
 ## Image Processing
 
 Both frameworks allow you to process the loaded images using one of the built-in processors or using a custom processor.
 
-**Kingfisher**
+**SDWebImage**
 
 ```swift
-let processor = DownsamplingImageProcessor(size: CGSize(width: 44, height: 44))
-    |> RoundCornerImageProcessor(cornerRadius: 8)
-imageView.kf.setImage(
+let transformer = SDImagePipelineTransformer(transformers: [
+    SDImageResizingTransformer(size: CGSize(width: 44, height: 44), scaleMode: .aspectFill),
+    SDImageRoundCornerTransformer(radius: 8, corners: .allCorners, borderWidth: 0, borderColor: nil)
+])
+imageView.sd_setImage(
     with: URL(string: "https://example.com/image.jpeg"),
-    options: [.processor(processor)]
+    placeholderImage: nil,
+    context: [.imageTransformer: transformer]
 )
 ```
 
@@ -152,17 +156,17 @@ If you create a custom processor, you'll notice that Nuke allows you to specify 
 
 Extensions for image view are designed to get you up and running quickly, but for advanced use cases, you have direct access to the underlying subsystems responsible for image loading.
 
-**Kingfisher**
+**SDWebImage**
 
 ```swift
-guard let url = URL(string: "https://example.com/image.jpeg") else {
-    return // KingfisherManager requires a non-optional URL
-}
-let task = KingfisherManager.shared.retrieveImage(with: url) { result in
-    switch result {
-    case .success(let result):
-        print("Fetched image: \(result.image)")
-    case .failure(let error):
+let task = SDWebImageManager.shared.loadImage(
+    with: URL(string: "https://example.com/image.jpeg"),
+    options: [],
+    progress: nil
+) { image, error, _, _, _, _  in
+    if let image = image {
+        print("Fetched image: \(image)")
+    } else {
         print("Failed with \(error)")
     }
 }
@@ -191,9 +195,9 @@ Nuke also has great Combine support (see ["Combine"](https://kean.blog/nuke/guid
 
 ## Caching
 
-**Kingfisher**
+**SDWebImage**
 
-Designed to work with a custom cache with no clear way to disable it.
+Designed to work with a custom cache. There are options to fallback to a URLCache.
 
 **Nuke**
 
@@ -210,3 +214,4 @@ ImagePipeline(configuration: .withDataCache) // Aggressive cache
 ## Other Features
 
 This guide only covered the most basic APIs. To learn more about Nuke, please refer to the official website with the [comprehensive documentation](https://kean.blog/nuke/guides/welcome) on every Nuke feature.
+

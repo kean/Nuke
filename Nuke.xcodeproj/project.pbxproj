@@ -306,6 +306,7 @@
 		0CB4030025B6639200F5A241 /* TaskLoadImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskLoadImage.swift; sourceTree = "<group>"; };
 		0CBBEA332662BC6E0048A3C6 /* switch-from-kingfisher.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "switch-from-kingfisher.md"; sourceTree = "<group>"; };
 		0CBBEA342662C1BC0048A3C6 /* FetchImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FetchImageView.swift; sourceTree = "<group>"; };
+		0CBBEA382662ECD40048A3C6 /* switch-from-sdwebimage.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "switch-from-sdwebimage.md"; sourceTree = "<group>"; };
 		0CC36A1125B8BC0800811018 /* Allocations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Allocations.swift; sourceTree = "<group>"; };
 		0CC36A1825B8BC2500811018 /* RateLimiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimiter.swift; sourceTree = "<group>"; };
 		0CC36A2425B8BC4900811018 /* Operation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Operation.swift; sourceTree = "<group>"; };
@@ -644,6 +645,7 @@
 			isa = PBXGroup;
 			children = (
 				0CBBEA332662BC6E0048A3C6 /* switch-from-kingfisher.md */,
+				0CBBEA382662ECD40048A3C6 /* switch-from-sdwebimage.md */,
 			);
 			path = Switch;
 			sourceTree = "<group>";
