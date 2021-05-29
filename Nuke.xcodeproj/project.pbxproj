@@ -303,6 +303,7 @@
 		0CB402D425B6569700F5A241 /* TaskFetchOriginalImageData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskFetchOriginalImageData.swift; sourceTree = "<group>"; };
 		0CB402DA25B656D200F5A241 /* TaskFetchDecodedImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskFetchDecodedImage.swift; sourceTree = "<group>"; };
 		0CB4030025B6639200F5A241 /* TaskLoadImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskLoadImage.swift; sourceTree = "<group>"; };
+		0CBBEA332662BC6E0048A3C6 /* switch-from-kingfisher.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "switch-from-kingfisher.md"; sourceTree = "<group>"; };
 		0CC36A1125B8BC0800811018 /* Allocations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Allocations.swift; sourceTree = "<group>"; };
 		0CC36A1825B8BC2500811018 /* RateLimiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimiter.swift; sourceTree = "<group>"; };
 		0CC36A2425B8BC4900811018 /* Operation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Operation.swift; sourceTree = "<group>"; };
@@ -637,6 +638,14 @@
 			path = Tasks;
 			sourceTree = "<group>";
 		};
+		0CBBEA322662BC590048A3C6 /* Switch */ = {
+			isa = PBXGroup;
+			children = (
+				0CBBEA332662BC6E0048A3C6 /* switch-from-kingfisher.md */,
+			);
+			path = Switch;
+			sourceTree = "<group>";
+		};
 		0CC36A0B25B8BBF800811018 /* Internal */ = {
 			isa = PBXGroup;
 			children = (
@@ -672,6 +681,7 @@
 		0CDB92761DAF9BA500002905 /* Documentation */ = {
 			isa = PBXGroup;
 			children = (
+				0CBBEA322662BC590048A3C6 /* Switch */,
 				0CDB927C1DAF9BA500002905 /* Migrations */,
 			);
 			path = Documentation;
