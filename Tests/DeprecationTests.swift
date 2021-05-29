@@ -566,17 +566,67 @@ class NewImageRequestTests: XCTestCase {
     }
 }
 
-@available(*, deprecated, message: "Just testing deprecation here")
+//@available(*, deprecated, message: "Just testing deprecation here")
 class DeprecationsImageRequestsTests: XCTestCase {
     func testInit() {
-        // This won't compile
+        // This won't compile because `cachePolicy` is required and it has to
+        // be to keep the initializers unambiguous.
         // let _ = ImageRequest(url: Test.url, options: .init(filteredURL: "aaa"))
 
         // But this will
+        let _ = ImageRequest(url: Test.url, processors: [ImageProcessors.Circle()], cachePolicy: .returnCacheDataDontLoad)
         let _ = ImageRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, options: ImageRequestOptions(filteredURL: "aaa"))
+        let _ = ImageRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, options: .init(filteredURL: "aaa"))
     }
 
-    func testInitWithDeprecatedFilteredURL() {
-        
+    func testInitWithDeprecatedCachePolicy1() {
+        // WHEN
+        let request = ImageRequest(url: Test.url, cachePolicy: .default)
+
+        // THEN
+        XCTAssertEqual(request.options, [])
+    }
+
+    func testInitWithDeprecatedCachePolicy2() {
+        // WHEN
+        let request = ImageRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad)
+
+        // THEN
+        XCTAssertEqual(request.options, [.returnCacheDataDontLoad])
+    }
+
+    func testInitWithDeprecatedCachePolicy3() {
+        // WHEN
+        let request = ImageRequest(url: Test.url, cachePolicy: .reloadIgnoringCachedData)
+
+        // THEN
+        XCTAssertEqual(request.options, [.reloadIgnoringCachedData])
+    }
+
+    func testSetDeprecatedCachePolicy1() {
+        // WHEN
+        var request = ImageRequest(url: Test.url)
+        request.cachePolicy = .default
+
+        // THEN
+        XCTAssertEqual(request.options, [])
+    }
+
+    func testSetDeprecatedCachePolicy2() {
+        // WHEN
+        var request = ImageRequest(url: Test.url)
+        request.cachePolicy = .returnCacheDataDontLoad
+
+        // THEN
+        XCTAssertEqual(request.options, [.returnCacheDataDontLoad])
+    }
+
+    func testSetDeprecatedCachePolicy3() {
+        // WHEN
+        var request = ImageRequest(url: Test.url)
+        request.cachePolicy = .reloadIgnoringCachedData
+
+        // THEN
+        XCTAssertEqual(request.options, [.reloadIgnoringCachedData])
     }
 }

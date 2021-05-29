@@ -171,17 +171,18 @@ public extension ImageRequest {
     }
 
     // Deprecated in 10.0.0
-    @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names. .reloadIgnoringCachedData no longer affects URLCache!")
+    @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names. And .reloadIgnoringCachedData no longer affects URLCache!")
     enum CachePolicy {
         case `default`
         /// The image should be loaded only from the originating source.
         ///
         /// If you initialize the request with `URLRequest`, make sure to provide
         /// the correct policy in the request too.
-        @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names. .reloadIgnoringCachedData no longer affects URLCache!")
+        @available(*, deprecated, message: "Please use `ImageRequest.Options` instead. This option is available under the same name: .reloadIgnoringCachedData. This option is also no longer affects URLCache!")
         case reloadIgnoringCachedData
 
         /// Use existing cache data and fail if no cached data is available.
+        @available(*, deprecated, message: "Please use `ImageRequest.Options` instead. This option is available under the same name: .returnCacheDataDontLoad.")
         case returnCacheDataDontLoad
     }
 }
