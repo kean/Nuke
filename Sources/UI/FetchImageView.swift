@@ -12,7 +12,7 @@ public struct FetchImageView: View {
     private let imageId: String
     @StateObject private var image = FetchImage()
 
-    init(_ request: ImageRequestConvertible?) {
+    public init(_ request: ImageRequestConvertible?) {
         self.request = request?.asImageRequest()
         self.imageId = self.request?.preferredImageId ?? ""
     }
