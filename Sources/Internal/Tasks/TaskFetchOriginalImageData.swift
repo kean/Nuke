@@ -52,6 +52,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
             self.send(error: .dataLoadingFailed(URLError(.badURL)))
             return
         }
+
         if pipeline.configuration.isResumableDataEnabled,
            let resumableData = ResumableDataStorage.shared.removeResumableData(for: request, pipeline: pipeline) {
             // Update headers to add "Range" and "If-Range" headers
