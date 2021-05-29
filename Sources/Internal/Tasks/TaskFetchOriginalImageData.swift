@@ -49,9 +49,8 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         // Read and remove resumable data from cache (we're going to insert it
         // back in the cache if the request fails to complete again).
         guard var urlRequest = request.urlRequest else {
-            let error = URLError(.unknown, userInfo: [:])
-            self.send(error: .dataLoadingFailed(error))
-            return assertionFailure("This should never happen")
+            self.send(error: .dataLoadingFailed(URLError(.badURL)))
+            return
         }
         if pipeline.configuration.isResumableDataEnabled,
            let resumableData = ResumableDataStorage.shared.removeResumableData(for: request, pipeline: pipeline) {

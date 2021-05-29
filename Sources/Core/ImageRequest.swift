@@ -17,7 +17,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// Returns `nil` for publisher-based requests.
     public var urlRequest: URLRequest? {
         switch ref.resource {
-        case .url(let url): return URLRequest(url: url) // create lazily
+        case .url(let url): return url.map { URLRequest(url: $0) } // create lazily
         case .urlRequest(let urlRequest): return urlRequest
         case .publisher: return nil
         }
@@ -118,7 +118,7 @@ public struct ImageRequest: CustomStringConvertible {
                 options: Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
         self.ref = Container(
-            resource: Resource.url(url ?? URL(fileURLWithPath: "/dev/null")),
+            resource: Resource.url(url),
             processors: processors,
             priority: priority,
             options: options,
@@ -296,13 +296,13 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     enum Resource: CustomStringConvertible {
-        case url(URL)
+        case url(URL?)
         case urlRequest(URLRequest)
         case publisher(DataPublisher)
 
         var description: String {
             switch self {
-            case .url(let url): return "\(url)"
+            case .url(let url): return "\(url?.absoluteString ?? "nil")"
             case .urlRequest(let urlRequest): return "\(urlRequest)"
             case .publisher(let data): return "\(data)"
             }
@@ -329,7 +329,7 @@ public struct ImageRequest: CustomStringConvertible {
 
     var imageId: String? {
         switch ref.resource {
-        case .url(let url): return url.absoluteString
+        case .url(let url): return url?.absoluteString
         case .urlRequest(let urlRequest): return urlRequest.url?.absoluteString
         case .publisher(let publisher): return publisher.id
         }
