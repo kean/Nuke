@@ -21,10 +21,10 @@ class ImageRequestConvertibleTests: XCTestCase {
     }
 
     func testPassURL() {
-        // Given
-        let input = URL(string: "https://example.com/image.jpg")!
+        // GIVEN
+        let input: URL = URL(string: "https://example.com/image.jpg")!
 
-        // When/Then
+        // WHEN/THEN
         let expectation = self.expectation(description: "ImageLoaded")
         pipeline.loadImage(with: input) {
             XCTAssertTrue($0.isSuccess)
@@ -33,11 +33,37 @@ class ImageRequestConvertibleTests: XCTestCase {
         wait()
     }
 
+    func testPassOptionalURL() {
+        // GIVEN
+        let input: URL? = URL(string: "https://example.com/image.jpg")
+
+        // WHEN/THEN
+        let expectation = self.expectation(description: "ImageLoaded")
+        pipeline.loadImage(with: input) {
+            XCTAssertTrue($0.isSuccess)
+            expectation.fulfill()
+        }
+        wait()
+    }
+
+    func testPassOptionalURLNil() {
+        // GIVEN
+        let input: URL? = nil
+
+        // WHEN/THEN
+        let expectation = self.expectation(description: "ImageLoaded")
+        pipeline.loadImage(with: input) {
+            XCTAssertTrue($0.isFailure)
+            expectation.fulfill()
+        }
+        wait()
+    }
+
     func testPassURLRequest() {
-        // Given
+        // GIVEN
         let input = URLRequest(url: URL(string: "https://example.com/image.jpg")!)
 
-        // When/Then
+        // WHEN/THEN
         let expectation = self.expectation(description: "ImageLoaded")
         pipeline.loadImage(with: input) {
             XCTAssertTrue($0.isSuccess)
@@ -47,10 +73,10 @@ class ImageRequestConvertibleTests: XCTestCase {
     }
 
     func testPassImageRequest() {
-        // Given
+        // GIVEN
         let input = ImageRequest(url: URL(string: "https://example.com/image.jpg")!)
 
-        // When/Then
+        // WHEN/THEN
         let expectation = self.expectation(description: "ImageLoaded")
         pipeline.loadImage(with: input) {
             XCTAssertTrue($0.isSuccess)
