@@ -144,7 +144,8 @@ public extension ImageRequest {
         if let filteredURL = options.filteredURL {
             userInfo[.imageIdKey] = filteredURL
         }
-        self.init(url: url, processors: processors, priority: priority, options: .init(cachePolicy), userInfo: userInfo)
+        let options = ImageRequest.Options(cachePolicy, options)
+        self.init(url: url, processors: processors, priority: priority, options: options, userInfo: userInfo)
     }
 
     // Deprecated in 10.0.0
@@ -158,7 +159,8 @@ public extension ImageRequest {
         if let filteredURL = options.filteredURL {
             userInfo[.imageIdKey] = filteredURL
         }
-        self.init(urlRequest: urlRequest, processors: processors, priority: priority, options: .init(cachePolicy), userInfo: userInfo)
+        let options = ImageRequest.Options(cachePolicy, options)
+        self.init(urlRequest: urlRequest, processors: processors, priority: priority, options: options, userInfo: userInfo)
     }
 
     // Deprecated in 10.0.0
@@ -207,8 +209,8 @@ public extension ImagePipeline.Configuration {
 private extension ImageRequest.Options {
     // Deprecated in 10.0.0
     @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names.")
-    init(_ policy: ImageRequest.CachePolicy) {
-        switch policy {
+    init(_ cachePolicy: ImageRequest.CachePolicy) {
+        switch cachePolicy {
         case .default:
             self = []
         case .reloadIgnoringCachedData:
@@ -216,6 +218,19 @@ private extension ImageRequest.Options {
         case .returnCacheDataDontLoad:
             self = .returnCacheDataDontLoad
         }
+    }
+
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names.")
+    init(_ cachePolicy: ImageRequest.CachePolicy, _ oldOptions: ImageRequestOptions) {
+        var options: ImageRequest.Options = .init(cachePolicy)
+        if !oldOptions.memoryCacheOptions.isReadAllowed {
+            options.insert(.disableMemoryCacheReads)
+        }
+        if !oldOptions.memoryCacheOptions.isWriteAllowed {
+            options.insert(.disableMemoryCacheWrites)
+        }
+        self = options
     }
 }
 

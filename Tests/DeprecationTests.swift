@@ -566,7 +566,7 @@ class NewImageRequestTests: XCTestCase {
     }
 }
 
-//@available(*, deprecated, message: "Just testing deprecation here")
+@available(*, deprecated, message: "Just testing deprecation here")
 class DeprecationsImageRequestsTests: XCTestCase {
     func testInit() {
         // This won't compile because `cachePolicy` is required and it has to
@@ -636,5 +636,29 @@ class DeprecationsImageRequestsTests: XCTestCase {
 
         // THEN
         XCTAssertEqual(request.userInfo[.imageIdKey] as? String, "key")
+    }
+
+    func testInitWithMemoryCacheOptionsReadDisabled() {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, cachePolicy: .default, options: ImageRequestOptions(memoryCacheOptions: .init(isReadAllowed: false)))
+
+        // THEN
+        XCTAssertEqual(request.options, [.disableMemoryCacheReads])
+    }
+
+    func testInitWithMemoryCacheOptionsWriteDisabled() {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, cachePolicy: .default, options: ImageRequestOptions(memoryCacheOptions: .init(isWriteAllowed: false)))
+
+        // THEN
+        XCTAssertEqual(request.options, [.disableMemoryCacheWrites])
+    }
+
+    func testInitWithMemoryCacheOptionsWriteDisabledAndCachePolicy() {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, cachePolicy: .reloadIgnoringCachedData, options: ImageRequestOptions(memoryCacheOptions: .init(isWriteAllowed: false)))
+
+        // THEN
+        XCTAssertEqual(request.options, [.reloadIgnoringCachedData, .disableMemoryCacheWrites])
     }
 }
