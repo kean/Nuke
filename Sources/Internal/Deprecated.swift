@@ -140,7 +140,11 @@ public extension ImageRequest {
          cachePolicy: CachePolicy,
          priority: ImageRequest.Priority = .normal,
          options: ImageRequestOptions = .init()) {
-        self.init(url: url, processors: processors, priority: priority, options: .init(cachePolicy), userInfo: nil)
+        var userInfo = [UserInfoKey: Any]()
+        if let filteredURL = options.filteredURL {
+            userInfo[.imageIdKey] = filteredURL
+        }
+        self.init(url: url, processors: processors, priority: priority, options: .init(cachePolicy), userInfo: userInfo)
     }
 
     // Deprecated in 10.0.0
@@ -150,7 +154,11 @@ public extension ImageRequest {
          cachePolicy: CachePolicy,
          priority: ImageRequest.Priority = .normal,
          options: ImageRequestOptions = .init()) {
-        self.init(urlRequest: urlRequest, processors: processors, priority: priority, options: .init(cachePolicy), userInfo: nil)
+        var userInfo = [UserInfoKey: Any]()
+        if let filteredURL = options.filteredURL {
+            userInfo[.imageIdKey] = filteredURL
+        }
+        self.init(urlRequest: urlRequest, processors: processors, priority: priority, options: .init(cachePolicy), userInfo: userInfo)
     }
 
     // Deprecated in 10.0.0

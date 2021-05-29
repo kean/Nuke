@@ -629,4 +629,12 @@ class DeprecationsImageRequestsTests: XCTestCase {
         // THEN
         XCTAssertEqual(request.options, [.reloadIgnoringCachedData])
     }
+
+    func testInitWithFilteredURL() {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, cachePolicy: .default, options: ImageRequestOptions(filteredURL: "key"))
+
+        // THEN
+        XCTAssertEqual(request.userInfo[.imageIdKey] as? String, "key")
+    }
 }
