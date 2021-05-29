@@ -447,7 +447,7 @@ class DeprecationsImagePipelineProcessedDataCachingTests: XCTestCase {
 }
 
 @available(*, deprecated, message: "Just testing deprecation here")
-class ImagePipelineObservingTests: XCTestCase {
+class DeprecationsImagePipelineObservingTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
     private var observer: MockImagePipelineObserver!
@@ -552,5 +552,31 @@ private final class MockImagePipelineObserver: ImagePipelineObserving {
 
     func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
         events.append(event)
+    }
+}
+
+class NewImageRequestTests: XCTestCase {
+    // The compiler picks up the new version
+    func testInit() {
+        _ = ImageRequest(url: Test.url)
+        _ = ImageRequest(url: Test.url, processors: [])
+        _ = ImageRequest(url: Test.url, processors: [])
+        _ = ImageRequest(url: Test.url, priority: .high)
+        _ = ImageRequest(url: Test.url, options: [.reloadIgnoringCachedData])
+    }
+}
+
+@available(*, deprecated, message: "Just testing deprecation here")
+class DeprecationsImageRequestsTests: XCTestCase {
+    func testInit() {
+        // This won't compile
+        // let _ = ImageRequest(url: Test.url, options: .init(filteredURL: "aaa"))
+
+        // But this will
+        let _ = ImageRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, options: ImageRequestOptions(filteredURL: "aaa"))
+    }
+
+    func testInitWithDeprecatedFilteredURL() {
+        
     }
 }
