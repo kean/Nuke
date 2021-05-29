@@ -93,7 +93,7 @@ class ImagePipelinePublisherTests: XCTestCase {
     }
 
     func testInitWithImageRequest() {
-        let _ = pipeline.imagePublisher(with: ImageRequest(url: URL(string: "https://example.com/image.jpeg")!))
+        let _ = pipeline.imagePublisher(with: ImageRequest(url: URL(string: "https://example.com/image.jpeg")))
     }
 }
 

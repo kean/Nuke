@@ -10,7 +10,7 @@ class ImageRequestTests: XCTestCase {
 
     func testCopyOnWrite() {
         // GIVEN
-        var request = ImageRequest(url: URL(string: "http://test.com/1.png")!)
+        var request = ImageRequest(url: URL(string: "http://test.com/1.png"))
         request.options.insert(.disableMemoryCacheReads)
         request.userInfo["key"] = "3"
         request.processors = [MockImageProcessor(id: "4")]
@@ -67,8 +67,8 @@ class ImageRequestCacheKeyTests: XCTestCase {
     }
 
     func testRequestsWithDifferentURLsAreNotEquivalent() {
-        let request1 = ImageRequest(url: URL(string: "http://test.com/1.png")!)
-        let request2 = ImageRequest(url: URL(string: "http://test.com/2.png")!)
+        let request1 = ImageRequest(url: URL(string: "http://test.com/1.png"))
+        let request2 = ImageRequest(url: URL(string: "http://test.com/2.png"))
         XCTAssertNotEqual(CacheKey(request1), CacheKey(request2))
     }
 
@@ -110,8 +110,8 @@ class ImageRequestLoadKeyTests: XCTestCase {
     }
 
     func testRequestsWithDifferentURLsAreNotEquivalent() {
-        let request1 = ImageRequest(url: URL(string: "http://test.com/1.png")!)
-        let request2 = ImageRequest(url: URL(string: "http://test.com/2.png")!)
+        let request1 = ImageRequest(url: URL(string: "http://test.com/1.png"))
+        let request2 = ImageRequest(url: URL(string: "http://test.com/2.png"))
         XCTAssertNotEqual(request1.makeDataLoadKey(), request2.makeDataLoadKey())
     }
 

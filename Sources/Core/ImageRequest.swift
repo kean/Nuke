@@ -88,7 +88,7 @@ public struct ImageRequest: CustomStringConvertible {
         ///
         /// ```
         /// let request = ImageRequest(
-        ///     url: URL(string: "http://example.com/image.jpeg?token=123")!,
+        ///     url: URL(string: "http://example.com/image.jpeg?token=123"),
         ///     userInfo: [.imageIdKey: "http://example.com/image.jpeg"]
         /// )
         /// ```
@@ -107,7 +107,7 @@ public struct ImageRequest: CustomStringConvertible {
     ///
     /// ```swift
     /// let request = ImageRequest(
-    ///     url: URL(string: "http://...")!,
+    ///     url: URL(string: "http://..."),
     ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
     ///     priority: .high
     /// )
@@ -136,7 +136,7 @@ public struct ImageRequest: CustomStringConvertible {
     ///
     /// ```swift
     /// let request = ImageRequest(
-    ///     url: URLRequest(url: URL(string: "http://...")!),
+    ///     url: URLRequest(url: URL(string: "http://...")),
     ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
     ///     priority: .high
     /// )

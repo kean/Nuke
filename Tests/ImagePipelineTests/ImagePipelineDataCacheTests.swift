@@ -549,7 +549,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
 
         // GIVEN request without a processor
-        let request = ImageRequest(url: URL(string: "file://example/image.jpeg")!)
+        let request = ImageRequest(url: URL(string: "file://example/image.jpeg"))
 
         // WHEN
         expect(pipeline).toLoadImage(with: request)
@@ -568,7 +568,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
 
         // GIVEN request without a processor
-        let request = ImageRequest(url: URL(string: "data://example/image.jpeg")!)
+        let request = ImageRequest(url: URL(string: "data://example/image.jpeg"))
 
         // WHEN
         expect(pipeline).toLoadImage(with: request)

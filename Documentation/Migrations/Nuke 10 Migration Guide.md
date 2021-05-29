@@ -105,13 +105,13 @@ let key = pipeline.cacheKey(for: request, item: .originalImageData)
 let data = pipeline.dataCache.cachedData(for: key)
 
 // After (Nuke 10)
-let request = ImageRequest(url: URL(string: "https://example.com/image.jpeg")!)
+let request = ImageRequest(url: URL(string: "https://example.com/image.jpeg"))
 let data = pipeline.cache.cachedData(for: request)
 ```
 
 ```swift
 // New (Nuke 10)
-let request = ImageRequest(url: URL(string: "https://example.com/image.jpeg")!)
+let request = ImageRequest(url: URL(string: "https://example.com/image.jpeg"))
 let cache = pipeline.cache
 let image = cache.cachedImage(for: request) // caches: [.all]
 let image = cache.cachedImage(for: request, caches: [.disk])
