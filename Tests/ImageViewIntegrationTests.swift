@@ -94,6 +94,20 @@ class ImageViewIntegrationTests: XCTestCase {
         XCTAssertNil(imageView.image)
     }
 
+    func testLoadingWithRequestWithNilURL() {
+        // GIVEN
+        let input = ImageRequest(url: nil)
+
+        // WNEN/THEN
+        let expectation = self.expectation(description: "ImageLoaded")
+        pipeline.loadImage(with: input) {
+            XCTAssertTrue($0.isFailure)
+            XCTAssertNoThrow($0.error?.dataLoadingError)
+            expectation.fulfill()
+        }
+        wait()
+    }
+
     // MARK: - Data Passed
 
     #if os(iOS)

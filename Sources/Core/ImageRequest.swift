@@ -112,13 +112,13 @@ public struct ImageRequest: CustomStringConvertible {
     ///     priority: .high
     /// )
     /// ```
-    public init(url: URL,
+    public init(url: URL?,
                 processors: [ImageProcessing]? = nil,
                 priority: Priority = .normal,
                 options: Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
         self.ref = Container(
-            resource: Resource.url(url),
+            resource: Resource.url(url ?? URL(fileURLWithPath: "/dev/null")),
             processors: processors,
             priority: priority,
             options: options,
@@ -376,6 +376,6 @@ extension URLRequest: ImageRequestConvertible {
 
 extension String: ImageRequestConvertible {
     public func asImageRequest() -> ImageRequest {
-        ImageRequest(url: URL(string: self) ?? URL(fileURLWithPath: "/dev/null"))
+        ImageRequest(url: URL(string: self))
     }
 }
