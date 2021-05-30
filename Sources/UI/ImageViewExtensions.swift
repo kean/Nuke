@@ -528,7 +528,7 @@ private final class ImageViewController {
     #elseif os(watchOS)
 
     private func display(_ image: ImageContainer, _ isFromMemory: Bool, _ response: ImageLoadingOptions.ResponseType) {
-        imageView?.display(response.container)
+        imageView?.display(image)
     }
 
     #endif
