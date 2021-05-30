@@ -51,7 +51,7 @@ struct ContentView: View {
 
 ```swift
 import SwiftUI
-import Nuke
+import NukeUI
 
 struct ContentView: View {
     let url = URL(string: "https://example.com/image.jpeg")
