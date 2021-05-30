@@ -34,6 +34,16 @@ public struct ImageRequest: CustomStringConvertible {
         }
     }
 
+    /// Returns the ID of the underlying image. For URL-based request, it's an
+    /// image URL. For publisher – a custom ID.
+    public var imageId: String? {
+        switch ref.resource {
+        case .url(let url): return url?.absoluteString
+        case .urlRequest(let urlRequest): return urlRequest.url?.absoluteString
+        case .publisher(let publisher): return publisher.id
+        }
+    }
+
     /// The relative priority of the request. The priority affects the order in
     /// which the requests are performed. `.normal` by default.
     public var priority: Priority {
@@ -325,14 +335,6 @@ public struct ImageRequest: CustomStringConvertible {
         var request = self
         request.processors = processors
         return request
-    }
-
-    var imageId: String? {
-        switch ref.resource {
-        case .url(let url): return url?.absoluteString
-        case .urlRequest(let urlRequest): return urlRequest.url?.absoluteString
-        case .publisher(let publisher): return publisher.id
-        }
     }
 
     var preferredImageId: String {
