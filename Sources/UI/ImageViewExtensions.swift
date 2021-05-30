@@ -190,6 +190,9 @@ public struct ImageLoadingOptions {
     /// Custom pipeline to be used. `nil` by default.
     public var pipeline: ImagePipeline?
 
+    /// The default processors to be applied to the images. `nil` by default.
+    public var processors: [ImageProcessing]?
+
     #if os(iOS) || os(tvOS)
 
     /// Content modes to be used for each image type (placeholder, success,
@@ -436,7 +439,10 @@ private final class ImageViewController {
         }
 
         let pipeline = options.pipeline ?? ImagePipeline.shared
-        let request = pipeline.configuration.inheritOptions(unwrappedRequest)
+        var request = pipeline.configuration.inheritOptions(unwrappedRequest)
+        if let processors = options.processors, request.processors.isEmpty {
+            request.processors = processors
+        }
 
         // Quick synchronous memory cache lookup.
         if let image = pipeline.cache[request] {

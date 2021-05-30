@@ -612,4 +612,17 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         // it doesn't crash
     }
     #endif
+
+    func testSettingDefaultProcessor() {
+        // GIVEN
+        var options = ImageLoadingOptions()
+        options.processors = [MockImageProcessor(id: "p1")]
+
+        // WHEN
+        expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
+        wait()
+
+        // THEN
+        XCTAssertEqual(imageView.image?.nk_test_processorIDs, ["p1"])
+    }
 }
