@@ -197,15 +197,6 @@ public extension ImageRequest {
     }
 }
 
-public extension ImagePipeline.Configuration {
-    // Deprecated in 10.0.0
-    @available(*, deprecated, message: "Renamed to isTaskCoalescingEnabled")
-    var isDeduplicationEnabled: Bool {
-        get { isTaskCoalescingEnabled }
-        set { isTaskCoalescingEnabled = newValue }
-    }
-}
-
 private extension ImageRequest.Options {
     // Deprecated in 10.0.0
     @available(*, deprecated, message: "Please use `ImageRequest.Options` instead, it offers the same options under the same names.")
@@ -273,5 +264,30 @@ extension ImagePipeline.Configuration {
     public init(dataLoader: DataLoading = DataLoader(), imageCache: ImageCaching?) {
         self.init(dataLoader: dataLoader)
         self.imageCache = imageCache
+    }
+
+    // Deprecated in 10.0.0
+    @available(*, deprecated, message: "Renamed to isTaskCoalescingEnabled")
+    public var isDeduplicationEnabled: Bool {
+        get { isTaskCoalescingEnabled }
+        set { isTaskCoalescingEnabled = newValue }
+    }
+
+    // Deprecated in 10.0.0
+    // There is simply no way to make it work consistently across subsystems.
+    @available(*, deprecated, message: "Deprecated and will be removed. Please use the new ImageLoadingOptions processors option, or create another way to apply processors by default.")
+    public var processors: [ImageProcessing] {
+        get { _processors }
+        set { _processors = newValue }
+    }
+
+    /// Inherits some of the pipeline configuration options like processors.
+    func inheritOptions(_ request: ImageRequest) -> ImageRequest {
+        guard !_processors.isEmpty, request.ref.processors == nil else {
+            return request
+        }
+        var request = request
+        request.processors = _processors
+        return request
     }
 }

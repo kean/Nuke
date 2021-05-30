@@ -62,14 +62,7 @@ extension ImagePipeline {
 
         // MARK: - Misc
 
-        /// Processors to be applied by default to all images loaded by the
-        /// pipeline, unless the request overrides the list of processors.
-        ///
-        /// If you pass `nil` to the list of processors when creating a request,
-        /// the default processors are applied. If you pass any non-nill value,
-        /// including an empty list, your processors will be applied (or none
-        /// in case of an empty list).
-        public var processors: [ImageProcessing] = []
+        var _processors: [ImageProcessing] = []
 
         // MARK: - Options
 
@@ -253,16 +246,6 @@ extension ImagePipeline {
 // MARK: - Helpers
 
 extension ImagePipeline.Configuration {
-    /// Inherits some of the pipeline configuration options like processors.
-    func inheritOptions(_ request: ImageRequest) -> ImageRequest {
-        guard !processors.isEmpty, request.ref.processors == nil else {
-            return request
-        }
-        var request = request
-        request.processors = processors
-        return request
-    }
-
     /// Fast-track decoding isn't performed on the operation queue.
     static func isFastTrackDecodingEnabled(for decoder: ImageDecoding) -> Bool {
         isFastTrackDecodingEnabled && (decoder is ImageDecoders.Default || decoder is ImageDecoders.Empty)
