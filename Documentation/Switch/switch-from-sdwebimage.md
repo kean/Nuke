@@ -49,22 +49,23 @@ struct ContentView: View {
 
 **Nuke**
 
+[NukeUI](https://github.com/kean/NukeUI) (a separate package) is a comprehensive solution for displaying lazily loaded images on Apple platforms. One of its classes is `LazyImage` and it is designed for SwiftUI.
+
 ```swift
 import SwiftUI
 import Nuke
-
 
 struct ContentView: View {
     let url = URL(string: "https://example.com/image.jpeg")
 
     var body: some View {
-        FetchImageView(url)
+        LazyImage(source: url)
     }
 }
 
 ```
 
-[`FetchImageView`](https://kean-org.github.io/docs/nuke/reference/10.0.0/FetchImageView/) is great for basic scenarios, but if you want to customize it, SwiftUI makes it easy. Create a custom view with a [`FetchImage`](https://kean-org.github.io/docs/nuke/reference/10.0.0/FetchImage/) (you can think of it as a ViewModel) and customize it precisely the way you want.
+While `LazyImage` is part of a separate package, the core framework contains a  [`FetchImage`](https://kean-org.github.io/docs/nuke/reference/10.0.0/FetchImage/) class. You can think of it as a ViewModel for your views.
 
 ```swift
 struct ImageView: View {
