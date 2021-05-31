@@ -205,6 +205,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
 
 // MARK: - DataLoaderObserving
 
+/// An event send by the data loader.
 public enum DataTaskEvent {
     case resumed
     case receivedResponse(response: URLResponse)

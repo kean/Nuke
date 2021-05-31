@@ -61,6 +61,7 @@ extension ImageDecoding {
 
 // MARK: - ImageDecoders
 
+/// A namespace with all available decoders.
 public enum ImageDecoders {}
 
 // MARK: - ImageDecoders.Default

@@ -41,6 +41,7 @@ public struct ImageEncodingContext {
 
 // MARK: - ImageEncoders
 
+/// A namespace with all available encoders.
 public enum ImageEncoders {}
 
 // MARK: - ImageEncoders.Default
