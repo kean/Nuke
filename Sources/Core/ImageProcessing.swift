@@ -723,6 +723,7 @@ func == (lhs: [ImageProcessing], rhs: [ImageProcessing]) -> Bool {
 
 // MARK: - ImageProcessingOptions
 
+/// A namespace with shared image processing options.
 public enum ImageProcessingOptions {
 
     public enum Unit: CustomStringConvertible {

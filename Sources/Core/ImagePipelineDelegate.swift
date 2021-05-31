@@ -8,8 +8,7 @@ extension ImagePipeline {
     public typealias Delegate = ImagePipelineDelegate
 }
 
-/// The pipeline delegate that allows you to customize the pipleine on the
-/// per-request level.
+/// A delegate that allows you to customize the pipleine on a per-request basis.
 ///
 /// - warning: The delegate methods are performed on the pipeline queue in the
 /// background.
@@ -90,6 +89,7 @@ public extension ImagePipelineDelegate {
     }
 }
 
+/// An image task event sent by the pipeline.
 public enum ImageTaskEvent {
     case started
     case cancelled

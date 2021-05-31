@@ -69,8 +69,7 @@ public struct ImageRequest: CustomStringConvertible {
         set { mutate { $0.userInfo = newValue } }
     }
 
-    /// The priority of the request. The priority affects the order in which the
-    /// requests are performed.
+    /// The priority affecting the order in which the requests are performed.
     public enum Priority: Int, Comparable {
         case veryLow = 0, low, normal, high, veryHigh
 
@@ -347,6 +346,7 @@ public struct ImageRequest: CustomStringConvertible {
 
 // MARK: - ImageRequestConvertible
 
+/// Represents a type that can be converted to an `ImageRequest`.
 public protocol ImageRequestConvertible {
     func asImageRequest() -> ImageRequest
 }

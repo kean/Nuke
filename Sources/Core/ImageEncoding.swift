@@ -16,6 +16,7 @@ import ImageIO
 
 // MARK: - ImageEncoding
 
+/// An image encoder.
 public protocol ImageEncoding {
     /// Encodes the given image.
     func encode(_ image: PlatformImage) -> Data?
