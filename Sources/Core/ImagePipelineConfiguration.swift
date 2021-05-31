@@ -8,6 +8,7 @@ import os
 // MARK: - ImagePipeline.Configuration
 
 extension ImagePipeline {
+    /// The pipeline configuration.
     public struct Configuration {
         // MARK: - Dependencies
 
@@ -59,10 +60,6 @@ extension ImagePipeline {
         /// Image decompressing queue. Default maximum concurrent task count is 2.
         public var imageDecompressingQueue = OperationQueue(maxConcurrentCount: 2)
         #endif
-
-        // MARK: - Misc
-
-        var _processors: [ImageProcessing] = []
 
         // MARK: - Options
 
@@ -135,6 +132,9 @@ extension ImagePipeline {
         public struct DataCacheOptions {
             public var storedItems: Set<DataCacheItem> = [.originalImageData]
         }
+
+        // Deprecated in 10.0.0
+        var _processors: [ImageProcessing] = []
 
         /// `true` by default. If `true` the pipeline avoids duplicated work when
         /// loading images. The work only gets cancelled when all the registered
