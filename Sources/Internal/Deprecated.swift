@@ -283,7 +283,7 @@ extension ImagePipeline.Configuration {
 
     /// Inherits some of the pipeline configuration options like processors.
     func inheritOptions(_ request: ImageRequest) -> ImageRequest {
-        guard !_processors.isEmpty, request.ref.processors == nil else {
+        guard !_processors.isEmpty, request.processors.isEmpty else {
             return request
         }
         var request = request
