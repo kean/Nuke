@@ -320,15 +320,7 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     public var description: String {
-        """
-        ImageRequest {
-            resource: \(ref.resource),
-            priority: \(priority),
-            processors: \(processors),
-            options: \(options),
-            userInfo: \(userInfo)
-        }
-        """
+        "ImageRequest(resource: \(ref.resource), priority: \(priority), processors: \(processors), options: \(options), userInfo: \(userInfo))"
     }
 
     func withProcessors(_ processors: [ImageProcessing]) -> ImageRequest {
