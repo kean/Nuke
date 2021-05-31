@@ -4,22 +4,35 @@
 
 import Foundation
 
-/// `ImagePipeline` loads and caches images.
+/// `ImagePipeline` is the primary way to load images directly (without a UI).
 ///
-/// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
+/// The pipeline is fully customizable. You can change its configuration using
+/// `ImagePipeline.Configuration` type: set custom data loader and cache, configure
+/// image encoders and decoders, etc. You can also set an `ImagePipeline.Delegate`
+/// to get even more granular control on a per-request basis.
 ///
-/// If you want to build a system that fits your specific needs, see `ImagePipeline.Configuration`
-/// for a list of the available options. You can set custom data loaders and caches, configure
-/// image encoders and decoders, change the number of concurrent operations for each
-/// individual stage, disable and enable features like deduplication and rate limiting, and more.
+/// See ["Image Pipeline"](https://kean.blog/nuke/guides/image-pipeline) to learn
+/// more about how to use the pipeline. You can also learn about they way it
+/// works internally in a [dedicated guide](https://kean.blog/nuke/guides/image-pipeline-guide).
+///
+/// `ImagePipeline` also suppors Combine. You can learn more in a dedicated
+/// [guide](https://kean.blog/nuke/guides/combine) with some common use-cases.
 ///
 /// `ImagePipeline` is fully thread-safe.
 public final class ImagePipeline {
+    /// Shared image pipeline.
+    public static var shared = ImagePipeline(configuration: .withURLCache)
+
+    /// The pipeline configuration.
     public let configuration: Configuration
+
+    /// Provides access to the underlying caching subsystems.
     public var cache: ImagePipeline.Cache { ImagePipeline.Cache(pipeline: self) }
+
     // Deprecated in 10.0.0
     @available(*, deprecated, message: "Please use ImagePipelineDelegate")
     public var observer: ImagePipelineObserving?
+
     let delegate: ImagePipelineDelegate // swiftlint:disable:this all
     private(set) var imageCache: ImageCache?
 
@@ -41,9 +54,6 @@ public final class ImagePipeline {
 
     let rateLimiter: RateLimiter?
     let id = UUID()
-
-    /// Shared image pipeline.
-    public static var shared = ImagePipeline(configuration: .withURLCache)
 
     deinit {
         _nextTaskId.deallocate()
@@ -102,6 +112,7 @@ public final class ImagePipeline {
 
     // MARK: - Loading Images
 
+    /// Loads an image for the given request.
     @discardableResult public func loadImage(
         with request: ImageRequestConvertible,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
