@@ -1,3 +1,128 @@
+# Nuke 10
+
+## Nuke 10.0.0
+
+*Jun 1, 2021*
+
+Nuke 10 is extreme in every way. It is faster than the previous version (up to 30% improvement to some operations), more powerful, more ergonomic, and is even easier to learn and use. It brings big additions to the caching infrastructure, great SwiftUI and Combine support, and more ways to adjust the system to fit your needs.
+
+This release is also a massive step-up in the general quality of the framework. It has many improvements to the docs (for example, a complete rewrite of the [caching guide](https://kean.blog/nuke/guides/caching)), more inline comments, more unit tests (Nuke now has ~100% test coverage with 2x number of lines of code in the test target compared to the main target). It's as reliable as it gets.
+
+> **Migration.** The compiler will assist you with the migration, but if something isn't clear, there is a comprehensive [migration guide](https://github.com/kean/Nuke/blob/master/Documentation/Migrations/Nuke%2010%20Migration%20Guide.md) available.
+>
+> **Switching.** Switching from Kingfisher? There is now a [dedicated guide](https://github.com/kean/Nuke/blob/master/Documentation/Switch/switch-from-kingfisher.md) available to assist you. There is also one for [migrating from SDWebImage](https://github.com/kean/Nuke/blob/master/Documentation/Switch/switch-from-sdwebimage.md).
+
+### Caching
+
+- Add [`DataCachePolicy`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipeline_Configuration_DataCachePolicy/) to replace deprecated `DataCacheOptions.storedItems`. The new policy fixes some of the inefficiencies of the previous model and provides more control. For example, one of the additions is an [`.automatic`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipeline_Configuration_DataCachePolicy/#imagepipeline.configuration.datacachepolicy.automatic) policy: for requests with processors, encode and store processed images; for requests with no processors, store original image data. You can learn more about the policies and other caching changes in ["Caching: Cache Policy."](https://kean.blog/nuke/guides/caching#cache-policy)
+-  Add [`ImagePipeline.Cache`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipeline_Cache/) with a whole range of convenience APIs for managing cached images: read, write, remove images from all cache layers.
+- Add [`ImagePipeline.Configuration.withDataCache`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipeline_Configuration/#imagepipeline.configuration.withdatacache) (aggressive disk cache enabled) and [`withURLCache`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipeline_Configuration/#imagepipeline.configuration.withurlcache) (HTTP disk cache enabled) to make it easier to set up a pipeline with a configuration you want. Learn more in ["Caching: Configuration."](https://kean.blog/nuke/guides/caching#configuration)
+- Add `removeAll()` method to `ImageCaching` and `DataCaching` protocols
+- Add `containsData(for:)` method to `DataCaching` and `DataCache` which checks if the data exists without bringing it to memory
+- Add [`ImageResponse.CacheType`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImageResponse_CacheType/) to address [#361](https://github.com/kean/Nuke/issues/361) and [#435](https://github.com/kean/Nuke/issues/435). It defines the source of the retrieved image.
+- The pipeline no longer stores images fetched using file:// and data:// schemes in the disk cache
+- `ImageCaching` protocols now works with a new [`ImageCacheKey`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImageCacheKey/) type (an opaque container) instead of `ImageRequest`. If you are providing a custom implementation of the `ImageCaching` protocol, it needs to be updated. It is now easier because there is no need to come up with a key.
+
+### NukeUI (Beta)
+
+[NukeUI](https://github.com/kean/NukeUI) is a new Swift package. It is a comprehensive solution for displaying lazily loaded images on Apple platforms. 
+
+It uses [Nuke](https://github.com/kean/Nuke) for loading images and has all customization options you can possibly imagine. It also supports animated GIFs rendering thanks to [Gifu](https://github.com/kaishin/Gifu) and caching and displayng short videos as a more efficient alternative to GIF.
+
+The library contains two types:
+
+- `LazyImage` for SwiftUI
+- `LazyImageView` for UIKit and AppKit
+
+Both views have an equivalent sets of APIs.
+
+```swift
+struct ContainerView: View {
+    var body: some View {
+        LazyImage(source: "https://example.com/image.jpeg")
+            .placeholder { Image("placeholder") }
+            .transition(.fadeIn(duration: 0.33))
+    }
+}
+```
+
+### SwiftUI
+
+Nuke now has first-class SwiftUI support with [FetchImage](https://kean.blog/nuke/guides/swiftui) which is now part of the main repo, no need to install it separately. It also has a couple of new additions:
+
+- Add `result` property (previously you could only access the loaded image)
+- Add `AnyPublisher` support via a new `func load<P: Publisher>(_ publisher: P) where P.Output == ImageResponse, P.Failure == ImagePipeline.Error` method. You can use it with a custom publisher created by combining publishers introduced in [Nuke 9.6](https://github.com/kean/Nuke/releases/tag/9.6.0).
+- Add `ImageRequestConvertible` support
+
+### Combine
+
+Nuke 10 goes all-in on Combine. [`ImagePublisher`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePublisher/) was initially introduced in the previous release, [Nuke 9.6](https://github.com/kean/Nuke/releases/tag/9.6.0), and now Combine is supported across the framework.
+
+- `ImageRequest` now supports Combine Publisher via a new initializer `ImageRequest(id:data:)` where `data` is a `Publisher`. It can be used in a variety of scenarios, for example, loading data using `PhotosKit.
+- As mentioned earlier, [`FetchImage`](https://kean-org.github.io/docs/nuke/reference/10.0.0/FetchImage/) now also supports publishers. So when you create a publisher chain, there is now an easy way to display it.
+
+### ImageRequest.Options
+
+Nuke 10 has a reworked [`ImageRequest.Options`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImageRequest_Options/) option set replacing removed `ImageRequestOptions`. The name is similar, but the options are slightly different. The new approach has more options while being optimized for performance. `ImageRequest` size in memory reduced from 176 bytes to just 48 bytes (3.7x smaller).
+
+- Deprecate [`ImageRequest.CachePolicy`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImageRequest_CachePolicy/) which is now part of the new [`ImageRequest.Options`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImageRequest_Options/) option set
+- Remove `filteredURL`, you can now pass it using `userInfo` and [`.imageIdKey`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImageRequest_UserInfoKey/#imagerequest.userinfokey.imageidkey) key instead. It's a rarely used option, and this is why it is now less visible.
+- Remove `cacheKey` and `loadKey` (hopefully, nobody is using it because these weren't really designed properly). You can now use the new methods of [`ImagePipeline.Delegate`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipelineDelegate/) that allows customizing the keys.
+- Add more options for granular control over caching and loading. For example, [`ImageRequest.Options`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImageRequest_Options/) has a new [`.disableDiskCache`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImageRequest_Options/#imagerequest.options.disablediskcache) option.
+- Move `userInfo` directly to `ImageRequest`. It's now easier to pass and it allows the framework to perform some additional optimizations.
+- `userInfo` now uses [`ImageRequest.UserInfoKey`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImageRequest_UserInfoKey/) wrapper for keys replacing `AnyHashable`. The new approach is faster and adds type-safety.
+
+### ImagePipeline.Delegate
+
+- Add [`ImagePipeline.Delegate`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipelineDelegate/) with a variety of advanced per-request customization options that were previously not possible. For example, with [`dataCache(for:pipeline:)`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipelineDelegate/) method you can specify a disk cache for each request. With [`will​Cache(data:​image:​for:​pipeline:​completion:​)`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipelineDelegate/#imagepipelinedelegate.willcache(data:image:for:pipeline:completion:)) you can disable caching per-request or modify the cached data. And there are more.
+- Deprecated `ImagePipelineObserving` protocol is now fully covered by `ImagePipeline.Delegate`
+
+### Performance
+
+- `ImageRequest` size in memory reduced from 176 bytes to just 48 bytes (3.7x smaller), which is due to the OptionSet usage and also reordering of properties to take advantage of gaps in memory stride. The size of other types was also reduced, but not as dramatically. For example, `ImageTask` and `ImagePipeline.Configuration` now also take a bit less memory
+- Coalescing now supports even more scenarios. For example, setting `ImageRequest` `options` with a cache policy no longer prevents coalescing of data tasks.
+- The pipeline now performs memory cache lookup of intermediate (not all processors are applied) progressive image previews and apply the remaining processors on demand
+- Extend fast track decoding to the disk cache lookup
+- For cache policies that require image encoding, encode decompressed images instead of uncompressed ones
+
+### Nuke Builder
+
+[NukeBuilder](https://github.com/kean/NukeBuilder/) is a package that adds a convenience API for creating image requests inspired by SwiftUI. It was updated with support Nuke 10 and some quality-of-life improvements.
+
+- Rename package to NukeBuilder
+- Update to Nuke 10.0
+- Add [`ImageRequestConvertible`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImageRequestConvertible/) support which means it now supports more types: `URLRequest` and `String`
+- Add Combine support
+- Add `ImagePipeline` typealias for convenience – you only need to import `NukeBuilder` in many cases
+
+### Other
+
+- Increase minimum required Xcode version to 12; no changes to the supported platforms
+- New releases now come with a pre-compile XCFramework
+- `Nuke.loadImage()` methods now work with optional image requests. If the request is `nil`, it handles the scenario the same way as failure.
+- `ImageRequest` now also works with optional `URL`
+- `String` now also conforms to `ImageRequestConvertible`, closes [#421](https://github.com/kean/Nuke/issues/421)
+- Optional `URL` now also conforms to `ImageRequestConvertible`
+- Streamline pipeline callback closures
+- Pass failing processor to `ImagePipeline.Error.processingFailed`
+- Add type-safe `ImageContainer.UserInfoKey` and `ImageRequest.UserInfoKey`
+- Pass additional parameter `Data?` to `nuke_display` (ImageView extensions)
+- `ImagePrefetcher` now always sets the priority of the requests to its priority
+- `ImagePrefetcher` now works with `ImageRequestConvertible`, adding support for `URLRequest` and `String`
+- `ImagePipeline` can now be invalidated with `invalidate()` method
+
+### Deprecations
+
+There are deprecation warnings in place to help guide you through the migration process.
+
+- Deprecate `ImageRequestOptions`, use `ImageRequest.Options` instead (it's not just the name change)
+- Deprecate `ImagePipelineObserving`, use `imageTask(_:,didReceiveEvent)` from `ImagePipeline.Delegate` instead
+- Rename `isDeduplicationEnabled` to `isTaskCoalescingEnabled`
+- Deprecate `animatedImageData` associated object for platform images. Use `data` property of `ImageContainer` instead. `animatedImageData` was initially soft-deprecated in Nuke 9.0.
+- Deprecate the default `processors` in `ImagePipeline`; use the new `processors` options in `ImageLoadingOptions` instead
+- Deprecate `ImageEncoder` and `ImageDecoder` typealiases.
+
+
 # Nuke 9
 
 ## Nuke 9.6.1
