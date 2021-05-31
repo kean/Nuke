@@ -194,10 +194,10 @@ extension ImagePipeline {
         }
 
         func makeImageCacheKey(for request: ImageRequest) -> ImageCacheKey {
-            switch pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
-            case .default: return ImageCacheKey(request: request)
-            case .custom(let key): return ImageCacheKey(key: key)
+            if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
+                return ImageCacheKey(key: customKey)
             }
+            return ImageCacheKey(request: request) // Use the default key
         }
 
         /// Returns data cache (disk cache) key for the given request.
@@ -206,10 +206,10 @@ extension ImagePipeline {
         }
 
         func makeDataCacheKey(for request: ImageRequest) -> String {
-            switch pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
-            case .default: return request.makeDataCacheKey()
-            case .custom(let key): return key
+            if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
+                return customKey
             }
+            return request.makeDataCacheKey() // Use the default key
         }
 
         // MARK: Misc

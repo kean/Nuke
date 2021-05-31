@@ -172,11 +172,8 @@ class ImagePipelineDelegateTests: XCTestCase {
 private final class MockImagePipelineDelegate: ImagePipelineDelegate {
     var isCacheEnabled = true
 
-    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> ImagePipeline.CacheKey<String> {
-        guard let imageId = request.userInfo["imageId"] as? String else {
-            return .default
-        }
-        return .custom(key: imageId)
+    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
+        request.userInfo["imageId"] as? String
     }
 
     func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
