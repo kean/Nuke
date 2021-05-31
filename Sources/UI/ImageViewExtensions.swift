@@ -297,12 +297,11 @@ public struct ImageLoadingOptions {
 
     #endif
 
-    #if os(iOS) || os(tvOS)
-
     /// An animated image transition.
     public struct Transition {
         var style: Style
 
+        #if os(iOS) || os(tvOS)
         enum Style { // internal representation
             case fadeIn(parameters: Parameters)
             case custom((ImageDisplayingView, UIImage) -> Void)
@@ -323,14 +322,7 @@ public struct ImageLoadingOptions {
         public static func custom(_ closure: @escaping (ImageDisplayingView, UIImage) -> Void) -> Transition {
             Transition(style: .custom(closure))
         }
-    }
-
-    #elseif os(macOS)
-
-    /// An animated image transition.
-    public struct Transition {
-        var style: Style
-
+        #elseif os(macOS)
         enum Style { // internal representation
             case fadeIn(parameters: Parameters)
             case custom((ImageDisplayingView, NSImage) -> Void)
@@ -349,9 +341,8 @@ public struct ImageLoadingOptions {
         public static func custom(_ closure: @escaping (ImageDisplayingView, NSImage) -> Void) -> Transition {
             Transition(style: .custom(closure))
         }
+        #endif
     }
-
-    #endif
 
     public init() {}
 

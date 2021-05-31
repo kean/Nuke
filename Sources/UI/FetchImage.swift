@@ -21,6 +21,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// Returns `true` if the image is being loaded.
     @Published public private(set) var isLoading: Bool = false
 
+    /// The download progress.
     public struct Progress: Equatable {
         /// The number of bytes that the task has received.
         public let completed: Int64
