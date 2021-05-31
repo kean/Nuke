@@ -101,7 +101,8 @@ public final class ImagePipeline {
         self.init(configuration: configuration, delegate: delegate)
     }
 
-    /// Invalidates the pipeline and cancels all outstanding tasks.
+    /// Invalidates the pipeline and cancels all outstanding tasks. No new
+    /// requests can be started.
     func invalidate() {
         queue.async {
             guard !self.isInvalidated else { return }
@@ -122,8 +123,9 @@ public final class ImagePipeline {
 
     /// Loads an image for the given request.
     ///
-    /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline-guide) to learn more.
+    /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
     ///
+    /// - parameter request: An image request.
     /// - parameter queue: A queue on which to execute `progress` and `completion`
     /// callbacks. By default, the pipeline uses `.main` queue.
     /// - parameter progress: A closure to be called periodically on the main thread
@@ -201,6 +203,8 @@ public final class ImagePipeline {
 
     // MARK: - Loading Image Data
 
+    /// Loads the image data for the given request. The data doesn't get decoded
+    /// or processed in any other way.
     @discardableResult public func loadData(
         with request: ImageRequestConvertible,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
@@ -208,12 +212,14 @@ public final class ImagePipeline {
         loadData(with: request, queue: nil, progress: nil, completion: completion)
     }
 
-    /// Loads the image data for the given request. The data doesn't get decoded or processed in any
-    /// other way.
+    /// Loads the image data for the given request. The data doesn't get decoded
+    /// or processed in any other way.
     ///
-    /// You can call `loadImage(:)` for the request at any point after calling `loadData(:)`, the
-    /// pipeline will use the same operation to load the data, no duplicated work will be performed.
+    /// You can call `loadImage(:)` for the request at any point after calling
+    /// `loadData(:)`, the pipeline will use the same operation to load the data,
+    /// no duplicated work will be performed.
     ///
+    /// - parameter request: An image request.
     /// - parameter queue: A queue on which to execute `progress` and `completion`
     /// callbacks. By default, the pipeline uses `.main` queue.
     /// - parameter progress: A closure to be called periodically on the main thread
@@ -409,6 +415,7 @@ extension ImagePipeline: SendEventProtocol {
         (self as SendEventProtocol)._send(event, task)
     }
 
+    // Deprecated in 10.0.0
     @available(*, deprecated, message: "Please use ImagePipelineDelegate")
     func _send(_ event: ImageTaskEvent, _ task: ImageTask) {
         observer?.pipeline(self, imageTask: task, didReceiveEvent: event)
