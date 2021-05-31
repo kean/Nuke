@@ -1,8 +1,8 @@
 # Switching to Nuke from SDWebImage
 
-SDWebImage is an Objective-C framework first released back in 2009. In comparison, Nuke was released in 2015. Nuke have had more than enough time to build out to the same level.
+SDWebImage is an Objective-C framework first released back in 2009. In comparison, Nuke was released in 2015. Nuke has had more than enough time to build out to the same level.
 
-[SDWebImage](https://github.com/SDWebImage/SDWebImage) is still actively maintained today and is still used by many apps. But it has dated Objective-C API and doesn't offer great Swift support. Eventually, it will need to be rewritten or replaced, and that’s where Nuke comes in.
+[SDWebImage](https://github.com/SDWebImage/SDWebImage) is still actively maintained today and is still used by many apps. But it has a dated Objective-C API and doesn't offer great Swift support.
 
 This document is not a comparison between the frameworks. It is designed to help you switch from SDWebImage to Nuke. This guide covers some basic scenarios common across the frameworks.
 
