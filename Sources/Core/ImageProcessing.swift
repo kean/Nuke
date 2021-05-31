@@ -737,8 +737,6 @@ public enum ImageProcessingOptions {
         }
     }
 
-    #if os(iOS) || os(tvOS) || os(watchOS)
-
     /// Draws a border.
     ///
     /// - warning: To make sure that the border looks the way you expect,
@@ -747,8 +745,10 @@ public enum ImageProcessingOptions {
     /// consider adding border to a view layer. This should be your primary
     /// option regardless.
     public struct Border: Hashable, CustomStringConvertible {
-        public let color: UIColor
         public let width: CGFloat
+
+        #if os(iOS) || os(tvOS) || os(watchOS)
+        public let color: UIColor
 
         /// - parameter color: Border color.
         /// - parameter width: Border width. 1 points by default.
@@ -757,24 +757,8 @@ public enum ImageProcessingOptions {
             self.color = color
             self.width = width.converted(to: unit)
         }
-
-        public var description: String {
-            "Border(color: \(color.hex), width: \(width) pixels)"
-        }
-    }
-
-    #else
-
-    /// Draws a border.
-    ///
-    /// - warning: To make sure that the border looks the way you expect,
-    /// make sure that the images you display exactly match the size of the
-    /// views in which they get displayed. If you can't guarantee that, pleasee
-    /// consider adding border to a view layer. This should be your primary
-    /// option regardless.
-    public struct Border: Hashable, CustomStringConvertible { // Duplicated to avoid introducing PlatformColor
+        #else
         public let color: NSColor
-        public let width: CGFloat
 
         /// - parameter color: Border color.
         /// - parameter width: Border width. 1 points by default.
@@ -783,13 +767,12 @@ public enum ImageProcessingOptions {
             self.color = color
             self.width = width.converted(to: unit)
         }
+        #endif
 
         public var description: String {
             "Border(color: \(color.hex), width: \(width) pixels)"
         }
     }
-
-    #endif
 }
 
 // MARK: - Misc (Internal)
