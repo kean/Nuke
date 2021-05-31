@@ -14,9 +14,12 @@ public final class ImageTask: Hashable, CustomStringConvertible {
     /// Unique only within that pipeline.
     public let taskId: Int64
 
+    /// The original request.
+    public let request: ImageRequest
+
     let isDataTask: Bool
 
-    /// Updates the priority of the task, even if the task is already running.
+    /// Updates the priority of the task, even if it is already running.
     public var priority: ImageRequest.Priority {
         didSet {
             pipeline?.imageTaskUpdatePriorityCalled(self, priority: priority)
@@ -27,21 +30,20 @@ public final class ImageTask: Hashable, CustomStringConvertible {
 
     weak var pipeline: ImagePipeline?
 
-    /// The original request with which the task was created.
-    public let request: ImageRequest
+    // MARK: Progress
 
     /// The number of bytes that the task has received.
-    public internal(set) var completedUnitCount: Int64 = 0
+    public private(set) var completedUnitCount: Int64 = 0
 
-    /// A best-guess upper bound on the number of bytes the client expects to send.
-    public internal(set) var totalUnitCount: Int64 = 0
+    /// A best-guess upper bound on the number of bytes of the resource.
+    public private(set) var totalUnitCount: Int64 = 0
 
-    /// Returns a progress object for the task. The object is created lazily.
+    /// Returns a progress object for the task, created lazily.
     public var progress: Progress {
         if _progress == nil { _progress = Progress() }
         return _progress!
     }
-    private(set) var _progress: Progress?
+    private var _progress: Progress?
 
     var isCancelled: Bool { _isCancelled.pointee == 1 }
     private let _isCancelled: UnsafeMutablePointer<Int32>
@@ -79,8 +81,6 @@ public final class ImageTask: Hashable, CustomStringConvertible {
         }
     }
 
-    // MARK: - Internal
-
     func setProgress(_ progress: TaskProgress) {
         completedUnitCount = progress.completed
         totalUnitCount = progress.total
@@ -88,7 +88,7 @@ public final class ImageTask: Hashable, CustomStringConvertible {
         _progress?.totalUnitCount = progress.total
     }
 
-    // MARK: - Hashable
+    // MARK: Hashable
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(ObjectIdentifier(self).hashValue)
@@ -98,7 +98,7 @@ public final class ImageTask: Hashable, CustomStringConvertible {
         ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
     }
 
-    // MARK: - CustomStringConvertible
+    // MARK: CustomStringConvertible
 
     public var description: String {
         "ImageTask(id: \(taskId), priority: \(priority), completedUnitCount: \(completedUnitCount), totalUnitCount: \(totalUnitCount), isCancelled: \(isCancelled))"

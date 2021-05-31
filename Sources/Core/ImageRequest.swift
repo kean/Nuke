@@ -305,6 +305,7 @@ public struct ImageRequest: CustomStringConvertible {
         }
     }
 
+    // Every case takes 8 bytes and the enum 9 bytes overall (use stride!)
     enum Resource: CustomStringConvertible {
         case url(URL?)
         case urlRequest(URLRequest)
