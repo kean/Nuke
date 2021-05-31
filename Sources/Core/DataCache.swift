@@ -30,7 +30,7 @@ public protocol DataCaching {
 
 // MARK: - DataCache
 
-/// Data cache backed by a local storage.
+/// An LRU disk cache that stores data in separate files.
 ///
 /// The DataCache uses LRU cleanup policy (least recently used items are removed
 /// first). The elements stored in the cache are automatically discarded if

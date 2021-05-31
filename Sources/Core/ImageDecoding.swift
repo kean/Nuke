@@ -65,12 +65,9 @@ public enum ImageDecoders {}
 
 // MARK: - ImageDecoders.Default
 
-// An image decoder that uses native APIs. Supports progressive decoding.
-// The decoder is stateful.
 extension ImageDecoders {
 
-    /// The default decoder which supports all of the formats natively supported
-    /// by the system.
+    /// A decoder that supports all of the formats natively supported by the system.
     ///
     /// - note: The decoder automatically sets the scale of the decoded images to
     /// match the scale of the screen.
@@ -198,7 +195,7 @@ extension ImageDecoders.Default {
 // MARK: - ImageDecoders.Empty
 
 extension ImageDecoders {
-    /// A decoder which returns an empty placeholder image and attaches image
+    /// A decoder that returns an empty placeholder image and attaches image
     /// data to the image container.
     public struct Empty: ImageDecoding {
         public let isProgressive: Bool
@@ -247,7 +244,7 @@ public extension ImageDecoderRegistering {
 
 // MARK: - ImageDecoderRegistry
 
-/// A register of image codecs (only decoding).
+/// A registry of image codecs.
 public final class ImageDecoderRegistry {
     /// A shared registry.
     public static let shared = ImageDecoderRegistry()

@@ -5,6 +5,7 @@
 import SwiftUI
 import Combine
 
+/// An observable object that simplifies image loading in SwiftUI.
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 public final class FetchImage: ObservableObject, Identifiable {
     /// Returns the current fetch result.

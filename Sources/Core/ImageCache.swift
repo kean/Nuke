@@ -52,7 +52,7 @@ public extension ImageCaching {
     }
 }
 
-/// Memory cache with LRU cleanup policy (least recently used are removed first).
+/// An LRU memory cache.
 ///
 /// The elements stored in cache are automatically discarded if either *cost* or
 /// *count* limit is reached. The default cost limit represents a number of bytes

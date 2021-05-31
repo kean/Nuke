@@ -246,6 +246,7 @@ extension ImagePipeline {
 
         // MARK: Options
 
+        /// Describes a set of cache layers to use.
         public struct Caches: OptionSet {
             public let rawValue: Int
             public init(rawValue: Int) {

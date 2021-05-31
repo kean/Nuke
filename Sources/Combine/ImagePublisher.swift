@@ -15,10 +15,11 @@ public extension ImagePipeline {
     }
 }
 
-/// A publisher that starts a new `ImageTask` when a subscriber is added and delivers
-/// the result of the task to the subscriber. If the requested image is available
-/// in the memory cache, the value is delivered immediately. When the subscription
-/// is cancelled, the task also gets cancelled.
+/// A publisher that starts a new `ImageTask` when a subscriber is added.
+///
+/// If the requested image is available in the memory cache, the value is
+/// delivered immediately. When the subscription is cancelled, the task also
+/// gets cancelled.
 ///
 /// - note: In case the pipeline has `isProgressiveDecodingEnabled` option enabled
 /// and the image being downloaded supports progressive decoding, the publisher
