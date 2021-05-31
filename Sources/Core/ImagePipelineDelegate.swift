@@ -4,10 +4,6 @@
 
 import Foundation
 
-extension ImagePipeline {
-    public typealias Delegate = ImagePipelineDelegate
-}
-
 /// A delegate that allows you to customize the pipleine on a per-request basis.
 ///
 /// - warning: The delegate methods are performed on the pipeline queue in the

@@ -8,7 +8,7 @@ import Foundation
 ///
 /// The pipeline is fully customizable. You can change its configuration using
 /// `ImagePipeline.Configuration` type: set custom data loader and cache, configure
-/// image encoders and decoders, etc. You can also set an `ImagePipeline.Delegate`
+/// image encoders and decoders, etc. You can also set an `ImagePipelineDelegate`
 /// to get even more granular control on a per-request basis.
 ///
 /// See ["Image Pipeline"](https://kean.blog/nuke/guides/image-pipeline) to learn
@@ -68,7 +68,7 @@ public final class ImagePipeline {
     ///
     /// - parameter configuration: `Configuration()` by default.
     /// - parameter delegate: `nil` by default.
-    public init(configuration: Configuration = Configuration(), delegate: ImagePipeline.Delegate? = nil) {
+    public init(configuration: Configuration = Configuration(), delegate: ImagePipelineDelegate? = nil) {
         self.configuration = configuration
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()
@@ -95,7 +95,7 @@ public final class ImagePipeline {
         #endif
     }
 
-    public convenience init(delegate: ImagePipeline.Delegate? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
+    public convenience init(delegate: ImagePipelineDelegate? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
         var configuration = ImagePipeline.Configuration()
         configure(&configuration)
         self.init(configuration: configuration, delegate: delegate)

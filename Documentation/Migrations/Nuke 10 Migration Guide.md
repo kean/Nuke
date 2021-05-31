@@ -190,7 +190,7 @@ request.options.cacheKey = "example.com/image.jpeg"
 request.userInfo[.imageIdKey] = "example.com/image.jpeg"
 ```
 
-And new in Nuke 10, you can now customize the cache keys using the new [`ImagePipeline.Delegate`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipelineDelegate/) protocol.
+And new in Nuke 10, you can now customize the cache keys using the new [`ImagePipelineDelegate`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipelineDelegate/) protocol.
 
 ```swift
 // New (Nuke 10)
