@@ -709,32 +709,6 @@ class DeprecationsImagePipelineDefaultProcessorsTests: XCTestCase {
         wait()
     }
 
-    func testDefaultProcessorsNotAppliedWhenEmptyListPassed() {
-        // GIVEN
-        let request = ImageRequest(url: Test.url, processors: [])
-
-        // WHEN
-        expect(pipeline).toLoadImage(with: request) { result in
-            // THEN
-            let image = result.value?.image
-            XCTAssertEqual(image?.nk_test_processorIDs ?? [], [])
-        }
-        wait()
-    }
-
-    func testDefautProcessorsNotAppliedWhenNonEmptyListPassed() {
-        // GIVEN
-        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p2")])
-
-        // WHEN
-        expect(pipeline).toLoadImage(with: request) { result in
-            // THEN
-            let image = result.value?.image
-            XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["p2"])
-        }
-        wait()
-    }
-
     // MARK: Other Scenarios
 
     func testImageViewExtensionUsesDefaultProcessorForCacheLookup() {
