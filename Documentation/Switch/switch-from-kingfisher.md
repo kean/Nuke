@@ -2,7 +2,7 @@
 
 Both frameworks appeared at roughly the same time in 2015. So they've been around almost as long as Swift has been.
 
-Kingfisher was ["heavily inspired"](https://github.com/onevcat/Kingfisher/tree/1.0.0) by [SDWebImage](https://github.com/SDWebImage/SDWebImage). In fact, many APIs directly match the APIs found in SDWebImage. The most recent versions became better Swift citizens, but you can still find some Objective-C/SDWebImage influences, e.g. `progressBlock` naming.
+Kingfisher was [heavily inspired](https://github.com/onevcat/Kingfisher/tree/1.0.0) by [SDWebImage](https://github.com/SDWebImage/SDWebImage). In fact, many APIs directly match the APIs found in SDWebImage. The most recent versions became better Swift citizens, but you can still find some Objective-C/SDWebImage influences, e.g. `progressBlock` naming.
 
 Nuke, on the other hand, was designed from the ground up according to the [Swift API Design Guidelines](https://swift.org/documentation/api-design-guidelines/).
 
