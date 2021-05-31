@@ -3,7 +3,6 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import CoreGraphics
 
 // Deprecated in 9.4.1
 @available(*, deprecated, message: "Renamed to ImagePrefetcher")
@@ -291,3 +290,11 @@ extension ImagePipeline.Configuration {
         return request
     }
 }
+
+// Deprecated in 10.0.0
+@available(*, deprecated, message: "Please use ImageDecoders.Default directly")
+public typealias ImageDecoder = ImageDecoders.Default
+
+// Deprecated in 10.0.0
+@available(*, deprecated, message: "Please use ImageEncoders.Default directly")
+public typealias ImageEncoder = ImageEncoders.Default

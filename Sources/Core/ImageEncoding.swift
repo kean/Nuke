@@ -32,8 +32,6 @@ public extension ImageEncoding {
 
 // MARK: - ImageEncoder
 
-public typealias ImageEncoder = ImageEncoders.Default
-
 /// Image encoding context used when selecting which encoder to use.
 public struct ImageEncodingContext {
     public let request: ImageRequest

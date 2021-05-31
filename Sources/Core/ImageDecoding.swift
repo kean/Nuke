@@ -59,8 +59,6 @@ extension ImageDecoding {
     }
 }
 
-public typealias ImageDecoder = ImageDecoders.Default
-
 // MARK: - ImageDecoders
 
 public enum ImageDecoders {}
@@ -134,7 +132,7 @@ extension ImageDecoders {
             guard let endOfScan = scanner.scan(data), endOfScan > 0 else {
                 return nil
             }
-            guard let image = ImageDecoder._decode(data[0...endOfScan]) else {
+            guard let image = ImageDecoders.Default._decode(data[0...endOfScan]) else {
                 return nil
             }
             return ImageContainer(image: image, type: .jpeg, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])

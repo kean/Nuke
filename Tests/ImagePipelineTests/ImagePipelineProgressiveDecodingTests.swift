@@ -104,7 +104,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         // Given
         class FailingPartialsDecoder: ImageDecoding {
             func decode(_ data: Data) -> ImageContainer? {
-                return ImageDecoder().decode(data)
+                return ImageDecoders.Default().decode(data)
             }
         }
 

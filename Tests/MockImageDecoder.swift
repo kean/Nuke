@@ -12,7 +12,7 @@ class MockFailingDecoder: Nuke.ImageDecoding {
 }
 
 class MockImageDecoder: ImageDecoding {
-    private let decoder = ImageDecoder()
+    private let decoder = ImageDecoders.Default()
 
     let name: String
 
