@@ -12,16 +12,28 @@ import AppKit.NSImage
 
 // MARK: - ImageResponse
 
-/// Represents a response of a particular image task.
+/// An image response that contains a fetched image and some metadata.
 public struct ImageResponse {
+    /// An image container with an image and associated metadata.
     public let container: ImageContainer
-    /// A convenience computed property which returns an image from the container.
-    public var image: PlatformImage { container.image }
+
+    #if os(macOS)
+    /// A convenience computed property that returns an image from the container.
+    public var image: NSImage { container.image }
+    #else
+    /// A convenience computed property that returns an image from the container.
+    public var image: UIImage { container.image }
+    #endif
+
+    /// A response. `nil` unless the resource was fetched from the network or an
+    /// HTTP cache.
     public let urlResponse: URLResponse?
+
     /// Contains a cache type in case the image was returned from one of the
     /// pipeline caches (not including any of the HTTP caches if enabled).
     public let cacheType: CacheType?
 
+    /// Initializes the response with the given image.
     public init(container: ImageContainer, urlResponse: URLResponse? = nil, cacheType: CacheType? = nil) {
         self.container = container
         self.urlResponse = urlResponse
@@ -37,30 +49,47 @@ public struct ImageResponse {
         }
     }
 
+    /// A cache type.
     public enum CacheType {
+        /// Memory cache (see `ImageCaching`)
         case memory
+        /// Disk cache (see `DataCaching`)
         case disk
     }
 }
 
 // MARK: - ImageContainer
 
+/// An image container with an image and associated metadata.
 public struct ImageContainer {
-    public var image: PlatformImage
+    #if os(macOS)
+    /// A fetched image.
+    public var image: NSImage
+    #else
+    /// A fetched image.
+    public var image: UIImage
+    #endif
+
+    /// An image type.
     public var type: ImageType?
+
     /// Returns `true` if the image in the container is a preview of the image.
     public var isPreview: Bool
+
     /// Contains the original image `data`, but only if the decoder decides to
     /// attach it to the image.
     ///
     /// The default decoder (`ImageDecoders.Default`) attaches data to GIFs to
     /// allow to display them using a rendering engine of your choice.
     ///
-    /// - note: The `data`, along with the image container itself gets stored in the memory
-    /// cache.
+    /// - note: The `data`, along with the image container itself gets stored
+    /// in the memory cache.
     public var data: Data?
+
+    /// An metadata provided by the user.
     public var userInfo: [UserInfoKey: Any]
 
+    /// Initializes the container with the given image.
     public init(image: PlatformImage, type: ImageType? = nil, isPreview: Bool = false, data: Data? = nil, userInfo: [UserInfoKey: Any] = [:]) {
         self.image = image
         self.type = type
