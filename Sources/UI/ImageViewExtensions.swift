@@ -341,6 +341,8 @@ public struct ImageLoadingOptions {
         public static func custom(_ closure: @escaping (ImageDisplayingView, NSImage) -> Void) -> Transition {
             Transition(style: .custom(closure))
         }
+        #else
+        enum Style {}
         #endif
     }
 
