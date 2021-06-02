@@ -37,7 +37,7 @@ The image pipeline is easy to customize and extend. Check out the following firs
 
 |Name|Description|
 |--|--|
-|[**NukeUI**](https://github.com/kean/NukeUI)|A missing piece in SwiftUI that provides lazy image loading on Apple platforms|
+|[**NukeUI**](https://github.com/kean/NukeUI)|Lazy image loading for SwiftUI|
 |[**NukeBuilder**](https://github.com/kean/NukeBuilder)|A fun and convenient way to use Nuke|
 |[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire)|
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples|
