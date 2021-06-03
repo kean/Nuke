@@ -71,41 +71,6 @@ class ImagePipelineMemoryTests: XCTestCase {
         wait()
     }
 
-    func testDecodingOperationCancelled() {
-        expectDeinit {
-            pipeline = pipeline.reconfigured {
-                $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
-            }
-
-            // Given
-            let queue = pipeline.configuration.imageDecodingQueue
-            queue.isSuspended = true
-
-            let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
-
-            let request = Test.request
-
-            let task = pipeline.loadImage(with: request) { _ in
-                XCTFail()
-            }
-            wait() // Wait till operation is created
-
-            // When/Then
-            guard let operation = observer.operations.first else {
-                XCTFail("Failed to find operation")
-                return
-            }
-            expect(operation).toCancel()
-
-            task.cancel()
-
-            wait()
-
-            queue.isSuspended = false
-        }
-        wait()
-    }
-
     func testProcessingOperationCancelled() {
         expectDeinit {
             let queue = pipeline.configuration.imageProcessingQueue

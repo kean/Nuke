@@ -84,5 +84,6 @@ class ImagePipelineConfigurationTests: XCTestCase {
     func testEnablingSignposts() {
         ImagePipeline.Configuration.isSignpostLoggingEnabled = false // Just padding
         ImagePipeline.Configuration.isSignpostLoggingEnabled = true
+        ImagePipeline.Configuration.isSignpostLoggingEnabled = false
     }
 }   
