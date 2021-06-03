@@ -73,8 +73,9 @@ class ImagePipelineMemoryTests: XCTestCase {
 
     func testDecodingOperationCancelled() {
         expectDeinit {
-            ImagePipeline.Configuration.isFastTrackDecodingEnabled = false
-            defer { ImagePipeline.Configuration.isFastTrackDecodingEnabled = true }
+            pipeline = pipeline.reconfigured {
+                $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
+            }
 
             // Given
             let queue = pipeline.configuration.imageDecodingQueue

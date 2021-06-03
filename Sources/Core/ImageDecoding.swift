@@ -21,6 +21,11 @@ import WatchKit
 /// - note: If you need additional information in the decoder, you can pass
 /// anything that you might need from the `ImageDecodingContext`.
 public protocol ImageDecoding {
+    /// Return `true` if you want the decoding to be performed on the decoding
+    /// queue (see `imageDecodingQueue`). If `false`, the decoding will be
+    /// performed synchronously on the pipeline operation queue. By default, `true`.
+    var isAsynchronous: Bool { get }
+
     /// Produces an image from the given image data.
     func decode(_ data: Data) -> ImageContainer?
 
@@ -32,10 +37,15 @@ public protocol ImageDecoding {
     func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?
 }
 
-public extension ImageDecoding {
+extension ImageDecoding {
+    /// Returns `true` by default.
+    public var isAsynchronous: Bool {
+        true
+    }
+
     /// The default implementation which simply returns `nil` (no progressive
     /// decoding available).
-    func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+    public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
         nil
     }
 }
@@ -84,6 +94,10 @@ extension ImageDecoders {
         private var container: ImageContainer?
 
         public init() { }
+
+        public var isAsynchronous: Bool {
+            false
+        }
 
         public init?(data: Data, context: ImageDecodingContext) {
             guard let container = _decode(data) else {
@@ -200,6 +214,10 @@ extension ImageDecoders {
     /// data to the image container.
     public struct Empty: ImageDecoding {
         public let isProgressive: Bool
+
+        public var isAsynchronous: Bool {
+            false
+        }
 
         /// - parameter isProgressive: If `false`, returns nil for every progressive
         /// scan. `false` by default.

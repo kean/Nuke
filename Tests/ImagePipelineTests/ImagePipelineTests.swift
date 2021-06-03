@@ -17,12 +17,6 @@ class ImagePipelineTests: XCTestCase {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
         }
-
-        ImagePipeline.Configuration.isFastTrackDecodingEnabled = false
-    }
-
-    override func tearDown() {
-        ImagePipeline.Configuration.isFastTrackDecodingEnabled = true
     }
 
     // MARK: - Completion
@@ -185,6 +179,10 @@ class ImagePipelineTests: XCTestCase {
 
     func testDecodingPriorityUpdated() {
         // Given
+        pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
+        }
+
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
 
@@ -246,7 +244,11 @@ class ImagePipelineTests: XCTestCase {
     }
 
     func testDecodingOperationCancelled() {
-        // Given
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
+        }
+
         let queue = pipeline.configuration.imageDecodingQueue
         queue.isSuspended = true
 

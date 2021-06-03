@@ -63,7 +63,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
                 decoder.decode(data, urlResponse: nil, isCompleted: true, cacheType: .disk)
             }
         }
-        if ImagePipeline.Configuration.isFastTrackDecodingEnabled(for: decoder) {
+        if !decoder.isAsynchronous {
             didDecodeCachedData(decode())
         } else {
             operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in

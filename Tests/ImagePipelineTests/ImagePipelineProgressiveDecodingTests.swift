@@ -35,12 +35,6 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
             $0.isStoringPreviewsInMemoryCache = true
             $0.imageProcessingQueue.maxConcurrentOperationCount = 1
         }
-
-        ImagePipeline.Configuration.isFastTrackDecodingEnabled = false
-    }
-
-    override func tearDown() {
-        ImagePipeline.Configuration.isFastTrackDecodingEnabled = true
     }
 
     // MARK: - Basics
@@ -288,6 +282,11 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     // MARK: Back Pressure
 
     func testBackpressureImageDecoding() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in MockImageDecoder(name: "a") }
+        }
+
         let queue = pipeline.configuration.imageDecodingQueue
 
         // When we receive progressive image data at a higher rate that we can

@@ -50,7 +50,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
                 decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted, cacheType: nil)
             }
         }
-        if ImagePipeline.Configuration.isFastTrackDecodingEnabled(for: decoder) {
+        if !decoder.isAsynchronous {
             self.sendResponse(decode(), isCompleted: isCompleted)
         } else {
             operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in

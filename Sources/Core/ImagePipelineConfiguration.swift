@@ -206,8 +206,6 @@ extension ImagePipeline {
             }
         }
 
-        static var isFastTrackDecodingEnabled = true
-
         private var isCustomImageCacheProvided = false
 
         var debugIsSyncImageEncoding = false
@@ -240,14 +238,5 @@ extension ImagePipeline {
 
             return config
         }
-    }
-}
-
-// MARK: - Helpers
-
-extension ImagePipeline.Configuration {
-    /// Fast-track decoding isn't performed on the operation queue.
-    static func isFastTrackDecodingEnabled(for decoder: ImageDecoding) -> Bool {
-        isFastTrackDecodingEnabled && (decoder is ImageDecoders.Default || decoder is ImageDecoders.Empty)
     }
 }
