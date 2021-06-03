@@ -19,6 +19,7 @@ class ImageCacheTests: XCTestCase {
         super.setUp()
 
         cache = ImageCache()
+        cache.entryCostLimit = 2
     }
 
     // MARK: - Basics
@@ -162,6 +163,36 @@ class ImageCacheTests: XCTestCase {
         cache[request2] = Test.container
         XCTAssertNil(cache[request1])
         XCTAssertNotNil(cache[request2])
+    }
+
+    func testEntryCostLimitEntryStored() {
+        // Given
+        let container = ImageContainer(image: Test.image)
+        let cost = cache.cost(for: container)
+        cache.costLimit = Int(Double(cost) * 15)
+        cache.entryCostLimit = 0.1
+
+        // When
+        cache[Test.request] = container
+
+        // Then
+        XCTAssertNotNil(cache[Test.request])
+        XCTAssertEqual(cache.totalCount, 1)
+    }
+
+    func testEntryCostLimitEntryNotStored() {
+        // Given
+        let container = ImageContainer(image: Test.image)
+        let cost = cache.cost(for: container)
+        cache.costLimit = Int(Double(cost) * 3)
+        cache.entryCostLimit = 0.1
+
+        // When
+        cache[Test.request] = container
+
+        // Then
+        XCTAssertNil(cache[Test.request])
+        XCTAssertEqual(cache.totalCount, 0)
     }
 
     func testTrimToCost() {

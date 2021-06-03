@@ -89,6 +89,10 @@ public final class ImageCache: ImageCaching {
         return impl.totalCost
     }
 
+    /// The maximum cost of an entry in proportion to the `costLimit`.
+    /// By default, `0.1`.
+    public var entryCostLimit: Double = 0.1
+
     /// The total number of items in the cache.
     public var totalCount: Int {
         return impl.totalCount
@@ -130,7 +134,13 @@ public final class ImageCache: ImageCaching {
         }
         set {
             if let image = newValue {
-                impl.set(image, forKey: key, cost: self.cost(for: image))
+                let cost = self.cost(for: image)
+                // Take care of overflow or cache size big enough to fit any
+                // resonable content (and also of costLimit = Int.max).
+                let sanitizedEntryLimit = max(0, min(entryCostLimit, 1))
+                if costLimit > 4294967296 || cost < Int(sanitizedEntryLimit * Double(costLimit)) {
+                    impl.set(image, forKey: key, cost: cost)
+                }
             } else {
                 impl.removeValue(forKey: key)
             }
