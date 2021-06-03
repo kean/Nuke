@@ -170,7 +170,7 @@ extension ImagePipeline {
         /// The decoder used by the image loading session determines whether
         /// to produce a partial image or not. The default image decoder
         /// (`ImageDecoder`) supports progressive JPEG decoding.
-        public var isProgressiveDecodingEnabled = false
+        public var isProgressiveDecodingEnabled = true
 
         /// `false` by default. If `true`, the pipeline will store all of the
         /// progressively generated previews in the memory cache. All of the
