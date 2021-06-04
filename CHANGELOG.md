@@ -4,7 +4,7 @@
 
 *Jun 3, 2021*
 
-- Enable progressive decoding by default – it can now be done without sacrificing performance in any meaningful way. To disable it, use `isProgressiveDecodingEnabled` = false
+- Enable progressive decoding by default – it can now be done without sacrificing performance in any meaningful way. To disable it, set `isProgressiveDecodingEnabled` to `false`.
 - Enable storing progressively decoding previews in the memory cache by default (`isStoringPreviewsInMemoryCache`)
 - Add `isAsynchronous` property to `ImageDecoding` that allows slow decoders (such as custom WebP decoder) to be executed on a dedicated operation queue (the existing `imageDecodingQueue`), while allows fast decoders to be executed synchronously
 - Add `entryCostLimit` property to `ImageCache` that specifies the maximum cost of a cache entry in proportion to the `costLimit`. `0.1`, by default.
