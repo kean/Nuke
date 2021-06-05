@@ -138,7 +138,7 @@ public final class ImageCache: ImageCaching {
                 // Take care of overflow or cache size big enough to fit any
                 // resonable content (and also of costLimit = Int.max).
                 let sanitizedEntryLimit = max(0, min(entryCostLimit, 1))
-                if costLimit > 4294967296 || cost < Int(sanitizedEntryLimit * Double(costLimit)) {
+                if costLimit > 2147483647 || cost < Int(sanitizedEntryLimit * Double(costLimit)) {
                     impl.set(image, forKey: key, cost: cost)
                 }
             } else {
