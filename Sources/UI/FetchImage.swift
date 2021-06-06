@@ -9,7 +9,7 @@ import Combine
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 public final class FetchImage: ObservableObject, Identifiable {
     /// Returns the current fetch result.
-    @Published public private(set) var result: Result<ImageResponse, ImagePipeline.Error>?
+    @Published public private(set) var result: Result<ImageResponse, Error>?
 
     /// Returns the fetched image.
     ///
@@ -56,10 +56,10 @@ public final class FetchImage: ObservableObject, Identifiable {
     public var onSuccess: ((_ response: ImageResponse) -> Void)?
 
     /// Gets called when the requests fails.
-    public var onFailure: ((_ response: ImagePipeline.Error) -> Void)?
+    public var onFailure: ((_ response: Error) -> Void)?
 
     /// Gets called when the request is completed.
-    public var onCompletion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)?
+    public var onCompletion: ((_ result: Result<ImageResponse, Error>) -> Void)?
 
     public var pipeline: ImagePipeline = .shared
 
@@ -88,7 +88,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         reset()
 
         guard var request = request?.asImageRequest() else {
-            handle(result: .failure(.dataLoadingFailed(URLError(.unknown))), isSync: true)
+            handle(result: .failure(FetchImageError.sourceEmpty), isSync: true)
             return
         }
 
@@ -124,7 +124,7 @@ public final class FetchImage: ObservableObject, Identifiable {
                 self.onProgress?(response, completed, total)
             },
             completion: { [weak self] in
-                self?.handle(result: $0, isSync: false)
+                self?.handle(result: $0.mapError { $0 }, isSync: false)
             }
         )
         imageTask = task
@@ -136,7 +136,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         self.imageContainer = preview.container
     }
 
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, isSync: Bool) {
+    private func handle(result: Result<ImageResponse, Error>, isSync: Bool) {
         isLoading = false
 
         if case .success(let response) = result {
@@ -159,11 +159,11 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// - warning: Some `FetchImage` features, such as progress reporting and
     /// dynamically changing the request priority, are not available when
     /// working with a publisher.
-    public func load<P: Publisher>(_ publisher: P?) where P.Output == ImageResponse, P.Failure == ImagePipeline.Error {
+    public func load<P: Publisher>(_ publisher: P?) where P.Output == ImageResponse {
         reset()
 
         guard let publisher = publisher else {
-            handle(result: .failure(.dataLoadingFailed(URLError(.unknown))), isSync: true)
+            handle(result: .failure(FetchImageError.sourceEmpty), isSync: true)
             return
         }
 
@@ -225,4 +225,8 @@ public final class FetchImage: ObservableObject, Identifiable {
         return image.map(Image.init(uiImage:))
         #endif
     }
+}
+
+public enum FetchImageError: Swift.Error {
+    case sourceEmpty
 }

@@ -5,6 +5,7 @@
 - Add progressive previews in memory cache support to `FetchImage`
 - Add a property with `ImageContainer` to `FechImage`
 - `FetchImage` now supports optional request/publishesr (hanled as failrue)
+- Update `FetchImage` `loadImage()` method that takes publisher to no longer require error to match `ImagePipeline.Error`   
 - Add an option to set default processors via `FetchImage`
 
 ## Nuke 10.1.0
