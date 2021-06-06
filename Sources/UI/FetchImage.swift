@@ -41,8 +41,9 @@ public final class FetchImage: ObservableObject, Identifiable {
     @Published public private(set) var progress = Progress(completed: 0, total: 0)
 
     /// Updates the priority of the task, even if the task is already running.
-    public var priority: ImageRequest.Priority = .normal {
-        didSet { task?.priority = priority }
+    /// `nil` by default
+    public var priority: ImageRequest.Priority? {
+        didSet { priority.map { imageTask?.priority = $0 } }
     }
 
     /// Gets called when the request is started.
@@ -63,9 +64,10 @@ public final class FetchImage: ObservableObject, Identifiable {
     public var pipeline: ImagePipeline = .shared
 
     /// Image processors to be applied unless the processors are provided in the request.
-    public var processors: [ImageProcessing] = []
+    /// `nil` by default.
+    public var processors: [ImageProcessing]?
 
-    private var task: ImageTask?
+    private var imageTask: ImageTask?
 
     // publisher support
     private var lastResponse: ImageResponse?
@@ -79,66 +81,70 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     // MARK: Load (ImageRequestConvertible)
 
-    /// Starts loading the image if not already loaded and the download is not
-    /// already in progress.
+    /// Loads an image with the given request.
     public func load(_ request: ImageRequestConvertible?) {
+        assert(Thread.isMainThread, "Must be called from the main thread")
+
         reset()
 
         guard var request = request?.asImageRequest() else {
-            handle(result: .failure(.dataLoadingFailed(URLError(.unknown))))
+            handle(result: .failure(.dataLoadingFailed(URLError(.unknown))), isSync: true)
             return
         }
 
-        // Try to display the regular image if it is available in memory cache
-        if let container = pipeline.cache[request] {
-            imageContainer = container // Display progressive image
-            if !container.isPreview {
-                let response = ImageResponse(container: container, urlResponse: nil, cacheType: .memory)
-                let result: Result<ImageResponse, ImagePipeline.Error> = .success(response)
-                self.result = result
-                self.didComplete(result)
-                return // Nothing to do
-            }
+        if let processors = self.processors, !processors.isEmpty && request.processors.isEmpty {
+            request.processors = processors
         }
-
-        if request.priority != priority {
+        if let priority = self.priority {
             request.priority = priority
         }
-        if !processors.isEmpty && request.processors.isEmpty {
-            request.processors = processors
+
+        // Quick synchronous memory cache lookup
+        if let image = pipeline.cache[request] {
+            if image.isPreview {
+                imageContainer = image // Display progressive image
+            } else {
+                let response = ImageResponse(container: image, cacheType: .memory)
+                handle(result: .success(response), isSync: true)
+                return
+            }
         }
 
         isLoading = true
         progress = Progress(completed: 0, total: 0)
+
         let task = pipeline.loadImage(
             with: request,
             progress: { [weak self] response, completed, total in
                 guard let self = self else { return }
                 self.progress = Progress(completed: completed, total: total)
-                if let container = response?.container {
-                    self.imageContainer = container // Display progressively decoded image
+                if let response = response {
+                    self.handle(preview: response)
                 }
                 self.onProgress?(response, completed, total)
             },
             completion: { [weak self] in
-                self?.handle(result: $0)
+                self?.handle(result: $0, isSync: false)
             }
         )
-        self.task = task
+        imageTask = task
         onStart?(task)
     }
 
-    private func handle(result: Result<ImageResponse, ImagePipeline.Error>) {
-        task = nil
+    private func handle(preview: ImageResponse) {
+        // Display progressively decoded image
+        self.imageContainer = preview.container
+    }
+
+    private func handle(result: Result<ImageResponse, ImagePipeline.Error>, isSync: Bool) {
         isLoading = false
+
         if case .success(let response) = result {
             self.imageContainer = response.container
         }
         self.result = result
-        didComplete(result)
-    }
 
-    private func didComplete(_ result: Result<ImageResponse, ImagePipeline.Error>) {
+        imageTask = nil
         switch result {
         case .success(let response): onSuccess?(response)
         case .failure(let error): onFailure?(error)
@@ -157,7 +163,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         reset()
 
         guard let publisher = publisher else {
-            handle(result: .failure(.dataLoadingFailed(URLError(.unknown))))
+            handle(result: .failure(.dataLoadingFailed(URLError(.unknown))), isSync: true)
             return
         }
 
@@ -187,8 +193,8 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// image.
     public func cancel() {
         // pipeline-based
-        task?.cancel() // Guarantees that no more callbacks are will be delivered
-        task = nil
+        imageTask?.cancel() // Guarantees that no more callbacks are will be delivered
+        imageTask = nil
 
         // publisher-based
         cancellable = nil
