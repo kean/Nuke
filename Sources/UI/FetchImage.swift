@@ -167,7 +167,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             return
         }
 
-        // Not using `first()` because it also supported progressive decoding
+        // Not using `first()` because it should support progressive decoding
         isLoading = true
         cancellable = publisher.sink(receiveCompletion: { [weak self] completion in
             guard let self = self else { return }

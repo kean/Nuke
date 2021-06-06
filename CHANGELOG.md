@@ -1,6 +1,12 @@
 # Nuke 10
 
-- `ImageDecoders.Default` now generated a preview for GIFs
+## Nuke 10.2.0
+
+*Jun 6, 2021*
+
+> See also [Nuke 10.0 Release Sotes](https://github.com/kean/Nuke/releases/tag/10.0.0))
+
+- `ImageDecoders.Default` now generate previews for GIF
 - Add `onSuccess`, `onFailure`, and other callbacks to `FetchImage` 
 - Add progressive previews in memory cache support to `FetchImage`
 - Add a property with `ImageContainer` to `FechImage`
