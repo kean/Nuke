@@ -77,10 +77,13 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// Starts loading the image if not already loaded and the download is not
     /// already in progress.
-    public func load(_ request: ImageRequestConvertible) {
+    public func load(_ request: ImageRequestConvertible?) {
         reset()
 
-        var request = request.asImageRequest()
+        guard var request = request?.asImageRequest() else {
+            handle(result: .failure(.dataLoadingFailed(URLError(.unknown))))
+            return
+        }
 
         // Try to display the regular image if it is available in memory cache
         if let container = pipeline.cache[request] {
@@ -111,14 +114,14 @@ public final class FetchImage: ObservableObject, Identifiable {
                 self.onProgress?(response, completed, total)
             },
             completion: { [weak self] in
-                self?.didFinishRequest(result: $0)
+                self?.handle(result: $0)
             }
         )
         self.task = task
         onStart?(task)
     }
 
-    private func didFinishRequest(result: Result<ImageResponse, ImagePipeline.Error>) {
+    private func handle(result: Result<ImageResponse, ImagePipeline.Error>) {
         task = nil
         isLoading = false
         if case .success(let response) = result {
@@ -143,8 +146,13 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// - warning: Some `FetchImage` features, such as progress reporting and
     /// dynamically changing the request priority, are not available when
     /// working with a publisher.
-    public func load<P: Publisher>(_ publisher: P) where P.Output == ImageResponse, P.Failure == ImagePipeline.Error {
+    public func load<P: Publisher>(_ publisher: P?) where P.Output == ImageResponse, P.Failure == ImagePipeline.Error {
         reset()
+
+        guard let publisher = publisher else {
+            handle(result: .failure(.dataLoadingFailed(URLError(.unknown))))
+            return
+        }
 
         // Not using `first()` because it also supported progressive decoding
         isLoading = true
