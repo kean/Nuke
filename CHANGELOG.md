@@ -1,5 +1,9 @@
 # Nuke 10
 
+- Add `onSuccess`, `onFailure`, and other callbacks to `FetchImage` 
+- Add progressive previews in memory cache support to `FetchImage`
+- Add a property with `ImageContainer` to `FechImage`
+
 ## Nuke 10.1.0
 
 *Jun 3, 2021*

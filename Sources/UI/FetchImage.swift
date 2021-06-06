@@ -16,7 +16,14 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// - note: In case pipeline has `isProgressiveDecodingEnabled` option enabled
     /// and the image being downloaded supports progressive decoding, the `image`
     /// might be updated multiple times during the download.
-    @Published public private(set) var image: PlatformImage?
+    public var image: PlatformImage? { imageContainer?.image }
+
+    /// Returns the fetched image.
+    ///
+    /// - note: In case pipeline has `isProgressiveDecodingEnabled` option enabled
+    /// and the image being downloaded supports progressive decoding, the `image`
+    /// might be updated multiple times during the download.
+    @Published public private(set) var imageContainer: ImageContainer?
 
     /// Returns `true` if the image is being loaded.
     @Published public private(set) var isLoading: Bool = false
@@ -38,6 +45,21 @@ public final class FetchImage: ObservableObject, Identifiable {
         didSet { task?.priority = priority }
     }
 
+    /// Gets called when the request is started.
+    public var onStart: ((_ task: ImageTask) -> Void)?
+
+    /// Gets called when the request progress is updated.
+    public var onProgress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?
+
+    /// Gets called when the requests finished successfully.
+    public var onSuccess: ((_ response: ImageResponse) -> Void)?
+
+    /// Gets called when the requests fails.
+    public var onFailure: ((_ response: ImagePipeline.Error) -> Void)?
+
+    /// Gets called when the request is completed.
+    public var onCompletion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)?
+
     public var pipeline: ImagePipeline = .shared
     private var task: ImageTask?
 
@@ -58,42 +80,60 @@ public final class FetchImage: ObservableObject, Identifiable {
     public func load(_ request: ImageRequestConvertible) {
         reset()
 
-        let request = request.asImageRequest()
+        var request = request.asImageRequest()
 
         // Try to display the regular image if it is available in memory cache
         if let container = pipeline.cache[request] {
-            image = container.image
-            result = .success(ImageResponse(container: container, urlResponse: nil, cacheType: .memory))
-            return // Nothing to do
+            imageContainer = container // Display progressive image
+            if !container.isPreview {
+                let response = ImageResponse(container: container, urlResponse: nil, cacheType: .memory)
+                let result: Result<ImageResponse, ImagePipeline.Error> = .success(response)
+                self.result = result
+                self.didComplete(result)
+                return // Nothing to do
+            }
+        }
+
+        if request.priority != priority {
+            request.priority = priority
         }
 
         isLoading = true
         progress = Progress(completed: 0, total: 0)
-        task = pipeline.loadImage(
+        let task = pipeline.loadImage(
             with: request,
             progress: { [weak self] response, completed, total in
                 guard let self = self else { return }
                 self.progress = Progress(completed: completed, total: total)
-                if let image = response?.image {
-                    self.image = image // Display progressively decoded image
+                if let container = response?.container {
+                    self.imageContainer = container // Display progressively decoded image
                 }
+                self.onProgress?(response, completed, total)
             },
             completion: { [weak self] in
                 self?.didFinishRequest(result: $0)
             }
         )
-        if priority != request.priority {
-            task?.priority = priority
-        }
+        self.task = task
+        onStart?(task)
     }
 
     private func didFinishRequest(result: Result<ImageResponse, ImagePipeline.Error>) {
         task = nil
         isLoading = false
         if case .success(let response) = result {
-            self.image = response.image
+            self.imageContainer = response.container
         }
         self.result = result
+        didComplete(result)
+    }
+
+    private func didComplete(_ result: Result<ImageResponse, ImagePipeline.Error>) {
+        switch result {
+        case .success(let response): onSuccess?(response)
+        case .failure(let error): onFailure?(error)
+        }
+        onCompletion?(result)
     }
 
     // MARK: Load (Publisher)
@@ -122,7 +162,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         }, receiveValue: { [weak self] response in
             guard let self = self else { return }
             self.lastResponse = response
-            self.image = response.image
+            self.imageContainer = response.container
         })
     }
 
@@ -149,7 +189,7 @@ public final class FetchImage: ObservableObject, Identifiable {
 
         // Avoid publishing unchanged values
         if isLoading { isLoading = false }
-        if image != nil { image = nil }
+        if imageContainer != nil { imageContainer = nil }
         if result != nil { result = nil }
         lastResponse = nil // publisher-only
         if progress != Progress(completed: 0, total: 0) { progress = Progress(completed: 0, total: 0) }
