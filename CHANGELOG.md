@@ -3,6 +3,7 @@
 - Add `onSuccess`, `onFailure`, and other callbacks to `FetchImage` 
 - Add progressive previews in memory cache support to `FetchImage`
 - Add a property with `ImageContainer` to `FechImage`
+- `FetchImage` now supports optional request/publishesr (hanled as failrue)
 
 ## Nuke 10.1.0
 
