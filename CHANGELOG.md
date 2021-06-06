@@ -4,7 +4,7 @@
 
 *Jun 6, 2021*
 
-> See also [Nuke 10.0 Release Sotes](https://github.com/kean/Nuke/releases/tag/10.0.0))
+> See also [Nuke 10.0 Release Notes](https://github.com/kean/Nuke/releases/tag/10.0.0))
 
 - `ImageDecoders.Default` now generates previews for GIF
 - Add `onSuccess`, `onFailure`, and other callbacks to `FetchImage` 
