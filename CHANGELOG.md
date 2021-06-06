@@ -1,5 +1,6 @@
 # Nuke 10
 
+- `ImageDecoders.Default` now generated a preview for GIFs
 - Add `onSuccess`, `onFailure`, and other callbacks to `FetchImage` 
 - Add progressive previews in memory cache support to `FetchImage`
 - Add a property with `ImageContainer` to `FechImage`

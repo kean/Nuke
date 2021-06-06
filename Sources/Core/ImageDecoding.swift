@@ -93,6 +93,9 @@ extension ImageDecoders {
 
         private var container: ImageContainer?
 
+        private var isDecodingGIFProgressively = false
+        private var isPreviewForGIFGenerated = false
+
         public init() { }
 
         public var isAsynchronous: Bool {
@@ -107,13 +110,20 @@ extension ImageDecoders {
         }
 
         public init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
+            let imageType = ImageType(data)
+
             // Determined whether the image supports progressive decoding or not
             // (only proressive JPEG is allowed for now, but you can add support
             // for other formats by implementing your own decoder).
-            guard ImageType(data) == .jpeg,
-                ImageProperties.JPEG(data)?.isProgressive == true else {
-                return nil
+            if imageType == .jpeg, ImageProperties.JPEG(data)?.isProgressive == true { return }
+
+            // Generate one preview for GIF.
+            if imageType == .gif {
+                self.isDecodingGIFProgressively = true
+                return
             }
+
+            return nil
         }
 
         public func decode(_ data: Data) -> ImageContainer? {
@@ -141,6 +151,14 @@ extension ImageDecoders {
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+            if isDecodingGIFProgressively { // Special handling for GIF
+                if !isPreviewForGIFGenerated, let image = ImageDecoders.Default._decode(data) {
+                    isPreviewForGIFGenerated = true
+                    return ImageContainer(image: image, type: .gif, isPreview: true, data: nil, userInfo: [:])
+                }
+                return nil
+            }
+
             guard let endOfScan = scanner.scan(data), endOfScan > 0 else {
                 return nil
             }

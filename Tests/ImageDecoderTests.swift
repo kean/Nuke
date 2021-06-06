@@ -127,6 +127,25 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertNotNil(ImageDecoders.Default().decode(data)?.data)
     }
 
+    func testDecodingGIFPreview() {
+        let data = Test.data(name: "cat", extension: "gif")
+        XCTAssertEqual(data.count, 427672) // 427 KB
+        let chunk = data[...60000] // 6 KB
+        XCTAssertNotNil(ImageDecoders.Default().decode(chunk))
+    }
+
+    func testDecodingGIFPreviewGeneratedOnlyOnce() throws {
+        let data = Test.data(name: "cat", extension: "gif")
+        XCTAssertEqual(data.count, 427672) // 427 KB
+        let chunk = data[...60000] // 6 KB
+
+        let context = ImageDecodingContext(request: Test.request, data: chunk, isCompleted: false, urlResponse: nil)
+        let decoder = try XCTUnwrap(ImageDecoders.Default(partiallyDownloadedData: chunk, context: context))
+
+        XCTAssertNotNil(decoder.decodePartiallyDownloadedData(chunk))
+        XCTAssertNil(decoder.decodePartiallyDownloadedData(chunk))
+    }
+
     func testDecodingPNGDataNotAttached() {
         let data = Test.data(name: "fixture", extension: "png")
         let container = ImageDecoders.Default().decode(data)
