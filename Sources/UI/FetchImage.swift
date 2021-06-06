@@ -159,13 +159,8 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// - warning: Some `FetchImage` features, such as progress reporting and
     /// dynamically changing the request priority, are not available when
     /// working with a publisher.
-    public func load<P: Publisher>(_ publisher: P?) where P.Output == ImageResponse {
+    public func load<P: Publisher>(_ publisher: P) where P.Output == ImageResponse {
         reset()
-
-        guard let publisher = publisher else {
-            handle(result: .failure(FetchImageError.sourceEmpty), isSync: true)
-            return
-        }
 
         // Not using `first()` because it should support progressive decoding
         isLoading = true

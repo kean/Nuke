@@ -6,11 +6,10 @@
 
 > See also [Nuke 10.0 Release Sotes](https://github.com/kean/Nuke/releases/tag/10.0.0))
 
-- `ImageDecoders.Default` now generate previews for GIF
+- `ImageDecoders.Default` now generates previews for GIF
 - Add `onSuccess`, `onFailure`, and other callbacks to `FetchImage` 
 - Add progressive previews in memory cache support to `FetchImage`
-- Add a property with `ImageContainer` to `FechImage`
-- `FetchImage` now supports optional request/publishesr (hanled as failrue)
+- Add a convenience property with an `ImageContainer` to `FechImage`
 - Update `FetchImage` `loadImage()` method that takes publisher to no longer require error to match `ImagePipeline.Error`   
 - Add an option to set default processors via `FetchImage`
 
