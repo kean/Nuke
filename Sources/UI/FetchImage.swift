@@ -61,6 +61,10 @@ public final class FetchImage: ObservableObject, Identifiable {
     public var onCompletion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)?
 
     public var pipeline: ImagePipeline = .shared
+
+    /// Image processors to be applied unless the processors are provided in the request.
+    public var processors: [ImageProcessing] = []
+
     private var task: ImageTask?
 
     // publisher support
@@ -99,6 +103,9 @@ public final class FetchImage: ObservableObject, Identifiable {
 
         if request.priority != priority {
             request.priority = priority
+        }
+        if !processors.isEmpty && request.processors.isEmpty {
+            request.processors = processors
         }
 
         isLoading = true
