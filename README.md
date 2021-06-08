@@ -30,6 +30,8 @@ Nuke is easy to learn and use thanks to beautiful [**Nuke Docs**](https://kean.b
 <img src="https://user-images.githubusercontent.com/1567433/114312077-59259b80-9abf-11eb-93f9-29fb87eb025a.png">
 </a>
 
+Nuke documentation is also available for [download](https://t.co/r03Svmcv8B?amp=1) as an Xcode 13 documentation archive compiled using DocC. 
+
 <a name="h_plugins"></a>
 ## Extensions
 
