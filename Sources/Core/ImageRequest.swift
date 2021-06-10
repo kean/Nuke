@@ -103,11 +103,9 @@ public struct ImageRequest: CustomStringConvertible {
         /// ```
         public static let imageIdKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
 
-        #if !os(macOS)
         /// The image scale to be used. By default, the scale matches the scale
         /// of the current display.
         public static let scaleKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/scale"
-        #endif
     }
 
     // MARK: Initializers
