@@ -513,4 +513,34 @@ class ImagePipelineTests: XCTestCase {
 
         XCTAssertNil(error.dataLoadingError)
     }
+
+    // MARK: Misc
+
+    #if !os(macOS)
+    func testOverridingImageScale() throws {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7])
+
+        // WHEN
+        let record = expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // THEN
+        let image = try XCTUnwrap(record.image)
+        XCTAssertEqual(image.scale, 7)
+    }
+
+    func testOverridingImageScaleWithFloat() throws {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7.0])
+
+        // WHEN
+        let record = expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // THEN
+        let image = try XCTUnwrap(record.image)
+        XCTAssertEqual(image.scale, 7)
+    }
+    #endif
 }

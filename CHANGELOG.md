@@ -1,6 +1,7 @@
 # Nuke 10
 
 - Add `animation` option to `FetchImage`
+- Add an option to override image scale (`ImageRequest.UserInfoKey.scaleKey`)
 
 ## Nuke 10.2.0
 
