@@ -1,8 +1,12 @@
 # Nuke 10
 
-- Add `animation` option to `FetchImage`
+## Nuke 10.3.0
+
+*Jun 10, 2021*
+
+- Add `animation` propery to `FetchImage` that significantly simplifies how to animate image appearence
+- Add `imageType` parameter to `ImageDecoders.Empty`
 - Add an option to override image scale (`ImageRequest.UserInfoKey.scaleKey`)
-- Add `imageType` option to `ImageDecoders.Empty`
 
 ## Nuke 10.2.0
 
