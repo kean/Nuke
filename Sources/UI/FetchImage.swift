@@ -28,7 +28,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// Returns `true` if the image is being loaded.
     @Published public private(set) var isLoading: Bool = false
 
-    /// Animations to be used when displaying the loaded images.
+    /// Animations to be used when displaying the loaded images. By default, `nil`.
     ///
     /// - note: Animation isn't used when image is available in memory cache.
     public var animation: Animation?
