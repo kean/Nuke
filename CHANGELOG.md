@@ -1,5 +1,7 @@
 # Nuke 10
 
+- Add `animation` option to `FetchImage`
+
 ## Nuke 10.2.0
 
 *Jun 6, 2021*

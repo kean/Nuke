@@ -28,6 +28,11 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// Returns `true` if the image is being loaded.
     @Published public private(set) var isLoading: Bool = false
 
+    /// Animations to be used when displaying the loaded images.
+    ///
+    /// - note: Animation isn't used when image is available in memory cache.
+    public var animation: Animation?
+
     /// The download progress.
     public struct Progress: Equatable {
         /// The number of bytes that the task has received.
@@ -119,12 +124,17 @@ public final class FetchImage: ObservableObject, Identifiable {
                 guard let self = self else { return }
                 self.progress = Progress(completed: completed, total: total)
                 if let response = response {
-                    self.handle(preview: response)
+                    withAnimation(self.animation) {
+                        self.handle(preview: response)
+                    }
                 }
                 self.onProgress?(response, completed, total)
             },
-            completion: { [weak self] in
-                self?.handle(result: $0.mapError { $0 }, isSync: false)
+            completion: { [weak self] result in
+                guard let self = self else { return }
+                withAnimation(self.animation) {
+                    self.handle(result: result.mapError { $0 }, isSync: false)
+                }
             }
         )
         imageTask = task
