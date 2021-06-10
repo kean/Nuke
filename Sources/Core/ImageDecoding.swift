@@ -239,23 +239,30 @@ extension ImageDecoders {
     /// data to the image container.
     public struct Empty: ImageDecoding {
         public let isProgressive: Bool
+        private let imageType: ImageType?
 
         public var isAsynchronous: Bool {
             false
         }
 
-        /// - parameter isProgressive: If `false`, returns nil for every progressive
-        /// scan. `false` by default.
-        public init(isProgressive: Bool = false) {
+        /// Initializes the decoder.
+        ///
+        /// - Parameters:
+        ///   - type: Image type to be associated with an image container.
+        ///   `nil` by defalt.
+        ///   - isProgressive: If `false`, returns nil for every progressive
+        ///   scan. `false` by default.
+        public init(imageType: ImageType? = nil, isProgressive: Bool = false) {
+            self.imageType = imageType
             self.isProgressive = isProgressive
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-            isProgressive ? ImageContainer(image: PlatformImage(), data: data, userInfo: [:]) : nil
+            isProgressive ? ImageContainer(image: PlatformImage(), type: imageType, data: data, userInfo: [:]) : nil
         }
 
         public func decode(_ data: Data) -> ImageContainer? {
-            ImageContainer(image: PlatformImage(), data: data, userInfo: [:])
+            ImageContainer(image: PlatformImage(), type: imageType, data: data, userInfo: [:])
         }
     }
 }

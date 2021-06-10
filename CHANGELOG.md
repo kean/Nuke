@@ -2,6 +2,7 @@
 
 - Add `animation` option to `FetchImage`
 - Add an option to override image scale (`ImageRequest.UserInfoKey.scaleKey`)
+- Add `imageType` option to `ImageDecoders.Empty`
 
 ## Nuke 10.2.0
 
