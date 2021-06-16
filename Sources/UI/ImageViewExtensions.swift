@@ -52,7 +52,7 @@ public typealias ImageDisplayingView = UIView & Nuke_ImageDisplaying
 
 extension UIImageView: Nuke_ImageDisplaying {
     /// Displays an image.
-    open func nuke_display(image: UIImage?, data: Data?) {
+    open func nuke_display(image: UIImage?, data: Data? = nil) {
         self.image = image
     }
 }
@@ -64,7 +64,7 @@ public typealias ImageDisplayingView = NSObject & Nuke_ImageDisplaying
 
 extension NSImageView: Nuke_ImageDisplaying {
     /// Displays an image.
-    open func nuke_display(image: NSImage?, data: Data?) {
+    open func nuke_display(image: NSImage?, data: Data? = nil) {
         self.image = image
     }
 }
@@ -76,7 +76,7 @@ public typealias ImageDisplayingView = WKInterfaceObject & Nuke_ImageDisplaying
 
 extension WKInterfaceImage: Nuke_ImageDisplaying {
     /// Displays an image.
-    open func nuke_display(image: UIImage?, data: Data?) {
+    open func nuke_display(image: UIImage?, data: Data? = nil) {
         self.setImage(image)
     }
 }
