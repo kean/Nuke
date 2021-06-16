@@ -19,7 +19,7 @@ public typealias PlatformImage = NSImage
 /// them compatible with Nuke image loading extensions.
 ///
 /// The protocol is defined as `@objc` to make it possible to override its
-/// methods in extensions (e.g. you can override `nuke_display(image:)` in
+/// methods in extensions (e.g. you can override `nuke_display(image:data:)` in
 /// `UIImageView` subclass like `Gifu.ImageView).
 ///
 /// The protocol and its methods have prefixes to make sure they don't clash
