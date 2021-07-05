@@ -38,19 +38,49 @@ public struct ImagePublisher: Publisher {
     }
 
     public func receive<S>(subscriber: S) where S: Subscriber, Failure == S.Failure, Output == S.Input {
-        let subscription = ImageSubscription()
-        subscriber.receive(subscription: subscription)
+        let subscription = ImageSubscription(
+            request: self.request,
+            pipeline: self.pipeline,
+            subscriber: subscriber
+        )
 
+        subscriber.receive(subscription: subscription)
+    }
+}
+
+@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
+private final class ImageSubscription<S: Subscriber>: Subscription where S.Input == ImageResponse, S.Failure == ImagePipeline.Error {
+    var task: ImageTask?
+
+    var subscriber: S?
+
+    var request: ImageRequest
+
+    var pipeline: ImagePipeline
+
+    init(request: ImageRequest, pipeline: ImagePipeline, subscriber: S) {
+        self.pipeline = pipeline
+        self.request = request
+        self.subscriber = subscriber
+
+    }
+    
+    func request(_ demand: Subscribers.Demand) {
+        guard demand > 0 else { return }
+        guard let subscriber = subscriber else { return }
+        
         let request = pipeline.configuration.inheritOptions(self.request)
+        
         if let image = pipeline.cache[request] {
             _ = subscriber.receive(ImageResponse(container: image, cacheType: .memory))
+
             if !image.isPreview {
                 subscriber.receive(completion: .finished)
                 return
             }
         }
-
-        subscription.task = pipeline.loadImage(
+        
+        task = pipeline.loadImage(
              with: request,
              queue: nil,
              progress: { response, _, _ in
@@ -62,24 +92,15 @@ public struct ImagePublisher: Publisher {
              completion: { result in
                  switch result {
                  case let .success(response):
-                     _ = subscriber.receive(response)
-                     subscriber.receive(completion: .finished)
+                    _ = subscriber.receive(response)
+                    subscriber.receive(completion: .finished)
                  case let .failure(error):
                      subscriber.receive(completion: .failure(error))
                  }
              }
          )
     }
-}
-
-@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
-private final class ImageSubscription: Subscription {
-    var task: ImageTask?
-
-    func request(_ demand: Subscribers.Demand) {
-        // The `loadImage()` call should probably ideally happen here instead
-    }
-
+    
     func cancel() {
         task?.cancel()
         task = nil
