@@ -50,13 +50,11 @@ public struct ImagePublisher: Publisher {
 
 @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 private final class ImageSubscription<S: Subscriber>: Subscription where S.Input == ImageResponse, S.Failure == ImagePipeline.Error {
-    var task: ImageTask?
-
-    var subscriber: S?
-
-    var request: ImageRequest
-
-    var pipeline: ImagePipeline
+    private var task: ImageTask?
+    private let subscriber: S?
+    private let request: ImageRequest
+    private let pipeline: ImagePipeline
+    private var isStarted = false
 
     init(request: ImageRequest, pipeline: ImagePipeline, subscriber: S) {
         self.pipeline = pipeline
@@ -64,13 +62,13 @@ private final class ImageSubscription<S: Subscriber>: Subscription where S.Input
         self.subscriber = subscriber
 
     }
-    
+
     func request(_ demand: Subscribers.Demand) {
         guard demand > 0 else { return }
         guard let subscriber = subscriber else { return }
-        
+
         let request = pipeline.configuration.inheritOptions(self.request)
-        
+
         if let image = pipeline.cache[request] {
             _ = subscriber.receive(ImageResponse(container: image, cacheType: .memory))
 
@@ -79,7 +77,7 @@ private final class ImageSubscription<S: Subscriber>: Subscription where S.Input
                 return
             }
         }
-        
+
         task = pipeline.loadImage(
              with: request,
              queue: nil,
@@ -100,7 +98,7 @@ private final class ImageSubscription<S: Subscriber>: Subscription where S.Input
              }
          )
     }
-    
+
     func cancel() {
         task?.cancel()
         task = nil
