@@ -5,7 +5,7 @@
 
 *Jul 8, 2021*
 
-- Fix `ImagePublisher` crash with some Combine operators combinations - [#494](https://github.com/kean/Nuke/pull/494), thanks to [Tyler Nickerson](https://github.com/Nickersoft))
+- Fix `ImagePublisher` crash with some Combine operators combinations - [#494](https://github.com/kean/Nuke/pull/494), thanks to [Tyler Nickerson](https://github.com/Nickersoft)
 
 ## Nuke 10.3.0
 
