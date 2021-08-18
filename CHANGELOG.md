@@ -1,5 +1,16 @@
 # Nuke 10
 
+## Nuke 10.3.3
+
+*Aug 18, 2021*
+
+- Fix an issue with disk cache images being overwritten in some scenarios (with disk cache policies that enable encoding and storage of the processed images) - [#500](https://github.com/kean/Nuke/pull/500) 
+
+## Nuke 10.3.2
+
+*Jul 30, 2021*
+
+- Add podspec
 
 ## Nuke 10.3.1
 
