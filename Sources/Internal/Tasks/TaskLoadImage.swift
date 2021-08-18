@@ -78,7 +78,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     private func didDecodeCachedData(_ response: ImageResponse?) {
         if let response = response {
-            decompressImage(response, isCompleted: true)
+            decompressImage(response, isCompleted: true, isFromDiskCache: true)
         } else {
             fetchImage()
         }
@@ -187,14 +187,14 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     // MARK: Decompression
 
     #if os(macOS)
-    private func decompressImage(_ response: ImageResponse, isCompleted: Bool) {
-        storeImageInCaches(response)
+    private func decompressImage(_ response: ImageResponse, isCompleted: Bool, isFromDiskCache: Bool = false) {
+        storeImageInCaches(response, isFromDiskCache: isFromDiskCache)
         send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
     }
     #else
-    private func decompressImage(_ response: ImageResponse, isCompleted: Bool) {
+    private func decompressImage(_ response: ImageResponse, isCompleted: Bool, isFromDiskCache: Bool = false) {
         guard isDecompressionNeeded(for: response) else {
-            storeImageInCaches(response)
+            storeImageInCaches(response, isFromDiskCache: isFromDiskCache)
             send(value: response, isCompleted: isCompleted)
             return
         }
@@ -215,7 +215,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
 
             self.async {
-                self.storeImageInCaches(response)
+                self.storeImageInCaches(response, isFromDiskCache: isFromDiskCache)
                 self.send(value: response, isCompleted: isCompleted)
             }
         }
@@ -230,14 +230,16 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     // MARK: Caching
 
-    private func storeImageInCaches(_ response: ImageResponse) {
+    private func storeImageInCaches(_ response: ImageResponse, isFromDiskCache: Bool) {
         guard subscribers.contains(where: { $0 is ImageTask }) else {
             return // Only store for direct requests
         }
         // Memory cache (ImageCaching)
         pipeline.cache[request] = response.container
         // Disk cache (DataCaching)
-        storeImageInDataCache(response)
+        if !isFromDiskCache {
+            storeImageInDataCache(response)
+        }
     }
 
     private func storeImageInDataCache(_ response: ImageResponse) {

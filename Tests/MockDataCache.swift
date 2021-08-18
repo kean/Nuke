@@ -10,6 +10,11 @@ final class MockDataCache: DataCaching {
     var readCount = 0
     var writeCount = 0
 
+    func resetCounters() {
+        readCount = 0
+        writeCount = 0
+    }
+
     func cachedData(for key: String) -> Data? {
         readCount += 1
         return store[key]

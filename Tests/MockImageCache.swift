@@ -14,6 +14,11 @@ class MockImageCache: ImageCaching {
 
     init() {}
 
+    func resetCounters() {
+        readCount = 0
+        writeCount = 0
+    }
+
     subscript(key: ImageCacheKey) -> ImageContainer? {
         get {
             queue.sync {
