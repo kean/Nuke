@@ -312,6 +312,31 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         XCTAssertEqual(dataLoader.createdTaskCount, 0)
     }
 
+    func testPolicyStoreEncodedImagesGivenDataAlreadyStored() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.dataCachePolicy = .storeEncodedImages
+        }
+
+        let request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")])
+        pipeline.cache.storeCachedImage(Test.container, for: request, caches: [.disk])
+        dataCache.resetCounters()
+        imageCache.resetCounters()
+
+        // WHEN
+        let record = expect(pipeline).toLoadImage(with: request)
+        wait()
+        XCTAssertNotNil(record.image)
+        XCTAssertEqual(record.response?.cacheType, .disk)
+
+        // THEN
+        XCTAssertEqual(imageCache.readCount, 1)
+        XCTAssertEqual(imageCache.writeCount, 1)
+        XCTAssertEqual(dataCache.readCount, 1)
+        XCTAssertEqual(dataCache.writeCount, 0)
+        XCTAssertEqual(dataLoader.createdTaskCount, 0)
+    }
+
     // MARK: ImageRequest.Options
 
     func testGivenOriginalImageInDiskCacheAndDiskReadsDisabled() {
