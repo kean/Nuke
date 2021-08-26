@@ -50,12 +50,12 @@ struct TestExpectationImagePipeline {
     }
 
     @discardableResult
-    func toFailRequest(_ request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> ImageTask {
+    func toFailRequest(_ request: ImageRequestConvertible, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> ImageTask {
         toFailRequest(request, progress: nil, completion: completion)
     }
 
     @discardableResult
-    func toFailRequest(_ request: ImageRequest,
+    func toFailRequest(_ request: ImageRequestConvertible,
                        progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
                        completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
         let expectation = test.expectation(description: "Image request failed \(request)")
@@ -67,7 +67,7 @@ struct TestExpectationImagePipeline {
         }
     }
 
-    func toFailRequest(_ request: ImageRequest, with expectedError: ImagePipeline.Error, file: StaticString = #file, line: UInt = #line) {
+    func toFailRequest(_ request: ImageRequestConvertible, with expectedError: ImagePipeline.Error, file: StaticString = #file, line: UInt = #line) {
         toFailRequest(request) { result in
             XCTAssertEqual(result.error, expectedError, file: file, line: line)
         }
