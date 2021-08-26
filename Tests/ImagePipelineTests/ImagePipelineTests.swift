@@ -515,7 +515,20 @@ class ImagePipelineTests: XCTestCase {
     }
 
     // MARK: Misc
+    
+    func testLoadWithInvalidURL() throws {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.dataLoader = DataLoader()
+        }
 
+        // WHEN
+        for _ in 0...100 {
+            expect(pipeline).toFailRequest( "http://example.com/invalid url")
+            wait()
+        }
+    }
+    
     #if !os(macOS)
     func testOverridingImageScale() throws {
         // GIVEN
