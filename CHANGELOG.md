@@ -1,5 +1,11 @@
 # Nuke 10
 
+## Nuke 10.3.4
+
+*Aug 26, 2021*
+
+- Fix an issue where if you pass incorect strings (`String`) in the request, the pipeline eventually start failing silently - [#502](https://github.com/kean/Nuke/pull/502) 
+
 ## Nuke 10.3.3
 
 *Aug 18, 2021*
