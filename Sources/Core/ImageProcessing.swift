@@ -610,6 +610,10 @@ extension NSImage {
     static func make(cgImage: CGImage, source: NSImage) -> NSImage {
         NSImage(cgImage: cgImage, size: .zero)
     }
+    
+    convenience init(cgImage: CGImage) {
+        self.init(cgImage: cgImage, size: .zero)
+    }
 }
 #else
 extension UIImage {
