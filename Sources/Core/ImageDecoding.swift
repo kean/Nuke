@@ -63,7 +63,9 @@ extension ImageDecoding {
             return nil
         }
         #if !os(macOS)
-        ImageDecompression.setDecompressionNeeded(true, for: container.image)
+        if container.userInfo[.isThumbnailKey] == nil {
+            ImageDecompression.setDecompressionNeeded(true, for: container.image)
+        }
         #endif
         return ImageResponse(container: container, urlResponse: urlResponse, cacheType: cacheType)
     }
@@ -162,6 +164,9 @@ extension ImageDecoders {
             }
             if numberOfScans > 0 {
                 container.userInfo[.scanNumberKey] = numberOfScans
+            }
+            if thumbnail != nil {
+                container.userInfo[.isThumbnailKey] = true
             }
             return container
         }

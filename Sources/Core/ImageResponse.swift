@@ -118,7 +118,10 @@ public struct ImageContainer {
             self.rawValue = value
         }
 
+        // For internal purposes.
+        static let isThumbnailKey: UserInfoKey = "com.github/kean/nuke/skip-decompression"
+        
         /// A user info key to get the scan number (Int).
-        public static let scanNumberKey: UserInfoKey = "github.com/kean/nuke/scan-number"
+        public static let scanNumberKey: UserInfoKey = "com.github/kean/nuke/scan-number"
     }
 }

@@ -295,7 +295,7 @@ public struct ImageRequest: CustomStringConvertible {
         public var shouldCacheImmediately = true
         
         var identifier: String {
-            return "com.github.kean/nuke/thumbnail?mxs=\(maxPixelSize),options=\(createThumbnailFromImageIfAbsent)\(createThumbnailFromImageAlways)\(createThumbnailWithTransform)\(shouldCacheImmediately)"
+            return "com.github/kean/nuke/thumbnail?mxs=\(maxPixelSize),options=\(createThumbnailFromImageIfAbsent)\(createThumbnailFromImageAlways)\(createThumbnailWithTransform)\(shouldCacheImmediately)"
         }
     }
 
