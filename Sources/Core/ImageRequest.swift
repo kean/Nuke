@@ -5,6 +5,18 @@
 import Foundation
 import Combine
 
+#if os(iOS) || os(tvOS) || os(watchOS)
+import UIKit
+#endif
+
+#if os(watchOS)
+import WatchKit
+#endif
+
+#if os(macOS)
+import Cocoa
+#endif
+
 // MARK: - ImageRequest
 
 /// Represents an image request.
@@ -264,7 +276,7 @@ public struct ImageRequest: CustomStringConvertible {
         /// The maximum width and height in pixels of a thumbnail. If this key
         /// is not specified, the width and height of a thumbnail is not limited
         /// and thumbnails may be as big as the image itself.
-        public var maxPixelSize: Float
+        public var maxPixelSize: CGFloat
                 
         /// Whether a thumbnail should be automatically created for an image if
         /// a thumbnail isn't present in the image source file. The thumbnail is
@@ -294,7 +306,7 @@ public struct ImageRequest: CustomStringConvertible {
         /// By default, `true`.
         public var shouldCacheImmediately = true
         
-        public init(maxPixelSize: Float,
+        public init(maxPixelSize: CGFloat,
                     createThumbnailFromImageIfAbsent: Bool = true,
                     createThumbnailFromImageAlways: Bool = true,
                     createThumbnailWithTransform: Bool = true,
