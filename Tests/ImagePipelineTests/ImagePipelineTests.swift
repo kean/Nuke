@@ -426,6 +426,7 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
     
+#if os(iOS)
     func testThumnbailIsntDecompressed() {
         pipeline.configuration.imageDecompressingQueue.isSuspended = true
         
@@ -437,6 +438,7 @@ class ImagePipelineTests: XCTestCase {
         expect(pipeline).toLoadImage(with: request)
         wait()
     }
+#endif
 
     // MARK: - CacheKey
 
