@@ -1,5 +1,12 @@
 # Nuke 10
 
+## Nuke 10.4.0
+
+*Aug 28, 2021*
+
+- Add an API for efficiently image thumbnails or retreiving existings ones - [#503](https://github.com/kean/Nuke/pull/503)
+- Fix an issue with scale (`ImageRequest.UserInfoKey.scaleKey`) not being applied to progressively decoded images
+
 ## Nuke 10.3.4
 
 *Aug 26, 2021*
