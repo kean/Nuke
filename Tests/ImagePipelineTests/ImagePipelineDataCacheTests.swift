@@ -60,7 +60,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
             guard let container = self.pipeline.cache.cachedImage(for: request, caches: [.disk]) else {
                 return XCTFail()
             }
-            XCTAssertEqual(container.mage.sizeInPixels, CGSize(width: 400, height: 300))
+            XCTAssertEqual(container.image.sizeInPixels, CGSize(width: 400, height: 300))
             
             XCTAssertNil(self.pipeline.cache.cachedData(for: ImageRequest(url: Test.url)))
         }

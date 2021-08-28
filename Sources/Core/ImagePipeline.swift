@@ -40,7 +40,7 @@ public final class ImagePipeline {
 
     private let tasksLoadData: TaskPool<ImageLoadKey, (Data, URLResponse?), Error>
     private let tasksLoadImage: TaskPool<ImageLoadKey, ImageResponse, Error>
-    private let tasksFetchDecodedImage: TaskPool<DataLoadKey, ImageResponse, Error>
+    private let tasksFetchDecodedImage: TaskPool<DecodedImageLoadKey, ImageResponse, Error>
     private let tasksFetchOriginalImageData: TaskPool<DataLoadKey, (Data, URLResponse?), Error>
     private let tasksFetchWithPublisher: TaskPool<DataLoadKey, (Data, URLResponse?), Error>
     private let tasksProcessImage: TaskPool<ImageProcessingKey, ImageResponse, Swift.Error>
@@ -393,7 +393,7 @@ public final class ImagePipeline {
     }
 
     func makeTaskFetchDecodedImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
-        tasksFetchDecodedImage.publisherForKey(request.makeDataLoadKey()) {
+        tasksFetchDecodedImage.publisherForKey(request.makeDecodedImageLoadKey()) {
             TaskFetchDecodedImage(self, request)
         }
     }

@@ -25,13 +25,18 @@ extension ImageRequest {
         ImageLoadKey(self)
     }
     
+    /// A key for deduplicating operations for fetching the decoded image.
+    func makeDecodedImageLoadKey() -> DecodedImageLoadKey {
+        DecodedImageLoadKey(self)
+    }
+    
     /// A key for deduplicating operations for fetching the original image.
     func makeDataLoadKey() -> DataLoadKey {
         DataLoadKey(self)
     }
 }
 
-// Uniquely identifies a cache processed image.
+/// Uniquely identifies a cache processed image.
 struct CacheKey: Hashable {
     private let imageId: String?
     private let thumbnail: ImageRequest.ThumbnailOptions?
@@ -54,7 +59,7 @@ struct CacheKey: Hashable {
     }
 }
 
-// Uniquely identifies a task of retrieving the processed image.
+/// Uniquely identifies a task of retrieving the processed image.
 struct ImageLoadKey: Hashable {
     let cacheKey: CacheKey
     let options: ImageRequest.Options
@@ -69,7 +74,18 @@ struct ImageLoadKey: Hashable {
     }
 }
 
-// Uniquely identifies a task of retrieving the original image dataa.
+/// Uniquely identifies a task of retrieving the decoded image.
+struct DecodedImageLoadKey: Hashable {
+    let dataLoadKey: DataLoadKey
+    let thumbnail: ImageRequest.ThumbnailOptions?
+    
+    init(_ request: ImageRequest) {
+        self.dataLoadKey = DataLoadKey(request)
+        self.thumbnail = request.thubmnail
+    }
+}
+
+/// Uniquely identifies a task of retrieving the original image dataa.
 struct DataLoadKey: Hashable {
     private let imageId: String?
     private let cachePolicy: URLRequest.CachePolicy
