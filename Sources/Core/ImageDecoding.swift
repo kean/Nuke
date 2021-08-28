@@ -107,8 +107,7 @@ extension ImageDecoders {
         }
 
         public init?(data: Data, context: ImageDecodingContext) {
-            let scale = context.request.ref.userInfo?[.scaleKey]
-            self.scale = (scale as? NSNumber).map { CGFloat($0.floatValue) }
+            self.scale = context.request.scale
             self.thumbnail = context.request.thubmnail
             guard let container = _decode(data) else {
                 return nil
@@ -119,7 +118,7 @@ extension ImageDecoders {
         public init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
             let imageType = ImageType(data)
 
-            self.scale = context.request.ref.userInfo?[.scaleKey] as? CGFloat
+            self.scale = context.request.scale
             self.thumbnail = context.request.thubmnail
 
             // Determined whether the image supports progressive decoding or not

@@ -395,6 +395,28 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         }
         wait()
     }
+    
+    // MARK: Scale
+    
+    func testOverridingImageScaleWithFloat() throws {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7.0])
+
+        // WHEN/THEN the pipeline find the first preview in the memory cache,
+        // applies the remaining processors and delivers it
+        let previewDelivered = self.expectation(description: "previewDelivered")
+        pipeline.loadImage(with: request) { response, _, _ in
+            guard let response = response else {
+                return
+            }
+            XCTAssertTrue(response.container.isPreview)
+            XCTAssertEqual(response.image.scale, 7)
+            previewDelivered.fulfill()
+        } completion: { _ in
+            // Do nothing
+        }
+        wait()
+    }
 }
 
 private extension XCTestCase {

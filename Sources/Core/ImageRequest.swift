@@ -417,6 +417,13 @@ public struct ImageRequest: CustomStringConvertible {
     var thubmnail: ThumbnailOptions? {
         ref.userInfo?[.thumbnailKey] as? ThumbnailOptions
     }
+    
+    var scale: CGFloat? {
+        guard let scale = ref.userInfo?[.scaleKey] as? NSNumber else {
+            return nil
+        }
+        return CGFloat(scale.floatValue)
+    }
 
     var publisher: DataPublisher? {
         guard case .publisher(let publisher) = ref.resource else {
