@@ -414,6 +414,17 @@ class ImagePipelineTests: XCTestCase {
         }
         wait()
     }
+    
+    func testThumbnailIsGeneratedOnDecodingQueue() {
+        // GIVEN
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
+
+        // WHEN/THEN
+        expect(pipeline).toLoadImage(with: request)
+        expect(pipeline.configuration.imageDecodingQueue).toEnqueueOperationsWithCount(1)
+        wait()
+    }
 
     // MARK: - CacheKey
 

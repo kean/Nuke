@@ -101,7 +101,7 @@ extension ImageDecoders {
         public init() { }
 
         public var isAsynchronous: Bool {
-            false
+            thumbnail != nil
         }
 
         public init?(data: Data, context: ImageDecodingContext) {
