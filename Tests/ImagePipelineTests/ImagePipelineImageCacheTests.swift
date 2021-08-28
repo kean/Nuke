@@ -97,6 +97,22 @@ class ImagePipelineImageCacheTests: XCTestCase {
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
         XCTAssertNotNil(cache[Test.request])
     }
+    
+    func testGeneratedThumbnailDataIsStoredIncache() throws {
+        // When
+        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
+        expect(pipeline).toLoadImage(with: request)
+
+        // Then
+        wait { _ in
+            guard let container = self.pipeline.cache[request] else {
+                return XCTFail()
+            }
+            XCTAssertEqual(container.image.sizeInPixels, CGSize(width: 400, height: 300))
+
+            XCTAssertNil(self.pipeline.cache[ImageRequest(url: Test.url)])
+        }
+    }
 }
 
 /// Make sure that cache layers are checked in the correct order and the

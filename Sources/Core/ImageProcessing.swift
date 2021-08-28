@@ -610,6 +610,10 @@ extension NSImage {
     static func make(cgImage: CGImage, source: NSImage) -> NSImage {
         NSImage(cgImage: cgImage, size: .zero)
     }
+    
+    convenience init(cgImage: CGImage) {
+        self.init(cgImage: cgImage, size: .zero)
+    }
 }
 #else
 extension UIImage {
@@ -835,4 +839,21 @@ private extension CGContext {
             bitmapInfo: alphaInfo.rawValue
         )
     }
+}
+
+/// Creates an image thumbnail. Uses significantly less memory than other options.
+func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions) -> PlatformImage? {
+    guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary) else {
+        return nil
+    }
+    let options = [
+        kCGImageSourceCreateThumbnailFromImageAlways: options.createThumbnailFromImageAlways,
+        kCGImageSourceCreateThumbnailFromImageIfAbsent: options.createThumbnailFromImageIfAbsent,
+        kCGImageSourceShouldCacheImmediately: options.shouldCacheImmediately,
+        kCGImageSourceCreateThumbnailWithTransform: options.createThumbnailWithTransform,
+        kCGImageSourceThumbnailMaxPixelSize: options.maxPixelSize] as CFDictionary
+    guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options) else {
+        return nil
+    }
+    return PlatformImage(cgImage: image)
 }
