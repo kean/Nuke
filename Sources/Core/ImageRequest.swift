@@ -279,8 +279,8 @@ public struct ImageRequest: CustomStringConvertible {
         /// from the full image, subject to the limit specified by
         /// `maxPixelSize`.
         ///
-        /// By default, `false`.
-        public var createThumbnailFromImageAlways = false
+        /// By default, `true`.
+        public var createThumbnailFromImageAlways = true
         
         /// Whether the thumbnail should be rotated and scaled according to the
         /// orientation and pixel aspect ratio of the full image.
