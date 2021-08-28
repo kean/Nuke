@@ -294,6 +294,18 @@ public struct ImageRequest: CustomStringConvertible {
         /// By default, `true`.
         public var shouldCacheImmediately = true
         
+        public init(maxPixelSize: Float,
+                    createThumbnailFromImageIfAbsent: Bool = true,
+                    createThumbnailFromImageAlways: Bool = true,
+                    createThumbnailWithTransform: Bool = true,
+                    shouldCacheImmediately: Bool = true) {
+            self.maxPixelSize = maxPixelSize
+            self.createThumbnailFromImageIfAbsent = createThumbnailFromImageIfAbsent
+            self.createThumbnailFromImageAlways = createThumbnailFromImageAlways
+            self.createThumbnailWithTransform = createThumbnailWithTransform
+            self.shouldCacheImmediately = shouldCacheImmediately
+        }
+        
         var identifier: String {
             return "com.github/kean/nuke/thumbnail?mxs=\(maxPixelSize),options=\(createThumbnailFromImageIfAbsent)\(createThumbnailFromImageAlways)\(createThumbnailWithTransform)\(shouldCacheImmediately)"
         }
