@@ -42,7 +42,6 @@ public final class ImagePipeline {
     private let tasksLoadImage: TaskPool<ImageLoadKey, ImageResponse, Error>
     private let tasksFetchDecodedImage: TaskPool<DecodedImageLoadKey, ImageResponse, Error>
     private let tasksFetchOriginalImageData: TaskPool<DataLoadKey, (Data, URLResponse?), Error>
-    private let tasksFetchWithPublisher: TaskPool<DataLoadKey, (Data, URLResponse?), Error>
     private let tasksProcessImage: TaskPool<ImageProcessingKey, ImageResponse, Swift.Error>
 
     // The queue on which the entire subsystem is synchronized.
@@ -78,7 +77,6 @@ public final class ImagePipeline {
         self.tasksLoadImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchDecodedImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalImageData = TaskPool(isCoalescingEnabled)
-        self.tasksFetchWithPublisher = TaskPool(isCoalescingEnabled)
         self.tasksProcessImage = TaskPool(isCoalescingEnabled)
 
         self._nextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
