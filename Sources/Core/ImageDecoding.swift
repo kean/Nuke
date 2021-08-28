@@ -96,6 +96,7 @@ extension ImageDecoders {
         private var isDecodingGIFProgressively = false
         private var isPreviewForGIFGenerated = false
         private var scale: CGFloat?
+        private var thumbnail: ImageRequest.ThumbnailOptions?
 
         public init() { }
 
@@ -106,6 +107,7 @@ extension ImageDecoders {
         public init?(data: Data, context: ImageDecodingContext) {
             let scale = context.request.ref.userInfo?[.scaleKey]
             self.scale = (scale as? NSNumber).map { CGFloat($0.floatValue) }
+            self.thumbnail = context.request.thubmnail
             guard let container = _decode(data) else {
                 return nil
             }
@@ -116,6 +118,7 @@ extension ImageDecoders {
             let imageType = ImageType(data)
 
             self.scale = context.request.ref.userInfo?[.scaleKey] as? CGFloat
+            self.thumbnail = context.request.thubmnail
 
             // Determined whether the image supports progressive decoding or not
             // (only proressive JPEG is allowed for now, but you can add support
@@ -138,7 +141,13 @@ extension ImageDecoders {
         }
 
         private func _decode(_ data: Data) -> ImageContainer? {
-            guard let image = ImageDecoders.Default._decode(data, scale: scale) else {
+            func makeImage() -> PlatformImage? {
+                if let thumbnail = self.thumbnail {
+                    return makeThumbnail(data: data, options: thumbnail)
+                }
+                return ImageDecoders.Default._decode(data, scale: scale)
+            }
+            guard let image = autoreleasepool(invoking: makeImage) else {
                 return nil
             }
             // Keep original data around in case of GIF

@@ -396,18 +396,42 @@ class ImagePipelineTests: XCTestCase {
     }
 
     #endif
+    
+    // MARK: - Thubmnail
+    
+    func testThatThumbnailIsGenerated() {
+        // GIVEN
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
+
+        // WHEN
+        expect(pipeline).toLoadImage(with: request) { result in
+            // THEN
+            guard let image = result.value?.image else {
+                return XCTFail()
+            }
+            XCTAssertEqual(image.sizeInPixels, CGSize(width: 400, height: 300))
+        }
+        wait()
+    }
 
     // MARK: - CacheKey
 
     func testCacheKeyForRequest() {
         let request = Test.request
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), Test.url.absoluteString)
+        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com")
     }
 
     func testCacheKeyForRequestWithProcessors() {
         var request = Test.request
         request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), Test.url.absoluteString + "1")
+        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com1")
+    }
+    
+    func testCacheKeyForRequestWithThumbnail() {
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
+        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com-com.github.kean/thumbnail?size=400")
     }
 
     // MARK: - Invalidate

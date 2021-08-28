@@ -24,7 +24,7 @@ extension ImageRequest {
     func makeImageLoadKey() -> ImageLoadKey {
         ImageLoadKey(self)
     }
-
+    
     /// A key for deduplicating operations for fetching the original image.
     func makeDataLoadKey() -> DataLoadKey {
         DataLoadKey(self)

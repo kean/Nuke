@@ -62,7 +62,7 @@ extension ImagePipeline {
         #endif
 
         // MARK: - Options
-
+        
         /// A queue on which all callbacks, like `progress` and `completion`
         /// callbacks are called. `.main` by default.
         public var callbackQueue = DispatchQueue.main
@@ -209,7 +209,7 @@ extension ImagePipeline {
         private var isCustomImageCacheProvided = false
 
         var debugIsSyncImageEncoding = false
-
+        
         // MARK: - Initializer
 
         /// Instantiates a default pipeline configuration.
