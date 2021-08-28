@@ -111,6 +111,8 @@ public struct ImageRequest: CustomStringConvertible {
         /// instead of a full image. The thumbnail creation is generally significantly
         /// more efficient, especially in terms of memory usage, than image resizing
         /// (`ImageProcessors.Resize`).
+        ///
+        /// - note: You must be using the default image decoder to make it work.
         public static let thumbnailKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/thumbmnailKey"
     }
 
@@ -291,6 +293,10 @@ public struct ImageRequest: CustomStringConvertible {
         ///
         /// By default, `true`.
         public var shouldCacheImmediately = true
+        
+        var identifier: String {
+            return "com.github.kean/nuke/thumbnail?mxs=\(maxPixelSize),options=\(createThumbnailFromImageIfAbsent)\(createThumbnailFromImageAlways)\(createThumbnailWithTransform)\(shouldCacheImmediately)"
+        }
     }
 
     // MARK: Internal

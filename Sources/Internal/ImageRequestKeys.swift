@@ -15,7 +15,7 @@ extension ImageRequest {
 
     /// A key for processed image data in disk cache.
     func makeDataCacheKey() -> String {
-        "\(preferredImageId)\(ImageProcessors.Composition(processors).identifier)"
+        "\(preferredImageId)\(thubmnail?.identifier ?? "")\(ImageProcessors.Composition(processors).identifier)"
     }
 
     // MARK: - Load Keys
@@ -34,20 +34,23 @@ extension ImageRequest {
 // Uniquely identifies a cache processed image.
 struct CacheKey: Hashable {
     private let imageId: String?
+    private let thumbnail: ImageRequest.ThumbnailOptions?
     private let processors: [ImageProcessing]?
 
     init(_ request: ImageRequest) {
         self.imageId = request.preferredImageId
+        self.thumbnail = request.thubmnail
         self.processors = request.ref.processors
     }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(imageId)
+        hasher.combine(thumbnail)
         hasher.combine(processors?.count ?? 0)
     }
 
     static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
-        lhs.imageId == rhs.imageId && (lhs.processors ?? []) == (rhs.processors ?? [])
+        lhs.imageId == rhs.imageId && (lhs.thumbnail == rhs.thumbnail) && (lhs.processors ?? []) == (rhs.processors ?? [])
     }
 }
 
@@ -55,11 +58,13 @@ struct CacheKey: Hashable {
 struct ImageLoadKey: Hashable {
     let cacheKey: CacheKey
     let options: ImageRequest.Options
+    let thumbnail: ImageRequest.ThumbnailOptions?
     let loadKey: DataLoadKey
 
     init(_ request: ImageRequest) {
         self.cacheKey = CacheKey(request)
         self.options = request.options
+        self.thumbnail = request.thubmnail
         self.loadKey = DataLoadKey(request)
     }
 }

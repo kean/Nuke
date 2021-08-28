@@ -431,7 +431,7 @@ class ImagePipelineTests: XCTestCase {
     func testCacheKeyForRequestWithThumbnail() {
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com-com.github.kean/thumbnail?size=400")
+        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.comcom.github.kean/nuke/thumbnail?mxs=400.0,options=truefalsetruetrue")
     }
 
     // MARK: - Invalidate
