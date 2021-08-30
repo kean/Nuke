@@ -1,5 +1,11 @@
 # Nuke 10
 
+## Nuke 10.4.1
+
+*Aug 30, 2021*
+
+- Fix build on watchOS (needs investigation why xcodebuild returns 0 for failed watchOS builds) - [#505](https://github.com/kean/Nuke/pull/505), thanks fo [David Harris](https://github.com/thedavidharris)
+
 ## Nuke 10.4.0
 
 *Aug 28, 2021*
