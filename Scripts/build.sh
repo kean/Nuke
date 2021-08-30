@@ -17,7 +17,7 @@ xcodebuild -version
 
 for dest in "${destinations[@]}"; do
 	echo "Building for destination: $dest"
-	xcodebuild build -scheme $scheme -destination "$dest" | xcpretty;
+	xcodebuild build -scheme $scheme -destination "$dest";
     if [ $? -ne 0 ]; then
         exit $?
     fi
