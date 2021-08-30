@@ -37,14 +37,14 @@ jobs:
       - name: Run Tests
         run: Scripts/test.sh -d "OS=14.3,name=Apple TV 4K"
   watchos-latest:
-    name: Build (watchOS 7.1, Xcode 12.4)
+    name: Build (watchOS 7.2, Xcode 12.4)
     runs-on: macOS-latest
     env: 
       DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Build
-        run: Scripts/build.sh -d "OS=7.1,name=Apple Watch Series 6 - 40mm"
+        run: Scripts/build.sh -d "OS=7.2,name=Apple Watch Series 6 - 44mm"
   ios-xcode-12_0_1:
     name: Unit Tests (iOS 14.0, Xcode 12.0.1)
     runs-on: macOS-latest
