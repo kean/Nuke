@@ -81,15 +81,6 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=14.4,name=iPhone 12 Pro"
-  demo-project:
-    name: Build Demo Project
-    runs-on: macOS-latest
-    env: 
-      DEVELOPER_DIR: /Applications/Xcode_12.4.app/Contents/Developer
-    steps:
-      - uses: actions/checkout@v2
-      - name: Build
-        run: Scripts/validate_demo.sh
   swift-build:
     name: Swift Build (SPM)
     runs-on: macOS-latest
