@@ -17,12 +17,12 @@ extension ImageContainer {
     }
 }
 
-// This allows LazyImage to play video from memory.
+// This class keeps strong pointer to DataAssetResourceLoader
 final class AVDataAsset: AVURLAsset {
-    private let _loader: DataAssetResourceLoader
+    private let resourceLoaderDelegate: DataAssetResourceLoader
 
     init(data: Data) {
-        self._loader = DataAssetResourceLoader(
+        self.resourceLoaderDelegate = DataAssetResourceLoader(
             data: data,
             contentType: AVFileType.mp4.rawValue
         )
@@ -31,7 +31,7 @@ final class AVDataAsset: AVURLAsset {
         let url = URL(string: "in-memory-data://\(UUID().uuidString)") ?? URL(fileURLWithPath: "/dev/null")
         super.init(url: url, options: nil)
 
-        resourceLoader.setDelegate(_loader, queue: .global())
+        resourceLoader.setDelegate(resourceLoaderDelegate, queue: .global())
     }
 }
 
