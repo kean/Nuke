@@ -8,16 +8,12 @@
 import Foundation
 import AVKit
 
-extension ImageType {
-    public static let mp4: ImageType = "public.mp4"
-}
-
 extension ImageDecoders {
     public final class Video: ImageDecoding, ImageDecoderRegistering {
         private var didProducePreview = false
 
         static func isVideo(_ data: Data) -> Bool {
-            match(data, offset: 4, [0x66, 0x74, 0x79, 0x70])
+            ImageType(data) == .mp4
         }
 
         public var isAsynchronous: Bool {
@@ -60,17 +56,6 @@ private func makePreview(for data: Data) -> PlatformImage? {
     #else
     return PlatformImage(cgImage: cgImage)
     #endif
-}
-
-// TODO: extened support for other image formats
-// ftypisom - ISO Base Media file (MPEG-4) v1
-// There are a bunch of other ways to create MP4
-// https://www.garykessler.net/library/file_sigs.html
-private func match(_ data: Data, offset: Int = 0, _ numbers: [UInt8]) -> Bool {
-    guard data.count >= numbers.count + offset else { return false }
-    return !zip(numbers.indices, numbers).contains { (index, number) in
-        data[index + offset] != number
-    }
 }
 
 #endif
