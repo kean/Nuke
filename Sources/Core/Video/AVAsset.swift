@@ -7,16 +7,6 @@ import Foundation
 
 #if !os(watchOS)
 
-extension ImageContainer {
-    /// A fetched video from data.
-    public var asset: AVAsset? {
-        guard type == .mp4, let data = data else {
-            return nil
-        }
-        return AVDataAsset(data: data)
-    }
-}
-
 // This class keeps strong pointer to DataAssetResourceLoader
 final class AVDataAsset: AVURLAsset {
     private let resourceLoaderDelegate: DataAssetResourceLoader
