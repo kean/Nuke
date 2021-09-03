@@ -46,15 +46,6 @@ extension ImageDecoders {
             didProducePreview = true
             return ImageContainer(image: preview, type: .mp4, isPreview: true, data: data)
         }
-
-        private static var isRegistered: Bool = false
-
-        public static func register() {
-            guard !isRegistered else { return }
-            isRegistered = true
-
-            ImageDecoderRegistry.shared.register(ImageDecoders.Video.self)
-        }
     }
 }
 
