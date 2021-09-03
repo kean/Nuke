@@ -17,7 +17,7 @@ extension ImageDecoders {
         }
 
         public var isAsynchronous: Bool {
-            false
+            true
         }
 
         public init?(data: Data, context: ImageDecodingContext) {
