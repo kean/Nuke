@@ -51,11 +51,7 @@ private func makePreview(for data: Data) -> PlatformImage? {
     guard let cgImage = try? generator.copyCGImage(at: CMTime(value: 0, timescale: 1), actualTime: nil) else {
         return nil
     }
-    #if os(macOS)
-    return PlatformImage(cgImage: cgImage, size: .zero)
-    #else
     return PlatformImage(cgImage: cgImage)
-    #endif
 }
 
 #endif
