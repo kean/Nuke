@@ -58,7 +58,7 @@ configuration.dataCachePolicy = .storeAll
 
 Or use a new [`.automatic`](https://kean-org.github.io/docs/nuke/reference/10.0.0/ImagePipeline_Configuration_DataCachePolicy/#imagepipeline.configuration.datacachepolicy.automatic) policy if it best fits your needs: for requests with processors, encode and store processed images; for requests with no processors, store original image data. 
 
-> Learn more about the policies and other caching changes in ["Caching: Cache Policy."](https://kean.blog/nuke/guides/caching#cache-policy)
+> Learn more about the policies and other caching changes in ["Caching: Cacheke Policy."](https://kean.blog/nuke/guides/caching#cache-policy)
 
 ## Disk Cache Configuration
 
@@ -195,11 +195,8 @@ And new in Nuke 10, you can now customize the cache keys using the new [`ImagePi
 ```swift
 // New (Nuke 10)
 final class YourImagePipelineDelegate: ImagePipelineDelegate {
-    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> ImagePipeline.CacheKey<String> {
-        guard let someValue = request.userInfo["someKey"] as? String else {
-            return .default
-        }
-        return .custom(key: someValue)
+    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
+        request.userInfo["someKey"] as? String // If `nil`, use default key
     }
 }
 ```
