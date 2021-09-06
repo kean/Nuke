@@ -9,8 +9,6 @@ import UIKit
 #endif
 
 #if os(watchOS)
-import ImageIO
-import CoreGraphics
 import WatchKit
 #endif
 

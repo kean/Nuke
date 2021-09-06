@@ -40,7 +40,7 @@ extension ImageProcessors {
         /// Does nothing with content mode .aspectFill. `false` by default.
         /// - parameter upscale: `false` by default.
         public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
-            self.size = Size(cgSize: CGSize(size: size, unit: unit))
+            self.size = Size(size: size, unit: unit)
             self.contentMode = contentMode
             self.crop = crop
             self.upscale = upscale
@@ -82,6 +82,15 @@ extension ImageProcessors {
 // Adds Hashable without making changes to public CGSize API
 private struct Size: Hashable {
     let cgSize: CGSize
+    
+    /// Creates the size in pixels by scaling to the input size to the screen scale
+    /// if needed.
+    init(size: CGSize, unit: ImageProcessingOptions.Unit) {
+        switch unit {
+        case .pixels: self.cgSize = size // The size is already in pixels
+        case .points: self.cgSize = size.scaled(by: Screen.scale)
+        }
+    }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(cgSize.width)

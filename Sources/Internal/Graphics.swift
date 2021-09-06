@@ -273,15 +273,6 @@ extension CGImage {
 }
 
 extension CGSize {
-    /// Creates the size in pixels by scaling to the input size to the screen scale
-    /// if needed.
-    init(size: CGSize, unit: ImageProcessingOptions.Unit) {
-        switch unit {
-        case .pixels: self = size // The size is already in pixels
-        case .points: self = size.scaled(by: Screen.scale)
-        }
-    }
-
     func scaled(by scale: CGFloat) -> CGSize {
         CGSize(width: width * scale, height: height * scale)
     }
