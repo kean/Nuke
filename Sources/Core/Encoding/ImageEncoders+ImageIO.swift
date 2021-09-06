@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import CoreGraphics
+import ImageIO
 
 extension ImageEncoders {
     /// An Image I/O based encoder.

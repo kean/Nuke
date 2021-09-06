@@ -132,6 +132,17 @@
 		0CA4ECAD26E683E300BAC8E5 /* ImageEncoders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECAC26E683E300BAC8E5 /* ImageEncoders.swift */; };
 		0CA4ECAF26E683FD00BAC8E5 /* ImageEncoders+Default.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECAE26E683FD00BAC8E5 /* ImageEncoders+Default.swift */; };
 		0CA4ECB126E6840900BAC8E5 /* ImageEncoders+ImageIO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECB026E6840900BAC8E5 /* ImageEncoders+ImageIO.swift */; };
+		0CA4ECB426E6844B00BAC8E5 /* ImageProcessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECB326E6844B00BAC8E5 /* ImageProcessors.swift */; };
+		0CA4ECB626E6846800BAC8E5 /* ImageProcessors+Resize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECB526E6846800BAC8E5 /* ImageProcessors+Resize.swift */; };
+		0CA4ECBA26E6850B00BAC8E5 /* Drawing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECB926E6850B00BAC8E5 /* Drawing.swift */; };
+		0CA4ECBC26E6856300BAC8E5 /* ImageDecompression.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECBB26E6856300BAC8E5 /* ImageDecompression.swift */; };
+		0CA4ECBE26E685A900BAC8E5 /* ImageProcessors+Circle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECBD26E685A900BAC8E5 /* ImageProcessors+Circle.swift */; };
+		0CA4ECC026E685C900BAC8E5 /* ImageProcessors+Anonymous.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECBF26E685C900BAC8E5 /* ImageProcessors+Anonymous.swift */; };
+		0CA4ECC226E685E100BAC8E5 /* ImageProcessors+Composition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECC126E685E100BAC8E5 /* ImageProcessors+Composition.swift */; };
+		0CA4ECC426E685F500BAC8E5 /* ImageProcessors+GaussianBlur.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECC326E685F500BAC8E5 /* ImageProcessors+GaussianBlur.swift */; };
+		0CA4ECC626E6862A00BAC8E5 /* ImageProcessors+CoreImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECC526E6862A00BAC8E5 /* ImageProcessors+CoreImage.swift */; };
+		0CA4ECC826E6864D00BAC8E5 /* ImageProcessors+RoundedCorners.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECC726E6864D00BAC8E5 /* ImageProcessors+RoundedCorners.swift */; };
+		0CA4ECCA26E6868300BAC8E5 /* ImageProcessingOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECC926E6868300BAC8E5 /* ImageProcessingOptions.swift */; };
 		0CA5D954263CCEA500E08E17 /* ImagePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */; };
 		0CAAB0101E45D6DA00924450 /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
 		0CAAB0131E45D6DA00924450 /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
@@ -316,6 +327,17 @@
 		0CA4ECAC26E683E300BAC8E5 /* ImageEncoders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEncoders.swift; sourceTree = "<group>"; };
 		0CA4ECAE26E683FD00BAC8E5 /* ImageEncoders+Default.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageEncoders+Default.swift"; sourceTree = "<group>"; };
 		0CA4ECB026E6840900BAC8E5 /* ImageEncoders+ImageIO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageEncoders+ImageIO.swift"; sourceTree = "<group>"; };
+		0CA4ECB326E6844B00BAC8E5 /* ImageProcessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessors.swift; sourceTree = "<group>"; };
+		0CA4ECB526E6846800BAC8E5 /* ImageProcessors+Resize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageProcessors+Resize.swift"; sourceTree = "<group>"; };
+		0CA4ECB926E6850B00BAC8E5 /* Drawing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Drawing.swift; sourceTree = "<group>"; };
+		0CA4ECBB26E6856300BAC8E5 /* ImageDecompression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDecompression.swift; sourceTree = "<group>"; };
+		0CA4ECBD26E685A900BAC8E5 /* ImageProcessors+Circle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageProcessors+Circle.swift"; sourceTree = "<group>"; };
+		0CA4ECBF26E685C900BAC8E5 /* ImageProcessors+Anonymous.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageProcessors+Anonymous.swift"; sourceTree = "<group>"; };
+		0CA4ECC126E685E100BAC8E5 /* ImageProcessors+Composition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageProcessors+Composition.swift"; sourceTree = "<group>"; };
+		0CA4ECC326E685F500BAC8E5 /* ImageProcessors+GaussianBlur.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageProcessors+GaussianBlur.swift"; sourceTree = "<group>"; };
+		0CA4ECC526E6862A00BAC8E5 /* ImageProcessors+CoreImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageProcessors+CoreImage.swift"; sourceTree = "<group>"; };
+		0CA4ECC726E6864D00BAC8E5 /* ImageProcessors+RoundedCorners.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageProcessors+RoundedCorners.swift"; sourceTree = "<group>"; };
+		0CA4ECC926E6868300BAC8E5 /* ImageProcessingOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessingOptions.swift; sourceTree = "<group>"; };
 		0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePublisher.swift; sourceTree = "<group>"; };
 		0CA82BDC237AE09F00338375 /* install_swiftlint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = install_swiftlint.sh; path = Scripts/install_swiftlint.sh; sourceTree = "<group>"; };
 		0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NukeExtensions.swift; sourceTree = "<group>"; };
@@ -674,6 +696,25 @@
 			path = Encoding;
 			sourceTree = "<group>";
 		};
+		0CA4ECB226E6843800BAC8E5 /* Processing */ = {
+			isa = PBXGroup;
+			children = (
+				0C0FD5D81CA47FE1002A78FB /* ImageProcessing.swift */,
+				0CA4ECB326E6844B00BAC8E5 /* ImageProcessors.swift */,
+				0CA4ECB526E6846800BAC8E5 /* ImageProcessors+Resize.swift */,
+				0CA4ECBD26E685A900BAC8E5 /* ImageProcessors+Circle.swift */,
+				0CA4ECC726E6864D00BAC8E5 /* ImageProcessors+RoundedCorners.swift */,
+				0CA4ECC526E6862A00BAC8E5 /* ImageProcessors+CoreImage.swift */,
+				0CA4ECC326E685F500BAC8E5 /* ImageProcessors+GaussianBlur.swift */,
+				0CA4ECC126E685E100BAC8E5 /* ImageProcessors+Composition.swift */,
+				0CA4ECBF26E685C900BAC8E5 /* ImageProcessors+Anonymous.swift */,
+				0CA4ECC926E6868300BAC8E5 /* ImageProcessingOptions.swift */,
+				0CA4ECB926E6850B00BAC8E5 /* Drawing.swift */,
+				0CA4ECBB26E6856300BAC8E5 /* ImageDecompression.swift */,
+			);
+			path = Processing;
+			sourceTree = "<group>";
+		};
 		0CB402D325B6568800F5A241 /* Tasks */ = {
 			isa = PBXGroup;
 			children = (
@@ -795,10 +836,10 @@
 				0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */,
 				0C78A2A6263F4E680051E0FF /* ImagePipelineCache.swift */,
 				0CF4DE7C1D412A9E00170289 /* ImagePrefetcher.swift */,
-				0C0FD5D81CA47FE1002A78FB /* ImageProcessing.swift */,
 				0C0FD5D71CA47FE1002A78FB /* ImageCache.swift */,
 				0CB26801208F2565004C83F4 /* DataCache.swift */,
 				0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */,
+				0CA4ECB226E6843800BAC8E5 /* Processing */,
 				0CA4EC9726E67CCB00BAC8E5 /* Decoding */,
 				0CA4ECAB26E683D200BAC8E5 /* Encoding */,
 			);
@@ -1225,32 +1266,43 @@
 				0CA4ECAF26E683FD00BAC8E5 /* ImageEncoders+Default.swift in Sources */,
 				0CC36A2525B8BC4900811018 /* Operation.swift in Sources */,
 				0C78A2A7263F4E680051E0FF /* ImagePipelineCache.swift in Sources */,
+				0CA4ECCA26E6868300BAC8E5 /* ImageProcessingOptions.swift in Sources */,
 				0C53C8B1263C968200E62D03 /* ImagePipelineDelegate.swift in Sources */,
 				0C9165E626431942006B1D4F /* OperationTask.swift in Sources */,
+				0CA4ECBC26E6856300BAC8E5 /* ImageDecompression.swift in Sources */,
+				0CA4ECC026E685C900BAC8E5 /* ImageProcessors+Anonymous.swift in Sources */,
+				0CA4ECC826E6864D00BAC8E5 /* ImageProcessors+RoundedCorners.swift in Sources */,
 				0CB402DB25B656D200F5A241 /* TaskFetchDecodedImage.swift in Sources */,
 				0C472F842654AD88007FC0F0 /* ImageRequestKeys.swift in Sources */,
 				0CE6202126542F7200AAB8C3 /* Combine.swift in Sources */,
+				0CA4ECB626E6846800BAC8E5 /* ImageProcessors+Resize.swift in Sources */,
 				0CC36A3325B8BC7900811018 /* ResumableData.swift in Sources */,
 				0CE6202326543B6A00AAB8C3 /* TaskFetchWithPublisher.swift in Sources */,
 				0C0FD61C1CA47FE1002A78FB /* ImageViewExtensions.swift in Sources */,
+				0CA4ECC426E685F500BAC8E5 /* ImageProcessors+GaussianBlur.swift in Sources */,
 				0CA4EC9B26E67D3000BAC8E5 /* ImageDecoders+Empty.swift in Sources */,
 				0CB26802208F2565004C83F4 /* DataCache.swift in Sources */,
 				0CA4EC9F26E67D6200BAC8E5 /* ImageDecoderRegistry.swift in Sources */,
+				0CA4ECBA26E6850B00BAC8E5 /* Drawing.swift in Sources */,
+				0CA4ECB426E6844B00BAC8E5 /* ImageProcessors.swift in Sources */,
 				0C2A368B26437BF100F1D000 /* TaskLoadData.swift in Sources */,
 				0C0FD6041CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0C18BEBC2650C7F20002C55B /* FetchImage.swift in Sources */,
 				0CA4EC9926E67CEC00BAC8E5 /* ImageDecoders+Default.swift in Sources */,
+				0CA4ECC226E685E100BAC8E5 /* ImageProcessors+Composition.swift in Sources */,
 				0CA4ECA126E67D8400BAC8E5 /* ImageType.swift in Sources */,
 				0CF1754C22913F9800A8946E /* ImagePipelineConfiguration.swift in Sources */,
 				0C86AB6A228B3B5100A81BA1 /* ImageTask.swift in Sources */,
 				0C7150091FC9724C00B880AC /* Extensions.swift in Sources */,
 				0CC36A1225B8BC0800811018 /* Allocations.swift in Sources */,
 				0C42D4C722A286260094CB5A /* Deprecated.swift in Sources */,
+				0CA4ECBE26E685A900BAC8E5 /* ImageProcessors+Circle.swift in Sources */,
 				0CE2D9BA2084FDDD00934B28 /* ImageDecoding.swift in Sources */,
 				0CA4EC9D26E67D4500BAC8E5 /* ImageDecoders+Video.swift in Sources */,
 				0CC36A1925B8BC2500811018 /* RateLimiter.swift in Sources */,
 				0CB402D525B6569700F5A241 /* TaskFetchOriginalImageData.swift in Sources */,
 				0CA4ECAD26E683E300BAC8E5 /* ImageEncoders.swift in Sources */,
+				0CA4ECC626E6862A00BAC8E5 /* ImageProcessors+CoreImage.swift in Sources */,
 				0CA4EC9626E67C7000BAC8E5 /* AVDataAsset.swift in Sources */,
 				0C2CD6EB25B67FB30017018F /* ImagePipelineTask.swift in Sources */,
 				0CF4DE7D1D412A9E00170289 /* ImagePrefetcher.swift in Sources */,
