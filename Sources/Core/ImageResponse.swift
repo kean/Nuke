@@ -106,7 +106,7 @@ public struct ImageContainer {
         self.userInfo = userInfo
 
         #if !os(watchOS)
-        if type == .mp4 {
+        if type?.isVideo == true {
             self.asset = data.flatMap(AVDataAsset.init(data:))
         }
         #endif

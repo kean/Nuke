@@ -66,7 +66,7 @@ final class ImageDecoderRegistryTests: XCTestCase {
         let container = try XCTUnwrap(decoder?.decode(data))
         
         // Then
-        XCTAssertEqual(container.type, .mp4)
+        XCTAssertEqual(container.type, .m4v)
         XCTAssertFalse(container.isPreview)
         XCTAssertNotNil(container.data)
         XCTAssertNotNil(container.asset)

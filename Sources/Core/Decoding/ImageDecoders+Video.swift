@@ -9,26 +9,24 @@ import AVKit
 
 extension ImageDecoders {
     public final class Video: ImageDecoding, ImageDecoderRegistering {
+        private let type: ImageType
         private var didProducePreview = false
-
-        static func isVideo(_ data: Data) -> Bool {
-            ImageType(data) == .mp4
-        }
 
         public var isAsynchronous: Bool {
             true
         }
 
         public init?(data: Data, context: ImageDecodingContext) {
-            guard Video.isVideo(data) else { return nil }
+            guard let type = ImageType(data), type.isVideo else { return nil }
+            self.type = type
         }
 
-        public init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
-            guard Video.isVideo(data) else { return nil }
+        public convenience init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
+            self.init(data: data, context: context)
         }
 
         public func decode(_ data: Data) -> ImageContainer? {
-            ImageContainer(image: PlatformImage(), type: .mp4, data: data)
+            ImageContainer(image: PlatformImage(), type: type, data: data)
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
@@ -39,7 +37,7 @@ extension ImageDecoders {
                 return nil
             }
             didProducePreview = true
-            return ImageContainer(image: preview, type: .mp4, isPreview: true, data: data)
+            return ImageContainer(image: preview, type: type, isPreview: true, data: data)
         }
     }
 }

@@ -29,6 +29,15 @@ public struct ImageType: ExpressibleByStringLiteral, Hashable {
     public static let webp: ImageType = "public.webp"
 
     public static let mp4: ImageType = "public.mp4"
+    
+    /// The M4V file format is a video container format developed by Apple and
+    /// is very similar to the MP4 format. The primary difference is that M4V
+    /// files may optionally be protected by DRM copy protection.
+    public static let m4v: ImageType = "public.m4v"
+    
+    public var isVideo: Bool {
+        self == .mp4 || self == .m4v
+    }
 }
 
 public extension ImageType {
@@ -64,12 +73,12 @@ public extension ImageType {
         // WebP magic numbers https://en.wikipedia.org/wiki/List_of_file_signatures
         if _match([0x52, 0x49, 0x46, 0x46, nil, nil, nil, nil, 0x57, 0x45, 0x42, 0x50]) { return .webp }
 
-        // TODO: extened support for other image formats
-        // ftypisom - ISO Base Media file (MPEG-4) v1
-        // There are a bunch of other ways to create MP4
-        // https://www.garykessler.net/library/file_sigs.html
-        if _match([0x66, 0x74, 0x79, 0x70], offset: 4) { return .mp4 }
-
+        // TODO: Extend support to other video formats supported by the system
+        // https://en.wikipedia.org/wiki/List_of_file_signatures
+        if _match([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D], offset: 4) { return .mp4 }
+        
+        if _match([0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32], offset: 4) { return .m4v }
+        
         // Either not enough data, or we just don't support this format.
         return nil
     }
