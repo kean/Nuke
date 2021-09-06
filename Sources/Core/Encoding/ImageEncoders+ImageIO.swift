@@ -13,24 +13,24 @@ extension ImageEncoders {
     /// write most image file formats. This framework offers high efficiency,
     /// color management, and access to image metadata.
     public struct ImageIO: ImageEncoding {
-        public let type: ImageType
+        public let type: AssetType
         public let compressionRatio: Float
 
         /// - parameter format: The output format. Make sure that the format is
         /// supported on the current hardware.s
         /// - parameter compressionRatio: 0.8 by default.
-        public init(type: ImageType, compressionRatio: Float = 0.8) {
+        public init(type: AssetType, compressionRatio: Float = 0.8) {
             self.type = type
             self.compressionRatio = compressionRatio
         }
 
         private static let lock = NSLock()
-        private static var availability = [ImageType: Bool]()
+        private static var availability = [AssetType: Bool]()
 
         /// Retuns `true` if the encoding is available for the given format on
         /// the current hardware. Some of the most recent formats might not be
         /// available so its best to check before using them.
-        public static func isSupported(type: ImageType) -> Bool {
+        public static func isSupported(type: AssetType) -> Bool {
             lock.lock()
             defer { lock.unlock() }
             if let isAvailable = availability[type] {

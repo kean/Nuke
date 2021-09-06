@@ -53,7 +53,7 @@ extension ImageDecoders {
         }
 
         public init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
-            let imageType = ImageType(data)
+            let imageType = AssetType(data)
 
             self.scale = context.request.scale
             self.thumbnail = context.request.thubmnail
@@ -89,7 +89,7 @@ extension ImageDecoders {
                 return nil
             }
             // Keep original data around in case of GIF
-            let type = ImageType(data)
+            let type = AssetType(data)
             if ImagePipeline.Configuration._isAnimatedImageDataEnabled, type == .gif {
                 image._animatedImageData = data
             }

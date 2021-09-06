@@ -9,7 +9,7 @@ extension ImageDecoders {
     /// data to the image container.
     public struct Empty: ImageDecoding {
         public let isProgressive: Bool
-        private let imageType: ImageType?
+        private let assetType: AssetType?
 
         public var isAsynchronous: Bool {
             false
@@ -22,17 +22,17 @@ extension ImageDecoders {
         ///   `nil` by defalt.
         ///   - isProgressive: If `false`, returns nil for every progressive
         ///   scan. `false` by default.
-        public init(imageType: ImageType? = nil, isProgressive: Bool = false) {
-            self.imageType = imageType
+        public init(assetType: AssetType? = nil, isProgressive: Bool = false) {
+            self.assetType = assetType
             self.isProgressive = isProgressive
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-            isProgressive ? ImageContainer(image: PlatformImage(), type: imageType, data: data, userInfo: [:]) : nil
+            isProgressive ? ImageContainer(image: PlatformImage(), type: assetType, data: data, userInfo: [:]) : nil
         }
 
         public func decode(_ data: Data) -> ImageContainer? {
-            ImageContainer(image: PlatformImage(), type: imageType, data: data, userInfo: [:])
+            ImageContainer(image: PlatformImage(), type: assetType, data: data, userInfo: [:])
         }
     }
 }

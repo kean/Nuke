@@ -9,7 +9,7 @@ import AVKit
 
 extension ImageDecoders {
     public final class Video: ImageDecoding, ImageDecoderRegistering {
-        private let type: ImageType
+        private let type: AssetType
         private var didProducePreview = false
 
         public var isAsynchronous: Bool {
@@ -17,7 +17,7 @@ extension ImageDecoders {
         }
 
         public init?(data: Data, context: ImageDecodingContext) {
-            guard let type = ImageType(data), type.isVideo else { return nil }
+            guard let type = AssetType(data), type.isVideo else { return nil }
             self.type = type
         }
 
