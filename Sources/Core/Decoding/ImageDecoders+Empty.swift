@@ -2,15 +2,7 @@
 //
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
-#if !os(macOS)
-import UIKit
-#else
-import Cocoa
-#endif
-
-#if os(watchOS)
-import WatchKit
-#endif
+import Foundation
 
 extension ImageDecoders {
     /// A decoder that returns an empty placeholder image and attaches image
