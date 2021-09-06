@@ -28,7 +28,7 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable {
     /// iOS 14, watchOS 7, tvOS 14.
     public static let webp: AssetType = "public.webp"
 
-    public static let mp4: AssetType = "public.mp4"
+    public static let mp4: AssetType = "public.mpeg4"
     
     /// The M4V file format is a video container format developed by Apple and
     /// is very similar to the MP4 format. The primary difference is that M4V
@@ -74,6 +74,7 @@ public extension AssetType {
         if _match([0x52, 0x49, 0x46, 0x46, nil, nil, nil, nil, 0x57, 0x45, 0x42, 0x50]) { return .webp }
 
         // TODO: Extend support to other video formats supported by the system
+        // see https://stackoverflow.com/questions/21879981/avfoundation-avplayer-supported-formats-no-vob-or-mpg-containers
         // https://en.wikipedia.org/wiki/List_of_file_signatures
         if _match([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D], offset: 4) { return .mp4 }
         
