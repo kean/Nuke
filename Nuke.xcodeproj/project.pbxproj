@@ -776,7 +776,6 @@
 		0CC36A0B25B8BBF800811018 /* Internal */ = {
 			isa = PBXGroup;
 			children = (
-				0CB402D325B6568800F5A241 /* Tasks */,
 				0CA4ECB926E6850B00BAC8E5 /* Graphics.swift */,
 				0CC36A1125B8BC0800811018 /* Allocations.swift */,
 				0CC36A1825B8BC2500811018 /* RateLimiter.swift */,
@@ -875,6 +874,7 @@
 				0CA4EC9726E67CCB00BAC8E5 /* Decoding */,
 				0CA4ECAB26E683D200BAC8E5 /* Encoding */,
 				0CA4ECD526E6903F00BAC8E5 /* Prefetching */,
+				0CB402D325B6568800F5A241 /* Tasks */,
 			);
 			path = Core;
 			sourceTree = "<group>";

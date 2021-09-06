@@ -91,6 +91,7 @@ public struct ImageContainer {
     public var data: Data?
 
     #if !os(watchOS)
+    /// Represents in-memory video asset.
     public var asset: AVAsset?
     #endif
 
