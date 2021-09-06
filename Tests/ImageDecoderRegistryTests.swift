@@ -53,6 +53,25 @@ final class ImageDecoderRegistryTests: XCTestCase {
         // Then
         XCTAssertTrue(decoder is ImageDecoder)
     }
+    
+    #if !os(watchOS)
+    func testDefaultRegistryDecodeVideo() throws {
+        // Given
+        let registry = ImageDecoderRegistry()
+        let data = Test.data(name: "video", extension: "mp4")
+        
+        // When
+        let context = ImageDecodingContext(request: Test.request, data: data, isCompleted: true, urlResponse: nil)
+        let decoder = registry.decoder(for: context)
+        let container = try XCTUnwrap(decoder?.decode(data))
+        
+        // Then
+        XCTAssertEqual(container.type, .m4v)
+        XCTAssertFalse(container.isPreview)
+        XCTAssertNotNil(container.data)
+        XCTAssertNotNil(container.asset)
+    }
+    #endif
 }
 
 private func _mockImageDecodingContext() -> ImageDecodingContext {

@@ -15,7 +15,7 @@ final class ImageEncoderTests: XCTestCase {
         let data = try XCTUnwrap(encoder.encode(image))
 
         // Then
-        XCTAssertEqual(ImageType(data), .jpeg)
+        XCTAssertEqual(AssetType(data), .jpeg)
     }
 
     func testEncodeImagePNGOpaque() throws {
@@ -30,9 +30,9 @@ final class ImageEncoderTests: XCTestCase {
         #if os(macOS)
         // It seems that on macOS, NSImage created from png has an alpha
         // component regardless of whether the input image has it.
-        XCTAssertEqual(ImageType(data), .png)
+        XCTAssertEqual(AssetType(data), .png)
         #else
-        XCTAssertEqual(ImageType(data), .jpeg)
+        XCTAssertEqual(AssetType(data), .jpeg)
         #endif
     }
 
@@ -45,7 +45,7 @@ final class ImageEncoderTests: XCTestCase {
         let data = try XCTUnwrap(encoder.encode(image))
 
         // Then
-        XCTAssertEqual(ImageType(data), .png)
+        XCTAssertEqual(AssetType(data), .png)
     }
 
     func testPrefersHEIF() throws {
@@ -58,7 +58,7 @@ final class ImageEncoderTests: XCTestCase {
         let data = try XCTUnwrap(encoder.encode(image))
 
         // Then
-        XCTAssertNil(ImageType(data)) // TODO: update when HEIF support is added
+        XCTAssertNil(AssetType(data)) // TODO: update when HEIF support is added
     }
 
     #if os(iOS) || os(tvOS)
@@ -74,7 +74,7 @@ final class ImageEncoderTests: XCTestCase {
 
         // Then encoded as PNG because GaussianBlur produces
         // images with alpha channel
-        XCTAssertEqual(ImageType(data), .png)
+        XCTAssertEqual(AssetType(data), .png)
     }
 
     #endif

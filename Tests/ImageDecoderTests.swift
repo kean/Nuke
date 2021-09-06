@@ -171,51 +171,51 @@ class ImageTypeTests: XCTestCase {
 
     func testDetectPNG() {
         let data = Test.data(name: "fixture", extension: "png")
-        XCTAssertNil(ImageType(data[0..<1]))
-        XCTAssertNil(ImageType(data[0..<7]))
-        XCTAssertEqual(ImageType(data[0..<8]), .png)
-        XCTAssertEqual(ImageType(data), .png)
+        XCTAssertNil(AssetType(data[0..<1]))
+        XCTAssertNil(AssetType(data[0..<7]))
+        XCTAssertEqual(AssetType(data[0..<8]), .png)
+        XCTAssertEqual(AssetType(data), .png)
     }
 
     // MARK: GIF
 
     func testDetectGIF() {
         let data = Test.data(name: "cat", extension: "gif")
-        XCTAssertEqual(ImageType(data), .gif)
+        XCTAssertEqual(AssetType(data), .gif)
     }
 
     // MARK: JPEG
 
     func testDetectBaselineJPEG() {
         let data = Test.data(name: "baseline", extension: "jpeg")
-        XCTAssertNil(ImageType(data[0..<1]))
-        XCTAssertNil(ImageType(data[0..<2]))
-        XCTAssertEqual(ImageType(data[0..<3]), .jpeg)
-        XCTAssertEqual(ImageType(data), .jpeg)
+        XCTAssertNil(AssetType(data[0..<1]))
+        XCTAssertNil(AssetType(data[0..<2]))
+        XCTAssertEqual(AssetType(data[0..<3]), .jpeg)
+        XCTAssertEqual(AssetType(data), .jpeg)
     }
 
     func testDetectProgressiveJPEG() {
         let data = Test.data(name: "progressive", extension: "jpeg")
         // Not enough data
-        XCTAssertNil(ImageType(Data()))
-        XCTAssertNil(ImageType(data[0..<2]))
+        XCTAssertNil(AssetType(Data()))
+        XCTAssertNil(AssetType(data[0..<2]))
 
         // Enough to determine image format
-        XCTAssertEqual(ImageType(data[0..<3]), .jpeg)
-        XCTAssertEqual(ImageType(data[0..<33]), .jpeg)
+        XCTAssertEqual(AssetType(data[0..<3]), .jpeg)
+        XCTAssertEqual(AssetType(data[0..<33]), .jpeg)
 
         // Full image
-        XCTAssertEqual(ImageType(data), .jpeg)
+        XCTAssertEqual(AssetType(data), .jpeg)
     }
 
     // MARK: WebP
 
     func testDetectBaselineWebP() {
         let data = Test.data(name: "baseline", extension: "webp")
-        XCTAssertNil(ImageType(data[0..<1]))
-        XCTAssertNil(ImageType(data[0..<2]))
-        XCTAssertEqual(ImageType(data[0..<12]), .webp)
-        XCTAssertEqual(ImageType(data), .webp)
+        XCTAssertNil(AssetType(data[0..<1]))
+        XCTAssertNil(AssetType(data[0..<2]))
+        XCTAssertEqual(AssetType(data[0..<12]), .webp)
+        XCTAssertEqual(AssetType(data), .webp)
     }
 }
 
@@ -247,4 +247,24 @@ class ImagePropertiesTests: XCTestCase {
         // Full image
         XCTAssertEqual(ImageProperties.JPEG(data[0...359])?.isProgressive, true)
     }
+}
+
+class ImageDecodersVideoTests: XCTestCase {
+    #if !os(watchOS)
+    func testDefaultRegistryDecodeVideo() throws {
+        // Given
+        let data = Test.data(name: "video", extension: "mp4")
+        let context = ImageDecodingContext(request: Test.request, data: data, isCompleted: true, urlResponse: nil)
+        let decoder = ImageDecoders.Video(data: data, context: context)
+
+        // When
+        let container = try XCTUnwrap(decoder?.decode(data))
+        
+        // Then
+        XCTAssertEqual(container.type, .m4v)
+        XCTAssertFalse(container.isPreview)
+        XCTAssertNotNil(container.data)
+        XCTAssertNotNil(container.asset)
+    }
+    #endif
 }
