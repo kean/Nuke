@@ -2,6 +2,10 @@
 //
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
+#if !os(watchOS)
+import AVKit
+#endif
+
 import Foundation
 
 #if !os(macOS)
@@ -86,6 +90,10 @@ public struct ImageContainer {
     /// in the memory cache.
     public var data: Data?
 
+    #if !os(watchOS)
+    public var asset: AVAsset?
+    #endif
+
     /// An metadata provided by the user.
     public var userInfo: [UserInfoKey: Any]
 
@@ -96,6 +104,12 @@ public struct ImageContainer {
         self.isPreview = isPreview
         self.data = data
         self.userInfo = userInfo
+
+        #if !os(watchOS)
+        if type == .mp4 {
+            self.asset = data.flatMap(AVDataAsset.init(data:))
+        }
+        #endif
     }
 
     /// Modifies the wrapped image and keeps all of the rest of the metadata.

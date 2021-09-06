@@ -321,6 +321,7 @@ public final class ImageDecoderRegistry {
 
     public init() {
         self.register(ImageDecoders.Default.self)
+        self.register(ImageDecoders.Video.self)
     }
 
     /// Returns a decoder which matches the given context.
@@ -399,6 +400,8 @@ public struct ImageType: ExpressibleByStringLiteral, Hashable {
     /// Native decoding support only available on the following platforms: macOS 11,
     /// iOS 14, watchOS 7, tvOS 14.
     public static let webp: ImageType = "public.webp"
+
+    public static let mp4: ImageType = "public.mp4"
 }
 
 public extension ImageType {
@@ -411,13 +414,14 @@ public extension ImageType {
     }
 
     private static func make(_ data: Data) -> ImageType? {
-        func _match(_ numbers: [UInt8?]) -> Bool {
+        func _match(_ numbers: [UInt8?], offset: Int = 0) -> Bool {
             guard data.count >= numbers.count else {
                 return false
             }
             return zip(numbers.indices, numbers).allSatisfy { index, number in
                 guard let number = number else { return true }
-                return data[index] == number
+                guard (index + offset) < data.count else { return false }
+                return data[index + offset] == number
             }
         }
 
@@ -432,6 +436,12 @@ public extension ImageType {
 
         // WebP magic numbers https://en.wikipedia.org/wiki/List_of_file_signatures
         if _match([0x52, 0x49, 0x46, 0x46, nil, nil, nil, nil, 0x57, 0x45, 0x42, 0x50]) { return .webp }
+
+        // TODO: extened support for other image formats
+        // ftypisom - ISO Base Media file (MPEG-4) v1
+        // There are a bunch of other ways to create MP4
+        // https://www.garykessler.net/library/file_sigs.html
+        if _match([0x66, 0x74, 0x79, 0x70], offset: 4) { return .mp4 }
 
         // Either not enough data, or we just don't support this format.
         return nil
