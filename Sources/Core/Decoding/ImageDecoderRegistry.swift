@@ -43,7 +43,9 @@ public final class ImageDecoderRegistry {
 
     public init() {
         self.register(ImageDecoders.Default.self)
+        #if !os(watchOS)
         self.register(ImageDecoders.Video.self)
+        #endif
     }
 
     /// Returns a decoder which matches the given context.
