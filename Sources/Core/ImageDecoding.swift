@@ -320,8 +320,8 @@ public final class ImageDecoderRegistry {
     private var matches = [Match]()
 
     public init() {
-        self.register(ImageDecoders.Default.self)
         self.register(ImageDecoders.Video.self)
+        self.register(ImageDecoders.Default.self)
     }
 
     /// Returns a decoder which matches the given context.
