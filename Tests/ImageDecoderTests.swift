@@ -248,3 +248,23 @@ class ImagePropertiesTests: XCTestCase {
         XCTAssertEqual(ImageProperties.JPEG(data[0...359])?.isProgressive, true)
     }
 }
+
+class ImageDecodersVideoTests: XCTestCase {
+    #if !os(watchOS)
+    func testDefaultRegistryDecodeVideo() throws {
+        // Given
+        let data = Test.data(name: "video", extension: "mp4")
+        let context = ImageDecodingContext(request: Test.request, data: data, isCompleted: true, urlResponse: nil)
+        let decoder = ImageDecoders.Video(data: data, context: context)
+
+        // When
+        let container = try XCTUnwrap(decoder?.decode(data))
+        
+        // Then
+        XCTAssertEqual(container.type, .mp4)
+        XCTAssertFalse(container.isPreview)
+        XCTAssertNotNil(container.data)
+        XCTAssertNotNil(container.asset)
+    }
+    #endif
+}

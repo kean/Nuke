@@ -644,13 +644,6 @@
 			path = Snapshots;
 			sourceTree = "<group>";
 		};
-		0CA4EC9226E67C7000BAC8E5 /* Video */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Video;
-			sourceTree = "<group>";
-		};
 		0CA4EC9726E67CCB00BAC8E5 /* Decoding */ = {
 			isa = PBXGroup;
 			children = (
@@ -777,7 +770,6 @@
 		0CE6201F265365C000AAB8C3 /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				0CA4EC9726E67CCB00BAC8E5 /* Decoding */,
 				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
 				0C063F93266524190018F2C2 /* ImageResponse.swift */,
 				0C86AB69228B3B5100A81BA1 /* ImageTask.swift */,
@@ -791,7 +783,7 @@
 				0C0FD5D71CA47FE1002A78FB /* ImageCache.swift */,
 				0CB26801208F2565004C83F4 /* DataCache.swift */,
 				0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */,
-				0CA4EC9226E67C7000BAC8E5 /* Video */,
+				0CA4EC9726E67CCB00BAC8E5 /* Decoding */,
 			);
 			path = Core;
 			sourceTree = "<group>";
