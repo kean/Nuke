@@ -122,8 +122,13 @@
 		0C95FD542571B278008D4FC2 /* baseline.webp in Resources */ = {isa = PBXBuildFile; fileRef = 0C95FD532571B278008D4FC2 /* baseline.webp */; };
 		0C973E141D9FDB9F00C00AD9 /* Nuke.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0C9B6E7620B9F3E2001924B8 /* ImagePipelineCoalescingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9B6E7520B9F3E2001924B8 /* ImagePipelineCoalescingTests.swift */; };
-		0CA4EC9526E67C7000BAC8E5 /* VideoDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4EC9326E67C7000BAC8E5 /* VideoDecoding.swift */; };
 		0CA4EC9626E67C7000BAC8E5 /* AVDataAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4EC9426E67C7000BAC8E5 /* AVDataAsset.swift */; };
+		0CA4EC9926E67CEC00BAC8E5 /* ImageDecoders+Default.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4EC9826E67CEC00BAC8E5 /* ImageDecoders+Default.swift */; };
+		0CA4EC9B26E67D3000BAC8E5 /* ImageDecoders+Empty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4EC9A26E67D3000BAC8E5 /* ImageDecoders+Empty.swift */; };
+		0CA4EC9D26E67D4500BAC8E5 /* ImageDecoders+Video.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4EC9C26E67D4500BAC8E5 /* ImageDecoders+Video.swift */; };
+		0CA4EC9F26E67D6200BAC8E5 /* ImageDecoderRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4EC9E26E67D6200BAC8E5 /* ImageDecoderRegistry.swift */; };
+		0CA4ECA126E67D8400BAC8E5 /* ImageType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECA026E67D8400BAC8E5 /* ImageType.swift */; };
+		0CA4ECA426E67ED500BAC8E5 /* video.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 0CA4ECA226E67E3D00BAC8E5 /* video.mp4 */; };
 		0CA5D954263CCEA500E08E17 /* ImagePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */; };
 		0CAAB0101E45D6DA00924450 /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
 		0CAAB0131E45D6DA00924450 /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
@@ -298,8 +303,13 @@
 		0C94466D1D47EC0E006DB314 /* ImageViewExtensionsTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewExtensionsTests.swift; sourceTree = "<group>"; };
 		0C95FD532571B278008D4FC2 /* baseline.webp */ = {isa = PBXFileReference; lastKnownFileType = file; path = baseline.webp; sourceTree = "<group>"; };
 		0C9B6E7520B9F3E2001924B8 /* ImagePipelineCoalescingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineCoalescingTests.swift; sourceTree = "<group>"; };
-		0CA4EC9326E67C7000BAC8E5 /* VideoDecoding.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VideoDecoding.swift; sourceTree = "<group>"; };
 		0CA4EC9426E67C7000BAC8E5 /* AVDataAsset.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AVDataAsset.swift; sourceTree = "<group>"; };
+		0CA4EC9826E67CEC00BAC8E5 /* ImageDecoders+Default.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageDecoders+Default.swift"; sourceTree = "<group>"; };
+		0CA4EC9A26E67D3000BAC8E5 /* ImageDecoders+Empty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageDecoders+Empty.swift"; sourceTree = "<group>"; };
+		0CA4EC9C26E67D4500BAC8E5 /* ImageDecoders+Video.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageDecoders+Video.swift"; sourceTree = "<group>"; };
+		0CA4EC9E26E67D6200BAC8E5 /* ImageDecoderRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDecoderRegistry.swift; sourceTree = "<group>"; };
+		0CA4ECA026E67D8400BAC8E5 /* ImageType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageType.swift; sourceTree = "<group>"; };
+		0CA4ECA226E67E3D00BAC8E5 /* video.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = video.mp4; sourceTree = "<group>"; };
 		0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePublisher.swift; sourceTree = "<group>"; };
 		0CA82BDC237AE09F00338375 /* install_swiftlint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = install_swiftlint.sh; path = Scripts/install_swiftlint.sh; sourceTree = "<group>"; };
 		0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NukeExtensions.swift; sourceTree = "<group>"; };
@@ -439,6 +449,7 @@
 				0C6B5BDA257010B400D763F2 /* image-p3.jpg */,
 				0C64F73C243836B5001983C6 /* img_751.heic */,
 				0C8DC722209B842600084AA6 /* cat.gif */,
+				0CA4ECA226E67E3D00BAC8E5 /* video.mp4 */,
 				0C91B0F92438E8AC007F9100 /* Snapshots */,
 			);
 			path = Resources;
@@ -636,9 +647,21 @@
 		0CA4EC9226E67C7000BAC8E5 /* Video */ = {
 			isa = PBXGroup;
 			children = (
-				0CA4EC9326E67C7000BAC8E5 /* VideoDecoding.swift */,
 			);
 			path = Video;
+			sourceTree = "<group>";
+		};
+		0CA4EC9726E67CCB00BAC8E5 /* Decoding */ = {
+			isa = PBXGroup;
+			children = (
+				0CE2D9B92084FDDD00934B28 /* ImageDecoding.swift */,
+				0CA4EC9826E67CEC00BAC8E5 /* ImageDecoders+Default.swift */,
+				0CA4EC9C26E67D4500BAC8E5 /* ImageDecoders+Video.swift */,
+				0CA4EC9A26E67D3000BAC8E5 /* ImageDecoders+Empty.swift */,
+				0CA4EC9E26E67D6200BAC8E5 /* ImageDecoderRegistry.swift */,
+				0CA4ECA026E67D8400BAC8E5 /* ImageType.swift */,
+			);
+			path = Decoding;
 			sourceTree = "<group>";
 		};
 		0CB402D325B6568800F5A241 /* Tasks */ = {
@@ -754,6 +777,7 @@
 		0CE6201F265365C000AAB8C3 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				0CA4EC9726E67CCB00BAC8E5 /* Decoding */,
 				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
 				0C063F93266524190018F2C2 /* ImageResponse.swift */,
 				0C86AB69228B3B5100A81BA1 /* ImageTask.swift */,
@@ -763,7 +787,6 @@
 				0C78A2A6263F4E680051E0FF /* ImagePipelineCache.swift */,
 				0CF4DE7C1D412A9E00170289 /* ImagePrefetcher.swift */,
 				0C0FD5D81CA47FE1002A78FB /* ImageProcessing.swift */,
-				0CE2D9B92084FDDD00934B28 /* ImageDecoding.swift */,
 				0C179C7A2283597F008AB488 /* ImageEncoding.swift */,
 				0C0FD5D71CA47FE1002A78FB /* ImageCache.swift */,
 				0CB26801208F2565004C83F4 /* DataCache.swift */,
@@ -996,6 +1019,7 @@
 				0C95FD542571B278008D4FC2 /* baseline.webp in Resources */,
 				0CF5456B25B39A0E00B45F1E /* left-orientation.jpeg in Resources */,
 				0C7CE28B243933550018C8C3 /* s-rounded-corners.png in Resources */,
+				0CA4ECA426E67ED500BAC8E5 /* video.mp4 in Resources */,
 				0C70D9712089016800A49DAC /* progressive.jpeg in Resources */,
 				0C7CE28D2439342C0018C8C3 /* s-rounded-corners-border.png in Resources */,
 			);
@@ -1195,20 +1219,24 @@
 				0CB402DB25B656D200F5A241 /* TaskFetchDecodedImage.swift in Sources */,
 				0C472F842654AD88007FC0F0 /* ImageRequestKeys.swift in Sources */,
 				0CE6202126542F7200AAB8C3 /* Combine.swift in Sources */,
-				0CA4EC9526E67C7000BAC8E5 /* VideoDecoding.swift in Sources */,
 				0CC36A3325B8BC7900811018 /* ResumableData.swift in Sources */,
 				0CE6202326543B6A00AAB8C3 /* TaskFetchWithPublisher.swift in Sources */,
 				0C0FD61C1CA47FE1002A78FB /* ImageViewExtensions.swift in Sources */,
+				0CA4EC9B26E67D3000BAC8E5 /* ImageDecoders+Empty.swift in Sources */,
 				0CB26802208F2565004C83F4 /* DataCache.swift in Sources */,
+				0CA4EC9F26E67D6200BAC8E5 /* ImageDecoderRegistry.swift in Sources */,
 				0C2A368B26437BF100F1D000 /* TaskLoadData.swift in Sources */,
 				0C0FD6041CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0C18BEBC2650C7F20002C55B /* FetchImage.swift in Sources */,
+				0CA4EC9926E67CEC00BAC8E5 /* ImageDecoders+Default.swift in Sources */,
+				0CA4ECA126E67D8400BAC8E5 /* ImageType.swift in Sources */,
 				0CF1754C22913F9800A8946E /* ImagePipelineConfiguration.swift in Sources */,
 				0C86AB6A228B3B5100A81BA1 /* ImageTask.swift in Sources */,
 				0C7150091FC9724C00B880AC /* Extensions.swift in Sources */,
 				0CC36A1225B8BC0800811018 /* Allocations.swift in Sources */,
 				0C42D4C722A286260094CB5A /* Deprecated.swift in Sources */,
 				0CE2D9BA2084FDDD00934B28 /* ImageDecoding.swift in Sources */,
+				0CA4EC9D26E67D4500BAC8E5 /* ImageDecoders+Video.swift in Sources */,
 				0CC36A1925B8BC2500811018 /* RateLimiter.swift in Sources */,
 				0CB402D525B6569700F5A241 /* TaskFetchOriginalImageData.swift in Sources */,
 				0CA4EC9626E67C7000BAC8E5 /* AVDataAsset.swift in Sources */,
