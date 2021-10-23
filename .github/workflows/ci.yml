@@ -46,23 +46,14 @@ jobs:
       - name: Build
         run: Scripts/build.sh -d "OS=7.2,name=Apple Watch Series 6 - 44mm"
   ios-xcode-12_5_1:
-    name: Unit Tests (iOS 14.2, Xcode 12.5.1)
+    name: Unit Tests (iOS 14.5, Xcode 12.5.1)
     runs-on: macOS-11
     env:
       DEVELOPER_DIR: /Applications/Xcode_12.5.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -d "OS=14.4,name=iPhone 12 Pro"
-  ios-xcode-12_0_1:
-    name: Unit Tests (iOS 14.0, Xcode 12.0.1)
-    runs-on: macOS-11
-    env: 
-      DEVELOPER_DIR: /Applications/Xcode_12.0.1.app/Contents/Developer
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run Tests
-        run: Scripts/test.sh -d "OS=14.0,name=iPhone 11"
+        run: Scripts/test.sh -d "OS=14.5,name=iPhone 12 Pro"
   ios-thread-safety:
     name: Thread Safety Tests (TSan Enabled)
     runs-on: macOS-11
@@ -71,7 +62,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=14.4,name=iPhone 12 Pro"
+        run: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=15.0,name=iPhone 13 Pro"
 #  ios-memory-management-tests:
 #    name: Memory Management Tests
 #    runs-on: macOS-11
@@ -89,7 +80,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=14.4,name=iPhone 12 Pro"
+        run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=15.0,name=iPhone 13 Pro"
   swift-build:
     name: Swift Build (SPM)
     runs-on: macOS-11
