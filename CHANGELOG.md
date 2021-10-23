@@ -1,5 +1,11 @@
 # Nuke 10
 
+## Nuke 10.5.1
+
+*Oct 23, 2021*
+
+- Fix build for Catalyst
+
 ## Nuke 10.5.0
 
 *Oct 23, 2021*
