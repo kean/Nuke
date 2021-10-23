@@ -76,6 +76,8 @@ extension ImageProcessing where Self == ImageProcessors.RoundedCorners {
     }
 }
 
+#if os(iOS) || os(tvOS) || os(macOS)
+
 extension ImageProcessing where Self == ImageProcessors.CoreImageFilter {
     /// Applies Core Image filter (`CIFilter`) to the image.
     ///
@@ -99,6 +101,8 @@ extension ImageProcessing where Self == ImageProcessors.GaussianBlur {
         ImageProcessors.GaussianBlur(radius: radius)
     }
 }
+
+#endif
 
 extension ImageProcessing where Self == ImageProcessors.Anonymous {
     /// Processed an image using a specified closure.
