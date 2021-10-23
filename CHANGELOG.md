@@ -17,6 +17,7 @@ ImageRequest(url: url, processors: [.resize(width: 320)])
 ```
 
 - `ImageRequest` now takes a *non-optional* array of image processors in its initializers. This change is required to mitigate an Xcode issue where it won't suggest code-completion for [SE-0299](https://github.com/apple/swift-evolution/blob/main/proposals/0299-extend-generic-static-member-lookup.md) - [#513](https://github.com/kean/Nuke/pull/513)
+- Add `ImageDecoders.Video` (registered by default)
 
 ## Nuke 10.4.1
 
