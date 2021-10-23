@@ -146,6 +146,12 @@ extension PlatformImage {
 
     /// Decompresses the input image by drawing in the the `CGContext`.
     func decompressed() -> PlatformImage? {
+        #if os(iOS) || os(tvOS)
+        if #available(iOS 15.0, tvOS 15.0, *) {
+            return preparingForDisplay()
+        }
+        #endif
+
         guard let cgImage = cgImage else {
             return nil
         }
