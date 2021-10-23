@@ -65,7 +65,7 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// Processor to be applied to the image. Empty by default.
     public var processors: [ImageProcessing] {
-        get { ref.processors ?? [] }
+        get { ref.processors }
         set { mutate { $0.processors = newValue } }
     }
 
@@ -133,7 +133,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// Initializes a request with the given URL.
     ///
     /// - parameter url: The request URL.
-    /// - parameter processors: Processors to be apply to the image. `nil` by default.
+    /// - parameter processors: Processors to be apply to the image. `[]` by default.
     /// - parameter priority: The priority of the request, `.normal` by default.
     /// - parameter options: Image loading options. `[]` by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
@@ -146,7 +146,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// )
     /// ```
     public init(url: URL?,
-                processors: [ImageProcessing]? = nil,
+                processors: [ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
@@ -162,7 +162,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// Initializes a request with the given request.
     ///
     /// - parameter urlRequest: The URLRequest describing the image request.
-    /// - parameter processors: Processors to be apply to the image. `nil` by default.
+    /// - parameter processors: Processors to be apply to the image. `[]` by default.
     /// - parameter priority: The priority of the request, `.normal` by default.
     /// - parameter options: Image loading options. `[]` by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
@@ -175,7 +175,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// )
     /// ```
     public init(urlRequest: URLRequest,
-                processors: [ImageProcessing]? = nil,
+                processors: [ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
@@ -192,7 +192,7 @@ public struct ImageRequest: CustomStringConvertible {
     ///
     /// - parameter id: Uniquely identifies the image data.
     /// - parameter data: A data publisher to be used for fetching image data.
-    /// - parameter processors: Processors to be apply to the image. `nil` by default.
+    /// - parameter processors: Processors to be apply to the image. `[]` by default.
     /// - parameter priority: The priority of the request, `.normal` by default.
     /// - parameter options: Image loading options. `[]` by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
@@ -212,7 +212,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// You can also disable it dynamically using `ImagePipelineDelegate`.
     @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
     public init<P>(id: String, data: P,
-                   processors: [ImageProcessing]? = nil,
+                   processors: [ImageProcessing] = [],
                    priority: Priority = .normal,
                    options: Options = [],
                    userInfo: [UserInfoKey: Any]? = nil) where P: Publisher, P.Output == Data {
@@ -343,7 +343,7 @@ public struct ImageRequest: CustomStringConvertible {
         let resource: Resource
         fileprivate(set) var priority: Priority
         fileprivate(set) var options: Options
-        fileprivate(set) var processors: [ImageProcessing]?
+        fileprivate(set) var processors: [ImageProcessing]
         fileprivate(set) var userInfo: [UserInfoKey: Any]?
         // After trimming down the request size, it is no longer
         // as beneficial using CoW for ImageRequest, but there
@@ -356,7 +356,7 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, processors: [ImageProcessing]?, priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
+        init(resource: Resource, processors: [ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
             self.processors = processors
             self.priority = priority

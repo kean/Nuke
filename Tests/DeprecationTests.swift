@@ -698,7 +698,7 @@ class DeprecationsImagePipelineDefaultProcessorsTests: XCTestCase {
 
     func testDefaultProcessorsAppliedWhenNilPassed() {
         // GIVEN
-        let request = ImageRequest(url: Test.url, processors: nil)
+        let request = ImageRequest(url: Test.url, processors: [])
 
         // WHEN
         expect(pipeline).toLoadImage(with: request) { result in
