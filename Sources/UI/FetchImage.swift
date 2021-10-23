@@ -68,9 +68,9 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     public var pipeline: ImagePipeline = .shared
 
-    /// Image processors to be applied unless the processors are provided in the request.
-    /// `nil` by default.
-    public var processors: [ImageProcessing]?
+    /// Image processors to be applied unless the processors are provided in the
+    /// request. `[]` by default.
+    public var processors: [ImageProcessing] = []
 
     private var imageTask: ImageTask?
 
@@ -97,7 +97,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             return
         }
 
-        if let processors = self.processors, !processors.isEmpty && request.processors.isEmpty {
+        if !processors.isEmpty && request.processors.isEmpty {
             request.processors = processors
         }
         if let priority = self.priority {

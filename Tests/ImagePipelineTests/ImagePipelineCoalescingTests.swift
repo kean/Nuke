@@ -425,6 +425,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
     func testDisablingDeduplication() {
         // Given
         let pipeline = ImagePipeline {
+            $0.imageCache = nil
             $0.dataLoader = dataLoader
             $0.isTaskCoalescingEnabled = false
         }
@@ -438,6 +439,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         expect(pipeline).toLoadImage(with: request1)
         expect(pipeline).toLoadImage(with: request2)
 
+        pipeline.queue.sync {}
         dataLoader.queue.isSuspended = false
 
         wait { _ in

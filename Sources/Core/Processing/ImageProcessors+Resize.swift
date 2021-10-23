@@ -46,16 +46,20 @@ extension ImageProcessors {
             self.upscale = upscale
         }
 
-        /// Resizes the image to the given width preserving aspect ratio.
+        /// Scales an image to the given width preserving aspect ratio.
         ///
+        /// - parameter width: The target width.
         /// - parameter unit: Unit of the target size, `.points` by default.
+        /// - parameter upscale: `false` by default.
         public init(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) {
             self.init(size: CGSize(width: width, height: 9999), unit: unit, contentMode: .aspectFit, crop: false, upscale: upscale)
         }
 
-        /// Resizes the image to the given height preserving aspect ratio.
+        /// Scales an image to the given height preserving aspect ratio.
         ///
+        /// - parameter height: The target height.
         /// - parameter unit: Unit of the target size, `.points` by default.
+        /// - parameter upscale: `false` by default.
         public init(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) {
             self.init(size: CGSize(width: 9999, height: height), unit: unit, contentMode: .aspectFit, crop: false, upscale: upscale)
         }

@@ -13,6 +13,8 @@ extension ImageProcessors {
         private let radius: Int
 
         /// Initializes the receiver with a blur radius.
+        ///
+        /// - parameter radius: `8` by default.
         public init(radius: Int = 8) {
             self.radius = radius
         }
