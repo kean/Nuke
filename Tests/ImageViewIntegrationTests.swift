@@ -119,7 +119,7 @@ class ImageViewIntegrationTests: XCTestCase {
         var recordedData = [Data?]()
     }
 
-    func testThatAttachedDataIsPassed() throws {
+    func _testThatAttachedDataIsPassed() throws {
         // GIVEN
         pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in
