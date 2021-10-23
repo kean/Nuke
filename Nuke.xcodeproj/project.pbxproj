@@ -174,6 +174,7 @@
 		0CCBB534217D0B980026F552 /* MockProgressiveDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCBB533217D0B980026F552 /* MockProgressiveDataLoader.swift */; };
 		0CD37C9A25BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD37C9925BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift */; };
 		0CE2D9BA2084FDDD00934B28 /* ImageDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE2D9B92084FDDD00934B28 /* ImageDecoding.swift */; };
+		0CE334DB2724563D0017BB8D /* ImageProcessorsProtocolExtensionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE334DA2724563D0017BB8D /* ImageProcessorsProtocolExtensionsTests.swift */; };
 		0CE3992D1D4697CE00A87D47 /* ImagePipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE3992C1D4697CE00A87D47 /* ImagePipelineTests.swift */; };
 		0CE5F6832156386B0046609F /* ResumableDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE5F681215638300046609F /* ResumableDataTests.swift */; };
 		0CE6202126542F7200AAB8C3 /* Combine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE6202026542F7200AAB8C3 /* Combine.swift */; };
@@ -381,6 +382,7 @@
 		0CDB92821DAF9BC600002905 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		0CDB92831DAF9BCB00002905 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 		0CE2D9B92084FDDD00934B28 /* ImageDecoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDecoding.swift; sourceTree = "<group>"; };
+		0CE334DA2724563D0017BB8D /* ImageProcessorsProtocolExtensionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessorsProtocolExtensionsTests.swift; sourceTree = "<group>"; };
 		0CE3992C1D4697CE00A87D47 /* ImagePipelineTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePipelineTests.swift; sourceTree = "<group>"; };
 		0CE5F681215638300046609F /* ResumableDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResumableDataTests.swift; sourceTree = "<group>"; };
 		0CE5F78720A22ABF00BC3283 /* Nuke 6 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 6 Migration Guide.md"; sourceTree = "<group>"; };
@@ -661,6 +663,7 @@
 				0C91B0F12438E374007F9100 /* AnonymousTests.swift */,
 				0C91B0F32438E38B007F9100 /* CompositionTests.swift */,
 				0CF58FF626DAAC3800D2650D /* ImageDownsampleTests.swift */,
+				0CE334DA2724563D0017BB8D /* ImageProcessorsProtocolExtensionsTests.swift */,
 			);
 			path = ImageProcessorsTests;
 			sourceTree = "<group>";
@@ -1224,6 +1227,7 @@
 				0C8684FF20BDD578009FF7CC /* ImagePipelineProgressiveDecodingTests.swift in Sources */,
 				0C1ECA421D526461009063A9 /* ImageCacheTests.swift in Sources */,
 				0C2A8CF720970B790013FD65 /* ImagePipelineResumableDataTests.swift in Sources */,
+				0CE334DB2724563D0017BB8D /* ImageProcessorsProtocolExtensionsTests.swift in Sources */,
 				0C7C06981BCA888800089D7F /* Helpers.swift in Sources */,
 				0C4AF1EB1FE85539002F86CB /* LinkedListTest.swift in Sources */,
 				0CB2EFD62110F52C00F7C63F /* RateLimiterTests.swift in Sources */,
