@@ -66,6 +66,7 @@
 		0C505B6C2286F3AD006D5399 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C505B6B2286F3AD006D5399 /* Task.swift */; };
 		0C53C8AF263C7B1700E62D03 /* ImagePipelineDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C53C8AE263C7B1700E62D03 /* ImagePipelineDelegateTests.swift */; };
 		0C53C8B1263C968200E62D03 /* ImagePipelineDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C53C8B0263C968200E62D03 /* ImagePipelineDelegate.swift */; };
+		0C5D5A9D2724773A0056B95B /* ImagePipelineAsyncAwaitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C5D5A9C2724773A0056B95B /* ImagePipelineAsyncAwaitTests.swift */; };
 		0C64F73B24383043001983C6 /* ImageEncoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C64F73A24383043001983C6 /* ImageEncoderTests.swift */; };
 		0C64F73D2438371A001983C6 /* img_751.heic in Resources */ = {isa = PBXBuildFile; fileRef = 0C64F73C243836B5001983C6 /* img_751.heic */; };
 		0C64F73F243838BF001983C6 /* swift.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C64F73E243838BF001983C6 /* swift.png */; };
@@ -263,6 +264,7 @@
 		0C53C8AE263C7B1700E62D03 /* ImagePipelineDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDelegateTests.swift; sourceTree = "<group>"; };
 		0C53C8B0263C968200E62D03 /* ImagePipelineDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDelegate.swift; sourceTree = "<group>"; };
 		0C54E64126616E9D00ED1049 /* Nuke 10 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 10 Migration Guide.md"; sourceTree = "<group>"; };
+		0C5D5A9C2724773A0056B95B /* ImagePipelineAsyncAwaitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineAsyncAwaitTests.swift; sourceTree = "<group>"; };
 		0C5D81871D46A385000ECCB6 /* ThreadSafetyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThreadSafetyTests.swift; sourceTree = "<group>"; };
 		0C64F73A24383043001983C6 /* ImageEncoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEncoderTests.swift; sourceTree = "<group>"; };
 		0C64F73C243836B5001983C6 /* img_751.heic */ = {isa = PBXFileReference; lastKnownFileType = file; path = img_751.heic; sourceTree = "<group>"; };
@@ -647,6 +649,7 @@
 				0CD37C9925BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift */,
 				0C53C8AE263C7B1700E62D03 /* ImagePipelineDelegateTests.swift */,
 				0CE6202426543EC700AAB8C3 /* ImagePipelinePublisherTests.swift */,
+				0C5D5A9C2724773A0056B95B /* ImagePipelineAsyncAwaitTests.swift */,
 			);
 			path = ImagePipelineTests;
 			sourceTree = "<group>";
@@ -1230,6 +1233,7 @@
 				0CE334DB2724563D0017BB8D /* ImageProcessorsProtocolExtensionsTests.swift in Sources */,
 				0C7C06981BCA888800089D7F /* Helpers.swift in Sources */,
 				0C4AF1EB1FE85539002F86CB /* LinkedListTest.swift in Sources */,
+				0C5D5A9D2724773A0056B95B /* ImagePipelineAsyncAwaitTests.swift in Sources */,
 				0CB2EFD62110F52C00F7C63F /* RateLimiterTests.swift in Sources */,
 				0C7C06971BCA888800089D7F /* MockDataLoader.swift in Sources */,
 				0CC6272125BDF7EA00466F04 /* ImageRequestConvertibleTests.swift in Sources */,
