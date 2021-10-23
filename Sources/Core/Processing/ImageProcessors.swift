@@ -4,6 +4,18 @@
 
 import Foundation
 
+#if os(iOS) || os(tvOS) || os(watchOS)
+import UIKit
+#endif
+
+#if os(watchOS)
+import WatchKit
+#endif
+
+#if os(macOS)
+import Cocoa
+#endif
+
 /// A namespace for all processors that implement `ImageProcessing` protocol.
 public enum ImageProcessors {}
 
