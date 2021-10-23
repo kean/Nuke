@@ -4,7 +4,6 @@
 
 *Oct 23, 2021*
 
-
 - Improve image decompressiong performance on iOS 15 and tvOS 15 by using [preparingForDispaly()](https://developer.apple.com/documentation/uikit/uiimage/3750834-preparingfordisplay?language=o_5) (requires Xcode 13)
 - On iOS 15, tvOS 15, image decompressiong now preserves 8 bits per pixel for grayscale images
 - Adopt extended static member lookup ([SE-0299](https://github.com/apple/swift-evolution/blob/main/proposals/0299-extend-generic-static-member-lookup.md)) (requires Xcode 13) - [#513](https://github.com/kean/Nuke/pull/513)
