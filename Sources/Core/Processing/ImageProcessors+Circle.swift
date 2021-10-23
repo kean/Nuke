@@ -11,6 +11,7 @@ extension ImageProcessors {
     public struct Circle: ImageProcessing, Hashable, CustomStringConvertible {
         private let border: ImageProcessingOptions.Border?
 
+        /// - parameter border: `nil` by default.
         public init(border: ImageProcessingOptions.Border? = nil) {
             self.border = border
         }
