@@ -147,11 +147,22 @@ public final class ImagePipeline {
     /// - parameter request: An image request.
     @available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *)
     public func loadImage(with request: ImageRequestConvertible) async throws -> ImageResponse {
-        try await withUnsafeThrowingContinuation { continuation in
-            self.loadImage(with: request, queue: nil, progress: nil) {
-                continuation.resume(with: $0)
-            }
+        final class TaskBox {
+            // TODO: Does it need thread-safety?
+            // TODO: Are we sure loadImage will call again every time you await?
+            var task: ImageTask?
         }
+        let box = TaskBox()
+        return try await withTaskCancellationHandler(handler: {
+            // TODO: How can we report cancellation from here? Add cancellation to ImageTask?
+            box.task?.cancel()
+        }, operation: {
+            try await withUnsafeThrowingContinuation { continuation in
+                box.task = self.loadImage(with: request, queue: nil, progress: nil) {
+                    continuation.resume(with: $0)
+                }
+            }
+        })
     }
 #endif
 

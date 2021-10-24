@@ -30,7 +30,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
         dataLoader.results[highQualityImageURL] = .failure(URLError(networkUnavailableReason: .constrained) as NSError)
         dataLoader.results[lowQualityImageURL] = .success((Test.data, Test.urlResponse))
-
+                
         // WHEN
         let pipeline = self.pipeline!
 
@@ -40,18 +40,23 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         let request = ImageRequest(urlRequest: urlRequest)
 
         // WHEN
-        func loadImage() async throws -> ImageResponse {
+        @Sendable func loadImage() async throws -> ImageResponse {
             do {
                 return try await pipeline.loadImage(with: request)
             } catch {
-                guard (error as? URLError)?.networkUnavailableReason == .constrained else {
+                guard let error = (error as? ImagePipeline.Error),
+                      (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
                     throw error
                 }
                 return try await pipeline.loadImage(with: lowQualityImageURL)
             }
         }
         
-        let response = try await loadImage()
+        let task = _Concurrency.Task<ImageResponse, Error> {
+            try await loadImage()
+        }
+
+        let response = try await task.value
         XCTAssertNotNil(response.image)
     }
 
@@ -81,18 +86,27 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 //        // THEN image returned synchronously
 //        XCTAssertNotNil(image)
 //    }
+
 //
-//    func testCancellation() {
-//        dataLoader.queue.isSuspended = true
-//
-//        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-//        let cancellable = pipeline.imagePublisher(with: Test.url).sink(receiveCompletion: { _ in }, receiveValue: { _ in })
-//        wait() // Wait till operation is created
-//
-//        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
-//        cancellable.cancel()
-//        wait()
-//    }
+    private var observer: AnyObject?
+    
+    func _testCancellation() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = _Concurrency.Task {
+            try await pipeline.loadImage(with: Test.url)
+        }
+        
+        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
+            task.cancel()
+        }
+
+        do {
+            let _ = try await task.value
+        } catch {
+            print(error)
+        }
+    }
 }
 
 /// We have to mock it because there is no way to construct native `URLError`
