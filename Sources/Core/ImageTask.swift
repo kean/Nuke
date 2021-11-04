@@ -48,6 +48,8 @@ public final class ImageTask: Hashable, CustomStringConvertible {
     var isCancelled: Bool { _isCancelled.pointee == 1 }
     private let _isCancelled: UnsafeMutablePointer<Int32>
 
+    var onCancel: (() -> Void)?
+    
     deinit {
         self._isCancelled.deallocate()
         #if TRACK_ALLOCATIONS

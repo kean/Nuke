@@ -90,7 +90,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 //
     private var observer: AnyObject?
     
-    func _testCancellation() async throws {
+    func testCancellation() async throws {
         dataLoader.queue.isSuspended = true
 
         let task = _Concurrency.Task {
@@ -101,11 +101,13 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
             task.cancel()
         }
 
+        var catchedError: Error?
         do {
             let _ = try await task.value
         } catch {
-            print(error)
+            catchedError = error
         }
+        XCTAssertTrue(catchedError is CancellationError)
     }
 }
 
