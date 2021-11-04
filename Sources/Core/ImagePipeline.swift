@@ -148,13 +148,17 @@ public final class ImagePipeline {
     @available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *)
     public func loadImage(with request: ImageRequestConvertible) async throws -> ImageResponse {
         final class TaskBox {
-            var task: ImageTask? // Ideally, ImageTask should be Sendable
+            var task: ImageTask?
         }
         let box = TaskBox()
         return try await withTaskCancellationHandler(handler: {
             box.task?.cancel()
         }, operation: {
             try await withUnsafeThrowingContinuation { continuation in
+                // The pipeline guarantees that the callbacks (either onCancel or
+                // completion) are called exactly once. `onCancel` is a new addition
+                // just for Async/Await. Ideally, the completion should be called on
+                // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
                 box.task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: nil, onCancel: {
                     continuation.resume(throwing: CancellationError())
                 }, completion: {
@@ -170,7 +174,7 @@ public final class ImagePipeline {
         isConfined: Bool,
         queue: DispatchQueue?,
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-        onCancel: (() -> Void)? = nil, // should've just used the completion but that ship has sailed
+        onCancel: (() -> Void)? = nil,
         completion: ((_ result: Result<ImageResponse, Error>) -> Void)?
     ) -> ImageTask {
         let request = configuration.inheritOptions(request)
