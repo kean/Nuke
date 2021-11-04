@@ -155,7 +155,7 @@ public final class ImagePipeline {
             box.task?.cancel()
         }, operation: {
             try await withUnsafeThrowingContinuation { continuation in
-                box.task = self.loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: nil, onCancel: {
+                box.task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: nil, onCancel: {
                     continuation.resume(throwing: CancellationError())
                 }, completion: {
                     continuation.resume(with: $0)

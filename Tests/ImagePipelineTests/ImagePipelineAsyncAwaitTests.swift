@@ -51,43 +51,11 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
                 return try await pipeline.loadImage(with: lowQualityImageURL)
             }
         }
-        
-        let task = _Concurrency.Task<ImageResponse, Error> {
-            try await loadImage()
-        }
 
-        let response = try await task.value
+        let response = try await loadImage()
         XCTAssertNotNil(response.image)
     }
 
-//    // MARK: Basics
-//
-//    func testSyncCacheLookup() {
-//        // GIVEN
-//        let cache = MockImageCache()
-//        cache[Test.request] = ImageContainer(image: Test.image)
-//        pipeline = pipeline.reconfigured {
-//            $0.imageCache = cache
-//        }
-//
-//        // WHEN
-//        var image: PlatformImage?
-//        cancellable = pipeline.imagePublisher(with: Test.url).sink(receiveCompletion: { result in
-//            switch result {
-//            case .finished:
-//                break // Expected result
-//            case .failure:
-//                XCTFail()
-//            }
-//        }, receiveValue: {
-//            image = $0.image
-//        })
-//
-//        // THEN image returned synchronously
-//        XCTAssertNotNil(image)
-//    }
-
-//
     private var observer: AnyObject?
     
     func testCancellation() async throws {
