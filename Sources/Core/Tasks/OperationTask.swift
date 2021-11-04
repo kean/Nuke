@@ -5,7 +5,7 @@
 import Foundation
 
 /// A one-shot task for performing a single () -> T function.
-final class OperationTask<T>: Task<T, Swift.Error> {
+final class OperationTask<T>: AsyncTask<T, Swift.Error> {
     private let pipeline: ImagePipeline
     private let queue: OperationQueue
     private let process: () -> T?

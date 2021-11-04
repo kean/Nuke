@@ -196,7 +196,8 @@ public final class FetchImage: ObservableObject, Identifiable {
     public func load(_ action: @escaping () async throws -> ImageResponse) {
         reset()
         isLoading = true
-        let task = _Concurrency.Task {
+        
+        let task = Task {
             do {
                 self.handle(result: .success(try await action()))
             } catch {

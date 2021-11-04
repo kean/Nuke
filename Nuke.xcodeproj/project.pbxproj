@@ -63,7 +63,7 @@
 		0C4F8FFF22E4B8F60070ECFD /* fixture.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C70D97B2089042400A49DAC /* fixture.png */; };
 		0C4F900022E4B8F60070ECFD /* cat.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C8DC722209B842600084AA6 /* cat.gif */; };
 		0C4F900322E4C4FB0070ECFD /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
-		0C505B6C2286F3AD006D5399 /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C505B6B2286F3AD006D5399 /* Task.swift */; };
+		0C505B6C2286F3AD006D5399 /* AsyncTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C505B6B2286F3AD006D5399 /* AsyncTask.swift */; };
 		0C53C8AF263C7B1700E62D03 /* ImagePipelineDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C53C8AE263C7B1700E62D03 /* ImagePipelineDelegateTests.swift */; };
 		0C53C8B1263C968200E62D03 /* ImagePipelineDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C53C8B0263C968200E62D03 /* ImagePipelineDelegate.swift */; };
 		0C5D5A9D2724773A0056B95B /* ImagePipelineAsyncAwaitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C5D5A9C2724773A0056B95B /* ImagePipelineAsyncAwaitTests.swift */; };
@@ -88,7 +88,7 @@
 		0C75279F1D473AEF00EC6222 /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
 		0C78A2A7263F4E680051E0FF /* ImagePipelineCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C78A2A6263F4E680051E0FF /* ImagePipelineCache.swift */; };
 		0C78A2A9263F560A0051E0FF /* ImagePipelineCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C78A2A8263F560A0051E0FF /* ImagePipelineCacheTests.swift */; };
-		0C78BD4626575000002FBC6F /* Task.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C505B6B2286F3AD006D5399 /* Task.swift */; };
+		0C78BD4626575000002FBC6F /* AsyncTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C505B6B2286F3AD006D5399 /* AsyncTask.swift */; };
 		0C7C067C1BCA882A00089D7F /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C7C06971BCA888800089D7F /* MockDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068C1BCA888800089D7F /* MockDataLoader.swift */; };
 		0C7C06981BCA888800089D7F /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068D1BCA888800089D7F /* Helpers.swift */; };
@@ -260,7 +260,7 @@
 		0C4B34312572E9AC000FDDBA /* generate_docs.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = generate_docs.sh; path = Scripts/generate_docs.sh; sourceTree = "<group>"; };
 		0C4B6A341E36630E00E86B21 /* Nuke 5 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 5 Migration Guide.md"; sourceTree = "<group>"; };
 		0C4F8FDF22E4B6ED0070ECFD /* Nuke Thread Safety Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke Thread Safety Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C505B6B2286F3AD006D5399 /* Task.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Task.swift; sourceTree = "<group>"; };
+		0C505B6B2286F3AD006D5399 /* AsyncTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncTask.swift; sourceTree = "<group>"; };
 		0C53C8AE263C7B1700E62D03 /* ImagePipelineDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDelegateTests.swift; sourceTree = "<group>"; };
 		0C53C8B0263C968200E62D03 /* ImagePipelineDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDelegate.swift; sourceTree = "<group>"; };
 		0C54E64126616E9D00ED1049 /* Nuke 10 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 10 Migration Guide.md"; sourceTree = "<group>"; };
@@ -758,7 +758,7 @@
 		0CB402D325B6568800F5A241 /* Tasks */ = {
 			isa = PBXGroup;
 			children = (
-				0C505B6B2286F3AD006D5399 /* Task.swift */,
+				0C505B6B2286F3AD006D5399 /* AsyncTask.swift */,
 				0C2CD6EA25B67FB30017018F /* ImagePipelineTask.swift */,
 				0CB4030025B6639200F5A241 /* TaskLoadImage.swift */,
 				0C2A368A26437BF100F1D000 /* TaskLoadData.swift */,
@@ -1283,7 +1283,7 @@
 				0C3261F51FEBC232009276AC /* MockDataLoader.swift in Sources */,
 				0CC627A525C100FA00466F04 /* ImageProcessingPerformanceTests.swift in Sources */,
 				0C8D7BF51D9DC07E00D12EB7 /* DataCachePeformanceTests.swift in Sources */,
-				0C78BD4626575000002FBC6F /* Task.swift in Sources */,
+				0C78BD4626575000002FBC6F /* AsyncTask.swift in Sources */,
 				0CC6279025C100BC00466F04 /* ImageViewPerformanceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1299,7 +1299,7 @@
 				0C0FD5FC1CA47FE1002A78FB /* ImageCache.swift in Sources */,
 				0C0FD5EC1CA47FE1002A78FB /* ImagePipeline.swift in Sources */,
 				0C0FD5E01CA47FE1002A78FB /* DataLoader.swift in Sources */,
-				0C505B6C2286F3AD006D5399 /* Task.swift in Sources */,
+				0C505B6C2286F3AD006D5399 /* AsyncTask.swift in Sources */,
 				0CC36A2C25B8BC6300811018 /* LinkedList.swift in Sources */,
 				0C179C7B2283597F008AB488 /* ImageEncoding.swift in Sources */,
 				0CB4030125B6639200F5A241 /* TaskLoadImage.swift in Sources */,

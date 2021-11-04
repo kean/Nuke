@@ -5,7 +5,7 @@
 import XCTest
 import Nuke
 
-// `Task.swift` is added directly to this target.
+// `AsyncTask.swift` is added directly to this target.
 class TaskPerformanceTests: XCTestCase {
     func testSubscribe() {
         measure {
