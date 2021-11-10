@@ -27,6 +27,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 1
         self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: queue)
+        self.session.sessionDescription = "Nuke URLSession"
         self.impl.validate = validate
         self.impl.observer = self
 
@@ -120,6 +121,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
+        task.taskDescription = "Load photo"
         task.resume()
         send(task, .resumed)
         return task
