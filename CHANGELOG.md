@@ -5,7 +5,7 @@
 *Dec 2, 2021*
 
 - Revert `preparingForDisplay` changes made in [#512](https://github.com/kean/Nuke/pull/512)
-- Add URLSession & URLSessionDataTask descriptions - [#517](https://github.com/kean/Nuke/pull/517), thanks to [Stavros Schizas](https://github.com/sschizas))
+- Add URLSession & URLSessionDataTask descriptions - [#517](https://github.com/kean/Nuke/pull/517), thanks to [Stavros Schizas](https://github.com/sschizas)
 
 ## Nuke 10.5.1
 
