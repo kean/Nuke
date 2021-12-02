@@ -47,7 +47,8 @@ class ThreadSafetyTests: XCTestCase {
 
         for _ in 0..<1000 {
             queue.addOperation {
-                let request = ImageRequest(url: URL(string: "\(Test.url)/\(rnd(30))")!)
+                let url = URL(fileURLWithPath: "\(rnd(30))")
+                let request = ImageRequest(url: url)
                 let shouldCancel = rnd(3) == 0
 
                 let task = pipeline.loadImage(with: request) { _ in
