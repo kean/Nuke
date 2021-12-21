@@ -7,14 +7,24 @@ import Foundation
 
 #if !os(watchOS)
 
+private extension AssetType {
+    var avFileType: AVFileType? {
+        switch self {
+        case .mp4: return .mp4
+        case .m4v: return .m4v
+        default: return nil
+        }
+    }
+}
+
 // This class keeps strong pointer to DataAssetResourceLoader
 final class AVDataAsset: AVURLAsset {
     private let resourceLoaderDelegate: DataAssetResourceLoader
 
-    init(data: Data) {
+    init(data: Data, type: AssetType?) {
         self.resourceLoaderDelegate = DataAssetResourceLoader(
             data: data,
-            contentType: AVFileType.mp4.rawValue
+            contentType: type?.avFileType?.rawValue ?? AVFileType.mp4.rawValue
         )
 
         // The URL is irrelevant
