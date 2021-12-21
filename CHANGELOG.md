@@ -1,5 +1,9 @@
 # Nuke 10
 
+## Upcoming
+
+- Fix M4V support – [#523](https://github.com/kean/Nuke/pull/523), thanks to [Son Changwoo](https://github.com/kor45cw)
+
 ## Nuke 10.5.2
 
 *Dec 2, 2021*
