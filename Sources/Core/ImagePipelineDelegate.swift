@@ -96,7 +96,7 @@ public enum ImageTaskEvent {
 }
 
 extension ImageTaskEvent {
-    init(_ event: Task<ImageResponse, ImagePipeline.Error>.Event) {
+    init(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
         switch event {
         case let .error(error):
             self = .completed(result: .failure(error))

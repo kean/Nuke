@@ -93,7 +93,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         reset()
 
         guard var request = request?.asImageRequest() else {
-            handle(result: .failure(FetchImageError.sourceEmpty), isSync: true)
+            handle(result: .failure(FetchImageError.sourceEmpty))
             return
         }
 
@@ -110,7 +110,7 @@ public final class FetchImage: ObservableObject, Identifiable {
                 imageContainer = image // Display progressive image
             } else {
                 let response = ImageResponse(container: image, cacheType: .memory)
-                handle(result: .success(response), isSync: true)
+                handle(result: .success(response))
                 return
             }
         }
@@ -133,7 +133,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             completion: { [weak self] result in
                 guard let self = self else { return }
                 withAnimation(self.animation) {
-                    self.handle(result: result.mapError { $0 }, isSync: false)
+                    self.handle(result: result.mapError { $0 })
                 }
             }
         )
@@ -146,7 +146,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         self.imageContainer = preview.container
     }
 
-    private func handle(result: Result<ImageResponse, Error>, isSync: Bool) {
+    private func handle(result: Result<ImageResponse, Error>) {
         isLoading = false
 
         if case .success(let response) = result {
@@ -191,7 +191,24 @@ public final class FetchImage: ObservableObject, Identifiable {
             self.imageContainer = response.container
         })
     }
-
+    
+#if swift(>=5.5.2)
+    @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
+    public func load(_ action: @escaping () async throws -> ImageResponse) {
+        reset()
+        isLoading = true
+        
+        let task = Task {
+            do {
+                self.handle(result: .success(try await action()))
+            } catch {
+                self.handle(result: .failure(error))
+            }
+        }
+        cancellable = AnyCancellable { task.cancel() }
+    }
+#endif
+    
     // MARK: Cancel
 
     /// Marks the request as being cancelled. Continues to display a downloaded

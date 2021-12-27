@@ -6,7 +6,7 @@ import Foundation
 
 // Each task holds a strong reference to the pipeline. This is by design. The
 // user does not need to hold a strong reference to the pipeline.
-class ImagePipelineTask<Value>: Task<Value, ImagePipeline.Error> {
+class ImagePipelineTask<Value>: AsyncTask<Value, ImagePipeline.Error> {
     let pipeline: ImagePipeline
     // A canonical request representing the unit work performed by the task.
     let request: ImageRequest

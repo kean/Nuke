@@ -7,7 +7,7 @@ import Foundation
 /// Represents a task with support for multiple observers, cancellation,
 /// progress reporting, dependencies – everything that `ImagePipeline` needs.
 ///
-/// A `Task` can have zero or more subscriptions (`TaskSubscription`) which can
+/// A `AsyncTask` can have zero or more subscriptions (`TaskSubscription`) which can
 /// be used to later unsubscribe or change the priority of the subscription.
 ///
 /// The task has built-in support for operations (`Foundation.Operation`) – it
@@ -15,7 +15,7 @@ import Foundation
 /// image pipeline are represented using Operation to take advantage of these features.
 ///
 /// - warning: Must be thread-confined!
-class Task<Value, Error>: TaskSubscriptionDelegate {
+class AsyncTask<Value, Error>: AsyncTaskSubscriptionDelegate {
 
     private struct Subscription {
         let closure: (Event) -> Void
@@ -84,11 +84,11 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
 
     #if TRACK_ALLOCATIONS
     deinit {
-        Allocations.decrement("Task")
+        Allocations.decrement("AsyncTask")
     }
 
     init() {
-        Allocations.increment("Task")
+        Allocations.increment("AsyncTask")
     }
     #endif
 
@@ -235,12 +235,12 @@ class Task<Value, Error>: TaskSubscriptionDelegate {
     }
 }
 
-// MARK: - Task (Publisher)
+// MARK: - AsyncTask (Publisher)
 
-extension Task {
+extension AsyncTask {
     /// Publishes the results of the task.
     struct Publisher {
-        fileprivate let task: Task
+        fileprivate let task: AsyncTask
 
         /// Attaches the subscriber to the task.
         /// - notes: Returns `nil` if the task is already disposed.
@@ -251,7 +251,7 @@ extension Task {
         /// Attaches the subscriber to the task. Automatically forwards progress
         /// andd error events to the given task.
         /// - notes: Returns `nil` if the task is already disposed.
-        func subscribe<NewValue>(_ task: Task<NewValue, Error>, onValue: @escaping (Value, Bool) -> Void) -> TaskSubscription? {
+        func subscribe<NewValue>(_ task: AsyncTask<NewValue, Error>, onValue: @escaping (Value, Bool) -> Void) -> TaskSubscription? {
             subscribe(subscriber: task) { [weak task] event in
                 guard let task = task else { return }
                 switch event {
@@ -290,8 +290,8 @@ enum TaskPriority: Int, Comparable {
     }
 }
 
-// MARK: - Task.Event {
-extension Task {
+// MARK: - AsyncTask.Event {
+extension AsyncTask {
     enum Event {
         case value(Value, isCompleted: Bool)
         case progress(TaskProgress)
@@ -307,17 +307,17 @@ extension Task {
     }
 }
 
-extension Task.Event: Equatable where Value: Equatable, Error: Equatable {}
+extension AsyncTask.Event: Equatable where Value: Equatable, Error: Equatable {}
 
 // MARK: - TaskSubscription
 
 /// Represents a subscription to a task. The observer must retain a strong
 /// reference to a subscription.
 struct TaskSubscription {
-    private let task: TaskSubscriptionDelegate
+    private let task: AsyncTaskSubscriptionDelegate
     private let key: TaskSubscriptionKey
 
-    fileprivate init(task: TaskSubscriptionDelegate, key: TaskSubscriptionKey) {
+    fileprivate init(task: AsyncTaskSubscriptionDelegate, key: TaskSubscriptionKey) {
         self.task = task
         self.key = key
     }
@@ -343,7 +343,7 @@ struct TaskSubscription {
     }
 }
 
-private protocol TaskSubscriptionDelegate: AnyObject {
+private protocol AsyncTaskSubscriptionDelegate: AnyObject {
     func unsubsribe(key: TaskSubscriptionKey)
     func setPriority(_ priority: TaskPriority, for observer: TaskSubscriptionKey)
 }
@@ -355,7 +355,7 @@ private typealias TaskSubscriptionKey = Int
 /// Contains the tasks which haven't completed yet.
 final class TaskPool<Key: Hashable, Value, Error> {
     private let isCoalescingEnabled: Bool
-    private var map = [Key: Task<Value, Error>]()
+    private var map = [Key: AsyncTask<Value, Error>]()
 
     init(_ isCoalescingEnabled: Bool) {
         self.isCoalescingEnabled = isCoalescingEnabled
@@ -364,7 +364,7 @@ final class TaskPool<Key: Hashable, Value, Error> {
     /// Creates a task with the given key. If there is an outstanding task with
     /// the given key in the pool, the existing task is returned. Tasks are
     /// automatically removed from the pool when they are disposed.
-    func publisherForKey(_ key: @autoclosure () -> Key, _ make: () -> Task<Value, Error>) -> Task<Value, Error>.Publisher {
+    func publisherForKey(_ key: @autoclosure () -> Key, _ make: () -> AsyncTask<Value, Error>) -> AsyncTask<Value, Error>.Publisher {
         guard isCoalescingEnabled else {
             return make().publisher
         }

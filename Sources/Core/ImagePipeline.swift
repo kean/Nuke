@@ -138,17 +138,51 @@ public final class ImagePipeline {
     ) -> ImageTask {
         loadImage(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
+    
+#if swift(>=5.5.2)
+    /// Loads an image for the given request.
+    ///
+    /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
+    ///
+    /// - parameter request: An image request.
+    @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
+    public func loadImage(with request: ImageRequestConvertible) async throws -> ImageResponse {
+        final class TaskBox {
+            var task: ImageTask?
+        }
+        let box = TaskBox()
+        return try await withTaskCancellationHandler(handler: {
+            box.task?.cancel()
+        }, operation: {
+            try await withUnsafeThrowingContinuation { continuation in
+                // The pipeline guarantees that the callbacks (either onCancel or
+                // completion) are called exactly once. `onCancel` is a new addition
+                // just for Async/Await. Ideally, the completion should be called on
+                // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
+                box.task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: nil, onCancel: {
+                    continuation.resume(throwing: CancellationError())
+                }, completion: {
+                    continuation.resume(with: $0)
+                })
+            }
+        })
+    }
+#endif
 
     func loadImage(
         with request: ImageRequest,
         isConfined: Bool,
         queue: DispatchQueue?,
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
+        onCancel: (() -> Void)? = nil,
         completion: ((_ result: Result<ImageResponse, Error>) -> Void)?
     ) -> ImageTask {
         let request = configuration.inheritOptions(request)
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
         task.pipeline = self
+        if let onCancel = onCancel {
+            task.onCancel = { [weak self] in self?.dispatchCallback(to: queue, onCancel) }
+        }
         if isConfined {
             self.startImageTask(task, callbackQueue: queue, progress: progress, completion: completion)
         } else {
@@ -329,6 +363,7 @@ public final class ImagePipeline {
         if !task.isDataTask {
             self.send(.cancelled, task)
         }
+        task.onCancel?()
         subscription.unsubscribe()
     }
 
@@ -372,31 +407,31 @@ public final class ImagePipeline {
     // and `loadData()` with the same request, only on `TaskFetchOriginalImageData`
     // is created. The work is split between tasks to minimize any duplicated work.
 
-    func makeTaskLoadImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
+    func makeTaskLoadImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
         tasksLoadImage.publisherForKey(request.makeImageLoadKey()) {
             TaskLoadImage(self, request)
         }
     }
 
-    func makeTaskLoadData(for request: ImageRequest) -> Task<(Data, URLResponse?), Error>.Publisher {
+    func makeTaskLoadData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
         tasksLoadData.publisherForKey(request.makeImageLoadKey()) {
             TaskLoadData(self, request)
         }
     }
 
-    func makeTaskProcessImage(key: ImageProcessingKey, process: @escaping () -> ImageResponse?) -> Task<ImageResponse, Swift.Error>.Publisher {
+    func makeTaskProcessImage(key: ImageProcessingKey, process: @escaping () -> ImageResponse?) -> AsyncTask<ImageResponse, Swift.Error>.Publisher {
         tasksProcessImage.publisherForKey(key) {
             OperationTask(self, configuration.imageProcessingQueue, process)
         }
     }
 
-    func makeTaskFetchDecodedImage(for request: ImageRequest) -> Task<ImageResponse, Error>.Publisher {
+    func makeTaskFetchDecodedImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
         tasksFetchDecodedImage.publisherForKey(request.makeDecodedImageLoadKey()) {
             TaskFetchDecodedImage(self, request)
         }
     }
 
-    func makeTaskFetchOriginalImageData(for request: ImageRequest) -> Task<(Data, URLResponse?), Error>.Publisher {
+    func makeTaskFetchOriginalImageData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
         tasksFetchOriginalImageData.publisherForKey(request.makeDataLoadKey()) {
             request.publisher == nil ?
                 TaskFetchOriginalImageData(self, request) :
