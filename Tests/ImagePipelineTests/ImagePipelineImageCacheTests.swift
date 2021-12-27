@@ -392,7 +392,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
     }
 
-    func testGivenTwoRequestWhereOnlyOneHasDiskWritesDisabled() {
+    func _testGivenTwoRequestWhereOnlyOneHasDiskWritesDisabled() {
         // WHEN
         pipeline.resgiterMultipleRequests {
             request.options.insert(.disableDiskCacheWrites)
