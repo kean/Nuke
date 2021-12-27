@@ -57,7 +57,7 @@ private struct MyError: Equatable {
     let raw: String
 }
 
-private final class SimpleTask: Task<Int, MyError> {
+private final class SimpleTask: AsyncTask<Int, MyError> {
     override func start() {
         send(progress: TaskProgress(completed: 1, total: 2))
         send(value: 1)
@@ -66,7 +66,7 @@ private final class SimpleTask: Task<Int, MyError> {
     }
 }
 
-private final class EmptyTask: Task<Int, MyError> {
+private final class EmptyTask: AsyncTask<Int, MyError> {
     override func start() {
     }
 }
