@@ -11,7 +11,7 @@
 
 Nuke ILS provides an efficient way to download and display images in your app. It's easy to learn and use thanks to a clear and concise API. Its architecture enables many powerful features while offering virtually unlimited possibilities for customization.
 
-Despite the number of features, the framework is lean and compiles in just under 3 seconds[¹](#footnote-1). Nuke has an automated test suite 2x the size of the codebase itself, ensuring excellent reliability. Every feature is carefully designed and optimized for [performance](https://kean.blog/post/nuke-9).
+Despite the number of features, the framework is lean and compiles in under 2 seconds[¹](#footnote-1). Nuke has an automated test suite 2x the size of the codebase itself, ensuring excellent reliability. Every feature is carefully designed and optimized for [performance](https://kean.blog/post/nuke-9).
 
 > **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG, HEIF, WebP, SVG, GIF** · **Alamofire** · **Combine** · **Reactive extensions**
 
@@ -69,4 +69,4 @@ Nuke is available under the MIT license. See the LICENSE file for more info.
 
 ----
 
-> <a name="footnote-1">¹</a> Measured on MacBook Pro 2018 (2,2 GHz 6-Core Intel Core i7, 16 GB 2400 MHz DDR4)
+> <a name="footnote-1">¹</a> Measured on MacBook Pro 14" 2021 (10-core M1 Pro)
