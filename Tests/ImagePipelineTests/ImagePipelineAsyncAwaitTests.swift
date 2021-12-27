@@ -5,8 +5,8 @@
 import XCTest
 @testable import Nuke
 
-#if swift(>=5.5)
-@available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *)
+#if swift(>=5.5.2)
+@available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
 class ImagePipelineAsyncAwaitTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!

@@ -192,7 +192,8 @@ public final class FetchImage: ObservableObject, Identifiable {
         })
     }
     
-    @available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *)
+#if swift(>=5.5.2)
+    @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
     public func load(_ action: @escaping () async throws -> ImageResponse) {
         reset()
         isLoading = true
@@ -206,7 +207,8 @@ public final class FetchImage: ObservableObject, Identifiable {
         }
         cancellable = AnyCancellable { task.cancel() }
     }
-
+#endif
+    
     // MARK: Cancel
 
     /// Marks the request as being cancelled. Continues to display a downloaded

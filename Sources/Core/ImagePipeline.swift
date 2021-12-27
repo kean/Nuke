@@ -139,13 +139,13 @@ public final class ImagePipeline {
         loadImage(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
     
-#if swift(>=5.5)
+#if swift(>=5.5.2)
     /// Loads an image for the given request.
     ///
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
     ///
     /// - parameter request: An image request.
-    @available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *)
+    @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
     public func loadImage(with request: ImageRequestConvertible) async throws -> ImageResponse {
         final class TaskBox {
             var task: ImageTask?
