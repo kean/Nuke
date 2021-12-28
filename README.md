@@ -20,6 +20,10 @@ Despite the number of features, the framework is lean and compiles in under 2 se
 
 Nuke is proudly sponsored by [Stream](https://getstream.io/?utm_source=github&utm_medium=nuke&utm_campaign=sponsorship), the leading provider in enterprise grade [Feed](https://getstream.io/activity-feeds/?utm_source=github&utm_medium=nuke&utm_campaign=sponsorship) & [Chat](https://getstream.io/chat/?utm_source=github&utm_medium=nuke&utm_campaign=sponsorship) APIs. [Try the iOS Chat Tutorial](https://getstream.io/tutorials/ios-chat/?utm_source=github&utm_medium=nuke&utm_campaign=sponsorship).
 
+[![Keygen](https://camo.githubusercontent.com/3cb2f34584248f3eb8a7ee4ead0d3d04950f4f62b9797c53316535b9b40d2036/68747470733a2f2f73696e647265736f726875732e636f6d2f6173736574732f7468616e6b732f6b657967656e2d6c6f676f2e737667)](https://keygen.sh/?ref=kean)
+
+Nuke is also sponsored by [Keygen](https://keygen.sh/?ref=kean), a dead-simple software licensing and distribution API built for developers, by developers.
+
 ## Documentation
 
 Nuke is easy to learn and use thanks to beautiful [**Nuke Docs**](https://kean.blog/nuke/guides/welcome). Make sure to also check out [**Nuke Demo**](https://github.com/kean/NukeDemo).
