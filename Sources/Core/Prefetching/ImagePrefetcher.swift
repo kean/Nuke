@@ -16,7 +16,7 @@ public final class ImagePrefetcher {
     private var tasks = [ImageLoadKey: Task]()
     private let destination: Destination
     let queue = OperationQueue() // internal for testing
-    var didComplete: (() -> Void)?
+    public var didComplete: (() -> Void)?
 
     /// Pauses the prefetching.
     ///
