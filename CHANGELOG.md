@@ -1,11 +1,10 @@
 # Nuke 10
 
-## Nuke 10.6.0
-
-*Dec 27, 2021*
+## Upcoming
 
 - Add async/await support - [#515](https://github.com/kean/Nuke/pull/515)
 - Fix M4V support – [#523](https://github.com/kean/Nuke/pull/523), thanks to [Son Changwoo](https://github.com/kor45cw)
+- Make ImagePrefetcher` `didComplete` closure public [#528](https://github.com/kean/Nuke/pull/515), thanks to [Winston Du](https://github.com/winstondu)
 
 ## Nuke 10.5.2
 
