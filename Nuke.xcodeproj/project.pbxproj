@@ -1749,7 +1749,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 10.5.2;
+				MARKETING_VERSION = 10.6.0;
 				OTHER_SWIFT_FLAGS = "-D DEBUG -D TRACK_ALLOCATIONS";
 				"OTHER_SWIFT_FLAGS[arch=*]" = "-D DEBUG -D TRACK_ALLOCATIONS";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
@@ -1772,7 +1772,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 10.5.2;
+				MARKETING_VERSION = 10.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 			};
