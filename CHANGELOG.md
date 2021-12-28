@@ -1,7 +1,8 @@
 # Nuke 10
 
-## Upcoming
+## Nuke 10.6.0
 
+- Add async/await support - [#515](https://github.com/kean/Nuke/pull/515))
 - Fix M4V support – [#523](https://github.com/kean/Nuke/pull/523), thanks to [Son Changwoo](https://github.com/kor45cw)
 
 ## Nuke 10.5.2
