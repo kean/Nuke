@@ -2,9 +2,15 @@
 
 ## Upcoming
 
-- Add async/await support – [#515](https://github.com/kean/Nuke/pull/515)
+- Add async/await support – [#532](https://github.com/kean/Nuke/pull/532)
+
+## Nuke 10.6.0
+
+*Jan 24, 2022*
+
 - Fix M4V support – [#523](https://github.com/kean/Nuke/pull/523), thanks to [Son Changwoo](https://github.com/kor45cw)
 - Make `ImagePrefetcher` `didComplete` closure public – [#528](https://github.com/kean/Nuke/pull/515), thanks to [Winston Du](https://github.com/winstondu)
+- Rename internal `didEnterBackground` selector - [#531](https://github.com/kean/Nuke/issues/531)
 
 ## Nuke 10.5.2
 
