@@ -10,41 +10,41 @@ on:
 
 jobs:
   ios-latest:
-    name: Unit Tests (iOS 15.0, Xcode 13.0)
+    name: Unit Tests (iOS 15.2, Xcode 13.2)
     runs-on: macOS-11
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_13.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_13.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -d "OS=15.0,name=iPhone 13 Pro"
+        run: Scripts/test.sh -d "OS=15.2,name=iPhone 13 Pro"
   macos-latest:
-    name: Unit Tests (macOS, Xcode 13.0)
+    name: Unit Tests (macOS, Xcode 13.2)
     runs-on: macOS-11
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_13.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_13.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: Scripts/test.sh -d "arch=x86_64"
   tvos-latest:
-    name: Unit Tests (tvOS 15.0, Xcode 13.0)
+    name: Unit Tests (tvOS 15.2, Xcode 13.2)
     runs-on: macOS-11
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_13.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_13.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -d "OS=15.0,name=Apple TV 4K"
+        run: Scripts/test.sh -d "OS=15.2,name=Apple TV 4K"
   watchos-latest:
-    name: Build (watchOS 7.2, Xcode 13.0)
+    name: Build (watchOS 7.4, Xcode 13.2)
     runs-on: macOS-11
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_13.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_13.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Build
-        run: Scripts/build.sh -d "OS=7.2,name=Apple Watch Series 6 - 44mm"
+        run: Scripts/build.sh -d "OS=7.4,name=Apple Watch Series 6 - 44mm"
   ios-xcode-12_5_1:
     name: Unit Tests (iOS 14.5, Xcode 12.5.1)
     runs-on: macOS-11
@@ -58,11 +58,11 @@ jobs:
     name: Thread Safety Tests (TSan Enabled)
     runs-on: macOS-11
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_13.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_13.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=15.0,name=iPhone 13 Pro"
+        run: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=15.2,name=iPhone 13 Pro"
 #  ios-memory-management-tests:
 #    name: Memory Management Tests
 #    runs-on: macOS-11
@@ -76,16 +76,16 @@ jobs:
     name: Performance Tests
     runs-on: macOS-11
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_13.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_13.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=15.0,name=iPhone 13 Pro"
+        run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=15.2,name=iPhone 13 Pro"
   swift-build:
     name: Swift Build (SPM)
     runs-on: macOS-11
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_13.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_13.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Build
