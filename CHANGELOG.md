@@ -4,6 +4,12 @@
 
 - Add async/await support – [#532](https://github.com/kean/Nuke/pull/532)
 
+## Nuke 10.7.1
+
+*Jan 27, 2022*
+
+- Fix intermittent SwiftUI crash in NukeUI/FetchImage 
+
 ## Nuke 10.7.0
 
 *Jan 24, 2022*
