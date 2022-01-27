@@ -203,11 +203,8 @@ public final class FetchImage: ObservableObject, Identifiable {
 
         // publisher-based
         cancellable = nil
-
-        // common
-        if isLoading { isLoading = false }
     }
-
+    
     /// Resets the `FetchImage` instance by cancelling the request and removing
     /// all of the state including the loaded image.
     public func reset() {
