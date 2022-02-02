@@ -35,8 +35,10 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable {
     /// files may optionally be protected by DRM copy protection.
     public static let m4v: AssetType = "public.m4v"
     
+    public static let mov: AssetType = "public.mov"
+    
     public var isVideo: Bool {
-        self == .mp4 || self == .m4v
+        self == .mp4 || self == .m4v || self == .mov
     }
 }
 
@@ -79,6 +81,9 @@ public extension AssetType {
         if _match([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D], offset: 4) { return .mp4 }
         
         if _match([0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32], offset: 4) { return .m4v }
+        
+        //MOV magic numbers https://www.garykessler.net/library/file_sigs.html
+        if _match([0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20], offset: 4) { return .mov }
         
         // Either not enough data, or we just don't support this format.
         return nil

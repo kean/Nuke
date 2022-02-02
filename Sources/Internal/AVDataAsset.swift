@@ -12,6 +12,7 @@ private extension AssetType {
         switch self {
         case .mp4: return .mp4
         case .m4v: return .m4v
+        case .mov: return .mov //TODO: Support .mov on line 28...?
         default: return nil
         }
     }
