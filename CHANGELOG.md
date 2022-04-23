@@ -4,6 +4,12 @@
 
 - Add async/await support – [#532](https://github.com/kean/Nuke/pull/532)
 
+## Nuke 10.7.2
+
+*Apr 23, 2022*
+
+- Remove code deprecated in Nuke 9.4.1
+
 ## Nuke 10.7.1
 
 *Jan 27, 2022*
