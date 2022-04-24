@@ -192,7 +192,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         })
     }
     
-#if swift(>=5.5.2)
+#if swift(>=5.6)
     @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
     public func load(_ action: @escaping () async throws -> ImageResponse) {
         reset()

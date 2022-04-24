@@ -163,7 +163,7 @@ public final class ImagePipeline {
         return task
     }
     
-#if swift(>=5.5.2)
+#if swift(>=5.6)
     /// Loads an image for the given request.
     ///
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
