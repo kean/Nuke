@@ -1,8 +1,21 @@
 # Nuke 10
 
-## Upcoming
+## Nuke 10.8.0
 
-- Add async/await support – [#532](https://github.com/kean/Nuke/pull/532)
+*Apr 24, 2022*
+
+- Add async/await support (requires Xcode 13.3) – [#532](https://github.com/kean/Nuke/pull/532)
+
+```swift
+extension ImagePipeline {
+    public func loadImage(with request: ImageRequestConvertible) async throws -> ImageResponse
+    public func loadData(with request: ImageRequestConvertible) async throws -> (Data, URLResponse?)
+}
+
+extension FetchImage {
+    public func load(_ action: @escaping () async throws -> ImageResponse)
+}
+```
 
 ## Nuke 10.7.2
 
