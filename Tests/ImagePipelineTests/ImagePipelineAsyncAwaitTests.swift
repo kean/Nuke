@@ -77,6 +77,18 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         }
         XCTAssertTrue(catchedError is CancellationError)
     }
+
+    func testLoadData() async throws {
+        // GIVEN
+        dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
+
+        // WHEN
+        let (data, response) = try await pipeline.loadData(with: Test.request)
+
+        // THEN
+        XCTAssertEqual(data.count, 22788)
+        XCTAssertNotNil(response?.url, Test.url.absoluteString)
+    }
 }
 
 /// We have to mock it because there is no way to construct native `URLError`

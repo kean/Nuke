@@ -171,9 +171,6 @@ public final class ImagePipeline {
     /// - parameter request: An image request.
     @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
     public func loadImage(with request: ImageRequestConvertible) async throws -> ImageResponse {
-        final class TaskBox {
-            var task: ImageTask?
-        }
         let box = TaskBox()
         return try await withTaskCancellationHandler(handler: {
             box.task?.cancel()
@@ -190,6 +187,10 @@ public final class ImagePipeline {
                 })
             }
         })
+    }
+
+    private final class TaskBox {
+        var task: ImageTask?
     }
 #endif
 
@@ -267,20 +268,51 @@ public final class ImagePipeline {
         loadData(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
 
+#if swift(>=5.6)
+    /// Loads an image for the given request.
+    ///
+    /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
+    ///
+    /// - parameter request: An image request.
+    @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
+    public func loadData(with request: ImageRequestConvertible) async throws -> (Data, URLResponse?) {
+        let box = TaskBox()
+        return try await withTaskCancellationHandler(handler: {
+            box.task?.cancel()
+        }, operation: {
+            try await withUnsafeThrowingContinuation { continuation in
+                // The pipeline guarantees that the callbacks (either onCancel or
+                // completion) are called exactly once. `onCancel` is a new addition
+                // just for Async/Await. Ideally, the completion should be called on
+                // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
+                box.task = loadData(with: request.asImageRequest(), isConfined: false, queue: nil, progress: nil, onCancel: {
+                    continuation.resume(throwing: CancellationError())
+                }, completion: {
+                    continuation.resume(with: $0)
+                })
+            }
+        })
+    }
+#endif
+
     func loadData(
         with request: ImageRequest,
         isConfined: Bool,
-        queue callbackQueue: DispatchQueue?,
+        queue: DispatchQueue?,
         progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
+        onCancel: (() -> Void)? = nil,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: true)
         task.pipeline = self
+        if let onCancel = onCancel {
+            task.onCancel = { [weak self] in self?.dispatchCallback(to: queue, onCancel) }
+        }
         if isConfined {
-            self.startDataTask(task, callbackQueue: callbackQueue, progress: progress, completion: completion)
+            self.startDataTask(task, callbackQueue: queue, progress: progress, completion: completion)
         } else {
             self.queue.async {
-                self.startDataTask(task, callbackQueue: callbackQueue, progress: progress, completion: completion)
+                self.startDataTask(task, callbackQueue: queue, progress: progress, completion: completion)
             }
         }
         return task
