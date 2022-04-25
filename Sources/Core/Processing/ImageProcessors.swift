@@ -32,7 +32,7 @@ extension ImageProcessing where Self == ImageProcessors.Resize {
     public static func resize(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessors.Resize.ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) -> ImageProcessors.Resize {
         ImageProcessors.Resize(size: size, unit: unit, contentMode: contentMode, crop: crop, upscale: upscale)
     }
-    
+
     /// Scales an image to the given width preserving aspect ratio.
     ///
     /// - parameter width: The target width.
@@ -85,7 +85,7 @@ extension ImageProcessing where Self == ImageProcessors.CoreImageFilter {
     public static func coreImageFilter(name: String, parameters: [String: Any], identifier: String) -> ImageProcessors.CoreImageFilter {
         ImageProcessors.CoreImageFilter(name: name, parameters: parameters, identifier: identifier)
     }
-    
+
     /// Applies Core Image filter (`CIFilter`) to the image.
     ///
     public static func coreImageFilter(name: String) -> ImageProcessors.CoreImageFilter {

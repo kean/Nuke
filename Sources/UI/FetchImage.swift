@@ -191,13 +191,13 @@ public final class FetchImage: ObservableObject, Identifiable {
             self.imageContainer = response.container
         })
     }
-    
+
 #if swift(>=5.6)
     @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
     public func load(_ action: @escaping () async throws -> ImageResponse) {
         reset()
         isLoading = true
-        
+
         let task = Task {
             do {
                 self.handle(result: .success(try await action()))
@@ -208,7 +208,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         cancellable = AnyCancellable { task.cancel() }
     }
 #endif
-    
+
     // MARK: Cancel
 
     /// Marks the request as being cancelled. Continues to display a downloaded
@@ -221,7 +221,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         // publisher-based
         cancellable = nil
     }
-    
+
     /// Resets the `FetchImage` instance by cancelling the request and removing
     /// all of the state including the loaded image.
     public func reset() {

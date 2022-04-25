@@ -29,14 +29,14 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable {
     public static let webp: AssetType = "public.webp"
 
     public static let mp4: AssetType = "public.mpeg4"
-    
+
     /// The M4V file format is a video container format developed by Apple and
     /// is very similar to the MP4 format. The primary difference is that M4V
     /// files may optionally be protected by DRM copy protection.
     public static let m4v: AssetType = "public.m4v"
-    
+
     public static let mov: AssetType = "public.mov"
-    
+
     public var isVideo: Bool {
         self == .mp4 || self == .m4v || self == .mov
     }
@@ -75,16 +75,15 @@ public extension AssetType {
         // WebP magic numbers https://en.wikipedia.org/wiki/List_of_file_signatures
         if _match([0x52, 0x49, 0x46, 0x46, nil, nil, nil, nil, 0x57, 0x45, 0x42, 0x50]) { return .webp }
 
-        // TODO: Extend support to other video formats supported by the system
         // see https://stackoverflow.com/questions/21879981/avfoundation-avplayer-supported-formats-no-vob-or-mpg-containers
         // https://en.wikipedia.org/wiki/List_of_file_signatures
         if _match([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D], offset: 4) { return .mp4 }
-        
+
         if _match([0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32], offset: 4) { return .m4v }
-        
-        //MOV magic numbers https://www.garykessler.net/library/file_sigs.html
+
+        // MOV magic numbers https://www.garykessler.net/library/file_sigs.html
         if _match([0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20], offset: 4) { return .mov }
-        
+
         // Either not enough data, or we just don't support this format.
         return nil
     }

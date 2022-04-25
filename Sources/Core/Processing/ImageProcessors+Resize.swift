@@ -86,7 +86,7 @@ extension ImageProcessors {
 // Adds Hashable without making changes to public CGSize API
 private struct Size: Hashable {
     let cgSize: CGSize
-    
+
     /// Creates the size in pixels by scaling to the input size to the screen scale
     /// if needed.
     init(size: CGSize, unit: ImageProcessingOptions.Unit) {

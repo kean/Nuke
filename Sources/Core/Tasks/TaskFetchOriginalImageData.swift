@@ -17,7 +17,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
             self.send(error: .dataLoadingFailed(URLError(.badURL)))
             return
         }
-        
+
         if let rateLimiter = pipeline.rateLimiter {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
             // executed asynchronously also on the same queue.

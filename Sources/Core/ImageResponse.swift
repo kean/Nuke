@@ -137,7 +137,7 @@ public struct ImageContainer {
 
         // For internal purposes.
         static let isThumbnailKey: UserInfoKey = "com.github/kean/nuke/skip-decompression"
-        
+
         /// A user info key to get the scan number (Int).
         public static let scanNumberKey: UserInfoKey = "com.github/kean/nuke/scan-number"
     }

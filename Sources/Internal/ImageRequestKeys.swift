@@ -24,12 +24,12 @@ extension ImageRequest {
     func makeImageLoadKey() -> ImageLoadKey {
         ImageLoadKey(self)
     }
-    
+
     /// A key for deduplicating operations for fetching the decoded image.
     func makeDecodedImageLoadKey() -> DecodedImageLoadKey {
         DecodedImageLoadKey(self)
     }
-    
+
     /// A key for deduplicating operations for fetching the original image.
     func makeDataLoadKey() -> DataLoadKey {
         DataLoadKey(self)
@@ -78,7 +78,7 @@ struct ImageLoadKey: Hashable {
 struct DecodedImageLoadKey: Hashable {
     let dataLoadKey: DataLoadKey
     let thumbnail: ImageRequest.ThumbnailOptions?
-    
+
     init(_ request: ImageRequest) {
         self.dataLoadKey = DataLoadKey(request)
         self.thumbnail = request.thubmnail

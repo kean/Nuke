@@ -162,7 +162,7 @@ public final class ImagePipeline {
         }
         return task
     }
-    
+
 #if swift(>=5.6)
     /// Loads an image for the given request.
     ///
