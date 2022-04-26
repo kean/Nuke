@@ -4,7 +4,7 @@
 
 import Foundation
 
-/// Wrapper for tasks created by `loadData` calls.
+/// Wrapper for tasks created by `loadImage` calls.
 ///
 /// Performs all the quick cache lookups and also manages image processing.
 /// The coalesing for image processing is implemented on demand (extends the
