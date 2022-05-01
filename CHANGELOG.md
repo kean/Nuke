@@ -3,6 +3,7 @@
 ## Upcoming
 
 - Rename async/await `loadImage(with:)` method to `image(for:)`, and `loadData(with:)` to `data(for:)`
+- Add `Sendable` conformance to some of the types
 
 ## Nuke 10.8.0
 
