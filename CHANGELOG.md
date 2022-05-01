@@ -1,5 +1,9 @@
 # Nuke 10
 
+## Upcoming
+
+- Rename async/await `loadImage(with:)` method to `image(for:)`, and `loadData(with:)` to `data(for:)`
+
 ## Nuke 10.8.0
 
 *Apr 24, 2022*
