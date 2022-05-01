@@ -164,13 +164,20 @@ public final class ImagePipeline {
     }
 
 #if swift(>=5.6)
+    // Deprecated in 10.9.0
+    @available(*, deprecated, message: "Renamed to image(for:)")
+    @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
+    public func loadImage(with request: ImageRequestConvertible) async throws -> ImageResponse {
+        try await image(for: request)
+    }
+
     /// Loads an image for the given request.
     ///
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
     ///
     /// - parameter request: An image request.
     @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
-    public func loadImage(with request: ImageRequestConvertible) async throws -> ImageResponse {
+    public func image(for request: ImageRequestConvertible) async throws -> ImageResponse {
         let box = TaskBox()
         return try await withTaskCancellationHandler(handler: {
             box.task?.cancel()
@@ -269,13 +276,20 @@ public final class ImagePipeline {
     }
 
 #if swift(>=5.6)
+    // Deprecated in 10.9.0
+    @available(*, deprecated, message: "Renamed to data(for:)")
+    @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
+    public func loadData(with request: ImageRequestConvertible) async throws -> (Data, URLResponse?) {
+        try await data(for: request)
+    }
+
     /// Loads an image for the given request.
     ///
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
     ///
     /// - parameter request: An image request.
     @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
-    public func loadData(with request: ImageRequestConvertible) async throws -> (Data, URLResponse?) {
+    public func data(for request: ImageRequestConvertible) async throws -> (Data, URLResponse?) {
         let box = TaskBox()
         return try await withTaskCancellationHandler(handler: {
             box.task?.cancel()

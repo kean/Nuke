@@ -42,13 +42,13 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         // WHEN
         @Sendable func loadImage() async throws -> ImageResponse {
             do {
-                return try await pipeline.loadImage(with: request)
+                return try await pipeline.image(for: request)
             } catch {
                 guard let error = (error as? ImagePipeline.Error),
                       (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
                     throw error
                 }
-                return try await pipeline.loadImage(with: lowQualityImageURL)
+                return try await pipeline.image(for: lowQualityImageURL)
             }
         }
 
@@ -62,7 +62,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         dataLoader.queue.isSuspended = true
 
         let task = _Concurrency.Task {
-            try await pipeline.loadImage(with: Test.url)
+            try await pipeline.image(for: Test.url)
         }
         
         observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
@@ -83,7 +83,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
 
         // WHEN
-        let (data, response) = try await pipeline.loadData(with: Test.request)
+        let (data, response) = try await pipeline.data(for: Test.request)
 
         // THEN
         XCTAssertEqual(data.count, 22788)
