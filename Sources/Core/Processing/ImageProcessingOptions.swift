@@ -68,3 +68,8 @@ public enum ImageProcessingOptions {
         }
     }
 }
+
+#if swift(>=5.6)
+extension ImageProcessingOptions.Unit: Sendable {}
+extension ImageProcessingOptions.Border: @unchecked Sendable {}
+#endif

@@ -142,3 +142,12 @@ public struct ImageContainer {
         public static let scanNumberKey: UserInfoKey = "com.github/kean/nuke/scan-number"
     }
 }
+
+#if swift(>=5.6)
+struct Test: Sendable {
+    var priority: ImageContainer.UserInfoKey
+}
+
+extension ImageResponse.CacheType: Sendable {}
+extension ImageContainer.UserInfoKey: Sendable {}
+#endif

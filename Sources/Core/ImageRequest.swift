@@ -469,3 +469,10 @@ extension String: ImageRequestConvertible {
         ImageRequest(url: URL(string: self))
     }
 }
+
+#if swift(>=5.6)
+extension ImageRequest.Priority: Sendable {}
+extension ImageRequest.Options: Sendable {}
+extension ImageRequest.UserInfoKey: Sendable {}
+extension ImageRequest.ThumbnailOptions: Sendable {}
+#endif
