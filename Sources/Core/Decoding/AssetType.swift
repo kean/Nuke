@@ -88,3 +88,7 @@ public extension AssetType {
         return nil
     }
 }
+
+#if swift(>=5.6)
+extension AssetType: Sendable {}
+#endif
