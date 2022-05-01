@@ -1,8 +1,10 @@
 # Nuke 10
 
-## Upcoming
+## Nuke 10.9.0
 
-- Rename async/await `loadImage(with:)` method to `image(for:)`, and `loadData(with:)` to `data(for:)`
+*May 1, 2022*
+
+- Rename recently added async/await `loadImage(with:)` method to `image(for:)`, and `loadData(with:)` to `data(for:)`
 - Add `Sendable` conformance to some of the types
 
 ## Nuke 10.8.0
