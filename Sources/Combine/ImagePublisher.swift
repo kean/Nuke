@@ -67,8 +67,6 @@ private final class ImageSubscription<S: Subscriber>: Subscription where S.Input
         guard demand > 0 else { return }
         guard let subscriber = subscriber else { return }
 
-        let request = pipeline.configuration.inheritOptions(self.request)
-
         if let image = pipeline.cache[request] {
             _ = subscriber.receive(ImageResponse(container: image, cacheType: .memory))
 

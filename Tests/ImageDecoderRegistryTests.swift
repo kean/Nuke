@@ -12,7 +12,7 @@ final class ImageDecoderRegistryTests: XCTestCase {
 
         // Then
         let decoder = ImageDecoderRegistry().decoder(for: context)
-        XCTAssertTrue(decoder is ImageDecoder)
+        XCTAssertTrue(decoder is ImageDecoders.Default)
     }
 
     func testRegisterDecoder() {
@@ -51,7 +51,7 @@ final class ImageDecoderRegistryTests: XCTestCase {
         let decoder = ImageDecoderRegistry().decoder(for: context)
 
         // Then
-        XCTAssertTrue(decoder is ImageDecoder)
+        XCTAssertTrue(decoder is ImageDecoders.Default)
     }
     
     #if !os(watchOS)

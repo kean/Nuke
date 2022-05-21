@@ -88,12 +88,8 @@ extension ImageDecoders {
             guard let image = autoreleasepool(invoking: makeImage) else {
                 return nil
             }
-            // Keep original data around in case of GIF
             let type = AssetType(data)
-            if ImagePipeline.Configuration._isAnimatedImageDataEnabled, type == .gif {
-                image._animatedImageData = data
-            }
-            var container = ImageContainer(image: image, data: image._animatedImageData)
+            var container = ImageContainer(image: image)
             container.type = type
             if type == .gif {
                 container.data = data

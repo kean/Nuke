@@ -422,7 +422,7 @@ private final class ImageViewController {
         }
 
         // Handle a scenario where request is `nil` (in the same way as a failure)
-        guard let unwrappedRequest = request else {
+        guard var request = request else {
             if options.isPrepareForReuseEnabled {
                 imageView.nuke_display(image: nil, data: nil)
             }
@@ -433,7 +433,6 @@ private final class ImageViewController {
         }
 
         let pipeline = options.pipeline ?? ImagePipeline.shared
-        var request = pipeline.configuration.inheritOptions(unwrappedRequest)
         if !options.processors.isEmpty && request.processors.isEmpty {
             request.processors = options.processors
         }
