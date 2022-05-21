@@ -139,11 +139,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     /// - parameter processors: Remaining processors to by applied
     private func process(_ response: ImageResponse, isCompleted: Bool, processors: [ImageProcessing]) {
-        guard !(ImagePipeline.Configuration._isAnimatedImageDataEnabled && response.image._animatedImageData != nil) else {
-            self.decompressImage(response, isCompleted: isCompleted)
-            return
-        }
-
         if isCompleted {
             dependency2?.unsubscribe() // Cancel any potential pending progressive processing tasks
         } else if dependency2 != nil {
@@ -223,8 +218,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     private func isDecompressionNeeded(for response: ImageResponse) -> Bool {
         return pipeline.configuration.isDecompressionEnabled &&
-            ImageDecompression.isDecompressionNeeded(for: response.image) ?? false &&
-            !(ImagePipeline.Configuration._isAnimatedImageDataEnabled && response.image._animatedImageData != nil)
+            ImageDecompression.isDecompressionNeeded(for: response.image) ?? false
     }
     #endif
 

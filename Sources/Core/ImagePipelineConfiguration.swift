@@ -112,30 +112,6 @@ extension ImagePipeline {
             case storeAll
         }
 
-        // Deprecated in 10.0.0
-        @available(*, deprecated, message: "Please use `dataCachePolicy` instead.")
-        public var dataCacheOptions: DataCacheOptions = DataCacheOptions() {
-            didSet {
-                let items = dataCacheOptions.storedItems
-                if items == [.finalImage] {
-                    dataCachePolicy = .storeEncodedImages
-                } else if items == [.originalImageData] {
-                    dataCachePolicy = .storeOriginalData
-                } else if items == [.finalImage, .originalImageData] {
-                    dataCachePolicy = .storeAll
-                }
-            }
-        }
-
-        // Deprecated in 10.0.0
-        @available(*, deprecated, message: "Please use `dataCachePolicy` instead. The recommended policy is the new `.automatic` policy.")
-        public struct DataCacheOptions {
-            public var storedItems: Set<DataCacheItem> = [.originalImageData]
-        }
-
-        // Deprecated in 10.0.0
-        var _processors: [ImageProcessing] = []
-
         /// `true` by default. If `true` the pipeline avoids duplicated work when
         /// loading images. The work only gets cancelled when all the registered
         /// requests are. The pipeline also automatically manages the priority of the
@@ -184,14 +160,6 @@ extension ImagePipeline {
         public var isResumableDataEnabled = true
 
         // MARK: - Options (Shared)
-
-        /// If `true` pipeline will detect GIFs and set `animatedImageData`
-        /// (`UIImage` property). It will also disable processing of such images,
-        /// and alter the way cache cost is calculated. However, this will not
-        /// enable actual animated image rendering. To do that take a look at
-        /// satellite projects (FLAnimatedImage and Gifu plugins for Nuke).
-        /// `false` by default (to preserve resources).
-        static var _isAnimatedImageDataEnabled = false
 
         /// `false` by default. If `true`, enables `os_signpost` logging for
         /// measuring performance. You can visually see all the performance

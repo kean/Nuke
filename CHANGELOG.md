@@ -1,6 +1,12 @@
 # Nuke 10
 
-## Upcoming
+## Nuke 10.10.0
+
+- Remove APIs deprecated in Nuke 10.0
+
+## Nuke 10.9.0
+
+*May 1, 2022*
 
 - Rename async/await `loadImage(with:)` method to `image(for:)`, and `loadData(with:)` to `data(for:)`
 - Add `Sendable` conformance to some of the types

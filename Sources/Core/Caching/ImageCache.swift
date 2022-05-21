@@ -122,12 +122,7 @@ public final class ImageCache: ImageCaching {
 
     /// Returns cost for the given image by approximating its bitmap size in bytes in memory.
     func cost(for container: ImageContainer) -> Int {
-        let dataCost: Int
-        if ImagePipeline.Configuration._isAnimatedImageDataEnabled {
-            dataCost = container.image._animatedImageData?.count ?? 0
-        } else {
-            dataCost = container.data?.count ?? 0
-        }
+        let dataCost = container.data?.count ?? 0
 
         // bytesPerRow * height gives a rough estimation of how much memory
         // image uses in bytes. In practice this algorithm combined with a

@@ -29,10 +29,6 @@ public final class ImagePipeline {
     /// Provides access to the underlying caching subsystems.
     public var cache: ImagePipeline.Cache { ImagePipeline.Cache(pipeline: self) }
 
-    // Deprecated in 10.0.0
-    @available(*, deprecated, message: "Please use ImagePipelineDelegate")
-    public var observer: ImagePipelineObserving?
-
     let delegate: ImagePipelineDelegate // swiftlint:disable:this all
     private(set) var imageCache: ImageCache?
 
@@ -147,7 +143,6 @@ public final class ImagePipeline {
         onCancel: (() -> Void)? = nil,
         completion: ((_ result: Result<ImageResponse, Error>) -> Void)?
     ) -> ImageTask {
-        let request = configuration.inheritOptions(request)
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
         task.pipeline = self
         if let onCancel = onCancel {
@@ -164,13 +159,6 @@ public final class ImagePipeline {
     }
 
 #if swift(>=5.6)
-    // Deprecated in 10.9.0
-    @available(*, deprecated, message: "Renamed to image(for:)")
-    @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
-    public func loadImage(with request: ImageRequestConvertible) async throws -> ImageResponse {
-        try await image(for: request)
-    }
-
     /// Loads an image for the given request.
     ///
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
@@ -276,13 +264,6 @@ public final class ImagePipeline {
     }
 
 #if swift(>=5.6)
-    // Deprecated in 10.9.0
-    @available(*, deprecated, message: "Renamed to data(for:)")
-    @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
-    public func loadData(with request: ImageRequestConvertible) async throws -> (Data, URLResponse?) {
-        try await data(for: request)
-    }
-
     /// Loads an image for the given request.
     ///
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
@@ -484,24 +465,8 @@ public final class ImagePipeline {
                 TaskFetchWithPublisher(self, request)
         }
     }
-}
 
-// MARK: - Misc (Private)
-
-extension ImagePipeline: SendEventProtocol {
-    func send(_ event: ImageTaskEvent, _ task: ImageTask) {
+    private func send(_ event: ImageTaskEvent, _ task: ImageTask) {
         delegate.pipeline(self, imageTask: task, didReceiveEvent: event)
-        (self as SendEventProtocol)._send(event, task)
     }
-
-    // Deprecated in 10.0.0
-    @available(*, deprecated, message: "Please use ImagePipelineDelegate")
-    func _send(_ event: ImageTaskEvent, _ task: ImageTask) {
-        observer?.pipeline(self, imageTask: task, didReceiveEvent: event)
-    }
-}
-
-// Just to workaround the deprecation warning.
-private protocol SendEventProtocol {
-    func _send(_ event: ImageTaskEvent, _ task: ImageTask)
 }

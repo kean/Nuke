@@ -126,32 +126,6 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
-    // MARK: - Animated Images
-
-    func testAnimatedImagesArentProcessed() {
-        // Given
-        ImagePipeline.Configuration._isAnimatedImageDataEnabled = true
-
-        dataLoader.results[Test.url] = .success(
-            (Test.data(name: "cat", extension: "gif"), Test.urlResponse)
-        )
-
-        let processor = ImageProcessors.Anonymous(id: "1") { _ in
-            XCTFail()
-            return nil
-        }
-        let request = ImageRequest(url: Test.url, processors: [processor])
-
-        // Then
-        expect(pipeline).toLoadImage(with: request) { result in
-            let image = result.value?.image
-            XCTAssertNotNil(image?._animatedImageData)
-        }
-        wait()
-
-        ImagePipeline.Configuration._isAnimatedImageDataEnabled = false
-    }
-
     // MARK: - Updating Priority
 
     func testDataLoadingPriorityUpdated() {
