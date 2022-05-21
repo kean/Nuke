@@ -227,21 +227,6 @@ class ImageCacheTests: XCTestCase {
         XCTAssertNotNil(cache[request2])
     }
 
-    func testGIFCost() {
-        // Given
-        let data = Test.data(name: "cat", extension: "gif")
-        let image = PlatformImage(data: data)!
-        image._animatedImageData = data
-
-        // Then
-        XCTAssertFalse(ImagePipeline.Configuration._isAnimatedImageDataEnabled)
-        XCTAssertEqual(cache.cost(for: ImageContainer(image: image)), 558000)
-
-        ImagePipeline.Configuration._isAnimatedImageDataEnabled = true
-        XCTAssertEqual(cache.cost(for: ImageContainer(image: image)), 558000 + 427672)
-        ImagePipeline.Configuration._isAnimatedImageDataEnabled = false
-    }
-
     func testImageContainerWithoutAssociatedDataCost() {
         // Given
         let data = Test.data(name: "cat", extension: "gif")

@@ -218,8 +218,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     private func isDecompressionNeeded(for response: ImageResponse) -> Bool {
         return pipeline.configuration.isDecompressionEnabled &&
-            ImageDecompression.isDecompressionNeeded(for: response.image) ?? false &&
-            !(ImagePipeline.Configuration._isAnimatedImageDataEnabled && response.image._animatedImageData != nil)
+            ImageDecompression.isDecompressionNeeded(for: response.image) ?? false
     }
     #endif
 
