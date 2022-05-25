@@ -354,7 +354,7 @@ public final class ImagePipeline {
         /// Data loader failed to load image data with a wrapped error.
         case dataLoadingFailed(Swift.Error)
         /// Decoder failed to produce a final image.
-        case decodingFailed
+        case decodingFailed(Data)
         /// Processor failed to produce a final image.
         case processingFailed(ImageProcessing)
 
