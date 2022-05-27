@@ -31,14 +31,14 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
         // Sanity check
         guard !data.isEmpty else {
             if isCompleted {
-                send(error: .decodingFailed)
+                send(error: .decodingFailed(data))
             }
             return
         }
 
         guard let decoder = decoder(data: data, urlResponse: urlResponse, isCompleted: isCompleted) else {
             if isCompleted {
-                send(error: .decodingFailed)
+                send(error: .decodingFailed(data))
             } // Try again when more data is downloaded.
             return
         }
@@ -68,7 +68,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
         if let response = response {
             send(value: response, isCompleted: isCompleted)
         } else if isCompleted {
-            send(error: .decodingFailed)
+            send(error: .decodingFailed(response?.container.data ?? Data()))
         }
     }
 

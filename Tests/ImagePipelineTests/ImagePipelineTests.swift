@@ -492,7 +492,8 @@ class ImagePipelineTests: XCTestCase {
         }
 
         // When/Then
-        expect(pipeline).toFailRequest(Test.request, with: .decodingFailed)
+        let data = Test.data(name: "fixture", extension: "jpeg")
+        expect(pipeline).toFailRequest(Test.request, with: .decodingFailed(data))
         wait()
     }
 
@@ -526,7 +527,7 @@ class ImagePipelineTests: XCTestCase {
 
     func testErrorDescription() {
         XCTAssertFalse(ImagePipeline.Error.dataLoadingFailed(URLError(.unknown)).description.isEmpty) // Just padding here
-        XCTAssertFalse(ImagePipeline.Error.decodingFailed.description.isEmpty)
+        XCTAssertFalse(ImagePipeline.Error.decodingFailed(Data()).description.isEmpty)
 
         let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
         let error = ImagePipeline.Error.processingFailed(processor)
