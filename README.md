@@ -9,7 +9,7 @@
 <img src="https://github.com/kean/Nuke/workflows/Nuke%20CI/badge.svg">
 </p>
 
-Nuke ILS provides an efficient way to download and display images in your app. It's easy to learn and use thanks to a clear and concise API. Its architecture enables many powerful features while offering virtually unlimited possibilities for customization.
+Nuke provides an efficient way to download and display images in your app. It's easy to learn and use thanks to a clear and concise API. Its architecture enables many powerful features while offering virtually unlimited possibilities for customization.
 
 Despite the number of features, the framework is lean and compiles in under 2 seconds[¹](#footnote-1). Nuke has an automated test suite 2x the size of the codebase itself, ensuring excellent reliability. Every feature is carefully designed and optimized for [performance](https://kean.blog/post/nuke-9).
 
