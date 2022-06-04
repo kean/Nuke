@@ -51,11 +51,11 @@ The image pipeline is easy to customize and extend. Check out the following firs
 <a name="h_requirements"></a>
 ## Minimum Requirements
 
-| Nuke                      | Swift           | Xcode           | Platforms                                         |
-|---------------------------|-----------------|-----------------|---------------------------------------------------|
-| Nuke 10.10 (May 21, 2022) | Swift 5.3       | Xcode 12.0      | iOS 12.0 / watchOS 5.0 / macOS 10.14 / tvOS 12.0  |
-| Nuke 10.0 (Jun 1, 2021)   | Swift 5.3       | Xcode 12.0      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
-| Nuke 9.0 (May 20, 2020)   | Swift 5.1       | Xcode 11.0      | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0  |
+| Nuke       | Date         |Swift      | Xcode      | Platforms                                        |
+|------------|--------------|-----------|------------|--------------------------------------------------|
+| Nuke 10.10 | May 21, 2022 | Swift 5.3 | Xcode 12.0 | iOS 12.0 / watchOS 5.0 / macOS 10.14 / tvOS 12.0 |
+| Nuke 10.0  | Jun 1, 2021  | Swift 5.3 | Xcode 12.0 | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0 |
+| Nuke 9.0   | May 20, 2020 | Swift 5.  | Xcode 11.0 | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0 |
 
 See [Installation Guide](https://kean.blog/nuke/guides/installation) for information about the older versions.
 
