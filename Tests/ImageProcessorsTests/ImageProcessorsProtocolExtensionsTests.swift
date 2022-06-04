@@ -5,7 +5,6 @@
 import XCTest
 import Nuke
 
-#if swift(>=5.5)
 class ImageProcessorsProtocolExtensionsTests: XCTestCase {
 
     func testPassingProcessorsUsingProtocolExtensions() throws {
@@ -13,4 +12,3 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
         let _ = ImageRequest(url: nil, processors: [.resize(width: 100)])
     }
 }
-#endif

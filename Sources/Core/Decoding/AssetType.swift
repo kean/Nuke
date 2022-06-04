@@ -89,6 +89,4 @@ public extension AssetType {
     }
 }
 
-#if swift(>=5.6)
 extension AssetType: Sendable {}
-#endif

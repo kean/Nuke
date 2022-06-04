@@ -262,6 +262,4 @@ extension ImagePipeline.Cache {
     }
 }
 
-#if swift(>=5.6)
 extension ImagePipeline.Cache.Caches: Sendable {}
-#endif

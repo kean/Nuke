@@ -19,7 +19,6 @@ import Cocoa
 /// A namespace for all processors that implement `ImageProcessing` protocol.
 public enum ImageProcessors {}
 
-#if swift(>=5.5)
 extension ImageProcessing where Self == ImageProcessors.Resize {
     /// Scales an image to a specified size.
     ///
@@ -110,4 +109,3 @@ extension ImageProcessing where Self == ImageProcessors.Anonymous {
         ImageProcessors.Anonymous(id: id, closure)
     }
 }
-#endif

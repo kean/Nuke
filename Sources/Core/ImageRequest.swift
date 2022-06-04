@@ -210,7 +210,6 @@ public struct ImageRequest: CustomStringConvertible {
     /// - warning: If you don't want data to be stored in the disk cache, make
     /// sure to create a pipeline without it or disable it on a per-request basis.
     /// You can also disable it dynamically using `ImagePipelineDelegate`.
-    @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
     public init<P>(id: String, data: P,
                    processors: [ImageProcessing] = [],
                    priority: Priority = .normal,
@@ -470,9 +469,7 @@ extension String: ImageRequestConvertible {
     }
 }
 
-#if swift(>=5.6)
 extension ImageRequest.Priority: Sendable {}
 extension ImageRequest.Options: Sendable {}
 extension ImageRequest.UserInfoKey: Sendable {}
 extension ImageRequest.ThumbnailOptions: Sendable {}
-#endif

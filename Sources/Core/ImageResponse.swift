@@ -143,11 +143,9 @@ public struct ImageContainer {
     }
 }
 
-#if swift(>=5.6)
 struct Test: Sendable {
     var priority: ImageContainer.UserInfoKey
 }
 
 extension ImageResponse.CacheType: Sendable {}
 extension ImageContainer.UserInfoKey: Sendable {}
-#endif

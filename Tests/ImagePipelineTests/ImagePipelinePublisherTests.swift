@@ -6,7 +6,6 @@ import XCTest
 import Combine
 @testable import Nuke
 
-@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 class ImagePipelinePublisherTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var imageCache: MockImageCache!
@@ -97,7 +96,6 @@ class ImagePipelinePublisherTests: XCTestCase {
     }
 }
 
-@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
     private var dataLoader: MockProgressiveDataLoader!
     private var imageCache: MockImageCache!

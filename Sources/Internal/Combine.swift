@@ -9,7 +9,6 @@ final class DataPublisher {
     let id: String
     private let _sink: (@escaping ((PublisherCompletion) -> Void), @escaping ((Data) -> Void)) -> Cancellable
 
-    @available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
     init<P: Publisher>(id: String, _ publisher: P) where P.Output == Data {
         self.id = id
         self._sink = { onCompletion, onValue in

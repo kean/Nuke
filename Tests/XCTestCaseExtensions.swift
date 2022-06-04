@@ -19,7 +19,6 @@ extension XCTestCase {
 
 // MARK: - Publishers
 
-@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 extension XCTestCase {
     func expect<P: Publisher>(_ publisher: P) -> TestExpectationPublisher<P> {
         TestExpectationPublisher(test: self, publisher: publisher)
@@ -43,7 +42,6 @@ extension XCTestCase {
     }
 }
 
-@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 struct TestExpectationPublisher<P: Publisher> {
     let test: XCTestCase
     let publisher: P
@@ -65,7 +63,6 @@ struct TestExpectationPublisher<P: Publisher> {
     }
 }
 
-@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 final class TestRecordedPublisher<P: Publisher> {
     fileprivate(set) var values = [P.Output]()
     fileprivate(set) var completion: Subscribers.Completion<P.Failure>?

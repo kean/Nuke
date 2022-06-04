@@ -158,13 +158,11 @@ public final class ImagePipeline {
         return task
     }
 
-#if swift(>=5.6)
     /// Loads an image for the given request.
     ///
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
     ///
     /// - parameter request: An image request.
-    @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
     public func image(for request: ImageRequestConvertible) async throws -> ImageResponse {
         let box = TaskBox()
         return try await withTaskCancellationHandler(handler: {
@@ -187,7 +185,6 @@ public final class ImagePipeline {
     private final class TaskBox {
         var task: ImageTask?
     }
-#endif
 
     private func startImageTask(
         _ task: ImageTask,
@@ -263,13 +260,11 @@ public final class ImagePipeline {
         loadData(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
 
-#if swift(>=5.6)
     /// Loads an image for the given request.
     ///
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
     ///
     /// - parameter request: An image request.
-    @available(iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0, *)
     public func data(for request: ImageRequestConvertible) async throws -> (Data, URLResponse?) {
         let box = TaskBox()
         return try await withTaskCancellationHandler(handler: {
@@ -288,7 +283,6 @@ public final class ImagePipeline {
             }
         })
     }
-#endif
 
     func loadData(
         with request: ImageRequest,
