@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -d "OS=15.4,name=Apple TV 4K"
+        run: Scripts/test.sh -d "OS=15.4,name=Apple TV"
   watchos-latest:
     name: Build (watchOS 7.4, Xcode 13.3.1)
     runs-on: macOS-12
