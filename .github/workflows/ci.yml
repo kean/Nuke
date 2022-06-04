@@ -53,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -d "OS=15.0,name=iPhone 13 Pro"
+        run: Scripts/test.sh -d "OS=15.2,name=iPhone 13 Pro"
   ios-thread-safety:
     name: Thread Safety Tests (TSan Enabled)
     runs-on: macOS-12
