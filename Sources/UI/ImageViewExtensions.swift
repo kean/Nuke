@@ -15,6 +15,8 @@ import AppKit.NSImage
 public typealias PlatformImage = NSImage
 #endif
 
+#if os(iOS) || os(tvOS) || os(macOS)
+
 /// Displays images. Add the conformance to this protocol to your views to make
 /// them compatible with Nuke image loading extensions.
 ///
@@ -66,18 +68,6 @@ extension NSImageView: Nuke_ImageDisplaying {
     /// Displays an image.
     open func nuke_display(image: NSImage?, data: Data? = nil) {
         self.image = image
-    }
-}
-#elseif os(watchOS)
-import WatchKit
-
-/// A `WKInterfaceObject` that implements `ImageDisplaying` protocol.
-public typealias ImageDisplayingView = WKInterfaceObject & Nuke_ImageDisplaying
-
-extension WKInterfaceImage: Nuke_ImageDisplaying {
-    /// Displays an image.
-    open func nuke_display(image: UIImage?, data: Data? = nil) {
-        self.setImage(image)
     }
 }
 #endif
@@ -616,3 +606,5 @@ private extension ImageViewController {
 
     #endif
 }
+
+#endif

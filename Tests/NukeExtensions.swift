@@ -75,7 +75,7 @@ extension ImageLoadingOptions {
 #if os(macOS)
 import Cocoa
 typealias _ImageView = NSImageView
-#else
+#elseif os(iOS) || os(tvOS)
 import UIKit
 typealias _ImageView = UIImageView
 #endif
