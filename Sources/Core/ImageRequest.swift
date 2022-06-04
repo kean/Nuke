@@ -407,10 +407,7 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     var preferredImageId: String {
-        if let imageId = ref.userInfo?[.imageIdKey] as? String {
-            return imageId
-        }
-        return imageId ?? ""
+        (ref.userInfo?[.imageIdKey] as? String) ?? ""
     }
 
     var thubmnail: ThumbnailOptions? {
@@ -418,16 +415,12 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     var scale: CGFloat? {
-        guard let scale = ref.userInfo?[.scaleKey] as? NSNumber else {
-            return nil
-        }
+        guard let scale = ref.userInfo?[.scaleKey] as? NSNumber else { return nil }
         return CGFloat(scale.floatValue)
     }
 
     var publisher: DataPublisher? {
-        guard case .publisher(let publisher) = ref.resource else {
-            return nil
-        }
+        guard case .publisher(let publisher) = ref.resource else { return nil }
         return publisher
     }
 }
