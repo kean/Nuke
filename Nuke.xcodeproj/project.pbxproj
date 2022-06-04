@@ -322,6 +322,7 @@
 		0C91B0F72438E84E007F9100 /* fixture-tiny.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "fixture-tiny.jpeg"; sourceTree = "<group>"; };
 		0C94466D1D47EC0E006DB314 /* ImageViewExtensionsTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewExtensionsTests.swift; sourceTree = "<group>"; };
 		0C95FD532571B278008D4FC2 /* baseline.webp */ = {isa = PBXFileReference; lastKnownFileType = file; path = baseline.webp; sourceTree = "<group>"; };
+		0C97DD9E284C00EA00F55FDA /* Nuke 11 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 11 Migration Guide.md"; sourceTree = "<group>"; };
 		0C9B6E7520B9F3E2001924B8 /* ImagePipelineCoalescingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineCoalescingTests.swift; sourceTree = "<group>"; };
 		0CA4EC9426E67C7000BAC8E5 /* AVDataAsset.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AVDataAsset.swift; sourceTree = "<group>"; };
 		0CA4EC9826E67CEC00BAC8E5 /* ImageDecoders+Default.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageDecoders+Default.swift"; sourceTree = "<group>"; };
@@ -824,6 +825,7 @@
 		0CDB927C1DAF9BA500002905 /* Migrations */ = {
 			isa = PBXGroup;
 			children = (
+				0C97DD9E284C00EA00F55FDA /* Nuke 11 Migration Guide.md */,
 				0C54E64126616E9D00ED1049 /* Nuke 10 Migration Guide.md */,
 				0C6784DC24341207005B8CF5 /* Nuke 9 Migration Guide.md */,
 				0C6784DD24341212005B8CF5 /* Nuke 8 Migration Guide.md */,
