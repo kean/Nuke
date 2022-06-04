@@ -59,6 +59,7 @@ extension ImagePipeline {
     }
 }
 
+#if !os(watchOS)
 extension ImageLoadingOptions {
     private static var stack = [ImageLoadingOptions]()
 
@@ -71,6 +72,7 @@ extension ImageLoadingOptions {
         ImageLoadingOptions.shared = stack.removeLast()
     }
 }
+#endif
 
 #if os(macOS)
 import Cocoa

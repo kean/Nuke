@@ -49,7 +49,11 @@ class ImageProcessorsRoundedCornersTests: XCTestCase {
 
         // Then image is resized but isn't cropped
         let colorSpace = try XCTUnwrap(output.cgImage?.colorSpace)
+#if os(iOS) || os(tvOS) || os(macOS)
         XCTAssertTrue(colorSpace.isWideGamutRGB)
+#elseif os(watchOS)
+        XCTAssertFalse(colorSpace.isWideGamutRGB)
+#endif
     }
 
     func testEqualIdentifiers() {

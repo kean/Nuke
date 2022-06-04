@@ -5,6 +5,8 @@
 import XCTest
 @testable import Nuke
 
+#if os(iOS) || os(tvOS) || os(macOS)
+
 class ImageViewIntegrationTests: XCTestCase {
     var imageView: _ImageView!
     var pipeline: ImagePipeline!
@@ -151,3 +153,4 @@ class ImageViewIntegrationTests: XCTestCase {
     #endif
 }
 
+#endif

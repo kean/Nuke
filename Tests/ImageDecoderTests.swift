@@ -142,6 +142,7 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertNil(container?.data)
     }
 
+#if os(iOS) || os(tvOS) || os(macOS)
     func testDecodeBaselineWebP() {
         let data = Test.data(name: "baseline", extension: "webp")
         let container = ImageDecoders.Default().decode(data)
@@ -153,6 +154,7 @@ class ImageDecoderTests: XCTestCase {
             XCTAssertNil(container?.data)
         }
     }
+#endif
 }
 
 class ImageTypeTests: XCTestCase {

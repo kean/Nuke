@@ -109,7 +109,11 @@ class ImageProcessorsResizeTests: XCTestCase {
         // Then image is resized but isn't cropped
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 480, height: 320))
         let colorSpace = try XCTUnwrap(output.cgImage?.colorSpace)
+#if os(iOS) || os(tvOS) || os(macOS)
         XCTAssertTrue(colorSpace.isWideGamutRGB)
+#elseif os(watchOS)
+        XCTAssertFalse(colorSpace.isWideGamutRGB)
+#endif
     }
 
     #if os(macOS)

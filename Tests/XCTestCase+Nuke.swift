@@ -87,6 +87,7 @@ struct TestExpectationImagePipeline {
     }
 }
 
+#if os(iOS) || os(tvOS) || os(macOS)
 extension XCTestCase {
     func expectToFinishLoadingImage(with request: ImageRequest,
                                     options: ImageLoadingOptions = ImageLoadingOptions.shared,
@@ -110,6 +111,7 @@ extension XCTestCase {
         }
     }
 }
+#endif
 
 final class TestRecordedImageRequest {
     var task: ImageTask {

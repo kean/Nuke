@@ -187,6 +187,8 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         wait()
     }
 
+#if os(iOS) || os(tvOS) || os(macOS)
+
     func testParitalImagesAreDisplayed() {
         // Given
         ImagePipeline.pushShared(pipeline)
@@ -256,6 +258,8 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
         ImagePipeline.popShared()
     }
+
+#endif
 
     func testProgressiveDecodingDisabled() {
         // Given

@@ -5,6 +5,8 @@
 import XCTest
 @testable import Nuke
 
+#if os(iOS) || os(tvOS) || os(macOS)
+
 class ImageViewExtensionsTests: XCTestCase {
     var imageView: _ImageView!
     var observer: ImagePipelineObserver!
@@ -626,3 +628,5 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         XCTAssertEqual(imageView.image?.nk_test_processorIDs, ["p1"])
     }
 }
+
+#endif
