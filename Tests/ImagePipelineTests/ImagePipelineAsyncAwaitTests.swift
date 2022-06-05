@@ -67,13 +67,13 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
             task.cancel()
         }
 
-        var catchedError: Error?
+        var caughtError: Error?
         do {
             let _ = try await task.value
         } catch {
-            catchedError = error
+            caughtError = error
         }
-        XCTAssertTrue(catchedError is CancellationError)
+        XCTAssertTrue(caughtError is CancellationError)
     }
 
     func testLoadData() async throws {

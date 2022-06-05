@@ -25,7 +25,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         // processed. So there's never going to be a situation where the final
         // image is processed before one of the partial images.
         //
-        // 2. Each data chunck produced by a data loader always results in a new
+        // 2. Each data chunk produced by a data loader always results in a new
         // scan. The way we split the data guarantees that.
 
         pipeline = ImagePipeline {

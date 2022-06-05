@@ -119,7 +119,7 @@ public struct ImageRequest: CustomStringConvertible {
         /// of the current display.
         public static let scaleKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/scale"
 
-        /// Specifies whether the pipeline should retreive or generate a thumbnail
+        /// Specifies whether the pipeline should retrieve or generate a thumbnail
         /// instead of a full image. The thumbnail creation is generally significantly
         /// more efficient, especially in terms of memory usage, than image resizing
         /// (`ImageProcessors.Resize`).

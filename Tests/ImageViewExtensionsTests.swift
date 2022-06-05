@@ -141,7 +141,7 @@ class ImageViewExtensionsTests: XCTestCase {
         // When requesting the new image
         Nuke.loadImage(with: Test.request, into: imageView)
 
-        // Expect image to be displayed immediatelly
+        // Expect image to be displayed immediately
         XCTAssertEqual(imageView.image, image)
     }
 

@@ -138,7 +138,7 @@ private struct ProgressiveJPEGScanner {
             return nil
         }
 
-        // Start scaning from the where it left off previous time.
+        // Start scanning from the where it left off previous time.
         var index = (scannedIndex + 1)
         var numberOfScans = self.numberOfScans
         while index < (data.count - 1) {

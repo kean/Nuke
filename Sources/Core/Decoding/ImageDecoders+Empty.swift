@@ -19,7 +19,7 @@ extension ImageDecoders {
         ///
         /// - Parameters:
         ///   - type: Image type to be associated with an image container.
-        ///   `nil` by defalt.
+        ///   `nil` by default.
         ///   - isProgressive: If `false`, returns nil for every progressive
         ///   scan. `false` by default.
         public init(assetType: AssetType? = nil, isProgressive: Bool = false) {

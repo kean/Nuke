@@ -249,7 +249,7 @@ extension AsyncTask {
         }
 
         /// Attaches the subscriber to the task. Automatically forwards progress
-        /// andd error events to the given task.
+        /// and error events to the given task.
         /// - notes: Returns `nil` if the task is already disposed.
         func subscribe<NewValue>(_ task: AsyncTask<NewValue, Error>, onValue: @escaping (Value, Bool) -> Void) -> TaskSubscription? {
             subscribe(subscriber: task) { [weak task] event in

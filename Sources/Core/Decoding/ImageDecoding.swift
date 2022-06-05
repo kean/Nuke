@@ -19,7 +19,7 @@ public protocol ImageDecoding {
     /// Produces an image from the given image data.
     func decode(_ data: Data) -> ImageContainer?
 
-    /// Produces an image from the given partially dowloaded image data.
+    /// Produces an image from the given partially downloaded image data.
     /// This method might be called multiple times during a single decoding
     /// session. When the image download is complete, `decode(data:)` method is called.
     ///

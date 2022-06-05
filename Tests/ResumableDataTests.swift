@@ -8,7 +8,7 @@ import XCTest
 // Test ResumableData directly to make sure it makes the right decisions based
 // on HTTP flows.
 class ResumableDataTests: XCTestCase {
-    func testResumingRequst() {
+    func testResumingRequest() {
         let response = _makeResponse(headers: [
             "Accept-Ranges": "bytes",
             "Content-Length": "2000",
