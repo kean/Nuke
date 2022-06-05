@@ -64,11 +64,11 @@ extension ImageProcessors {
             self.init(size: CGSize(width: 9999, height: height), unit: unit, contentMode: .aspectFit, crop: false, upscale: upscale)
         }
 
-        public func process(_ image: PlatformImage) -> PlatformImage? {
+        public func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
             if crop && contentMode == .aspectFill {
-                return image.processed.byResizingAndCropping(to: size.cgSize)
+                return container.map { $0.processed.byResizingAndCropping(to: size.cgSize) }
             }
-            return image.processed.byResizing(to: size.cgSize, contentMode: contentMode, upscale: upscale)
+            return container.map { $0.processed.byResizing(to: size.cgSize, contentMode: contentMode, upscale: upscale) }
         }
 
         public var identifier: String {

@@ -16,8 +16,8 @@ extension ImageProcessors {
             self.border = border
         }
 
-        public func process(_ image: PlatformImage) -> PlatformImage? {
-            image.processed.byDrawingInCircle(border: border)
+        public func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+            container.map { $0.processed.byDrawingInCircle(border: border) }
         }
 
         public var identifier: String {
