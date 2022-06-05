@@ -20,24 +20,12 @@ final class DataPublisher {
             }, receiveValue: {
                 onValue($0)
             })
-            return AnyCancellable(cancellable.cancel)
+            return AnonymousCancellable(cancellable.cancel)
         }
     }
 
     func sink(receiveCompletion: @escaping ((PublisherCompletion) -> Void), receiveValue: @escaping ((Data) -> Void)) -> Cancellable {
         _sink(receiveCompletion, receiveValue)
-    }
-}
-
-private final class AnyCancellable: Cancellable {
-    let closure: () -> Void
-
-    init(_ closure: @escaping () -> Void) {
-        self.closure = closure
-    }
-
-    func cancel() {
-        closure()
     }
 }
 

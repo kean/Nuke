@@ -60,3 +60,15 @@ extension ImageRequest.Priority {
         }
     }
 }
+
+final class AnonymousCancellable: Cancellable {
+    let onCancel: () -> Void
+
+    init(_ onCancel: @escaping () -> Void) {
+        self.onCancel = onCancel
+    }
+
+    func cancel() {
+        onCancel()
+    }
+}

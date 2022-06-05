@@ -124,7 +124,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         task.taskDescription = "Nuke Load Data"
         task.resume()
         send(task, .resumed)
-        return task
+        return AnonymousCancellable(task.cancel)
     }
 
     // MARK: URLSessionDelegate

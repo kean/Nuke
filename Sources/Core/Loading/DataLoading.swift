@@ -4,11 +4,6 @@
 
 import Foundation
 
-/// A unit of work that can be cancelled.
-public protocol Cancellable: AnyObject {
-    func cancel()
-}
-
 /// Fetches original image data.
 public protocol DataLoading {
     /// - parameter didReceiveData: Can be called multiple times if streaming
@@ -20,4 +15,7 @@ public protocol DataLoading {
                   completion: @escaping (Error?) -> Void) -> Cancellable
 }
 
-extension URLSessionTask: Cancellable {}
+/// A unit of work that can be cancelled.
+public protocol Cancellable: AnyObject {
+    func cancel()
+}
