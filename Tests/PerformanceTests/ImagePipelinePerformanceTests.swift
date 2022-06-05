@@ -26,7 +26,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             $0.isDecompressionEnabled = false
 
             // This must be off for this test, because rate limiter is optimized for
-            // the actual loading in the apps and not the syntetic tests like this.
+            // the actual loading in the apps and not the synthetic tests like this.
             $0.isRateLimiterEnabled = false
 
             // Remove decoding from the equation

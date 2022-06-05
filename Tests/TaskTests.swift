@@ -452,7 +452,7 @@ private final class SimpleTask<T, E>: AsyncTask<T, E> {
 
     /// Initializes the task with the `starter`.
     /// - parameter starter: The closure which gets called as soon as the first
-    /// subscription is added to the task. Only gets called once and is immediatelly
+    /// subscription is added to the task. Only gets called once and is immediately
     /// deallocated after it is called.
     init(starter: ((SimpleTask) -> Void)? = nil) {
         self.starter = starter

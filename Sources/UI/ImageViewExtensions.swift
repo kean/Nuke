@@ -255,7 +255,7 @@ public struct ImageLoadingOptions {
     /// - parameter transition: The image transition animation performed when
     /// displaying a loaded image. Only runs when the image was not found in
     /// memory cache. `nil` by default (no animations).
-    /// - parameter failureImage: Image to be displayd when request fails.
+    /// - parameter failureImage: Image to be displayed when request fails.
     /// `nil` by default.
     /// - parameter failureImageTransition: The image transition animation
     /// performed when displaying a failure image. `nil` by default.
@@ -499,7 +499,7 @@ private final class ImageViewController {
             case let .fadeIn(params):
                 runFadeInTransition(image: image, params: params, response: response)
             case let .custom(closure):
-                // The user is reponsible for both displaying an image and performing
+                // The user is responsible for both displaying an image and performing
                 // animations.
                 closure(imageView, image.image)
             }

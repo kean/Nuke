@@ -20,7 +20,7 @@ class RateLimiterTests: XCTestCase {
         rateLimiter = RateLimiter(queue: queue, rate: 10, burst: 2)
     }
 
-    func testThatBurstIsExecutedImmediatelly() {
+    func testThatBurstIsExecutedimmediately() {
         // Given
         var isExecuted = Array(repeating: false, count: 4)
 
@@ -35,7 +35,7 @@ class RateLimiterTests: XCTestCase {
         }
 
         // Then
-        XCTAssertEqual(isExecuted, [true, true, false, false], "Expect first 2 items to be executed immediatelly")
+        XCTAssertEqual(isExecuted, [true, true, false, false], "Expect first 2 items to be executed immediately")
     }
 
     func testThatNotExecutedItemDoesntExtractFromBucket() {
@@ -53,7 +53,7 @@ class RateLimiterTests: XCTestCase {
         }
 
         // Then
-        XCTAssertEqual(isExecuted, [true, true, true, false], "Expect first 2 items to be executed immediatelly")
+        XCTAssertEqual(isExecuted, [true, true, true, false], "Expect first 2 items to be executed immediately")
     }
 
     func testOverflow() {

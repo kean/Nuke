@@ -100,7 +100,7 @@ class ImageViewIntegrationTests: XCTestCase {
         // GIVEN
         let input = ImageRequest(url: nil)
 
-        // WNEN/THEN
+        // WHEN/THEN
         let expectation = self.expectation(description: "ImageLoaded")
         pipeline.loadImage(with: input) {
             XCTAssertTrue($0.isFailure)

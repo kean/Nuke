@@ -511,7 +511,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         wait()
 
         // THEN encoded processed image is stored in disk cache and
-        // orginal image data stored in disk cache
+        // original image data stored in disk cache
         XCTAssertEqual(encoder.encodeCount, 1)
         XCTAssertNotNil(dataCache.cachedData(for: Test.url.absoluteString + "p1"))
         XCTAssertNotNil(dataCache.cachedData(for: Test.url.absoluteString))

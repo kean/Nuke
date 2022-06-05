@@ -91,7 +91,7 @@ extension XCTestCase {
         let valuesExpectation = self.expect(values: values)
         let observation = object.observe(keyPath, options: [.new]) { (object, change) in
             changeHandler?(object, change)
-            DispatchQueue.main.async { // Syncrhonize access to `valuesExpectation`
+            DispatchQueue.main.async { // Synchronize access to `valuesExpectation`
                 valuesExpectation.received(change.newValue!)
             }
         }

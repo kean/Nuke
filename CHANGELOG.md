@@ -99,20 +99,20 @@ ImageRequest(url: url, processors: [.resize(width: 320)])
 
 *Aug 30, 2021*
 
-- Fix build on watchOS (needs investigation why xcodebuild returns 0 for failed watchOS builds) - [#505](https://github.com/kean/Nuke/pull/505), thanks fo [David Harris](https://github.com/thedavidharris)
+- Fix build on watchOS (needs investigation why xcodebuild returns 0 for failed watchOS builds) - [#505](https://github.com/kean/Nuke/pull/505), thanks to [David Harris](https://github.com/thedavidharris)
 
 ## Nuke 10.4.0
 
 *Aug 28, 2021*
 
-- Add an API for efficiently image thumbnails or retreiving existings ones - [#503](https://github.com/kean/Nuke/pull/503)
+- Add an API for efficiently image thumbnails or retrieving existings ones - [#503](https://github.com/kean/Nuke/pull/503)
 - Fix an issue with scale (`ImageRequest.UserInfoKey.scaleKey`) not being applied to progressively decoded images
 
 ## Nuke 10.3.4
 
 *Aug 26, 2021*
 
-- Fix an issue where if you pass incorect strings (`String`) in the request, the pipeline eventually start failing silently - [#502](https://github.com/kean/Nuke/pull/502) 
+- Fix an issue where if you pass incorrect strings (`String`) in the request, the pipeline eventually start failing silently - [#502](https://github.com/kean/Nuke/pull/502) 
 
 ## Nuke 10.3.3
 
@@ -136,7 +136,7 @@ ImageRequest(url: url, processors: [.resize(width: 320)])
 
 *Jun 10, 2021*
 
-- Add `animation` propery to `FetchImage` that significantly simplifies how to animate image appearence
+- Add `animation` property to `FetchImage` that significantly simplifies how to animate image appearance
 - Add `imageType` parameter to `ImageDecoders.Empty`
 - Add an option to override image scale (`ImageRequest.UserInfoKey.scaleKey`)
 
@@ -378,7 +378,7 @@ There are deprecation warnings in place to help guide you through the migration 
 
 *Dec 26, 2020*
 
-- Deprecate `crop` parameter in `ImageProcessors.Resize` `init(height:)` and `init(width:)` initailizers (crop doesn't make sense in with these parameters)
+- Deprecate `crop` parameter in `ImageProcessors.Resize` `init(height:)` and `init(width:)` initializers (crop doesn't make sense in with these parameters)
 
 ## Nuke 9.2.1
 
@@ -858,7 +858,7 @@ public typealias Completion = (_ result: Result<ImageResponse, ImagePipeline.Err
 
 ### Performance
 
-Apart from the general performance improvements Nuke now also offers a great way to measure performance and gain visiblity into how the system behaves when loading images.
+Apart from the general performance improvements Nuke now also offers a great way to measure performance and gain visibility into how the system behaves when loading images.
 
 #### [#250 Integrate `os_signpost`](https://github.com/kean/Nuke/pull/250)
 
@@ -1001,7 +1001,7 @@ Nuke 7 had a lot of API changes, to make the migration easier it shipped with De
 
 *Jul 20, 2018*
 
-- `ImagePipeline` now updates the priority of shared operations when the registered tasks get canceled (was previosuly only reacting to added tasks)
+- `ImagePipeline` now updates the priority of shared operations when the registered tasks get canceled (was previously only reacting to added tasks)
 - Fix an issue where `didFinishCollectingMetrics` closure wasn't called for the tasks completed with images found in memory cache and the tasks canceled before they got a chance to run. Now _every_ created tasks gets a corresponding `didFinishCollectingMetrics` call.
 
 

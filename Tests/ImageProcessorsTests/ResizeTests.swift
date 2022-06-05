@@ -285,7 +285,7 @@ class ImageProcessorsResizeTests: XCTestCase {
         XCTAssertEqual(processor.description, "Resize(size: (30.0, 30.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)")
     }
 
-    // Just make sure these initailizers are still available.
+    // Just make sure these initializers are still available.
     func testInitailizer() {
         _ = ImageProcessors.Resize(height: 10)
         _ = ImageProcessors.Resize(width: 10)

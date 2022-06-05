@@ -154,7 +154,7 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
         // 1 preview from sync cache lookup
         // 1 preview from async cache lookup (we don't want it really though)
         // 2 previews from data loading
-        // 1 final iamge
+        // 1 final image
         // we also expect resumable data to kick in for real downloads
         imagesProduced.expectedFulfillmentCount = 5
         var previewsCount = 0

@@ -4,7 +4,7 @@
 
 import Foundation
 
-/// A delegate that allows you to customize the pipleine on a per-request basis.
+/// A delegate that allows you to customize the pipeline on a per-request basis.
 ///
 /// - warning: The delegate methods are performed on the pipeline queue in the
 /// background.
@@ -14,7 +14,7 @@ public protocol ImagePipelineDelegate: AnyObject {
     /// Returns data loader for the given request.
     func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> DataLoading
 
-    /// Retuns disk cache for the given request. Return `nil` to prevent cache
+    /// Returns disk cache for the given request. Return `nil` to prevent cache
     /// reads and writes.
     func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> DataCaching?
 

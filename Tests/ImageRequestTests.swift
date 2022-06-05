@@ -18,7 +18,7 @@ class ImageRequestTests: XCTestCase {
 
         // WHEN
         var copy = request
-        // Requst makes a copy at this point under the hood.
+        // Request makes a copy at this point under the hood.
         copy.priority = .low
 
         // THEN
