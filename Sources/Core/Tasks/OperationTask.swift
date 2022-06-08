@@ -8,9 +8,9 @@ import Foundation
 final class OperationTask<T>: AsyncTask<T, Swift.Error> {
     private let pipeline: ImagePipeline
     private let queue: OperationQueue
-    private let process: () -> T?
+    private let process: () throws -> T
 
-    init(_ pipeline: ImagePipeline, _ queue: OperationQueue, _ process: @escaping () -> T?) {
+    init(_ pipeline: ImagePipeline, _ queue: OperationQueue, _ process: @escaping () throws -> T) {
         self.pipeline = pipeline
         self.queue = queue
         self.process = process
@@ -19,13 +19,14 @@ final class OperationTask<T>: AsyncTask<T, Swift.Error> {
     override func start() {
         operation = queue.add { [weak self] in
             guard let self = self else { return }
-            let output = self.process()
+            let result = Result(catching: { try self.process() })
             self.pipeline.queue.async {
-                guard let output = output else {
-                    self.send(error: Error())
-                    return
+                switch result {
+                case .success(let value):
+                    self.send(value: value, isCompleted: true)
+                case .failure(let error):
+                    self.send(error: error)
                 }
-                self.send(value: output, isCompleted: true)
             }
         }
     }

@@ -26,7 +26,7 @@ sturct CustomImageProcessor: ImageProcessing {
 ```swift
 // After (Nuke 11)
 sturct CustomImageProcessor: ImageProcessing {
-    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
         container.map { $0.drawInCircle() }
     }
 }

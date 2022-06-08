@@ -29,7 +29,7 @@ class MockImageProcessor: ImageProcessing, CustomStringConvertible {
         self.identifier = id
     }
 
-    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
         container.map { image in
             var processorIDs: [String] = image.nk_test_processorIDs
 #if os(macOS)
@@ -54,7 +54,7 @@ class MockImageProcessor: ImageProcessing, CustomStringConvertible {
 // MARK: - MockFailingProcessor
 
 class MockFailingProcessor: ImageProcessing {
-    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
         nil
     }
 
@@ -68,7 +68,7 @@ class MockFailingProcessor: ImageProcessing {
 class MockEmptyImageProcessor: ImageProcessing {
     let identifier = "MockEmptyImageProcessor"
 
-    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
         container
     }
 
@@ -87,7 +87,7 @@ final class MockProcessorFactory {
     private final class Processor: MockImageProcessor {
         var factory: MockProcessorFactory!
 
-        override func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+        override func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
             factory.lock.lock()
             factory.numberOfProcessorsApplied += 1
             factory.lock.unlock()

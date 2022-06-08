@@ -18,10 +18,10 @@ extension ImageProcessors {
         /// Processes the given image by applying each processor in an order in
         /// which they were added. If one of the processors fails to produce
         /// an image the processing stops and `nil` is returned.
-        public func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
-            processors.reduce(container) { container, processor in
-                autoreleasepool {
-                    container.flatMap { processor.process($0, context: context) }
+        public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
+            try processors.reduce(container) { container, processor in
+                try autoreleasepool {
+                    try processor.process(container, context: context)
                 }
             }
         }

@@ -29,12 +29,12 @@ func signpost<T>(_ log: OSLog, _ name: StaticString, _ work: () -> T) -> T {
     return result
 }
 
-func signpost<T>(_ log: OSLog, _ name: StaticString, _ message: @autoclosure () -> String, _ work: () -> T) -> T {
-    guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return work() }
+func signpost<T>(_ log: OSLog, _ name: StaticString, _ message: @autoclosure () -> String, _ work: () throws -> T) rethrows -> T {
+    guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return try work() }
 
     let signpostId = OSSignpostID(log: log)
     os_signpost(.begin, log: log, name: name, signpostID: signpostId, "%{public}s", message())
-    let result = work()
+    let result = try work()
     os_signpost(.end, log: log, name: name, signpostID: signpostId)
     return result
 }
