@@ -59,7 +59,7 @@ extension ImageProcessors {
                 if let image = image.cgImage {
                     return CoreImage.CIImage(cgImage: image)
                 }
-                throw Error.failedToCreateInputCIImage(inputImage: image)
+                throw Error.inputImageIsEmpty(inputImage: image)
             }
             filter.setValue(try getCIImage(), forKey: kCIInputImageKey)
             guard let outputImage = filter.outputImage else {
@@ -77,7 +77,7 @@ extension ImageProcessors {
 
         public enum Error: Swift.Error, CustomStringConvertible {
             case failedToCreateFilter(name: String, parameters: [String: Any])
-            case failedToCreateInputCIImage(inputImage: PlatformImage)
+            case inputImageIsEmpty(inputImage: PlatformImage)
             case failedToApplyFilter(filter: CIFilter)
             case failedToCreateOutputCGImage(image: CIImage)
 
@@ -85,7 +85,7 @@ extension ImageProcessors {
                 switch self {
                 case let .failedToCreateFilter(name, parameters):
                     return "Failed to create filter named \(name) with parameters: \(parameters)"
-                case let .failedToCreateInputCIImage(inputImage):
+                case let .inputImageIsEmpty(inputImage):
                     return "Failed to create input CIImage for \(inputImage)"
                 case let .failedToApplyFilter(filter):
                     return "Failed to apply filter: \(filter.name)"

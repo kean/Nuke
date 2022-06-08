@@ -33,7 +33,7 @@ class ImageProcessorsAnonymousTests: XCTestCase {
         )
     }
 
-    func testAnonymousProcessorIsApplied() {
+    func testAnonymousProcessorIsApplied() throws {
         // Given
         let processor = ImageProcessors.Anonymous(id: "1") {
             $0.nk_test_processorIDs = ["1"]
@@ -41,9 +41,9 @@ class ImageProcessorsAnonymousTests: XCTestCase {
         }
 
         // When
-        let image = processor.process(Test.image)
+        let image = try processor.process(Test.image)
 
         // Then
-        XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
+        XCTAssertEqual(image.nk_test_processorIDs ?? [], ["1"])
     }
 }

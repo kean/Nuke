@@ -48,7 +48,18 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
         let processor = ImageProcessors.CoreImageFilter(name: "yo", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
 
         // THEN
-        XCTAssertNil(processor.process(input))
+        XCTAssertThrowsError(try processor.process(input)) { error in
+            guard let error = error as? ImageProcessors.CoreImageFilter.Error else {
+                return XCTFail("Unexpected error type: \(error)")
+            }
+            switch error {
+            case let .failedToCreateFilter(name, parameters):
+                XCTAssertEqual(name, "yo")
+                XCTAssertNotNil(parameters["inputIntensity"])
+            default:
+                XCTFail("Unexpected error type: \(error)")
+            }
+        }
     }
 
     #if os(iOS) || os(tvOS)
@@ -71,7 +82,17 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
 
         // THEN
-        XCTAssertNil(processor.process(input))
+        XCTAssertThrowsError(try processor.process(input)) { error in
+            guard let error = error as? ImageProcessors.CoreImageFilter.Error else {
+                return XCTFail("Unexpected error type: \(error)")
+            }
+            switch error {
+            case .inputImageIsEmpty:
+                break // Do nothing
+            default:
+                XCTFail("Unexpected error type: \(error)")
+            }
+        }
     }
 
     func testDescription() {

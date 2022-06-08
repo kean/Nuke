@@ -55,12 +55,16 @@ class MockImageProcessor: ImageProcessing, CustomStringConvertible {
 
 class MockFailingProcessor: ImageProcessing {
     func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-        nil
+        throw MockError(description: "MockFailingProcessor failed")
     }
 
     var identifier: String {
         "MockFailingProcessor"
     }
+}
+
+struct MockError: Error {
+    let description: String
 }
 
 // MARK: - MockEmptyImageProcessor
@@ -91,7 +95,7 @@ final class MockProcessorFactory {
             factory.lock.lock()
             factory.numberOfProcessorsApplied += 1
             factory.lock.unlock()
-            return super.process(container, context: context)
+            return try super.process(container, context: context)
         }
     }
 

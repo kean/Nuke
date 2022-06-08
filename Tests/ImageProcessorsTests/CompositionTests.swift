@@ -13,7 +13,7 @@ import XCTest
 
 class ImageProcessorsCompositionTest: XCTestCase {
 
-    func testAppliesAllProcessors() {
+    func testAppliesAllProcessors() throws {
         // GIVEN
         let processor = ImageProcessors.Composition([
             MockImageProcessor(id: "1"),
@@ -21,10 +21,10 @@ class ImageProcessorsCompositionTest: XCTestCase {
         )
 
         // WHEN
-        let image = processor.process(Test.image)
+        let image = try processor.process(Test.image)
 
         // THEN
-        XCTAssertEqual(image?.nk_test_processorIDs, ["1", "2"])
+        XCTAssertEqual(image.nk_test_processorIDs, ["1", "2"])
     }
 
     func testAppliesAllProcessorsWithContext() throws {
@@ -36,11 +36,10 @@ class ImageProcessorsCompositionTest: XCTestCase {
 
         // WHEN
         let context = ImageProcessingContext(request: Test.request, response: ImageResponse(container: Test.container), isFinal: true)
-        let output = processor.process(Test.container, context: context)
+        let output = try processor.process(Test.container, context: context)
 
         // THEN
-        let image = try XCTUnwrap(output?.image)
-        XCTAssertEqual(image.nk_test_processorIDs, ["1", "2"])
+        XCTAssertEqual(output.image.nk_test_processorIDs, ["1", "2"])
     }
 
     func testIdenfitiers() {
