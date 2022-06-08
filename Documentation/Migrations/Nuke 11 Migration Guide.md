@@ -16,7 +16,7 @@ If you have custom image processors that implement `ImageProcessing` protocol us
 
 ```swift
 // Before (Nuke 10)
-sturct CustomImageProcessor: ImageProcessing {
+struct CustomImageProcessor: ImageProcessing {
     func process(_ image: PlatformImage) -> PlatformImage? {
         image.drawInCircle()
     }
@@ -25,7 +25,7 @@ sturct CustomImageProcessor: ImageProcessing {
 
 ```swift
 // After (Nuke 11)
-sturct CustomImageProcessor: ImageProcessing {
+struct CustomImageProcessor: ImageProcessing {
     func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
         container.map { $0.drawInCircle() }
     }
