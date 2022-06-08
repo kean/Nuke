@@ -15,14 +15,6 @@ extension ImageProcessors {
             self.processors = processors
         }
 
-        public func process(_ image: PlatformImage) -> PlatformImage? {
-            processors.reduce(image) { image, processor in
-                autoreleasepool {
-                    image.flatMap { processor.process($0) }
-                }
-            }
-        }
-
         /// Processes the given image by applying each processor in an order in
         /// which they were added. If one of the processors fails to produce
         /// an image the processing stops and `nil` is returned.

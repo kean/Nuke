@@ -22,11 +22,6 @@ import Foundation
 ///
 /// You must implement either one of those methods.
 public protocol ImageProcessing {
-    /// Returns a processed image. By default, returns `nil`.
-    ///
-    /// - note: Gets called a background queue managed by the pipeline.
-    func process(_ image: PlatformImage) -> PlatformImage?
-
     /// Optional method. Returns a processed image. By default, this calls the
     /// basic `process(image:)` method.
     ///
@@ -51,12 +46,6 @@ public protocol ImageProcessing {
 }
 
 public extension ImageProcessing {
-    /// The default implementation simply calls the basic
-    /// `process(_ image: PlatformImage) -> PlatformImage?` method.
-    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
-        container.map(process)
-    }
-
     /// The default impleemntation simply returns `var identifier: String`.
     var hashableIdentifier: AnyHashable { identifier }
 }

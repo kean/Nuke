@@ -38,9 +38,9 @@ extension ImageProcessors {
             self.identifier = "com.github.kean/nuke/core_image?name=\(name))"
         }
 
-        public func process(_ image: PlatformImage) -> PlatformImage? {
+        public func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
             let filter = CIFilter(name: name, parameters: parameters)
-            return CoreImageFilter.apply(filter: filter, to: image)
+            return container.map { CoreImageFilter.apply(filter: filter, to: $0) }
         }
 
         // MARK: - Apply Filter

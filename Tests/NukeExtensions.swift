@@ -59,6 +59,13 @@ extension ImagePipeline {
     }
 }
 
+extension ImageProcessing {
+    func process(_ image: PlatformImage) -> PlatformImage? {
+        let context = ImageProcessingContext(request: Test.request, response: Test.response, isFinal: true)
+        return process(ImageContainer(image: image), context: context)?.image
+    }
+}
+
 #if !os(watchOS)
 extension ImageLoadingOptions {
     private static var stack = [ImageLoadingOptions]()

@@ -15,8 +15,8 @@ extension ImageProcessors {
             self.closure = closure
         }
 
-        public func process(_ image: PlatformImage) -> PlatformImage? {
-            self.closure(image)
+        public func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+            container.map(closure)
         }
 
         public var description: String {

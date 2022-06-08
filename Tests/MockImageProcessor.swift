@@ -29,19 +29,21 @@ class MockImageProcessor: ImageProcessing, CustomStringConvertible {
         self.identifier = id
     }
 
-    func process(_ image: PlatformImage) -> PlatformImage? {
-        var processorIDs: [String] = image.nk_test_processorIDs
-        #if os(macOS)
-        let processedImage = image.copy() as! PlatformImage
-        #else
-        guard let copy = image.cgImage?.copy() else {
-            return image
+    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+        container.map { image in
+            var processorIDs: [String] = image.nk_test_processorIDs
+#if os(macOS)
+            let processedImage = image.copy() as! PlatformImage
+#else
+            guard let copy = image.cgImage?.copy() else {
+                return image
+            }
+            let processedImage = PlatformImage(cgImage: copy)
+#endif
+            processorIDs.append(identifier)
+            processedImage.nk_test_processorIDs = processorIDs
+            return processedImage
         }
-        let processedImage = PlatformImage(cgImage: copy)
-        #endif
-        processorIDs.append(identifier)
-        processedImage.nk_test_processorIDs = processorIDs
-        return processedImage
     }
 
     var description: String {
@@ -52,12 +54,12 @@ class MockImageProcessor: ImageProcessing, CustomStringConvertible {
 // MARK: - MockFailingProcessor
 
 class MockFailingProcessor: ImageProcessing {
-    func process(_ image: PlatformImage) -> PlatformImage? {
-        return nil
+    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+        nil
     }
 
     var identifier: String {
-        return "MockFailingProcessor"
+        "MockFailingProcessor"
     }
 }
 
@@ -66,12 +68,12 @@ class MockFailingProcessor: ImageProcessing {
 class MockEmptyImageProcessor: ImageProcessing {
     let identifier = "MockEmptyImageProcessor"
 
-    func process(_ image: PlatformImage) -> PlatformImage? {
-        return image
+    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+        container
     }
 
     static func == (lhs: MockEmptyImageProcessor, rhs: MockEmptyImageProcessor) -> Bool {
-        return true
+        true
     }
 }
 
@@ -85,11 +87,11 @@ final class MockProcessorFactory {
     private final class Processor: MockImageProcessor {
         var factory: MockProcessorFactory!
 
-        override func process(_ image: PlatformImage) -> PlatformImage? {
+        override func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
             factory.lock.lock()
             factory.numberOfProcessorsApplied += 1
             factory.lock.unlock()
-            return super.process(image)
+            return super.process(container, context: context)
         }
     }
 
