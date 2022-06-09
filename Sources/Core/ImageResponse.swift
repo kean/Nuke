@@ -44,9 +44,9 @@ public struct ImageResponse {
         self.cacheType = cacheType
     }
 
-    func map(_ transformation: (ImageContainer) throws -> ImageContainer) rethrows -> ImageResponse {
+    func map(_ transform: (ImageContainer) throws -> ImageContainer) rethrows -> ImageResponse {
         try autoreleasepool {
-            ImageResponse(container: try transformation(container), urlResponse: urlResponse, cacheType: cacheType)
+            ImageResponse(container: try transform(container), urlResponse: urlResponse, cacheType: cacheType)
         }
     }
 
