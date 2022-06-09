@@ -44,12 +44,9 @@ public struct ImageResponse {
         self.cacheType = cacheType
     }
 
-    func map(_ transformation: (ImageContainer) -> ImageContainer?) -> ImageResponse? {
-        return autoreleasepool {
-            guard let output = transformation(container) else {
-                return nil
-            }
-            return ImageResponse(container: output, urlResponse: urlResponse, cacheType: cacheType)
+    func map(_ transformation: (ImageContainer) throws -> ImageContainer) rethrows -> ImageResponse {
+        try autoreleasepool {
+            ImageResponse(container: try transformation(container), urlResponse: urlResponse, cacheType: cacheType)
         }
     }
 
@@ -116,11 +113,8 @@ public struct ImageContainer {
     }
 
     /// Modifies the wrapped image and keeps all of the rest of the metadata.
-    public func map(_ closure: (PlatformImage) -> PlatformImage?) -> ImageContainer? {
-        guard let image = closure(self.image) else {
-            return nil
-        }
-        return ImageContainer(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
+    public func map(_ closure: (PlatformImage) throws -> PlatformImage) rethrows -> ImageContainer {
+        ImageContainer(image: try closure(image), type: type, isPreview: isPreview, data: data, userInfo: userInfo)
     }
 
     /// A key use in `userInfo`.

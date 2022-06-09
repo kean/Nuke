@@ -12,41 +12,35 @@ import XCTest
 #if os(iOS) || os(tvOS) || os(macOS)
 
 class ImageProcessorsGaussianBlurTest: XCTestCase {
-    func testApplyBlur() {
+    func testApplyBlur() throws {
         // Given
         let image = Test.image
         let processor = ImageProcessors.GaussianBlur()
         XCTAssertFalse(processor.description.isEmpty) // Bumping that test coverage
 
         // When
-        let processed = processor.process(image)
-
-        // Then
-        XCTAssertNotNil(processed)
+        try processor.process(image)
     }
 
-    func testApplyBlurProducesImagesBackedByCoreGraphics() {
+    func testApplyBlurProducesImagesBackedByCoreGraphics() throws {
         // Given
         let image = Test.image
         let processor = ImageProcessors.GaussianBlur()
 
         // When
-        let processed = processor.process(image)
-
-        // Then
-        XCTAssertNotNil(processed?.cgImage)
+        try processor.process(image)
     }
 
-    func testApplyBlurProducesTransparentImages() {
+    func testApplyBlurProducesTransparentImages() throws {
         // Given
         let image = Test.image
         let processor = ImageProcessors.GaussianBlur()
 
         // When
-        let processed = processor.process(image)
+        let processed = try processor.process(image)
 
         // Then
-        XCTAssertEqual(processed?.cgImage?.isOpaque, false)
+        XCTAssertEqual(processed.cgImage?.isOpaque, false)
     }
 
     func testImagesWithSameRadiusHasSameIdentifiers() {

@@ -26,7 +26,7 @@ public protocol ImageProcessing {
     /// basic `process(image:)` method.
     ///
     /// - note: Gets called a background queue managed by the pipeline.
-    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer?
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer
 
     /// Returns a string that uniquely identifies the processor.
     ///

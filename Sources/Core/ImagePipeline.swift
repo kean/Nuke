@@ -440,7 +440,7 @@ public final class ImagePipeline {
         }
     }
 
-    func makeTaskProcessImage(key: ImageProcessingKey, process: @escaping () -> ImageResponse?) -> AsyncTask<ImageResponse, Swift.Error>.Publisher {
+    func makeTaskProcessImage(key: ImageProcessingKey, process: @escaping () throws -> ImageResponse) -> AsyncTask<ImageResponse, Swift.Error>.Publisher {
         tasksProcessImage.publisherForKey(key) {
             OperationTask(self, configuration.imageProcessingQueue, process)
         }

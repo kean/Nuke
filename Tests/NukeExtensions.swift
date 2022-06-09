@@ -60,9 +60,9 @@ extension ImagePipeline {
 }
 
 extension ImageProcessing {
-    func process(_ image: PlatformImage) -> PlatformImage? {
+    func process(_ image: PlatformImage) throws -> PlatformImage {
         let context = ImageProcessingContext(request: Test.request, response: Test.response, isFinal: true)
-        return process(ImageContainer(image: image), context: context)?.image
+        return (try process(ImageContainer(image: image), context: context)).image
     }
 }
 

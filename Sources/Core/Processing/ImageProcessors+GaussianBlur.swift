@@ -20,9 +20,11 @@ extension ImageProcessors {
         }
 
         /// Applies `CIGaussianBlur` filter to the image.
-        public func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
-            let filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": radius])
-            return container.map { CoreImageFilter.apply(filter: filter, to: $0) }
+        public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
+            guard let filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": radius]) else {
+                throw ImageProcessors.CoreImageFilter.Error.failedToCreateFilter(name: "CIGaussianBlur", parameters: ["inputRadius": radius])
+            }
+            return try container.map { try CoreImageFilter.apply(filter: filter, to: $0) }
         }
 
         public var identifier: String {

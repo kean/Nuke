@@ -21,8 +21,8 @@ extension ImageProcessors {
     /// - [Core Image Programming Guide](https://developer.apple.com/library/ios/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html)
     /// - [Core Image Filter Reference](https://developer.apple.com/library/prerelease/ios/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html)
     public struct CoreImageFilter: ImageProcessing, CustomStringConvertible {
-        private let name: String
-        private let parameters: [String: Any]
+        public let name: String
+        public let parameters: [String: Any]
         public let identifier: String
 
         /// - parameter identifier: Uniquely identifies the processor.
@@ -38,9 +38,11 @@ extension ImageProcessors {
             self.identifier = "com.github.kean/nuke/core_image?name=\(name))"
         }
 
-        public func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
-            let filter = CIFilter(name: name, parameters: parameters)
-            return container.map { CoreImageFilter.apply(filter: filter, to: $0) }
+        public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
+            guard let filter = CIFilter(name: name, parameters: parameters) else {
+                throw Error.failedToCreateFilter(name: name, parameters: parameters)
+            }
+            return try container.map { try CoreImageFilter.apply(filter: filter, to: $0) }
         }
 
         // MARK: - Apply Filter
@@ -49,37 +51,48 @@ extension ImageProcessors {
         /// has `.priorityRequestLow` option set to `true`.
         public static var context = CIContext(options: [.priorityRequestLow: true])
 
-        public static func apply(filter: CIFilter?, to image: PlatformImage) -> PlatformImage? {
-            guard let filter = filter else {
-                return nil
-            }
-            return applyFilter(to: image) {
-                filter.setValue($0, forKey: kCIInputImageKey)
-                return filter.outputImage
-            }
-        }
-
-        static func applyFilter(to image: PlatformImage, context: CIContext = context, closure: (CoreImage.CIImage) -> CoreImage.CIImage?) -> PlatformImage? {
-            let ciImage: CoreImage.CIImage? = {
+        public static func apply(filter: CIFilter, to image: PlatformImage) throws -> PlatformImage {
+            func getCIImage() throws -> CoreImage.CIImage {
                 if let image = image.ciImage {
                     return image
                 }
                 if let image = image.cgImage {
                     return CoreImage.CIImage(cgImage: image)
                 }
-                return nil
-            }()
-            guard let inputImage = ciImage, let outputImage = closure(inputImage) else {
-                return nil
+                throw Error.inputImageIsEmpty(inputImage: image)
+            }
+            filter.setValue(try getCIImage(), forKey: kCIInputImageKey)
+            guard let outputImage = filter.outputImage else {
+                throw Error.failedToApplyFilter(filter: filter)
             }
             guard let imageRef = context.createCGImage(outputImage, from: outputImage.extent) else {
-                return nil
+                throw Error.failedToCreateOutputCGImage(image: outputImage)
             }
             return PlatformImage.make(cgImage: imageRef, source: image)
         }
 
         public var description: String {
             "CoreImageFilter(name: \(name), parameters: \(parameters))"
+        }
+
+        public enum Error: Swift.Error, CustomStringConvertible {
+            case failedToCreateFilter(name: String, parameters: [String: Any])
+            case inputImageIsEmpty(inputImage: PlatformImage)
+            case failedToApplyFilter(filter: CIFilter)
+            case failedToCreateOutputCGImage(image: CIImage)
+
+            public var description: String {
+                switch self {
+                case let .failedToCreateFilter(name, parameters):
+                    return "Failed to create filter named \(name) with parameters: \(parameters)"
+                case let .inputImageIsEmpty(inputImage):
+                    return "Failed to create input CIImage for \(inputImage)"
+                case let .failedToApplyFilter(filter):
+                    return "Failed to apply filter: \(filter.name)"
+                case let .failedToCreateOutputCGImage(image):
+                    return "Failed to create output image for extent: \(image.extent) from \(image)"
+                }
+            }
         }
     }
 }

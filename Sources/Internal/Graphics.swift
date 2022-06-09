@@ -27,11 +27,13 @@ extension PlatformImage {
 struct ImageProcessingExtensions {
     let image: PlatformImage
 
-    func byResizing(to targetSize: CGSize,
-                    contentMode: ImageProcessors.Resize.ContentMode,
-                    upscale: Bool) -> PlatformImage? {
+    func byResizing(
+        to targetSize: CGSize,
+        contentMode: ImageProcessors.Resize.ContentMode,
+        upscale: Bool) throws
+    -> PlatformImage {
         guard let cgImage = image.cgImage else {
-            return nil
+            throw ImageDrawingError.imageNotBackedByCoreGraphicsImage
         }
         #if os(iOS) || os(tvOS) || os(watchOS)
         let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
@@ -41,14 +43,14 @@ struct ImageProcessingExtensions {
             return image // The image doesn't require scaling
         }
         let size = cgImage.size.scaled(by: scale).rounded()
-        return image.draw(inCanvasWithSize: size)
+        return try image.draw(inCanvasWithSize: size)
     }
 
     /// Crops the input image to the given size and resizes it if needed.
     /// - note: this method will always upscale.
-    func byResizingAndCropping(to targetSize: CGSize) -> PlatformImage? {
+    func byResizingAndCropping(to targetSize: CGSize) throws -> PlatformImage {
         guard let cgImage = image.cgImage else {
-            return nil
+            throw ImageDrawingError.imageNotBackedByCoreGraphicsImage
         }
         #if os(iOS) || os(tvOS) || os(watchOS)
         let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
@@ -56,22 +58,25 @@ struct ImageProcessingExtensions {
         let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: .aspectFill)
         let scaledSize = cgImage.size.scaled(by: scale)
         let drawRect = scaledSize.centeredInRectWithSize(targetSize)
-        return image.draw(inCanvasWithSize: targetSize, drawRect: drawRect)
+        return try image.draw(inCanvasWithSize: targetSize, drawRect: drawRect)
     }
 
-    func byDrawingInCircle(border: ImageProcessingOptions.Border?) -> PlatformImage? {
-        guard let squared = byCroppingToSquare(), let cgImage = squared.cgImage else {
-            return nil
+    func byDrawingInCircle(border: ImageProcessingOptions.Border?) throws -> PlatformImage {
+        let squared = try byCroppingToSquare()
+        guard let cgImage = squared.cgImage else {
+            // This should never happen because the framework controls the drawing and
+            // it uses CoreGraphics, so the output image must be backed by CGImage.
+            throw ImageDrawingError.imageNotBackedByCoreGraphicsImage
         }
         let radius = CGFloat(cgImage.width) // Can use any dimension since image is a square
-        return squared.processed.byAddingRoundedCorners(radius: radius / 2.0, border: border)
+        return try squared.processed.byAddingRoundedCorners(radius: radius / 2.0, border: border)
     }
 
     /// Draws an image in square by preserving an aspect ratio and filling the
     /// square if needed. If the image is already a square, returns an original image.
-    func byCroppingToSquare() -> PlatformImage? {
+    func byCroppingToSquare() throws -> PlatformImage {
         guard let cgImage = image.cgImage else {
-            return nil
+            throw ImageDrawingError.imageNotBackedByCoreGraphicsImage
         }
 
         guard cgImage.width != cgImage.height else {
@@ -86,7 +91,7 @@ struct ImageProcessingExtensions {
             dy: max(0, (imageSize.height - targetSize.height) / 2)
         )
         guard let cropped = cgImage.cropping(to: cropRect) else {
-            return nil
+            throw ImageDrawingError.failedToCropImage(targetRect: cropRect)
         }
         return PlatformImage.make(cgImage: cropped, source: image)
     }
@@ -94,12 +99,12 @@ struct ImageProcessingExtensions {
     /// Adds rounded corners with the given radius to the image.
     /// - parameter radius: Radius in pixels.
     /// - parameter border: Optional stroke border.
-    func byAddingRoundedCorners(radius: CGFloat, border: ImageProcessingOptions.Border? = nil) -> PlatformImage? {
+    func byAddingRoundedCorners(radius: CGFloat, border: ImageProcessingOptions.Border? = nil) throws -> PlatformImage {
         guard let cgImage = image.cgImage else {
-            return nil
+            throw ImageDrawingError.imageNotBackedByCoreGraphicsImage
         }
         guard let ctx = CGContext.make(cgImage, size: cgImage.size, alphaInfo: .premultipliedLast) else {
-            return nil
+            throw ImageDrawingError.failedToCreateDrawingContext
         }
         let rect = CGRect(origin: CGPoint.zero, size: cgImage.size)
         let path = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
@@ -114,9 +119,29 @@ struct ImageProcessingExtensions {
             ctx.strokePath()
         }
         guard let outputCGImage = ctx.makeImage() else {
-            return nil
+            throw ImageDrawingError.failedToDrawOutputImage
         }
         return PlatformImage.make(cgImage: outputCGImage, source: image)
+    }
+}
+
+public enum ImageDrawingError: Swift.Error, CustomStringConvertible {
+    case imageNotBackedByCoreGraphicsImage
+    case failedToCreateDrawingContext
+    case failedToDrawOutputImage
+    case failedToCropImage(targetRect: CGRect)
+
+    public var description: String {
+        switch self {
+        case .imageNotBackedByCoreGraphicsImage:
+            return "Image not backed by Core Graphics image (CGImage)"
+        case .failedToCreateDrawingContext:
+            return "Failed to create drawing context (CGContext)"
+        case .failedToDrawOutputImage:
+            return "Failed to generate output from the drawing context (CGContext)"
+        case .failedToCropImage(let targetRect):
+            return "Failed to crop image to the target rect: \(targetRect)"
+        }
     }
 }
 
@@ -130,16 +155,16 @@ extension PlatformImage {
     /// in a square by centering it in the canvas.
     ///
     /// - parameter drawRect: `nil` by default. If `nil` will use the canvas rect.
-    func draw(inCanvasWithSize canvasSize: CGSize, drawRect: CGRect? = nil) -> PlatformImage? {
+    func draw(inCanvasWithSize canvasSize: CGSize, drawRect: CGRect? = nil) throws -> PlatformImage {
         guard let cgImage = cgImage else {
-            return nil
+            throw ImageDrawingError.imageNotBackedByCoreGraphicsImage
         }
         guard let ctx = CGContext.make(cgImage, size: canvasSize) else {
-            return nil
+            throw ImageDrawingError.failedToCreateDrawingContext
         }
         ctx.draw(cgImage, in: drawRect ?? CGRect(origin: .zero, size: canvasSize))
         guard let outputCGImage = ctx.makeImage() else {
-            return nil
+            throw ImageDrawingError.failedToDrawOutputImage
         }
         return PlatformImage.make(cgImage: outputCGImage, source: self)
     }
@@ -154,7 +179,7 @@ extension PlatformImage {
         guard let cgImage = cgImage else {
             return nil
         }
-        return draw(inCanvasWithSize: cgImage.size, drawRect: CGRect(origin: .zero, size: cgImage.size))
+        return try? draw(inCanvasWithSize: cgImage.size, drawRect: CGRect(origin: .zero, size: cgImage.size))
     }
 }
 

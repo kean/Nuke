@@ -29,7 +29,7 @@ class MockImageProcessor: ImageProcessing, CustomStringConvertible {
         self.identifier = id
     }
 
-    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
         container.map { image in
             var processorIDs: [String] = image.nk_test_processorIDs
 #if os(macOS)
@@ -54,8 +54,8 @@ class MockImageProcessor: ImageProcessing, CustomStringConvertible {
 // MARK: - MockFailingProcessor
 
 class MockFailingProcessor: ImageProcessing {
-    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
-        nil
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
+        throw MockError(description: "MockFailingProcessor failed")
     }
 
     var identifier: String {
@@ -63,12 +63,16 @@ class MockFailingProcessor: ImageProcessing {
     }
 }
 
+struct MockError: Error {
+    let description: String
+}
+
 // MARK: - MockEmptyImageProcessor
 
 class MockEmptyImageProcessor: ImageProcessing {
     let identifier = "MockEmptyImageProcessor"
 
-    func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+    func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
         container
     }
 
@@ -87,11 +91,11 @@ final class MockProcessorFactory {
     private final class Processor: MockImageProcessor {
         var factory: MockProcessorFactory!
 
-        override func process(_ container: ImageContainer, context: ImageProcessingContext) -> ImageContainer? {
+        override func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
             factory.lock.lock()
             factory.numberOfProcessorsApplied += 1
             factory.lock.unlock()
-            return super.process(container, context: context)
+            return try super.process(container, context: context)
         }
     }
 

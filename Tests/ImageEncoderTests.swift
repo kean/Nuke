@@ -65,8 +65,7 @@ final class ImageEncoderTests: XCTestCase {
 
     func testEncodeCoreImageBackedImage() throws {
         // Given
-        let image = ImageProcessors.GaussianBlur()
-            .process(Test.image)!
+        let image = try ImageProcessors.GaussianBlur().process(Test.image)
         let encoder = ImageEncoders.Default()
 
         // When
