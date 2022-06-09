@@ -1,5 +1,13 @@
 # Nuke 10
 
+## Nuke 10.11.0
+
+*Jun 8, 2022*
+
+- Add associated `Data` to `ImagePipeline.Error.decodingFailed` - [#545](https://github.com/kean/Nuke/pull/545), thanks to [Shai Mishali](https://github.com/freak4pc)
+
+> There are other major improvements to error reporting coming in [Nuke 11](https://github.com/kean/Nuke/pull/547)
+
 ## Nuke 10.10.0
 
 *May 21, 2022*
