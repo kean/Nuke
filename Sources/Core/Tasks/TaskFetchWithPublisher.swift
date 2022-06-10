@@ -57,7 +57,7 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
         switch result {
         case .finished:
             guard !data.isEmpty else {
-                send(error: .dataLoadingFailed(URLError(.resourceUnavailable, userInfo: [:])))
+                send(error: .dataIsEmpty)
                 return
             }
             storeDataInCacheIfNeeded(data)
