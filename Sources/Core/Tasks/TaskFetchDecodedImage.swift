@@ -51,24 +51,24 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
             }
         }
         if !decoder.isAsynchronous {
-            self.sendResponse(decode(), isCompleted: isCompleted)
+            self.didFinishDecoding(response: decode(), data: data, isCompleted: isCompleted)
         } else {
             operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
                 guard let self = self else { return }
 
                 let response = decode()
                 self.async {
-                    self.sendResponse(response, isCompleted: isCompleted)
+                    self.didFinishDecoding(response: response, data: data, isCompleted: isCompleted)
                 }
             }
         }
     }
 
-    private func sendResponse(_ response: ImageResponse?, isCompleted: Bool) {
+    private func didFinishDecoding(response: ImageResponse?, data: Data, isCompleted: Bool) {
         if let response = response {
             send(value: response, isCompleted: isCompleted)
         } else if isCompleted {
-            send(error: .decodingFailed(response?.container.data ?? Data()))
+            send(error: .decodingFailed(data))
         }
     }
 
