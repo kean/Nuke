@@ -416,7 +416,7 @@ private final class ImageViewController {
             if options.isPrepareForReuseEnabled {
                 imageView.nuke_display(image: nil, data: nil)
             }
-            let result: Result<ImageResponse, ImagePipeline.Error> = .failure(.dataLoadingFailed(URLError(.unknown)))
+            let result: Result<ImageResponse, ImagePipeline.Error> = .failure(.missingImageRequest)
             handle(result: result, isFromMemory: true)
             completion?(result)
             return nil

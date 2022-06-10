@@ -15,6 +15,7 @@ extension ImagePipeline.Error: Equatable {
         case (.decoderNotRegistered, .decoderNotRegistered): return true
         case (.decodingFailed, .decodingFailed): return true
         case (.processingFailed, .processingFailed): return true
+        case (.missingImageRequest, .missingImageRequest): return true
         default: return false
         }
     }

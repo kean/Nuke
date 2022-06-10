@@ -61,7 +61,13 @@ class ImageViewExtensionsTests: XCTestCase {
     func testLoadImageWithNilRequest() {
         // WHEN
         imageView.image = Test.image
-        Nuke.loadImage(with: nil, into: imageView)
+
+        let expectation = self.expectation(description: "Image loaded")
+        Nuke.loadImage(with: nil, into: imageView) {
+            XCTAssertEqual($0.error, .missingImageRequest)
+            expectation.fulfill()
+        }
+        wait()
 
         // THEN
         XCTAssertNil(imageView.image)

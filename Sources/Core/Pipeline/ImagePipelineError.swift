@@ -19,6 +19,8 @@ extension ImagePipeline {
         case decodingFailed(Data)
         /// Processor failed to produce a final image.
         case processingFailed(ImageProcessing)
+        /// Load image method was called with no image request.
+        case missingImageRequest
 
         public var description: String {
             switch self {
@@ -34,6 +36,8 @@ extension ImagePipeline {
                 return "Failed to create an image from the image data"
             case .processingFailed(let processor):
                 return "Failed to process the image using processor \(processor)"
+            case .missingImageRequest:
+                return "Load image method was called with no image request."
             }
         }
 
