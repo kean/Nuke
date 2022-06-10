@@ -41,15 +41,7 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
             finish() // Finish the operation!
             guard let self = self else { return }
             self.async {
-                switch result {
-                case .finished:
-                    guard !self.data.isEmpty else {
-                        return self.send(error: .dataLoadingFailed(URLError(.resourceUnavailable, userInfo: [:])))
-                    }
-                    self.send(value: (self.data, nil), isCompleted: true)
-                case .failure(let error):
-                    self.send(error: .dataLoadingFailed(error))
-                }
+                self.dataTaskDidFinish(result)
             }
         }, receiveValue: { [weak self] data in
             guard let self = self else { return }
@@ -58,8 +50,20 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
             }
         })
 
-        onCancelled = {
-            cancellable.cancel()
+        onCancelled = cancellable.cancel
+    }
+
+    private func dataTaskDidFinish(_ result: PublisherCompletion) {
+        switch result {
+        case .finished:
+            guard !data.isEmpty else {
+                send(error: .dataLoadingFailed(URLError(.resourceUnavailable, userInfo: [:])))
+                return
+            }
+            storeDataInCacheIfNeeded(data)
+            send(value: (data, nil), isCompleted: true)
+        case .failure(let error):
+            send(error: .dataLoadingFailed(error))
         }
     }
 }

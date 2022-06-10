@@ -77,6 +77,19 @@ class ImagePipelinePublisherTests: XCTestCase {
         wait()
     }
 
+    func testDataIsStoredInDataCache() {
+        // GIVEN
+        let request = ImageRequest(id: "a", data: Just(Test.data))
+
+        // WHEN
+        expect(pipeline).toLoadImage(with: request)
+
+        // THEN
+        wait { _ in
+            XCTAssertFalse(self.dataCache.store.isEmpty)
+        }
+    }
+
     // MARK: ImageRequestConvertible
 
     func testInitWithString() {
