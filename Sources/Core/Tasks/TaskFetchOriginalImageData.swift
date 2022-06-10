@@ -34,7 +34,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
     }
 
     private func loadData(urlRequest: URLRequest) {
-        if pipeline.configuration.isDataLoadingQueueSkipped {
+        if pipeline.configuration.isDataLoadingQueueSkipped || request.options.contains(.skipDataLoadingQueue) {
             loadData(urlRequest: urlRequest, finish: { /* do nothing */ })
         } else {
             // Wrap data request in an operation to limit the maximum number of

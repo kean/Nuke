@@ -579,7 +579,7 @@ class ImagePipelineTests: XCTestCase {
         XCTAssertNil(error.dataLoadingError)
     }
 
-    // MARK: Configuration
+    // MARK: Skip Data Loading Queue Option
 
     func testSkipDataLoadingQueueWithURL() throws {
         // Given
@@ -607,6 +607,34 @@ class ImagePipelineTests: XCTestCase {
         queue.isSuspended = true
 
         let request = ImageRequest(id: "a", data: Just(Test.data))
+
+        // Then image is still loaded
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+    }
+
+    func testSkipDataLoadingQueuePerRequestWithURL() throws {
+        // Given
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let request = ImageRequest(url: Test.url, options: [
+            .skipDataLoadingQueue
+        ])
+
+        // Then image is still loaded
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+    }
+
+    func testSkipDataLoadingQueuePerRequestWithPublisher() throws {
+        // Given
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let request = ImageRequest(id: "a", data: Just(Test.data), options: [
+            .skipDataLoadingQueue
+        ])
 
         // Then image is still loaded
         expect(pipeline).toLoadImage(with: request)
