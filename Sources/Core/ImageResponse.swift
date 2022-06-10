@@ -105,9 +105,7 @@ public struct ImageContainer {
 
         #if !os(watchOS)
         if type?.isVideo == true {
-            self.asset = data.flatMap {
-                AVDataAsset.init(data: $0, type: type)
-            }
+            self.asset = data.flatMap { AVDataAsset(data: $0, type: type) }
         }
         #endif
     }

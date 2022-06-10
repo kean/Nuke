@@ -1,13 +1,21 @@
 opt_in_rules:
     - closure_spacing
+    - convenience_type
     - empty_count
+    - empty_string
+    - explicit_init
     - fatal_error_message
+    - first_where
+    - identical_operands
+    - joined_default_parameter
+    - modifier_order
     - operator_usage_whitespace
     - overridden_super_call
     - pattern_matching_keywords
     - prohibited_super_call
+    - toggle_bool
+    - unavailable_function
     - vertical_parameter_alignment_on_call
-    - convenience_type
 
 disabled_rules:
     - line_length
