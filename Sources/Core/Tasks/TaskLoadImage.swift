@@ -119,10 +119,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         let processors: [ImageProcessing] = request.processors.reversed()
         // The only remaining choice is to fetch the image
         if request.options.contains(.returnCacheDataDontLoad) {
-            // Same error that URLSession produces when .returnCacheDataDontLoad
-            // is specified and the data is no found in the cache.
-            let error = NSError(domain: URLError.errorDomain, code: URLError.resourceUnavailable.rawValue, userInfo: nil)
-            send(error: .dataLoadingFailed(error))
+            send(error: .dataMissingInCache)
         } else if request.processors.isEmpty {
             dependency = pipeline.makeTaskFetchDecodedImage(for: request).subscribe(self) { [weak self] in
                 self?.process($0, isCompleted: $1, processors: processors)
