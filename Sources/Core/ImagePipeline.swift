@@ -359,8 +359,8 @@ public final class ImagePipeline {
         public var description: String {
             switch self {
             case .dataMissingInCache: return "Failed to load data from cache and download is disabled."
-            case .dataIsEmpty: return "Data loader returned empty data."
             case let .dataLoadingFailed(error): return "Failed to load image data: \(error)"
+            case .dataIsEmpty: return "Data loader returned empty data."
             case .decodingFailed: return "Failed to create an image from the image data"
             case .processingFailed(let processor): return "Failed to process the image using processor \(processor)"
             }
