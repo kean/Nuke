@@ -33,7 +33,7 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
         }
 
         guard let publisher = request.publisher else {
-            self.send(error: .dataLoadingFailed(URLError(.unknown, userInfo: [:])))
+            send(error: .dataLoadingFailed(URLError(.unknown)))
             return assertionFailure("This should never happen")
         }
 
