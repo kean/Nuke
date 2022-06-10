@@ -15,6 +15,10 @@ Despite the number of features, the framework is lean and compiles in under 2 se
 
 > **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG, HEIF, WebP, SVG, GIF** · **Alamofire** · **Combine** · **Async/Await**
 
+## Sponsors 💖
+
+[Support](https://github.com/sponsors/kean) Nuke on GitHub Sponsors.
+
 ## Documentation
 
 Nuke is easy to learn and use thanks to [**Nuke Docs**](https://kean.blog/nuke/guides/welcome). Make sure to also check out [**Nuke Demo**](https://github.com/kean/NukeDemo).
