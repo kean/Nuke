@@ -19,7 +19,7 @@ class ImageProcessorsGaussianBlurTest: XCTestCase {
         XCTAssertFalse(processor.description.isEmpty) // Bumping that test coverage
 
         // When
-        try processor.process(image)
+        _ = try processor.process(image)
     }
 
     func testApplyBlurProducesImagesBackedByCoreGraphics() throws {
@@ -28,7 +28,7 @@ class ImageProcessorsGaussianBlurTest: XCTestCase {
         let processor = ImageProcessors.GaussianBlur()
 
         // When
-        try processor.process(image)
+        _ = try processor.process(image)
     }
 
     func testApplyBlurProducesTransparentImages() throws {

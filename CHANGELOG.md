@@ -1,5 +1,11 @@
 # Nuke 10
 
+## Nuke 10.11.2
+
+*Jun 9, 2022*
+
+- Revert changes to the deployment targets introduced in .10 release
+
 ## Nuke 10.11.1
 
 *Jun 9, 2022*
@@ -19,7 +25,7 @@
 *May 21, 2022*
 
 - Remove APIs deprecated in Nuke 10.0
-- Increase minimum deployment targets to iOS 12.0, watchOS 5.0, macOS 10.14, tvOS 12.0
+- Increase minimum deployment targets
 
 ## Nuke 10.9.0
 
