@@ -160,7 +160,7 @@ extension ImagePipeline {
         public var isResumableDataEnabled = true
 
         /// `false` by default. Set it to false to perform all data loading
-        /// operations immediatelly, ignoring `dataLoadingQueue`.
+        /// operations immediately, ignoring `dataLoadingQueue`.
         public var isDataLoadingQueueSkipped = false
 
         // MARK: - Options (Shared)
