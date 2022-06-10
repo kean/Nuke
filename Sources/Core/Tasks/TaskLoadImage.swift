@@ -203,7 +203,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             guard let self = self else { return }
 
             let response = signpost(log, "DecompressImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
-                response.map { $0.map(ImageDecompression.decompress(image:)) } ?? response
+                response.map { $0.map(ImageDecompression.decompress(image:)) }
             }
 
             self.async {
