@@ -9,7 +9,7 @@
 <img src="https://github.com/kean/Nuke/workflows/Nuke%20CI/badge.svg">
 </p>
 
-Nuke ILS provides an efficient way to download and display images in your app. It's easy to learn and use thanks to a clear and concise API. Its architecture enables many powerful features while offering virtually unlimited possibilities for customization.
+Nuke provides an efficient way to download and display images in your app. It's easy to learn and use thanks to a clear and concise API. Its architecture enables many powerful features while offering virtually unlimited possibilities for customization.
 
 Despite the number of features, the framework is lean and compiles in under 2 seconds[¹](#footnote-1). Nuke has an automated test suite 2x the size of the codebase itself, ensuring excellent reliability. Every feature is carefully designed and optimized for [performance](https://kean.blog/post/nuke-9).
 
@@ -51,11 +51,10 @@ The image pipeline is easy to customize and extend. Check out the following firs
 <a name="h_requirements"></a>
 ## Minimum Requirements
 
-| Nuke       | Date         |Swift      | Xcode      | Platforms                                        |
-|------------|--------------|-----------|------------|--------------------------------------------------|
-| Nuke 10.10 | May 21, 2022 | Swift 5.3 | Xcode 12.0 | iOS 12.0 / watchOS 5.0 / macOS 10.14 / tvOS 12.0 |
-| Nuke 10.0  | Jun 1, 2021  | Swift 5.3 | Xcode 12.0 | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0 |
-| Nuke 9.0   | May 20, 2020 | Swift 5.1 | Xcode 11.0 | iOS 11.0 / watchOS 4.0 / macOS 10.13 / tvOS 11.0 |
+| Nuke          | Swift           | Xcode           | Platforms                                      |
+|---------------|-----------------|-----------------|------------------------------------------------|
+| Nuke 10.0     | Swift 5.3       | Xcode 12.0      | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0  |
+| Nuke 9.0      | Swift 5.1       | Xcode 11.0      | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0  |
 
 See [Installation Guide](https://kean.blog/nuke/guides/installation) for information about the older versions.
 

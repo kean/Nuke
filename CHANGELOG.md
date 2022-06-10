@@ -19,7 +19,6 @@
 *May 21, 2022*
 
 - Remove APIs deprecated in Nuke 10.0
-- Increase minimum deployment targets to iOS 12.0, watchOS 5.0, macOS 10.14, tvOS 12.0
 
 ## Nuke 10.9.0
 
