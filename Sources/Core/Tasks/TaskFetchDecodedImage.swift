@@ -28,15 +28,6 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
             operation?.cancel() // Cancel any potential pending progressive decoding tasks
         }
 
-        // Sanity check
-        guard !data.isEmpty else {
-            // TODO: TaskLoadData does it. No need to check this twice.
-            if isCompleted {
-                send(error: .dataIsEmpty)
-            }
-            return
-        }
-
         let context = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
         guard let decoder = getDecoder(for: context) else {
             if isCompleted {
