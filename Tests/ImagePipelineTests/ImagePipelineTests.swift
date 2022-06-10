@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
+import Combine
 @testable import Nuke
 
 class ImagePipelineTests: XCTestCase {
@@ -578,8 +579,70 @@ class ImagePipelineTests: XCTestCase {
         XCTAssertNil(error.dataLoadingError)
     }
 
+    // MARK: Skip Data Loading Queue Option
+
+    func testSkipDataLoadingQueueWithURL() throws {
+        // Given
+        pipeline = pipeline.reconfigured {
+            $0.isDataLoadingQueueSkipped = true
+        }
+
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let request = ImageRequest(url: Test.url)
+
+        // Then image is still loaded
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+    }
+
+    func testSkipDataLoadingQueueWithPublisher() throws {
+        // Given
+        pipeline = pipeline.reconfigured {
+            $0.isDataLoadingQueueSkipped = true
+        }
+
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let request = ImageRequest(id: "a", data: Just(Test.data))
+
+        // Then image is still loaded
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+    }
+
+    func testSkipDataLoadingQueuePerRequestWithURL() throws {
+        // Given
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let request = ImageRequest(url: Test.url, options: [
+            .skipDataLoadingQueue
+        ])
+
+        // Then image is still loaded
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+    }
+
+    func testSkipDataLoadingQueuePerRequestWithPublisher() throws {
+        // Given
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let request = ImageRequest(id: "a", data: Just(Test.data), options: [
+            .skipDataLoadingQueue
+        ])
+
+        // Then image is still loaded
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+    }
+
     // MARK: Misc
-    
+
     func testLoadWithInvalidURL() throws {
         // GIVEN
         pipeline = pipeline.reconfigured {

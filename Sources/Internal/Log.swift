@@ -20,21 +20,19 @@ func signpost(_ log: OSLog, _ object: AnyObject, _ name: StaticString, _ type: O
 }
 
 func signpost<T>(_ log: OSLog, _ name: StaticString, _ work: () throws -> T) rethrows -> T {
-    guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return try work() }
-
-    let signpostId = OSSignpostID(log: log)
-    os_signpost(.begin, log: log, name: name, signpostID: signpostId)
-    let result = try work()
-    os_signpost(.end, log: log, name: name, signpostID: signpostId)
-    return result
+    try signpost(log, name, "", work)
 }
 
-// TODO: Do we need this version?
 func signpost<T>(_ log: OSLog, _ name: StaticString, _ message: @autoclosure () -> String, _ work: () throws -> T) rethrows -> T {
     guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return try work() }
 
     let signpostId = OSSignpostID(log: log)
-    os_signpost(.begin, log: log, name: name, signpostID: signpostId, "%{public}s", message())
+    let message = message()
+    if !message.isEmpty {
+        os_signpost(.begin, log: log, name: name, signpostID: signpostId, "%{public}s", message)
+    } else {
+        os_signpost(.begin, log: log, name: name, signpostID: signpostId)
+    }
     let result = try work()
     os_signpost(.end, log: log, name: name, signpostID: signpostId)
     return result

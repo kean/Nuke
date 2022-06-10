@@ -10,14 +10,18 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
     private lazy var data = Data()
 
     override func start() {
-        // Wrap data request in an operation to limit the maximum number of
-        // concurrent data tasks.
-        operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
-            guard let self = self else {
-                return finish()
-            }
-            self.async {
-                self.loadData(finish: finish)
+        if pipeline.configuration.isDataLoadingQueueSkipped || request.options.contains(.skipDataLoadingQueue) {
+            loadData(finish: { /* do nothing */ })
+        } else {
+            // Wrap data request in an operation to limit the maximum number of
+            // concurrent data tasks.
+            operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
+                guard let self = self else {
+                    return finish()
+                }
+                self.async {
+                    self.loadData(finish: finish)
+                }
             }
         }
     }
