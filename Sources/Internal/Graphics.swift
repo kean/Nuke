@@ -312,7 +312,7 @@ extension CGSize {
     }
 }
 
-struct Screen {
+enum Screen {
     #if os(iOS) || os(tvOS)
     /// Returns the current screen scale.
     static var scale: CGFloat { UIScreen.main.scale }

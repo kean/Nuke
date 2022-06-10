@@ -7,6 +7,7 @@ opt_in_rules:
     - pattern_matching_keywords
     - prohibited_super_call
     - vertical_parameter_alignment_on_call
+    - convenience_type
 
 disabled_rules:
     - line_length

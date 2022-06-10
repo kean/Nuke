@@ -4,7 +4,7 @@
 
 import Foundation
 
-struct ImageDecompression {
+enum ImageDecompression {
 
     static func decompress(image: PlatformImage) -> PlatformImage {
         image.decompressed() ?? image
