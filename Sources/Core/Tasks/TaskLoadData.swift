@@ -45,12 +45,6 @@ final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
     }
 
     private func didReceiveData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool) {
-        // Sanity check, should never happen in practice
-        guard !data.isEmpty else {
-            send(error: .dataLoadingFailed(URLError(.unknown, userInfo: [:])))
-            return
-        }
-
         send(value: (data, urlResponse), isCompleted: isCompleted)
     }
 }
