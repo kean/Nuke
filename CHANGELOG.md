@@ -1,5 +1,11 @@
 # Nuke 10
 
+## Nuke 10.11.1
+
+*Jun 9, 2022*
+
+- Fix an issue with data not always being attached to an error when decoding fails
+
 ## Nuke 10.11.0
 
 *Jun 8, 2022*
