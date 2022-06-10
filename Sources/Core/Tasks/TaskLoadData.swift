@@ -32,10 +32,7 @@ final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
 
     private func loadData() {
         guard !request.options.contains(.returnCacheDataDontLoad) else {
-            // Same error that URLSession produces when .returnCacheDataDontLoad is specified and the
-            // data is no found in the cache.
-            let error = NSError(domain: URLError.errorDomain, code: URLError.resourceUnavailable.rawValue, userInfo: nil)
-            return send(error: .dataLoadingFailed(error))
+            return send(error: .dataMissingInCache)
         }
 
         let request = self.request.withProcessors([])
