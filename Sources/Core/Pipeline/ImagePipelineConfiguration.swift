@@ -141,14 +141,14 @@ extension ImagePipeline {
         /// and cancelled at a high rate (e.g. scrolling through a collection view).
         public var isRateLimiterEnabled = true
 
-        /// `false` by default. If `true` the pipeline will try to produce a new
+        /// `true` by default. If `true` the pipeline will try to produce a new
         /// image each time it receives a new portion of data from data loader.
         /// The decoder used by the image loading session determines whether
         /// to produce a partial image or not. The default image decoder
         /// (`ImageDecoder`) supports progressive JPEG decoding.
         public var isProgressiveDecodingEnabled = true
 
-        /// `false` by default. If `true`, the pipeline will store all of the
+        /// `true` by default. If `true`, the pipeline will store all of the
         /// progressively generated previews in the memory cache. All of the
         /// previews have `isPreview` flag set to `true`.
         public var isStoringPreviewsInMemoryCache = true
@@ -158,6 +158,10 @@ extension ImagePipeline {
         /// resume where it left off. Supports both validators (`ETag`,
         /// `Last-Modified`). Resumable downloads are enabled by default.
         public var isResumableDataEnabled = true
+
+        /// `false` by default. Set it to false to perform all data loading
+        /// operations immediatelly, ignoring `dataLoadingQueue`.
+        public var isDataLoadingQueueSkipped = false
 
         // MARK: - Options (Shared)
 
