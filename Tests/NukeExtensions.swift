@@ -8,6 +8,7 @@ import Nuke
 extension ImagePipeline.Error: Equatable {
     public static func == (lhs: ImagePipeline.Error, rhs: ImagePipeline.Error) -> Bool {
         switch (lhs, rhs) {
+        case (.dataMissingInCache, .dataMissingInCache): return true
         case let (.dataLoadingFailed(lhs), .dataLoadingFailed(rhs)):
             return lhs as NSError == rhs as NSError
         case (.decodingFailed, .decodingFailed): return true

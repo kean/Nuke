@@ -161,13 +161,13 @@ class ImagePipelineDataCachingTests: XCTestCase {
         XCTAssertEqual(dataLoader.createdTaskCount, 0)
     }
 
-    func testLoadFromCacheOnlyFailsIfNoMemoryCache() {
+    func testLoadFromCacheOnlyFailsIfNoCache() {
         // Given no cache
         var request = Test.request
         request.options = [.returnCacheDataDontLoad]
 
         // When
-        expect(pipeline).toFailRequest(request)
+        expect(pipeline).toFailRequest(request, with: .dataMissingInCache)
         wait()
 
         // Then
