@@ -30,16 +30,20 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
 
         // Sanity check
         guard !data.isEmpty else {
+            // TODO: TaskLoadData does it. No need to check this twice.
             if isCompleted {
                 send(error: .dataIsEmpty)
             }
             return
         }
 
-        guard let decoder = decoder(data: data, urlResponse: urlResponse, isCompleted: isCompleted) else {
+        let context = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
+        guard let decoder = getDecoder(for: context) else {
             if isCompleted {
-                send(error: .decodingFailed(data))
-            } // Try again when more data is downloaded.
+                send(error: .decoderNotRegistered(context: context))
+            } else {
+                // Try again when more data is downloaded.
+            }
             return
         }
 
@@ -73,12 +77,11 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
     }
 
     // Lazily creates decoding for task
-    private func decoder(data: Data, urlResponse: URLResponse?, isCompleted: Bool) -> ImageDecoding? {
+    private func getDecoder(for context: ImageDecodingContext) -> ImageDecoding? {
         // Return the existing processor in case it has already been created.
         if let decoder = self.decoder {
             return decoder
         }
-        let context = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
         let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline)
         self.decoder = decoder
         return decoder

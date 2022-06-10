@@ -351,6 +351,8 @@ public final class ImagePipeline {
         case dataLoadingFailed(Swift.Error)
         /// Data loader returned empty data.
         case dataIsEmpty
+        /// No decoder registered for the given data.
+        case decoderNotRegistered(context: ImageDecodingContext)
         /// Decoder failed to produce a final image.
         case decodingFailed(Data)
         /// Processor failed to produce a final image.
@@ -358,11 +360,18 @@ public final class ImagePipeline {
 
         public var description: String {
             switch self {
-            case .dataMissingInCache: return "Failed to load data from cache and download is disabled."
-            case let .dataLoadingFailed(error): return "Failed to load image data: \(error)"
-            case .dataIsEmpty: return "Data loader returned empty data."
-            case .decodingFailed: return "Failed to create an image from the image data"
-            case .processingFailed(let processor): return "Failed to process the image using processor \(processor)"
+            case .dataMissingInCache:
+                return "Failed to load data from cache and download is disabled."
+            case let .dataLoadingFailed(error):
+                return "Failed to load image data: \(error)"
+            case .dataIsEmpty:
+                return "Data loader returned empty data."
+            case .decoderNotRegistered:
+                return "No decoders registered for the downloaded data."
+            case .decodingFailed:
+                return "Failed to create an image from the image data"
+            case .processingFailed(let processor):
+                return "Failed to process the image using processor \(processor)"
             }
         }
 

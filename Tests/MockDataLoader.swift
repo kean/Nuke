@@ -47,7 +47,7 @@ class MockDataLoader: DataLoading {
                     completion(err)
                 }
             } else {
-                didReceiveData(data, URLResponse())
+                didReceiveData(data, URLResponse(url: request.url ?? Test.url, mimeType: "jpeg", expectedContentLength: 22789, textEncodingName: nil))
                 completion(nil)
             }
         }

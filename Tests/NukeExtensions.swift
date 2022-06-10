@@ -12,6 +12,7 @@ extension ImagePipeline.Error: Equatable {
         case let (.dataLoadingFailed(lhs), .dataLoadingFailed(rhs)):
             return lhs as NSError == rhs as NSError
         case (.dataIsEmpty, .dataIsEmpty): return true
+        case (.decoderNotRegistered, .decoderNotRegistered): return true
         case (.decodingFailed, .decodingFailed): return true
         case (.processingFailed, .processingFailed): return true
         default: return false

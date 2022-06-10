@@ -496,6 +496,31 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
+    func testDecoderNotRegistered() {
+        // Given
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+            $0.makeImageDecoder = { _ in
+                nil
+            }
+            $0.imageCache = nil
+        }
+
+        expect(pipeline).toFailRequest(Test.request) { result in
+            guard let error = result.error else {
+                return XCTFail("Expected error")
+            }
+            guard case let .decoderNotRegistered(context) = error else {
+                return XCTFail("Expected .decoderNotRegistered")
+            }
+            XCTAssertEqual(context.request.url, Test.request.url)
+            XCTAssertEqual(context.data.count, 22789)
+            XCTAssertTrue(context.isCompleted)
+            XCTAssertEqual(context.urlResponse?.url, Test.url)
+        }
+        wait()
+    }
+
     func testDecodingFailedErrorReturned() {
         // Given
         let pipeline = ImagePipeline {

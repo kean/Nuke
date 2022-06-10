@@ -76,7 +76,7 @@ class ImagePipelineDelegateTests: XCTestCase {
         // Then
         XCTAssertEqual(delegate.events, [
             ImageTaskEvent.started,
-            .progressUpdated(completedUnitCount: 22789, totalUnitCount: -1),
+            .progressUpdated(completedUnitCount: 22789, totalUnitCount: 22789),
             .completed(result: try XCTUnwrap(result))
         ])
     }
