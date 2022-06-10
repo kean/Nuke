@@ -44,6 +44,6 @@ class ImageProcessorsAnonymousTests: XCTestCase {
         let image = try processor.process(Test.image)
 
         // Then
-        XCTAssertEqual(image.nk_test_processorIDs ?? [], ["1"])
+        XCTAssertEqual(image.nk_test_processorIDs, ["1"])
     }
 }
