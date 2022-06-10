@@ -136,27 +136,9 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         }
 
         // Store in data cache
-        if let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() {
-            let key = pipeline.cache.makeDataCacheKey(for: request)
-            pipeline.delegate.willCache(data: data, image: nil, for: request, pipeline: pipeline) {
-                guard let data = $0 else { return }
-                // Important! Storing directly ignoring `ImageRequest.Options`.
-                dataCache.storeData(data, for: key)
-            }
-        }
+        storeDataInCacheIfNeeded(data)
 
         send(value: (data, urlResponse), isCompleted: true)
-    }
-
-    private func shouldStoreDataInDiskCache() -> Bool {
-        guard request.url?.isCacheable ?? false else {
-            return false
-        }
-        let policy = pipeline.configuration.dataCachePolicy
-        guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
-            return false
-        }
-        return policy == .storeOriginalData || policy == .storeAll || (policy == .automatic && imageTasks.contains { $0.request.processors.isEmpty })
     }
 
     private func tryToSaveResumableData() {
@@ -167,5 +149,30 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
            let resumableData = ResumableData(response: response, data: data) {
             ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
         }
+    }
+}
+
+extension ImagePipelineTask where Value == (Data, URLResponse?) {
+    func storeDataInCacheIfNeeded(_ data: Data) {
+        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() else {
+            return
+        }
+        let key = pipeline.cache.makeDataCacheKey(for: request)
+        pipeline.delegate.willCache(data: data, image: nil, for: request, pipeline: pipeline) {
+            guard let data = $0 else { return }
+            // Important! Storing directly ignoring `ImageRequest.Options`.
+            dataCache.storeData(data, for: key)
+        }
+    }
+
+    private func shouldStoreDataInDiskCache() -> Bool {
+        guard (request.url?.isCacheable ?? false) || (request.publisher != nil) else {
+            return false
+        }
+        let policy = pipeline.configuration.dataCachePolicy
+        guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
+            return false
+        }
+        return policy == .storeOriginalData || policy == .storeAll || (policy == .automatic && imageTasks.contains { $0.request.processors.isEmpty })
     }
 }
