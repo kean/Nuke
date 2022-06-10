@@ -38,9 +38,10 @@ class MockDataLoader: DataLoading {
                 switch result {
                 case let .success(val):
                     let data = val.0
-                    assert(!data.isEmpty)
-                    didReceiveData(data.prefix(data.count / 2), val.1)
-                    didReceiveData(data.suffix(data.count / 2), val.1)
+                    if !data.isEmpty {
+                        didReceiveData(data.prefix(data.count / 2), val.1)
+                        didReceiveData(data.suffix(data.count / 2), val.1)
+                    }
                     completion(nil)
                 case let .failure(err):
                     completion(err)

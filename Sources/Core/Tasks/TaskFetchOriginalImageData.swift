@@ -127,7 +127,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
 
         // Sanity check, should never happen in practice
         guard !data.isEmpty else {
-            send(error: .dataLoadingFailed(URLError(.unknown, userInfo: [:])))
+            send(error: .dataIsEmpty)
             return
         }
 

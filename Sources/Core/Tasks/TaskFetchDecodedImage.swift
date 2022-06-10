@@ -31,7 +31,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
         // Sanity check
         guard !data.isEmpty else {
             if isCompleted {
-                send(error: .decodingFailed(data))
+                send(error: .dataIsEmpty)
             }
             return
         }

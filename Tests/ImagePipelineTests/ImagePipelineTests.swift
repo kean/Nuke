@@ -481,6 +481,21 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
+    func testDataLoaderReturnsEmptyData() {
+        // Given
+        let dataLoader = MockDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+
+        dataLoader.results[Test.url] = .success((Data(), Test.urlResponse))
+
+        // When/Then
+        expect(pipeline).toFailRequest(Test.request, with: .dataIsEmpty)
+        wait()
+    }
+
     func testDecodingFailedErrorReturned() {
         // Given
         let pipeline = ImagePipeline {
