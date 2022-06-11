@@ -21,7 +21,7 @@ class ImageProcessorsCompositionTest: XCTestCase {
         )
 
         // WHEN
-        let image = try processor.process(Test.image)
+        let image = try XCTUnwrap(processor.process(Test.image))
 
         // THEN
         XCTAssertEqual(image.nk_test_processorIDs, ["1", "2"])

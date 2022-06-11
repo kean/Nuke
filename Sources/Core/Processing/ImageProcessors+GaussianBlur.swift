@@ -20,17 +20,24 @@ extension ImageProcessors {
         }
 
         /// Applies `CIGaussianBlur` filter to the image.
+        public func process(_ image: PlatformImage) -> PlatformImage? {
+            try? _process(image)
+        }
+
+        /// Applies `CIGaussianBlur` filter to the image.
         public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-            guard let filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": radius]) else {
-                throw ImageProcessors.CoreImageFilter.Error.failedToCreateFilter(name: "CIGaussianBlur", parameters: ["inputRadius": radius])
-            }
-            return try container.map { try CoreImageFilter.apply(filter: filter, to: $0) }
+            try container.map(_process(_:))
+        }
+
+        private func _process(_ image: PlatformImage) throws -> PlatformImage {
+            try CoreImageFilter.applyFilter(named: "CIGaussianBlur", parameters: ["inputRadius": radius], to: image)
         }
 
         public var identifier: String {
             "com.github.kean/nuke/gaussian_blur?radius=\(radius)"
         }
 
+        /// Returns hashable `self` that compares processors by their `radius`.`
         public var hashableIdentifier: AnyHashable { self }
 
         public var description: String {

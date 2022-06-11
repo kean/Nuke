@@ -8,15 +8,15 @@ extension ImageProcessors {
     /// Processed an image using a specified closure.
     public struct Anonymous: ImageProcessing, CustomStringConvertible {
         public let identifier: String
-        private let closure: (PlatformImage) throws -> PlatformImage
+        private let closure: (PlatformImage) -> PlatformImage?
 
-        public init(id: String, _ closure: @escaping (PlatformImage) throws -> PlatformImage) {
+        public init(id: String, _ closure: @escaping (PlatformImage) -> PlatformImage?) {
             self.identifier = id
             self.closure = closure
         }
 
-        public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-            try container.map(closure)
+        public func process(_ image: PlatformImage) -> PlatformImage? {
+            closure(image)
         }
 
         public var description: String {

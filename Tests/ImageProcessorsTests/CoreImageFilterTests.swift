@@ -48,7 +48,7 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
         let processor = ImageProcessors.CoreImageFilter(name: "yo", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
 
         // THEN
-        XCTAssertThrowsError(try processor.process(input)) { error in
+        XCTAssertThrowsError(try processor.processThrowing(input)) { error in
             guard let error = error as? ImageProcessors.CoreImageFilter.Error else {
                 return XCTFail("Unexpected error type: \(error)")
             }
@@ -82,7 +82,7 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
 
         // THEN
-        XCTAssertThrowsError(try processor.process(input)) { error in
+        XCTAssertThrowsError(try processor.processThrowing(input)) { error in
             guard let error = error as? ImageProcessors.CoreImageFilter.Error else {
                 return XCTFail("Unexpected error type: \(error)")
             }

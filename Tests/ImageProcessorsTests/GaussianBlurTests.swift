@@ -12,23 +12,23 @@ import XCTest
 #if os(iOS) || os(tvOS) || os(macOS)
 
 class ImageProcessorsGaussianBlurTest: XCTestCase {
-    func testApplyBlur() throws {
+    func testApplyBlur() {
         // Given
         let image = Test.image
         let processor = ImageProcessors.GaussianBlur()
         XCTAssertFalse(processor.description.isEmpty) // Bumping that test coverage
 
         // When
-        _ = try processor.process(image)
+        XCTAssertNotNil(processor.process(image))
     }
 
-    func testApplyBlurProducesImagesBackedByCoreGraphics() throws {
+    func testApplyBlurProducesImagesBackedByCoreGraphics() {
         // Given
         let image = Test.image
         let processor = ImageProcessors.GaussianBlur()
 
         // When
-        _ = try processor.process(image)
+        XCTAssertNotNil(processor.process(image))
     }
 
     func testApplyBlurProducesTransparentImages() throws {
@@ -37,7 +37,7 @@ class ImageProcessorsGaussianBlurTest: XCTestCase {
         let processor = ImageProcessors.GaussianBlur()
 
         // When
-        let processed = try processor.process(image)
+        let processed = try XCTUnwrap(processor.process(image))
 
         // Then
         XCTAssertEqual(processed.cgImage?.isOpaque, false)

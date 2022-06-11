@@ -38,11 +38,16 @@ extension ImageProcessors {
             self.identifier = "com.github.kean/nuke/core_image?name=\(name))"
         }
 
+        public func process(_ image: PlatformImage) -> PlatformImage? {
+            try? _process(image)
+        }
+
         public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-            guard let filter = CIFilter(name: name, parameters: parameters) else {
-                throw Error.failedToCreateFilter(name: name, parameters: parameters)
-            }
-            return try container.map { try CoreImageFilter.apply(filter: filter, to: $0) }
+            try container.map(_process(_:))
+        }
+
+        private func _process(_ image: PlatformImage) throws -> PlatformImage {
+            try CoreImageFilter.applyFilter(named: name, parameters: parameters, to: image)
         }
 
         // MARK: - Apply Filter
@@ -51,6 +56,14 @@ extension ImageProcessors {
         /// has `.priorityRequestLow` option set to `true`.
         public static var context = CIContext(options: [.priorityRequestLow: true])
 
+        static func applyFilter(named name: String, parameters: [String: Any] = [:], to image: PlatformImage) throws -> PlatformImage {
+            guard let filter = CIFilter(name: name, parameters: parameters) else {
+                throw Error.failedToCreateFilter(name: name, parameters: parameters)
+            }
+            return try CoreImageFilter.apply(filter: filter, to: image)
+        }
+
+        /// Applies filter to the given image.
         public static func apply(filter: CIFilter, to image: PlatformImage) throws -> PlatformImage {
             func getCIImage() throws -> CoreImage.CIImage {
                 if let image = image.ciImage {

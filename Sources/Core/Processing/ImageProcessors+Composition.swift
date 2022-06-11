@@ -18,6 +18,17 @@ extension ImageProcessors {
         /// Processes the given image by applying each processor in an order in
         /// which they were added. If one of the processors fails to produce
         /// an image the processing stops and `nil` is returned.
+        public func process(_ image: PlatformImage) -> PlatformImage? {
+            processors.reduce(image) { image, processor in
+                autoreleasepool {
+                    image.flatMap(processor.process)
+                }
+            }
+        }
+
+        /// Processes the given image by applying each processor in an order in
+        /// which they were added. If one of the processors fails to produce
+        /// an image the processing stops and an error is thrown.
         public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
             try processors.reduce(container) { container, processor in
                 try autoreleasepool {
@@ -26,18 +37,22 @@ extension ImageProcessors {
             }
         }
 
+        /// Returns combined identifier of all the underlying processors.
         public var identifier: String {
             processors.map({ $0.identifier }).joined()
         }
 
+        /// An identifies that compares all the underlying processors for equality.
         public var hashableIdentifier: AnyHashable { self }
 
+        /// Creates a combined hash of all the given processors.
         public func hash(into hasher: inout Hasher) {
             for processor in processors {
                 hasher.combine(processor.hashableIdentifier)
             }
         }
 
+        /// Compares all the underlying processors for equality.
         public static func == (lhs: Composition, rhs: Composition) -> Bool {
             lhs.processors == rhs.processors
         }

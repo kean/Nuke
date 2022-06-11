@@ -105,7 +105,7 @@ extension ImageProcessing where Self == ImageProcessors.GaussianBlur {
 
 extension ImageProcessing where Self == ImageProcessors.Anonymous {
     /// Processed an image using a specified closure.
-    public static func process(id: String, _ closure: @escaping (PlatformImage) throws -> PlatformImage) -> ImageProcessors.Anonymous {
+    public static func process(id: String, _ closure: @escaping (PlatformImage) -> PlatformImage?) -> ImageProcessors.Anonymous {
         ImageProcessors.Anonymous(id: id, closure)
     }
 }

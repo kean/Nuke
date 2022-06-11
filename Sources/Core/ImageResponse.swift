@@ -111,7 +111,12 @@ public struct ImageContainer {
     }
 
     /// Modifies the wrapped image and keeps all of the rest of the metadata.
-    public func map(_ closure: (PlatformImage) throws -> PlatformImage) rethrows -> ImageContainer {
+    public func map(_ closure: (PlatformImage) -> PlatformImage?) -> ImageContainer? {
+        guard let image = closure(self.image) else { return nil }
+        return ImageContainer(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
+    }
+
+    func map(_ closure: (PlatformImage) throws -> PlatformImage) rethrows -> ImageContainer {
         ImageContainer(image: try closure(image), type: type, isPreview: isPreview, data: data, userInfo: userInfo)
     }
 
