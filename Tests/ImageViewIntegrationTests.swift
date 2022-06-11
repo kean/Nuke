@@ -69,7 +69,7 @@ class ImageViewIntegrationTests: XCTestCase {
         // WHEN
         let expectation = self.expectation(description: "Image loaded")
         Nuke.loadImage(with: "http://example.com/invalid url", into: imageView) { result in
-            XCTAssertNotNil(result.error?.dataLoadingError)
+            XCTAssertEqual(result.error, .dataLoadingFailed(error: URLError(.badURL)))
             expectation.fulfill()
         }
         wait()
