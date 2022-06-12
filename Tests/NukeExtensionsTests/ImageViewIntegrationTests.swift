@@ -137,7 +137,7 @@ class ImageViewIntegrationTests: XCTestCase {
 
         // WHEN
         let expectation = self.expectation(description: "Image loaded")
-        Nuke.loadImage(with: Test.url, options: options, into: imageView) { result in
+        NukeExtensions.loadImage(with: Test.url, options: options, into: imageView) { result in
             XCTAssertNotNil(result.value)
             XCTAssertNotNil(result.value?.container.data)
             expectation.fulfill()
