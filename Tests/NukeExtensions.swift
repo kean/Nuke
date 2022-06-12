@@ -66,7 +66,7 @@ extension ImagePipeline {
 extension ImageProcessing {
     /// A throwing version of a regular method.
     func processThrowing(_ image: PlatformImage) throws -> PlatformImage {
-        let context = ImageProcessingContext(request: Test.request, response: Test.response, isFinal: true)
+        let context = ImageProcessingContext(request: Test.request, response: Test.response, isCompleted: true)
         return (try process(ImageContainer(image: image), context: context)).image
     }
 }

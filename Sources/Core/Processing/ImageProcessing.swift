@@ -68,12 +68,12 @@ extension ImageProcessing {
 public struct ImageProcessingContext {
     public var request: ImageRequest
     public var response: ImageResponse
-    public var isFinal: Bool
+    public var isCompleted: Bool
 
-    public init(request: ImageRequest, response: ImageResponse, isFinal: Bool) {
+    public init(request: ImageRequest, response: ImageResponse, isCompleted: Bool) {
         self.request = request
         self.response = response
-        self.isFinal = isFinal
+        self.isCompleted = isCompleted
     }
 }
 

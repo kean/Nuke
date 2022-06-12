@@ -83,7 +83,7 @@ extension ImageDecodingContext {
 
 extension ImageProcessingContext {
     static var mock: ImageProcessingContext {
-        ImageProcessingContext(request: Test.request, response: Test.response, isFinal: true)
+        ImageProcessingContext(request: Test.request, response: Test.response, isCompleted: true)
     }
 }
 

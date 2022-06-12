@@ -74,7 +74,7 @@ class ImageDecoderTests: XCTestCase {
 
         // Feed all data and see how many scans are there
         // In practice the moment we finish receiving data we call
-        // `decode(data: data, isFinal: true)` so we might not scan all the
+        // `decode(data: data, isCompleted: true)` so we might not scan all the
         // of the bytes and encounter all of the scans (e.g. the final chunk
         // of data that we receive contains multiple scans).
         XCTAssertNotNil(decoder.decodePartiallyDownloadedData(data))

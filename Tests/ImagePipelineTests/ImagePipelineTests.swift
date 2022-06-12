@@ -569,7 +569,7 @@ class ImagePipelineTests: XCTestCase {
             XCTAssertEqual(context.request.url, Test.url)
             XCTAssertEqual(context.response.container.image.sizeInPixels, CGSize(width: 640, height: 480))
             XCTAssertEqual(context.response.cacheType, nil)
-            XCTAssertEqual(context.isFinal, true)
+            XCTAssertEqual(context.isCompleted, true)
 
             XCTAssertEqual(error as? ImageProcessingError, .unknown)
         }

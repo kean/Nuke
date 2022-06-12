@@ -14,6 +14,9 @@ extension ImagePipeline {
         /// Data loader returned empty data.
         case dataIsEmpty
         /// No decoder registered for the given data.
+        ///
+        /// This error can only be thrown if the pipeline has custom decoders.
+        /// By default, the pipeline uses `ImageDecoders.Default` as a catch-all.
         case decoderNotRegistered(context: ImageDecodingContext)
         /// Decoder failed to produce a final image.
         case decodingFailed(decoder: ImageDecoding, context: ImageDecodingContext)

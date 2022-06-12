@@ -41,3 +41,10 @@ extension ImageDecoderRegistry {
         }
     }
 }
+
+extension ImageProcessingContext {
+    @available(*, deprecated, message: "Please use `isCompleted` instead.")
+    public var isFinal: Bool {
+        isCompleted
+    }
+}

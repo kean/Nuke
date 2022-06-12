@@ -35,7 +35,7 @@ class ImageProcessorsCompositionTest: XCTestCase {
         )
 
         // WHEN
-        let context = ImageProcessingContext(request: Test.request, response: ImageResponse(container: Test.container), isFinal: true)
+        let context = ImageProcessingContext(request: Test.request, response: ImageResponse(container: Test.container), isCompleted: true)
         let output = try processor.process(Test.container, context: context)
 
         // THEN

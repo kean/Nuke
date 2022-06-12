@@ -153,7 +153,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
 
         let key = ImageProcessingKey(image: response, processor: processor)
-        let context = ImageProcessingContext(request: request, response: response, isFinal: isCompleted)
+        let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
         dependency2 = pipeline.makeTaskProcessImage(key: key, process: {
             try signpost(log, "ProcessImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 try response.map { try processor.process($0, context: context) }
