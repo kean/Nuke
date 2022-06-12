@@ -24,61 +24,32 @@ extension ImageDecoders {
     ///
     /// - note: The default decoder supports progressive JPEG. It produces a new
     /// preview every time it encounters a new full frame.
-    public final class Default: ImageDecoding, ImageDecoderRegistering {
+    public final class Default: ImageDecoding {
         // Number of scans that the decoder has found so far. The last scan might be
         // incomplete at this point.
         var numberOfScans: Int { scanner.numberOfScans }
         private var scanner = ProgressiveJPEGScanner()
 
-        private var container: ImageContainer?
-
-        private var isDecodingGIFProgressively = false
         private var isPreviewForGIFGenerated = false
         private var scale: CGFloat?
         private var thumbnail: ImageRequest.ThumbnailOptions?
 
         public init() { }
 
-        public var isAsynchronous: Bool {
-            thumbnail != nil
-        }
+        public var isAsynchronous: Bool { thumbnail != nil }
 
-        public init?(data: Data, context: ImageDecodingContext) {
-            self.scale = context.request.scale
-            self.thumbnail = context.request.thubmnail
-            guard let container = _decode(data) else {
-                return nil
-            }
-            self.container = container
-        }
-
-        public init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
-            let imageType = AssetType(data)
-
+        /// Returns `nil` if progressive decoding is not allowed for the given
+        /// content.
+        public init?(context: ImageDecodingContext) {
             self.scale = context.request.scale
             self.thumbnail = context.request.thubmnail
 
-            // Determined whether the image supports progressive decoding or not
-            // (only proressive JPEG is allowed for now, but you can add support
-            // for other formats by implementing your own decoder).
-            if imageType == .jpeg, ImageProperties.JPEG(data)?.isProgressive == true {
-                return
+            if !context.isCompleted && !isProgressiveDecodingAllowed(for: context.data) {
+                return nil // Progressive decoding not allowed for this image
             }
-
-            // Generate one preview for GIF.
-            if imageType == .gif {
-                self.isDecodingGIFProgressively = true
-                return
-            }
-
-            return nil
         }
 
         public func decode(_ data: Data) -> ImageContainer? {
-            container ?? _decode(data)
-        }
-
-        private func _decode(_ data: Data) -> ImageContainer? {
             func makeImage() -> PlatformImage? {
                 if let thumbnail = self.thumbnail {
                     return makeThumbnail(data: data, options: thumbnail)
@@ -104,10 +75,11 @@ extension ImageDecoders {
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-            if isDecodingGIFProgressively { // Special handling for GIF
+            let assetType = AssetType(data)
+            if assetType == .gif { // Special handling for GIF
                 if !isPreviewForGIFGenerated, let image = ImageDecoders.Default._decode(data, scale: scale) {
                     isPreviewForGIFGenerated = true
-                    return ImageContainer(image: image, type: .gif, isPreview: true, data: nil, userInfo: [:])
+                    return ImageContainer(image: image, type: .gif, isPreview: true, userInfo: [:])
                 }
                 return nil
             }
@@ -118,9 +90,27 @@ extension ImageDecoders {
             guard let image = ImageDecoders.Default._decode(data[0...endOfScan], scale: scale) else {
                 return nil
             }
-            return ImageContainer(image: image, type: .jpeg, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
+            return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
         }
     }
+}
+
+private func isProgressiveDecodingAllowed(for data: Data) -> Bool {
+   let assetType = AssetType(data)
+
+   // Determined whether the image supports progressive decoding or not
+   // (only proressive JPEG is allowed for now, but you can add support
+   // for other formats by implementing your own decoder).
+   if assetType == .jpeg, ImageProperties.JPEG(data)?.isProgressive == true {
+       return true
+   }
+
+   // Generate one preview for GIF.
+   if assetType == .gif {
+       return true
+   }
+
+   return false
 }
 
 private struct ProgressiveJPEGScanner {
@@ -183,9 +173,9 @@ enum ImageProperties {}
 // Keeping this private for now, not sure neither about the API, not the implementation.
 extension ImageProperties {
     struct JPEG {
-        public var isProgressive: Bool
+        var isProgressive: Bool
 
-        public init?(_ data: Data) {
+        init?(_ data: Data) {
             guard let isProgressive = ImageProperties.JPEG.isProgressive(data) else {
                 return nil
             }

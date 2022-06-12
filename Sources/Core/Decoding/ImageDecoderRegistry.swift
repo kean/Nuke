@@ -4,30 +4,6 @@
 
 import Foundation
 
-/// An image decoder which supports automatically registering in the decoder register.
-public protocol ImageDecoderRegistering: ImageDecoding {
-    /// Returns non-nil if the decoder can be used to decode the given data.
-    ///
-    /// - parameter data: The same data is going to be delivered to decoder via
-    /// `decode(_:)` method. The same instance of the decoder is going to be used.
-    init?(data: Data, context: ImageDecodingContext)
-
-    /// Returns non-nil if the decoder can be used to progressively decode the
-    /// given partially downloaded data.
-    ///
-    /// - parameter data: The first and the next data chunks are going to be
-    /// delivered to the decoder via `decodePartiallyDownloadedData(_:)` method.
-    init?(partiallyDownloadedData data: Data, context: ImageDecodingContext)
-}
-
-public extension ImageDecoderRegistering {
-    /// The default implementation which simply returns `nil` (no progressive
-    /// decoding available).
-    init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
-        return nil
-    }
-}
-
 // MARK: - ImageDecoderRegistry
 
 /// A registry of image codecs.
@@ -42,9 +18,9 @@ public final class ImageDecoderRegistry {
     private var matches = [Match]()
 
     public init() {
-        self.register(ImageDecoders.Default.self)
+        register { ImageDecoders.Default(context: $0) }
         #if !os(watchOS)
-        self.register(ImageDecoders.Video.self)
+        register { ImageDecoders.Video(context: $0) }
         #endif
     }
 
@@ -60,19 +36,13 @@ public final class ImageDecoderRegistry {
 
     // MARK: - Registering
 
-    /// Registers the given decoder.
-    public func register<Decoder: ImageDecoderRegistering>(_ decoder: Decoder.Type) {
-        register { context in
-            if context.isCompleted {
-                return decoder.init(data: context.data, context: context)
-            } else {
-                return decoder.init(partiallyDownloadedData: context.data, context: context)
-            }
-        }
-    }
-
-    /// Registers a decoder to be used in a given decoding context. The closure
-    /// is going to be executed before all other already registered closures.
+    /// Registers a decoder to be used in a given decoding context.
+    ///
+    /// **Progressive Decoding**
+    ///
+    /// The decoder is created once and is used for the entire decoding session,
+    /// including progressively decoded images. If the decoder doesn't support
+    /// progressive decoding, return `nil` when `isCompleted` is `false`.
     public func register(_ match: @escaping (ImageDecodingContext) -> ImageDecoding?) {
         matches.insert(Match(closure: match), at: 0)
     }

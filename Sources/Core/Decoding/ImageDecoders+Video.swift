@@ -8,21 +8,14 @@ import Foundation
 import AVKit
 
 extension ImageDecoders {
-    public final class Video: ImageDecoding, ImageDecoderRegistering {
-        private let type: AssetType
+    public final class Video: ImageDecoding {
         private var didProducePreview = false
+        private var type: AssetType
+        public var isAsynchronous: Bool { true }
 
-        public var isAsynchronous: Bool {
-            true
-        }
-
-        public init?(data: Data, context: ImageDecodingContext) {
-            guard let type = AssetType(data), type.isVideo else { return nil }
+        public init?(context: ImageDecodingContext) {
+            guard let type = AssetType(context.data), type.isVideo else { return nil }
             self.type = type
-        }
-
-        public convenience init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
-            self.init(data: data, context: context)
         }
 
         public func decode(_ data: Data) -> ImageContainer? {
@@ -30,6 +23,7 @@ extension ImageDecoders {
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+            guard let type = AssetType(data), type.isVideo else { return nil }
             guard !didProducePreview else {
                 return nil // We only need one preview
             }

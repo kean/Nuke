@@ -129,7 +129,7 @@ class ImageDecoderTests: XCTestCase {
         let chunk = data[...60000] // 6 KB
 
         let context = ImageDecodingContext(request: Test.request, data: chunk, isCompleted: false, urlResponse: nil)
-        let decoder = try XCTUnwrap(ImageDecoders.Default(partiallyDownloadedData: chunk, context: context))
+        let decoder = try XCTUnwrap(ImageDecoders.Default(context: context))
 
         XCTAssertNotNil(decoder.decodePartiallyDownloadedData(chunk))
         XCTAssertNil(decoder.decodePartiallyDownloadedData(chunk))
@@ -246,7 +246,7 @@ class ImageDecodersVideoTests: XCTestCase {
         // Given
         let data = Test.data(name: "video", extension: "mp4")
         let context = ImageDecodingContext(request: Test.request, data: data, isCompleted: true, urlResponse: nil)
-        let decoder = ImageDecoders.Video(data: data, context: context)
+        let decoder = ImageDecoders.Video(context: context)
 
         // When
         let container = try XCTUnwrap(decoder?.decode(data))
