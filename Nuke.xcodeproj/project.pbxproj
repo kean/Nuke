@@ -194,6 +194,7 @@
 		0CB644A928567E8F00916267 /* cat.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C8DC722209B842600084AA6 /* cat.gif */; };
 		0CB644AB28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB644AA28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift */; };
 		0CB644AC28567FC000916267 /* NukeExtensions.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */; };
+		0CB644AF2856801400916267 /* FetchImageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF52DCB26516F6B0094BC66 /* FetchImageTests.swift */; };
 		0CBA07862852DA8B00CE29F4 /* ImagePipelineError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBA07852852DA8B00CE29F4 /* ImagePipelineError.swift */; };
 		0CC36A1225B8BC0800811018 /* Allocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A1125B8BC0800811018 /* Allocations.swift */; };
 		0CC36A1925B8BC2500811018 /* RateLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A1825B8BC2500811018 /* RateLimiter.swift */; };
@@ -656,6 +657,7 @@
 			children = (
 				0CCBB52F217D0B6A0026F552 /* ImageViewIntegrationTests.swift */,
 				0C94466D1D47EC0E006DB314 /* ImageViewExtensionsTests.swift */,
+				0CF52DCB26516F6B0094BC66 /* FetchImageTests.swift */,
 				0CB6449B28567E5400916267 /* ImageViewLoadingOptionsTests.swift */,
 				0CB6449928567DE000916267 /* NukeExtensionsTestsHelpers.swift */,
 				0CB644AA28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift */,
@@ -669,7 +671,6 @@
 				0C09B16A1FE9A65C00E8FE3B /* Info.plist */,
 				0C55FD22285679DC000FD2C9 /* NukeTests */,
 				0C55FD2428567C10000FD2C9 /* NukeExtensionsTests */,
-				0CF52DCB26516F6B0094BC66 /* FetchImageTests.swift */,
 				0C4F8FE722E4B7260070ECFD /* NukeThreadSafetyTests */,
 				0C2CD7B225B7BFBF0017018F /* NukeMemoryManagementTests */,
 				0CC6276525C0A16300466F04 /* NukePerformanceTests */,
@@ -1409,6 +1410,7 @@
 				0CB6449728567DCA00916267 /* NukeExtensions.swift in Sources */,
 				0C55FD2728567C12000FD2C9 /* ImageViewExtensionsTests.swift in Sources */,
 				0CB644AB28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift in Sources */,
+				0CB644AF2856801400916267 /* FetchImageTests.swift in Sources */,
 				0CB6448D28567DC300916267 /* MockImageDecoder.swift in Sources */,
 				0CB6448E28567DC300916267 /* MockImageCache.swift in Sources */,
 				0C55FD2828567C18000FD2C9 /* ImageViewIntegrationTests.swift in Sources */,
