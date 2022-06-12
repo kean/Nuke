@@ -305,7 +305,6 @@
 		0C179C772282AC50008AB488 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text; path = .swiftlint.yml; sourceTree = "<group>"; };
 		0C179C7A2283597F008AB488 /* ImageEncoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEncoding.swift; sourceTree = "<group>"; };
 		0C1E59662372EBBC00674B63 /* lint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = lint.sh; path = Scripts/lint.sh; sourceTree = "<group>"; };
-		0C1E59672372EBBC00674B63 /* validate_demo.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = validate_demo.sh; path = Scripts/validate_demo.sh; sourceTree = "<group>"; };
 		0C1E59682372EBBC00674B63 /* validate.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = validate.sh; path = Scripts/validate.sh; sourceTree = "<group>"; };
 		0C1E59692372EBBC00674B63 /* build.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = build.sh; path = Scripts/build.sh; sourceTree = "<group>"; };
 		0C1E596A2372EBBC00674B63 /* test.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = test.sh; path = Scripts/test.sh; sourceTree = "<group>"; };
@@ -588,7 +587,6 @@
 				0CA82BDC237AE09F00338375 /* install_swiftlint.sh */,
 				0C4B34312572E9AC000FDDBA /* generate_docs.sh */,
 				0C1E596A2372EBBC00674B63 /* test.sh */,
-				0C1E59672372EBBC00674B63 /* validate_demo.sh */,
 				0C1E59682372EBBC00674B63 /* validate.sh */,
 			);
 			name = Scripts;
