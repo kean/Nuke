@@ -90,6 +90,7 @@
 		0C38DB6D285692290027F9FF /* UIImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB62285692290027F9FF /* UIImageView.swift */; };
 		0C38DB6E285692290027F9FF /* ImageSourceHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB64285692290027F9FF /* ImageSourceHelpers.swift */; };
 		0C38DB702856A4D30027F9FF /* LazyImgeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB6F2856A4D30027F9FF /* LazyImgeState.swift */; };
+		0C38DB722856A5310027F9FF /* AnimatedImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB712856A5310027F9FF /* AnimatedImageView.swift */; };
 		0C42D4C722A286260094CB5A /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C42D4C422A283140094CB5A /* Deprecated.swift */; };
 		0C472F812654AA46007FC0F0 /* DeprecationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C472F802654AA46007FC0F0 /* DeprecationTests.swift */; };
 		0C472F842654AD88007FC0F0 /* ImageRequestKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C472F822654AD69007FC0F0 /* ImageRequestKeys.swift */; };
@@ -401,6 +402,7 @@
 		0C38DB62285692290027F9FF /* UIImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIImageView.swift; sourceTree = "<group>"; };
 		0C38DB64285692290027F9FF /* ImageSourceHelpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageSourceHelpers.swift; sourceTree = "<group>"; };
 		0C38DB6F2856A4D30027F9FF /* LazyImgeState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyImgeState.swift; sourceTree = "<group>"; };
+		0C38DB712856A5310027F9FF /* AnimatedImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedImageView.swift; sourceTree = "<group>"; };
 		0C42D4C422A283140094CB5A /* Deprecated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deprecated.swift; sourceTree = "<group>"; };
 		0C4326262424338200799446 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		0C472F802654AA46007FC0F0 /* DeprecationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeprecationTests.swift; sourceTree = "<group>"; };
@@ -698,12 +700,13 @@
 			children = (
 				0C38DB4C285690F90027F9FF /* Image.swift */,
 				0C38DB4D285690F90027F9FF /* ImageView.swift */,
-				0C38DB4F285690F90027F9FF /* Internal.swift */,
 				0C38DB4E285690F90027F9FF /* LazyImage.swift */,
 				0C38DB6F2856A4D30027F9FF /* LazyImgeState.swift */,
 				0C38DB4B285690F90027F9FF /* LazyImageView.swift */,
+				0C38DB712856A5310027F9FF /* AnimatedImageView.swift */,
 				0C38DB50285690F90027F9FF /* VideoPlayerView.swift */,
 				0C55FD1D28567926000FD2C9 /* FetchImage.swift */,
+				0C38DB4F285690F90027F9FF /* Internal.swift */,
 				0C38DB57285691FE0027F9FF /* Gifu */,
 			);
 			path = NukeUI;
@@ -1618,6 +1621,7 @@
 				0C38DB53285690FA0027F9FF /* ImageView.swift in Sources */,
 				0C38DB6E285692290027F9FF /* ImageSourceHelpers.swift in Sources */,
 				0C38DB51285690FA0027F9FF /* LazyImageView.swift in Sources */,
+				0C38DB722856A5310027F9FF /* AnimatedImageView.swift in Sources */,
 				0C38DB65285692290027F9FF /* FrameStore.swift in Sources */,
 				0C38DB52285690FA0027F9FF /* Image.swift in Sources */,
 				0C38DB55285690FA0027F9FF /* Internal.swift in Sources */,
