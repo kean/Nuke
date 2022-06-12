@@ -204,7 +204,7 @@ private extension FrameStore {
     timeSinceLastFrameChange += min(maxTimeStep, duration)
   }
 
-  /// Ensures that `timeSinceLastFrameChange` remains accurate after each frame change by substracting the `currentFrameDuration`.
+  /// Ensures that `timeSinceLastFrameChange` remains accurate after each frame change by subtracting the `currentFrameDuration`.
   func resetTimeSinceLastFrameChange() {
     timeSinceLastFrameChange -= currentFrameDuration
   }

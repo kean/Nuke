@@ -20,7 +20,7 @@ private let capDurationThreshold: Double = 0.02 - Double.ulpOfOne
 /// Frameduration used, if a frame-duration is below `capDurationThreshold`
 private let minFrameDuration: Double = 0.1
 
-/// Retruns the duration of a frame at a specific index using an image source (an `CGImageSource` instance).
+/// Returns the duration of a frame at a specific index using an image source (an `CGImageSource` instance).
 ///
 /// - returns: A frame duration.
 func CGImageFrameDuration(with imageSource: CGImageSource, atIndex index: Int) -> TimeInterval {
