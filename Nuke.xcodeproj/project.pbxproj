@@ -694,13 +694,13 @@
 		0C38DAE228568FC30027F9FF /* NukeUI */ = {
 			isa = PBXGroup;
 			children = (
-				0C55FD1D28567926000FD2C9 /* FetchImage.swift */,
 				0C38DB4C285690F90027F9FF /* Image.swift */,
 				0C38DB4D285690F90027F9FF /* ImageView.swift */,
 				0C38DB4F285690F90027F9FF /* Internal.swift */,
 				0C38DB4E285690F90027F9FF /* LazyImage.swift */,
 				0C38DB4B285690F90027F9FF /* LazyImageView.swift */,
 				0C38DB50285690F90027F9FF /* VideoPlayerView.swift */,
+				0C55FD1D28567926000FD2C9 /* FetchImage.swift */,
 				0C38DB57285691FE0027F9FF /* Gifu */,
 			);
 			path = NukeUI;
