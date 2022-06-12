@@ -20,7 +20,7 @@ extension ImagePipeline {
         /// Processor failed to produce a final image.
         case processingFailed(processor: ImageProcessing, context: ImageProcessingContext, error: Swift.Error)
         /// Load image method was called with no image request.
-        case missingImageRequest
+        case imageRequestMissing
     }
 }
 
@@ -49,7 +49,7 @@ extension ImagePipeline.Error {
             return "Failed to create an image from the image data"
         case .processingFailed(let processor, _, _):
             return "Failed to process the image using processor \(processor)"
-        case .missingImageRequest:
+        case .imageRequestMissing:
             return "Load image method was called with no image request."
         }
     }

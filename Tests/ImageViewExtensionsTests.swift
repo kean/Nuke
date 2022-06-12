@@ -64,7 +64,7 @@ class ImageViewExtensionsTests: XCTestCase {
 
         let expectation = self.expectation(description: "Image loaded")
         Nuke.loadImage(with: nil, into: imageView) {
-            XCTAssertEqual($0.error, .missingImageRequest)
+            XCTAssertEqual($0.error, .imageRequestMissing)
             expectation.fulfill()
         }
         wait()
