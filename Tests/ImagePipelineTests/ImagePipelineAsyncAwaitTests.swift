@@ -107,6 +107,26 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
             XCTAssertEqual(container.image.sizeInPixels, CGSize(width: 640, height: 480))
         }
     }
+
+    func testImageRequestWithAsyncAwaitFailure() async throws {
+        if #available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *) {
+            // WHEN
+            let request = ImageRequest(id: "test", data: {
+                throw URLError(networkUnavailableReason: .cellular)
+            })
+
+            do {
+                _ = try await pipeline.image(for: request)
+                XCTFail()
+            } catch {
+                if case let .dataLoadingFailed(error) = error as? ImagePipeline.Error {
+                    XCTAssertEqual((error as? URLError)?.networkUnavailableReason, .cellular)
+                } else {
+                    XCTFail()
+                }
+            }
+        }
+    }
 }
 
 /// We have to mock it because there is no way to construct native `URLError`
