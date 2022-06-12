@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0C38DAA128568FAE0027F9FF"
-               BuildableName = "Nuke copy.framework"
+               BuildableName = "NukeUI.framework"
                BlueprintName = "NukeUI"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
@@ -33,7 +33,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0C38DAE428568FE20027F9FF"
-               BuildableName = "Nuke Unit Tests copy.xctest"
+               BuildableName = "NukeUI Unit Tests.xctest"
                BlueprintName = "NukeUI Unit Tests"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
@@ -61,7 +61,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0C38DAA128568FAE0027F9FF"
-            BuildableName = "Nuke copy.framework"
+            BuildableName = "NukeUI.framework"
             BlueprintName = "NukeUI"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>

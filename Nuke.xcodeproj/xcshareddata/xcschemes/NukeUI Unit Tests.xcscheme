@@ -17,7 +17,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0C38DAE428568FE20027F9FF"
-               BuildableName = "Nuke Unit Tests copy.xctest"
+               BuildableName = "NukeUI Unit Tests.xctest"
                BlueprintName = "NukeUI Unit Tests"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
