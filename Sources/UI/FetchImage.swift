@@ -6,6 +6,7 @@ import SwiftUI
 import Combine
 
 /// An observable object that simplifies image loading in SwiftUI.
+@MainActor
 public final class FetchImage: ObservableObject, Identifiable {
     /// Returns the current fetch result.
     @Published public private(set) var result: Result<ImageResponse, Error>?
@@ -78,7 +79,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     private var cancellable: AnyCancellable?
 
     deinit {
-        cancel()
+        imageTask?.cancel()
     }
 
     public init() {}

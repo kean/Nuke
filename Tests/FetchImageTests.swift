@@ -5,6 +5,7 @@
 import XCTest
 @testable import Nuke
 
+@MainActor
 class FetchImageTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var imageCache: MockImageCache!
@@ -13,6 +14,7 @@ class FetchImageTests: XCTestCase {
     var pipeline: ImagePipeline!
     var image: FetchImage!
 
+    @MainActor
     override func setUp() {
         super.setUp()
 
