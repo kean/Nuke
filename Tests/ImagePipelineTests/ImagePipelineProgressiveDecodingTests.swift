@@ -97,8 +97,8 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     func testThatFailedPartialImagesAreIgnored() {
         // Given
         class FailingPartialsDecoder: ImageDecoding {
-            func decode(_ data: Data) -> ImageContainer? {
-                return ImageDecoders.Default().decode(data)
+            func decode(_ data: Data) throws -> ImageContainer {
+                try ImageDecoders.Default().decode(data)
             }
         }
 

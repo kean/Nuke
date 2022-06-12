@@ -18,7 +18,7 @@ extension ImageDecoders {
             self.type = type
         }
 
-        public func decode(_ data: Data) -> ImageContainer? {
+        public func decode(_ data: Data) throws -> ImageContainer {
             ImageContainer(image: PlatformImage(), type: type, data: data)
         }
 

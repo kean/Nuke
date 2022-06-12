@@ -51,7 +51,10 @@ class ImagePipelineDecodingTests: XCTestCase {
 private final class MockExperimentalDecoder: ImageDecoding {
     var _decode: ((Data) -> ImageContainer?)!
 
-    func decode(_ data: Data) -> ImageContainer? {
-        return _decode(data)
+    func decode(_ data: Data) throws -> ImageContainer {
+        guard let image = _decode(data) else {
+            throw ImageDecodingError.unknown
+        }
+        return image
     }
 }

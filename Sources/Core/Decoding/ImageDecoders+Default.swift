@@ -45,15 +45,15 @@ extension ImageDecoders {
             }
         }
 
-        public func decode(_ data: Data) -> ImageContainer? {
+        public func decode(_ data: Data) throws -> ImageContainer {
             func makeImage() -> PlatformImage? {
                 if let thumbnail = self.thumbnail {
                     return makeThumbnail(data: data, options: thumbnail)
                 }
                 return ImageDecoders.Default._decode(data, scale: scale)
             }
-            guard let image = autoreleasepool(invoking: makeImage) else {
-                return nil
+            guard let image = makeImage() else {
+                throw ImageDecodingError.unknown
             }
             let type = AssetType(data)
             var container = ImageContainer(image: image)

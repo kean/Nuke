@@ -11,9 +11,7 @@ extension ImageDecoders {
         public let isProgressive: Bool
         private let assetType: AssetType?
 
-        public var isAsynchronous: Bool {
-            false
-        }
+        public var isAsynchronous: Bool { false }
 
         /// Initializes the decoder.
         ///
@@ -27,12 +25,12 @@ extension ImageDecoders {
             self.isProgressive = isProgressive
         }
 
-        public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-            isProgressive ? ImageContainer(image: PlatformImage(), type: assetType, data: data, userInfo: [:]) : nil
+        public func decode(_ data: Data) throws -> ImageContainer {
+            ImageContainer(image: PlatformImage(), type: assetType, data: data, userInfo: [:])
         }
 
-        public func decode(_ data: Data) -> ImageContainer? {
-            ImageContainer(image: PlatformImage(), type: assetType, data: data, userInfo: [:])
+        public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+            isProgressive ? ImageContainer(image: PlatformImage(), type: assetType, data: data, userInfo: [:]) : nil
         }
     }
 }

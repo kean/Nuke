@@ -30,7 +30,7 @@ enum Test {
 
     static func container(named name: String, extension ext: String) -> ImageContainer {
         let data = Test.data(name: name, extension: ext)
-        return ImageDecoders.Default().decode(data)!
+        return try! ImageDecoders.Default().decode(data)
     }
 
     static let url = URL(string: "http://test.com")!

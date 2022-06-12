@@ -58,9 +58,9 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             return fetchImage()
         }
 
-        let decode = {
+        func decode() -> ImageResponse? {
             signpost(log, "DecodeCachedProcessedImageData") {
-                decoder.decode(context)
+                try? decoder.decode(context)
             }
         }
         if !decoder.isAsynchronous {

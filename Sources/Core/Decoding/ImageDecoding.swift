@@ -17,7 +17,7 @@ public protocol ImageDecoding {
     var isAsynchronous: Bool { get }
 
     /// Produces an image from the given image data.
-    func decode(_ data: Data) -> ImageContainer?
+    func decode(_ data: Data) throws -> ImageContainer
 
     /// Produces an image from the given partially downloaded image data.
     /// This method might be called multiple times during a single decoding
@@ -29,32 +29,28 @@ public protocol ImageDecoding {
 
 extension ImageDecoding {
     /// Returns `true` by default.
-    public var isAsynchronous: Bool {
-        true
-    }
+    public var isAsynchronous: Bool { true }
 
     /// The default implementation which simply returns `nil` (no progressive
     /// decoding available).
-    public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
-        nil
-    }
+    public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? { nil }
 }
 
-public enum ImageDecodingError {
+public enum ImageDecodingError: Swift.Error {
     case unknown
 }
 
 extension ImageDecoding {
-    func decode(_ context: ImageDecodingContext) -> ImageResponse? {
-        func _decode() -> ImageContainer? {
+    func decode(_ context: ImageDecodingContext) throws -> ImageResponse {
+        let container: ImageContainer = try autoreleasepool {
             if context.isCompleted {
-                return decode(context.data)
+                return try decode(context.data)
             } else {
-                return decodePartiallyDownloadedData(context.data)
+                if let preview = decodePartiallyDownloadedData(context.data) {
+                    return preview
+                }
+                throw ImageDecodingError.unknown
             }
-        }
-        guard let container = autoreleasepool(invoking: _decode) else {
-            return nil
         }
         #if !os(macOS)
         if container.userInfo[.isThumbnailKey] == nil {

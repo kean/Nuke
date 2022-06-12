@@ -111,16 +111,17 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertTrue(container.userInfo.isEmpty)
     }
 
-    func testDecodingGIFDataAttached() {
+    func testDecodingGIFDataAttached() throws {
         let data = Test.data(name: "cat", extension: "gif")
-        XCTAssertNotNil(ImageDecoders.Default().decode(data)?.data)
+        XCTAssertNotNil(try ImageDecoders.Default().decode(data).data)
     }
 
-    func testDecodingGIFPreview() {
+    func testDecodingGIFPreview() throws {
         let data = Test.data(name: "cat", extension: "gif")
         XCTAssertEqual(data.count, 427672) // 427 KB
         let chunk = data[...60000] // 6 KB
-        XCTAssertNotNil(ImageDecoders.Default().decode(chunk))
+        let response = try ImageDecoders.Default().decode(chunk)
+        XCTAssertEqual(response.image.sizeInPixels, CGSize(width: 500, height: 279))
     }
 
     func testDecodingGIFPreviewGeneratedOnlyOnce() throws {
@@ -135,23 +136,19 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertNil(decoder.decodePartiallyDownloadedData(chunk))
     }
 
-    func testDecodingPNGDataNotAttached() {
+    func testDecodingPNGDataNotAttached() throws {
         let data = Test.data(name: "fixture", extension: "png")
-        let container = ImageDecoders.Default().decode(data)
-        XCTAssertNotNil(container)
-        XCTAssertNil(container?.data)
+        let container = try ImageDecoders.Default().decode(data)
+        XCTAssertNil(container.data)
     }
 
 #if os(iOS) || os(tvOS) || os(macOS)
-    func testDecodeBaselineWebP() {
-        let data = Test.data(name: "baseline", extension: "webp")
-        let container = ImageDecoders.Default().decode(data)
+    func testDecodeBaselineWebP() throws {
         if #available(OSX 11.0, iOS 14.0, watchOS 7.0, tvOS 999.0, *) {
-            XCTAssertNotNil(container)
-            XCTAssertNil(container?.data)
-        } else {
-            XCTAssertNil(container)
-            XCTAssertNil(container?.data)
+            let data = Test.data(name: "baseline", extension: "webp")
+            let container = try ImageDecoders.Default().decode(data)
+            XCTAssertEqual(container.image.sizeInPixels, CGSize(width: 550, height: 368))
+            XCTAssertNil(container.data)
         }
     }
 #endif
