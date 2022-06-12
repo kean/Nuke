@@ -312,6 +312,7 @@ public struct LazyImageState {
     /// The progress of the image download.
     public let progress: Progress
 
+    @MainActor
     init(_ fetchImage: FetchImage) {
         self.result = fetchImage.result
         self.imageContainer = fetchImage.imageContainer
