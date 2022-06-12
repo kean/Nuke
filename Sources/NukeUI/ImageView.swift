@@ -99,7 +99,7 @@ public class ImageView: _PlatformBaseView {
             }
         }
     }
-  
+
     private var _customContentView: _PlatformBaseView?
 
     /// `true` by default. If disabled, animated image rendering will be disabled.
@@ -108,10 +108,9 @@ public class ImageView: _PlatformBaseView {
     /// `true` by default. Set to `true` to enable video support.
     public var isVideoRenderingEnabled = true
 
-
     // MARK: Initializers
 
-    public override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         didInit()
     }
@@ -154,11 +153,11 @@ public class ImageView: _PlatformBaseView {
     var _imageContainer: ImageContainer?
 
     public var isVideoLooping: Bool {
-        set {
-            videoPlayerView.isLooping = newValue
-        }
         get {
             videoPlayerView.isLooping
+        }
+        set {
+            videoPlayerView.isLooping = newValue
         }
     }
     var onVideoFinished: (() -> Void)?

@@ -116,13 +116,13 @@ public struct Image: UIViewRepresentable {
         copy.resizingMode = mode
         return copy
     }
-    
+
     public func onVideoFinished(content: @escaping () -> Void) -> Self {
         var copy = self
         copy.onVideoFinished = content
         return copy
     }
-    
+
     public func restartVideo(_ value: Bool) -> Self {
         var copy = self
         copy.restartVideo = value

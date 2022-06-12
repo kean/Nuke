@@ -178,7 +178,7 @@ public final class LazyImageView: _PlatformBaseView {
         cancel()
     }
 
-    public override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         didInit()
     }
@@ -218,7 +218,7 @@ public final class LazyImageView: _PlatformBaseView {
         didSet { load(source) }
     }
 
-    public override func updateConstraints() {
+    override public func updateConstraints() {
         super.updateConstraints()
 
         updatePlaceholderViewConstraints()

@@ -25,13 +25,13 @@ public final class VideoPlayerView: _PlatformBaseView {
             }
         }
     }
-    
+
     /// Add if you want to do something at the end of the video
     var onVideoFinished: (() -> Void)?
 
     // MARK: Initialization
     #if !os(macOS)
-    public override class var layerClass: AnyClass {
+    override public class var layerClass: AnyClass {
         AVPlayerLayer.self
     }
 
@@ -41,7 +41,7 @@ public final class VideoPlayerView: _PlatformBaseView {
     #else
     public let playerLayer = AVPlayerLayer()
 
-    public override init(frame frameRect: NSRect) {
+    override public init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
 
         // Creating a view backed by a custom layer on macOS is ... hard
@@ -50,25 +50,26 @@ public final class VideoPlayerView: _PlatformBaseView {
         playerLayer.frame = bounds
     }
 
-    public override func layout() {
+    override public func layout() {
         super.layout()
 
         playerLayer.frame = bounds
     }
 
+    @available(*, unavailable)
     public required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     #endif
 
     // MARK: Private
-    
+
     private var player: AVPlayer? {
         didSet {
             registerNotification()
         }
     }
-    
+
     private var playerObserver: AnyObject?
 
     public func reset() {
@@ -86,7 +87,7 @@ public final class VideoPlayerView: _PlatformBaseView {
             reset()
         }
     }
-    
+
     private func registerNotification() {
         NotificationCenter.default
             .addObserver(self,
@@ -94,12 +95,12 @@ public final class VideoPlayerView: _PlatformBaseView {
                          name: .AVPlayerItemDidPlayToEndTime,
                          object: player?.currentItem)
     }
-    
+
     public func restart() {
         player?.seek(to: CMTime.zero)
         player?.play()
     }
-    
+
     public func play() {
         guard let asset = asset else {
             return
@@ -114,18 +115,17 @@ public final class VideoPlayerView: _PlatformBaseView {
 
         playerLayer.player = player
 
-        playerObserver = player.observe(\.status, options: [.new, .initial]) { player, change in
+        playerObserver = player.observe(\.status, options: [.new, .initial]) { player, _ in
             if player.status == .readyToPlay {
                 player.play()
             }
         }
     }
-    
+
     @objc private func registerNotification(_ notification: Notification) {
         guard let playerItem = notification.object as? AVPlayerItem else {
             return
         }
-        
         if isLooping {
             playerItem.seek(to: CMTime.zero, completionHandler: nil)
         } else {

@@ -27,7 +27,6 @@ private struct HashableRequest: Hashable {
             lhs.priority == rhs.priority &&
             lhs.options == rhs.options
     }
-    
 }
 
 /// Lazily loads and displays images.
