@@ -7,6 +7,7 @@ import Foundation
 
 #if !os(watchOS)
 
+@MainActor
 public final class VideoPlayerView: _PlatformBaseView {
     // MARK: Configuration
 

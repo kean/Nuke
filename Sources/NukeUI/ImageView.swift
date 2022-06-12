@@ -13,6 +13,7 @@ import UIKit
 #endif
 
 #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
+@MainActor
 public final class AnimatedImageView: UIImageView, GIFAnimatable {
     /// A lazy animator.
     lazy var animator: Animator? = {
@@ -32,6 +33,7 @@ public final class AnimatedImageView: UIImageView, GIFAnimatable {
 #endif
 
 /// Lazily loads and displays images.
+@MainActor
 public class ImageView: _PlatformBaseView {
 
     // MARK: Underlying Views

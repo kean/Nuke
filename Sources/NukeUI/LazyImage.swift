@@ -35,6 +35,7 @@ private struct HashableRequest: Hashable {
 /// downloaded. You must specify the size for the view before loading the image.
 /// By default, the image will resize to fill the available space but preserve
 /// the aspect ratio. You can change this behavior by passing a different content mode.
+@MainActor
 @available(iOS 14.0, tvOS 14.0, watchOS 7.0, macOS 10.16, *)
 public struct LazyImage<Content: View>: View {
     @StateObject private var model = FetchImage()
@@ -191,9 +192,9 @@ public struct LazyImage<Content: View>: View {
         ZStack {
             content
         }
-        .onAppear(perform: onAppear)
-        .onDisappear(perform: onDisappear)
-        .onChange(of: request, perform: load)
+        .onAppear(perform: { onAppear() })
+        .onDisappear(perform: { onDisappear() })
+        .onChange(of: request, perform: { load($0) })
     }
 
     @ViewBuilder private var content: some View {
@@ -280,6 +281,7 @@ public struct LazyImageState {
     }
 
     /// Returns an image view.
+    @MainActor
     public var image: Image? {
 #if os(macOS)
         return imageContainer.map { Image($0) }

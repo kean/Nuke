@@ -14,6 +14,7 @@ import UIKit
 #endif
 
 /// Lazily loads and displays images.
+@MainActor
 public final class LazyImageView: _PlatformBaseView {
 
     // MARK: Placeholder View
@@ -175,7 +176,7 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Initializers
 
     deinit {
-        cancel()
+        imageTask?.cancel()
     }
 
     override public init(frame: CGRect) {

@@ -11,6 +11,7 @@ import UIKit
 #endif
 
 #if os(macOS)
+@MainActor
 public struct Image: NSViewRepresentable {
     let imageContainer: ImageContainer
     let onCreated: ((ImageView) -> Void)?
@@ -64,6 +65,7 @@ public struct Image: NSViewRepresentable {
     }
 }
 #elseif os(iOS) || os(tvOS)
+@MainActor
 public struct Image: UIViewRepresentable {
     let imageContainer: ImageContainer
     let onCreated: ((ImageView) -> Void)?
