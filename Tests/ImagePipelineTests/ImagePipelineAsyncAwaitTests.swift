@@ -160,10 +160,8 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
         let observer = expect(queue).toEnqueueOperationsWithCount(1)
         let task = AsyncImageTask()
-        DispatchQueue.global().async {
-            Task {
-                try await self.pipeline.image(for: request, task: task)
-            }
+        Task.detached {
+            try await self.pipeline.image(for: request, task: task)
         }
         wait()
 
