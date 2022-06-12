@@ -306,7 +306,6 @@
 		0C179C7A2283597F008AB488 /* ImageEncoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEncoding.swift; sourceTree = "<group>"; };
 		0C1E59662372EBBC00674B63 /* lint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = lint.sh; path = Scripts/lint.sh; sourceTree = "<group>"; };
 		0C1E59682372EBBC00674B63 /* validate.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = validate.sh; path = Scripts/validate.sh; sourceTree = "<group>"; };
-		0C1E59692372EBBC00674B63 /* build.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = build.sh; path = Scripts/build.sh; sourceTree = "<group>"; };
 		0C1E596A2372EBBC00674B63 /* test.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = test.sh; path = Scripts/test.sh; sourceTree = "<group>"; };
 		0C1E620A1D6F817700AD5CF5 /* ImageRequestTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestTests.swift; sourceTree = "<group>"; };
 		0C211E4F2856328500F48AA6 /* DataLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataLoaderTests.swift; sourceTree = "<group>"; };
@@ -324,7 +323,6 @@
 		0C4AF1E91FE8551D002F86CB /* LinkedListTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedListTest.swift; sourceTree = "<group>"; };
 		0C4B34112572E233000FDDBA /* grayscale.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = grayscale.jpeg; sourceTree = "<group>"; };
 		0C4B341B2572E288000FDDBA /* DecompressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecompressionTests.swift; sourceTree = "<group>"; };
-		0C4B34312572E9AC000FDDBA /* generate_docs.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = generate_docs.sh; path = Scripts/generate_docs.sh; sourceTree = "<group>"; };
 		0C4B6A341E36630E00E86B21 /* Nuke 5 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 5 Migration Guide.md"; sourceTree = "<group>"; };
 		0C4F8FDF22E4B6ED0070ECFD /* Nuke Thread Safety Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke Thread Safety Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C505B6B2286F3AD006D5399 /* AsyncTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncTask.swift; sourceTree = "<group>"; };
@@ -582,10 +580,8 @@
 		0C1E59652372EBA600674B63 /* Scripts */ = {
 			isa = PBXGroup;
 			children = (
-				0C1E59692372EBBC00674B63 /* build.sh */,
 				0C1E59662372EBBC00674B63 /* lint.sh */,
 				0CA82BDC237AE09F00338375 /* install_swiftlint.sh */,
-				0C4B34312572E9AC000FDDBA /* generate_docs.sh */,
 				0C1E596A2372EBBC00674B63 /* test.sh */,
 				0C1E59682372EBBC00674B63 /* validate.sh */,
 			);
