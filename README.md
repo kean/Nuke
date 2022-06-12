@@ -32,8 +32,6 @@ The image pipeline is easy to customize and extend. Check out the following firs
 
 |Name|Description|
 |--|--|
-|[**NukeUI**](https://github.com/kean/NukeUI)|Lazy image loading for SwiftUI|
-|[**NukeBuilder**](https://github.com/kean/NukeBuilder)|A fun and convenient way to use Nuke|
 |[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire)|
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples|
 |[**NukeWebP**](https://github.com/makleso6/NukeWebP)| **Community**. [WebP](https://developers.google.com/speed/webp/) support, built by [Maxim Kolesnik](https://github.com/makleso6)|
@@ -42,6 +40,7 @@ The image pipeline is easy to customize and extend. Check out the following firs
 |[**Gifu Plugin**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
 |[**FLAnimatedImage Plugin**](https://github.com/kean/Nuke-AnimatedImage-Plugin)|Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4))|
 |[**Xamarin NuGet**](https://github.com/roubachof/Xamarin.Forms.Nuke)| **Community**. Makes it possible to use Nuke from Xamarin|
+|[**NukeBuilder**](https://github.com/kean/NukeBuilder)|A fun and convenient way to use Nuke|
 
 <a name="h_contribute"></a>
 ## Contribution
