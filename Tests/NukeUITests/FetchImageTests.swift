@@ -4,7 +4,7 @@
 
 import XCTest
 @testable import Nuke
-@testable import NukeExtensions
+@testable import NukeUI
 
 @MainActor
 class FetchImageTests: XCTestCase {

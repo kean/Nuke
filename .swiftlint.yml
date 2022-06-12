@@ -20,6 +20,7 @@ opt_in_rules:
 disabled_rules:
     - line_length
     - identifier_name
+    - type_name
 
 nesting:
     type_level:
@@ -27,6 +28,9 @@ nesting:
 
 included:
     - Sources/
+
+excluded:
+    - Sources/NukeUI/Gifu/
 
 file_length:
     warning: 1000

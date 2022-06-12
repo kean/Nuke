@@ -396,8 +396,8 @@ class ImagePipelineTests: XCTestCase {
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
 
         // WHEN/THEN
-        expect(pipeline).toLoadImage(with: request)
         expect(pipeline.configuration.imageDecodingQueue).toEnqueueOperationsWithCount(1)
+        expect(pipeline).toLoadImage(with: request)
         wait()
     }
     
