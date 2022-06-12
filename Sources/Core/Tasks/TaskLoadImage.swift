@@ -60,7 +60,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         let decode = {
             signpost(log, "DecodeCachedProcessedImageData") {
-                decoder.decode(data, urlResponse: nil, isCompleted: true, cacheType: .disk)
+                decoder.decode(context)
             }
         }
         if !decoder.isAsynchronous {

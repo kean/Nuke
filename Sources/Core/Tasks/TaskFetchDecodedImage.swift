@@ -42,7 +42,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
         // initialization anyway.
         func decode() -> ImageResponse? {
             signpost(log, "DecodeImageData", isCompleted ? "FinalImage" : "ProgressiveImage") {
-                decoder.decode(data, urlResponse: urlResponse, isCompleted: isCompleted, cacheType: nil)
+                decoder.decode(context)
             }
         }
 

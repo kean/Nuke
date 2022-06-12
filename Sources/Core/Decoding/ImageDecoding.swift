@@ -45,12 +45,12 @@ public enum ImageDecodingError {
 }
 
 extension ImageDecoding {
-    func decode(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool, cacheType: ImageResponse.CacheType?) -> ImageResponse? {
+    func decode(_ context: ImageDecodingContext) -> ImageResponse? {
         func _decode() -> ImageContainer? {
-            if isCompleted {
-                return decode(data)
+            if context.isCompleted {
+                return decode(context.data)
             } else {
-                return decodePartiallyDownloadedData(data)
+                return decodePartiallyDownloadedData(context.data)
             }
         }
         guard let container = autoreleasepool(invoking: _decode) else {
@@ -61,6 +61,6 @@ extension ImageDecoding {
             ImageDecompression.setDecompressionNeeded(true, for: container.image)
         }
         #endif
-        return ImageResponse(container: container, urlResponse: urlResponse, cacheType: cacheType)
+        return ImageResponse(container: container, urlResponse: context.urlResponse, cacheType: context.cacheType)
     }
 }
