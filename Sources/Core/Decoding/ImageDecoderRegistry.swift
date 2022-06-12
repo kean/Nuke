@@ -13,14 +13,15 @@ public final class ImageDecoderRegistry {
 
     private var matches = [(ImageDecodingContext) -> ImageDecoding?]()
 
-    public init() {
-        register { ImageDecoders.Default(context: $0) }
+    /// Initializes a custom registry.
+    init() {
+        register(ImageDecoders.Default.init)
         #if !os(watchOS)
-        register { ImageDecoders.Video(context: $0) }
+        register(ImageDecoders.Video.init)
         #endif
     }
 
-    /// Returns a decoder which matches the given context.
+    /// Returns a decoder that matches the given context.
     public func decoder(for context: ImageDecodingContext) -> ImageDecoding? {
         for match in matches.reversed() {
             if let decoder = match(context) {
