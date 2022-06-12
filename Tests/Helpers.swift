@@ -75,6 +75,12 @@ enum Test {
     }
 }
 
+extension ImageDecodingContext {
+    static var mock: ImageDecodingContext {
+        ImageDecodingContext(request: Test.request, data: Test.data, isCompleted: true, urlResponse: nil)
+    }
+}
+
 #if os(macOS)
 extension NSImage {
     var cgImage: CGImage? {

@@ -522,20 +522,31 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
-    func testDecodingFailedErrorReturned() {
+    func testDecodingFailedErrorReturned() async {
         // Given
+        let decoder = MockFailingDecoder()
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
-            $0.makeImageDecoder = { _ in
-                return MockFailingDecoder()
-            }
+            $0.makeImageDecoder = { _ in decoder }
             $0.imageCache = nil
         }
 
         // When/Then
-        let data = Test.data(name: "fixture", extension: "jpeg")
-        expect(pipeline).toFailRequest(Test.request, with: .decodingFailed(data))
-        wait()
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            XCTFail("Expected failure")
+        } catch {
+            if case let .decodingFailed(failedDecoder, context) = error as? ImagePipeline.Error {
+                XCTAssertTrue((failedDecoder as? MockFailingDecoder) === decoder)
+
+                XCTAssertEqual(context.request.url, Test.request.url)
+                XCTAssertEqual(context.data, Test.data)
+                XCTAssertTrue(context.isCompleted)
+                XCTAssertEqual(context.urlResponse?.url, Test.url)
+            } else {
+                XCTFail("Unexpected error: \(error)")
+            }
+        }
     }
 
     func testProcessingFailedErrorReturned() {
@@ -568,7 +579,8 @@ class ImagePipelineTests: XCTestCase {
 
     func testErrorDescription() {
         XCTAssertFalse(ImagePipeline.Error.dataLoadingFailed(error: URLError(.unknown)).description.isEmpty) // Just padding here
-        XCTAssertFalse(ImagePipeline.Error.decodingFailed(Data()).description.isEmpty)
+
+        XCTAssertFalse(ImagePipeline.Error.decodingFailed(decoder: MockImageDecoder(name: "test"), context: .mock).description.isEmpty) // Just padding
 
         let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
         let error = ImagePipeline.Error.processingFailed(processor)

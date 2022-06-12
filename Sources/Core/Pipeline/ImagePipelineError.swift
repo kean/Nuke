@@ -16,7 +16,7 @@ extension ImagePipeline {
         /// No decoder registered for the given data.
         case decoderNotRegistered(context: ImageDecodingContext)
         /// Decoder failed to produce a final image.
-        case decodingFailed(Data)
+        case decodingFailed(decoder: ImageDecoding, context: ImageDecodingContext)
         /// Processor failed to produce a final image.
         case processingFailed(ImageProcessing)
         /// Load image method was called with no image request.
