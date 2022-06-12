@@ -553,18 +553,25 @@ class ImagePipelineTests: XCTestCase {
         // GIVEN
         let pipeline = ImagePipeline {
             $0.dataLoader = MockDataLoader()
-            return
         }
 
         let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
 
-        // WHEN/THEM
+        // WHEN/THEN
         expect(pipeline).toFailRequest(request) { result in
             guard case .failure(let error) = result,
-                  case .processingFailed(let processor) = error else {
+                  case let .processingFailed(processor, context, error) = error else {
                 return XCTFail()
             }
+
             XCTAssertTrue(processor is MockFailingProcessor)
+
+            XCTAssertEqual(context.request.url, Test.url)
+            XCTAssertEqual(context.response.container.image.sizeInPixels, CGSize(width: 640, height: 480))
+            XCTAssertEqual(context.response.cacheType, nil)
+            XCTAssertEqual(context.isFinal, true)
+
+            XCTAssertEqual(error as? ImageProcessingError, .unknown)
         }
         wait()
     }
@@ -583,7 +590,7 @@ class ImagePipelineTests: XCTestCase {
         XCTAssertFalse(ImagePipeline.Error.decodingFailed(decoder: MockImageDecoder(name: "test"), context: .mock).description.isEmpty) // Just padding
 
         let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
-        let error = ImagePipeline.Error.processingFailed(processor)
+        let error = ImagePipeline.Error.processingFailed(processor: processor, context: .mock, error: MockError(description: "processing-failed"))
         let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)"
         XCTAssertEqual(error.description, expected)
         XCTAssertEqual("\(error)", expected)

@@ -18,7 +18,7 @@ extension ImagePipeline {
         /// Decoder failed to produce a final image.
         case decodingFailed(decoder: ImageDecoding, context: ImageDecodingContext)
         /// Processor failed to produce a final image.
-        case processingFailed(ImageProcessing)
+        case processingFailed(processor: ImageProcessing, context: ImageProcessingContext, error: Swift.Error)
         /// Load image method was called with no image request.
         case missingImageRequest
     }
@@ -47,7 +47,7 @@ extension ImagePipeline.Error {
             return "No decoders registered for the downloaded data."
         case .decodingFailed:
             return "Failed to create an image from the image data"
-        case .processingFailed(let processor):
+        case .processingFailed(let processor, _, _):
             return "Failed to process the image using processor \(processor)"
         case .missingImageRequest:
             return "Load image method was called with no image request."

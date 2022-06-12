@@ -238,7 +238,7 @@ class ImagePipelineCacheTests: XCTestCase {
         }
         cache.storeCachedData(Test.data, for: Test.url)
 
-        // THEM
+        // THEN
         XCTAssertNil(cache.cachedImage(for: Test.url, caches: [.disk]))
     }
 

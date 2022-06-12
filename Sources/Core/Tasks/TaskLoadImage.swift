@@ -153,9 +153,9 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
 
         let key = ImageProcessingKey(image: response, processor: processor)
-        dependency2 = pipeline.makeTaskProcessImage(key: key, process: { [request] in
-            let context = ImageProcessingContext(request: request, response: response, isFinal: isCompleted)
-            return try signpost(log, "ProcessImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
+        let context = ImageProcessingContext(request: request, response: response, isFinal: isCompleted)
+        dependency2 = pipeline.makeTaskProcessImage(key: key, process: {
+            try signpost(log, "ProcessImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 try response.map { try processor.process($0, context: context) }
             }
         }).subscribe(priority: priority) { [weak self] event in
@@ -166,9 +166,9 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             switch event {
             case .value(let response, _):
                 self._process(response, isCompleted: isCompleted, processors: processors.dropLast())
-            case .error:
+            case .error(let error):
                 if isCompleted {
-                    self.send(error: .processingFailed(processor))
+                    self.send(error: .processingFailed(processor: processor, context: context, error: error))
                 }
             case .progress:
                 break // Do nothing (Not reported by OperationTask)

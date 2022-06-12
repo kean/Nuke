@@ -170,7 +170,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
         expect(pipeline).toFailRequest(request, with: .dataMissingInCache)
         wait()
 
-        // THEM
+        // THEN
         XCTAssertEqual(dataLoader.createdTaskCount, 0)
     }
 
