@@ -133,8 +133,6 @@ public struct LazyImage<Content: View>: View {
     }
 
     public enum DisappearBehavior {
-        @available(*, deprecated, message: "Please use cancel instead.")
-        case reset
         /// Cancels the current request but keeps the presentation state of
         /// the already displayed image.
         case cancel
@@ -257,7 +255,6 @@ public struct LazyImage<Content: View>: View {
     private func onDisappear() {
         guard let behavior = onDisappearBehavior else { return }
         switch behavior {
-        case .reset: model.reset()
         case .cancel: model.cancel()
         case .lowerPriority: model.priority = .veryLow
         }
@@ -270,7 +267,6 @@ public struct LazyImage<Content: View>: View {
     }
 }
 
-@available(iOS 13.0, tvOS 13.0, watchOS 7.0, macOS 10.15, *)
 public struct LazyImageState {
     /// Returns the current fetch result.
     public let result: Result<ImageResponse, Error>?
@@ -288,7 +284,7 @@ public struct LazyImageState {
 #if os(macOS)
         return imageContainer.map { Image($0) }
 #elseif os(watchOS)
-return imageContainer.map { Image(uiImage: $0.image) }
+        return imageContainer.map { Image(uiImage: $0.image) }
 #else
         return imageContainer.map { Image($0) }
 #endif
