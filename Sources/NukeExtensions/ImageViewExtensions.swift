@@ -7,12 +7,8 @@ import Foundation
 #if !os(macOS)
 import UIKit.UIImage
 import UIKit.UIColor
-/// Alias for `UIImage`.
-public typealias PlatformImage = UIImage
 #else
 import AppKit.NSImage
-/// Alias for `NSImage`.
-public typealias PlatformImage = NSImage
 #endif
 
 #if os(iOS) || os(tvOS) || os(macOS)
