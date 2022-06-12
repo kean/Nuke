@@ -13,7 +13,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
         struct MockDecoder: ImageDecoding {
             static let container = ImageContainer(image: Test.image)
 
-            func decode(_ data: Data) -> ImageContainer? {
+            func decode(_ data: Data) throws -> ImageContainer {
                 MockDecoder.container
             }
         }
