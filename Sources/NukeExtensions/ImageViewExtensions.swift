@@ -271,7 +271,7 @@ private final class ImageViewController {
 
         #if os(iOS) || os(tvOS)
         if let tintColor = options.tintColor(for: response) {
-            image = image.map { $0.withRenderingMode(.alwaysTemplate) }
+            image = image.map { $0.withRenderingMode(.alwaysTemplate) } ?? image
             imageView.tintColor = tintColor
         }
         #endif

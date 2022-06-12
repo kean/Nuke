@@ -4,6 +4,7 @@
 
 import XCTest
 import Nuke
+import NukeExtensions
 
 @MainActor
 class ImageViewPerformanceTests: XCTestCase {

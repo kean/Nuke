@@ -193,6 +193,7 @@
 		0CB644A828567E8F00916267 /* baseline.webp in Resources */ = {isa = PBXBuildFile; fileRef = 0C95FD532571B278008D4FC2 /* baseline.webp */; };
 		0CB644A928567E8F00916267 /* cat.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C8DC722209B842600084AA6 /* cat.gif */; };
 		0CB644AB28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB644AA28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift */; };
+		0CB644AC28567FC000916267 /* NukeExtensions.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */; };
 		0CBA07862852DA8B00CE29F4 /* ImagePipelineError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBA07852852DA8B00CE29F4 /* ImagePipelineError.swift */; };
 		0CC36A1225B8BC0800811018 /* Allocations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A1125B8BC0800811018 /* Allocations.swift */; };
 		0CC36A1925B8BC2500811018 /* RateLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A1825B8BC2500811018 /* RateLimiter.swift */; };
@@ -254,6 +255,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 0C8D7BCF1D9DBF1600D12EB7;
 			remoteInfo = "Nuke iOS Tests Host";
+		};
+		0CB644AD28567FC500916267 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0C55FCFC28567875000FD2C9;
+			remoteInfo = "Nuke Extensions";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -525,6 +533,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C8D7BED1D9DC02B00D12EB7 /* Nuke.framework in Frameworks */,
+				0CB644AC28567FC000916267 /* NukeExtensions.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1137,6 +1146,7 @@
 			);
 			dependencies = (
 				0C8D7BEF1D9DC02B00D12EB7 /* PBXTargetDependency */,
+				0CB644AE28567FC500916267 /* PBXTargetDependency */,
 				0C8D7BF41D9DC03A00D12EB7 /* PBXTargetDependency */,
 			);
 			name = "Nuke Performance Tests";
@@ -1592,6 +1602,11 @@
 			isa = PBXTargetDependency;
 			target = 0C8D7BCF1D9DBF1600D12EB7 /* Nuke Tests Host */;
 			targetProxy = 0C8D7BF31D9DC03A00D12EB7 /* PBXContainerItemProxy */;
+		};
+		0CB644AE28567FC500916267 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0C55FCFC28567875000FD2C9 /* Nuke Extensions */;
+			targetProxy = 0CB644AD28567FC500916267 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
