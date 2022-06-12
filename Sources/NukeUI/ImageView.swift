@@ -12,30 +12,12 @@ import AppKit
 import UIKit
 #endif
 
-#if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
-public final class AnimatedImageView: UIImageView, GIFAnimatable {
-    /// A lazy animator.
-    lazy var animator: Animator? = {
-        return Animator(withDelegate: self)
-    }()
-
-    /// Layer delegate method called periodically by the layer. **Should not** be called manually.
-    ///
-    /// - parameter layer: The delegated layer.
-    override public func display(_ layer: CALayer) {
-        if UIImageView.instancesRespond(to: #selector(display(_:))) {
-            super.display(layer)
-        }
-        updateImageIfNeeded()
-    }
-}
-#endif
-
 /// Lazily loads and displays images.
+@MainActor
 public class ImageView: _PlatformBaseView {
-
+    
     // MARK: Underlying Views
-
+    
 #if os(macOS)
     /// Returns an underlying image view.
     public let imageView = NSImageView()
@@ -43,20 +25,20 @@ public class ImageView: _PlatformBaseView {
     /// Returns an underlying image view.
     public let imageView = UIImageView()
 #endif
-
+    
 #if os(iOS) || os(tvOS)
     /// Sets the content mode for all container views.
     public var resizingMode: ImageResizingMode = .aspectFill {
         didSet {
             imageView.contentMode = .init(resizingMode: resizingMode)
-            #if !targetEnvironment(macCatalyst)
+#if !targetEnvironment(macCatalyst)
             _animatedImageView?.contentMode = .init(resizingMode: resizingMode)
-            #endif
+#endif
             _videoPlayerView?.videoGravity = .init(resizingMode)
         }
     }
 #endif
-
+    
 #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
     /// Returns an underlying animated image view used for rendering animated images.
     public var animatedImageView: AnimatedImageView {
@@ -68,16 +50,16 @@ public class ImageView: _PlatformBaseView {
         _animatedImageView = view
         return view
     }
-
+    
     private func makeAnimatedImageView() -> AnimatedImageView {
         let view = AnimatedImageView()
         view.contentMode = .init(resizingMode: resizingMode)
         return view
     }
-
+    
     private var _animatedImageView: AnimatedImageView?
 #endif
-
+    
     /// Returns an underlying video player view.
     public var videoPlayerView: VideoPlayerView {
         if let view = _videoPlayerView {
@@ -88,7 +70,7 @@ public class ImageView: _PlatformBaseView {
         _videoPlayerView = view
         return view
     }
-
+    
     private func makeVideoPlayerView() -> VideoPlayerView {
         let view = VideoPlayerView()
 #if os(macOS)
@@ -98,9 +80,9 @@ public class ImageView: _PlatformBaseView {
 #endif
         return view
     }
-
+    
     private var _videoPlayerView: VideoPlayerView?
-
+    
     public var customContentView: _PlatformBaseView? {
         get { _customContentView }
         set {
@@ -112,30 +94,30 @@ public class ImageView: _PlatformBaseView {
             }
         }
     }
-
+    
     private var _customContentView: _PlatformBaseView?
-
+    
     /// `true` by default. If disabled, animated image rendering will be disabled.
     public var isAnimatedImageRenderingEnabled = true
-
+    
     /// `true` by default. Set to `true` to enable video support.
     public var isVideoRenderingEnabled = true
-
+    
     // MARK: Initializers
-
+    
     override public init(frame: CGRect) {
         super.init(frame: frame)
         didInit()
     }
-
+    
     public required init?(coder: NSCoder) {
         super.init(coder: coder)
         didInit()
     }
-
+    
     private func didInit() {
         addContentView(imageView)
-
+        
 #if !os(macOS)
         clipsToBounds = true
         imageView.contentMode = .scaleAspectFill
@@ -146,7 +128,7 @@ public class ImageView: _PlatformBaseView {
         imageView.animates = true // macOS supports animated images out of the box
 #endif
     }
-
+    
     /// Displays the given image.
     ///
     /// Supports platform images (`UIImage`) and `ImageContainer`. Use `ImageContainer`
@@ -164,7 +146,7 @@ public class ImageView: _PlatformBaseView {
         }
     }
     var _imageContainer: ImageContainer?
-
+    
     public var isVideoLooping: Bool {
         get {
             videoPlayerView.isLooping
@@ -174,11 +156,11 @@ public class ImageView: _PlatformBaseView {
         }
     }
     var onVideoFinished: (() -> Void)?
-
+    
     func restartVideo() {
         videoPlayerView.restart()
     }
-
+    
 #if os(macOS)
     public var image: NSImage? {
         get { imageContainer?.image }
@@ -190,7 +172,7 @@ public class ImageView: _PlatformBaseView {
         set { imageContainer = newValue.map { ImageContainer(image: $0) } }
     }
 #endif
-
+    
     private func display(_ container: ImageContainer) {
         if let customView = makeCustomContentView(for: container) {
             customContentView = customView
@@ -213,7 +195,7 @@ public class ImageView: _PlatformBaseView {
             imageView.isHidden = false
         }
     }
-
+    
     private func makeCustomContentView(for container: ImageContainer) -> _PlatformBaseView? {
         for closure in ImageView.registersContentViews {
             if let view = closure(container) {
@@ -222,28 +204,28 @@ public class ImageView: _PlatformBaseView {
         }
         return nil
     }
-
+    
     /// Cancels current request and prepares the view for reuse.
     func reset() {
         _imageContainer = nil
-
+        
         imageView.isHidden = true
         imageView.image = nil
-
+        
 #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
         _animatedImageView?.isHidden = true
         _animatedImageView?.image = nil
 #endif
-
+        
         _videoPlayerView?.isHidden = true
         _videoPlayerView?.reset()
-
+        
         _customContentView?.removeFromSuperview()
         _customContentView = nil
     }
-
+    
     // MARK: Extending Rendering System
-
+    
 #if os(iOS) || os(tvOS)
     /// Registers a custom content view to be used for displaying the given image.
     ///
@@ -263,15 +245,15 @@ public class ImageView: _PlatformBaseView {
         registersContentViews.append(closure)
     }
 #endif
-
+    
     public static func removeAllRegisteredContentViews() {
         registersContentViews.removeAll()
     }
-
+    
     private static var registersContentViews: [(ImageContainer) -> _PlatformBaseView?] = []
-
+    
     // MARK: Misc
-
+    
     private func addContentView(_ view: _PlatformBaseView) {
         addSubview(view)
         view.pinToSuperview()

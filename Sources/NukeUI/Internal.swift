@@ -38,7 +38,7 @@ extension _PlatformBaseView {
         NSLayoutConstraint.activate(constraints)
         return constraints
     }
-
+    
     @discardableResult
     func centerInSuperview() -> [NSLayoutConstraint] {
         translatesAutoresizingMaskIntoConstraints = false
@@ -49,7 +49,7 @@ extension _PlatformBaseView {
         NSLayoutConstraint.activate(constraints)
         return constraints
     }
-
+    
     @discardableResult
     func layout(with position: LazyImageView.SubviewPosition) -> [NSLayoutConstraint] {
         switch position {
@@ -74,7 +74,7 @@ extension NSView {
     func setNeedsUpdateConstraints() {
         needsUpdateConstraints = true
     }
-
+    
     func insertSubview(_ subivew: NSView, at index: Int) {
         addSubview(subivew, positioned: .below, relativeTo: subviews.first)
     }
@@ -106,9 +106,8 @@ extension UIView.ContentMode {
 import UIKit
 
 extension UIColor {
-    @objc(secondarySystemBackgroundColor)
-    public static var secondarySystemBackground: UIColor {
-        return lightGray.withAlphaComponent(0.5)
+    static var secondarySystemBackground: UIColor {
+        lightGray.withAlphaComponent(0.5)
     }
 }
 #endif
