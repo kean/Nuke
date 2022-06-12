@@ -78,6 +78,7 @@
 		0C6CF0CD1DAF789C007B8C0E /* XCTestCaseExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068E1BCA888800089D7F /* XCTestCaseExtensions.swift */; };
 		0C6D0A8820E574400037B68F /* MockDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D0A8720E574400037B68F /* MockDataCache.swift */; };
 		0C6D0A8C20E57C810037B68F /* ImagePipelineDataCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D0A8B20E57C810037B68F /* ImagePipelineDataCacheTests.swift */; };
+		0C6E575028565F3E00BA375B /* ImageLoadingOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6E574F28565F3E00BA375B /* ImageLoadingOptions.swift */; };
 		0C7082612640521900C62638 /* MockImageEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7082602640521900C62638 /* MockImageEncoder.swift */; };
 		0C7082622640521900C62638 /* MockImageEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7082602640521900C62638 /* MockImageEncoder.swift */; };
 		0C70D9712089016800A49DAC /* progressive.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C70D96F2089016700A49DAC /* progressive.jpeg */; };
@@ -279,6 +280,7 @@
 		0C6B5BE0257010D300D763F2 /* ImagePipelineFormatsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineFormatsTests.swift; sourceTree = "<group>"; };
 		0C6D0A8720E574400037B68F /* MockDataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDataCache.swift; sourceTree = "<group>"; };
 		0C6D0A8B20E57C810037B68F /* ImagePipelineDataCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDataCacheTests.swift; sourceTree = "<group>"; };
+		0C6E574F28565F3E00BA375B /* ImageLoadingOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoadingOptions.swift; sourceTree = "<group>"; };
 		0C7082602640521900C62638 /* MockImageEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockImageEncoder.swift; sourceTree = "<group>"; };
 		0C70D96F2089016700A49DAC /* progressive.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = progressive.jpeg; sourceTree = "<group>"; };
 		0C70D9702089016800A49DAC /* baseline.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = baseline.jpeg; sourceTree = "<group>"; };
@@ -870,6 +872,7 @@
 			isa = PBXGroup;
 			children = (
 				0C0FD5DF1CA47FE1002A78FB /* ImageViewExtensions.swift */,
+				0C6E574F28565F3E00BA375B /* ImageLoadingOptions.swift */,
 				0C18BEBB2650C7F20002C55B /* FetchImage.swift */,
 			);
 			path = UI;
@@ -1311,6 +1314,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C0FD6001CA47FE1002A78FB /* ImageProcessing.swift in Sources */,
+				0C6E575028565F3E00BA375B /* ImageLoadingOptions.swift in Sources */,
 				0CC36A4125B8BCAC00811018 /* Log.swift in Sources */,
 				0CA4ECB126E6840900BAC8E5 /* ImageEncoders+ImageIO.swift in Sources */,
 				0C063F94266524190018F2C2 /* ImageResponse.swift in Sources */,
