@@ -16,7 +16,7 @@ Both frameworks have `UIKit` and `AppKit` extensions to make it easy to load ima
 
 ```swift
 imageView.kf.setImage(with: URL(string: "https://example.com/image.jpeg"))
-```     
+``` 
 
 **Nuke**   
 
@@ -199,7 +199,7 @@ Designed to work with a custom cache with no clear way to disable it.
 **Nuke**
 
 By default, is initialized with a native HTTP disk cache. Can be configured to work with a custom aggressive LRU disk cache.
-    
+
 
 ```swift
 ImagePipeline(configuration: .withURLCache) // Default cache

@@ -814,7 +814,7 @@ Decompression runs on a new separate `imageDecompressingQueue`. To disable decom
 #### [#247 Avoiding Duplicated Work when Applying Processors](https://github.com/kean/Nuke/pull/247)
 
 The pipeline avoids doing any duplicated work when loading images. Now it also avoids applying the same processors more than once. For example, let's take these two requests:
-        
+
 ```swift
 let url = URL(string: "http://example.com/image")
 pipeline.loadImage(with: ImageRequest(url: url, processors: [
@@ -825,7 +825,7 @@ pipeline.loadImage(with: ImageRequest(url: url, processors: [
     ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
 ]))
 ```
-        
+
 Nuke will load the image data only once, resize the image once and apply the blur also only once. There is no duplicated work done at any stage. If any of the intermediate results are available in the data cache, they will be used.
 
 ### ImagePipeline v2

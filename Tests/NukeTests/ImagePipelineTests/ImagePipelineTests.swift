@@ -371,9 +371,9 @@ class ImagePipelineTests: XCTestCase {
     }
 
     #endif
-    
+
     // MARK: - Thubmnail
-    
+
     func testThatThumbnailIsGenerated() {
         // GIVEN
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
@@ -389,7 +389,7 @@ class ImagePipelineTests: XCTestCase {
         }
         wait()
     }
-    
+
     func testThumbnailIsGeneratedOnDecodingQueue() {
         // GIVEN
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
@@ -400,11 +400,11 @@ class ImagePipelineTests: XCTestCase {
         expect(pipeline).toLoadImage(with: request)
         wait()
     }
-    
+
 #if os(iOS)
     func testThumnbailIsntDecompressed() {
         pipeline.configuration.imageDecompressingQueue.isSuspended = true
-        
+
         // GIVEN
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
@@ -427,7 +427,7 @@ class ImagePipelineTests: XCTestCase {
         request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
         XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com1")
     }
-    
+
     func testCacheKeyForRequestWithThumbnail() {
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
@@ -676,7 +676,7 @@ class ImagePipelineTests: XCTestCase {
             wait()
         }
     }
-    
+
     #if !os(macOS)
     func testOverridingImageScale() throws {
         // GIVEN

@@ -17,7 +17,7 @@ private final class MockDataTask: Cancellable {
 class MockDataLoader: DataLoading {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
-    
+
     var createdTaskCount = 0
     var results = [URL: Result<(Data, URLResponse), NSError>]()
     let queue = OperationQueue()

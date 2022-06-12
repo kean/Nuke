@@ -8,7 +8,7 @@ class Animator {
   var loopDuration: TimeInterval {
     return frameStore?.loopDuration ?? 0
   }
-    
+
   /// Number of frame to buffer.
   var frameBufferCount = 50
 
@@ -23,7 +23,7 @@ class Animator {
 
   /// A delegate responsible for displaying the GIF frames.
   private weak var delegate: GIFAnimatable!
-    
+
   private var animationBlock: (() -> Void)? = nil
 
   /// Responsible for starting and stopping the animation.
@@ -63,7 +63,7 @@ class Animator {
         }
         return
     }
-    
+
     store.shouldChangeFrame(with: displayLink.duration) {
       if $0 { delegate.animatorHasNewFrame() }
     }

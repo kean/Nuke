@@ -247,7 +247,7 @@ class ImageDecodersVideoTests: XCTestCase {
 
         // When
         let container = try XCTUnwrap(decoder?.decode(data))
-        
+
         // Then
         XCTAssertEqual(container.type, .m4v)
         XCTAssertFalse(container.isPreview)

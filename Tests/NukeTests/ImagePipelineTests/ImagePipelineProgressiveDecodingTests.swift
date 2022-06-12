@@ -325,9 +325,9 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         }
         wait()
     }
-    
+
     // MARK: Scale
-    
+
     #if os(iOS)
     func testOverridingImageScaleWithFloat() throws {
         // GIVEN

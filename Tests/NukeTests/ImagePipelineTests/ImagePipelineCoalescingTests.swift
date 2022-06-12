@@ -126,9 +126,9 @@ class ImagePipelineCoalescingTests: XCTestCase {
             XCTAssertEqual(self.dataLoader.createdTaskCount, 2)
         }
     }
-    
+
     // MARK: - Thumbnail
-    
+
     func testDeduplicationGivenSameURLButDifferentThumbnailOptions() {
         dataLoader.queue.isSuspended = true
 

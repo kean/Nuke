@@ -59,7 +59,7 @@ class ImageRequestCacheKeyTests: XCTestCase {
         let request2 = ImageRequest(url: Test.url)
         AssertHashableEqual(CacheKey(request1), CacheKey(request2))
     }
-    
+
     func testRequestsWithDefaultURLRequestAndURLAreEquivalent() {
         let request1 = ImageRequest(url: Test.url)
         let request2 = ImageRequest(urlRequest: URLRequest(url: Test.url))
@@ -77,7 +77,7 @@ class ImageRequestCacheKeyTests: XCTestCase {
         let request2 = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
         AssertHashableEqual(CacheKey(request1), CacheKey(request2))
     }
-    
+
     func testRequestsWithDifferentProcessorsAreNotEquivalent() {
         let request1 = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
         let request2 = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "2")])

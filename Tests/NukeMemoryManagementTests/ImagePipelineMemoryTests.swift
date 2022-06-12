@@ -122,13 +122,13 @@ class ImagePipelineMemoryTests: XCTestCase {
     func testWhenInvalidatedTasksAreCancelledAndPipelineIsDeallocated() {
         expectDeinit {
             dataLoader.queue.isSuspended = true
-            
+    
             expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
             pipeline.loadImage(with: Test.request) { _ in
                 XCTFail()
             }
             wait() // Wait till operation is created
-            
+    
             expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
             pipeline.invalidate()
             wait()

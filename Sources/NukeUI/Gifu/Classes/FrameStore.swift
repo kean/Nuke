@@ -7,16 +7,16 @@ class FrameStore {
 
   /// Total duration of one animation loop
   var loopDuration: TimeInterval = 0
-    
+
   /// Flag indicating if number of loops has been reached
   var isFinished: Bool = false
-    
+
   /// Desired number of loops, <= 0 for infinite loop
   let loopCount: Int
-    
+
   /// Index of current loop
   var currentLoop = 0
-    
+
   /// Maximum duration to increment the frame timer with.
   let maxTimeStep = 1.0
 
@@ -241,7 +241,7 @@ private extension FrameStore {
   func isLastLoop(loopIndex: Int) -> Bool {
     return loopIndex == loopCount - 1
   }
-    
+
   /// Returns the indexes of the frames to preload based on a starting frame index.
   ///
   /// - parameter index: Starting index.
@@ -256,12 +256,12 @@ private extension FrameStore {
       return [Int](nextIndex..<frameCount) + [Int](0...lastIndex)
     }
   }
-    
+
   func setupAnimatedFrames() {
       resetAnimatedFrames()
-        
+
       var duration: TimeInterval = 0
-        
+
       (0..<frameCount).forEach { index in
           lock.lock()
           let frameDuration = CGImageFrameDuration(with: imageSource, atIndex: index)
@@ -272,7 +272,7 @@ private extension FrameStore {
           if index > bufferFrameCount { return }
           loadFrameAtIndexIfNeeded(index)
       }
-        
+
       self.loopDuration = duration
   }
 

@@ -54,18 +54,18 @@ class ImagePipelineDataCachingTests: XCTestCase {
         // Then
         wait { _ in
             XCTAssertFalse(self.dataCache.store.isEmpty)
-            
+    
             XCTAssertNotNil(self.pipeline.cache.cachedData(for: request))
-            
+    
             guard let container = self.pipeline.cache.cachedImage(for: request, caches: [.disk]) else {
                 return XCTFail()
             }
             XCTAssertEqual(container.image.sizeInPixels, CGSize(width: 400, height: 300))
-            
+    
             XCTAssertNil(self.pipeline.cache.cachedData(for: ImageRequest(url: Test.url)))
         }
     }
-    
+
     // MARK: - Updating Priority
 
     func testPriorityUpdated() {

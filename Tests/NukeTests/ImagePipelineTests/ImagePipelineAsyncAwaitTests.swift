@@ -18,7 +18,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
             $0.imageCache = nil
         }
     }
-    
+
     // MARK: Common Use Cases
 
     func testLowDataMode() async throws {
@@ -28,7 +28,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
         dataLoader.results[highQualityImageURL] = .failure(URLError(networkUnavailableReason: .constrained) as NSError)
         dataLoader.results[lowQualityImageURL] = .success((Test.data, Test.urlResponse))
-                
+        
         // WHEN
         let pipeline = self.pipeline!
 
@@ -55,14 +55,14 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
     }
 
     private var observer: AnyObject?
-    
+
     func testCancellation() async throws {
         dataLoader.queue.isSuspended = true
 
         let task = _Concurrency.Task {
             try await pipeline.image(for: Test.url)
         }
-        
+
         observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
             task.cancel()
         }

@@ -97,7 +97,7 @@ class ImagePipelineImageCacheTests: XCTestCase {
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
         XCTAssertNotNil(cache[Test.request])
     }
-    
+
     func testGeneratedThumbnailDataIsStoredIncache() throws {
         // When
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])

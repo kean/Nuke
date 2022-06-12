@@ -10,7 +10,7 @@ import Combine
 public struct LazyImageState {
     /// Returns the current fetch result.
     public let result: Result<ImageResponse, Error>?
-    
+
     /// Returns a current error.
     public var error: Error? {
         if case .failure(let error) = result {
@@ -18,7 +18,7 @@ public struct LazyImageState {
         }
         return nil
     }
-    
+
     /// Returns an image view.
     @MainActor
     public var image: Image? {
@@ -30,29 +30,29 @@ public struct LazyImageState {
         return imageContainer.map { Image($0) }
 #endif
     }
-    
+
     /// Returns the fetched image.
     ///
     /// - note: In case pipeline has `isProgressiveDecodingEnabled` option enabled
     /// and the image being downloaded supports progressive decoding, the `image`
     /// might be updated multiple times during the download.
     public let imageContainer: ImageContainer?
-    
+
     /// Returns `true` if the image is being loaded.
     public let isLoading: Bool
-    
+
     /// The download progress.
     public struct Progress: Equatable {
         /// The number of bytes that the task has received.
         public let completed: Int64
-        
+
         /// A best-guess upper bound on the number of bytes the client expects to send.
         public let total: Int64
     }
-    
+
     /// The progress of the image download.
     public let progress: Progress
-    
+
     @MainActor
     init(_ fetchImage: FetchImage) {
         self.result = fetchImage.result

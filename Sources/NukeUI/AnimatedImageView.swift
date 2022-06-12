@@ -13,7 +13,7 @@ public final class AnimatedImageView: UIImageView, GIFAnimatable {
     lazy var animator: Animator? = {
         return Animator(withDelegate: self)
     }()
-    
+
     /// Layer delegate method called periodically by the layer. **Should not** be called manually.
     ///
     /// - parameter layer: The delegated layer.
