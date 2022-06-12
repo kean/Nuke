@@ -8,10 +8,6 @@ import UIKit
 import Cocoa
 #endif
 
-#if os(watchOS)
-import WatchKit
-#endif
-
 /// A namespace with all available decoders.
 public enum ImageDecoders {}
 

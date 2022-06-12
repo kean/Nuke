@@ -11,7 +11,7 @@ import UIKit
 #if os(watchOS)
 import ImageIO
 import CoreGraphics
-import WatchKit
+import WatchKit.WKInterfaceDevice
 #endif
 
 #if os(macOS)

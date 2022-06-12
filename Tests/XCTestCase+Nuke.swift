@@ -10,10 +10,6 @@ import Foundation
 import UIKit
 #endif
 
-#if os(watchOS)
-import WatchKit
-#endif
-
 #if os(macOS)
 import Cocoa
 #endif
