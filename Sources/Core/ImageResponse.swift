@@ -140,9 +140,5 @@ public struct ImageContainer {
     }
 }
 
-struct Test: Sendable {
-    var priority: ImageContainer.UserInfoKey
-}
-
 extension ImageResponse.CacheType: Sendable {}
 extension ImageContainer.UserInfoKey: Sendable {}
