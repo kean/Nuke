@@ -4,6 +4,7 @@
 
 import SwiftUI
 import Combine
+import Nuke
 
 /// An observable object that simplifies image loading in SwiftUI.
 @MainActor

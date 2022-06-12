@@ -3,16 +3,13 @@
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import Nuke
 
 #if !os(macOS)
 import UIKit.UIImage
 import UIKit.UIColor
-/// Alias for `UIImage`.
-public typealias PlatformImage = UIImage
 #else
 import AppKit.NSImage
-/// Alias for `NSImage`.
-public typealias PlatformImage = NSImage
 #endif
 
 #if os(iOS) || os(tvOS) || os(macOS)
@@ -274,7 +271,7 @@ private final class ImageViewController {
 
         #if os(iOS) || os(tvOS)
         if let tintColor = options.tintColor(for: response) {
-            image = image.map { $0.withRenderingMode(.alwaysTemplate) }
+            image = image.map { $0.withRenderingMode(.alwaysTemplate) } ?? image
             imageView.tintColor = tintColor
         }
         #endif
