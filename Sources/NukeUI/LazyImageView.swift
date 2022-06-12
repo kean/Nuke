@@ -261,7 +261,7 @@ public final class LazyImageView: _PlatformBaseView {
         }
 
         guard var request = request?.asImageRequest() else {
-            handle(result: .failure(FetchImageError.sourceEmpty), isSync: true)
+            handle(result: .failure(ImagePipeline.Error.imageRequestMissing), isSync: true)
             return
         }
 

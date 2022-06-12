@@ -94,7 +94,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         reset()
 
         guard var request = request?.asImageRequest() else {
-            handle(result: .failure(FetchImageError.sourceEmpty))
+            handle(result: .failure(ImagePipeline.Error.imageRequestMissing))
             return
         }
 
@@ -242,8 +242,4 @@ public final class FetchImage: ObservableObject, Identifiable {
         return image.map(SwiftUI.Image.init(uiImage:))
         #endif
     }
-}
-
-public enum FetchImageError: Swift.Error {
-    case sourceEmpty
 }
