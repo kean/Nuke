@@ -26,6 +26,7 @@ public typealias PlatformImage = NSImage
 ///
 /// The protocol and its methods have prefixes to make sure they don't clash
 /// with other similar methods and protocol in Objective-C runtime.
+@MainActor
 @objc public protocol Nuke_ImageDisplaying {
     /// Display a given image.
     @objc func nuke_display(image: PlatformImage?, data: Data?)
@@ -42,8 +43,8 @@ extension Nuke_ImageDisplaying {
 }
 
 #if os(macOS)
-public extension Nuke_ImageDisplaying {
-    var layer: CALayer? { nil }
+extension Nuke_ImageDisplaying {
+    public var layer: CALayer? { nil }
 }
 #endif
 
@@ -77,8 +78,8 @@ extension NSImageView: Nuke_ImageDisplaying {
 /// Loads an image with the given request and displays it in the view.
 ///
 /// See the complete method signature for more information.
-@discardableResult
-public func loadImage(
+@MainActor
+@discardableResult public func loadImage(
     with request: ImageRequestConvertible?,
     options: ImageLoadingOptions = ImageLoadingOptions.shared,
     into view: ImageDisplayingView,
@@ -109,22 +110,21 @@ public func loadImage(
 /// request is finished. Gets called synchronously if the response was found in
 /// the memory cache. `nil` by default.
 /// - returns: An image task or `nil` if the image was found in the memory cache.
-@discardableResult
-public func loadImage(
+@MainActor
+@discardableResult public func loadImage(
     with request: ImageRequestConvertible?,
     options: ImageLoadingOptions = ImageLoadingOptions.shared,
     into view: ImageDisplayingView,
     progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
     completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
 ) -> ImageTask? {
-    assert(Thread.isMainThread)
     let controller = ImageViewController.controller(for: view)
     return controller.loadImage(with: request?.asImageRequest(), options: options, progress: progress, completion: completion)
 }
 
 /// Cancels an outstanding request associated with the view.
+@MainActor
 public func cancelRequest(for view: ImageDisplayingView) {
-    assert(Thread.isMainThread)
     ImageViewController.controller(for: view).cancelOutstandingTask()
 }
 
@@ -351,6 +351,7 @@ public struct ImageLoadingOptions {
 /// - note: With a few modifications this might become public at some point,
 /// however as it stands today `ImageViewController` is just a helper class,
 /// making it public wouldn't expose any additional functionality to the users.
+@MainActor
 private final class ImageViewController {
     private weak var imageView: ImageDisplayingView?
     private var task: ImageTask?
@@ -364,7 +365,7 @@ private final class ImageViewController {
 
     // Automatically cancel the request when the view is deallocated.
     deinit {
-        cancelOutstandingTask()
+        task?.cancel()
     }
 
     init(view: /* weak */ ImageDisplayingView) {
@@ -525,7 +526,7 @@ private final class ImageViewController {
 
 // MARK: - ImageViewController (Transitions)
 
-private extension ImageViewController {
+extension ImageViewController {
     #if os(iOS) || os(tvOS)
 
     private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, response: ImageLoadingOptions.ResponseType) {
