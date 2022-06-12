@@ -66,5 +66,4 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
             send(error: .dataLoadingFailed(error: error))
         }
     }
-
 }
