@@ -24,9 +24,27 @@ final class DataPublisher {
         }
     }
 
+    convenience init(id: String, _ data: @escaping () async throws -> Data) {
+        self.init(id: id, publisher(from: data))
+    }
+
     func sink(receiveCompletion: @escaping ((PublisherCompletion) -> Void), receiveValue: @escaping ((Data) -> Void)) -> Cancellable {
         _sink(receiveCompletion, receiveValue)
     }
+}
+
+private func publisher(from closure: @escaping () async throws -> Data) -> AnyPublisher<Data, Error> {
+    let subject = PassthroughSubject<Data, Error>()
+    Task {
+        do {
+            let data = try await closure()
+            subject.send(data)
+            subject.send(completion: .finished)
+        } catch {
+            subject.send(completion: .failure(error))
+        }
+    }
+    return subject.eraseToAnyPublisher()
 }
 
 enum PublisherCompletion {

@@ -206,11 +206,52 @@ public struct ImageRequest: CustomStringConvertible {
     /// - warning: If you don't want data to be stored in the disk cache, make
     /// sure to create a pipeline without it or disable it on a per-request basis.
     /// You can also disable it dynamically using `ImagePipelineDelegate`.
-    public init<P>(id: String, data: P,
+    public init<P>(id: String,
+                   data: P,
                    processors: [ImageProcessing] = [],
                    priority: Priority = .normal,
                    options: Options = [],
                    userInfo: [UserInfoKey: Any]? = nil) where P: Publisher, P.Output == Data {
+        // It could technically be implemented without any special change to the
+        // pipeline by using a custom DataLoader, disabling resumable data, and
+        // passing a publisher in the request userInfo.
+        self.ref = Container(
+            resource: .publisher(DataPublisher(id: id, data)),
+            processors: processors,
+            priority: priority,
+            options: options,
+            userInfo: userInfo
+        )
+    }
+
+    /// Initializes a request with the given data publisher.
+    ///
+    /// - parameter id: Uniquely identifies the image data.
+    /// - parameter data: A data publisher to be used for fetching image data.
+    /// - parameter processors: Processors to be apply to the image. `[]` by default.
+    /// - parameter priority: The priority of the request, `.normal` by default.
+    /// - parameter options: Image loading options. `[]` by default.
+    /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
+    ///
+    /// For example, here is how you can use it with Photos framework (the
+    /// `imageDataPublisher()` API is a convenience extension).
+    ///
+    /// ```swift
+    /// let request = ImageRequest(
+    ///     id: asset.localIdentifier,
+    ///     data: PHAssetManager.imageDataPublisher(for: asset)
+    /// )
+    /// ```
+    ///
+    /// - warning: If you don't want data to be stored in the disk cache, make
+    /// sure to create a pipeline without it or disable it on a per-request basis.
+    /// You can also disable it dynamically using `ImagePipelineDelegate`.
+    public init(id: String,
+                data: @escaping () async throws -> Data,
+                processors: [ImageProcessing] = [],
+                priority: Priority = .normal,
+                options: Options = [],
+                userInfo: [UserInfoKey: Any]? = nil) {
         // It could technically be implemented without any special change to the
         // pipeline by using a custom DataLoader, disabling resumable data, and
         // passing a publisher in the request userInfo.
