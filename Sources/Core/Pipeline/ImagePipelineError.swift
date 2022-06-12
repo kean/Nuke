@@ -19,7 +19,7 @@ extension ImagePipeline {
         /// By default, the pipeline uses `ImageDecoders.Default` as a catch-all.
         case decoderNotRegistered(context: ImageDecodingContext)
         /// Decoder failed to produce a final image.
-        case decodingFailed(decoder: ImageDecoding, context: ImageDecodingContext)
+        case decodingFailed(decoder: ImageDecoding, context: ImageDecodingContext, error: Swift.Error)
         /// Processor failed to produce a final image.
         case processingFailed(processor: ImageProcessing, context: ImageProcessingContext, error: Swift.Error)
         /// Load image method was called with no image request.
@@ -42,16 +42,18 @@ extension ImagePipeline.Error {
         switch self {
         case .dataMissingInCache:
             return "Failed to load data from cache and download is disabled."
-        case .dataLoadingFailed(let error):
-            return "Failed to load image data: \(error)"
+        case let .dataLoadingFailed(error):
+            return "Failed to load image data. Underlying error: \(error)."
         case .dataIsEmpty:
             return "Data loader returned empty data."
         case .decoderNotRegistered:
             return "No decoders registered for the downloaded data."
-        case .decodingFailed:
-            return "Failed to create an image from the image data"
-        case .processingFailed(let processor, _, _):
-            return "Failed to process the image using processor \(processor)"
+        case let .decodingFailed(decoder, _, error):
+            let underlying = error is ImageDecodingError ? "" : " Underlying error: \(error)."
+            return "Failed to decode image data using decoder \(decoder).\(underlying)"
+        case let .processingFailed(processor, _, error):
+            let underlying = error is ImageProcessingError ? "" : " Underlying error: \(error)."
+            return "Failed to process the image using processor \(processor).\(underlying)"
         case .imageRequestMissing:
             return "Load image method was called with no image request."
         }

@@ -61,7 +61,7 @@ class MockFailingProcessor: ImageProcessing {
     }
 }
 
-struct MockError: Error {
+struct MockError: Error, Equatable {
     let description: String
 }
 

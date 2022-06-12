@@ -36,8 +36,10 @@ extension ImageDecoding {
     public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? { nil }
 }
 
-public enum ImageDecodingError: Swift.Error {
+public enum ImageDecodingError: Swift.Error, CustomStringConvertible {
     case unknown
+
+    public var description: String { "Unknown" }
 }
 
 extension ImageDecoding {

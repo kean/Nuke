@@ -77,8 +77,10 @@ public struct ImageProcessingContext {
     }
 }
 
-public enum ImageProcessingError: Error {
+public enum ImageProcessingError: Error, CustomStringConvertible {
     case unknown
+
+    public var description: String { "Unknown" }
 }
 
 func == (lhs: [ImageProcessing], rhs: [ImageProcessing]) -> Bool {

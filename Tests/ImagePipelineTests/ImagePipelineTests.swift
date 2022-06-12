@@ -536,13 +536,15 @@ class ImagePipelineTests: XCTestCase {
             _ = try await pipeline.image(for: Test.request)
             XCTFail("Expected failure")
         } catch {
-            if case let .decodingFailed(failedDecoder, context) = error as? ImagePipeline.Error {
+            if case let .decodingFailed(failedDecoder, context, error) = error as? ImagePipeline.Error {
                 XCTAssertTrue((failedDecoder as? MockFailingDecoder) === decoder)
 
                 XCTAssertEqual(context.request.url, Test.request.url)
                 XCTAssertEqual(context.data, Test.data)
                 XCTAssertTrue(context.isCompleted)
                 XCTAssertEqual(context.urlResponse?.url, Test.url)
+
+                XCTAssertEqual(error as? MockError, MockError(description: "decoder-failed"))
             } else {
                 XCTFail("Unexpected error: \(error)")
             }
@@ -587,11 +589,11 @@ class ImagePipelineTests: XCTestCase {
     func testErrorDescription() {
         XCTAssertFalse(ImagePipeline.Error.dataLoadingFailed(error: URLError(.unknown)).description.isEmpty) // Just padding here
 
-        XCTAssertFalse(ImagePipeline.Error.decodingFailed(decoder: MockImageDecoder(name: "test"), context: .mock).description.isEmpty) // Just padding
+        XCTAssertFalse(ImagePipeline.Error.decodingFailed(decoder: MockImageDecoder(name: "test"), context: .mock, error: MockError(description: "decoding-failed")).description.isEmpty) // Just padding
 
         let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
         let error = ImagePipeline.Error.processingFailed(processor: processor, context: .mock, error: MockError(description: "processing-failed"))
-        let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false)"
+        let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false). Underlying error: MockError(description: \"processing-failed\")."
         XCTAssertEqual(error.description, expected)
         XCTAssertEqual("\(error)", expected)
 

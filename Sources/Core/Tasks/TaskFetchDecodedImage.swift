@@ -66,7 +66,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
             send(value: response, isCompleted: context.isCompleted)
         case .failure(let error):
             if context.isCompleted {
-                send(error: .decodingFailed(decoder: decoder, context: context))
+                send(error: .decodingFailed(decoder: decoder, context: context, error: error))
             }
         }
     }

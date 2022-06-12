@@ -7,7 +7,7 @@ import Nuke
 
 class MockFailingDecoder: Nuke.ImageDecoding {
     func decode(_ data: Data) throws -> ImageContainer {
-        throw ImageDecodingError.unknown
+        throw MockError(description: "decoder-failed")
     }
 }
 
