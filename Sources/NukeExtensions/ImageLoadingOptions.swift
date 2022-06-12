@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import Nuke
 
 #if !os(macOS)
 import UIKit.UIImage
