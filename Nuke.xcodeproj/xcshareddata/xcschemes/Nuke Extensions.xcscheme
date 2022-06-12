@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0C55FCFC28567875000FD2C9"
-               BuildableName = "Nuke_Extensions.framework"
+               BuildableName = "NukeExtensions.framework"
                BlueprintName = "Nuke Extensions"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
@@ -61,7 +61,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0C55FCFC28567875000FD2C9"
-            BuildableName = "Nuke_Extensions.framework"
+            BuildableName = "NukeExtensions.framework"
             BlueprintName = "Nuke Extensions"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
