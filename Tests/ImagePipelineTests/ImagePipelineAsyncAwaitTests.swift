@@ -88,7 +88,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertNotNil(response?.url, Test.url.absoluteString)
     }
 
-    // MARK: - ImageTaskHandler
+    // MARK: - Progress Monitoring
 
     func testMonitoringProgress() async throws {
         struct Progress: Equatable {
@@ -118,6 +118,37 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
             Progress(completed: 20, total: 20),
         ])
     }
+
+    func testMonitoringProgressLoadData() async throws {
+        struct Progress: Equatable {
+            let completed, total: Int64
+        }
+
+        // GIVEN
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        // WHEN
+
+        var recorededProgress: [Progress] = []
+
+        do {
+            try await pipeline.data(for: Test.request, progress: {
+                recorededProgress.append(Progress(completed: $0, total: $1))
+            })
+        } catch {
+            // Do nothing
+        }
+
+        // THEN
+        XCTAssertEqual(recorededProgress, [
+            Progress(completed: 10, total: 20),
+            Progress(completed: 20, total: 20),
+        ])
+    }
+
+    // MARK: - Update Priority
 
     func testUpdatePriority() {
         // GIVEN

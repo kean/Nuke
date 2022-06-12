@@ -187,11 +187,6 @@ public final class ImagePipeline {
         })
     }
 
-    #warning("TODO: remove this")
-    private final class TaskBox {
-        var task: ImageTask?
-    }
-
     private func startImageTask(
         _ task: ImageTask,
         callbackQueue: DispatchQueue?,
@@ -272,17 +267,20 @@ public final class ImagePipeline {
     ///
     /// - parameter request: An image request.
     @discardableResult
-    public func data(for request: ImageRequestConvertible) async throws -> (Data, URLResponse?) {
-        let box = TaskBox()
+    public func data(
+        for request: ImageRequestConvertible,
+        progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
+        task: AsyncImageTask = AsyncImageTask()
+    ) async throws -> (Data, URLResponse?) {
         return try await withTaskCancellationHandler(handler: {
-            box.task?.cancel()
+            task.task?.cancel()
         }, operation: {
             try await withUnsafeThrowingContinuation { continuation in
                 // The pipeline guarantees that the callbacks (either onCancel or
                 // completion) are called exactly once. `onCancel` is a new addition
                 // just for Async/Await. Ideally, the completion should be called on
                 // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
-                box.task = loadData(with: request.asImageRequest(), isConfined: false, queue: nil, progress: nil, onCancel: {
+                task.task = loadData(with: request.asImageRequest(), isConfined: false, queue: nil, progress: progress, onCancel: {
                     continuation.resume(throwing: CancellationError())
                 }, completion: {
                     continuation.resume(with: $0)
