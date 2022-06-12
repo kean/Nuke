@@ -166,7 +166,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         mockCache[Test.request] = Test.container
 
         // When
-        Nuke.loadImage(with: Test.request, options: options, into: imageView)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         XCTAssertEqual(imageView.contentMode, .scaleAspectFill)
@@ -232,7 +232,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         mockCache[Test.request] = Test.container
 
         // When
-        Nuke.loadImage(with: Test.request, options: options, into: imageView)
+        NukeExtensions.loadImage(with: Test.request, options: options, into: imageView)
 
         // Then
         XCTAssertEqual(imageView.tintColor, .blue)
