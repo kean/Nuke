@@ -7,6 +7,7 @@ import XCTest
 
 #if os(iOS) || os(tvOS) || os(macOS)
 
+@MainActor
 class ImageViewExtensionsTests: XCTestCase {
     var imageView: _ImageView!
     var observer: ImagePipelineObserver!
@@ -14,6 +15,7 @@ class ImageViewExtensionsTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
 
+    @MainActor
     override func setUp() {
         super.setUp()
 
@@ -281,11 +283,13 @@ class ImageViewExtensionsTests: XCTestCase {
     }
 }
 
+@MainActor
 class ImageViewLoadingOptionsTests: XCTestCase {
     var mockCache: MockImageCache!
     var dataLoader: MockDataLoader!
     var imageView: _ImageView!
 
+    @MainActor
     override func setUp() {
         super.setUp()
 

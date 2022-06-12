@@ -85,6 +85,7 @@ struct TestExpectationImagePipeline {
 
 #if os(iOS) || os(tvOS) || os(macOS)
 extension XCTestCase {
+    @MainActor
     func expectToFinishLoadingImage(with request: ImageRequest,
                                     options: ImageLoadingOptions = ImageLoadingOptions.shared,
                                     into imageView: ImageDisplayingView,
@@ -101,6 +102,7 @@ extension XCTestCase {
         })
     }
 
+    @MainActor
     func expectToLoadImage(with request: ImageRequest, options: ImageLoadingOptions = ImageLoadingOptions.shared, into imageView: ImageDisplayingView) {
         expectToFinishLoadingImage(with: request, options: options, into: imageView) { result in
             XCTAssertTrue(result.isSuccess)

@@ -7,10 +7,12 @@ import XCTest
 
 #if os(iOS) || os(tvOS) || os(macOS)
 
+@MainActor
 class ImageViewIntegrationTests: XCTestCase {
     var imageView: _ImageView!
     var pipeline: ImagePipeline!
 
+    @MainActor
     override func setUp() {
         super.setUp()
 
