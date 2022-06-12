@@ -267,7 +267,8 @@ public struct ImageRequest: CustomStringConvertible {
         /// Use existing cache data and fail if no cached data is available.
         public static let returnCacheDataDontLoad = Options(rawValue: 1 << 4)
 
-        /// Perform data loading immediately, ignoring `dataLoadingQueue`.
+        /// Perform data loading immediately, ignoring `dataLoadingQueue`. It
+        /// can be used to elevate priority of certain tasks.
         ///
         /// - warning: If there is an outstanding task for loading the same
         /// resource but without this option, a new task will be created.
