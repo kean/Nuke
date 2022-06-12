@@ -11,6 +11,7 @@ let package = Package(
     ],
     products: [
         .library(name: "Nuke", targets: ["Nuke"]),
+        .library(name: "NukeUI", targets: ["NukeUI"]),
         .library(name: "NukeExtensions", targets: ["NukeExtensions"])
     ],
     targets: [
