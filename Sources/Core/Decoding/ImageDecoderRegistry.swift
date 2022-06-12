@@ -52,11 +52,11 @@ public final class ImageDecoderRegistry {
 
 /// Image decoding context used when selecting which decoder to use.
 public struct ImageDecodingContext {
-    public let request: ImageRequest
-    public let data: Data
+    public var request: ImageRequest
+    public var data: Data
     /// Returns `true` if the download was completed.
-    public let isCompleted: Bool
-    public let urlResponse: URLResponse?
+    public var isCompleted: Bool
+    public var urlResponse: URLResponse?
 
     public init(request: ImageRequest, data: Data, isCompleted: Bool, urlResponse: URLResponse?) {
         self.request = request

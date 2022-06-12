@@ -66,9 +66,9 @@ extension ImageProcessing {
 
 /// Image processing context used when selecting which processor to use.
 public struct ImageProcessingContext {
-    public let request: ImageRequest
-    public let response: ImageResponse
-    public let isFinal: Bool
+    public var request: ImageRequest
+    public var response: ImageResponse
+    public var isFinal: Bool
 
     public init(request: ImageRequest, response: ImageResponse, isFinal: Bool) {
         self.request = request
