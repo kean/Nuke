@@ -71,21 +71,6 @@ extension ImageProcessing {
     }
 }
 
-#if !os(watchOS)
-extension ImageLoadingOptions {
-    private static var stack = [ImageLoadingOptions]()
-
-    static func pushShared(_ shared: ImageLoadingOptions) {
-        stack.append(ImageLoadingOptions.shared)
-        ImageLoadingOptions.shared = shared
-    }
-
-    static func popShared() {
-        ImageLoadingOptions.shared = stack.removeLast()
-    }
-}
-#endif
-
 #if os(macOS)
 import Cocoa
 typealias _ImageView = NSImageView

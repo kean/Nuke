@@ -83,34 +83,6 @@ struct TestExpectationImagePipeline {
     }
 }
 
-#if os(iOS) || os(tvOS) || os(macOS)
-extension XCTestCase {
-    @MainActor
-    func expectToFinishLoadingImage(with request: ImageRequest,
-                                    options: ImageLoadingOptions = ImageLoadingOptions.shared,
-                                    into imageView: ImageDisplayingView,
-                                    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
-        let expectation = self.expectation(description: "Image loaded for \(request)")
-        Nuke.loadImage(
-            with: request,
-            options: options,
-            into: imageView,
-            completion: { result in
-                XCTAssertTrue(Thread.isMainThread)
-                completion?(result)
-                expectation.fulfill()
-        })
-    }
-
-    @MainActor
-    func expectToLoadImage(with request: ImageRequest, options: ImageLoadingOptions = ImageLoadingOptions.shared, into imageView: ImageDisplayingView) {
-        expectToFinishLoadingImage(with: request, options: options, into: imageView) { result in
-            XCTAssertTrue(result.isSuccess)
-        }
-    }
-}
-#endif
-
 final class TestRecordedImageRequest {
     var task: ImageTask {
         _task

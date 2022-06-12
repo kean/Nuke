@@ -4,6 +4,7 @@
 
 import XCTest
 @testable import Nuke
+@testable import NukeExtensions
 
 #if os(iOS) || os(tvOS) || os(macOS)
 
@@ -51,12 +52,9 @@ class ImageViewIntegrationTests: XCTestCase {
     }
 
     func testImageLoadedWithURL() {
-
-        Nuke.loadImage(with: url, into: imageView)
-
         // When
         let expectation = self.expectation(description: "Image loaded")
-        Nuke.loadImage(with: url, into: imageView) { _ in
+        NukeExtensions.loadImage(with: url, into: imageView) { _ in
             expectation.fulfill()
         }
         wait()
@@ -70,7 +68,7 @@ class ImageViewIntegrationTests: XCTestCase {
     func testLoadImageWithInvalidURLString() {
         // WHEN
         let expectation = self.expectation(description: "Image loaded")
-        Nuke.loadImage(with: "http://example.com/invalid url", into: imageView) { result in
+        NukeExtensions.loadImage(with: "http://example.com/invalid url", into: imageView) { result in
             XCTAssertEqual(result.error, .dataLoadingFailed(error: URLError(.badURL)))
             expectation.fulfill()
         }
@@ -87,7 +85,7 @@ class ImageViewIntegrationTests: XCTestCase {
 
         // WHEN
         let expectation = self.expectation(description: "Image loaded")
-        Nuke.loadImage(with: urlRequest, into: imageView) { result in
+        NukeExtensions.loadImage(with: urlRequest, into: imageView) { result in
             // THEN
             XCTAssertNotNil(result.error?.dataLoadingError)
             expectation.fulfill()
@@ -150,7 +148,6 @@ class ImageViewIntegrationTests: XCTestCase {
         let data = try XCTUnwrap(imageView.recordedData.first)
         XCTAssertNotNil(data)
     }
-
 
     #endif
 }
