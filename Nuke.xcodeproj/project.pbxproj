@@ -72,6 +72,7 @@
 		0C38DB452856909B0027F9FF /* CombineExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE6202626546FD100AAB8C3 /* CombineExtensions.swift */; };
 		0C38DB462856909B0027F9FF /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068D1BCA888800089D7F /* Helpers.swift */; };
 		0C38DB472856909B0027F9FF /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
+		0C38DB48285690CF0027F9FF /* NukeUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; };
 		0C42D4C722A286260094CB5A /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C42D4C422A283140094CB5A /* Deprecated.swift */; };
 		0C472F812654AA46007FC0F0 /* DeprecationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C472F802654AA46007FC0F0 /* DeprecationTests.swift */; };
 		0C472F842654AD88007FC0F0 /* ImageRequestKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C472F822654AD69007FC0F0 /* ImageRequestKeys.swift */; };
@@ -270,6 +271,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 0C91748F1BAE99EE004A7905;
 			remoteInfo = Nuke;
+		};
+		0C38DB49285690D20027F9FF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0C38DAA128568FAE0027F9FF;
+			remoteInfo = NukeUI;
 		};
 		0C55FD0628567875000FD2C9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -534,6 +542,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C38DB48285690CF0027F9FF /* NukeUI.framework in Frameworks */,
 				0C38DB1C28568FE20027F9FF /* Nuke.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1137,6 +1146,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				0C38DB4A285690D20027F9FF /* PBXTargetDependency */,
 			);
 			name = "NukeUI Unit Tests";
 			productName = "Nuke Tests";
@@ -1763,6 +1773,11 @@
 			isa = PBXTargetDependency;
 			target = 0C91748F1BAE99EE004A7905 /* Nuke */;
 			targetProxy = 0C38DB37285690280027F9FF /* PBXContainerItemProxy */;
+		};
+		0C38DB4A285690D20027F9FF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0C38DAA128568FAE0027F9FF /* NukeUI */;
+			targetProxy = 0C38DB49285690D20027F9FF /* PBXContainerItemProxy */;
 		};
 		0C55FD0728567875000FD2C9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
