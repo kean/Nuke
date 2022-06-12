@@ -13,9 +13,22 @@ import UIKit
 #endif
 
 #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
-import Gifu
+public final class AnimatedImageView: UIImageView, GIFAnimatable {
+    /// A lazy animator.
+    lazy var animator: Animator? = {
+        return Animator(withDelegate: self)
+    }()
 
-public typealias AnimatedImageView = Gifu.GIFImageView
+    /// Layer delegate method called periodically by the layer. **Should not** be called manually.
+    ///
+    /// - parameter layer: The delegated layer.
+    override public func display(_ layer: CALayer) {
+        if UIImageView.instancesRespond(to: #selector(display(_:))) {
+            super.display(layer)
+        }
+        updateImageIfNeeded()
+    }
+}
 #endif
 
 /// Lazily loads and displays images.

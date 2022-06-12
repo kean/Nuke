@@ -349,7 +349,7 @@ public final class LazyImageView: _PlatformBaseView {
         placeholderView?.isHidden = isHidden
     }
 
-    private func setPlaceholderImage(_ placeholderImage: _PlatformImage?) {
+    private func setPlaceholderImage(_ placeholderImage: PlatformImage?) {
         guard let placeholderImage = placeholderImage else {
             placeholderView = nil
             return
@@ -384,7 +384,7 @@ public final class LazyImageView: _PlatformBaseView {
         failureView?.isHidden = isHidden
     }
 
-    private func setFailureImage(_ failureImage: _PlatformImage?) {
+    private func setFailureImage(_ failureImage: PlatformImage?) {
         guard let failureImage = failureImage else {
             failureView = nil
             return

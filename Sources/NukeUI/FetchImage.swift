@@ -237,9 +237,9 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     public var view: SwiftUI.Image? {
         #if os(macOS)
-        return image.map(Image.init(nsImage:))
+        return image.map(SwiftUI.Image.init(nsImage:))
         #else
-        return image.map(Image.init(uiImage:))
+        return image.map(SwiftUI.Image.init(uiImage:))
         #endif
     }
 }
