@@ -28,7 +28,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
             operation?.cancel() // Cancel any potential pending progressive decoding tasks
         }
 
-        let context = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
+        let context = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse, cacheType: nil)
         guard let decoder = getDecoder(for: context) else {
             if isCompleted {
                 send(error: .decoderNotRegistered(context: context))

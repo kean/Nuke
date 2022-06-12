@@ -40,6 +40,10 @@ extension ImageDecoding {
     }
 }
 
+public enum ImageDecodingError {
+    case unknown
+}
+
 extension ImageDecoding {
     func decode(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool, cacheType: ImageResponse.CacheType?) -> ImageResponse? {
         func _decode() -> ImageContainer? {

@@ -51,7 +51,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     private func didReceiveCachedData(_ data: Data) {
         guard !isDisposed else { return }
 
-        let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil)
+        let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil, cacheType: .disk)
         guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             // This shouldn't happen in practice unless encoder/decoder pair
             // for data cache is misconfigured.

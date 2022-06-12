@@ -31,8 +31,6 @@ public final class ImageDecoderRegistry {
         return nil
     }
 
-    // MARK: - Registering
-
     /// Registers a decoder to be used in a given decoding context.
     ///
     /// **Progressive Decoding**
@@ -57,11 +55,13 @@ public struct ImageDecodingContext {
     /// Returns `true` if the download was completed.
     public var isCompleted: Bool
     public var urlResponse: URLResponse?
+    public var cacheType: ImageResponse.CacheType?
 
-    public init(request: ImageRequest, data: Data, isCompleted: Bool, urlResponse: URLResponse?) {
+    public init(request: ImageRequest, data: Data, isCompleted: Bool, urlResponse: URLResponse?, cacheType: ImageResponse.CacheType?) {
         self.request = request
         self.data = data
         self.isCompleted = isCompleted
         self.urlResponse = urlResponse
+        self.cacheType = cacheType
     }
 }

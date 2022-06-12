@@ -77,7 +77,11 @@ enum Test {
 
 extension ImageDecodingContext {
     static var mock: ImageDecodingContext {
-        ImageDecodingContext(request: Test.request, data: Test.data, isCompleted: true, urlResponse: nil)
+        mock(data: Test.data)
+    }
+
+    static func mock(data: Data) -> ImageDecodingContext {
+        ImageDecodingContext(request: Test.request, data: data, isCompleted: true, urlResponse: nil, cacheType: nil)
     }
 }
 

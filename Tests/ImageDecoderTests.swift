@@ -128,7 +128,7 @@ class ImageDecoderTests: XCTestCase {
         XCTAssertEqual(data.count, 427672) // 427 KB
         let chunk = data[...60000] // 6 KB
 
-        let context = ImageDecodingContext(request: Test.request, data: chunk, isCompleted: false, urlResponse: nil)
+        let context = ImageDecodingContext.mock(data: chunk)
         let decoder = try XCTUnwrap(ImageDecoders.Default(context: context))
 
         XCTAssertNotNil(decoder.decodePartiallyDownloadedData(chunk))
@@ -245,7 +245,7 @@ class ImageDecodersVideoTests: XCTestCase {
     func testDefaultRegistryDecodeVideo() throws {
         // Given
         let data = Test.data(name: "video", extension: "mp4")
-        let context = ImageDecodingContext(request: Test.request, data: data, isCompleted: true, urlResponse: nil)
+        let context = ImageDecodingContext.mock(data: data)
         let decoder = ImageDecoders.Video(context: context)
 
         // When

@@ -8,7 +8,7 @@ import XCTest
 final class ImageDecoderRegistryTests: XCTestCase {
     func testDefaultDecoderIsReturned() {
         // Given
-        let context = _mockImageDecodingContext()
+        let context = ImageDecodingContext.mock
 
         // Then
         let decoder = ImageDecoderRegistry().decoder(for: context)
@@ -18,7 +18,7 @@ final class ImageDecoderRegistryTests: XCTestCase {
     func testRegisterDecoder() {
         // Given
         let registry = ImageDecoderRegistry()
-        let context = _mockImageDecodingContext()
+        let context = ImageDecodingContext.mock
 
         // When
         registry.register { _ in
@@ -47,7 +47,7 @@ final class ImageDecoderRegistryTests: XCTestCase {
         }
 
         // When
-        let context = _mockImageDecodingContext()
+        let context = ImageDecodingContext.mock
         let decoder = ImageDecoderRegistry().decoder(for: context)
 
         // Then
@@ -61,7 +61,7 @@ final class ImageDecoderRegistryTests: XCTestCase {
         let data = Test.data(name: "video", extension: "mp4")
         
         // When
-        let context = ImageDecodingContext(request: Test.request, data: data, isCompleted: true, urlResponse: nil)
+        let context = ImageDecodingContext.mock(data: data)
         let decoder = registry.decoder(for: context)
         let container = try XCTUnwrap(decoder?.decode(data))
         
@@ -72,13 +72,4 @@ final class ImageDecoderRegistryTests: XCTestCase {
         XCTAssertNotNil(container.asset)
     }
     #endif
-}
-
-private func _mockImageDecodingContext() -> ImageDecodingContext {
-    return ImageDecodingContext(
-        request: Test.request,
-        data: Test.data(name: "fixture", extension: "jpeg"),
-        isCompleted: true,
-        urlResponse: nil
-    )
 }
