@@ -30,11 +30,11 @@ class ImageViewIntegrationTests: XCTestCase {
     }
 
     var url: URL {
-        return Test.url(forResource: "fixture", extension: "jpeg")
+        Test.url(forResource: "fixture", extension: "jpeg")
     }
 
     var request: ImageRequest {
-        return ImageRequest(url: url)
+        ImageRequest(url: url)
     }
 
     // MARK: - Loading

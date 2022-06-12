@@ -101,6 +101,10 @@ public final class DataLoader: DataLoading, _DataLoaderObserving {
     func dataTask(_ dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent) {
         observer?.dataLoader(self, urlSession: session, dataTask: dataTask, didReceiveEvent: event)
     }
+
+    func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        observer?.dataLoader(self, urlSession: session, task: task, didFinishCollecting: metrics)
+    }
 }
 
 // Actual data loader implementation. Hide NSObject inheritance, hide
@@ -160,6 +164,10 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         handler.completion(error)
     }
 
+    func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        observer?.task(task, didFinishCollecting: metrics)
+    }
+
     // MARK: URLSessionDataDelegate
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
@@ -203,8 +211,22 @@ public enum DataTaskEvent {
 /// delivered on the internal serial operation queue.
 public protocol DataLoaderObserving {
     func dataLoader(_ loader: DataLoader, urlSession: URLSession, dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent)
+
+    /// Sent when complete statistics information has been collected for the task.
+    func dataLoader(_ loader: DataLoader, urlSession: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics)
+}
+
+extension DataLoaderObserving {
+    public func dataLoader(_ loader: DataLoader, urlSession: URLSession, dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent) {
+        // Do nothing
+    }
+
+    public func dataLoader(_ loader: DataLoader, urlSession: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        // Do nothing
+    }
 }
 
 protocol _DataLoaderObserving: AnyObject {
     func dataTask(_ dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent)
+    func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics)
 }
