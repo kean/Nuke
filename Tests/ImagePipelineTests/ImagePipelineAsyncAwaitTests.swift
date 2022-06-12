@@ -88,6 +88,63 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertNotNil(response?.url, Test.url.absoluteString)
     }
 
+    // MARK: - ImageTaskHandler
+
+    func testMonitoringProgress() async throws {
+        struct Progress: Equatable {
+            let completed, total: Int64
+        }
+
+        // GIVEN
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        // WHEN
+
+        var recorededProgress: [Progress] = []
+
+        do {
+            try await pipeline.image(for: Test.request, progress: {
+                recorededProgress.append(Progress(completed: $1, total: $2))
+            })
+        } catch {
+            // Do nothing
+        }
+
+        // THEN
+        XCTAssertEqual(recorededProgress, [
+            Progress(completed: 10, total: 20),
+            Progress(completed: 20, total: 20),
+        ])
+    }
+
+    func testUpdatePriority() {
+        // GIVEN
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let request = Test.request
+        XCTAssertEqual(request.priority, .normal)
+
+        let observer = expect(queue).toEnqueueOperationsWithCount(1)
+        let task = AsyncImageTask()
+        DispatchQueue.global().async {
+            Task {
+                try await self.pipeline.image(for: request, task: task)
+            }
+        }
+        wait()
+
+        // WHEN/THEN
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        expect(operation).toUpdatePriority()
+        task.setPriority(.high)
+        wait()
+    }
+
     // MARK: - ImageRequest with Async/Await
 
     func testImageRequestWithAsyncAwaitSuccess() async throws {

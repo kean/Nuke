@@ -106,3 +106,13 @@ public final class ImageTask: Hashable, CustomStringConvertible {
         "ImageTask(id: \(taskId), priority: \(priority), completedUnitCount: \(completedUnitCount), totalUnitCount: \(totalUnitCount), isCancelled: \(isCancelled))"
     }
 }
+
+public final class AsyncImageTask {
+    var task: ImageTask?
+
+    public func setPriority(_ priority: ImageRequest.Priority) {
+        task?.priority = priority
+    }
+
+    public init() {}
+}

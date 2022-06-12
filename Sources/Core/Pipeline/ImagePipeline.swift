@@ -163,17 +163,22 @@ public final class ImagePipeline {
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
     ///
     /// - parameter request: An image request.
-    public func image(for request: ImageRequestConvertible) async throws -> ImageResponse {
-        let box = TaskBox()
+    ///
+    @discardableResult
+    public func image(
+        for request: ImageRequestConvertible,
+        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
+        task: AsyncImageTask = AsyncImageTask()
+    ) async throws -> ImageResponse {
         return try await withTaskCancellationHandler(handler: {
-            box.task?.cancel()
+            task.task?.cancel()
         }, operation: {
             try await withUnsafeThrowingContinuation { continuation in
                 // The pipeline guarantees that the callbacks (either onCancel or
                 // completion) are called exactly once. `onCancel` is a new addition
                 // just for Async/Await. Ideally, the completion should be called on
                 // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
-                box.task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: nil, onCancel: {
+                task.task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: progress, onCancel: {
                     continuation.resume(throwing: CancellationError())
                 }, completion: {
                     continuation.resume(with: $0)
@@ -182,6 +187,7 @@ public final class ImagePipeline {
         })
     }
 
+    #warning("TODO: remove this")
     private final class TaskBox {
         var task: ImageTask?
     }
@@ -265,6 +271,7 @@ public final class ImagePipeline {
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
     ///
     /// - parameter request: An image request.
+    @discardableResult
     public func data(for request: ImageRequestConvertible) async throws -> (Data, URLResponse?) {
         let box = TaskBox()
         return try await withTaskCancellationHandler(handler: {
