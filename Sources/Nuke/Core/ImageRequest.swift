@@ -475,7 +475,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
 }
 
 /// Represents a type that can be converted to an `ImageRequest`.
-public protocol ImageRequestConvertible {
+public protocol ImageRequestConvertible: Sendable {
     func asImageRequest() -> ImageRequest
 }
 

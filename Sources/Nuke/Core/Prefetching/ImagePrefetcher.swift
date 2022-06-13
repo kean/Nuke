@@ -90,7 +90,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     ///
     /// The priority of the requests is set to the priority of the prefetcher
     /// (`.low` by default).
-    public func startPrefetching(with requests: [ImageRequestConvertible]) {
+    public func startPrefetching(with requests: [any ImageRequestConvertible]) {
         pipeline.queue.async {
             for request in requests {
                 var request = request.asImageRequest()
@@ -150,7 +150,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     /// of `ImagePrefetcher`.
     ///
     /// - parameter destination: `.memoryCache` by default.
-    public func stopPrefetching(with requests: [ImageRequestConvertible]) {
+    public func stopPrefetching(with requests: [any ImageRequestConvertible]) {
         pipeline.queue.async {
             for request in requests {
                 self._stopPrefetching(with: request.asImageRequest())
