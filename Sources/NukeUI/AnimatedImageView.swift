@@ -7,7 +7,6 @@ import Foundation
 #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
 import UIKit
 
-@MainActor
 public final class AnimatedImageView: UIImageView, GIFAnimatable {
     /// A lazy animator.
     lazy var animator: Animator? = {
