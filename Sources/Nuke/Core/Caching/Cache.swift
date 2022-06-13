@@ -4,6 +4,7 @@
 
 import Foundation
 
+// Internal memory-cache implementation.
 final class Cache<Key: Hashable, Value> {
     // Can't use `NSCache` because it is not LRU
 

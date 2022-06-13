@@ -7,7 +7,7 @@ import Foundation
 /// In-memory image cache.
 ///
 /// The implementation must be thread safe.
-public protocol ImageCaching: AnyObject {
+public protocol ImageCaching: AnyObject, Sendable {
     /// Access the image cached for the given request.
     subscript(key: ImageCacheKey) -> ImageContainer? { get set }
 
@@ -18,11 +18,11 @@ public protocol ImageCaching: AnyObject {
 /// An opaque container that acts as a cache key.
 ///
 /// In general, you don't construct it directly, and use `ImagePipeline` or `ImagePipeline.Cache` APIs.
-public struct ImageCacheKey: Hashable {
+public struct ImageCacheKey: Hashable, Sendable {
     let key: Inner
 
     // This is faster than using AnyHashable (and it shows in performance tests).
-    enum Inner: Hashable {
+    enum Inner: Hashable, Sendable {
         case custom(String)
         case `default`(CacheKey)
     }

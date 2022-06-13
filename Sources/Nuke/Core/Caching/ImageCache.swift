@@ -49,14 +49,10 @@ public final class ImageCache: ImageCaching {
     }
 
     /// The total number of items in the cache.
-    public var totalCount: Int {
-        impl.totalCount
-    }
+    public var totalCount: Int { impl.totalCount }
 
     /// The total cost of items in the cache.
-    public var totalCost: Int {
-        impl.totalCost
-    }
+    public var totalCost: Int { impl.totalCost }
 
     /// Shared `Cache` instance.
     public static let shared = ImageCache()
