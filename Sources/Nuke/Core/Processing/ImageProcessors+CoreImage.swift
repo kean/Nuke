@@ -22,11 +22,11 @@ extension ImageProcessors {
     /// - [Core Image Filter Reference](https://developer.apple.com/library/prerelease/ios/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html)
     public struct CoreImageFilter: ImageProcessing, CustomStringConvertible {
         public let name: String
-        public let parameters: [String: Any]
+        public let parameters: [String: Sendable]
         public let identifier: String
 
         /// - parameter identifier: Uniquely identifies the processor.
-        public init(name: String, parameters: [String: Any], identifier: String) {
+        public init(name: String, parameters: [String: Sendable], identifier: String) {
             self.name = name
             self.parameters = parameters
             self.identifier = identifier

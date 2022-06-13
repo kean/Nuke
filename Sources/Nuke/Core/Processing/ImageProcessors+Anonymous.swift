@@ -8,9 +8,9 @@ extension ImageProcessors {
     /// Processed an image using a specified closure.
     public struct Anonymous: ImageProcessing, CustomStringConvertible {
         public let identifier: String
-        private let closure: (PlatformImage) -> PlatformImage?
+        private let closure: @Sendable (PlatformImage) -> PlatformImage?
 
-        public init(id: String, _ closure: @escaping (PlatformImage) -> PlatformImage?) {
+        public init(id: String, _ closure: @Sendable @escaping (PlatformImage) -> PlatformImage?) {
             self.identifier = id
             self.closure = closure
         }

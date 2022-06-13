@@ -21,7 +21,7 @@ import Foundation
 /// ```
 ///
 /// You must implement either one of those methods.
-public protocol ImageProcessing {
+public protocol ImageProcessing: Sendable {
     /// Returns a processed image. By default, returns `nil`.
     ///
     /// - note: Gets called a background queue managed by the pipeline.

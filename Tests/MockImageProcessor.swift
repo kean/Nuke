@@ -22,8 +22,8 @@ private struct AssociatedKeys {
 
 // MARK: - MockImageProcessor
 
-class MockImageProcessor: ImageProcessing, CustomStringConvertible {
-    var identifier: String
+final class MockImageProcessor: ImageProcessing, CustomStringConvertible {
+    let identifier: String
 
     init(id: String) {
         self.identifier = id
@@ -51,7 +51,7 @@ class MockImageProcessor: ImageProcessing, CustomStringConvertible {
 
 // MARK: - MockFailingProcessor
 
-class MockFailingProcessor: ImageProcessing {
+final class MockFailingProcessor: ImageProcessing {
     func process(_ image: PlatformImage) -> PlatformImage? {
         nil
     }
@@ -67,7 +67,7 @@ struct MockError: Error, Equatable {
 
 // MARK: - MockEmptyImageProcessor
 
-class MockEmptyImageProcessor: ImageProcessing {
+final class MockEmptyImageProcessor: ImageProcessing {
     let identifier = "MockEmptyImageProcessor"
 
     func process(_ image: PlatformImage) -> PlatformImage? {
@@ -86,18 +86,24 @@ final class MockProcessorFactory {
     var numberOfProcessorsApplied: Int = 0
     let lock = NSLock()
 
-    private final class Processor: MockImageProcessor {
+    private final class Processor: ImageProcessing, @unchecked Sendable {
+        var identifier: String { processor.identifier }
         var factory: MockProcessorFactory!
+        let processor: MockImageProcessor
 
-        override func process(_ image: PlatformImage) -> PlatformImage? {
+        init(id: String) {
+            self.processor = MockImageProcessor(id: id)
+        }
+
+        func process(_ image: PlatformImage) -> PlatformImage? {
             factory.lock.lock()
             factory.numberOfProcessorsApplied += 1
             factory.lock.unlock()
-            return super.process(image)
+            return processor.process(image)
         }
     }
 
-    func make(id: String) -> MockImageProcessor {
+    func make(id: String) -> ImageProcessing {
         let processor = Processor(id: id)
         processor.factory = self
         return processor

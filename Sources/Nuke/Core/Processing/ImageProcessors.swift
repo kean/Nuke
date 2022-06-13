@@ -77,7 +77,7 @@ extension ImageProcessing where Self == ImageProcessors.CoreImageFilter {
     /// Applies Core Image filter (`CIFilter`) to the image.
     ///
     /// - parameter identifier: Uniquely identifies the processor.
-    public static func coreImageFilter(name: String, parameters: [String: Any], identifier: String) -> ImageProcessors.CoreImageFilter {
+    public static func coreImageFilter(name: String, parameters: [String: Sendable], identifier: String) -> ImageProcessors.CoreImageFilter {
         ImageProcessors.CoreImageFilter(name: name, parameters: parameters, identifier: identifier)
     }
 
@@ -101,7 +101,7 @@ extension ImageProcessing where Self == ImageProcessors.GaussianBlur {
 
 extension ImageProcessing where Self == ImageProcessors.Anonymous {
     /// Processed an image using a specified closure.
-    public static func process(id: String, _ closure: @escaping (PlatformImage) -> PlatformImage?) -> ImageProcessors.Anonymous {
+    public static func process(id: String, _ closure: @Sendable @escaping (PlatformImage) -> PlatformImage?) -> ImageProcessors.Anonymous {
         ImageProcessors.Anonymous(id: id, closure)
     }
 }
