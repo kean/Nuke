@@ -199,7 +199,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         guard !isDisposed else { return }
 
-        operation = pipeline.conf.imageDecompressingQueue.add { [weak self] in
+        operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
             guard let self = self else { return }
 
             let response = signpost(log, "DecompressImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
@@ -214,7 +214,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     private func isDecompressionNeeded(for response: ImageResponse) -> Bool {
-        return pipeline.conf.isDecompressionEnabled &&
+        pipeline.configuration.isDecompressionEnabled &&
             ImageDecompression.isDecompressionNeeded(for: response.image) ?? false
     }
     #endif
