@@ -67,7 +67,7 @@ extension ImageProcessing {
 }
 
 /// Image processing context used when selecting which processor to use.
-public struct ImageProcessingContext {
+public struct ImageProcessingContext: Sendable {
     public var request: ImageRequest
     public var response: ImageResponse
     public var isCompleted: Bool
@@ -79,7 +79,7 @@ public struct ImageProcessingContext {
     }
 }
 
-public enum ImageProcessingError: Error, CustomStringConvertible {
+public enum ImageProcessingError: Error, CustomStringConvertible, Sendable {
     case unknown
 
     public var description: String { "Unknown" }
