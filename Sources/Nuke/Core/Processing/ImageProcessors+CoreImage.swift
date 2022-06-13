@@ -88,7 +88,7 @@ extension ImageProcessors {
             "CoreImageFilter(name: \(name), parameters: \(parameters))"
         }
 
-        public enum Error: Swift.Error, CustomStringConvertible {
+        public enum Error: Swift.Error, CustomStringConvertible, @unchecked Sendable {
             case failedToCreateFilter(name: String, parameters: [String: Any])
             case inputImageIsEmpty(inputImage: PlatformImage)
             case failedToApplyFilter(filter: CIFilter)

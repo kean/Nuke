@@ -10,7 +10,7 @@ import Foundation
 ///
 /// - note: If you need additional information in the decoder, you can pass
 /// anything that you might need from the `ImageDecodingContext`.
-public protocol ImageDecoding {
+public protocol ImageDecoding: Sendable {
     /// Return `true` if you want the decoding to be performed on the decoding
     /// queue (see `imageDecodingQueue`). If `false`, the decoding will be
     /// performed synchronously on the pipeline operation queue. By default, `true`.

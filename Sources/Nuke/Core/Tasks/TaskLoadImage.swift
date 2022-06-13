@@ -58,7 +58,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             return fetchImage()
         }
 
-        func decode() -> ImageResponse? {
+        @Sendable func decode() -> ImageResponse? {
             signpost("DecodeCachedProcessedImageData") {
                 try? decoder.decode(context)
             }

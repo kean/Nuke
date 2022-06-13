@@ -20,7 +20,7 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
                     return finish()
                 }
                 self.async {
-                    self.loadData(finish: finish)
+                    self.loadData { finish() }
                 }
             }
         }

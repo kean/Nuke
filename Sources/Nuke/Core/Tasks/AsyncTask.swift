@@ -15,7 +15,7 @@ import Foundation
 /// image pipeline are represented using Operation to take advantage of these features.
 ///
 /// - warning: Must be thread-confined!
-class AsyncTask<Value, Error>: AsyncTaskSubscriptionDelegate, @unchecked Sendable {
+class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate, @unchecked Sendable {
 
     private struct Subscription {
         let closure: (Event) -> Void
@@ -353,7 +353,7 @@ private typealias TaskSubscriptionKey = Int
 // MARK: - TaskPool
 
 /// Contains the tasks which haven't completed yet.
-final class TaskPool<Key: Hashable, Value, Error> {
+final class TaskPool<Key: Hashable, Value: Sendable, Error: Sendable> {
     private let isCoalescingEnabled: Bool
     private var map = [Key: AsyncTask<Value, Error>]()
 

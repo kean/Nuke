@@ -13,7 +13,10 @@ import Foundation
 /// The implementation supports quick bursts of requests which can be executed
 /// without any delays when "the bucket is full". This is important to prevent
 /// rate limiter from affecting "normal" requests flow.
-final class RateLimiter {
+final class RateLimiter: @unchecked Sendable {
+    // This type isn't really Sendable and requires the caller to use the same
+    // queue as it does for synchronization.
+
     private let bucket: TokenBucket
     private let queue: DispatchQueue
     private var pending = LinkedList<Work>() // fast append, fast remove first
@@ -62,7 +65,7 @@ final class RateLimiter {
         let bucketRate = 1000.0 / bucket.rate
         let delay = Int(2.1 * bucketRate) // 14 ms for rate 80 (default)
         let bounds = min(100, max(15, delay))
-        queue.asyncAfter(deadline: .now() + .milliseconds(bounds), execute: executePendingTasks)
+        queue.asyncAfter(deadline: .now() + .milliseconds(bounds)) { self.executePendingTasks() }
     }
 
     private func executePendingTasks() {

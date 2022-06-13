@@ -40,7 +40,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
 
         // Fast-track default decoders, most work is already done during
         // initialization anyway.
-        func decode() -> Result<ImageResponse, Error> {
+        @Sendable func decode() -> Result<ImageResponse, Error> {
             signpost("DecodeImageData", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 Result(catching: { try decoder.decode(context) })
             }

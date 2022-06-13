@@ -6,7 +6,7 @@ import Foundation
 
 // Each task holds a strong reference to the pipeline. This is by design. The
 // user does not need to hold a strong reference to the pipeline.
-class ImagePipelineTask<Value>: AsyncTask<Value, ImagePipeline.Error> {
+class ImagePipelineTask<Value: Sendable>: AsyncTask<Value, ImagePipeline.Error> {
     let pipeline: ImagePipeline
     // A canonical request representing the unit work performed by the task.
     let request: ImageRequest
@@ -17,8 +17,8 @@ class ImagePipelineTask<Value>: AsyncTask<Value, ImagePipeline.Error> {
     }
 
     /// Executes work on the pipeline synchronization queue.
-    func async(_ work: @escaping () -> Void) {
-        pipeline.queue.async(execute: work)
+    func async(_ work: @Sendable @escaping () -> Void) {
+        pipeline.queue.async { work() }
     }
 }
 
