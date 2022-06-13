@@ -41,6 +41,7 @@ final class Cache<Key: Hashable, Value> {
     private let list = LinkedList<Entry>()
     private let lock = NSLock()
     private let memoryPressure: DispatchSourceMemoryPressure
+    private var notificationObserver: AnyObject?
 
     init(costLimit: Int, countLimit: Int) {
         self._conf = Configuration(costLimit: costLimit, countLimit: countLimit, ttl: 0, entryCostLimit: 0.1)
@@ -51,25 +52,31 @@ final class Cache<Key: Hashable, Value> {
         }
         self.memoryPressure.resume()
 
-        #if os(iOS) || os(tvOS)
-        let center = NotificationCenter.default
-        center.addObserver(self, selector: #selector(clearCacheOnEnterBackground),
-                           name: UIApplication.didEnterBackgroundNotification,
-                           object: nil)
-        #endif
+#if os(iOS) || os(tvOS)
+        Task { await registerForEnterBackground() }
+#endif
 
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.increment("Cache")
-        #endif
+#endif
     }
 
     deinit {
         memoryPressure.cancel()
 
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.decrement("Cache")
-        #endif
+#endif
     }
+
+#if os(iOS) || os(tvOS)
+    @MainActor
+    private func registerForEnterBackground() {
+        notificationObserver = NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { [weak self] _ in
+            self?.clearCacheOnEnterBackground()
+        }
+    }
+#endif
 
     func value(forKey key: Key) -> Value? {
         lock.lock()
@@ -135,8 +142,7 @@ final class Cache<Key: Hashable, Value> {
         _totalCost -= node.value.cost
     }
 
-    @objc
-    dynamic func removeAll() {
+    func removeAll() {
         lock.lock()
         defer { lock.unlock() }
 
@@ -145,7 +151,6 @@ final class Cache<Key: Hashable, Value> {
         _totalCost = 0
     }
 
-    @objc
     private dynamic func clearCacheOnEnterBackground() {
         // Remove most of the stored items when entering background.
         // This behavior is similar to `NSCache` (which removes all

@@ -242,7 +242,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// Synchronously waits on the caller's thread until all outstanding disk I/O
     /// operations are finished.
     public func flush() {
-        queue.sync(execute: flushChangesIfNeeded)
+        queue.sync { self.flushChangesIfNeeded() }
     }
 
     /// Synchronously waits on the caller's thread until all outstanding disk I/O
@@ -264,7 +264,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     private func scheduleNextFlush() {
         guard !isFlushScheduled else { return }
         isFlushScheduled = true
-        queue.asyncAfter(deadline: .now() + flushInterval, execute: flushChangesIfNeeded)
+        queue.asyncAfter(deadline: .now() + flushInterval) { self.flushChangesIfNeeded() }
     }
 
     private func flushChangesIfNeeded() {
@@ -340,7 +340,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// Synchronously performs a cache sweep and removes the least recently items
     /// which no longer fit in cache.
     public func sweep() {
-        queue.sync(execute: performSweep)
+        queue.sync { self.performSweep() }
     }
 
     /// Discards the least recently used items first.
