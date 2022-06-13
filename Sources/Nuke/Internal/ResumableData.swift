@@ -107,12 +107,8 @@ final class ResumableDataStorage: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
-        guard let cache = cache,
-              cache.totalCount > 0,
-              let key = Key(request: request, pipeline: pipeline) else {
-            return nil
-        }
-        return cache.removeValue(forKey: key)
+        guard let key = Key(request: request, pipeline: pipeline) else { return nil }
+        return cache?.removeValue(forKey: key)
     }
 
     func storeResumableData(_ data: ResumableData, for request: ImageRequest, pipeline: ImagePipeline) {
@@ -125,14 +121,14 @@ final class ResumableDataStorage: @unchecked Sendable {
 
     private struct Key: Hashable {
         let pipelineId: UUID
-        let url: String
+        let imageId: String
 
         init?(request: ImageRequest, pipeline: ImagePipeline) {
             guard let imageId = request.imageId else {
                 return nil
             }
             self.pipelineId = pipeline.id
-            self.url = imageId
+            self.imageId = imageId
         }
     }
 }
