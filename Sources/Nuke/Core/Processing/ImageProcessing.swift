@@ -54,10 +54,12 @@ extension ImageProcessing {
     /// The default implementation simply calls the basic
     /// `process(_ image: PlatformImage) -> PlatformImage?` method.
     public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-        guard let output = container.map(process) else {
+        guard let output = process(container.image) else {
             throw ImageProcessingError.unknown
         }
-        return output
+        var container = container
+        container.image = output
+        return container
     }
 
     /// The default impleemntation simply returns `var identifier: String`.

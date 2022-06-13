@@ -52,3 +52,12 @@ extension ImageProcessingContext {
         isCompleted
     }
 }
+
+extension ImageContainer {
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please create a copy of and modify it instead or define a similar helper method yourself.")
+    public func map(_ closure: (PlatformImage) -> PlatformImage?) -> ImageContainer? {
+        guard let image = closure(self.image) else { return nil }
+        return ImageContainer(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
+    }
+}

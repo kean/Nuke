@@ -55,7 +55,7 @@ public struct ImageResponse {
     }
 
     /// A cache type.
-    public enum CacheType {
+    public enum CacheType: Sendable {
         /// Memory cache (see `ImageCaching`)
         case memory
         /// Disk cache (see `DataCaching`)
@@ -114,18 +114,14 @@ public struct ImageContainer: @unchecked Sendable {
         #endif
     }
 
-    /// Modifies the wrapped image and keeps all of the rest of the metadata.
-    public func map(_ closure: (PlatformImage) -> PlatformImage?) -> ImageContainer? {
-        guard let image = closure(self.image) else { return nil }
-        return ImageContainer(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
-    }
-
     func map(_ closure: (PlatformImage) throws -> PlatformImage) rethrows -> ImageContainer {
-        ImageContainer(image: try closure(image), type: type, isPreview: isPreview, data: data, userInfo: userInfo)
+        var copy = self
+        copy.image = try closure(image)
+        return copy
     }
 
     /// A key use in `userInfo`.
-    public struct UserInfoKey: Hashable, ExpressibleByStringLiteral {
+    public struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable {
         public let rawValue: String
 
         public init(_ rawValue: String) {
@@ -143,6 +139,3 @@ public struct ImageContainer: @unchecked Sendable {
         public static let scanNumberKey: UserInfoKey = "com.github/kean/nuke/scan-number"
     }
 }
-
-extension ImageResponse.CacheType: Sendable {}
-extension ImageContainer.UserInfoKey: Sendable {}
