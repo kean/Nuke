@@ -149,7 +149,7 @@ public final class ImagePipeline: @unchecked Sendable {
         if isConfined {
             self.startImageTask(task, callbackQueue: queue, progress: progress, completion: completion)
         } else {
-            self.queue.asyncIgnoringSendable {
+            self.queue.async {
                 self.startImageTask(task, callbackQueue: queue, progress: progress, completion: completion)
             }
         }
@@ -303,7 +303,7 @@ public final class ImagePipeline: @unchecked Sendable {
         if isConfined {
             self.startDataTask(task, callbackQueue: queue, progress: progress, completion: completion)
         } else {
-            self.queue.asyncIgnoringSendable {
+            self.queue.async {
                 self.startDataTask(task, callbackQueue: queue, progress: progress, completion: completion)
             }
         }
@@ -376,7 +376,7 @@ public final class ImagePipeline: @unchecked Sendable {
         if callbackQueue === self.queue {
             closure()
         } else {
-            (callbackQueue ?? self.configuration.callbackQueue).asyncIgnoringSendable(closure)
+            (callbackQueue ?? self.configuration.callbackQueue).async(execute: closure)
         }
     }
 
