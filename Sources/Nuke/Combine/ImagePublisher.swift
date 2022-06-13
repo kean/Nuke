@@ -14,8 +14,6 @@ public extension ImagePipeline {
     }
 }
 
-// TODO: Make Sendable
-
 /// A publisher that starts a new `ImageTask` when a subscriber is added.
 ///
 /// If the requested image is available in the memory cache, the value is
@@ -25,7 +23,7 @@ public extension ImagePipeline {
 /// - note: In case the pipeline has `isProgressiveDecodingEnabled` option enabled
 /// and the image being downloaded supports progressive decoding, the publisher
 /// might emit more than a single value.
-public struct ImagePublisher: Publisher {
+public struct ImagePublisher: Publisher, Sendable {
     public typealias Output = ImageResponse
     public typealias Failure = ImagePipeline.Error
 
@@ -43,7 +41,6 @@ public struct ImagePublisher: Publisher {
             pipeline: self.pipeline,
             subscriber: subscriber
         )
-
         subscriber.receive(subscription: subscription)
     }
 }

@@ -104,9 +104,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 }
 
-// TODO: Make Sendable
-public final class AsyncImageTask {
-    var task: ImageTask?
+public final class AsyncImageTask: @unchecked Sendable {
+    weak var task: ImageTask?
 
     public func setPriority(_ priority: ImageRequest.Priority) {
         task?.setPriority(priority)

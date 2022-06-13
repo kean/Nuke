@@ -4,8 +4,6 @@
 
 import Foundation
 
-// TODO: Make Sendable
-
 /// Prefetches and caches images to eliminate delays when requesting the same
 /// images later.
 ///
@@ -13,7 +11,7 @@ import Foundation
 ///
 /// All `ImagePrefetcher` methods are thread-safe and are optimized to be used
 /// even from the main thread during scrolling.
-public final class ImagePrefetcher {
+public final class ImagePrefetcher: @unchecked Sendable {
     private let pipeline: ImagePipeline
     private var tasks = [ImageLoadKey: Task]()
     private let destination: Destination

@@ -7,12 +7,12 @@ import Nuke
 
 // One-shot data loader that servers data split into chunks, only send one chunk
 // per one `resume()` call.
-final class MockProgressiveDataLoader: DataLoading {
+final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     let urlResponse: HTTPURLResponse
     var chunks: [Data]
     let data = Test.data(name: "progressive", extension: "jpeg")
 
-    class _MockTask: Cancellable {
+    class _MockTask: Cancellable, @unchecked Sendable {
         func cancel() {
             // Do nothing
         }

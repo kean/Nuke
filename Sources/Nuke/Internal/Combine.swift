@@ -20,7 +20,7 @@ final class DataPublisher {
             }, receiveValue: {
                 onValue($0)
             })
-            return AnonymousCancellable(cancellable.cancel)
+            return AnonymousCancellable { cancellable.cancel() }
         }
     }
 

@@ -109,7 +109,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         }
 
         pipeline = pipeline.reconfigured {
-            $0.makeImageDecoder = registry.decoder(for:)
+            $0.makeImageDecoder = { registry.decoder(for: $0) }
         }
 
         // When/Then

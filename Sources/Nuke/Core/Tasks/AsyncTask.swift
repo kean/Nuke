@@ -15,7 +15,7 @@ import Foundation
 /// image pipeline are represented using Operation to take advantage of these features.
 ///
 /// - warning: Must be thread-confined!
-class AsyncTask<Value, Error>: AsyncTaskSubscriptionDelegate {
+class AsyncTask<Value, Error>: AsyncTaskSubscriptionDelegate, @unchecked Sendable {
 
     private struct Subscription {
         let closure: (Event) -> Void
@@ -313,7 +313,7 @@ extension AsyncTask.Event: Equatable where Value: Equatable, Error: Equatable {}
 
 /// Represents a subscription to a task. The observer must retain a strong
 /// reference to a subscription.
-struct TaskSubscription {
+struct TaskSubscription: Sendable {
     private let task: AsyncTaskSubscriptionDelegate
     private let key: TaskSubscriptionKey
 
@@ -343,7 +343,7 @@ struct TaskSubscription {
     }
 }
 
-private protocol AsyncTaskSubscriptionDelegate: AnyObject {
+private protocol AsyncTaskSubscriptionDelegate: AnyObject, Sendable {
     func unsubsribe(key: TaskSubscriptionKey)
     func setPriority(_ priority: TaskPriority, for observer: TaskSubscriptionKey)
 }

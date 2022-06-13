@@ -5,7 +5,7 @@
 import XCTest
 @testable import Nuke
 
-final class ImagePipelineObserver: ImagePipelineDelegate {
+final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
     var startedTaskCount = 0
     var cancelledTaskCount = 0
     var completedTaskCount = 0

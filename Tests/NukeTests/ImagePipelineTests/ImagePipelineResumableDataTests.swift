@@ -46,7 +46,7 @@ class ImagePipelineResumableDataTests: XCTestCase {
     }
 }
 
-private class _MockResumableDataLoader: DataLoading {
+private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
     private let queue = DispatchQueue(label: "_MockResumableDataLoader")
 
     let data: Data = Test.data(name: "fixture", extension: "jpeg")
@@ -114,7 +114,7 @@ private class _MockResumableDataLoader: DataLoading {
         return _Task()
     }
 
-    private class _Task: Cancellable {
+    private class _Task: Cancellable, @unchecked Sendable {
         func cancel() { }
     }
 }

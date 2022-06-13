@@ -169,7 +169,7 @@ class ImagePipelineDelegateTests: XCTestCase {
     }
 }
 
-private final class MockImagePipelineDelegate: ImagePipelineDelegate {
+private final class MockImagePipelineDelegate: ImagePipelineDelegate, @unchecked Sendable {
     var isCacheEnabled = true
 
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
