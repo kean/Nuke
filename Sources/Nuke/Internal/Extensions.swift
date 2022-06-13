@@ -50,7 +50,7 @@ extension OperationQueue {
 }
 
 extension DispatchQueue {
-    // Using it to surpress the warning, but it needs to be fixed properly
+    // Using it to suppress the warning, but it needs to be fixed properly
     struct Box: @unchecked Sendable {
         let closure: () -> Void
     }
