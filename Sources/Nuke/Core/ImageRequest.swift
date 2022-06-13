@@ -13,10 +13,8 @@ import UIKit
 import Cocoa
 #endif
 
-// MARK: - ImageRequest
-
 /// Represents an image request.
-public struct ImageRequest: CustomStringConvertible {
+public struct ImageRequest: CustomStringConvertible, Sendable {
 
     // MARK: Parameters
 
@@ -72,13 +70,13 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     /// Custom info passed alongside the request.
-    public var userInfo: [UserInfoKey: Any] {
+    public var userInfo: [UserInfoKey: Sendable] {
         get { ref.userInfo ?? [:] }
         set { mutate { $0.userInfo = newValue } }
     }
 
     /// The priority affecting the order in which the requests are performed.
-    public enum Priority: Int, Comparable {
+    public enum Priority: Int, Comparable, Sendable {
         case veryLow = 0, low, normal, high, veryHigh
 
         public static func < (lhs: Priority, rhs: Priority) -> Bool {
@@ -87,7 +85,7 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     /// A key use in `userInfo`.
-    public struct UserInfoKey: Hashable, ExpressibleByStringLiteral {
+    public struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable {
         public let rawValue: String
 
         public init(_ rawValue: String) {
@@ -145,7 +143,7 @@ public struct ImageRequest: CustomStringConvertible {
                 processors: [ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
-                userInfo: [UserInfoKey: Any]? = nil) {
+                userInfo: [UserInfoKey: Sendable]? = nil) {
         self.ref = Container(
             resource: Resource.url(url),
             processors: processors,
@@ -174,7 +172,7 @@ public struct ImageRequest: CustomStringConvertible {
                 processors: [ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
-                userInfo: [UserInfoKey: Any]? = nil) {
+                userInfo: [UserInfoKey: Sendable]? = nil) {
         self.ref = Container(
             resource: Resource.urlRequest(urlRequest),
             processors: processors,
@@ -211,7 +209,7 @@ public struct ImageRequest: CustomStringConvertible {
                    processors: [ImageProcessing] = [],
                    priority: Priority = .normal,
                    options: Options = [],
-                   userInfo: [UserInfoKey: Any]? = nil) where P: Publisher, P.Output == Data {
+                   userInfo: [UserInfoKey: Sendable]? = nil) where P: Publisher, P.Output == Data {
         // It could technically be implemented without any special change to the
         // pipeline by using a custom DataLoader, disabling resumable data, and
         // passing a publisher in the request userInfo.
@@ -251,7 +249,7 @@ public struct ImageRequest: CustomStringConvertible {
                 processors: [ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
-                userInfo: [UserInfoKey: Any]? = nil) {
+                userInfo: [UserInfoKey: Sendable]? = nil) {
         // It could technically be implemented without any special change to the
         // pipeline by using a custom DataLoader, disabling resumable data, and
         // passing a publisher in the request userInfo.
@@ -267,7 +265,7 @@ public struct ImageRequest: CustomStringConvertible {
     // MARK: Options
 
     /// Image request options.
-    public struct Options: OptionSet, Hashable {
+    public struct Options: OptionSet, Hashable, Sendable {
         /// Returns a raw value.
         public let rawValue: UInt16
 
@@ -315,7 +313,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// Thumbnail options.
     ///
     /// For more info, see https://developer.apple.com/documentation/imageio/cgimagesource/image_source_option_dictionary_keys
-    public struct ThumbnailOptions: Hashable {
+    public struct ThumbnailOptions: Hashable, Sendable {
         /// The maximum width and height in pixels of a thumbnail. If this key
         /// is not specified, the width and height of a thumbnail is not limited
         /// and thumbnails may be as big as the image itself.
@@ -379,7 +377,7 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// Just like many Swift built-in types, `ImageRequest` uses CoW approach to
     /// avoid memberwise retain/releases when `ImageRequest` is passed around.
-    final class Container {
+    final class Container: @unchecked Sendable {
         // It's benefitial to put resource before priority and options because
         // of the resource size/stride of 9/16. Priority (1 byte) and Options
         // (2 bytes) slot just right in the remaining space.
@@ -387,7 +385,7 @@ public struct ImageRequest: CustomStringConvertible {
         fileprivate(set) var priority: Priority
         fileprivate(set) var options: Options
         fileprivate(set) var processors: [ImageProcessing]
-        fileprivate(set) var userInfo: [UserInfoKey: Any]?
+        fileprivate(set) var userInfo: [UserInfoKey: Sendable]?
         // After trimming down the request size, it is no longer
         // as beneficial using CoW for ImageRequest, but there
         // still is a small but measurable difference.
@@ -399,7 +397,7 @@ public struct ImageRequest: CustomStringConvertible {
         }
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, processors: [ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
+        init(resource: Resource, processors: [ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Sendable]?) {
             self.resource = resource
             self.processors = processors
             self.priority = priority
@@ -476,8 +474,6 @@ public struct ImageRequest: CustomStringConvertible {
     }
 }
 
-// MARK: - ImageRequestConvertible
-
 /// Represents a type that can be converted to an `ImageRequest`.
 public protocol ImageRequestConvertible {
     func asImageRequest() -> ImageRequest
@@ -512,8 +508,3 @@ extension String: ImageRequestConvertible {
         ImageRequest(url: URL(string: self))
     }
 }
-
-extension ImageRequest.Priority: Sendable {}
-extension ImageRequest.Options: Sendable {}
-extension ImageRequest.UserInfoKey: Sendable {}
-extension ImageRequest.ThumbnailOptions: Sendable {}
