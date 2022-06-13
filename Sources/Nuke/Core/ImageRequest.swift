@@ -485,7 +485,7 @@ extension ImageRequest: ImageRequestConvertible {
     }
 }
 
-extension URL: ImageRequestConvertible {
+extension URL: ImageRequestConvertible, @unchecked Sendable {
     public func asImageRequest() -> ImageRequest {
         ImageRequest(url: self)
     }
@@ -497,7 +497,7 @@ extension Optional: ImageRequestConvertible where Wrapped == URL {
     }
 }
 
-extension URLRequest: ImageRequestConvertible {
+extension URLRequest: ImageRequestConvertible, @unchecked Sendable {
     public func asImageRequest() -> ImageRequest {
         ImageRequest(urlRequest: self)
     }

@@ -117,6 +117,7 @@ class ImageProcessorsResizeTests: XCTestCase {
     }
 
     #if os(macOS)
+    @MainActor
     func testResizeImageWithOrientationLeft() throws {
         // Given an image with `left` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel

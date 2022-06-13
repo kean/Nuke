@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
-@preconcurrency import Foundation
+import Foundation
 
 /// `ImagePipeline` is the primary way to load images directly (without a UI).
 ///
