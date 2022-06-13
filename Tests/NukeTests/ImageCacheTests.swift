@@ -357,7 +357,7 @@ class InternalCacheTTLTests: XCTestCase {
 
     func testDefaultTTLIsUsed() {
         // Given
-        cache.ttl = 0.05// 50 ms
+        cache.configuration.ttl = 0.05// 50 ms
         cache.set(1, forKey: 1, cost: 1)
         XCTAssertNotNil(cache.value(forKey: 1))
 
