@@ -53,6 +53,7 @@ class ImageProcessorsCircleTests: XCTestCase {
         XCTAssertTrue(colorSpace.isWideGamutRGB)
     }
 
+    @MainActor
     func testIdentifierEqual() throws {
         XCTAssertEqual(
             ImageProcessors.Circle().identifier,
@@ -83,6 +84,7 @@ class ImageProcessorsCircleTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testHashableIdentifierEqual() throws {
         XCTAssertEqual(
             ImageProcessors.Circle().hashableIdentifier,

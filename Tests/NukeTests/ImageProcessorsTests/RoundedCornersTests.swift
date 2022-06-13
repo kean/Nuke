@@ -56,6 +56,7 @@ class ImageProcessorsRoundedCornersTests: XCTestCase {
 #endif
     }
 
+    @MainActor
     func testEqualIdentifiers() {
         XCTAssertEqual(
             ImageProcessors.RoundedCorners(radius: 16).identifier,
@@ -71,6 +72,7 @@ class ImageProcessorsRoundedCornersTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testNotEqualIdentifiers() {
         XCTAssertNotEqual(
             ImageProcessors.RoundedCorners(radius: 16).identifier,
@@ -97,6 +99,7 @@ class ImageProcessorsRoundedCornersTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testEqualHashableIdentifiers() {
         XCTAssertEqual(
             ImageProcessors.RoundedCorners(radius: 16).hashableIdentifier,
@@ -112,6 +115,7 @@ class ImageProcessorsRoundedCornersTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testNotEqualHashableIdentifiers() {
         XCTAssertNotEqual(
             ImageProcessors.RoundedCorners(radius: 16).hashableIdentifier,

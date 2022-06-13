@@ -36,7 +36,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     // MARK: Disk Cache Lookup
 
     private func getCachedData(dataCache: DataCaching) {
-        let data = signpost(log, "ReadCachedProcessedImageData") {
+        let data = signpost("ReadCachedProcessedImageData") {
             pipeline.cache.cachedData(for: request)
         }
         async {
@@ -59,7 +59,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
 
         func decode() -> ImageResponse? {
-            signpost(log, "DecodeCachedProcessedImageData") {
+            signpost("DecodeCachedProcessedImageData") {
                 try? decoder.decode(context)
             }
         }
@@ -155,7 +155,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         let key = ImageProcessingKey(image: response, processor: processor)
         let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
         dependency2 = pipeline.makeTaskProcessImage(key: key, process: {
-            try signpost(log, "ProcessImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
+            try signpost("ProcessImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 try response.map { try processor.process($0, context: context) }
             }
         }).subscribe(priority: priority) { [weak self] event in
@@ -202,7 +202,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
             guard let self = self else { return }
 
-            let response = signpost(log, "DecompressImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
+            let response = signpost("DecompressImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 response.map { $0.map(ImageDecompression.decompress(image:)) }
             }
 
@@ -245,7 +245,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         let key = pipeline.cache.makeDataCacheKey(for: request)
         pipeline.configuration.imageEncodingQueue.addOperation { [weak pipeline, request] in
             guard let pipeline = pipeline else { return }
-            let encodedData = signpost(log, "EncodeImage") {
+            let encodedData = signpost("EncodeImage") {
                 encoder.encode(response.container, context: context)
             }
             guard let data = encodedData else { return }

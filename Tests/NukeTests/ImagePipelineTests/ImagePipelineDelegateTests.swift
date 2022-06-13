@@ -27,6 +27,7 @@ class ImagePipelineDelegateTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testCustomizingDataCacheKey() throws {
         // GIVEN
         let imageURLSmall = URL(string: "https://example.com/image-01-small.jpeg")!
