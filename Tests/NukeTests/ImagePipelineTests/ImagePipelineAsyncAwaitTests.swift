@@ -8,6 +8,7 @@ import XCTest
 class ImagePipelineAsyncAwaitTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
+    private var recordedProgress: [Progress] = []
 
     override func setUp() {
         super.setUp()
@@ -91,22 +92,15 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
     // MARK: - Progress Monitoring
 
     func testMonitoringProgress() async throws {
-        struct Progress: Equatable {
-            let completed, total: Int64
-        }
-
         // GIVEN
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
         // WHEN
-
-        var recordedProgress: [Progress] = []
-
         do {
             try await pipeline.image(for: Test.request, progress: {
-                recordedProgress.append(Progress(completed: $1, total: $2))
+                self.recordedProgress.append(Progress(completed: $1, total: $2))
             })
         } catch {
             // Do nothing
@@ -120,21 +114,15 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
     }
 
     func testMonitoringProgressLoadData() async throws {
-        struct Progress: Equatable {
-            let completed, total: Int64
-        }
-
         // GIVEN
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
         // WHEN
-        var recordedProgress: [Progress] = []
-
         do {
             try await pipeline.data(for: Test.request, progress: {
-                recordedProgress.append(Progress(completed: $0, total: $1))
+                self.recordedProgress.append(Progress(completed: $0, total: $1))
             })
         } catch {
             // Do nothing
@@ -224,4 +212,8 @@ private struct URLError: Swift.Error {
         case expensive
         case constrained
     }
+}
+
+private struct Progress: Equatable {
+    let completed, total: Int64
 }
