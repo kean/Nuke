@@ -172,13 +172,7 @@ extension ImagePipeline {
         /// metrics in `os_signpost` Instrument. For more information see
         /// https://developer.apple.com/documentation/os/logging and
         /// https://developer.apple.com/videos/play/wwdc2018/405/.
-        public static var isSignpostLoggingEnabled = false {
-            didSet {
-                log = isSignpostLoggingEnabled ?
-                    OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading") :
-                    .disabled
-            }
-        }
+        public static var isSignpostLoggingEnabled = false
 
         private var isCustomImageCacheProvided = false
 
