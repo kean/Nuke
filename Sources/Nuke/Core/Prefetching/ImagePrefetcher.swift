@@ -4,6 +4,8 @@
 
 import Foundation
 
+// TODO: Make Sendable
+
 /// Prefetches and caches images to eliminate delays when requesting the same
 /// images later.
 ///
@@ -39,7 +41,7 @@ public final class ImagePrefetcher {
     private var _priority: ImageRequest.Priority = .low
 
     /// Prefetching destination.
-    public enum Destination {
+    public enum Destination: Sendable {
         /// Prefetches the image and stores it in both the memory and the disk
         /// cache (make sure to enable it).
         case memoryCache

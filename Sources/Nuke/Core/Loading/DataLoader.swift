@@ -5,7 +5,7 @@
 import Foundation
 
 /// Provides basic networking using `URLSession`.
-public final class DataLoader: DataLoading, _DataLoaderObserving {
+public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sendable {
     public let session: URLSession
     private let impl = _DataLoader()
 

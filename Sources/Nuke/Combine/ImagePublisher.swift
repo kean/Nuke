@@ -14,6 +14,8 @@ public extension ImagePipeline {
     }
 }
 
+// TODO: Make Sendable
+
 /// A publisher that starts a new `ImageTask` when a subscriber is added.
 ///
 /// If the requested image is available in the memory cache, the value is

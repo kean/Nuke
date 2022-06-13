@@ -5,7 +5,7 @@
 import Foundation
 
 /// Fetches original image data.
-public protocol DataLoading {
+public protocol DataLoading: Sendable {
     /// - parameter didReceiveData: Can be called multiple times if streaming
     /// is supported.
     /// - parameter completion: Must be called once after all (or none in case
@@ -16,6 +16,6 @@ public protocol DataLoading {
 }
 
 /// A unit of work that can be cancelled.
-public protocol Cancellable: AnyObject {
+public protocol Cancellable: AnyObject, Sendable {
     func cancel()
 }
