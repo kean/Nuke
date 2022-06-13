@@ -102,18 +102,18 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
         // WHEN
 
-        var recorededProgress: [Progress] = []
+        var recordedProgress: [Progress] = []
 
         do {
             try await pipeline.image(for: Test.request, progress: {
-                recorededProgress.append(Progress(completed: $1, total: $2))
+                recordedProgress.append(Progress(completed: $1, total: $2))
             })
         } catch {
             // Do nothing
         }
 
         // THEN
-        XCTAssertEqual(recorededProgress, [
+        XCTAssertEqual(recordedProgress, [
             Progress(completed: 10, total: 20),
             Progress(completed: 20, total: 20),
         ])
@@ -131,18 +131,18 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
         // WHEN
 
-        var recorededProgress: [Progress] = []
+        var recordedProgress: [Progress] = []
 
         do {
             try await pipeline.data(for: Test.request, progress: {
-                recorededProgress.append(Progress(completed: $0, total: $1))
+                recordedProgress.append(Progress(completed: $0, total: $1))
             })
         } catch {
             // Do nothing
         }
 
         // THEN
-        XCTAssertEqual(recorededProgress, [
+        XCTAssertEqual(recordedProgress, [
             Progress(completed: 10, total: 20),
             Progress(completed: 20, total: 20),
         ])

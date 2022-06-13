@@ -108,7 +108,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Loads an image for the given request.
     @discardableResult public func loadImage(
         with request: ImageRequestConvertible,
-        completion: @Sendable @escaping (_ result: Result<ImageResponse, Error>) -> Void
+        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         loadImage(with: request, queue: nil, progress: nil, completion: completion)
     }
@@ -127,8 +127,8 @@ public final class ImagePipeline: @unchecked Sendable {
     @discardableResult public func loadImage(
         with request: ImageRequestConvertible,
         queue: DispatchQueue? = nil,
-        progress: (@Sendable (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @Sendable @escaping (_ result: Result<ImageResponse, Error>) -> Void
+        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
+        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         loadImage(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
@@ -137,9 +137,9 @@ public final class ImagePipeline: @unchecked Sendable {
         with request: ImageRequest,
         isConfined: Bool,
         queue: DispatchQueue?,
-        progress: (@Sendable (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-        onCancel: (@Sendable () -> Void)? = nil,
-        completion: (@Sendable (_ result: Result<ImageResponse, Error>) -> Void)?
+        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
+        onCancel: (() -> Void)? = nil,
+        completion: ((_ result: Result<ImageResponse, Error>) -> Void)?
     ) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
         task.pipeline = self
@@ -149,7 +149,7 @@ public final class ImagePipeline: @unchecked Sendable {
         if isConfined {
             self.startImageTask(task, callbackQueue: queue, progress: progress, completion: completion)
         } else {
-            self.queue.async {
+            self.queue.asyncIgnoringSendable {
                 self.startImageTask(task, callbackQueue: queue, progress: progress, completion: completion)
             }
         }
@@ -165,7 +165,7 @@ public final class ImagePipeline: @unchecked Sendable {
     @discardableResult
     public func image(
         for request: ImageRequestConvertible,
-        progress: (@Sendable (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
+        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
         task: AsyncImageTask = AsyncImageTask()
     ) async throws -> ImageResponse {
         return try await withTaskCancellationHandler(handler: {
@@ -188,8 +188,8 @@ public final class ImagePipeline: @unchecked Sendable {
     private func startImageTask(
         _ task: ImageTask,
         callbackQueue: DispatchQueue?,
-        progress progressHandler: (@Sendable (ImageResponse?, Int64, Int64) -> Void)?,
-        completion: (@Sendable (_ result: Result<ImageResponse, Error>) -> Void)?
+        progress progressHandler: ((ImageResponse?, Int64, Int64) -> Void)?,
+        completion: ((_ result: Result<ImageResponse, Error>) -> Void)?
     ) {
         guard !isInvalidated else { return }
 
@@ -231,7 +231,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// or processed in any other way.
     @discardableResult public func loadData(
         with request: ImageRequestConvertible,
-        completion: @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
         loadData(with: request, queue: nil, progress: nil, completion: completion)
     }
@@ -253,8 +253,8 @@ public final class ImagePipeline: @unchecked Sendable {
     @discardableResult public func loadData(
         with request: ImageRequestConvertible,
         queue: DispatchQueue? = nil,
-        progress: (@Sendable (_ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+        progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
+        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
         loadData(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
@@ -291,9 +291,9 @@ public final class ImagePipeline: @unchecked Sendable {
         with request: ImageRequest,
         isConfined: Bool,
         queue: DispatchQueue?,
-        progress: (@Sendable (_ completed: Int64, _ total: Int64) -> Void)?,
-        onCancel: (@Sendable () -> Void)? = nil,
-        completion: @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+        progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
+        onCancel: (() -> Void)? = nil,
+        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: true)
         task.pipeline = self
@@ -303,7 +303,7 @@ public final class ImagePipeline: @unchecked Sendable {
         if isConfined {
             self.startDataTask(task, callbackQueue: queue, progress: progress, completion: completion)
         } else {
-            self.queue.async {
+            self.queue.asyncIgnoringSendable {
                 self.startDataTask(task, callbackQueue: queue, progress: progress, completion: completion)
             }
         }
@@ -313,8 +313,8 @@ public final class ImagePipeline: @unchecked Sendable {
     private func startDataTask(
         _ task: ImageTask,
         callbackQueue: DispatchQueue?,
-        progress progressHandler: (@Sendable (_ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
+        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) {
         guard !isInvalidated else { return }
 
@@ -372,11 +372,11 @@ public final class ImagePipeline: @unchecked Sendable {
         }
     }
 
-    private func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @Sendable @escaping () -> Void) {
+    private func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
         if callbackQueue === self.queue {
             closure()
         } else {
-            (callbackQueue ?? self.configuration.callbackQueue).async(execute: closure)
+            (callbackQueue ?? self.configuration.callbackQueue).asyncIgnoringSendable(closure)
         }
     }
 

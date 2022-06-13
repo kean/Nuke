@@ -49,6 +49,17 @@ extension OperationQueue {
     }
 }
 
+extension DispatchQueue {
+    // Using it to surpress the warning, but it needs to be fixed properly
+    struct Box: @unchecked Sendable {
+        let closure: () -> Void
+    }
+    func asyncIgnoringSendable(_ closure: @escaping () -> Void) {
+        let box = Box(closure: closure)
+        self.async { box.closure() }
+    }
+}
+
 extension ImageRequest.Priority {
     var taskPriority: TaskPriority {
         switch self {
