@@ -21,7 +21,7 @@ public typealias PlatformImage = NSImage
 // MARK: - ImageResponse
 
 /// An image response that contains a fetched image and some metadata.
-public struct ImageResponse {
+public struct ImageResponse: @unchecked Sendable {
     /// An image container with an image and associated metadata.
     public let container: ImageContainer
 
@@ -97,10 +97,10 @@ public struct ImageContainer: @unchecked Sendable {
     #endif
 
     /// An metadata provided by the user.
-    public var userInfo: [UserInfoKey: Sendable]
+    public var userInfo: [UserInfoKey: Any]
 
     /// Initializes the container with the given image.
-    public init(image: PlatformImage, type: AssetType? = nil, isPreview: Bool = false, data: Data? = nil, userInfo: [UserInfoKey: Sendable] = [:]) {
+    public init(image: PlatformImage, type: AssetType? = nil, isPreview: Bool = false, data: Data? = nil, userInfo: [UserInfoKey: Any] = [:]) {
         self.image = image
         self.type = type
         self.isPreview = isPreview

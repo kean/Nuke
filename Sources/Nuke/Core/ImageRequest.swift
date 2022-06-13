@@ -70,7 +70,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     }
 
     /// Custom info passed alongside the request.
-    public var userInfo: [UserInfoKey: Sendable] {
+    public var userInfo: [UserInfoKey: Any] {
         get { ref.userInfo ?? [:] }
         set { mutate { $0.userInfo = newValue } }
     }
@@ -143,7 +143,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
                 processors: [ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
-                userInfo: [UserInfoKey: Sendable]? = nil) {
+                userInfo: [UserInfoKey: Any]? = nil) {
         self.ref = Container(
             resource: Resource.url(url),
             processors: processors,
@@ -172,7 +172,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
                 processors: [ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
-                userInfo: [UserInfoKey: Sendable]? = nil) {
+                userInfo: [UserInfoKey: Any]? = nil) {
         self.ref = Container(
             resource: Resource.urlRequest(urlRequest),
             processors: processors,
@@ -209,7 +209,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
                    processors: [ImageProcessing] = [],
                    priority: Priority = .normal,
                    options: Options = [],
-                   userInfo: [UserInfoKey: Sendable]? = nil) where P: Publisher, P.Output == Data {
+                   userInfo: [UserInfoKey: Any]? = nil) where P: Publisher, P.Output == Data {
         // It could technically be implemented without any special change to the
         // pipeline by using a custom DataLoader, disabling resumable data, and
         // passing a publisher in the request userInfo.
@@ -249,7 +249,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
                 processors: [ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
-                userInfo: [UserInfoKey: Sendable]? = nil) {
+                userInfo: [UserInfoKey: Any]? = nil) {
         // It could technically be implemented without any special change to the
         // pipeline by using a custom DataLoader, disabling resumable data, and
         // passing a publisher in the request userInfo.
@@ -385,7 +385,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         fileprivate(set) var priority: Priority
         fileprivate(set) var options: Options
         fileprivate(set) var processors: [ImageProcessing]
-        fileprivate(set) var userInfo: [UserInfoKey: Sendable]?
+        fileprivate(set) var userInfo: [UserInfoKey: Any]?
         // After trimming down the request size, it is no longer
         // as beneficial using CoW for ImageRequest, but there
         // still is a small but measurable difference.
@@ -397,7 +397,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         }
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, processors: [ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Sendable]?) {
+        init(resource: Resource, processors: [ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
             self.processors = processors
             self.priority = priority
