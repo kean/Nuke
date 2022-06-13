@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
-@preconcurrency import Foundation
+import Foundation
 
 /// Fetches original image from the data loader (`DataLoading`) and stores it
 /// in the disk cache (`DataCaching`).

@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-@preconcurrency import Combine
+import Combine
 
 final class DataPublisher {
     let id: String
