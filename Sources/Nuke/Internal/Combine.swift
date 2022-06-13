@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import Combine
+@preconcurrency import Combine
 
 final class DataPublisher {
     let id: String
@@ -24,7 +24,7 @@ final class DataPublisher {
         }
     }
 
-    convenience init(id: String, _ data: @escaping () async throws -> Data) {
+    convenience init(id: String, _ data: @Sendable @escaping () async throws -> Data) {
         self.init(id: id, publisher(from: data))
     }
 
@@ -33,7 +33,7 @@ final class DataPublisher {
     }
 }
 
-private func publisher(from closure: @escaping () async throws -> Data) -> AnyPublisher<Data, Error> {
+private func publisher(from closure: @Sendable @escaping () async throws -> Data) -> AnyPublisher<Data, Error> {
     let subject = PassthroughSubject<Data, Error>()
     Task {
         do {

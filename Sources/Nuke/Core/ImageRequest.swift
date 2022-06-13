@@ -58,7 +58,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     }
 
     /// Processor to be applied to the image. Empty by default.
-    public var processors: [ImageProcessing] {
+    public var processors: [any ImageProcessing] {
         get { ref.processors }
         set { mutate { $0.processors = newValue } }
     }
@@ -245,7 +245,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     /// sure to create a pipeline without it or disable it on a per-request basis.
     /// You can also disable it dynamically using `ImagePipelineDelegate`.
     public init(id: String,
-                data: @escaping () async throws -> Data,
+                data: @Sendable @escaping () async throws -> Data,
                 processors: [ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
