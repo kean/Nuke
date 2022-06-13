@@ -1992,6 +1992,7 @@
 				"OTHER_SWIFT_FLAGS[arch=*]" = "-D DEBUG -D TRACK_ALLOCATIONS";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Debug;
 		};
@@ -2012,6 +2013,7 @@
 				MARKETING_VERSION = 10.11.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Release;
 		};
@@ -2131,6 +2133,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.NukeExtensions;
 				PRODUCT_NAME = NukeExtensions;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG TRACK_ALLOCATIONS";
+				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Debug;
 		};
@@ -2151,6 +2154,7 @@
 				MARKETING_VERSION = 10.11.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.NukeExtensions;
 				PRODUCT_NAME = NukeExtensions;
+				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Release;
 		};
@@ -2458,6 +2462,7 @@
 				"OTHER_SWIFT_FLAGS[arch=*]" = "-D DEBUG -D TRACK_ALLOCATIONS";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
+				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Debug;
 		};
@@ -2478,6 +2483,7 @@
 				MARKETING_VERSION = 10.11.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
+				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Release;
 		};
