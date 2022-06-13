@@ -13,10 +13,8 @@ import UIKit
 import Cocoa
 #endif
 
-// MARK: - ImageRequest
-
 /// Represents an image request.
-public struct ImageRequest: CustomStringConvertible {
+public struct ImageRequest: CustomStringConvertible, Sendable {
 
     // MARK: Parameters
 
@@ -60,7 +58,7 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     /// Processor to be applied to the image. Empty by default.
-    public var processors: [ImageProcessing] {
+    public var processors: [any ImageProcessing] {
         get { ref.processors }
         set { mutate { $0.processors = newValue } }
     }
@@ -78,7 +76,7 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     /// The priority affecting the order in which the requests are performed.
-    public enum Priority: Int, Comparable {
+    public enum Priority: Int, Comparable, Sendable {
         case veryLow = 0, low, normal, high, veryHigh
 
         public static func < (lhs: Priority, rhs: Priority) -> Bool {
@@ -87,7 +85,7 @@ public struct ImageRequest: CustomStringConvertible {
     }
 
     /// A key use in `userInfo`.
-    public struct UserInfoKey: Hashable, ExpressibleByStringLiteral {
+    public struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable {
         public let rawValue: String
 
         public init(_ rawValue: String) {
@@ -247,7 +245,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// sure to create a pipeline without it or disable it on a per-request basis.
     /// You can also disable it dynamically using `ImagePipelineDelegate`.
     public init(id: String,
-                data: @escaping () async throws -> Data,
+                data: @Sendable @escaping () async throws -> Data,
                 processors: [ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
@@ -267,7 +265,7 @@ public struct ImageRequest: CustomStringConvertible {
     // MARK: Options
 
     /// Image request options.
-    public struct Options: OptionSet, Hashable {
+    public struct Options: OptionSet, Hashable, Sendable {
         /// Returns a raw value.
         public let rawValue: UInt16
 
@@ -315,7 +313,7 @@ public struct ImageRequest: CustomStringConvertible {
     /// Thumbnail options.
     ///
     /// For more info, see https://developer.apple.com/documentation/imageio/cgimagesource/image_source_option_dictionary_keys
-    public struct ThumbnailOptions: Hashable {
+    public struct ThumbnailOptions: Hashable, Sendable {
         /// The maximum width and height in pixels of a thumbnail. If this key
         /// is not specified, the width and height of a thumbnail is not limited
         /// and thumbnails may be as big as the image itself.
@@ -379,7 +377,7 @@ public struct ImageRequest: CustomStringConvertible {
 
     /// Just like many Swift built-in types, `ImageRequest` uses CoW approach to
     /// avoid memberwise retain/releases when `ImageRequest` is passed around.
-    final class Container {
+    final class Container: @unchecked Sendable {
         // It's benefitial to put resource before priority and options because
         // of the resource size/stride of 9/16. Priority (1 byte) and Options
         // (2 bytes) slot just right in the remaining space.
@@ -476,8 +474,6 @@ public struct ImageRequest: CustomStringConvertible {
     }
 }
 
-// MARK: - ImageRequestConvertible
-
 /// Represents a type that can be converted to an `ImageRequest`.
 public protocol ImageRequestConvertible {
     func asImageRequest() -> ImageRequest
@@ -512,8 +508,3 @@ extension String: ImageRequestConvertible {
         ImageRequest(url: URL(string: self))
     }
 }
-
-extension ImageRequest.Priority: Sendable {}
-extension ImageRequest.Options: Sendable {}
-extension ImageRequest.UserInfoKey: Sendable {}
-extension ImageRequest.ThumbnailOptions: Sendable {}

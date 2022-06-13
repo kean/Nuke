@@ -20,11 +20,11 @@ final class DataPublisher {
             }, receiveValue: {
                 onValue($0)
             })
-            return AnonymousCancellable(cancellable.cancel)
+            return AnonymousCancellable { cancellable.cancel() }
         }
     }
 
-    convenience init(id: String, _ data: @escaping () async throws -> Data) {
+    convenience init(id: String, _ data: @Sendable @escaping () async throws -> Data) {
         self.init(id: id, publisher(from: data))
     }
 
@@ -33,7 +33,7 @@ final class DataPublisher {
     }
 }
 
-private func publisher(from closure: @escaping () async throws -> Data) -> AnyPublisher<Data, Error> {
+private func publisher(from closure: @Sendable @escaping () async throws -> Data) -> AnyPublisher<Data, Error> {
     let subject = PassthroughSubject<Data, Error>()
     Task {
         do {

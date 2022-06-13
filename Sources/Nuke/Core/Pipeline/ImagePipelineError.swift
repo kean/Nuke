@@ -6,7 +6,7 @@ import Foundation
 
 extension ImagePipeline {
     /// Represents all possible image pipeline errors.
-    public enum Error: Swift.Error, CustomStringConvertible {
+    public enum Error: Swift.Error, CustomStringConvertible, @unchecked Sendable {
         /// Returned if data not cached and `.returnCacheDataDontLoad` option is specified.
         case dataMissingInCache
         /// Data loader failed to load image data with a wrapped error.

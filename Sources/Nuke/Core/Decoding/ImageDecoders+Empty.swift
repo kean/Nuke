@@ -7,7 +7,7 @@ import Foundation
 extension ImageDecoders {
     /// A decoder that returns an empty placeholder image and attaches image
     /// data to the image container.
-    public struct Empty: ImageDecoding {
+    public struct Empty: ImageDecoding, Sendable {
         public let isProgressive: Bool
         private let assetType: AssetType?
 

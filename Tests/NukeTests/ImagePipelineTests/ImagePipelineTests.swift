@@ -147,7 +147,7 @@ class ImagePipelineTests: XCTestCase {
             return XCTFail("Failed to find operation")
         }
         expect(operation).toUpdatePriority()
-        task.priority = .high
+        task.setPriority(.high)
 
         wait()
     }
@@ -174,7 +174,7 @@ class ImagePipelineTests: XCTestCase {
             return XCTFail("Failed to find operation")
         }
         expect(operation).toUpdatePriority()
-        task.priority = .high
+        task.setPriority(.high)
 
         wait()
     }
@@ -197,7 +197,7 @@ class ImagePipelineTests: XCTestCase {
             return XCTFail("Failed to find operation")
         }
         expect(operation).toUpdatePriority()
-        task.priority = .high
+        task.setPriority(.high)
 
         wait()
     }

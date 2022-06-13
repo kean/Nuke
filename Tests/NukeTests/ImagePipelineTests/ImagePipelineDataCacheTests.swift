@@ -86,7 +86,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
             return XCTFail("No operations gor registered")
         }
         expect(operation).toUpdatePriority()
-        task.priority = .high
+        task.setPriority(.high)
 
         wait()
     }
@@ -618,7 +618,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
     // MARK Misc
 
     func testSetCustomImageEncoder() {
-        struct MockImageEncoder: ImageEncoding {
+        struct MockImageEncoder: ImageEncoding, @unchecked Sendable {
             let closure: (PlatformImage) -> Data?
 
             func encode(_ image: PlatformImage) -> Data? {

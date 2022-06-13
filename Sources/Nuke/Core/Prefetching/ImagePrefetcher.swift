@@ -11,7 +11,7 @@ import Foundation
 ///
 /// All `ImagePrefetcher` methods are thread-safe and are optimized to be used
 /// even from the main thread during scrolling.
-public final class ImagePrefetcher {
+public final class ImagePrefetcher: @unchecked Sendable {
     private let pipeline: ImagePipeline
     private var tasks = [ImageLoadKey: Task]()
     private let destination: Destination
@@ -39,7 +39,7 @@ public final class ImagePrefetcher {
     private var _priority: ImageRequest.Priority = .low
 
     /// Prefetching destination.
-    public enum Destination {
+    public enum Destination: Sendable {
         /// Prefetches the image and stores it in both the memory and the disk
         /// cache (make sure to enable it).
         case memoryCache
@@ -176,11 +176,11 @@ public final class ImagePrefetcher {
         guard _priority != priority else { return }
         _priority = priority
         for task in tasks.values {
-            task.imageTask?.priority = priority
+            task.imageTask?.setPriority(priority)
         }
     }
 
-    private final class Task {
+    private final class Task: @unchecked Sendable {
         let key: ImageLoadKey
         let request: ImageRequest
         weak var imageTask: ImageTask?

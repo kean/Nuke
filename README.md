@@ -52,7 +52,7 @@ The image pipeline is easy to customize and extend. Check out the following firs
 
 | Nuke       | Date         | Swift       | Xcode      | Platforms                                     |
 |------------|--------------|-------------|------------|-----------------------------------------------|
-| Nuke 11.0  | TBD          | Swift 5.5.2 | Xcode 13.2 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
+| Nuke 11.0  | TBD          | Swift 5.6   | Xcode 13.3 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
 | Nuke 10.0  | Jun 1, 2021  | Swift 5.3   | Xcode 12.0 | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0 |
 
 See [Installation Guide](https://kean.blog/nuke/guides/installation) for information about the older versions.

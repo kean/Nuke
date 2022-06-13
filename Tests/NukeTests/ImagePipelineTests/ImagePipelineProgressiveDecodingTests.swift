@@ -96,7 +96,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
     func testThatFailedPartialImagesAreIgnored() {
         // Given
-        class FailingPartialsDecoder: ImageDecoding {
+        class FailingPartialsDecoder: ImageDecoding, @unchecked Sendable {
             func decode(_ data: Data) throws -> ImageContainer {
                 try ImageDecoders.Default().decode(data)
             }
@@ -109,7 +109,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         }
 
         pipeline = pipeline.reconfigured {
-            $0.makeImageDecoder = registry.decoder(for:)
+            $0.makeImageDecoder = { registry.decoder(for: $0) }
         }
 
         // When/Then

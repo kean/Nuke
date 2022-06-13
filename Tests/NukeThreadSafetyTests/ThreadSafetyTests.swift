@@ -252,7 +252,7 @@ final class RandomizedTests: XCTestCase {
                     queue.addOperation {
                         randomSleep()
                         let priority: ImageRequest.Priority = every(2) ? .veryHigh : .veryLow
-                        task.priority = priority
+                        task.setPriority(priority)
                     }
                 }
             }

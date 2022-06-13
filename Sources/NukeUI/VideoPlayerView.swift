@@ -117,8 +117,10 @@ public final class VideoPlayerView: _PlatformBaseView {
         playerLayer.player = player
 
         playerObserver = player.observe(\.status, options: [.new, .initial]) { player, _ in
-            if player.status == .readyToPlay {
-                player.play()
+            Task { @MainActor in
+                if player.status == .readyToPlay {
+                    player.play()
+                }
             }
         }
     }
@@ -146,9 +148,10 @@ extension AVLayerVideoGravity {
     }
 }
 
+@MainActor
 extension AVPlayer {
     var nowPlaying: Bool {
-        return rate != 0 && error == nil
+        rate != 0 && error == nil
     }
 }
 

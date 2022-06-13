@@ -5,7 +5,7 @@
 import Foundation
 
 /// Provides basic networking using `URLSession`.
-public final class DataLoader: DataLoading, _DataLoaderObserving {
+public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sendable {
     public let session: URLSession
     private let impl = _DataLoader()
 
@@ -128,7 +128,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         task.taskDescription = "Nuke Load Data"
         task.resume()
         send(task, .resumed)
-        return AnonymousCancellable(task.cancel)
+        return AnonymousCancellable { task.cancel() }
     }
 
     // MARK: URLSessionDelegate

@@ -20,7 +20,7 @@ extension ImageDecoders {
     ///
     /// - note: The default decoder supports progressive JPEG. It produces a new
     /// preview every time it encounters a new full frame.
-    public final class Default: ImageDecoding {
+    public final class Default: ImageDecoding, @unchecked Sendable {
         // Number of scans that the decoder has found so far. The last scan might be
         // incomplete at this point.
         var numberOfScans: Int { scanner.numberOfScans }
@@ -29,10 +29,11 @@ extension ImageDecoders {
         private var isPreviewForGIFGenerated = false
         private var scale: CGFloat?
         private var thumbnail: ImageRequest.ThumbnailOptions?
-
-        public init() { }
+        private let lock = NSLock()
 
         public var isAsynchronous: Bool { thumbnail != nil }
+
+        public init() { }
 
         /// Returns `nil` if progressive decoding is not allowed for the given
         /// content.
@@ -46,6 +47,9 @@ extension ImageDecoders {
         }
 
         public func decode(_ data: Data) throws -> ImageContainer {
+            lock.lock()
+            defer { lock.unlock() }
+
             func makeImage() -> PlatformImage? {
                 if let thumbnail = self.thumbnail {
                     return makeThumbnail(data: data, options: thumbnail)
@@ -71,6 +75,9 @@ extension ImageDecoders {
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
+            lock.lock()
+            defer { lock.unlock() }
+
             let assetType = AssetType(data)
             if assetType == .gif { // Special handling for GIF
                 if !isPreviewForGIFGenerated, let image = ImageDecoders.Default._decode(data, scale: scale) {
@@ -109,7 +116,7 @@ private func isProgressiveDecodingAllowed(for data: Data) -> Bool {
    return false
 }
 
-private struct ProgressiveJPEGScanner {
+private struct ProgressiveJPEGScanner: Sendable {
     // Number of scans that the decoder has found so far. The last scan might be
     // incomplete at this point.
     private(set) var numberOfScans = 0

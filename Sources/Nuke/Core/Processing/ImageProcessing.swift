@@ -21,7 +21,7 @@ import Foundation
 /// ```
 ///
 /// You must implement either one of those methods.
-public protocol ImageProcessing {
+public protocol ImageProcessing: Sendable {
     /// Returns a processed image. By default, returns `nil`.
     ///
     /// - note: Gets called a background queue managed by the pipeline.
@@ -54,10 +54,12 @@ extension ImageProcessing {
     /// The default implementation simply calls the basic
     /// `process(_ image: PlatformImage) -> PlatformImage?` method.
     public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-        guard let output = container.map(process) else {
+        guard let output = process(container.image) else {
             throw ImageProcessingError.unknown
         }
-        return output
+        var container = container
+        container.image = output
+        return container
     }
 
     /// The default impleemntation simply returns `var identifier: String`.
@@ -65,7 +67,7 @@ extension ImageProcessing {
 }
 
 /// Image processing context used when selecting which processor to use.
-public struct ImageProcessingContext {
+public struct ImageProcessingContext: Sendable {
     public var request: ImageRequest
     public var response: ImageResponse
     public var isCompleted: Bool
@@ -77,7 +79,7 @@ public struct ImageProcessingContext {
     }
 }
 
-public enum ImageProcessingError: Error, CustomStringConvertible {
+public enum ImageProcessingError: Error, CustomStringConvertible, Sendable {
     case unknown
 
     public var description: String { "Unknown" }

@@ -5,25 +5,25 @@
 import Foundation
 import os
 
-func signpost(_ log: OSLog, _ object: AnyObject, _ name: StaticString, _ type: OSSignpostType) {
+func signpost(_ object: AnyObject, _ name: StaticString, _ type: OSSignpostType) {
     guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return }
 
     let signpostId = OSSignpostID(log: log, object: object)
     os_signpost(type, log: log, name: name, signpostID: signpostId)
 }
 
-func signpost(_ log: OSLog, _ object: AnyObject, _ name: StaticString, _ type: OSSignpostType, _ message: @autoclosure () -> String) {
+func signpost(_ object: AnyObject, _ name: StaticString, _ type: OSSignpostType, _ message: @autoclosure () -> String) {
     guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return }
 
     let signpostId = OSSignpostID(log: log, object: object)
     os_signpost(type, log: log, name: name, signpostID: signpostId, "%{public}s", message())
 }
 
-func signpost<T>(_ log: OSLog, _ name: StaticString, _ work: () throws -> T) rethrows -> T {
-    try signpost(log, name, "", work)
+func signpost<T>(_ name: StaticString, _ work: () throws -> T) rethrows -> T {
+    try signpost(name, "", work)
 }
 
-func signpost<T>(_ log: OSLog, _ name: StaticString, _ message: @autoclosure () -> String, _ work: () throws -> T) rethrows -> T {
+func signpost<T>(_ name: StaticString, _ message: @autoclosure () -> String, _ work: () throws -> T) rethrows -> T {
     guard ImagePipeline.Configuration.isSignpostLoggingEnabled else { return try work() }
 
     let signpostId = OSSignpostID(log: log)
@@ -38,7 +38,7 @@ func signpost<T>(_ log: OSLog, _ name: StaticString, _ message: @autoclosure () 
     return result
 }
 
-var log: OSLog = .disabled
+private let log = OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading")
 
 private let byteFormatter = ByteCountFormatter()
 

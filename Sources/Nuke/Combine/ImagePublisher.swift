@@ -23,7 +23,7 @@ public extension ImagePipeline {
 /// - note: In case the pipeline has `isProgressiveDecodingEnabled` option enabled
 /// and the image being downloaded supports progressive decoding, the publisher
 /// might emit more than a single value.
-public struct ImagePublisher: Publisher {
+public struct ImagePublisher: Publisher, Sendable {
     public typealias Output = ImageResponse
     public typealias Failure = ImagePipeline.Error
 
@@ -35,18 +35,17 @@ public struct ImagePublisher: Publisher {
         self.pipeline = pipeline
     }
 
-    public func receive<S>(subscriber: S) where S: Subscriber, Failure == S.Failure, Output == S.Input {
+    public func receive<S>(subscriber: S) where S: Subscriber, S: Sendable, Failure == S.Failure, Output == S.Input {
         let subscription = ImageSubscription(
             request: self.request,
             pipeline: self.pipeline,
             subscriber: subscriber
         )
-
         subscriber.receive(subscription: subscription)
     }
 }
 
-private final class ImageSubscription<S: Subscriber>: Subscription where S.Input == ImageResponse, S.Failure == ImagePipeline.Error {
+private final class ImageSubscription<S>: Subscription where S: Subscriber, S: Sendable, S.Input == ImageResponse, S.Failure == ImagePipeline.Error {
     private var task: ImageTask?
     private let subscriber: S?
     private let request: ImageRequest

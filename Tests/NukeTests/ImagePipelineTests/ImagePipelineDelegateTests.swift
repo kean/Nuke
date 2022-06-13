@@ -27,6 +27,7 @@ class ImagePipelineDelegateTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testCustomizingDataCacheKey() throws {
         // GIVEN
         let imageURLSmall = URL(string: "https://example.com/image-01-small.jpeg")!
@@ -117,7 +118,7 @@ class ImagePipelineDelegateTests: XCTestCase {
             return XCTFail("Failed to find operation")
         }
         expect(operation).toUpdatePriority()
-        task.priority = .high
+        task.setPriority(.high)
         wait()
 
         // Then
@@ -169,7 +170,7 @@ class ImagePipelineDelegateTests: XCTestCase {
     }
 }
 
-private final class MockImagePipelineDelegate: ImagePipelineDelegate {
+private final class MockImagePipelineDelegate: ImagePipelineDelegate, @unchecked Sendable {
     var isCacheEnabled = true
 
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {

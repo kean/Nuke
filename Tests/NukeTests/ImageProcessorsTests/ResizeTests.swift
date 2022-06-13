@@ -117,6 +117,7 @@ class ImageProcessorsResizeTests: XCTestCase {
     }
 
     #if os(macOS)
+    @MainActor
     func testResizeImageWithOrientationLeft() throws {
         // Given an image with `left` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
@@ -138,6 +139,7 @@ class ImageProcessorsResizeTests: XCTestCase {
     #endif
 
     #if os(iOS) || os(tvOS) || os(watchOS)
+    @MainActor
     func testResizeImageWithOrientationLeft() throws {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
@@ -157,6 +159,7 @@ class ImageProcessorsResizeTests: XCTestCase {
         XCTAssertEqual(output.size, CGSize(width: 320 / Screen.scale, height: 240 / Screen.scale))
     }
 
+    @MainActor
     func testResizeAndCropWithOrientationLeft() throws {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
@@ -193,6 +196,7 @@ class ImageProcessorsResizeTests: XCTestCase {
     }
     #endif
 
+    @MainActor
     func testThatIdentifiersAreEqualWithSameParameters() {
         XCTAssertEqual(
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).identifier,
@@ -235,6 +239,7 @@ class ImageProcessorsResizeTests: XCTestCase {
         )
     }
 
+    @MainActor
     func testThatHashableIdentifiersAreEqualWithSameParameters() {
         XCTAssertEqual(
             ImageProcessors.Resize(size: CGSize(width: 30, height: 30)).hashableIdentifier,

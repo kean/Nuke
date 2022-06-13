@@ -7,14 +7,14 @@ import Nuke
 
 private let data: Data = Test.data(name: "fixture", extension: "jpeg")
 
-private final class MockDataTask: Cancellable {
+private final class MockDataTask: Cancellable, @unchecked Sendable {
     var _cancel: () -> Void = { }
     func cancel() {
         _cancel()
     }
 }
 
-class MockDataLoader: DataLoading {
+class MockDataLoader: DataLoading, @unchecked Sendable {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
 

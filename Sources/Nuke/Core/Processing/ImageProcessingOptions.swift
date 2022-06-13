@@ -13,9 +13,9 @@ import Cocoa
 #endif
 
 /// A namespace with shared image processing options.
-public enum ImageProcessingOptions {
+public enum ImageProcessingOptions: Sendable {
 
-    public enum Unit: CustomStringConvertible {
+    public enum Unit: CustomStringConvertible, Sendable {
         case points
         case pixels
 
@@ -34,7 +34,7 @@ public enum ImageProcessingOptions {
     /// views in which they get displayed. If you can't guarantee that, pleasee
     /// consider adding border to a view layer. This should be your primary
     /// option regardless.
-    public struct Border: Hashable, CustomStringConvertible {
+    public struct Border: Hashable, CustomStringConvertible, @unchecked Sendable {
         public let width: CGFloat
 
         #if os(iOS) || os(tvOS) || os(watchOS)
@@ -64,6 +64,3 @@ public enum ImageProcessingOptions {
         }
     }
 }
-
-extension ImageProcessingOptions.Unit: Sendable {}
-extension ImageProcessingOptions.Border: @unchecked Sendable {}

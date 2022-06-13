@@ -9,7 +9,7 @@ import os
 
 extension ImagePipeline {
     /// The pipeline configuration.
-    public struct Configuration {
+    public struct Configuration: @unchecked Sendable {
         // MARK: - Dependencies
 
         /// Image cache used by the pipeline.
@@ -32,10 +32,12 @@ extension ImagePipeline {
 
         /// Default implementation uses shared `ImageDecoderRegistry` to create
         /// a decoder that matches the context.
-        public var makeImageDecoder: (ImageDecodingContext) -> ImageDecoding? = ImageDecoderRegistry.shared.decoder(for:)
+        public var makeImageDecoder: @Sendable (ImageDecodingContext) -> ImageDecoding? = {
+            ImageDecoderRegistry.shared.decoder(for: $0)
+        }
 
         /// Returns `ImageEncoders.Default()` by default.
-        public var makeImageEncoder: (ImageEncodingContext) -> ImageEncoding = { _ in
+        public var makeImageEncoder: @Sendable (ImageEncodingContext) -> ImageEncoding = { _ in
             ImageEncoders.Default()
         }
 
@@ -80,7 +82,7 @@ extension ImagePipeline {
         public var dataCachePolicy = DataCachePolicy.storeOriginalData
 
         /// Determines what images are stored in the disk cache.
-        public enum DataCachePolicy {
+        public enum DataCachePolicy: Sendable {
             /// For requests with processors, encode and store processed images.
             /// For requests with no processors, store original image data, unless
             /// the resource is local (file:// or data:// scheme is used).
@@ -170,13 +172,7 @@ extension ImagePipeline {
         /// metrics in `os_signpost` Instrument. For more information see
         /// https://developer.apple.com/documentation/os/logging and
         /// https://developer.apple.com/videos/play/wwdc2018/405/.
-        public static var isSignpostLoggingEnabled = false {
-            didSet {
-                log = isSignpostLoggingEnabled ?
-                    OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading") :
-                    .disabled
-            }
-        }
+        public static var isSignpostLoggingEnabled = false
 
         private var isCustomImageCacheProvided = false
 

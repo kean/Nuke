@@ -9,7 +9,7 @@ import Foundation
 /// The pipeline maintains a strong reference to the task until the request
 /// finishes or fails; you do not need to maintain a reference to the task unless
 /// it is useful for your app.
-public final class ImageTask: Hashable, CustomStringConvertible {
+public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Sendable {
     /// An identifier that uniquely identifies the task within a given pipeline.
     /// Unique only within that pipeline.
     public let taskId: Int64
@@ -20,13 +20,11 @@ public final class ImageTask: Hashable, CustomStringConvertible {
     let isDataTask: Bool
 
     /// Updates the priority of the task, even if it is already running.
-    public var priority: ImageRequest.Priority {
-        didSet {
-            pipeline?.imageTaskUpdatePriorityCalled(self, priority: priority)
-        }
+    public func setPriority(_ priority: ImageRequest.Priority) {
+        pipeline?.imageTaskUpdatePriorityCalled(self, priority: priority)
     }
-    var _priority: ImageRequest.Priority // Backing store for access from pipeline
-    // Putting all smaller units closer together (1 byte / 1 byte / 1 byte)
+    var _priority: ImageRequest.Priority // Backing store for access from pipeline only
+    // Putting all smaller units closer together (1 byte / 1 byte)
 
     weak var pipeline: ImagePipeline?
 
@@ -61,7 +59,6 @@ public final class ImageTask: Hashable, CustomStringConvertible {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
-        self.priority = request.priority
         self.isDataTask = isDataTask
 
         self._isCancelled = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
@@ -103,15 +100,15 @@ public final class ImageTask: Hashable, CustomStringConvertible {
     // MARK: CustomStringConvertible
 
     public var description: String {
-        "ImageTask(id: \(taskId), priority: \(priority), completedUnitCount: \(completedUnitCount), totalUnitCount: \(totalUnitCount), isCancelled: \(isCancelled))"
+        "ImageTask(id: \(taskId), priority: \(_priority), completedUnitCount: \(completedUnitCount), totalUnitCount: \(totalUnitCount), isCancelled: \(isCancelled))"
     }
 }
 
-public final class AsyncImageTask {
-    var task: ImageTask?
+public final class AsyncImageTask: @unchecked Sendable {
+    weak var task: ImageTask?
 
     public func setPriority(_ priority: ImageRequest.Priority) {
-        task?.priority = priority
+        task?.setPriority(priority)
     }
 
     public init() {}

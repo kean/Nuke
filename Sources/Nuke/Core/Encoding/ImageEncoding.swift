@@ -13,7 +13,7 @@ import ImageIO
 // MARK: - ImageEncoding
 
 /// An image encoder.
-public protocol ImageEncoding {
+public protocol ImageEncoding: Sendable {
     /// Encodes the given image.
     func encode(_ image: PlatformImage) -> Data?
 
@@ -28,7 +28,7 @@ public extension ImageEncoding {
 }
 
 /// Image encoding context used when selecting which encoder to use.
-public struct ImageEncodingContext {
+public struct ImageEncodingContext: @unchecked Sendable {
     public let request: ImageRequest
     public let image: PlatformImage
     public let urlResponse: URLResponse?

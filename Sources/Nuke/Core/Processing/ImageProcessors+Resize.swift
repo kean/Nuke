@@ -14,7 +14,7 @@ extension ImageProcessors {
         private let upscale: Bool
 
         /// An option for how to resize the image.
-        public enum ContentMode: CustomStringConvertible {
+        public enum ContentMode: CustomStringConvertible, Sendable {
             /// Scales the image so that it completely fills the target area.
             /// Maintains the aspect ratio of the original image.
             case aspectFill

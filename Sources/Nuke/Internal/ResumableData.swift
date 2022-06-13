@@ -6,7 +6,7 @@ import Foundation
 
 /// Resumable data support. For more info see:
 /// - https://developer.apple.com/library/content/qa/qa1761/_index.html
-struct ResumableData {
+struct ResumableData: @unchecked Sendable {
     let data: Data
     let validator: String // Either Last-Modified or ETag
 
@@ -63,7 +63,7 @@ struct ResumableData {
 }
 
 /// Shared cache, uses the same memory pool across multiple pipelines.
-final class ResumableDataStorage {
+final class ResumableDataStorage: @unchecked Sendable {
     static let shared = ResumableDataStorage()
 
     private let lock = NSLock()
@@ -74,7 +74,8 @@ final class ResumableDataStorage {
     // MARK: Registration
 
     func register(_ pipeline: ImagePipeline) {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
 
         if registeredPipelines.isEmpty {
             // 32 MB
@@ -84,7 +85,8 @@ final class ResumableDataStorage {
     }
 
     func unregister(_ pipeline: ImagePipeline) {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
 
         registeredPipelines.remove(pipeline.id)
         if registeredPipelines.isEmpty {
@@ -93,7 +95,8 @@ final class ResumableDataStorage {
     }
 
     func removeAll() {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
 
         cache?.removeAll()
     }
@@ -101,18 +104,16 @@ final class ResumableDataStorage {
     // MARK: Storage
 
     func removeResumableData(for request: ImageRequest, pipeline: ImagePipeline) -> ResumableData? {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
 
-        guard let cache = cache,
-              cache.totalCount > 0,
-              let key = Key(request: request, pipeline: pipeline) else {
-            return nil
-        }
-        return cache.removeValue(forKey: key)
+        guard let key = Key(request: request, pipeline: pipeline) else { return nil }
+        return cache?.removeValue(forKey: key)
     }
 
     func storeResumableData(_ data: ResumableData, for request: ImageRequest, pipeline: ImagePipeline) {
-        lock.lock(); defer { lock.unlock() }
+        lock.lock()
+        defer { lock.unlock() }
 
         guard let key = Key(request: request, pipeline: pipeline) else { return }
         cache?.set(data, forKey: key, cost: data.data.count)
@@ -120,14 +121,14 @@ final class ResumableDataStorage {
 
     private struct Key: Hashable {
         let pipelineId: UUID
-        let url: String
+        let imageId: String
 
         init?(request: ImageRequest, pipeline: ImagePipeline) {
             guard let imageId = request.imageId else {
                 return nil
             }
             self.pipelineId = pipeline.id
-            self.url = imageId
+            self.imageId = imageId
         }
     }
 }

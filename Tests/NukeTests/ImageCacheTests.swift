@@ -287,21 +287,21 @@ class ImageCacheTests: XCTestCase {
     // MARK: Misc
 
     func testRemoveAll() {
-        // Given
+        // GIVEN
         cache[request1] = Test.container
         cache[request2] = Test.container
 
-        // When
+        // WHEN
         cache.removeAll()
 
-        // Then
+        // THEN
         XCTAssertEqual(cache.totalCount, 0)
         XCTAssertEqual(cache.totalCost, 0)
     }
 
     #if os(iOS) || os(tvOS)
-    func testThatSomeImagesAreRemovedOnDidEnterBackground() {
-        // Given
+    func testThatSomeImagesAreRemovedOnDidEnterBackground() async {
+        // GIVEN
         cache.costLimit = Int.max
         cache.countLimit = 10 // 1 out of 10 images should remain
 
@@ -310,15 +310,18 @@ class ImageCacheTests: XCTestCase {
         }
         XCTAssertEqual(cache.totalCount, 10)
 
-        // When
-        NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        // WHEN
+        let task = Task { @MainActor in
+            NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
 
-        // Then
-        XCTAssertEqual(cache.totalCount, 1)
+            // THEN
+            XCTAssertEqual(cache.totalCount, 1)
+        }
+        await task.value
     }
 
-    func testThatSomeImagesAreRemovedBasedOnCostOnDidEnterBackground() {
-        // Given
+    func testThatSomeImagesAreRemovedBasedOnCostOnDidEnterBackground() async {
+        // GIVEN
         let cost = cache.cost(for: ImageContainer(image: Test.image))
         cache.costLimit = cost * 10
         cache.countLimit = Int.max
@@ -329,11 +332,14 @@ class ImageCacheTests: XCTestCase {
         }
         XCTAssertEqual(cache.totalCount, 10)
 
-        // When
-        NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+        // WHEN
+        let task = Task { @MainActor in
+            NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
 
-        // Then
-        XCTAssertEqual(cache.totalCount, 1)
+            // THEN
+            XCTAssertEqual(cache.totalCount, 1)
+        }
+        await task.value
     }
     #endif
 }
@@ -357,7 +363,7 @@ class InternalCacheTTLTests: XCTestCase {
 
     func testDefaultTTLIsUsed() {
         // Given
-        cache.ttl = 0.05// 50 ms
+        cache.conf.ttl = 0.05// 50 ms
         cache.set(1, forKey: 1, cost: 1)
         XCTAssertNotNil(cache.value(forKey: 1))
 

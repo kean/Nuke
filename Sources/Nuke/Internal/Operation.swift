@@ -30,7 +30,7 @@ final class Operation: Foundation.Operation {
         }
     }
 
-    typealias Starter = (_ finish: @escaping () -> Void) -> Void
+    typealias Starter = @Sendable (_ finish: @Sendable @escaping () -> Void) -> Void
     private let starter: Starter
 
     deinit {
@@ -82,7 +82,7 @@ final class Operation: Foundation.Operation {
 
 extension OperationQueue {
     /// Adds simple `BlockOperation`.
-    func add(_ closure: @escaping () -> Void) -> BlockOperation {
+    func add(_ closure: @Sendable @escaping () -> Void) -> BlockOperation {
         let operation = BlockOperation(block: closure)
         addOperation(operation)
         return operation

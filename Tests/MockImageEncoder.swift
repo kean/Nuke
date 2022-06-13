@@ -5,7 +5,7 @@
 import Foundation
 import Nuke
 
-final class MockImageEncoder: ImageEncoding {
+final class MockImageEncoder: ImageEncoding, @unchecked Sendable {
     let result: Data?
     var encodeCount = 0
 

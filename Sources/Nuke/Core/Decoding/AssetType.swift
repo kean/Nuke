@@ -5,7 +5,7 @@
 import Foundation
 
 /// A uniform type identifier (UTI).
-public struct AssetType: ExpressibleByStringLiteral, Hashable {
+public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
     public let rawValue: String
 
     public init(rawValue: String) {
@@ -42,9 +42,9 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable {
     }
 }
 
-public extension AssetType {
+extension AssetType {
     /// Determines a type of the image based on the given data.
-    init?(_ data: Data) {
+    public init?(_ data: Data) {
         guard let type = AssetType.make(data) else {
             return nil
         }
@@ -88,5 +88,3 @@ public extension AssetType {
         return nil
     }
 }
-
-extension AssetType: Sendable {}

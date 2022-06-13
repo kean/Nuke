@@ -19,7 +19,7 @@ import Foundation
 /// [guide](https://kean.blog/nuke/guides/combine) with some common use-cases.
 ///
 /// `ImagePipeline` is fully thread-safe.
-public final class ImagePipeline {
+public final class ImagePipeline: @unchecked Sendable {
     /// Shared image pipeline.
     public static var shared = ImagePipeline(configuration: .withURLCache)
 
@@ -30,7 +30,7 @@ public final class ImagePipeline {
     public var cache: ImagePipeline.Cache { ImagePipeline.Cache(pipeline: self) }
 
     let delegate: ImagePipelineDelegate // swiftlint:disable:this all
-    private(set) var imageCache: ImageCache?
+    let imageCache: ImageCache?
 
     private var tasks = [ImageTask: TaskSubscription]()
 
@@ -78,9 +78,7 @@ public final class ImagePipeline {
         self._nextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
         self._nextTaskId.initialize(to: 0)
 
-        if let imageCache = configuration.imageCache as? ImageCache {
-            self.imageCache = imageCache
-        }
+        self.imageCache = configuration.imageCache as? ImageCache
 
         ResumableDataStorage.shared.register(self)
 
@@ -130,7 +128,7 @@ public final class ImagePipeline {
         with request: ImageRequestConvertible,
         queue: DispatchQueue? = nil,
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping ((_ result: Result<ImageResponse, Error>) -> Void)
+        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         loadImage(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
     }
@@ -269,7 +267,7 @@ public final class ImagePipeline {
     @discardableResult
     public func data(
         for request: ImageRequestConvertible,
-        progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
+        progress: (@Sendable (_ completed: Int64, _ total: Int64) -> Void)? = nil,
         task: AsyncImageTask = AsyncImageTask()
     ) async throws -> (Data, URLResponse?) {
         return try await withTaskCancellationHandler(handler: {
