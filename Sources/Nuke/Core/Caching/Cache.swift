@@ -3,11 +3,6 @@
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-#if !os(macOS)
-import UIKit
-#else
-import Cocoa
-#endif
 
 final class Cache<Key: Hashable, Value> {
     // Can't use `NSCache` because it is not LRU
