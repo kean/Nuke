@@ -118,7 +118,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
         tasks[key] = task
     }
 
-    private func loadImage(task: Task, finish: @escaping () -> Void) {
+    private func loadImage(task: Task, finish: @Sendable @escaping () -> Void) {
         switch destination {
         case .diskCache:
             task.imageTask = pipeline.loadData(with: task.request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
