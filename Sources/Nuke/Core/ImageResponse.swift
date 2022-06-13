@@ -66,7 +66,7 @@ public struct ImageResponse {
 // MARK: - ImageContainer
 
 /// An image container with an image and associated metadata.
-public struct ImageContainer {
+public struct ImageContainer: @unchecked Sendable {
     #if os(macOS)
     /// A fetched image.
     public var image: NSImage
@@ -97,10 +97,10 @@ public struct ImageContainer {
     #endif
 
     /// An metadata provided by the user.
-    public var userInfo: [UserInfoKey: Any]
+    public var userInfo: [UserInfoKey: Sendable]
 
     /// Initializes the container with the given image.
-    public init(image: PlatformImage, type: AssetType? = nil, isPreview: Bool = false, data: Data? = nil, userInfo: [UserInfoKey: Any] = [:]) {
+    public init(image: PlatformImage, type: AssetType? = nil, isPreview: Bool = false, data: Data? = nil, userInfo: [UserInfoKey: Sendable] = [:]) {
         self.image = image
         self.type = type
         self.isPreview = isPreview

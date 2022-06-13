@@ -4,6 +4,7 @@
 
 import Foundation
 
+// Deprecated in Nuke 11.0
 @available(*, deprecated, message: "Please use ImageDecodingRegistry directly.")
 public protocol ImageDecoderRegistering: ImageDecoding {
     /// Returns non-nil if the decoder can be used to decode the given data.
@@ -20,6 +21,7 @@ public protocol ImageDecoderRegistering: ImageDecoding {
     init?(partiallyDownloadedData data: Data, context: ImageDecodingContext)
 }
 
+// Deprecated in Nuke 11.0
 @available(*, deprecated, message: "Please use ImageDecodingRegistry directly.")
 public extension ImageDecoderRegistering {
     /// The default implementation which simply returns `nil` (no progressive
@@ -30,6 +32,7 @@ public extension ImageDecoderRegistering {
 }
 
 extension ImageDecoderRegistry {
+    // Deprecated in Nuke 11.0
     @available(*, deprecated, message: "Please use register method that accepts a closure.")
     public func register<Decoder: ImageDecoderRegistering>(_ decoder: Decoder.Type) {
         register { context in
@@ -43,6 +46,7 @@ extension ImageDecoderRegistry {
 }
 
 extension ImageProcessingContext {
+    // Deprecated in Nuke 11.0
     @available(*, deprecated, message: "Please use `isCompleted` instead.")
     public var isFinal: Bool {
         isCompleted
