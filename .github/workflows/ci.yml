@@ -35,7 +35,7 @@ jobs:
           Scripts/test.sh -s "NukeUI" -d "arch=x86_64"
           Scripts/test.sh -s "Nuke Extensions" -d "arch=x86_64"
   tvos-latest:
-    name: Unit Tests (tvOS 15.5, Xcode 13.4.1)
+    name: Unit Tests (tvOS 15.4, Xcode 13.4.1)
     runs-on: macOS-12
     env: 
       DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
@@ -43,9 +43,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "OS=15.5,name=Apple TV"
-          Scripts/test.sh -s "NukeUI" -d "OS=15.5,name=Apple TV"
-          Scripts/test.sh -s "Nuke Extensions" -d "OS=15.5,name=Apple TV"
+          Scripts/test.sh -s "Nuke" -d "OS=15.4,name=Apple TV"
+          Scripts/test.sh -s "NukeUI" -d "OS=15.4,name=Apple TV"
+          Scripts/test.sh -s "Nuke Extensions" -d "OS=15.4,name=Apple TV"
   watchos-latest:
     name: Unit Tests (watchOS 8.5, Xcode 13.4.1)
     runs-on: macOS-12
