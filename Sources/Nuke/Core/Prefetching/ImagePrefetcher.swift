@@ -90,7 +90,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     ///
     /// The priority of the requests is set to the priority of the prefetcher
     /// (`.low` by default).
-    public func startPrefetching(with requests: [any ImageRequestConvertible]) {
+    public func startPrefetching(with requests: [ImageRequestConvertible]) {
         pipeline.queue.async {
             for request in requests {
                 var request = request.asImageRequest()
@@ -118,7 +118,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
         tasks[key] = task
     }
 
-    private func loadImage(task: Task, finish: @Sendable @escaping () -> Void) {
+    private func loadImage(task: Task, finish: @escaping () -> Void) {
         switch destination {
         case .diskCache:
             task.imageTask = pipeline.loadData(with: task.request, isConfined: true, queue: pipeline.queue, progress: nil) { [weak self] _ in
@@ -150,7 +150,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     /// of `ImagePrefetcher`.
     ///
     /// - parameter destination: `.memoryCache` by default.
-    public func stopPrefetching(with requests: [any ImageRequestConvertible]) {
+    public func stopPrefetching(with requests: [ImageRequestConvertible]) {
         pipeline.queue.async {
             for request in requests {
                 self._stopPrefetching(with: request.asImageRequest())
