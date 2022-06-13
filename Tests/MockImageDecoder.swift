@@ -5,13 +5,13 @@
 import Foundation
 import Nuke
 
-class MockFailingDecoder: Nuke.ImageDecoding {
+class MockFailingDecoder: Nuke.ImageDecoding, @unchecked Sendable {
     func decode(_ data: Data) throws -> ImageContainer {
         throw MockError(description: "decoder-failed")
     }
 }
 
-class MockImageDecoder: ImageDecoding {
+class MockImageDecoder: ImageDecoding, @unchecked Sendable {
     private let decoder = ImageDecoders.Default()
 
     let name: String
@@ -29,7 +29,7 @@ class MockImageDecoder: ImageDecoding {
     }
 }
 
-class MockAnonymousImageDecoder: ImageDecoding {
+class MockAnonymousImageDecoder: ImageDecoding, @unchecked Sendable {
     let closure: (Data, Bool) -> PlatformImage?
 
     init(_ closure: @escaping (Data, Bool) -> PlatformImage?) {

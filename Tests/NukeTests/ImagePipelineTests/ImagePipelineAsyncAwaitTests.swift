@@ -130,7 +130,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         )
 
         // WHEN
-
         var recordedProgress: [Progress] = []
 
         do {
