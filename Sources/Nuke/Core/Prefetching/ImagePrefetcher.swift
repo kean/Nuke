@@ -180,7 +180,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
         }
     }
 
-    private final class Task {
+    private final class Task: @unchecked Sendable {
         let key: ImageLoadKey
         let request: ImageRequest
         weak var imageTask: ImageTask?
