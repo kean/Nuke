@@ -20,13 +20,13 @@ extension ImageProcessors {
     ///
     /// - [Core Image Programming Guide](https://developer.apple.com/library/ios/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html)
     /// - [Core Image Filter Reference](https://developer.apple.com/library/prerelease/ios/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html)
-    public struct CoreImageFilter: ImageProcessing, CustomStringConvertible {
+    public struct CoreImageFilter: ImageProcessing, CustomStringConvertible, @unchecked Sendable {
         public let name: String
-        public let parameters: [String: Sendable]
+        public let parameters: [String: Any]
         public let identifier: String
 
         /// - parameter identifier: Uniquely identifies the processor.
-        public init(name: String, parameters: [String: Sendable], identifier: String) {
+        public init(name: String, parameters: [String: Any], identifier: String) {
             self.name = name
             self.parameters = parameters
             self.identifier = identifier
