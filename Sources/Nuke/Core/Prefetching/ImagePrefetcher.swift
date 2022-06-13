@@ -176,7 +176,7 @@ public final class ImagePrefetcher {
         guard _priority != priority else { return }
         _priority = priority
         for task in tasks.values {
-            task.imageTask?.priority = priority
+            task.imageTask?.setPriority(priority)
         }
     }
 

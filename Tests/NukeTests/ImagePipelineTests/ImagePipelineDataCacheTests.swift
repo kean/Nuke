@@ -86,7 +86,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
             return XCTFail("No operations gor registered")
         }
         expect(operation).toUpdatePriority()
-        task.priority = .high
+        task.setPriority(.high)
 
         wait()
     }

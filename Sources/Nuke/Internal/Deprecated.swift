@@ -61,3 +61,12 @@ extension ImageContainer {
         return ImageContainer(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
     }
 }
+
+extension ImageTask {
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please use setPriority(_:) method.")
+    public var priority: ImageRequest.Priority {
+        get { _priority }
+        set { setPriority(newValue) }
+    }
+}
