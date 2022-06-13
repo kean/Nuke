@@ -618,7 +618,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
     // MARK Misc
 
     func testSetCustomImageEncoder() {
-        struct MockImageEncoder: ImageEncoding {
+        struct MockImageEncoder: ImageEncoding, @unchecked Sendable {
             let closure: (PlatformImage) -> Data?
 
             func encode(_ image: PlatformImage) -> Data? {
