@@ -41,18 +41,21 @@ public final class ImageCache: ImageCaching {
         set { impl.configuration.ttl = newValue }
     }
 
-    /// The total cost of items in the cache.
-    public var totalCost: Int {
-        impl.totalCost
-    }
-
     /// The maximum cost of an entry in proportion to the `costLimit`.
     /// By default, `0.1`.
-    public var entryCostLimit: Double = 0.1
+    public var entryCostLimit: Double {
+        get { impl.configuration.entryCostLimit }
+        set { impl.configuration.entryCostLimit = newValue }
+    }
 
     /// The total number of items in the cache.
     public var totalCount: Int {
         impl.totalCount
+    }
+
+    /// The total cost of items in the cache.
+    public var totalCost: Int {
+        impl.totalCost
     }
 
     /// Shared `Cache` instance.
@@ -86,18 +89,10 @@ public final class ImageCache: ImageCaching {
     }
 
     public subscript(key: ImageCacheKey) -> ImageContainer? {
-        get {
-            return impl.value(forKey: key)
-        }
+        get { impl.value(forKey: key) }
         set {
             if let image = newValue {
-                let cost = self.cost(for: image)
-                // Take care of overflow or cache size big enough to fit any
-                // reasonable content (and also of costLimit = Int.max).
-                let sanitizedEntryLimit = max(0, min(entryCostLimit, 1))
-                if costLimit > 2147483647 || cost < Int(sanitizedEntryLimit * Double(costLimit)) {
-                    impl.set(image, forKey: key, cost: cost)
-                }
+                impl.set(image, forKey: key, cost: cost(for: image))
             } else {
                 impl.removeValue(forKey: key)
             }

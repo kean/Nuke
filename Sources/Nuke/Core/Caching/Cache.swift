@@ -16,6 +16,7 @@ final class Cache<Key: Hashable, Value> {
         var costLimit: Int
         var countLimit: Int
         var ttl: TimeInterval
+        var entryCostLimit: Double
     }
 
     var configuration: Configuration {
@@ -31,19 +32,18 @@ final class Cache<Key: Hashable, Value> {
         lock.sync { _totalCost }
     }
 
-    private var _totalCost = 0
-
     var totalCount: Int {
         lock.sync { map.count }
     }
 
+    private var _totalCost = 0
     private var map = [Key: LinkedList<Entry>.Node]()
     private let list = LinkedList<Entry>()
     private let lock = NSLock()
     private let memoryPressure: DispatchSourceMemoryPressure
 
-    init(costLimit: Int, countLimit: Int, ttl: TimeInterval = 0) {
-        self._conf = Configuration(costLimit: costLimit, countLimit: countLimit, ttl: ttl)
+    init(costLimit: Int, countLimit: Int) {
+        self._conf = Configuration(costLimit: costLimit, countLimit: countLimit, ttl: 0, entryCostLimit: 0.1)
 
         self.memoryPressure = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .main)
         self.memoryPressure.setEventHandler { [weak self] in
@@ -94,6 +94,13 @@ final class Cache<Key: Hashable, Value> {
     func set(_ value: Value, forKey key: Key, cost: Int = 0, ttl: TimeInterval? = nil) {
         lock.lock()
         defer { lock.unlock() }
+
+        // Take care of overflow or cache size big enough to fit any
+        // reasonable content (and also of costLimit = Int.max).
+        let sanitizedEntryLimit = max(0, min(_conf.entryCostLimit, 1))
+        guard _conf.costLimit > 2147483647 || cost < Int(sanitizedEntryLimit * Double(_conf.costLimit)) else {
+            return
+        }
 
         let ttl = ttl ?? _conf.ttl
         let expiration = ttl == 0 ? nil : (Date() + ttl)
