@@ -30,10 +30,7 @@ import Foundation
 ///
 /// - warning: It's possible to have more than one instance of `DataCache` with
 /// the same `path` but it is not recommended.
-public final class DataCache: DataCaching {
-    /// A cache key.
-    public typealias Key = String
-
+public final class DataCache: DataCaching, @unchecked Sendable {
     /// Size limit in bytes. `150 Mb` by default.
     ///
     /// Changes to `sizeLimit` will take effect when the next LRU sweep is run.
@@ -66,6 +63,7 @@ public final class DataCache: DataCaching {
     private var staging = Staging()
     private var isFlushNeeded = false
     private var isFlushScheduled = false
+
     var flushInterval: DispatchTimeInterval = .seconds(1)
 
     /// A queue which is used for disk I/O.
@@ -127,7 +125,7 @@ public final class DataCache: DataCaching {
     // MARK: DataCaching
 
     /// Retrieves data for the given key.
-    public func cachedData(for key: Key) -> Data? {
+    public func cachedData(for key: String) -> Data? {
         if let change = change(for: key) {
             switch change { // Change wasn't flushed to disk yet
             case let .add(data):
@@ -166,13 +164,13 @@ public final class DataCache: DataCaching {
 
     /// Stores data for the given key. The method returns instantly and the data
     /// is written asynchronously.
-    public func storeData(_ data: Data, for key: Key) {
+    public func storeData(_ data: Data, for key: String) {
         stage { staging.add(data: data, for: key) }
     }
 
     /// Removes data for the given key. The method returns instantly, the data
     /// is removed asynchronously.
-    public func removeData(for key: Key) {
+    public func removeData(for key: String) {
         stage { staging.removeData(for: key) }
     }
 
@@ -210,7 +208,7 @@ public final class DataCache: DataCaching {
     ///     // Data is nil
     ///     let data = cache[key]
     ///
-    public subscript(key: Key) -> Data? {
+    public subscript(key: String) -> Data? {
         get {
             cachedData(for: key)
         }
@@ -227,12 +225,12 @@ public final class DataCache: DataCaching {
 
     /// Uses the `FilenameGenerator` that the cache was initialized with to
     /// generate and return a filename for the given key.
-    public func filename(for key: Key) -> String? {
+    public func filename(for key: String) -> String? {
         filenameGenerator(key)
     }
 
     /// Returns `url` for the given cache key.
-    public func url(for key: Key) -> URL? {
+    public func url(for key: String) -> URL? {
         guard let filename = self.filename(for: key) else {
             return nil
         }
@@ -249,7 +247,7 @@ public final class DataCache: DataCaching {
 
     /// Synchronously waits on the caller's thread until all outstanding disk I/O
     /// operations for the given key are finished.
-    public func flush(for key: Key) {
+    public func flush(for key: String) {
         queue.sync {
             guard let change = lock.sync({ staging.changes[key] }) else { return }
             perform(change)
@@ -357,7 +355,7 @@ public final class DataCache: DataCaching {
             return // All good, no need to perform any work.
         }
 
-        let targetSizeLimit = Int(Double(self.sizeLimit) * trimRatio)
+        let targetSizeLimit = Int(Double(sizeLimit) * trimRatio)
 
         // Most recently accessed items first
         let past = Date.distantPast

@@ -104,6 +104,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 }
 
+// TODO: Make Sendable
 public final class AsyncImageTask {
     var task: ImageTask?
 

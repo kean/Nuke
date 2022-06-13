@@ -4,6 +4,10 @@
 
 import Foundation
 
+#if os(iOS) || os(tvOS)
+import UIKit.UIApplication
+#endif
+
 // Internal memory-cache implementation.
 final class Cache<Key: Hashable, Value> {
     // Can't use `NSCache` because it is not LRU

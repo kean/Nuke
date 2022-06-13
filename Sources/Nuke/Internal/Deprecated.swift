@@ -70,3 +70,9 @@ extension ImageTask {
         set { setPriority(newValue) }
     }
 }
+
+extension DataCache {
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please use String directly instead.")
+    public typealias Key = String
+}
