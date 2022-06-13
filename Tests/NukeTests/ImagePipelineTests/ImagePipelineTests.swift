@@ -403,7 +403,7 @@ class ImagePipelineTests: XCTestCase {
 
 #if os(iOS)
     func testThumnbailIsntDecompressed() {
-        pipeline.configuration.imageDecompressingQueue.isSuspended = true
+        pipeline.conf.imageDecompressingQueue.isSuspended = true
 
         // GIVEN
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)

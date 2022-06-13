@@ -14,7 +14,7 @@ final class Cache<Key: Hashable, Value> {
         var entryCostLimit: Double
     }
 
-    var configuration: Configuration {
+    var conf: Configuration {
         get { lock.sync { _conf } }
         set { lock.sync { _conf = newValue } }
     }
