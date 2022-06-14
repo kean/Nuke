@@ -111,82 +111,99 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertTrue(isOnCancelCalled)
     }
 
-    
+    func testImageTaskDelegateProgressIsCalled() async throws {
+        // GIVEN
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
 
-    // MARK: - Progress Monitoring
+        // WHEN
+        taskDelegate.onProgress = { [unowned self] in
+            XCTAssertNotNil(DispatchQueue.getSpecific(key: callbackQueueKey))
+            recordedProgress.append(Progress(completed: $0, total: $1))
+        }
 
-    // TODO: reimplement
-//    func testMonitoringProgress() async throws {
-//        // GIVEN
-//        dataLoader.results[Test.url] = .success(
-//            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-//        )
-//
-//        // WHEN
-//        do {
-//            try await pipeline.image(for: Test.request, progress: {
-//                self.recordedProgress.append(Progress(completed: $0, total: $1))
-//            })
-//        } catch {
-//            // Do nothing
-//        }
-//
-//        // THEN
-//        XCTAssertEqual(recordedProgress, [
-//            Progress(completed: 10, total: 20),
-//            Progress(completed: 20, total: 20),
-//        ])
-//    }
+        do {
+            _ = try await pipeline.image(for: Test.request, delegate: taskDelegate)
+        } catch {
+            // Expect decoding to failed because of bogus data
+        }
 
-    // TODO: reimplement
-//    func testMonitoringProgressLoadData() async throws {
-//        // GIVEN
-//        dataLoader.results[Test.url] = .success(
-//            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-//        )
-//
-//        // WHEN
-//        do {
-//            try await pipeline.data(for: Test.request, progress: {
-//                self.recordedProgress.append(Progress(completed: $0, total: $1))
-//            })
-//        } catch {
-//            // Do nothing
-//        }
-//
-//        // THEN
-//        XCTAssertEqual(recordedProgress, [
-//            Progress(completed: 10, total: 20),
-//            Progress(completed: 20, total: 20),
-//        ])
-//    }
+        // THEN
+        XCTAssertEqual(recordedProgress, [
+            Progress(completed: 10, total: 20),
+            Progress(completed: 20, total: 20),
+        ])
+    }
+
+    func testImageTaskDelegateProgressiveDecodingIsCalled() async throws {
+        // GIVEN
+        let dataLoader = MockProgressiveDataLoader()
+        pipeline = pipeline.reconfigured {
+            $0.dataLoader = dataLoader
+        }
+
+        // WHEN/THEN
+        var recorededProgressiveResponses: [ImageResponse] = []
+        taskDelegate.onProgressiveResponse = { [unowned self] response in
+            XCTAssertNotNil(DispatchQueue.getSpecific(key: callbackQueueKey))
+            recorededProgressiveResponses.append(response)
+            dataLoader.resume()
+        }
+
+        do {
+            _ = try await pipeline.image(for: Test.request, delegate: taskDelegate)
+        } catch {
+            // Expect decoding to failed because of bogus data
+        }
+
+        // THEN
+        XCTAssertEqual(recorededProgressiveResponses.count, 2)
+        XCTAssertTrue(recorededProgressiveResponses.allSatisfy { $0.container.isPreview })
+    }
+
+    func testImageTaskDelegateDidCompleteCalled() async throws {
+        // GIVEN
+        var recordedResult: Result<ImageResponse, ImagePipeline.Error>?
+        taskDelegate.onResult = { [unowned self] in
+            XCTAssertNotNil(DispatchQueue.getSpecific(key: callbackQueueKey))
+            recordedResult = $0
+        }
+
+        // WHEN
+        let result = try await pipeline.image(for: Test.request, delegate: taskDelegate)
+
+        // THEN
+        XCTAssertTrue(result.image === recordedResult?.value?.image)
+    }
 
     // MARK: - Update Priority
 
-    // TODO: reimplement
-//    func testUpdatePriority() {
-//        // GIVEN
-//        let queue = pipeline.configuration.dataLoadingQueue
-//        queue.isSuspended = true
-//
-//        let request = Test.request
-//        XCTAssertEqual(request.priority, .normal)
-//
-//        let observer = expect(queue).toEnqueueOperationsWithCount(1)
-//        let task = AsyncImageTask()
-//        Task.detached {
-//            try await self.pipeline.image(for: request, task: task)
-//        }
-//        wait()
-//
-//        // WHEN/THEN
-//        guard let operation = observer.operations.first else {
-//            return XCTFail("Failed to find operation")
-//        }
-//        expect(operation).toUpdatePriority()
-//        task.setPriority(.high)
-//        wait()
-//    }
+    func testUpdatePriority() {
+        // GIVEN
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let request = Test.request
+        XCTAssertEqual(request.priority, .normal)
+
+        let observer = expect(queue).toEnqueueOperationsWithCount(1)
+
+        taskDelegate.onWillStart = { [unowned self] in imageTask = $0 }
+
+        Task.detached { [unowned self] in
+            try await self.pipeline.image(for: request, delegate: taskDelegate)
+        }
+        wait()
+
+        // WHEN/THEN
+        guard let operation = observer.operations.first else {
+            return XCTFail("Failed to find operation")
+        }
+        expect(operation).toUpdatePriority()
+        imageTask?.setPriority(.high)
+        wait()
+    }
 
     // MARK: - ImageRequest with Async/Await
 
