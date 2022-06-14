@@ -164,9 +164,12 @@ public final class ImagePipeline: @unchecked Sendable {
         task: AsyncImageTask = AsyncImageTask()
     ) -> AsyncThrowingStream<ImageResponse, Swift.Error> {
         AsyncThrowingStream { continuation in
-            let task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: { response, _, _ in
-                guard let response = response else { return }
-                continuation.yield(response)
+            let task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: { response, completed, total in
+                if let response = response {
+                    continuation.yield(response)
+                } else {
+                    progress?(completed, total)
+                }
             }, completion: {
                 switch $0 {
                 case .success(let response):
