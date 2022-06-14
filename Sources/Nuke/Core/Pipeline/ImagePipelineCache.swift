@@ -243,7 +243,7 @@ extension ImagePipeline.Cache {
         return encoder.encode(image, context: context)
     }
 
-    private func dataCache(for request: ImageRequest) -> DataCaching? {
+    private func dataCache(for request: ImageRequest) -> (any DataCaching)? {
         pipeline.delegate.dataCache(for: request, pipeline: pipeline)
     }
 

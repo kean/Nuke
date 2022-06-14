@@ -35,8 +35,8 @@ public final class ImageCache: ImageCaching {
     }
 
     /// Default TTL (time to live) for each entry. Can be used to make sure that
-    /// the entries get validated at some point. `0` (never expire) by default.
-    public var ttl: TimeInterval {
+    /// the entries get validated at some point. `nil` (never expire) by default.
+    public var ttl: TimeInterval? {
         get { impl.conf.ttl }
         set { impl.conf.ttl = newValue }
     }

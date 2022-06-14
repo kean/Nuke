@@ -103,7 +103,7 @@ final class MockProcessorFactory {
         }
     }
 
-    func make(id: String) -> ImageProcessing {
+    func make(id: String) -> any ImageProcessing {
         let processor = Processor(id: id)
         processor.factory = self
         return processor

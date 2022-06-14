@@ -132,7 +132,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     /// )
     /// ```
     public init(url: URL?,
-                processors: [ImageProcessing] = [],
+                processors: [any ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
@@ -161,7 +161,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     /// )
     /// ```
     public init(urlRequest: URLRequest,
-                processors: [ImageProcessing] = [],
+                processors: [any ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
@@ -198,7 +198,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     /// You can also disable it dynamically using `ImagePipelineDelegate`.
     public init<P>(id: String,
                    data: P,
-                   processors: [ImageProcessing] = [],
+                   processors: [any ImageProcessing] = [],
                    priority: Priority = .normal,
                    options: Options = [],
                    userInfo: [UserInfoKey: Any]? = nil) where P: Publisher, P.Output == Data {
@@ -238,7 +238,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     /// You can also disable it dynamically using `ImagePipelineDelegate`.
     public init(id: String,
                 data: @Sendable @escaping () async throws -> Data,
-                processors: [ImageProcessing] = [],
+                processors: [any ImageProcessing] = [],
                 priority: Priority = .normal,
                 options: Options = [],
                 userInfo: [UserInfoKey: Any]? = nil) {
@@ -376,7 +376,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         let resource: Resource
         fileprivate(set) var priority: Priority
         fileprivate(set) var options: Options
-        fileprivate(set) var processors: [ImageProcessing]
+        fileprivate(set) var processors: [any ImageProcessing]
         fileprivate(set) var userInfo: [UserInfoKey: Any]?
         // After trimming down the request size, it is no longer
         // as beneficial using CoW for ImageRequest, but there
@@ -389,7 +389,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         }
 
         /// Creates a resource with a default processor.
-        init(resource: Resource, processors: [ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
+        init(resource: Resource, processors: [any ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
             self.processors = processors
             self.priority = priority
@@ -434,7 +434,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         "ImageRequest(resource: \(ref.resource), priority: \(priority), processors: \(processors), options: \(options), userInfo: \(userInfo))"
     }
 
-    func withProcessors(_ processors: [ImageProcessing]) -> ImageRequest {
+    func withProcessors(_ processors: [any ImageProcessing]) -> ImageRequest {
         var request = self
         request.processors = processors
         return request

@@ -64,7 +64,7 @@ public struct ImageLoadingOptions {
 
     /// Image processors to be applied unless the processors are provided in the
     /// request. `[]` by default.
-    public var processors: [ImageProcessing] = []
+    public var processors: [any ImageProcessing] = []
 
     #if os(iOS) || os(tvOS)
 

@@ -6,7 +6,7 @@ import Foundation
 
 /// Receives data from ``TaskLoadImageData` and decodes it as it arrives.
 final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
-    private var decoder: ImageDecoding?
+    private var decoder: (any ImageDecoding)?
 
     override func start() {
         dependency = pipeline.makeTaskFetchOriginalImageData(for: request).subscribe(self) { [weak self] in
@@ -60,7 +60,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
         }
     }
 
-    private func didFinishDecoding(decoder: ImageDecoding, context: ImageDecodingContext, result: Result<ImageResponse, Error>) {
+    private func didFinishDecoding(decoder: any ImageDecoding, context: ImageDecodingContext, result: Result<ImageResponse, Error>) {
         switch result {
         case .success(let response):
             send(value: response, isCompleted: context.isCompleted)
@@ -72,7 +72,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
     }
 
     // Lazily creates decoding for task
-    private func getDecoder(for context: ImageDecodingContext) -> ImageDecoding? {
+    private func getDecoder(for context: ImageDecodingContext) -> (any ImageDecoding)? {
         // Return the existing processor in case it has already been created.
         if let decoder = self.decoder {
             return decoder

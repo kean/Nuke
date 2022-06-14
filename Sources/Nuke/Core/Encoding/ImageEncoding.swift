@@ -21,8 +21,8 @@ public protocol ImageEncoding: Sendable {
     func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data?
 }
 
-public extension ImageEncoding {
-    func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data? {
+extension ImageEncoding {
+    public func encode(_ container: ImageContainer, context: ImageEncodingContext) -> Data? {
         self.encode(container.image)
     }
 }

@@ -314,10 +314,10 @@ extension AsyncTask.Event: Equatable where Value: Equatable, Error: Equatable {}
 /// Represents a subscription to a task. The observer must retain a strong
 /// reference to a subscription.
 struct TaskSubscription: Sendable {
-    private let task: AsyncTaskSubscriptionDelegate
+    private let task: any AsyncTaskSubscriptionDelegate
     private let key: TaskSubscriptionKey
 
-    fileprivate init(task: AsyncTaskSubscriptionDelegate, key: TaskSubscriptionKey) {
+    fileprivate init(task: any AsyncTaskSubscriptionDelegate, key: TaskSubscriptionKey) {
         self.task = task
         self.key = key
     }

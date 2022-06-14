@@ -12,7 +12,7 @@ public protocol DataLoading: Sendable {
     /// of an error) `didReceiveData` closures have been called.
     func loadData(with request: URLRequest,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
-                  completion: @escaping (Error?) -> Void) -> Cancellable
+                  completion: @escaping (Error?) -> Void) -> any Cancellable
 }
 
 /// A unit of work that can be cancelled.

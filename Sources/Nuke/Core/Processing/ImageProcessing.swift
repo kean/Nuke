@@ -85,7 +85,7 @@ public enum ImageProcessingError: Error, CustomStringConvertible, Sendable {
     public var description: String { "Unknown" }
 }
 
-func == (lhs: [ImageProcessing], rhs: [ImageProcessing]) -> Bool {
+func == (lhs: [any ImageProcessing], rhs: [any ImageProcessing]) -> Bool {
     guard lhs.count == rhs.count else {
         return false
     }

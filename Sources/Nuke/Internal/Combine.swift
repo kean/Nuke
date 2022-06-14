@@ -7,7 +7,7 @@ import Combine
 
 final class DataPublisher {
     let id: String
-    private let _sink: (@escaping ((PublisherCompletion) -> Void), @escaping ((Data) -> Void)) -> Cancellable
+    private let _sink: (@escaping ((PublisherCompletion) -> Void), @escaping ((Data) -> Void)) -> any Cancellable
 
     init<P: Publisher>(id: String, _ publisher: P) where P.Output == Data {
         self.id = id
@@ -28,7 +28,7 @@ final class DataPublisher {
         self.init(id: id, publisher(from: data))
     }
 
-    func sink(receiveCompletion: @escaping ((PublisherCompletion) -> Void), receiveValue: @escaping ((Data) -> Void)) -> Cancellable {
+    func sink(receiveCompletion: @escaping ((PublisherCompletion) -> Void), receiveValue: @escaping ((Data) -> Void)) -> any Cancellable {
         _sink(receiveCompletion, receiveValue)
     }
 }

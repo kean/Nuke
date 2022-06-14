@@ -17,7 +17,7 @@ final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
         }
     }
 
-    private func getCachedData(dataCache: DataCaching) {
+    private func getCachedData(dataCache: any DataCaching) {
         let data = signpost("ReadCachedImageData") {
             pipeline.cache.cachedData(for: request)
         }

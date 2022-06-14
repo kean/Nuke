@@ -15,7 +15,7 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
     struct Configuration {
         var costLimit: Int
         var countLimit: Int
-        var ttl: TimeInterval
+        var ttl: TimeInterval?
         var entryCostLimit: Double
     }
 
@@ -44,7 +44,7 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
     private var notificationObserver: AnyObject?
 
     init(costLimit: Int, countLimit: Int) {
-        self._conf = Configuration(costLimit: costLimit, countLimit: countLimit, ttl: 0, entryCostLimit: 0.1)
+        self._conf = Configuration(costLimit: costLimit, countLimit: countLimit, ttl: nil, entryCostLimit: 0.1)
 
         self.memoryPressure = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .main)
         self.memoryPressure.setEventHandler { [weak self] in
@@ -109,7 +109,7 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
         }
 
         let ttl = ttl ?? _conf.ttl
-        let expiration = ttl == 0 ? nil : (Date() + ttl)
+        let expiration = ttl.map { Date() + $0 }
         let entry = Entry(value: value, key: key, cost: cost, expiration: expiration)
         _add(entry)
         _trim() // _trim is extremely fast, it's OK to call it each time

@@ -49,7 +49,7 @@ public struct LazyImage<Content: View>: View {
     // Options
     private var makeContent: ((LazyImageState) -> Content)?
     private var animation: Animation? = .default
-    private var processors: [ImageProcessing]?
+    private var processors: [any ImageProcessing]?
     private var priority: ImageRequest.Priority?
     private var pipeline: ImagePipeline = .shared
     private var onDisappearBehavior: DisappearBehavior? = .cancel
@@ -68,7 +68,7 @@ public struct LazyImage<Content: View>: View {
     /// - Parameters:
     ///   - source: The image source (`String`, `URL`, `URLRequest`, or `ImageRequest`)
     ///   - resizingMode: `.aspectFill` by default.
-    public init(source: any ImageRequestConvertible?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
+    public init(source: (any ImageRequestConvertible)?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
         self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
         self.resizingMode = resizingMode
     }
@@ -77,7 +77,7 @@ public struct LazyImage<Content: View>: View {
     ///
     /// - Parameters:
     ///   - source: The image source (`String`, `URL`, `URLRequest`, or `ImageRequest`)
-    public init(source: any ImageRequestConvertible?) where Content == Image {
+    public init(source: (any ImageRequestConvertible)?) where Content == Image {
         self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
     }
 #endif
@@ -99,7 +99,7 @@ public struct LazyImage<Content: View>: View {
     ///     }
     /// }
     /// ```
-    public init(source: any ImageRequestConvertible?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+    public init(source: (any ImageRequestConvertible)?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
         self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
         self.makeContent = content
     }
@@ -119,7 +119,7 @@ public struct LazyImage<Content: View>: View {
     ///
     /// If you pass an image requests with a non-empty list of processors as
     /// a source, your processors will be applied instead.
-    public func processors(_ processors: [ImageProcessing]?) -> Self {
+    public func processors(_ processors: [any ImageProcessing]?) -> Self {
         map { $0.processors = processors }
     }
 

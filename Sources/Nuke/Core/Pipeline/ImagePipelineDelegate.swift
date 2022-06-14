@@ -12,17 +12,17 @@ public protocol ImagePipelineDelegate: Sendable { // swiftlint:disable:this clas
     // MARK: Configuration
 
     /// Returns data loader for the given request.
-    func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> DataLoading
+    func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading
 
     /// Returns disk cache for the given request. Return `nil` to prevent cache
     /// reads and writes.
-    func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> DataCaching?
+    func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)?
 
     /// Returns image decoder for the given context.
-    func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImageDecoding?
+    func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)?
 
     /// Returns image encoder for the given context.
-    func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> ImageEncoding
+    func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding
 
     // MARK: Caching
 
@@ -56,19 +56,19 @@ public protocol ImagePipelineDelegate: Sendable { // swiftlint:disable:this clas
 }
 
 extension ImagePipelineDelegate {
-    public func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> DataLoading {
+    public func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading {
         pipeline.configuration.dataLoader
     }
 
-    public func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> DataCaching? {
+    public func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)? {
         pipeline.configuration.dataCache
     }
 
-    public func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImageDecoding? {
+    public func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)? {
         pipeline.configuration.makeImageDecoder(context)
     }
 
-    public func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> ImageEncoding {
+    public func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding {
         pipeline.configuration.makeImageEncoder(context)
     }
 

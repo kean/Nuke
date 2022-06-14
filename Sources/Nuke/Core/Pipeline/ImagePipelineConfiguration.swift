@@ -13,7 +13,7 @@ extension ImagePipeline {
         // MARK: - Dependencies
 
         /// Image cache used by the pipeline.
-        public var imageCache: ImageCaching? {
+        public var imageCache: (any ImageCaching)? {
             // This exists simply to ensure we don't init ImageCache.shared if the
             // user provides their own instance.
             get { isCustomImageCacheProvided ? customImageCache : ImageCache.shared }
@@ -22,22 +22,22 @@ extension ImagePipeline {
                 isCustomImageCacheProvided = true
             }
         }
-        private var customImageCache: ImageCaching?
+        private var customImageCache: (any ImageCaching)?
 
         /// Data loader used by the pipeline.
-        public var dataLoader: DataLoading
+        public var dataLoader: any DataLoading
 
         /// Data cache used by the pipeline.
-        public var dataCache: DataCaching?
+        public var dataCache: (any DataCaching)?
 
         /// Default implementation uses shared `ImageDecoderRegistry` to create
         /// a decoder that matches the context.
-        public var makeImageDecoder: @Sendable (ImageDecodingContext) -> ImageDecoding? = {
+        public var makeImageDecoder: @Sendable (ImageDecodingContext) -> (any ImageDecoding)? = {
             ImageDecoderRegistry.shared.decoder(for: $0)
         }
 
         /// Returns `ImageEncoders.Default()` by default.
-        public var makeImageEncoder: @Sendable (ImageEncodingContext) -> ImageEncoding = { _ in
+        public var makeImageEncoder: @Sendable (ImageEncodingContext) -> any ImageEncoding = { _ in
             ImageEncoders.Default()
         }
 
@@ -183,7 +183,7 @@ extension ImagePipeline {
         /// Instantiates a default pipeline configuration.
         ///
         /// - parameter dataLoader: `DataLoader()` by default.
-        public init(dataLoader: DataLoading = DataLoader()) {
+        public init(dataLoader: any DataLoading = DataLoader()) {
             self.dataLoader = dataLoader
         }
 
@@ -194,6 +194,12 @@ extension ImagePipeline {
         /// A configuration with an aggressive disk cache (`DataCache`) with a
         /// size limit of 150 MB. An HTTP cache (`URLCache`) is disabled.
         public static var withDataCache: Configuration {
+            withDataCache(sizeLimit: nil)
+        }
+
+        /// A configuration with an aggressive disk cache (`DataCache`) with a
+        /// size limit of 150 MB by default. An HTTP cache (`URLCache`) is disabled.
+        public static func withDataCache(sizeLimit: Int?) -> Configuration {
             let dataLoader: DataLoader = {
                 let config = URLSessionConfiguration.default
                 config.urlCache = nil
@@ -202,7 +208,12 @@ extension ImagePipeline {
 
             var config = Configuration()
             config.dataLoader = dataLoader
-            config.dataCache = try? DataCache(name: "com.github.kean.Nuke.DataCache")
+
+            let dataCache = try? DataCache(name: "com.github.kean.Nuke.DataCache")
+            if let sizeLimit = sizeLimit {
+                dataCache?.sizeLimit = sizeLimit
+            }
+            config.dataCache = dataCache
 
             return config
         }

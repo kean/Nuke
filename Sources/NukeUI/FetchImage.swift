@@ -71,7 +71,7 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     /// Image processors to be applied unless the processors are provided in the
     /// request. `[]` by default.
-    public var processors: [ImageProcessing] = []
+    public var processors: [any ImageProcessing] = []
 
     private var imageTask: ImageTask?
 
@@ -88,7 +88,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     // MARK: Load (ImageRequestConvertible)
 
     /// Loads an image with the given request.
-    public func load(_ request: any ImageRequestConvertible?) {
+    public func load(_ request: (any ImageRequestConvertible)?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
 
         reset()

@@ -121,7 +121,7 @@ public final class LazyImageView: _PlatformBaseView {
     ///
     /// If you pass an image requests with a non-empty list of processors as
     /// a source, your processors will be applied instead.
-    public var processors: [ImageProcessing]?
+    public var processors: [any ImageProcessing]?
 
     /// Sets the priority of the image task. The priorit can be changed
     /// dynamically. `nil` by default.
@@ -215,7 +215,7 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     /// Sets the given source and immediately starts the download.
-    public var source: any ImageRequestConvertible? {
+    public var source: (any ImageRequestConvertible)? {
         didSet { load(source) }
     }
 
@@ -249,7 +249,7 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Load (ImageRequestConvertible)
 
     /// Loads an image with the given request.
-    private func load(_ request: any ImageRequestConvertible?) {
+    private func load(_ request: (any ImageRequestConvertible)?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
 
         cancel()

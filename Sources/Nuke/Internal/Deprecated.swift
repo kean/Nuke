@@ -23,10 +23,10 @@ public protocol ImageDecoderRegistering: ImageDecoding {
 
 // Deprecated in Nuke 11.0
 @available(*, deprecated, message: "Please use ImageDecodingRegistry directly.")
-public extension ImageDecoderRegistering {
+extension ImageDecoderRegistering {
     /// The default implementation which simply returns `nil` (no progressive
     /// decoding available).
-    init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
+    public init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
         return nil
     }
 }

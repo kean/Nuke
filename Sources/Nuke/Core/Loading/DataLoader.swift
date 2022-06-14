@@ -9,7 +9,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
     public let session: URLSession
     private let impl = _DataLoader()
 
-    public var observer: DataLoaderObserving?
+    public var observer: (any DataLoaderObserving)?
 
     deinit {
         session.invalidateAndCancel()
@@ -79,7 +79,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
 
     public func loadData(with request: URLRequest,
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
-                         completion: @escaping (Swift.Error?) -> Void) -> Cancellable {
+                         completion: @escaping (Swift.Error?) -> Void) -> any Cancellable {
         impl.loadData(with: request, session: session, didReceiveData: didReceiveData, completion: completion)
     }
 
@@ -113,13 +113,13 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
 private final class _DataLoader: NSObject, URLSessionDataDelegate {
     var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
     private var handlers = [URLSessionTask: _Handler]()
-    weak var observer: _DataLoaderObserving?
+    weak var observer: (any _DataLoaderObserving)?
 
     /// Loads data with the given request.
     func loadData(with request: URLRequest,
                   session: URLSession,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
-                  completion: @escaping (Error?) -> Void) -> Cancellable {
+                  completion: @escaping (Error?) -> Void) -> any Cancellable {
         let task = session.dataTask(with: request)
         let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
         session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue

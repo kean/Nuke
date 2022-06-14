@@ -40,7 +40,7 @@ extension ImageRequest {
 struct CacheKey: Hashable {
     private let imageId: String?
     private let thumbnail: ImageRequest.ThumbnailOptions?
-    private let processors: [ImageProcessing]
+    private let processors: [any ImageProcessing]
 
     init(_ request: ImageRequest) {
         self.imageId = request.preferredImageId
@@ -108,7 +108,7 @@ struct ImageProcessingKey: Equatable, Hashable {
     let imageId: ObjectIdentifier
     let processorId: AnyHashable
 
-    init(image: ImageResponse, processor: ImageProcessing) {
+    init(image: ImageResponse, processor: any ImageProcessing) {
         self.imageId = ObjectIdentifier(image.image)
         self.processorId = processor.hashableIdentifier
     }

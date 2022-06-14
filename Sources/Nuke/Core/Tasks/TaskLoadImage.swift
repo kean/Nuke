@@ -35,7 +35,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     // MARK: Disk Cache Lookup
 
-    private func getCachedData(dataCache: DataCaching) {
+    private func getCachedData(dataCache: any DataCaching) {
         let data = signpost("ReadCachedProcessedImageData") {
             pipeline.cache.cachedData(for: request)
         }
@@ -96,7 +96,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         // You can emulate this behavior by manually creating intermediate requests.
         if request.processors.count > 1 {
             var processors = request.processors
-            var remaining: [ImageProcessing] = []
+            var remaining: [any ImageProcessing] = []
             if let last = processors.popLast() {
                 remaining.append(last)
             }
@@ -116,7 +116,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
         }
 
-        let processors: [ImageProcessing] = request.processors.reversed()
+        let processors: [any ImageProcessing] = request.processors.reversed()
         // The only remaining choice is to fetch the image
         if request.options.contains(.returnCacheDataDontLoad) {
             send(error: .dataMissingInCache)
@@ -135,7 +135,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     // MARK: Processing
 
     /// - parameter processors: Remaining processors to by applied
-    private func process(_ response: ImageResponse, isCompleted: Bool, processors: [ImageProcessing]) {
+    private func process(_ response: ImageResponse, isCompleted: Bool, processors: [any ImageProcessing]) {
         if isCompleted {
             dependency2?.unsubscribe() // Cancel any potential pending progressive processing tasks
         } else if dependency2 != nil {
@@ -146,7 +146,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     /// - parameter processors: Remaining processors to by applied
-    private func _process(_ response: ImageResponse, isCompleted: Bool, processors: [ImageProcessing]) {
+    private func _process(_ response: ImageResponse, isCompleted: Bool, processors: [any ImageProcessing]) {
         guard let processor = processors.last else {
             self.decompressImage(response, isCompleted: isCompleted)
             return

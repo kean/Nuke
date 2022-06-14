@@ -7,10 +7,10 @@ import Foundation
 extension ImageProcessors {
     /// Composes multiple processors.
     public struct Composition: ImageProcessing, Hashable, CustomStringConvertible {
-        let processors: [ImageProcessing]
+        let processors: [any ImageProcessing]
 
         /// Composes multiple processors.
-        public init(_ processors: [ImageProcessing]) {
+        public init(_ processors: [any ImageProcessing]) {
             // note: multiple compositions are not flatten by default.
             self.processors = processors
         }
