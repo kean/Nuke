@@ -115,6 +115,7 @@ public final class ImagePipeline: @unchecked Sendable {
         }, operation: {
             try await withUnsafeThrowingContinuation { continuation in
                 task.onCancel = {
+                    delegate?.imageTaskDidCancel(task)
                     continuation.resume(throwing: CancellationError())
                 }
                 queue.async {
@@ -125,6 +126,7 @@ public final class ImagePipeline: @unchecked Sendable {
                             delegate?.imageTask(task, didUpdateProgress: (completed, total))
                         }
                     }, completion: { result in
+                        delegate?.imageTask(task, didCompleteWithResult: result)
                         continuation.resume(with: result)
                     })
                 }
@@ -138,16 +140,21 @@ public final class ImagePipeline: @unchecked Sendable {
         let task = makeImageTask(request: request.asImageRequest())
         delegate?.imageTaskWillStart(task)
 
+        task.onCancel = {
+            delegate?.imageTaskDidCancel(task)
+        }
+
         return AsyncThrowingStream { continuation in
             queue.async {
                 self.startImageTask(task, callbackQueue: nil, progress: { response, completed, total in
                     if let response = response {
-                        continuation.yield(response)
                         delegate?.imageTask(task, didProduceProgressiveResponse: response)
+                        continuation.yield(response)
                     } else {
                         delegate?.imageTask(task, didUpdateProgress: (completed, total))
                     }
                 }, completion: { result in
+                    delegate?.imageTask(task, didCompleteWithResult: result)
                     switch result {
                     case .success(let response):
                         continuation.yield(response)
@@ -164,8 +171,6 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - Loading Data (Async/Await)
 
-    // TODO: ImageDataTaskDelegate?
-
     /// Loads an image for the given request.
     ///
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
@@ -181,12 +186,14 @@ public final class ImagePipeline: @unchecked Sendable {
         }, operation: {
             try await withUnsafeThrowingContinuation { continuation in
                 task.onCancel = {
+                    delegate?.imageTaskDidCancel(task)
                     continuation.resume(throwing: CancellationError())
                 }
                 queue.async {
                     self.startDataTask(task, callbackQueue: nil, progress: {
                         delegate?.imageTask(task, didUpdateProgress: ($0, $1))
                     }, completion: { result in
+                        delegate?.dataTask(task, didCompleteWithResult: result)
                         continuation.resume(with: result.map { $0 })
                     })
                 }

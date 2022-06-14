@@ -110,25 +110,43 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 public protocol ImageTaskDelegate { // swiftlint:disable:this class_delegate_protocol
     /// Gets called when the task is started. The caller can save the instance
     /// of the class to update the task later.
-    func imageTaskWillStart(_ imageTask: ImageTask)
+    func imageTaskWillStart(_ task: ImageTask)
 
     /// Gets called when the progress is updated.
-    func imageTask(_ imageTask: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64))
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64))
 
     /// Gets called when a new progressive image is produced.
-    func imageTask(_ imageTask: ImageTask, didProduceProgressiveResponse response: ImageResponse)
+    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse)
+
+    func imageTaskDidCancel(_ task: ImageTask)
+
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>)
+
+    func dataTask(_ task: ImageTask, didCompleteWithResult result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>)
 }
 
 extension ImageTaskDelegate {
-    func imageTaskWillStart(_ imageTask: ImageTask) {
+    func imageTaskWillStart(_ task: ImageTask) {
         // Do nothing
     }
 
-    func imageTask(_ imageTask: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
         // Do nothing
     }
 
-    func imageTask(_ imageTask: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
+    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
         // Do nothing
+    }
+
+    func imageTaskDidCancel(_ task: ImageTask) {
+        // Do nothing
+    }
+
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
+        // Do nothing
+    }
+
+    func dataTask(_ task: ImageTask, didCompleteWithResult result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) {
+
     }
 }
