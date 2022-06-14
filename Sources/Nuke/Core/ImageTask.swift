@@ -104,12 +104,30 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 }
 
-public final class AsyncImageTask: @unchecked Sendable {
-    var task: ImageTask?
+/// A protocol that defines methods that image pipeline instances call on their
+/// delegates to handle task-level events.
+public protocol ImageTaskDelegate { // swiftlint:disable:this class_delegate_protocol
+    /// Gets called when the task is started. The caller can save the instance
+    /// of the class to update the task later.
+    func imageTaskWillStart(_ imageTask: ImageTask)
 
-    public func setPriority(_ priority: ImageRequest.Priority) {
-        task?.setPriority(priority)
+    /// Gets called when the progress is updated.
+    func imageTask(_ imageTask: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64))
+
+    /// Gets called when a new progressive image is produced.
+    func imageTask(_ imageTask: ImageTask, didProduceProgressiveResponse response: ImageResponse)
+}
+
+extension ImageTaskDelegate {
+    func imageTaskWillStart(_ imageTask: ImageTask) {
+        // Do nothing
     }
 
-    public init() {}
+    func imageTask(_ imageTask: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
+        // Do nothing
+    }
+
+    func imageTask(_ imageTask: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
+        // Do nothing
+    }
 }

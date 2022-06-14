@@ -20,39 +20,14 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         }
     }
 
-    // MARK: Common Use Cases
+    // MARK: - Basics
 
-    func testLowDataMode() async throws {
-        // GIVEN
-        let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
-        let lowQualityImageURL = URL(string: "https://example.com/low-quality-image.jpeg")!
-
-        dataLoader.results[highQualityImageURL] = .failure(URLError(networkUnavailableReason: .constrained) as NSError)
-        dataLoader.results[lowQualityImageURL] = .success((Test.data, Test.urlResponse))
-        
+    func testImageIsLoaded() async throws {
         // WHEN
-        let pipeline = self.pipeline!
+        let response = try await pipeline.image(for: Test.request)
 
-        // Create the default request to fetch the high quality image.
-        var urlRequest = URLRequest(url: highQualityImageURL)
-        urlRequest.allowsConstrainedNetworkAccess = false
-        let request = ImageRequest(urlRequest: urlRequest)
-
-        // WHEN
-        @Sendable func loadImage() async throws -> ImageResponse {
-            do {
-                return try await pipeline.image(for: request)
-            } catch {
-                guard let error = (error as? ImagePipeline.Error),
-                      (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
-                    throw error
-                }
-                return try await pipeline.image(for: lowQualityImageURL)
-            }
-        }
-
-        let response = try await loadImage()
-        XCTAssertNotNil(response.image)
+        // THEN
+        XCTAssertEqual(response.image.sizeInPixels, CGSize(width: 640, height: 480))
     }
 
     private var observer: AnyObject?
@@ -89,77 +64,95 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertNotNil(response?.url, Test.url.absoluteString)
     }
 
+    // MARK: - ImageTaskDelegate
+
+    func testImageTaskReturnedImmediately() async throws {
+        // GIVEN
+        let delegate = AnonymousImateTaskDelegate()
+        var imageTask: ImageTask?
+        delegate.onWillStart = { imageTask = $0 }
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request, delegate: delegate)
+
+        // THEN
+        XCTAssertNotNil(imageTask)
+    }
+
     // MARK: - Progress Monitoring
 
-    func testMonitoringProgress() async throws {
-        // GIVEN
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
+    // TODO: reimplement
+//    func testMonitoringProgress() async throws {
+//        // GIVEN
+//        dataLoader.results[Test.url] = .success(
+//            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+//        )
+//
+//        // WHEN
+//        do {
+//            try await pipeline.image(for: Test.request, progress: {
+//                self.recordedProgress.append(Progress(completed: $0, total: $1))
+//            })
+//        } catch {
+//            // Do nothing
+//        }
+//
+//        // THEN
+//        XCTAssertEqual(recordedProgress, [
+//            Progress(completed: 10, total: 20),
+//            Progress(completed: 20, total: 20),
+//        ])
+//    }
 
-        // WHEN
-        do {
-            try await pipeline.image(for: Test.request, progress: {
-                self.recordedProgress.append(Progress(completed: $0, total: $1))
-            })
-        } catch {
-            // Do nothing
-        }
-
-        // THEN
-        XCTAssertEqual(recordedProgress, [
-            Progress(completed: 10, total: 20),
-            Progress(completed: 20, total: 20),
-        ])
-    }
-
-    func testMonitoringProgressLoadData() async throws {
-        // GIVEN
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
-
-        // WHEN
-        do {
-            try await pipeline.data(for: Test.request, progress: {
-                self.recordedProgress.append(Progress(completed: $0, total: $1))
-            })
-        } catch {
-            // Do nothing
-        }
-
-        // THEN
-        XCTAssertEqual(recordedProgress, [
-            Progress(completed: 10, total: 20),
-            Progress(completed: 20, total: 20),
-        ])
-    }
+    // TODO: reimplement
+//    func testMonitoringProgressLoadData() async throws {
+//        // GIVEN
+//        dataLoader.results[Test.url] = .success(
+//            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+//        )
+//
+//        // WHEN
+//        do {
+//            try await pipeline.data(for: Test.request, progress: {
+//                self.recordedProgress.append(Progress(completed: $0, total: $1))
+//            })
+//        } catch {
+//            // Do nothing
+//        }
+//
+//        // THEN
+//        XCTAssertEqual(recordedProgress, [
+//            Progress(completed: 10, total: 20),
+//            Progress(completed: 20, total: 20),
+//        ])
+//    }
 
     // MARK: - Update Priority
 
-    func testUpdatePriority() {
-        // GIVEN
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-
-        let request = Test.request
-        XCTAssertEqual(request.priority, .normal)
-
-        let observer = expect(queue).toEnqueueOperationsWithCount(1)
-        let task = AsyncImageTask()
-        Task.detached {
-            try await self.pipeline.image(for: request, task: task)
-        }
-        wait()
-
-        // WHEN/THEN
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-        expect(operation).toUpdatePriority()
-        task.setPriority(.high)
-        wait()
-    }
+    // TODO: reimplement
+//    func testUpdatePriority() {
+//        // GIVEN
+//        let queue = pipeline.configuration.dataLoadingQueue
+//        queue.isSuspended = true
+//
+//        let request = Test.request
+//        XCTAssertEqual(request.priority, .normal)
+//
+//        let observer = expect(queue).toEnqueueOperationsWithCount(1)
+//        let task = AsyncImageTask()
+//        Task.detached {
+//            try await self.pipeline.image(for: request, task: task)
+//        }
+//        wait()
+//
+//        // WHEN/THEN
+//        guard let operation = observer.operations.first else {
+//            return XCTFail("Failed to find operation")
+//        }
+//        expect(operation).toUpdatePriority()
+//        task.setPriority(.high)
+//        wait()
+//    }
 
     // MARK: - ImageRequest with Async/Await
 
@@ -200,6 +193,41 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
             }
         }
     }
+
+    // MARK: Common Use Cases
+
+    func testLowDataMode() async throws {
+        // GIVEN
+        let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
+        let lowQualityImageURL = URL(string: "https://example.com/low-quality-image.jpeg")!
+
+        dataLoader.results[highQualityImageURL] = .failure(URLError(networkUnavailableReason: .constrained) as NSError)
+        dataLoader.results[lowQualityImageURL] = .success((Test.data, Test.urlResponse))
+
+        // WHEN
+        let pipeline = self.pipeline!
+
+        // Create the default request to fetch the high quality image.
+        var urlRequest = URLRequest(url: highQualityImageURL)
+        urlRequest.allowsConstrainedNetworkAccess = false
+        let request = ImageRequest(urlRequest: urlRequest)
+
+        // WHEN
+        @Sendable func loadImage() async throws -> ImageResponse {
+            do {
+                return try await pipeline.image(for: request)
+            } catch {
+                guard let error = (error as? ImagePipeline.Error),
+                      (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
+                    throw error
+                }
+                return try await pipeline.image(for: lowQualityImageURL)
+            }
+        }
+
+        let response = try await loadImage()
+        XCTAssertNotNil(response.image)
+    }
 }
 
 /// We have to mock it because there is no way to construct native `URLError`
@@ -216,4 +244,24 @@ private struct URLError: Swift.Error {
 
 private struct Progress: Equatable {
     let completed, total: Int64
+}
+
+private final class AnonymousImateTaskDelegate: ImageTaskDelegate {
+    var onWillStart: ((ImageTask) -> Void)?
+
+    func imageTaskWillStart(_ imageTask: ImageTask) {
+        onWillStart?(imageTask)
+    }
+
+    var onProgress: ((_ completed: Int64, _ total: Int64) -> Void)?
+
+    func imageTask(_ imageTask: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
+        onProgress?(progress.completed, progress.total)
+    }
+
+    var onProgressiveResponse: ((ImageResponse) -> Void)?
+
+    func imageTask(_ imageTask: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
+        onProgressiveResponse?(response)
+    }
 }
