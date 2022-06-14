@@ -173,7 +173,7 @@ public final class ImagePipeline: @unchecked Sendable {
     @discardableResult
     public func data(
         for request: any ImageRequestConvertible,
-        progress: (@Sendable (_ completed: Int64, _ total: Int64) -> Void)? = nil,
+        progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
         task: AsyncImageTask = AsyncImageTask()
     ) async throws -> (Data, URLResponse?) {
         return try await withTaskCancellationHandler(handler: {
