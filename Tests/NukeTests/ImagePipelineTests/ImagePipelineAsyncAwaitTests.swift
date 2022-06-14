@@ -8,7 +8,12 @@ import XCTest
 class ImagePipelineAsyncAwaitTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
+
     private var recordedProgress: [Progress] = []
+    private var taskDelegate = AnonymousImateTaskDelegate()
+    private var imageTask: ImageTask?
+    private let callbackQueue = DispatchQueue(label: "testChangingCallbackQueue")
+    private let callbackQueueKey = DispatchSpecificKey<Void>()
 
     override func setUp() {
         super.setUp()
@@ -17,7 +22,10 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
+            $0.callbackQueue = callbackQueue
         }
+
+        callbackQueue.setSpecific(key: callbackQueueKey, value: ())
     }
 
     // MARK: - Basics
@@ -35,7 +43,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
     func testCancellation() async throws {
         dataLoader.queue.isSuspended = true
 
-        let task = _Concurrency.Task {
+        let task = Task {
             try await pipeline.image(for: Test.url)
         }
 
@@ -68,16 +76,42 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
     func testImageTaskReturnedImmediately() async throws {
         // GIVEN
-        let delegate = AnonymousImateTaskDelegate()
-        var imageTask: ImageTask?
-        delegate.onWillStart = { imageTask = $0 }
+        taskDelegate.onWillStart = { [unowned self] in imageTask = $0 }
 
         // WHEN
-        _ = try await pipeline.image(for: Test.request, delegate: delegate)
+        _ = try await pipeline.image(for: Test.request, delegate: taskDelegate)
 
         // THEN
         XCTAssertNotNil(imageTask)
     }
+
+    func testImageTaskDelegateDidCancelIsCalled() async throws {
+        // GIVEN
+        dataLoader.queue.isSuspended = true
+        taskDelegate.onWillStart = { [unowned self] in imageTask = $0 }
+
+        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { [unowned self] _ in
+            imageTask?.cancel()
+        }
+
+        // WHEN/THEN
+
+        var isOnCancelCalled = false
+        taskDelegate.onCancel = { [unowned self] in
+            XCTAssertNotNil(DispatchQueue.getSpecific(key: callbackQueueKey))
+            isOnCancelCalled = true
+        }
+
+        do {
+            _ = try await pipeline.image(for: Test.url, delegate: taskDelegate)
+        } catch {
+            XCTAssertTrue(error is CancellationError)
+        }
+
+        XCTAssertTrue(isOnCancelCalled)
+    }
+
+    
 
     // MARK: - Progress Monitoring
 
@@ -249,19 +283,37 @@ private struct Progress: Equatable {
 private final class AnonymousImateTaskDelegate: ImageTaskDelegate {
     var onWillStart: ((ImageTask) -> Void)?
 
-    func imageTaskWillStart(_ imageTask: ImageTask) {
-        onWillStart?(imageTask)
+    func imageTaskWillStart(_ task: ImageTask) {
+        onWillStart?(task)
     }
 
     var onProgress: ((_ completed: Int64, _ total: Int64) -> Void)?
 
-    func imageTask(_ imageTask: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
         onProgress?(progress.completed, progress.total)
     }
 
     var onProgressiveResponse: ((ImageResponse) -> Void)?
 
-    func imageTask(_ imageTask: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
+    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
         onProgressiveResponse?(response)
+    }
+
+    var onCancel: (() -> Void)?
+
+    func imageTaskDidCancel(_ task: ImageTask) {
+        onCancel?()
+    }
+
+    var onResult: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)?
+
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
+        onResult?(result)
+    }
+
+    var onDataResult: ((Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void)?
+
+    func dataTask(_ task: ImageTask, didCompleteWithResult result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) {
+        onDataResult?(result)
     }
 }

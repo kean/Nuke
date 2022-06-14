@@ -147,6 +147,6 @@ extension ImageTaskDelegate {
     }
 
     func dataTask(_ task: ImageTask, didCompleteWithResult result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) {
-
+        // Do nothing
     }
 }
