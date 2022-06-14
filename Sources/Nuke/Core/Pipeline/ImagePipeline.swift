@@ -156,6 +156,30 @@ public final class ImagePipeline: @unchecked Sendable {
         return task
     }
 
+    /// Loads an image for the given request, producing progressive images as
+    /// more data becomes available.
+    public func images(
+        for request: any ImageRequestConvertible,
+        progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
+        task: AsyncImageTask = AsyncImageTask()
+    ) -> AsyncThrowingStream<ImageResponse, Swift.Error> {
+        AsyncThrowingStream { continuation in
+            let task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: { response, _, _ in
+                guard let response = response else { return }
+                continuation.yield(response)
+            }, completion: {
+                switch $0 {
+                case .success(let response):
+                    continuation.yield(response)
+                    continuation.finish()
+                case .failure(let error):
+                    continuation.finish(throwing: error)
+                }
+            })
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
     /// Loads an image for the given request.
     ///
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
