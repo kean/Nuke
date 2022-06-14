@@ -114,18 +114,18 @@ public final class ImagePipeline: @unchecked Sendable {
             task.cancel()
         }, operation: {
             try await withUnsafeThrowingContinuation { continuation in
-                task.onCancel = {
+                task.onCancel = { [weak delegate] in
                     delegate?.imageTaskDidCancel(task)
                     continuation.resume(throwing: CancellationError())
                 }
-                queue.async {
-                    self.startImageTask(task, callbackQueue: nil, progress: { response, completed, total in
+                queue.async { [weak delegate] in
+                    self.startImageTask(task, callbackQueue: nil, progress: { [weak delegate] response, completed, total in
                         if let response = response {
                             delegate?.imageTask(task, didProduceProgressiveResponse: response)
                         } else {
                             delegate?.imageTask(task, didUpdateProgress: (completed, total))
                         }
-                    }, completion: { result in
+                    }, completion: { [weak delegate] result in
                         delegate?.imageTask(task, didCompleteWithResult: result)
                         continuation.resume(with: result)
                     })
@@ -140,20 +140,20 @@ public final class ImagePipeline: @unchecked Sendable {
         let task = makeImageTask(request: request.asImageRequest())
         delegate?.imageTaskWillStart(task)
 
-        task.onCancel = {
+        task.onCancel = { [weak delegate] in
             delegate?.imageTaskDidCancel(task)
         }
 
         return AsyncThrowingStream { continuation in
-            queue.async {
-                self.startImageTask(task, callbackQueue: nil, progress: { response, completed, total in
+            queue.async { [weak delegate] in
+                self.startImageTask(task, callbackQueue: nil, progress: { [weak delegate] response, completed, total in
                     if let response = response {
                         delegate?.imageTask(task, didProduceProgressiveResponse: response)
                         continuation.yield(response)
                     } else {
                         delegate?.imageTask(task, didUpdateProgress: (completed, total))
                     }
-                }, completion: { result in
+                }, completion: { [weak delegate] result in
                     delegate?.imageTask(task, didCompleteWithResult: result)
                     switch result {
                     case .success(let response):
@@ -185,14 +185,14 @@ public final class ImagePipeline: @unchecked Sendable {
             task.cancel()
         }, operation: {
             try await withUnsafeThrowingContinuation { continuation in
-                task.onCancel = {
+                task.onCancel = { [weak delegate] in
                     delegate?.imageTaskDidCancel(task)
                     continuation.resume(throwing: CancellationError())
                 }
-                queue.async {
-                    self.startDataTask(task, callbackQueue: nil, progress: {
+                queue.async { [weak delegate] in
+                    self.startDataTask(task, callbackQueue: nil, progress: { [weak delegate] in
                         delegate?.imageTask(task, didUpdateProgress: ($0, $1))
-                    }, completion: { result in
+                    }, completion: { [weak delegate] result in
                         delegate?.dataTask(task, didCompleteWithResult: result)
                         continuation.resume(with: result.map { $0 })
                     })
