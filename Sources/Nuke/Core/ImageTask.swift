@@ -26,8 +26,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     var _priority: ImageRequest.Priority // Backing store for access from pipeline only
     // Putting all smaller units closer together (1 byte / 1 byte)
 
-    weak var pipeline: ImagePipeline?
-
     // MARK: Progress
 
     /// The number of bytes that the task has received.
@@ -48,6 +46,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     var onCancel: (() -> Void)?
 
+    private weak var pipeline: ImagePipeline?
+
     deinit {
         self._isCancelled.deallocate()
         #if TRACK_ALLOCATIONS
@@ -55,11 +55,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         #endif
     }
 
-    init(taskId: Int64, request: ImageRequest, isDataTask: Bool) {
+    init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
         self.isDataTask = isDataTask
+        self.pipeline = pipeline
 
         self._isCancelled = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
         self._isCancelled.initialize(to: 0)

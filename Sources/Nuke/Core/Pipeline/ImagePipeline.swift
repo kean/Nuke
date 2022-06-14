@@ -108,7 +108,6 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Loads an image for the given request.
     public func image(for request: any ImageRequestConvertible, delegate: ImageTaskDelegate? = nil) async throws -> ImageResponse {
         let task = makeImageTask(request: request.asImageRequest())
-        // TODO: Is this the simplest approach?
         delegate?.imageTaskWillStart(task)
 
         return try await withTaskCancellationHandler(handler: {
@@ -284,9 +283,7 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     private func makeImageTask(request: ImageRequest, isDataTask: Bool = false) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask)
-        task.pipeline = self
-        return task
+        ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self)
     }
 
     // MARK: - Loading Image Data (Closures)
@@ -328,13 +325,9 @@ public final class ImagePipeline: @unchecked Sendable {
         isConfined: Bool,
         queue: DispatchQueue?,
         progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
-        onCancel: (() -> Void)? = nil,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
         let task = makeImageTask(request: request, isDataTask: true)
-        if let onCancel = onCancel {
-            task.onCancel = { [weak self] in self?.dispatchCallback(to: queue, onCancel) }
-        }
         if isConfined {
             self.startDataTask(task, callbackQueue: queue, progress: progress, completion: completion)
         } else {
