@@ -371,8 +371,8 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         let task = Task {
             var responses: [ImageResponse] = []
             do {
-                for try await resposne in pipeline.images(for: Test.request) {
-                    responses.append(resposne)
+                for try await response in pipeline.images(for: Test.request) {
+                    responses.append(response)
                     box.onCancel?()
                 }
             } catch {
