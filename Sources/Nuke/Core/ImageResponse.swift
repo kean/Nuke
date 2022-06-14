@@ -23,7 +23,7 @@ public typealias PlatformImage = NSImage
 /// An image response that contains a fetched image and some metadata.
 public struct ImageResponse: @unchecked Sendable {
     /// An image container with an image and associated metadata.
-    public let container: ImageContainer
+    public var container: ImageContainer
 
     #if os(macOS)
     /// A convenience computed property that returns an image from the container.
@@ -35,11 +35,11 @@ public struct ImageResponse: @unchecked Sendable {
 
     /// A response. `nil` unless the resource was fetched from the network or an
     /// HTTP cache.
-    public let urlResponse: URLResponse?
+    public var urlResponse: URLResponse?
 
     /// Contains a cache type in case the image was returned from one of the
     /// pipeline caches (not including any of the HTTP caches if enabled).
-    public let cacheType: CacheType?
+    public var cacheType: CacheType?
 
     /// Initializes the response with the given image.
     public init(container: ImageContainer, urlResponse: URLResponse? = nil, cacheType: CacheType? = nil) {
