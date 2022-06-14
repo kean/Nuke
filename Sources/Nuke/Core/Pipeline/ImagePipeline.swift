@@ -103,7 +103,95 @@ public final class ImagePipeline: @unchecked Sendable {
         }
     }
 
-    // MARK: - Loading Images
+    // MARK: - Loading Images (Async/Await)
+
+    /// Loads an image for the given request.
+    ///
+    /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
+    ///
+    /// - parameter request: An image request.
+    ///
+    @discardableResult
+    public func image(
+        for request: any ImageRequestConvertible,
+        progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
+        task: AsyncImageTask = AsyncImageTask()
+    ) async throws -> ImageResponse {
+        return try await withTaskCancellationHandler(handler: {
+            task.task?.cancel()
+        }, operation: {
+            try await withUnsafeThrowingContinuation { continuation in
+                // The pipeline guarantees that the callbacks (either onCancel or
+                // completion) are called exactly once. `onCancel` is a new addition
+                // just for Async/Await. Ideally, the completion should be called on
+                // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
+                task.task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: {
+                    if $0 == nil { progress?($1, $2) }
+                }, onCancel: {
+                    continuation.resume(throwing: CancellationError())
+                }, completion: {
+                    continuation.resume(with: $0)
+                })
+            }
+        })
+    }
+
+    /// Loads an image for the given request, producing progressive images as
+    /// more data becomes available.
+    public func images(
+        for request: any ImageRequestConvertible,
+        progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
+        task: AsyncImageTask = AsyncImageTask()
+    ) -> AsyncThrowingStream<ImageResponse, Swift.Error> {
+        AsyncThrowingStream { continuation in
+            let task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: { response, completed, total in
+                if let response = response {
+                    continuation.yield(response)
+                } else {
+                    progress?(completed, total)
+                }
+            }, completion: {
+                switch $0 {
+                case .success(let response):
+                    continuation.yield(response)
+                    continuation.finish()
+                case .failure(let error):
+                    continuation.finish(throwing: error)
+                }
+            })
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    /// Loads an image for the given request.
+    ///
+    /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
+    ///
+    /// - parameter request: An image request.
+    @discardableResult
+    public func data(
+        for request: any ImageRequestConvertible,
+        progress: (@Sendable (_ completed: Int64, _ total: Int64) -> Void)? = nil,
+        task: AsyncImageTask = AsyncImageTask()
+    ) async throws -> (Data, URLResponse?) {
+        return try await withTaskCancellationHandler(handler: {
+            task.task?.cancel()
+        }, operation: {
+            try await withUnsafeThrowingContinuation { continuation in
+                // The pipeline guarantees that the callbacks (either onCancel or
+                // completion) are called exactly once. `onCancel` is a new addition
+                // just for Async/Await. Ideally, the completion should be called on
+                // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
+                task.task = loadData(with: request.asImageRequest(), isConfined: false, queue: nil, progress: progress, onCancel: {
+                    continuation.resume(throwing: CancellationError())
+                }, completion: {
+                    continuation.resume(with: $0)
+                })
+            }
+        })
+    }
+
+    // MARK: - Loading Images (Closures)
 
     /// Loads an image for the given request.
     @discardableResult public func loadImage(
@@ -154,35 +242,6 @@ public final class ImagePipeline: @unchecked Sendable {
             }
         }
         return task
-    }
-
-    /// Loads an image for the given request.
-    ///
-    /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
-    ///
-    /// - parameter request: An image request.
-    ///
-    @discardableResult
-    public func image(
-        for request: any ImageRequestConvertible,
-        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
-        task: AsyncImageTask = AsyncImageTask()
-    ) async throws -> ImageResponse {
-        return try await withTaskCancellationHandler(handler: {
-            task.task?.cancel()
-        }, operation: {
-            try await withUnsafeThrowingContinuation { continuation in
-                // The pipeline guarantees that the callbacks (either onCancel or
-                // completion) are called exactly once. `onCancel` is a new addition
-                // just for Async/Await. Ideally, the completion should be called on
-                // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
-                task.task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: progress, onCancel: {
-                    continuation.resume(throwing: CancellationError())
-                }, completion: {
-                    continuation.resume(with: $0)
-                })
-            }
-        })
     }
 
     private func startImageTask(
@@ -257,34 +316,6 @@ public final class ImagePipeline: @unchecked Sendable {
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
         loadData(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
-    }
-
-    /// Loads an image for the given request.
-    ///
-    /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
-    ///
-    /// - parameter request: An image request.
-    @discardableResult
-    public func data(
-        for request: any ImageRequestConvertible,
-        progress: (@Sendable (_ completed: Int64, _ total: Int64) -> Void)? = nil,
-        task: AsyncImageTask = AsyncImageTask()
-    ) async throws -> (Data, URLResponse?) {
-        return try await withTaskCancellationHandler(handler: {
-            task.task?.cancel()
-        }, operation: {
-            try await withUnsafeThrowingContinuation { continuation in
-                // The pipeline guarantees that the callbacks (either onCancel or
-                // completion) are called exactly once. `onCancel` is a new addition
-                // just for Async/Await. Ideally, the completion should be called on
-                // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
-                task.task = loadData(with: request.asImageRequest(), isConfined: false, queue: nil, progress: progress, onCancel: {
-                    continuation.resume(throwing: CancellationError())
-                }, completion: {
-                    continuation.resume(with: $0)
-                })
-            }
-        })
     }
 
     func loadData(
