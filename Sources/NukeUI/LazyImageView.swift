@@ -215,7 +215,7 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     /// Sets the given source and immediately starts the download.
-    public var source: ImageRequestConvertible? {
+    public var source: any ImageRequestConvertible? {
         didSet { load(source) }
     }
 
@@ -249,7 +249,7 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Load (ImageRequestConvertible)
 
     /// Loads an image with the given request.
-    private func load(_ request: ImageRequestConvertible?) {
+    private func load(_ request: any ImageRequestConvertible?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
 
         cancel()

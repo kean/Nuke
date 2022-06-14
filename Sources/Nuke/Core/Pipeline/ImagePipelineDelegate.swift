@@ -8,7 +8,7 @@ import Foundation
 ///
 /// - warning: The delegate methods are performed on the pipeline queue in the
 /// background.
-public protocol ImagePipelineDelegate: AnyObject, Sendable {
+public protocol ImagePipelineDelegate: Sendable { // swiftlint:disable:this class_delegate_protocol
     // MARK: Configuration
 
     /// Returns data loader for the given request.
@@ -55,32 +55,32 @@ public protocol ImagePipelineDelegate: AnyObject, Sendable {
     func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent)
 }
 
-public extension ImagePipelineDelegate {
-    func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> DataLoading {
+extension ImagePipelineDelegate {
+    public func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> DataLoading {
         pipeline.configuration.dataLoader
     }
 
-    func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> DataCaching? {
+    public func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> DataCaching? {
         pipeline.configuration.dataCache
     }
 
-    func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImageDecoding? {
+    public func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> ImageDecoding? {
         pipeline.configuration.makeImageDecoder(context)
     }
 
-    func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> ImageEncoding {
+    public func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> ImageEncoding {
         pipeline.configuration.makeImageEncoder(context)
     }
 
-    func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
+    public func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
         nil
     }
 
-    func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
+    public func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
         completion(data)
     }
 
-    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
+    public func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
         // Do nothing
     }
 }

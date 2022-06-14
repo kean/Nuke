@@ -68,7 +68,7 @@ public struct LazyImage<Content: View>: View {
     /// - Parameters:
     ///   - source: The image source (`String`, `URL`, `URLRequest`, or `ImageRequest`)
     ///   - resizingMode: `.aspectFill` by default.
-    public init(source: ImageRequestConvertible?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
+    public init(source: any ImageRequestConvertible?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
         self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
         self.resizingMode = resizingMode
     }
@@ -77,7 +77,7 @@ public struct LazyImage<Content: View>: View {
     ///
     /// - Parameters:
     ///   - source: The image source (`String`, `URL`, `URLRequest`, or `ImageRequest`)
-    public init(source: ImageRequestConvertible?) where Content == Image {
+    public init(source: any ImageRequestConvertible?) where Content == Image {
         self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
     }
 #endif
@@ -99,7 +99,7 @@ public struct LazyImage<Content: View>: View {
     ///     }
     /// }
     /// ```
-    public init(source: ImageRequestConvertible?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+    public init(source: any ImageRequestConvertible?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
         self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
         self.makeContent = content
     }

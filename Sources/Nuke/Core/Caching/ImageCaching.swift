@@ -41,7 +41,7 @@ public extension ImageCaching {
     ///
     /// - warning: If you provide a custom key using `ImagePipelineDelegate`, use
     /// `ImagePipeline.Cache` instead.
-    subscript(request: ImageRequestConvertible) -> ImageContainer? {
+    subscript(request: any ImageRequestConvertible) -> ImageContainer? {
         get { self[ImageCacheKey(request: request.asImageRequest())] }
         set { self[ImageCacheKey(request: request.asImageRequest())] = newValue }
     }

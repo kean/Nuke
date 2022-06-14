@@ -9,7 +9,7 @@ public extension ImagePipeline {
     /// Returns a publisher which starts a new `ImageTask` when a subscriber is added.
     ///
     /// - note: For more information, see `ImagePublisher`.
-    func imagePublisher(with request: ImageRequestConvertible) -> ImagePublisher {
+    func imagePublisher(with request: any ImageRequestConvertible) -> ImagePublisher {
         ImagePublisher(request: request.asImageRequest(), pipeline: self)
     }
 }

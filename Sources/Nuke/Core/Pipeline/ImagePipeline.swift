@@ -29,7 +29,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Provides access to the underlying caching subsystems.
     public var cache: ImagePipeline.Cache { ImagePipeline.Cache(pipeline: self) }
 
-    let delegate: ImagePipelineDelegate // swiftlint:disable:this all
+    let delegate: any ImagePipelineDelegate // swiftlint:disable:this all
     let imageCache: ImageCache?
 
     private var tasks = [ImageTask: TaskSubscription]()
@@ -63,7 +63,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///
     /// - parameter configuration: `Configuration()` by default.
     /// - parameter delegate: `nil` by default.
-    public init(configuration: Configuration = Configuration(), delegate: ImagePipelineDelegate? = nil) {
+    public init(configuration: Configuration = Configuration(), delegate: (any ImagePipelineDelegate)? = nil) {
         self.configuration = configuration
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()
@@ -87,7 +87,7 @@ public final class ImagePipeline: @unchecked Sendable {
         #endif
     }
 
-    public convenience init(delegate: ImagePipelineDelegate? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
+    public convenience init(delegate: (any ImagePipelineDelegate)? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
         var configuration = ImagePipeline.Configuration()
         configure(&configuration)
         self.init(configuration: configuration, delegate: delegate)
@@ -107,7 +107,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Loads an image for the given request.
     @discardableResult public func loadImage(
-        with request: ImageRequestConvertible,
+        with request: any ImageRequestConvertible,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         loadImage(with: request, queue: nil, progress: nil, completion: completion)
@@ -125,7 +125,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// - parameter completion: A closure to be called on the main thread when the
     /// request is finished. `nil` by default.
     @discardableResult public func loadImage(
-        with request: ImageRequestConvertible,
+        with request: any ImageRequestConvertible,
         queue: DispatchQueue? = nil,
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
@@ -164,7 +164,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///
     @discardableResult
     public func image(
-        for request: ImageRequestConvertible,
+        for request: any ImageRequestConvertible,
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
         task: AsyncImageTask = AsyncImageTask()
     ) async throws -> ImageResponse {
@@ -230,7 +230,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Loads the image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
     @discardableResult public func loadData(
-        with request: ImageRequestConvertible,
+        with request: any ImageRequestConvertible,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
         loadData(with: request, queue: nil, progress: nil, completion: completion)
@@ -251,7 +251,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// - parameter completion: A closure to be called on the main thread when the
     /// request is finished.
     @discardableResult public func loadData(
-        with request: ImageRequestConvertible,
+        with request: any ImageRequestConvertible,
         queue: DispatchQueue? = nil,
         progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
@@ -266,7 +266,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// - parameter request: An image request.
     @discardableResult
     public func data(
-        for request: ImageRequestConvertible,
+        for request: any ImageRequestConvertible,
         progress: (@Sendable (_ completed: Int64, _ total: Int64) -> Void)? = nil,
         task: AsyncImageTask = AsyncImageTask()
     ) async throws -> (Data, URLResponse?) {

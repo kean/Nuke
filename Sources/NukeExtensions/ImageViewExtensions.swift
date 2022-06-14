@@ -77,7 +77,7 @@ extension NSImageView: Nuke_ImageDisplaying {
 /// See the complete method signature for more information.
 @MainActor
 @discardableResult public func loadImage(
-    with request: ImageRequestConvertible?,
+    with request: any ImageRequestConvertible?,
     options: ImageLoadingOptions = ImageLoadingOptions.shared,
     into view: ImageDisplayingView,
     completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
@@ -109,7 +109,7 @@ extension NSImageView: Nuke_ImageDisplaying {
 /// - returns: An image task or `nil` if the image was found in the memory cache.
 @MainActor
 @discardableResult public func loadImage(
-    with request: ImageRequestConvertible?,
+    with request: any ImageRequestConvertible?,
     options: ImageLoadingOptions = ImageLoadingOptions.shared,
     into view: ImageDisplayingView,
     progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,

@@ -88,7 +88,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     // MARK: Load (ImageRequestConvertible)
 
     /// Loads an image with the given request.
-    public func load(_ request: ImageRequestConvertible?) {
+    public func load(_ request: any ImageRequestConvertible?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
 
         reset()
