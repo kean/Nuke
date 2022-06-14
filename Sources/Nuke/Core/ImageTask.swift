@@ -26,8 +26,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     var _priority: ImageRequest.Priority // Backing store for access from pipeline only
     // Putting all smaller units closer together (1 byte / 1 byte)
 
-    weak var pipeline: ImagePipeline?
-
     // MARK: Progress
 
     /// The number of bytes that the task has received.
@@ -48,6 +46,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     var onCancel: (() -> Void)?
 
+    private weak var pipeline: ImagePipeline?
+
     deinit {
         self._isCancelled.deallocate()
         #if TRACK_ALLOCATIONS
@@ -55,11 +55,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         #endif
     }
 
-    init(taskId: Int64, request: ImageRequest, isDataTask: Bool) {
+    init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
         self.isDataTask = isDataTask
+        self.pipeline = pipeline
 
         self._isCancelled = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
         self._isCancelled.initialize(to: 0)
@@ -104,12 +105,48 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 }
 
-public final class AsyncImageTask: @unchecked Sendable {
-    var task: ImageTask?
+/// A protocol that defines methods that image pipeline instances call on their
+/// delegates to handle task-level events.
+public protocol ImageTaskDelegate: AnyObject {
+    /// Gets called when the task is started. The caller can save the instance
+    /// of the class to update the task later.
+    func imageTaskWillStart(_ task: ImageTask)
 
-    public func setPriority(_ priority: ImageRequest.Priority) {
-        task?.setPriority(priority)
+    /// Gets called when the progress is updated.
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64))
+
+    /// Gets called when a new progressive image is produced.
+    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse)
+
+    func imageTaskDidCancel(_ task: ImageTask)
+
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>)
+
+    func dataTask(_ task: ImageTask, didCompleteWithResult result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>)
+}
+
+extension ImageTaskDelegate {
+    func imageTaskWillStart(_ task: ImageTask) {
+        // Do nothing
     }
 
-    public init() {}
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
+        // Do nothing
+    }
+
+    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
+        // Do nothing
+    }
+
+    func imageTaskDidCancel(_ task: ImageTask) {
+        // Do nothing
+    }
+
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
+        // Do nothing
+    }
+
+    func dataTask(_ task: ImageTask, didCompleteWithResult result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) {
+        // Do nothing
+    }
 }

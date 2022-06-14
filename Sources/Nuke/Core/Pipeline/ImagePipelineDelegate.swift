@@ -112,4 +112,4 @@ extension ImageTaskEvent {
     }
 }
 
-final class ImagePipelineDefaultDelegate: ImagePipelineDelegate {}
+struct ImagePipelineDefaultDelegate: ImagePipelineDelegate {}

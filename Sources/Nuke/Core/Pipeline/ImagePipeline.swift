@@ -106,59 +106,65 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Loading Images (Async/Await)
 
     /// Loads an image for the given request.
-    ///
-    /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
-    ///
-    /// - parameter request: An image request.
-    ///
-    @discardableResult
-    public func image(
-        for request: any ImageRequestConvertible,
-        progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
-        task: AsyncImageTask = AsyncImageTask()
-    ) async throws -> ImageResponse {
+    public func image(for request: any ImageRequestConvertible, delegate: ImageTaskDelegate? = nil) async throws -> ImageResponse {
+        let task = makeImageTask(request: request.asImageRequest())
+        delegate?.imageTaskWillStart(task)
+
         return try await withTaskCancellationHandler(handler: {
-            task.task?.cancel()
+            task.cancel()
         }, operation: {
             try await withUnsafeThrowingContinuation { continuation in
-                // The pipeline guarantees that the callbacks (either onCancel or
-                // completion) are called exactly once. `onCancel` is a new addition
-                // just for Async/Await. Ideally, the completion should be called on
-                // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
-                task.task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: {
-                    if $0 == nil { progress?($1, $2) }
-                }, onCancel: {
+                task.onCancel = { [weak delegate] in
+                    delegate?.imageTaskDidCancel(task)
                     continuation.resume(throwing: CancellationError())
-                }, completion: {
-                    continuation.resume(with: $0)
-                })
+                }
+                queue.async { [weak delegate] in
+                    self.startImageTask(task, callbackQueue: nil, progress: { [weak delegate] response, completed, total in
+                        if let response = response {
+                            delegate?.imageTask(task, didProduceProgressiveResponse: response)
+                        } else {
+                            delegate?.imageTask(task, didUpdateProgress: (completed, total))
+                        }
+                    }, completion: { [weak delegate] result in
+                        delegate?.imageTask(task, didCompleteWithResult: result)
+                        continuation.resume(with: result)
+                    })
+                }
             }
         })
     }
 
     /// Loads an image for the given request, producing progressive images as
     /// more data becomes available.
-    public func images(
-        for request: any ImageRequestConvertible,
-        progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
-        task: AsyncImageTask = AsyncImageTask()
-    ) -> AsyncThrowingStream<ImageResponse, Swift.Error> {
-        AsyncThrowingStream { continuation in
-            let task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: { response, completed, total in
-                if let response = response {
-                    continuation.yield(response)
-                } else {
-                    progress?(completed, total)
-                }
-            }, completion: {
-                switch $0 {
-                case .success(let response):
-                    continuation.yield(response)
-                    continuation.finish()
-                case .failure(let error):
-                    continuation.finish(throwing: error)
-                }
-            })
+    public func images(for request: any ImageRequestConvertible, delegate: ImageTaskDelegate? = nil) -> AsyncThrowingStream<ImageResponse, Swift.Error> {
+        let task = makeImageTask(request: request.asImageRequest())
+        delegate?.imageTaskWillStart(task)
+
+        task.onCancel = { [weak delegate] in
+            delegate?.imageTaskDidCancel(task)
+        }
+
+        return AsyncThrowingStream { continuation in
+            queue.async { [weak delegate] in
+                self.startImageTask(task, callbackQueue: nil, progress: { [weak delegate] response, completed, total in
+                    if let response = response {
+                        delegate?.imageTask(task, didProduceProgressiveResponse: response)
+                        continuation.yield(response)
+                    } else {
+                        delegate?.imageTask(task, didUpdateProgress: (completed, total))
+                    }
+                }, completion: { [weak delegate] result in
+                    delegate?.imageTask(task, didCompleteWithResult: result)
+                    switch result {
+                    case .success(let response):
+                        continuation.yield(response)
+                        continuation.finish()
+                    case .failure(let error):
+                        continuation.finish(throwing: error)
+                    }
+                })
+            }
+
             continuation.onTermination = { _ in task.cancel() }
         }
     }
@@ -171,24 +177,26 @@ public final class ImagePipeline: @unchecked Sendable {
     ///
     /// - parameter request: An image request.
     @discardableResult
-    public func data(
-        for request: any ImageRequestConvertible,
-        progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
-        task: AsyncImageTask = AsyncImageTask()
-    ) async throws -> (Data, URLResponse?) {
+    public func data(for request: any ImageRequestConvertible, delegate: ImageTaskDelegate? = nil) async throws -> (Data, URLResponse?) {
+        let task = makeImageTask(request: request.asImageRequest(), isDataTask: true)
+        delegate?.imageTaskWillStart(task)
+
         return try await withTaskCancellationHandler(handler: {
-            task.task?.cancel()
+            task.cancel()
         }, operation: {
             try await withUnsafeThrowingContinuation { continuation in
-                // The pipeline guarantees that the callbacks (either onCancel or
-                // completion) are called exactly once. `onCancel` is a new addition
-                // just for Async/Await. Ideally, the completion should be called on
-                // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
-                task.task = loadData(with: request.asImageRequest(), isConfined: false, queue: nil, progress: progress, onCancel: {
+                task.onCancel = { [weak delegate] in
+                    delegate?.imageTaskDidCancel(task)
                     continuation.resume(throwing: CancellationError())
-                }, completion: {
-                    continuation.resume(with: $0)
-                })
+                }
+                queue.async { [weak delegate] in
+                    self.startDataTask(task, callbackQueue: nil, progress: { [weak delegate] in
+                        delegate?.imageTask(task, didUpdateProgress: ($0, $1))
+                    }, completion: { [weak delegate] result in
+                        delegate?.dataTask(task, didCompleteWithResult: result)
+                        continuation.resume(with: result.map { $0 })
+                    })
+                }
             }
         })
     }
@@ -228,14 +236,9 @@ public final class ImagePipeline: @unchecked Sendable {
         isConfined: Bool,
         queue: DispatchQueue?,
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-        onCancel: (() -> Void)? = nil,
         completion: ((_ result: Result<ImageResponse, Error>) -> Void)?
     ) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: false)
-        task.pipeline = self
-        if let onCancel = onCancel {
-            task.onCancel = { [weak self] in self?.dispatchCallback(to: queue, onCancel) }
-        }
+        let task = makeImageTask(request: request)
         if isConfined {
             self.startImageTask(task, callbackQueue: queue, progress: progress, completion: completion)
         } else {
@@ -286,6 +289,10 @@ public final class ImagePipeline: @unchecked Sendable {
         }
     }
 
+    private func makeImageTask(request: ImageRequest, isDataTask: Bool = false) -> ImageTask {
+        ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self)
+    }
+
     // MARK: - Loading Image Data (Closures)
 
     /// Loads the image data for the given request. The data doesn't get decoded
@@ -325,14 +332,9 @@ public final class ImagePipeline: @unchecked Sendable {
         isConfined: Bool,
         queue: DispatchQueue?,
         progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
-        onCancel: (() -> Void)? = nil,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: true)
-        task.pipeline = self
-        if let onCancel = onCancel {
-            task.onCancel = { [weak self] in self?.dispatchCallback(to: queue, onCancel) }
-        }
+        let task = makeImageTask(request: request, isDataTask: true)
         if isConfined {
             self.startDataTask(task, callbackQueue: queue, progress: progress, completion: completion)
         } else {
@@ -390,7 +392,9 @@ public final class ImagePipeline: @unchecked Sendable {
         if !task.isDataTask {
             self.send(.cancelled, task)
         }
-        task.onCancel?()
+        if let onCancel = task.onCancel {
+            dispatchCallback(to: nil, onCancel)
+        }
         subscription.unsubscribe()
     }
 
