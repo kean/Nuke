@@ -189,7 +189,7 @@ public final class ImagePipeline: @unchecked Sendable {
     @discardableResult
     public func image(
         for request: any ImageRequestConvertible,
-        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
+        progress: ((_ completed: Int64, _ total: Int64) -> Void)? = nil,
         task: AsyncImageTask = AsyncImageTask()
     ) async throws -> ImageResponse {
         return try await withTaskCancellationHandler(handler: {
@@ -200,7 +200,9 @@ public final class ImagePipeline: @unchecked Sendable {
                 // completion) are called exactly once. `onCancel` is a new addition
                 // just for Async/Await. Ideally, the completion should be called on
                 // cancellation instead, but that ship has sailed. Maybe in Nuke 11.
-                task.task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: progress, onCancel: {
+                task.task = loadImage(with: request.asImageRequest(), isConfined: false, queue: nil, progress: {
+                    if $0 == nil { progress?($1, $2) }
+                }, onCancel: {
                     continuation.resume(throwing: CancellationError())
                 }, completion: {
                     continuation.resume(with: $0)

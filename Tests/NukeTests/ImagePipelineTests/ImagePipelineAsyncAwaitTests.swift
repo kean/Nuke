@@ -100,7 +100,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         // WHEN
         do {
             try await pipeline.image(for: Test.request, progress: {
-                self.recordedProgress.append(Progress(completed: $1, total: $2))
+                self.recordedProgress.append(Progress(completed: $0, total: $1))
             })
         } catch {
             // Do nothing
