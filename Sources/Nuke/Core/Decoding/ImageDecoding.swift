@@ -59,6 +59,6 @@ extension ImageDecoding {
             ImageDecompression.setDecompressionNeeded(true, for: container.image)
         }
         #endif
-        return ImageResponse(container: container, urlResponse: context.urlResponse, cacheType: context.cacheType)
+        return ImageResponse(container: container, request: context.request, urlResponse: context.urlResponse, cacheType: context.cacheType)
     }
 }

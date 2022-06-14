@@ -60,6 +60,7 @@ enum Test {
 
     static let response = ImageResponse(
         container: .init(image: Test.image),
+        request: Test.request,
         urlResponse: urlResponse,
         cacheType: nil
     )

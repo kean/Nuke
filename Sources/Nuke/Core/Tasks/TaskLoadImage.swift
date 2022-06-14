@@ -13,7 +13,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     override func start() {
         // Memory cache lookup
         if let image = pipeline.cache[request] {
-            let response = ImageResponse(container: image, cacheType: .memory)
+            let response = ImageResponse(container: image, request: request, cacheType: .memory)
             send(value: response, isCompleted: !image.isPreview)
             if !image.isPreview {
                 return // Already got the result!
@@ -102,7 +102,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
             while !processors.isEmpty {
                 if let image = pipeline.cache[request.withProcessors(processors)] {
-                    let response = ImageResponse(container: image, cacheType: .memory)
+                    let response = ImageResponse(container: image, request: request, cacheType: .memory)
                     process(response, isCompleted: !image.isPreview, processors: remaining)
                     if !image.isPreview {
                         return  // Nothing left to do, just apply the processors

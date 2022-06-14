@@ -33,6 +33,9 @@ public struct ImageResponse: @unchecked Sendable {
     public var image: UIImage { container.image }
     #endif
 
+    /// The request for which the response was created.
+    public var request: ImageRequest
+
     /// A response. `nil` unless the resource was fetched from the network or an
     /// HTTP cache.
     public var urlResponse: URLResponse?
@@ -42,15 +45,18 @@ public struct ImageResponse: @unchecked Sendable {
     public var cacheType: CacheType?
 
     /// Initializes the response with the given image.
-    public init(container: ImageContainer, urlResponse: URLResponse? = nil, cacheType: CacheType? = nil) {
+    public init(container: ImageContainer, request: ImageRequest, urlResponse: URLResponse? = nil, cacheType: CacheType? = nil) {
         self.container = container
+        self.request = request
         self.urlResponse = urlResponse
         self.cacheType = cacheType
     }
 
     func map(_ transform: (ImageContainer) throws -> ImageContainer) rethrows -> ImageResponse {
         try autoreleasepool {
-            ImageResponse(container: try transform(container), urlResponse: urlResponse, cacheType: cacheType)
+            var response = self
+            response.container = try transform(response.container)
+            return response
         }
     }
 

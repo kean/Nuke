@@ -64,7 +64,7 @@ private final class ImageSubscription<S>: Subscription where S: Subscriber, S: S
         guard let subscriber = subscriber else { return }
 
         if let image = pipeline.cache[request] {
-            _ = subscriber.receive(ImageResponse(container: image, cacheType: .memory))
+            _ = subscriber.receive(ImageResponse(container: image, request: request, cacheType: .memory))
 
             if !image.isPreview {
                 subscriber.receive(completion: .finished)
