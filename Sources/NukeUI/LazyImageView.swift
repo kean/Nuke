@@ -277,7 +277,7 @@ public final class LazyImageView: _PlatformBaseView {
             if image.isPreview {
                 display(image, isFromMemory: true) // Display progressive preview
             } else {
-                let response = ImageResponse(container: image, cacheType: .memory)
+                let response = ImageResponse(container: image, request: request, cacheType: .memory)
                 handle(result: .success(response), isSync: true)
                 return
             }

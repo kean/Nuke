@@ -236,7 +236,6 @@
 		0CB6449C28567E5400916267 /* ImageViewLoadingOptionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB6449B28567E5400916267 /* ImageViewLoadingOptionsTests.swift */; };
 		0CB644AB28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB644AA28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift */; };
 		0CB644AC28567FC000916267 /* NukeExtensions.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */; };
-		0CB644AF2856801400916267 /* FetchImageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF52DCB26516F6B0094BC66 /* FetchImageTests.swift */; };
 		0CB644BE2856807F00916267 /* left-orientation.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0CF5456A25B39A0E00B45F1E /* left-orientation.jpeg */; };
 		0CB644BF2856807F00916267 /* cat.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C8DC722209B842600084AA6 /* cat.gif */; };
 		0CB644C02856807F00916267 /* progressive.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C70D96F2089016700A49DAC /* progressive.jpeg */; };
@@ -1701,7 +1700,6 @@
 				0CB6449728567DCA00916267 /* NukeExtensions.swift in Sources */,
 				0C55FD2728567C12000FD2C9 /* ImageViewExtensionsTests.swift in Sources */,
 				0CB644AB28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift in Sources */,
-				0CB644AF2856801400916267 /* FetchImageTests.swift in Sources */,
 				0CB6448D28567DC300916267 /* MockImageDecoder.swift in Sources */,
 				0CB6448E28567DC300916267 /* MockImageCache.swift in Sources */,
 				0C55FD2828567C18000FD2C9 /* ImageViewIntegrationTests.swift in Sources */,

@@ -110,7 +110,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             if image.isPreview {
                 imageContainer = image // Display progressive image
             } else {
-                let response = ImageResponse(container: image, cacheType: .memory)
+                let response = ImageResponse(container: image, request: request, cacheType: .memory)
                 handle(result: .success(response))
                 return
             }

@@ -213,7 +213,7 @@ private final class ImageViewController {
         if let image = pipeline.cache[request] {
             display(image, true, .success)
             if !image.isPreview { // Final image was downloaded
-                completion?(.success(ImageResponse(container: image, cacheType: .memory)))
+                completion?(.success(ImageResponse(container: image, request: request, cacheType: .memory)))
                 return nil // No task to perform
             }
         }
