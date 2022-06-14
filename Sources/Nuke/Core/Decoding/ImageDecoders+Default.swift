@@ -38,7 +38,7 @@ extension ImageDecoders {
         /// Returns `nil` if progressive decoding is not allowed for the given
         /// content.
         public init?(context: ImageDecodingContext) {
-            self.scale = context.request.scale
+            self.scale = context.request.scale.map { CGFloat($0) }
             self.thumbnail = context.request.thubmnail
 
             if !context.isCompleted && !isProgressiveDecodingAllowed(for: context.data) {

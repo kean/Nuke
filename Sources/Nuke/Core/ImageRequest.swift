@@ -5,14 +5,6 @@
 import Foundation
 import Combine
 
-#if os(iOS) || os(tvOS) || os(watchOS)
-import UIKit
-#endif
-
-#if os(macOS)
-import Cocoa
-#endif
-
 /// Represents an image request.
 public struct ImageRequest: CustomStringConvertible, Sendable {
 
@@ -317,7 +309,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         /// The maximum width and height in pixels of a thumbnail. If this key
         /// is not specified, the width and height of a thumbnail is not limited
         /// and thumbnails may be as big as the image itself.
-        public var maxPixelSize: CGFloat
+        public var maxPixelSize: Float
 
         /// Whether a thumbnail should be automatically created for an image if
         /// a thumbnail isn't present in the image source file. The thumbnail is
@@ -347,7 +339,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         /// By default, `true`.
         public var shouldCacheImmediately = true
 
-        public init(maxPixelSize: CGFloat,
+        public init(maxPixelSize: Float,
                     createThumbnailFromImageIfAbsent: Bool = true,
                     createThumbnailFromImageAlways: Bool = true,
                     createThumbnailWithTransform: Bool = true,
@@ -459,11 +451,8 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         ref.userInfo?[.thumbnailKey] as? ThumbnailOptions
     }
 
-    var scale: CGFloat? {
-        guard let scale = ref.userInfo?[.scaleKey] as? NSNumber else {
-            return nil
-        }
-        return CGFloat(scale.floatValue)
+    var scale: Float? {
+        (ref.userInfo?[.scaleKey] as? NSNumber)?.floatValue
     }
 
     var publisher: DataPublisher? {
