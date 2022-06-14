@@ -77,10 +77,24 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
         #endif
     }()
 
-    public func loadData(with request: URLRequest,
-                         didReceiveData: @escaping (Data, URLResponse) -> Void,
-                         completion: @escaping (Swift.Error?) -> Void) -> any Cancellable {
-        impl.loadData(with: request, session: session, didReceiveData: didReceiveData, completion: completion)
+    public func data(for request: URLRequest) -> AsyncThrowingStream<DataTaskSequenceElement, Swift.Error> {
+        let task = session.dataTask(with: request)
+        return AsyncThrowingStream { [self] continuation in
+            impl.resume(task, session: session, onResponse: { response in
+                continuation.yield(.respone(response))
+            }, onData: { data in
+                continuation.yield(.data(data))
+            }, completion: { error in
+                if let error = error {
+                    continuation.finish(throwing: error)
+                } else {
+                    continuation.finish()
+                }
+            })
+            continuation.onTermination = {
+                guard case .cancelled = $0 else { return }
+                task.cancel() }
+        }
     }
 
     /// Errors produced by `DataLoader`.
@@ -116,19 +130,18 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     weak var observer: (any _DataLoaderObserving)?
 
     /// Loads data with the given request.
-    func loadData(with request: URLRequest,
-                  session: URLSession,
-                  didReceiveData: @escaping (Data, URLResponse) -> Void,
-                  completion: @escaping (Error?) -> Void) -> any Cancellable {
-        let task = session.dataTask(with: request)
-        let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
+    func resume(_ task: URLSessionDataTask,
+                session: URLSession,
+                onResponse: @escaping (URLResponse) -> Void,
+                onData: @escaping (Data) -> Void,
+                completion: @escaping (Error?) -> Void) {
+        let handler = _Handler(onResponse: onResponse, onData: onData, completion: completion)
         session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
         task.taskDescription = "Nuke Load Data"
         task.resume()
         send(task, .resumed)
-        return AnonymousCancellable { task.cancel() }
     }
 
     // MARK: URLSessionDelegate
@@ -148,6 +161,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
             completionHandler(.cancel)
             return
         }
+        handler.onResponse(response)
         completionHandler(.allow)
     }
 
@@ -156,12 +170,9 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         if let dataTask = task as? URLSessionDataTask {
             send(dataTask, .completed(error: error))
         }
-
-        guard let handler = handlers[task] else {
-            return
+        if let handler = handlers.removeValue(forKey: task) {
+            handler.completion(error)
         }
-        handlers[task] = nil
-        handler.completion(error)
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
@@ -172,12 +183,8 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         send(dataTask, .receivedData(data: data))
-
-        guard let handler = handlers[dataTask], let response = dataTask.response else {
-            return
-        }
         // Don't store data anywhere, just send it to the pipeline.
-        handler.didReceiveData(data, response)
+        handlers[dataTask]?.onData(data)
     }
 
     // MARK: Internal
@@ -187,11 +194,13 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     }
 
     private final class _Handler {
-        let didReceiveData: (Data, URLResponse) -> Void
+        let onResponse: (URLResponse) -> Void
+        let onData: (Data) -> Void
         let completion: (Error?) -> Void
 
-        init(didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) {
-            self.didReceiveData = didReceiveData
+        init(onResponse: @escaping (URLResponse) -> Void, onData: @escaping (Data) -> Void, completion: @escaping (Error?) -> Void) {
+            self.onResponse = onResponse
+            self.onData = onData
             self.completion = completion
         }
     }

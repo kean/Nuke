@@ -165,7 +165,10 @@ public final class ImagePipeline: @unchecked Sendable {
                 })
             }
 
-            continuation.onTermination = { _ in task.cancel() }
+            continuation.onTermination = {
+                guard case .cancelled = $0 else { return }
+                task.cancel()
+            }
         }
     }
 

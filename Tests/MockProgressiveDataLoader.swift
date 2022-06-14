@@ -12,13 +12,8 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     var chunks: [Data]
     let data = Test.data(name: "progressive", extension: "jpeg")
 
-    class _MockTask: Cancellable, @unchecked Sendable {
-        func cancel() {
-            // Do nothing
-        }
-    }
-
-    private var didReceiveData: (Data, URLResponse) -> Void = { _ ,_ in }
+    private var didReceiveResponse: (URLResponse) -> Void = { _ in }
+    private var didReceiveData: (Data) -> Void = { _ in }
     private var completion: (Error?) -> Void = { _ in }
 
     init() {
@@ -26,11 +21,32 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
         self.chunks = Array(_createChunks(for: data, size: data.count / 3))
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+#warning("TODO: simplify this")
+
+    func data(for request: URLRequest) -> AsyncThrowingStream<DataTaskSequenceElement, Error> {
+        AsyncThrowingStream { [self] continuation in
+            loadData(with: request, didReceiveResponse: { response in
+                continuation.yield(.respone(response))
+            }, didReceiveData: { data in
+                continuation.yield(.data(data))
+            }, completion: { error in
+                if let error = error {
+                    continuation.finish(throwing: error)
+                } else {
+                    continuation.finish()
+                }
+            })
+        }
+    }
+
+    private func loadData(with request: URLRequest, didReceiveResponse: @escaping (URLResponse) -> Void, didReceiveData: @escaping (Data) -> Void, completion: @escaping (Error?) -> Void) {
+        self.didReceiveResponse = didReceiveResponse
         self.didReceiveData = didReceiveData
         self.completion = completion
-        self.resume()
-        return _MockTask()
+        DispatchQueue.main.async {
+            self.didReceiveResponse(self.urlResponse)
+        }
+        resume()
     }
 
     func resumeServingChunks(_ count: Int) {
@@ -42,7 +58,7 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
     func serveNextChunk() {
         guard let chunk = chunks.first else { return }
         chunks.removeFirst()
-        didReceiveData(chunk, urlResponse)
+        didReceiveData(chunk)
         if chunks.isEmpty {
             completion(nil)
         }
@@ -53,7 +69,7 @@ final class MockProgressiveDataLoader: DataLoading, @unchecked Sendable {
         DispatchQueue.main.async {
             if let chunk = self.chunks.first {
                 self.chunks.removeFirst()
-                self.didReceiveData(chunk, self.urlResponse)
+                self.didReceiveData(chunk)
                 if self.chunks.isEmpty {
                     self.completion(nil)
                     completed()

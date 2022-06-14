@@ -11,6 +11,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
     private lazy var data = Data()
+    private var currentTask: Task<Void, Error>?
 
     override func start() {
         guard let urlRequest = request.urlRequest else {
@@ -56,6 +57,12 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         guard !isDisposed else {
             return finish()
         }
+        currentTask = Task {
+            await loadData(urlRequest: urlRequest, finish: finish)
+        }
+    }
+
+    private func loadData(urlRequest: URLRequest, finish: @escaping () -> Void) async {
         // Read and remove resumable data from cache (we're going to insert it
         // back in the cache if the request fails to complete again).
         var urlRequest = urlRequest
@@ -71,46 +78,54 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         signpost(self, "LoadImageData", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
 
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
-        let dataTask = dataLoader.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
-            guard let self = self else { return }
-            self.async {
-                self.dataTask(didReceiveData: data, response: response)
-            }
-        }, completion: { [weak self] error in
-            finish() // Finish the operation!
-            guard let self = self else { return }
-            signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
-            self.async {
-                self.dataTaskDidFinish(error: error)
-            }
-        })
 
         onCancelled = { [weak self] in
             guard let self = self else { return }
 
             signpost(self, "LoadImageData", .end, "Cancelled")
-            dataTask.cancel()
+            self.currentTask?.cancel()
             finish() // Finish the operation!
 
             self.tryToSaveResumableData()
         }
+
+        do {
+            for try await event in dataLoader.data(for: urlRequest) {
+                switch event {
+                case .respone(let response): dataTask(didReceiveResponse: response)
+                case .data(let data): dataTask(didReceiveData: data)
+                }
+            }
+            finish()
+            signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(data.count))")
+            dataTaskDidComplete()
+        } catch {
+            finish()
+            signpost(self, "LoadImageData", .end, "Failed")
+            dataTaskDidFail(error: error)
+
+        }
     }
 
-    private func dataTask(didReceiveData chunk: Data, response: URLResponse) {
+    private func dataTask(didReceiveResponse response: URLResponse) {
         // Check if this is the first response.
-        if urlResponse == nil {
-            // See if the server confirmed that the resumable data can be used
-            if let resumableData = resumableData, ResumableData.isResumedResponse(response) {
-                data = resumableData.data
-                resumedDataCount = Int64(resumableData.data.count)
-                signpost(self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
-            }
-            resumableData = nil // Get rid of resumable data
-        }
+        guard urlResponse == nil else { return }
 
+        // See if the server confirmed that the resumable data can be used
+        if let resumableData = resumableData, ResumableData.isResumedResponse(response) {
+            data = resumableData.data
+            resumedDataCount = Int64(resumableData.data.count)
+            signpost(self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
+        }
+        resumableData = nil // Get rid of resumable data
+        urlResponse = response
+    }
+
+    private func dataTask(didReceiveData chunk: Data) {
         // Append data and save response
         data.append(chunk)
-        urlResponse = response
+
+        guard let response = urlResponse else { return }
 
         let progress = TaskProgress(completed: Int64(data.count), total: response.expectedContentLength + resumedDataCount)
         send(progress: progress)
@@ -123,13 +138,12 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         send(value: (data, response))
     }
 
-    private func dataTaskDidFinish(error: Swift.Error?) {
-        if let error = error {
-            tryToSaveResumableData()
-            send(error: .dataLoadingFailed(error: error))
-            return
-        }
+    private func dataTaskDidFail(error: Swift.Error) {
+        tryToSaveResumableData()
+        send(error: .dataLoadingFailed(error: error))
+    }
 
+    private func dataTaskDidComplete() {
         // Sanity check, should never happen in practice
         guard !data.isEmpty else {
             send(error: .dataIsEmpty)

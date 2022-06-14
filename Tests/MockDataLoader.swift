@@ -5,14 +5,7 @@
 import Foundation
 import Nuke
 
-private let data: Data = Test.data(name: "fixture", extension: "jpeg")
-
-private final class MockDataTask: Cancellable, @unchecked Sendable {
-    var _cancel: () -> Void = { }
-    func cancel() {
-        _cancel()
-    }
-}
+private let fixture: Data = Test.data(name: "fixture", extension: "jpeg")
 
 class MockDataLoader: DataLoading, @unchecked Sendable {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
@@ -26,38 +19,37 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
         set { queue.isSuspended = newValue }
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
-        let task = MockDataTask()
-
+    func data(for request: URLRequest) -> AsyncThrowingStream<DataTaskSequenceElement, Error> {
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
-
         createdTaskCount += 1
 
-        let operation = BlockOperation {
-            if let result = self.results[request.url!] {
-                switch result {
-                case let .success(val):
-                    let data = val.0
-                    if !data.isEmpty {
-                        didReceiveData(data.prefix(data.count / 2), val.1)
-                        didReceiveData(data.suffix(data.count / 2), val.1)
+        return AsyncThrowingStream { [self] continuation in
+            let operation = BlockOperation {
+                if let result = self.results[request.url!] {
+                    switch result {
+                    case let .success(val):
+                        let data = val.0
+                        if !data.isEmpty {
+                            continuation.yield(.respone(val.1))
+                            continuation.yield(.data(data.prefix(data.count / 2)))
+                            continuation.yield(.data(data.suffix(data.count / 2)))
+                        }
+                        continuation.finish()
+                    case let .failure(err):
+                        continuation.finish(throwing: err)
                     }
-                    completion(nil)
-                case let .failure(err):
-                    completion(err)
+                } else {
+                    continuation.yield(.respone(URLResponse(url: request.url ?? Test.url, mimeType: "jpeg", expectedContentLength: 22789, textEncodingName: nil)))
+                    continuation.yield(.data(fixture))
+                    continuation.finish()
                 }
-            } else {
-                didReceiveData(data, URLResponse(url: request.url ?? Test.url, mimeType: "jpeg", expectedContentLength: 22789, textEncodingName: nil))
-                completion(nil)
+            }
+            queue.addOperation(operation)
+            continuation.onTermination = {
+                guard case .cancelled = $0 else { return }
+                NotificationCenter.default.post(name: MockDataLoader.DidCancelTask, object: self)
+                operation.cancel()
             }
         }
-        queue.addOperation(operation)
-
-        task._cancel = {
-            NotificationCenter.default.post(name: MockDataLoader.DidCancelTask, object: self)
-            operation.cancel()
-        }
-
-        return task
     }
 }

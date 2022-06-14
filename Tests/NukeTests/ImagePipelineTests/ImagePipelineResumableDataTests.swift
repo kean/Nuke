@@ -46,14 +46,34 @@ class ImagePipelineResumableDataTests: XCTestCase {
     }
 }
 
+#warning("TODO: simplify this")
+
 private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
     private let queue = DispatchQueue(label: "_MockResumableDataLoader")
 
     let data: Data = Test.data(name: "fixture", extension: "jpeg")
     let eTag: String = "img_01"
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    func data(for request: URLRequest) -> AsyncThrowingStream<DataTaskSequenceElement, Error> {
+        AsyncThrowingStream { [self] continuation in
+            loadData(with: request, didReceiveResponse: { response in
+                continuation.yield(.respone(response))
+            }, didReceiveData: { data in
+                continuation.yield(.data(data))
+            }, completion: { error in
+                if let error = error {
+                    continuation.finish(throwing: error)
+                } else {
+                    continuation.finish()
+                }
+            })
+        }
+    }
+
+    private func loadData(with request: URLRequest, didReceiveResponse: @escaping (URLResponse) -> Void, didReceiveData: @escaping (Data) -> Void, completion: @escaping (Error?) -> Void) {
         let headers = request.allHTTPHeaderFields
+
+        var didSendResponse = false
 
         func sendChunks(_ chunks: [Data], of data: Data, statusCode: Int) {
             func sendChunk(_ chunk: Data) {
@@ -69,7 +89,12 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
                     ]
                 )!
 
-                didReceiveData(chunk, response)
+                if !didSendResponse {
+                    didSendResponse = true
+                    didReceiveResponse(response)
+                }
+
+                didReceiveData(chunk)
             }
 
             var chunks = chunks
@@ -89,7 +114,7 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
 
             XCTAssertEqual(validator, eTag, "Expected validator to be equal to ETag")
             guard validator == eTag else { // Expected ETag
-                return _Task()
+                return
             }
 
             // Send remaining data in chunks
@@ -110,11 +135,5 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
                 completion(NSError(domain: NSURLErrorDomain, code: URLError.networkConnectionLost.rawValue, userInfo: [:]))
             }
         }
-
-        return _Task()
-    }
-
-    private class _Task: Cancellable, @unchecked Sendable {
-        func cancel() { }
     }
 }

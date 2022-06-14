@@ -6,13 +6,19 @@ import Foundation
 
 /// Fetches original image data.
 public protocol DataLoading: Sendable {
-    /// - parameter didReceiveData: Can be called multiple times if streaming
-    /// is supported.
-    /// - parameter completion: Must be called once after all (or none in case
-    /// of an error) `didReceiveData` closures have been called.
-    func loadData(with request: URLRequest,
-                  didReceiveData: @escaping (Data, URLResponse) -> Void,
-                  completion: @escaping (Error?) -> Void) -> any Cancellable
+    /// Loads data for the given request.
+    func data(for request: URLRequest) -> AsyncThrowingStream<DataTaskSequenceElement, Error>
+}
+
+public enum DataTaskSequenceElement {
+    case respone(URLResponse)
+    case data(Data)
+}
+
+public protocol DataLoadingDelegate: AnyObject {
+    func dataLoaderDidRecieveResponse(_ urlResponse: URLResponse)
+    func dataLoaderDidRecieveData(_ data: Data)
+    func dataLoaderDidCompleteWithError(error: Error?)
 }
 
 /// A unit of work that can be cancelled.
