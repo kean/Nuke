@@ -163,6 +163,8 @@ public final class ImagePipeline: @unchecked Sendable {
         }
     }
 
+    // MARK: - Loading Data (Async/Await)
+
     /// Loads an image for the given request.
     ///
     /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
@@ -284,7 +286,7 @@ public final class ImagePipeline: @unchecked Sendable {
         }
     }
 
-    // MARK: - Loading Image Data
+    // MARK: - Loading Image Data (Closures)
 
     /// Loads the image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
