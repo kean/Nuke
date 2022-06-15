@@ -1075,8 +1075,19 @@
 		0CC13A0F285677F800E0557D /* Nuke */ = {
 			isa = PBXGroup;
 			children = (
-				0CE6201F265365C000AAB8C3 /* Core */,
+				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
+				0C063F93266524190018F2C2 /* ImageResponse.swift */,
+				0C933E632859686D00F43606 /* ImageContainer.swift */,
+				0C86AB69228B3B5100A81BA1 /* ImageTask.swift */,
+				0CBA07842852DA7A00CE29F4 /* Pipeline */,
+				0CA4ECCB26E68F9900BAC8E5 /* Loading */,
+				0CA4ECD126E68FD300BAC8E5 /* Caching */,
+				0CA4ECB226E6843800BAC8E5 /* Processing */,
+				0CA4EC9726E67CCB00BAC8E5 /* Decoding */,
+				0CA4ECAB26E683D200BAC8E5 /* Encoding */,
+				0CA4ECD526E6903F00BAC8E5 /* Prefetching */,
 				0CE6201E265365B700AAB8C3 /* Combine */,
+				0CB402D325B6568800F5A241 /* Tasks */,
 				0CC36A0B25B8BBF800811018 /* Internal */,
 			);
 			path = Nuke;
@@ -1158,25 +1169,6 @@
 				0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */,
 			);
 			path = Combine;
-			sourceTree = "<group>";
-		};
-		0CE6201F265365C000AAB8C3 /* Core */ = {
-			isa = PBXGroup;
-			children = (
-				0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */,
-				0C063F93266524190018F2C2 /* ImageResponse.swift */,
-				0C933E632859686D00F43606 /* ImageContainer.swift */,
-				0C86AB69228B3B5100A81BA1 /* ImageTask.swift */,
-				0CBA07842852DA7A00CE29F4 /* Pipeline */,
-				0CA4ECCB26E68F9900BAC8E5 /* Loading */,
-				0CA4ECD126E68FD300BAC8E5 /* Caching */,
-				0CA4ECB226E6843800BAC8E5 /* Processing */,
-				0CA4EC9726E67CCB00BAC8E5 /* Decoding */,
-				0CA4ECAB26E683D200BAC8E5 /* Encoding */,
-				0CA4ECD526E6903F00BAC8E5 /* Prefetching */,
-				0CB402D325B6568800F5A241 /* Tasks */,
-			);
-			path = Core;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
