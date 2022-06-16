@@ -49,6 +49,12 @@ public protocol ImagePipelineDelegate: Sendable { // swiftlint:disable:this clas
     /// thread.
     func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void)
 
+    // MARK: Decompression
+
+    func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool
+
+    func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse
+
     // MARK: Monitoring
 
     /// Delivers the events produced by the image tasks started via `loadImage` method.
@@ -78,6 +84,16 @@ extension ImagePipelineDelegate {
 
     public func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
         completion(data)
+    }
+
+    public func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool {
+        pipeline.configuration.isDecompressionEnabled
+    }
+
+    public func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse {
+        var response = response
+        response.container.image = ImageDecompression.decompress(image: response.image)
+        return response
     }
 
     public func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {

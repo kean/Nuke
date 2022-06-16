@@ -58,10 +58,8 @@ extension ImagePipeline {
         /// Image processing queue. Default maximum concurrent task count is 2.
         public var imageProcessingQueue = OperationQueue(maxConcurrentCount: 2)
 
-        #if !os(macOS)
         /// Image decompressing queue. Default maximum concurrent task count is 2.
         public var imageDecompressingQueue = OperationQueue(maxConcurrentCount: 2)
-        #endif
 
         // MARK: - Options
 
@@ -69,14 +67,21 @@ extension ImagePipeline {
         /// callbacks are called. `.main` by default.
         public var callbackQueue = DispatchQueue.main
 
-        #if !os(macOS)
+#if os(macOS)
+        /// Decompresses the loaded images. `true` by default.
+        ///
+        /// Decompressing compressed image formats (such as JPEG) can significantly
+        /// improve drawing performance as it allows a bitmap representation to be
+        /// created in a background rather than on the main thread.
+        public var isDecompressionEnabled = false
+#else
         /// Decompresses the loaded images. `true` by default.
         ///
         /// Decompressing compressed image formats (such as JPEG) can significantly
         /// improve drawing performance as it allows a bitmap representation to be
         /// created in a background rather than on the main thread.
         public var isDecompressionEnabled = true
-        #endif
+#endif
 
         /// `.storeOriginalData` by default.
         public var dataCachePolicy = DataCachePolicy.storeOriginalData

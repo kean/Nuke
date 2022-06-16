@@ -178,12 +178,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     // MARK: Decompression
 
-    #if os(macOS)
-    private func decompressImage(_ response: ImageResponse, isCompleted: Bool, isFromDiskCache: Bool = false) {
-        storeImageInCaches(response, isFromDiskCache: isFromDiskCache)
-        send(value: response, isCompleted: isCompleted) // There is no decompression on macOS
-    }
-    #else
     private func decompressImage(_ response: ImageResponse, isCompleted: Bool, isFromDiskCache: Bool = false) {
         guard isDecompressionNeeded(for: response) else {
             storeImageInCaches(response, isFromDiskCache: isFromDiskCache)
@@ -203,7 +197,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             guard let self = self else { return }
 
             let response = signpost("DecompressImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
-                response.map { $0.map(ImageDecompression.decompress(image:)) }
+                self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
             }
 
             self.async {
@@ -214,10 +208,9 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     private func isDecompressionNeeded(for response: ImageResponse) -> Bool {
-        pipeline.configuration.isDecompressionEnabled &&
-            ImageDecompression.isDecompressionNeeded(for: response.image) ?? false
+        (ImageDecompression.isDecompressionNeeded(for: response.image) ?? false) &&
+        pipeline.delegate.shouldDecompress(response: response, for: request, pipeline: pipeline)
     }
-    #endif
 
     // MARK: Caching
 
