@@ -9,8 +9,8 @@ extension ImagePipeline {
     /// Returns a publisher which starts a new `ImageTask` when a subscriber is added.
     ///
     /// - note: For more information, see `ImagePublisher`.
-    public func imagePublisher(with request: any ImageRequestConvertible) -> ImagePublisher {
-        ImagePublisher(request: request.asImageRequest(), pipeline: self)
+    public func imagePublisher(with request: any ImageRequestConvertible) -> AnyPublisher<ImageResponse, Error> {
+        ImagePublisher(request: request.asImageRequest(), pipeline: self).eraseToAnyPublisher()
     }
 }
 
@@ -23,19 +23,14 @@ extension ImagePipeline {
 /// - note: In case the pipeline has `isProgressiveDecodingEnabled` option enabled
 /// and the image being downloaded supports progressive decoding, the publisher
 /// might emit more than a single value.
-public struct ImagePublisher: Publisher, Sendable {
-    public typealias Output = ImageResponse
-    public typealias Failure = ImagePipeline.Error
+private struct ImagePublisher: Publisher, Sendable {
+    typealias Output = ImageResponse
+    typealias Failure = ImagePipeline.Error
 
-    public let request: ImageRequest
-    public let pipeline: ImagePipeline
+    let request: ImageRequest
+    let pipeline: ImagePipeline
 
-    public init(request: ImageRequest, pipeline: ImagePipeline) {
-        self.request = request
-        self.pipeline = pipeline
-    }
-
-    public func receive<S>(subscriber: S) where S: Subscriber, S: Sendable, Failure == S.Failure, Output == S.Input {
+    func receive<S>(subscriber: S) where S: Subscriber, S: Sendable, Failure == S.Failure, Output == S.Input {
         let subscription = ImageSubscription(
             request: self.request,
             pipeline: self.pipeline,
