@@ -28,24 +28,80 @@ To learn Nuke, start with the basic guides and make your way through the documen
 
 ## Topics
 
-### Basics
+### Essentials
 
-- <doc:image-view-extensions>
-- <doc:swiftui-extensions>
-- <doc:customizing-requests>
-- <doc:image-processing>
+- <doc:getting-started>
+- <doc:image-requests>
 - <doc:image-pipeline>
+- ``ImageRequest``
+- ``ImageRequestConvertible``
+- ``ImageResponse``
+- ``ImageContainer``
 
-### Advanced
+### Image Pipeline
 
-- <doc:configuration>
-- <doc:caching>
+- <doc:image-pipeline-configuration>
+- <doc:image-pipeline-guide>
 - <doc:prefetching>
 - <doc:combine>
+- ``ImagePipeline``
+- ``ImagePipelineDelegate``
+- ``ImageTask``
+- ``ImageTaskDelegate``
+- ``ImageTaskEvent``
+- ``ImagePrefetcher``
+
+### Processing
+
+- <doc:image-processing>
+- ``ImageProcessing``
+- ``ImageProcessors``
+- ``ImageProcessingOptions``
+- ``ImageProcessingContext``
+- ``ImageProcessingError``
+
+### Caching
+
+- <doc:caching>
+- ``ImageCaching``
+- ``ImageCache``
+- ``DataCaching``
+- ``DataCache``
+- ``ImageCacheKey``
+- ``ImagePipeline/Cache-swift.struct``
+
+### Loading Data
+
+- ``DataLoading``
+- ``DataLoader``
+- ``DataLoaderObserving``
+- ``DataTaskEvent``
+- ``Cancellable``
+
+### Customization
+
 - <doc:plugins>
 
-### Guides
+### Performance
 
-- <doc:image-pipeline-guide>
-- <doc:performance>
-- <doc:image-formats-guide>
+- <doc:performance-guide>
+
+### Image Formats
+
+- <doc:image-formats>
+- <doc:image-decoding>
+- <doc:image-encoding>
+- ``ImageDecoding``
+- ``ImageDecoders``
+- ``ImageDecodingError``
+- ``ImageDecodingContext``
+- ``ImageDecoderRegistry``
+- ``ImageEncoding``
+- ``ImageEncoders``
+- ``ImageEncodingContext``
+- ``AssetType``
+- ``PlatformImage``
+
+### Deprecated
+
+- ``ImageDecoderRegistering``

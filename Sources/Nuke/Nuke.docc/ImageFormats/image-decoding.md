@@ -93,7 +93,7 @@ ImageDecoderRegistry.shared.register { context: ImageDecodingContext in
 }
 ```
 
-> To determine image type, use an ``ImageType`` initializer that takes data as input. ``ImageType`` represents uniform type identifiers or UTI.
+> To determine image type, use an ``AssetType`` initializer that takes data as input. ``AssetType`` represents uniform type identifiers or UTI.
 
 When you register a decoder, you have access to the entire decoding context for the given decoding session:
 
@@ -113,3 +113,19 @@ For animated images, it is not feasible to decode all of the frames and put them
 
 > GIF is not an efficient format. It is recommended to use short MP4 clips instead. See [Nuke Demo](https://github.com/kean/NukeDemo) for an example.
 
+## Built-In Image Decoders
+
+You can find all of the built-in decoders in the [`ImageDecoders`](https://kean-org.github.io/docs/nuke/reference/10.2.0/ImageDecoders/) namespace.
+
+### ImageDecoders.Default
+
+``ImageDecoders/Default`` is used by default if no custom decoders are registered. It uses native `UIImage(data:)` (and `NSImage(data:)`) initializers to create images from data.
+
+> When working with `UIImage`, the decoder automatically sets the scale of the image to match the scale of the screen.
+{:.info}
+
+The default ``ImageDecoders/Default`` also supports progressively decoding JPEG. It produces a new preview every time it encounters a new frame.
+
+### ImageDecoders.Empty
+
+``ImageDecoders/Empty`` returns an empty placeholder image and attaches image data to the image container. It could also be configured to return partially downloaded data. ``ImageDecoders/Empty`` can be used when the rendering engine works directly with image data.

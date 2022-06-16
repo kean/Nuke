@@ -1,59 +1,8 @@
-# Image Formats
+# Supported Image Formats
 
 Nuke has built-in support for basic image formats like `jpeg`, `png`, and `heif`. It also has the infrastructure for supporting a variety of custom image formats.
 
 Nuke is capable of driving progressive decoding, animated image rendering, progressive animated image rendering, drawing vector images directly or converting them to bitmaps, parsing thumbnails included in the image containers, and more.
-
-## Built-In Image Decoders
-
-You can find all of the built-in decoders in the [`ImageDecoders`](https://kean-org.github.io/docs/nuke/reference/10.2.0/ImageDecoders/) namespace.
-
-### ImageDecoders.Default
-
-``ImageDecoders/Default`` is used by default if no custom decoders are registered. It uses native `UIImage(data:)` (and `NSImage(data:)`) initializers to create images from data.
-
-> When working with `UIImage`, the decoder automatically sets the scale of the image to match the scale of the screen.
-{:.info}
-
-The default ``ImageDecoders/Default`` also supports progressively decoding JPEG. It produces a new preview every time it encounters a new frame.
-
-### ImageDecoders.Empty
-
-``ImageDecoders/Empty`` returns an empty placeholder image and attaches image data to the image container. It could also be configured to return partially downloaded data. ``ImageDecoders/Empty`` can be used when the rendering engine works directly with image data.
-
-## Image Encoding
-
-To encode images, use types conforming to the ``ImageEncoding`` protocol:
-
-```swift
-public protocol ImageEncoding {
-    func encode(image: UIImage) -> Data?
-}
-```
-
-There is currently no dedicated image encoder registry. Use the pipeline configuration to register a custom decoders using ``ImagePipeline/Configuration-swift.struct/makeImageDecoder``.
-
-## Built-In Image Encoders
-
-You can find all of the built-in encoders in the ``ImageEncoders`` namespace.
-
-### ImageEncoders.Default
-
-``ImageEncoders/Default`` encodes opaque images as `jpeg` and images with opacity as `png`. It can also be configured to use `heif` instead of `jpeg` using ``ImageEncoders/Default/isHEIFPreferred`` option.
-
-### ImageEncoders.ImageIO
-
-``ImageEncoders/ImageIO`` is an [Image I/O](https://developer.apple.com/documentation/imageio) based encoder.
- 
-Image I/O is a system framework that allows applications to read and write most image file formats. This framework offers high efficiency, color management, and access to image metadata.
-
-```swift
-let image: UIImage
-let encoder = ImageEncoders.ImageIO(type: .heif, compressionRatio: 0.8)
-let data = encoder.encode(image: image)
-```
-
-## Supported Formats
 
 ### Common Image Formats
 
@@ -211,23 +160,3 @@ ImagePipeline.shared.loadImage(with: url) { [weak self] result in
 #### Native Support (macOS 11, iOS 14, watchOS 7)
 
 WebP is now supported natively. Nuke currently only supports baseline WebP (no progressive WebP support).
-
-## Topics
-
-### Decoding
-
-- <doc:ImageDecodingArticle>
-- ``ImageDecoding``
-- ``ImageDecoders``
-- ``ImageDecodingContext``
-- ``ImageDecoderRegistry``
-
-### Encoding
-
-- ``ImageEncoding``
-- ``ImageEncoders``
-- ``ImageEncodingContext``
-
-### Deprecated
-
-- ``ImageDecoderRegistering``
