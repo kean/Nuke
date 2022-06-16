@@ -75,8 +75,6 @@ extension ImageProcessors {
             "com.github.kean/nuke/resize?s=\(size.cgSize),cm=\(contentMode),crop=\(crop),upscale=\(upscale)"
         }
 
-        public var hashableIdentifier: AnyHashable { self }
-
         public var description: String {
             "Resize(size: \(size.cgSize) pixels, contentMode: \(contentMode), crop: \(crop), upscale: \(upscale))"
         }

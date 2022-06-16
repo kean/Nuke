@@ -33,8 +33,6 @@ extension ImageProcessors {
             return "com.github.kean/nuke/rounded_corners?radius=\(radius)" + (suffix ?? "")
         }
 
-        public var hashableIdentifier: AnyHashable { self }
-
         public var description: String {
             "RoundedCorners(radius: \(radius) pixels, border: \(border?.description ?? "nil"))"
         }

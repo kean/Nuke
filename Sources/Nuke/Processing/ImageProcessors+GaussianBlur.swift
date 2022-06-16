@@ -37,9 +37,6 @@ extension ImageProcessors {
             "com.github.kean/nuke/gaussian_blur?radius=\(radius)"
         }
 
-        /// Returns hashable `self` that compares processors by their `radius`.`
-        public var hashableIdentifier: AnyHashable { self }
-
         public var description: String {
             "GaussianBlur(radius: \(radius))"
         }

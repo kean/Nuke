@@ -66,6 +66,10 @@ extension ImageProcessing {
     public var hashableIdentifier: AnyHashable { identifier }
 }
 
+extension ImageProcessing where Self: Hashable {
+    public var hashableIdentifier: AnyHashable { self }
+}
+
 /// Image processing context used when selecting which processor to use.
 public struct ImageProcessingContext: Sendable {
     public var request: ImageRequest

@@ -42,9 +42,6 @@ extension ImageProcessors {
             processors.map({ $0.identifier }).joined()
         }
 
-        /// An identifies that compares all the underlying processors for equality.
-        public var hashableIdentifier: AnyHashable { self }
-
         /// Creates a combined hash of all the given processors.
         public func hash(into hasher: inout Hasher) {
             for processor in processors {
