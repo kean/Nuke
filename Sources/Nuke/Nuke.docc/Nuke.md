@@ -81,26 +81,11 @@ To learn Nuke, start with the basic guides and make your way through the documen
 ### Customization
 
 - <doc:plugins>
+- <doc:image-formats>
 
 ### Performance
 
 - <doc:performance-guide>
-
-### Image Formats
-
-- <doc:image-formats>
-- <doc:image-decoding>
-- <doc:image-encoding>
-- ``ImageDecoding``
-- ``ImageDecoders``
-- ``ImageDecodingError``
-- ``ImageDecodingContext``
-- ``ImageDecoderRegistry``
-- ``ImageEncoding``
-- ``ImageEncoders``
-- ``ImageEncodingContext``
-- ``AssetType``
-- ``PlatformImage``
 
 ### Deprecated
 
