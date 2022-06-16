@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import Combine
 
 /// `ImagePipeline` is the primary way to load images directly (without a UI).
 ///
@@ -293,7 +294,7 @@ public final class ImagePipeline: @unchecked Sendable {
         ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self)
     }
 
-    // MARK: - Loading Image Data (Closures)
+    // MARK: - Loading Data (Closures)
 
     /// Loads the image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
@@ -377,6 +378,15 @@ public final class ImagePipeline: @unchecked Sendable {
                     }
                 }
             }
+    }
+
+    // MARK: - Loading Images (Combine)
+
+    /// Returns a publisher which starts a new `ImageTask` when a subscriber is added.
+    ///
+    /// - note: For more information, see `ImagePublisher`.
+    public func imagePublisher(with request: any ImageRequestConvertible) -> AnyPublisher<ImageResponse, Error> {
+        ImagePublisher(request: request.asImageRequest(), pipeline: self).eraseToAnyPublisher()
     }
 
     // MARK: - Image Task Events

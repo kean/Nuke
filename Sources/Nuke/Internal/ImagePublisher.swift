@@ -5,15 +5,6 @@
 import Foundation
 import Combine
 
-extension ImagePipeline {
-    /// Returns a publisher which starts a new `ImageTask` when a subscriber is added.
-    ///
-    /// - note: For more information, see `ImagePublisher`.
-    public func imagePublisher(with request: any ImageRequestConvertible) -> AnyPublisher<ImageResponse, Error> {
-        ImagePublisher(request: request.asImageRequest(), pipeline: self).eraseToAnyPublisher()
-    }
-}
-
 /// A publisher that starts a new `ImageTask` when a subscriber is added.
 ///
 /// If the requested image is available in the memory cache, the value is
@@ -23,7 +14,7 @@ extension ImagePipeline {
 /// - note: In case the pipeline has `isProgressiveDecodingEnabled` option enabled
 /// and the image being downloaded supports progressive decoding, the publisher
 /// might emit more than a single value.
-private struct ImagePublisher: Publisher, Sendable {
+struct ImagePublisher: Publisher, Sendable {
     typealias Output = ImageResponse
     typealias Failure = ImagePipeline.Error
 
