@@ -47,3 +47,27 @@ public protocol ImageProcessing {
     func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer
 }
 ```
+
+## ImageProcessing and Hashable
+
+If you are implementing custom image processors `ImageProcessing` that implement `hashableIdentifier` and return self, you can remove the `hashableIdentifier` implementation and use the one provided by default.
+
+```swift
+// Before (Nuke 10)
+extension ImageProcessors {
+    /// Scales an image to a specified size.
+    public struct Resize: ImageProcessing, Hashable {
+        private let size: CGSize
+        
+        var hashableIdentiifer: AnyHashable { self }
+    }
+}
+
+// After (Nuke 11)
+extension ImageProcessors {
+    /// Scales an image to a specified size.
+    public struct Resize: ImageProcessing, Hashable {
+        private let size: CGSize
+    }
+}
+```

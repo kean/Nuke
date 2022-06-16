@@ -25,8 +25,6 @@ extension ImageProcessors {
             return "com.github.kean/nuke/circle" + (suffix ?? "")
         }
 
-        public var hashableIdentifier: AnyHashable { self }
-
         public var description: String {
             "Circle(border: \(border?.description ?? "nil"))"
         }
