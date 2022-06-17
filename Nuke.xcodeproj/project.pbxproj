@@ -186,6 +186,7 @@
 		0C973E141D9FDB9F00C00AD9 /* Nuke.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0C9B6E7620B9F3E2001924B8 /* ImagePipelineCoalescingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9B6E7520B9F3E2001924B8 /* ImagePipelineCoalescingTests.swift */; };
 		0CA3BA63285C11EA0079A444 /* ImagePipelineTaskDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA3BA62285C11EA0079A444 /* ImagePipelineTaskDelegateTests.swift */; };
+		0CA3BA64285C15A90079A444 /* MockProgressiveDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCBB533217D0B980026F552 /* MockProgressiveDataLoader.swift */; };
 		0CA4EC9626E67C7000BAC8E5 /* AVDataAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4EC9426E67C7000BAC8E5 /* AVDataAsset.swift */; };
 		0CA4EC9926E67CEC00BAC8E5 /* ImageDecoders+Default.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4EC9826E67CEC00BAC8E5 /* ImageDecoders+Default.swift */; };
 		0CA4EC9B26E67D3000BAC8E5 /* ImageDecoders+Empty.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4EC9A26E67D3000BAC8E5 /* ImageDecoders+Empty.swift */; };
@@ -1598,6 +1599,7 @@
 			files = (
 				0C2CD7C725B7C0280017018F /* XCTestCaseExtensions.swift in Sources */,
 				0C2CD7BA25B7C0100017018F /* MockDataLoader.swift in Sources */,
+				0CA3BA64285C15A90079A444 /* MockProgressiveDataLoader.swift in Sources */,
 				0C2CD7C825B7C0280017018F /* NukeExtensions.swift in Sources */,
 				0C2CD7C625B7C0280017018F /* XCTestCase+Nuke.swift in Sources */,
 				0C2CD7C025B7C0200017018F /* Helpers.swift in Sources */,
