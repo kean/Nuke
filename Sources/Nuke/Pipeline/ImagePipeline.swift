@@ -213,8 +213,8 @@ public final class ImagePipeline: @unchecked Sendable {
     ) {
         guard !isInvalidated else { return }
 
-        self.delegate.imageTaskStarted(task)
-        task.delegate?.imageTaskStarted(task)
+        self.delegate.imageTaskDidStart(task)
+        task.delegate?.imageTaskDidStart(task)
 
         tasks[task] = makeTaskLoadImage(for: task.request)
             .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in
@@ -235,8 +235,8 @@ public final class ImagePipeline: @unchecked Sendable {
 
                             completion?(.success(response))
                         } else {
-                            self.delegate.imageTask(task, didProduceProgressiveResponse: response)
-                            task.delegate?.imageTask(task, didProduceProgressiveResponse: response)
+                            self.delegate.imageTask(task, didReceivePreview: response)
+                            task.delegate?.imageTask(task, didReceivePreview: response)
 
                             progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
                         }

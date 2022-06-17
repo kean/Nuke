@@ -31,7 +31,7 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
         append(.created)
     }
 
-    func imageTaskStarted(_ task: ImageTask) {
+    func imageTaskDidStart(_ task: ImageTask) {
         startedTaskCount += 1
         NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
         append(.started)
@@ -48,7 +48,7 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
         append(.progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total))
     }
 
-    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
+    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
         append(.intermediateResponseReceived(response: response))
     }
 

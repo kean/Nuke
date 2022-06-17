@@ -320,7 +320,7 @@ private final class AnonymousImateTaskDelegate: ImageTaskDelegate, @unchecked Se
 
     var onTaskStarted: ((ImageTask) -> Void)?
 
-    func imageTaskStarted(_ task: ImageTask) {
+    func imageTaskDidStart(_ task: ImageTask) {
 
     }
 
@@ -332,7 +332,7 @@ private final class AnonymousImateTaskDelegate: ImageTaskDelegate, @unchecked Se
 
     var onProgressiveResponse: ((ImageResponse) -> Void)?
 
-    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
+    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
         onProgressiveResponse?(response)
     }
 

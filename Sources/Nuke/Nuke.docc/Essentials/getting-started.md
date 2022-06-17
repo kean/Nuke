@@ -26,7 +26,7 @@ func imageTaskCreated(_ task: ImageTask) {
     // Gets called immediately when the task is created.
 }
 
-func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
+func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
     // When downloading and image that supports progerssive decoding, previews are delivered here.
 }
 

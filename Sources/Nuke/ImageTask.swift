@@ -113,13 +113,13 @@ public protocol ImageTaskDelegate: AnyObject, Sendable {
 
     /// Gets called when the task is started. The caller can save the instance
     /// of the class to update the task later.
-    func imageTaskStarted(_ task: ImageTask)
+    func imageTaskDidStart(_ task: ImageTask)
 
     /// Gets called when the progress is updated.
     func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64))
 
     /// Gets called when a new progressive image is produced.
-    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse)
+    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse)
 
     func imageTaskDidCancel(_ task: ImageTask)
 
@@ -129,11 +129,11 @@ public protocol ImageTaskDelegate: AnyObject, Sendable {
 extension ImageTaskDelegate {
     public func imageTaskCreated(_ task: ImageTask) {}
 
-    public func imageTaskStarted(_ task: ImageTask) {}
+    public func imageTaskDidStart(_ task: ImageTask) {}
 
     public func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {}
 
-    public func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {}
+    public func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {}
 
     public func imageTaskDidCancel(_ task: ImageTask) {}
 

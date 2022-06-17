@@ -23,6 +23,9 @@ public struct ImageResponse: @unchecked Sendable {
     public var image: UIImage { container.image }
     #endif
 
+    /// Returns `true` if the image in the container is a preview of the image.
+    public var isPreview: Bool { container.isPreview }
+
     /// The request for which the response was created.
     public var request: ImageRequest
 

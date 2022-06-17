@@ -45,7 +45,7 @@ func imageTaskCreated(_ task: ImageTask) {
     self.imageTask = task
 }
 
-func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
+func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
     // When downloading and image that supports progerssive decoding, previews are delivered here.
 }
 
