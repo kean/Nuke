@@ -31,19 +31,17 @@ To learn Nuke, start with the basic guides and make your way through the documen
 ### Essentials
 
 - <doc:getting-started>
-- <doc:image-requests>
 - <doc:image-pipeline>
+- <doc:image-requests>
+- ``ImagePipeline``
 - ``ImageRequest``
-- ``ImageRequestConvertible``
 - ``ImageResponse``
 - ``ImageContainer``
 
-### Image Pipeline
+### Customization
 
 <!--Articles-->
 - <doc:image-pipeline-configuration>
-- <doc:image-pipeline-guide>
-- <doc:troubleshooting>
 
 <!--Collections-->
 - <doc:image-processing>
@@ -51,21 +49,17 @@ To learn Nuke, start with the basic guides and make your way through the documen
 - <doc:image-formats>
 
 <!--Symbols-->
-- ``ImagePipeline``
-- ``ImagePipeline/Configuration-swift.struct``
-
-// TODO: move image pipeline delegate to ImagePipeline somehow
-
 - ``ImagePipelineDelegate``
 - ``ImageTask``
 - ``ImageTaskDelegate``
-- ``ImageTaskEvent``
+- ``ImageRequestConvertible``
 
 ### Performance
 
 <!--Articles-->
 - <doc:performance-guide>
 - <doc:prefetching>
+- <doc:troubleshooting>
 
 <!--Collections-->
 - <doc:caching>

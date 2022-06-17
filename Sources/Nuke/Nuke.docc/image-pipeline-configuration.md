@@ -1,4 +1,4 @@
-# Configuration
+# Image Pipeline Configuration
 
 Nuke virtually unlimited possibilities for customization and most of them are done using ``ImagePipeline/Configuration-swift.struct``.
 

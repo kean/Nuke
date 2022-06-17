@@ -125,27 +125,15 @@ public protocol ImageTaskDelegate: AnyObject, Sendable {
 }
 
 extension ImageTaskDelegate {
-    public func imageTaskCreated(_ task: ImageTask) {
+    public func imageTaskCreated(_ task: ImageTask) {}
 
-    }
+    public func imageTaskStarted(_ task: ImageTask) {}
 
-    public func imageTaskStarted(_ task: ImageTask) {
-        // Do nothing
-    }
+    public func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {}
 
-    public func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
-        // Do nothing
-    }
+    public func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {}
 
-    public func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
-        // Do nothing
-    }
+    public func imageTaskDidCancel(_ task: ImageTask) {}
 
-    public func imageTaskDidCancel(_ task: ImageTask) {
-        // Do nothing
-    }
-
-    public func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
-        // Do nothing
-    }
+    public func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {}
 }

@@ -130,6 +130,8 @@ public final class ImagePipeline: @unchecked Sendable {
         })
     }
 
+    // TODO: do we need this?
+
     /// Loads an image for the given request, producing progressive images as
     /// more data becomes available.
     public func images(for request: any ImageRequestConvertible, delegate: ImageTaskDelegate? = nil) -> AsyncThrowingStream<ImageResponse, Swift.Error> {

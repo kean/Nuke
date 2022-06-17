@@ -1,6 +1,6 @@
 # Image Requests
 
-``ImageRequest`` allows you to set image processors, change the request priority, and more.
+Learn how to create and customize image requests.
 
 ## Overview
 
