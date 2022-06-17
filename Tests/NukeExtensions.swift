@@ -21,21 +21,6 @@ extension ImagePipeline.Error: Equatable {
     }
 }
 
-extension ImageTaskEvent: Equatable {
-    public static func == (lhs: ImageTaskEvent, rhs: ImageTaskEvent) -> Bool {
-        switch (lhs, rhs) {
-        case (.started, .started): return true
-        case (.cancelled, .cancelled): return true
-        case let (.priorityUpdated(lhs), .priorityUpdated(rhs)): return lhs == rhs
-        case let (.intermediateResponseReceived(lhs), .intermediateResponseReceived(rhs)): return lhs == rhs
-        case let (.progressUpdated(lhsTotal, lhsCompleted), .progressUpdated(rhsTotal, rhsCompleted)):
-            return (lhsTotal, lhsCompleted) == (rhsTotal, rhsCompleted)
-        case let (.completed(lhs), .completed(rhs)): return lhs == rhs
-        default: return false
-        }
-    }
-}
-
 extension ImageResponse: Equatable {
     public static func == (lhs: ImageResponse, rhs: ImageResponse) -> Bool {
         return lhs.image === rhs.image

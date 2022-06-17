@@ -17,8 +17,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The original request.
     public let request: ImageRequest
 
-    let isDataTask: Bool
-
     /// Updates the priority of the task, even if it is already running.
     public func setPriority(_ priority: ImageRequest.Priority) {
         pipeline?.imageTaskUpdatePriorityCalled(self, priority: priority)
@@ -55,11 +53,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         #endif
     }
 
-    init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline) {
+    init(taskId: Int64, request: ImageRequest, pipeline: ImagePipeline) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
-        self.isDataTask = isDataTask
         self.pipeline = pipeline
 
         self._isCancelled = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
@@ -107,10 +104,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
 /// A protocol that defines methods that image pipeline instances call on their
 /// delegates to handle task-level events.
-public protocol ImageTaskDelegate: AnyObject {
+public protocol ImageTaskDelegate: AnyObject, Sendable {
+    func imageTaskCreated(_ task: ImageTask)
+
     /// Gets called when the task is started. The caller can save the instance
     /// of the class to update the task later.
-    func imageTaskWillStart(_ task: ImageTask)
+    func imageTaskStarted(_ task: ImageTask)
 
     /// Gets called when the progress is updated.
     func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64))
@@ -121,32 +120,30 @@ public protocol ImageTaskDelegate: AnyObject {
     func imageTaskDidCancel(_ task: ImageTask)
 
     func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>)
-
-    func dataTask(_ task: ImageTask, didCompleteWithResult result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>)
 }
 
 extension ImageTaskDelegate {
-    func imageTaskWillStart(_ task: ImageTask) {
+    public func imageTaskCreated(_ task: ImageTask) {
+
+    }
+
+    public func imageTaskStarted(_ task: ImageTask) {
         // Do nothing
     }
 
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
+    public func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
         // Do nothing
     }
 
-    func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
+    public func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
         // Do nothing
     }
 
-    func imageTaskDidCancel(_ task: ImageTask) {
+    public func imageTaskDidCancel(_ task: ImageTask) {
         // Do nothing
     }
 
-    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
-        // Do nothing
-    }
-
-    func dataTask(_ task: ImageTask, didCompleteWithResult result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) {
+    public func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
         // Do nothing
     }
 }

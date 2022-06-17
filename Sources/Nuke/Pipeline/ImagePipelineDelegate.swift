@@ -8,7 +8,7 @@ import Foundation
 ///
 /// - warning: The delegate methods are performed on the pipeline queue in the
 /// background.
-public protocol ImagePipelineDelegate: Sendable { // swiftlint:disable:this class_delegate_protocol
+public protocol ImagePipelineDelegate: ImageTaskDelegate {
     // MARK: Configuration
 
     /// Returns data loader for the given request.
@@ -54,11 +54,6 @@ public protocol ImagePipelineDelegate: Sendable { // swiftlint:disable:this clas
     func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool
 
     func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse
-
-    // MARK: Monitoring
-
-    /// Delivers the events produced by the image tasks started via `loadImage` method.
-    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent)
 }
 
 extension ImagePipelineDelegate {
@@ -95,37 +90,6 @@ extension ImagePipelineDelegate {
         response.container.image = ImageDecompression.decompress(image: response.image)
         return response
     }
-
-    public func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
-        // Do nothing
-    }
 }
 
-/// An image task event sent by the pipeline.
-public enum ImageTaskEvent {
-    case started
-    case cancelled
-    case priorityUpdated(priority: ImageRequest.Priority)
-    case intermediateResponseReceived(response: ImageResponse)
-    case progressUpdated(completedUnitCount: Int64, totalUnitCount: Int64)
-    case completed(result: Result<ImageResponse, ImagePipeline.Error>)
-}
-
-extension ImageTaskEvent {
-    init(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
-        switch event {
-        case let .error(error):
-            self = .completed(result: .failure(error))
-        case let .value(response, isCompleted):
-            if isCompleted {
-                self = .completed(result: .success(response))
-            } else {
-                self = .intermediateResponseReceived(response: response)
-            }
-        case let .progress(progress):
-            self = .progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total)
-        }
-    }
-}
-
-struct ImagePipelineDefaultDelegate: ImagePipelineDelegate {}
+final class ImagePipelineDefaultDelegate: ImagePipelineDelegate {}

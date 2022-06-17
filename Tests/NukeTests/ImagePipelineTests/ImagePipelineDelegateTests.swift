@@ -67,87 +67,6 @@ class ImagePipelineDelegateTests: XCTestCase {
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
     }
 
-    // MARK: Monitoring
-
-    func testStartAndCompletedEvents() throws {
-        var result: Result<ImageResponse, ImagePipeline.Error>?
-        expect(pipeline).toLoadImage(with: Test.request) { result = $0 }
-        wait()
-
-        // Then
-        XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.started,
-            .progressUpdated(completedUnitCount: 22789, totalUnitCount: 22789),
-            .completed(result: try XCTUnwrap(result))
-        ])
-    }
-
-    func testProgressUpdateEvents() throws {
-        let request = ImageRequest(url: Test.url)
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
-
-        var result: Result<ImageResponse, ImagePipeline.Error>?
-        expect(pipeline).toFailRequest(request) { result = $0 }
-        wait()
-
-        // Then
-        XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.started,
-            .progressUpdated(completedUnitCount: 10, totalUnitCount: 20),
-            .progressUpdated(completedUnitCount: 20, totalUnitCount: 20),
-            .completed(result: try XCTUnwrap(result))
-        ])
-    }
-
-    func testUpdatePriorityEvents() {
-        // Given
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-
-        let request = Test.request
-        XCTAssertEqual(request.priority, .normal)
-
-        let operationQueueObserver = self.expect(queue).toEnqueueOperationsWithCount(1)
-
-        let task = pipeline.loadImage(with: request) { _ in }
-        wait() // Wait till the operation is created.
-
-        guard let operation = operationQueueObserver.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-        expect(operation).toUpdatePriority()
-        task.setPriority(.high)
-        wait()
-
-        // Then
-        XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.started,
-            .priorityUpdated(priority: .high)
-        ])
-    }
-
-    func testCancellationEvents() {
-        dataLoader.queue.isSuspended = true
-
-        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-        let task = pipeline.loadImage(with: Test.request) { _ in
-            XCTFail()
-        }
-        wait() // Wait till operation is created
-
-        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
-        task.cancel()
-        wait()
-
-        // Then
-        XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.started,
-            .cancelled
-        ])
-    }
-
     func testDataIsStoredInCache() {
         // WHEN
         expect(pipeline).toLoadImage(with: Test.request)
@@ -180,10 +99,5 @@ private final class MockImagePipelineDelegate: ImagePipelineDelegate, @unchecked
     func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void) {
         completion(isCacheEnabled ? data : nil)
     }
-
-    var events = [ImageTaskEvent]()
-
-    func pipeline(_ pipeline: ImagePipeline, imageTask: ImageTask, didReceiveEvent event: ImageTaskEvent) {
-        events.append(event)
-    }
 }
+
