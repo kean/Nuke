@@ -38,9 +38,10 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
     }
 
     func imageTaskDidCancel(_ task: ImageTask) {
+        append(.cancelled)
+
         cancelledTaskCount += 1
         NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
-        append(.cancelled)
     }
 
     func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
@@ -52,9 +53,10 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
     }
 
     func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
+        append(.completed(result: result))
+
         completedTaskCount += 1
         NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
-        append(.completed(result: result))
     }
 }
 

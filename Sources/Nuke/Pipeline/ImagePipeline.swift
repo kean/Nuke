@@ -33,7 +33,7 @@ public final class ImagePipeline: @unchecked Sendable {
     let delegate: any ImagePipelineDelegate // swiftlint:disable:this all
     let imageCache: ImageCache?
 
-    private var tasks = [ImageTask: TaskSubscription]()
+    private var tasks = [ImageTask: ImageTaskContext]()
 
     private let tasksLoadData: TaskPool<ImageLoadKey, (Data, URLResponse?), Error>
     private let tasksLoadImage: TaskPool<ImageLoadKey, ImageResponse, Error>
@@ -269,7 +269,8 @@ public final class ImagePipeline: @unchecked Sendable {
 
         delegate.imageTaskStarted(task)
 
-        tasks[task] = makeTaskLoadImage(for: task.request)
+        let context = ImageTaskContext(callbackQueue: callbackQueue)
+        context.subscription = makeTaskLoadImage(for: task.request)
             .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
@@ -299,6 +300,7 @@ public final class ImagePipeline: @unchecked Sendable {
                     }
                 }
         }
+        tasks[task] = context
     }
 
     private func makeImageTask(request: ImageRequest, isDataTask: Bool = false) -> ImageTask {
@@ -365,7 +367,8 @@ public final class ImagePipeline: @unchecked Sendable {
     ) {
         guard !isInvalidated else { return }
 
-        tasks[task] = makeTaskLoadData(for: task.request)
+        let context = ImageTaskContext(callbackQueue: callbackQueue)
+        context.subscription = makeTaskLoadData(for: task.request)
             .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
@@ -389,6 +392,7 @@ public final class ImagePipeline: @unchecked Sendable {
                     }
                 }
             }
+        tasks[task] = context
     }
 
     // MARK: - Loading Images (Combine)
@@ -409,21 +413,20 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     private func cancel(_ task: ImageTask) {
-        guard let subscription = self.tasks.removeValue(forKey: task) else { return }
-        if !task.isDataTask {
-            self.delegate.imageTaskDidCancel(task)
+        guard let context = self.tasks.removeValue(forKey: task) else { return }
+        dispatchCallback(to: context.callbackQueue) {
+            task.onCancel?()
+            if !task.isDataTask {
+                self.delegate.imageTaskDidCancel(task)
+            }
         }
-        if let onCancel = task.onCancel {
-            dispatchCallback(to: nil, onCancel)
-        }
-        subscription.unsubscribe()
+        context.subscription?.unsubscribe()
     }
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
         queue.async {
             task._priority = priority
-            guard let subscription = self.tasks[task] else { return }
-            subscription.setPriority(priority.taskPriority)
+            self.tasks[task]?.subscription?.setPriority(priority.taskPriority)
         }
     }
 
@@ -486,5 +489,15 @@ public final class ImagePipeline: @unchecked Sendable {
                 TaskFetchOriginalImageData(self, request) :
                 TaskFetchWithPublisher(self, request)
         }
+    }
+}
+
+private final class ImageTaskContext {
+    var callbackQueue: DispatchQueue?
+    var subscription: TaskSubscription?
+
+    init(callbackQueue: DispatchQueue? = nil, subscription: TaskSubscription? = nil) {
+        self.callbackQueue = callbackQueue
+        self.subscription = subscription
     }
 }

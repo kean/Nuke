@@ -65,7 +65,7 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
         }
         wait() // Wait till operation is created
         
-        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
+        expectNotification(ImagePipelineObserver.didCancelTask, object: delegate)
         task.cancel()
         wait()
         
