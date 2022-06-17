@@ -118,11 +118,10 @@ extension ImagePipeline.Cache {
         guard !request.options.contains(.disableMemoryCacheReads) else {
             return nil
         }
-        let key = makeImageCacheKey(for: request)
-        if let imageCache = pipeline.imageCache {
-            return imageCache[key] // Fast path for a default cache (no protocol call)
+        guard let imageCache = imageCache(for: request) else {
+            return nil
         }
-        return configuration.imageCache?[key]
+        return imageCache[makeImageCacheKey(for: request)]
     }
 
     private func storeCachedImageInMemoryCache(_ image: ImageContainer, for request: ImageRequest) {
@@ -132,13 +131,17 @@ extension ImagePipeline.Cache {
         guard !image.isPreview || configuration.isStoringPreviewsInMemoryCache else {
             return
         }
-        let key = makeImageCacheKey(for: request)
-        configuration.imageCache?[key] = image
+        guard let imageCache = imageCache(for: request) else {
+            return
+        }
+        imageCache[makeImageCacheKey(for: request)] = image
     }
 
     private func removeCachedImageFromMemoryCache(for request: ImageRequest) {
-        let key = makeImageCacheKey(for: request)
-        configuration.imageCache?[key] = nil
+        guard let imageCache = imageCache(for: request) else {
+            return
+        }
+        imageCache[makeImageCacheKey(for: request)] = nil
     }
 
     // MARK: Cached Data
@@ -218,6 +221,10 @@ extension ImagePipeline.Cache {
     // MARK: Misc
 
     /// Removes both images and data from all cache layes.
+    ///
+    /// - warning: It clears only caches set in the pipeline configuration. If
+    /// you implement `ImagePipelineDelegate` that uses different caches for
+    /// different requests, this won't remove images from them.
     public func removeAll(caches: Caches = [.all]) {
         if caches.contains(.memory) {
             configuration.imageCache?.removeAll()
@@ -241,6 +248,10 @@ extension ImagePipeline.Cache {
         let context = ImageEncodingContext(request: request, image: image.image, urlResponse: nil)
         let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
         return encoder.encode(image, context: context)
+    }
+
+    private func imageCache(for request: ImageRequest) -> (any ImageCaching)? {
+        pipeline.delegate.imageCache(for: request, pipeline: pipeline)
     }
 
     private func dataCache(for request: ImageRequest) -> (any DataCaching)? {

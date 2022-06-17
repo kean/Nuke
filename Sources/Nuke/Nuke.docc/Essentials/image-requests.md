@@ -25,8 +25,6 @@ var request = ImageRequest(url: URL(string: "http://..."))
 request.processors = [ImageProcessors.Resize(size: imageView.bounds.size)]
 ```
 
-> Tip: Another way to apply processors is by setting the default ``ImagePipeline/Configuration-swift.struct/processors`` on ``ImagePipeline/Configuration-swift.struct``.
-
 > Tip: See <doc:image-processing> for more information on image processing.
 
 ## Priority

@@ -271,4 +271,5 @@ func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
 
 ### Composite Cache
 
+- <doc:image-pipeline-cache>
 - ``ImagePipeline/Cache-swift.struct``

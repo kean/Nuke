@@ -11,6 +11,8 @@ import Foundation
 public protocol ImagePipelineDelegate: ImageTaskDelegate {
     // MARK: Configuration
 
+    func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)?
+
     /// Returns data loader for the given request.
     func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading
 
@@ -57,6 +59,10 @@ public protocol ImagePipelineDelegate: ImageTaskDelegate {
 }
 
 extension ImagePipelineDelegate {
+    public func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)? {
+        pipeline.configuration.imageCache
+    }
+
     public func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading {
         pipeline.configuration.dataLoader
     }

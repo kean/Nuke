@@ -31,7 +31,6 @@ public final class ImagePipeline: @unchecked Sendable {
     public var cache: ImagePipeline.Cache { ImagePipeline.Cache(pipeline: self) }
 
     let delegate: any ImagePipelineDelegate
-    let imageCache: ImageCache?
 
     private var tasks = [ImageTask: TaskSubscription]()
 
@@ -78,8 +77,6 @@ public final class ImagePipeline: @unchecked Sendable {
 
         self._nextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
         self._nextTaskId.initialize(to: 0)
-
-        self.imageCache = configuration.imageCache as? ImageCache
 
         ResumableDataStorage.shared.register(self)
 
