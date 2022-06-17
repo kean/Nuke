@@ -297,7 +297,7 @@ private struct Progress: Equatable {
     let completed, total: Int64
 }
 
-private final class AnonymousImateTaskDelegate: ImageTaskDelegate {
+private final class AnonymousImateTaskDelegate: ImageTaskDelegate, @unchecked Sendable {
     var onWillStart: ((ImageTask) -> Void)?
 
     func imageTaskWillStart(_ task: ImageTask) {
