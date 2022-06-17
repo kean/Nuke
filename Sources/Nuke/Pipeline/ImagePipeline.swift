@@ -108,6 +108,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Loads an image for the given request.
     public func image(for request: any ImageRequestConvertible, delegate: ImageTaskDelegate? = nil) async throws -> ImageResponse {
+        #warning("Move delegate to startImageTask")
         let task = makeImageTask(request: request.asImageRequest())
         delegate?.imageTaskCreated(task)
 
