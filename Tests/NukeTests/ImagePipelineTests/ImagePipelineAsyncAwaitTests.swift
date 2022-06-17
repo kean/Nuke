@@ -347,10 +347,4 @@ private final class AnonymousImateTaskDelegate: ImageTaskDelegate, @unchecked Se
     func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
         onResult?(result)
     }
-
-    var onDataResult: ((Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) -> Void)?
-
-    func dataTask(_ task: ImageTask, didCompleteWithResult result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) {
-        onDataResult?(result)
-    }
 }
