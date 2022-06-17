@@ -178,23 +178,17 @@ public final class ImagePipeline: @unchecked Sendable {
     ///
     /// - parameter request: An image request.
     @discardableResult
-    public func data(for request: any ImageRequestConvertible, delegate: ImageTaskDelegate? = nil) async throws -> (Data, URLResponse?) {
+    public func data(for request: any ImageRequestConvertible) async throws -> (Data, URLResponse?) {
         let task = makeImageTask(request: request.asImageRequest(), isDataTask: true)
-        delegate?.imageTaskWillStart(task)
-
         return try await withTaskCancellationHandler(handler: {
             task.cancel()
         }, operation: {
             try await withUnsafeThrowingContinuation { continuation in
-                task.onCancel = { [weak delegate] in
-                    delegate?.imageTaskDidCancel(task)
+                task.onCancel = {
                     continuation.resume(throwing: CancellationError())
                 }
-                queue.async { [weak delegate] in
-                    self.startDataTask(task, callbackQueue: nil, progress: { [weak delegate] in
-                        delegate?.imageTask(task, didUpdateProgress: ($0, $1))
-                    }, completion: { [weak delegate] result in
-                        delegate?.dataTask(task, didCompleteWithResult: result)
+                queue.async {
+                    self.startDataTask(task, callbackQueue: nil, progress: nil, completion: { result in
                         continuation.resume(with: result.map { $0 })
                     })
                 }

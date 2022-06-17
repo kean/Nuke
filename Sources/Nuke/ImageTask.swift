@@ -121,8 +121,6 @@ public protocol ImageTaskDelegate: AnyObject {
     func imageTaskDidCancel(_ task: ImageTask)
 
     func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>)
-
-    func dataTask(_ task: ImageTask, didCompleteWithResult result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>)
 }
 
 extension ImageTaskDelegate {
@@ -143,10 +141,6 @@ extension ImageTaskDelegate {
     }
 
     func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
-        // Do nothing
-    }
-
-    func dataTask(_ task: ImageTask, didCompleteWithResult result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>) {
         // Do nothing
     }
 }
