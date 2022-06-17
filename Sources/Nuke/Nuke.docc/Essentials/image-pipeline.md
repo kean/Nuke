@@ -17,7 +17,7 @@ ImagePipeline {
 }
 ```
 
-> Tip: There are many ways to customize the pipeline. To learn more, see <doc:image-pipeline-configuration>.
+> Tip: There are many ways to customize the pipeline. For example, you can set ``ImagePipelineDelegate`` to provide custom option on a per-request basis. To learn more, see <doc:image-pipeline-configuration>.
 
 ## Loading Images
 

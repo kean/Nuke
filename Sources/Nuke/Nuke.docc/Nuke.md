@@ -1,5 +1,7 @@
 # ``Nuke``
 
+// TODO: Rewrite this
+
 Welcome to the documentation for Nuke, an image loading system for Apple platforms.
 
 **Nuke ILS** provides a simple and efficient way to download and display images in your app. It's easy to learn and use thanks to a clear and concise API. Its advanced architecture enables many powerful features while offering virtually unlimited possibilities for customization.

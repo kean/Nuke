@@ -2,8 +2,6 @@
 
 Learn about main Nuke features and APIs.
 
-// TODO: Make sure all main links are captured here.
-
 ## Image Pipeline
 
 ``ImagePipeline`` is what you use to load images. You can start by using a shared pipeline and can configure a custom one later if needed (see <doc:image-pipeline-configuration>). Use ``ImagePipeline/image(for:delegate:)`` that returns an ``ImageResponse`` containig an image in case of success.
