@@ -406,9 +406,6 @@ public final class ImagePipeline: @unchecked Sendable {
         queue.async {
             task._priority = priority
             guard let subscription = self.tasks[task] else { return }
-            if !task.isDataTask {
-                self.send(.priorityUpdated(priority: priority), task)
-            }
             subscription.setPriority(priority.taskPriority)
         }
     }

@@ -26,7 +26,6 @@ extension ImageTaskEvent: Equatable {
         switch (lhs, rhs) {
         case (.started, .started): return true
         case (.cancelled, .cancelled): return true
-        case let (.priorityUpdated(lhs), .priorityUpdated(rhs)): return lhs == rhs
         case let (.intermediateResponseReceived(lhs), .intermediateResponseReceived(rhs)): return lhs == rhs
         case let (.progressUpdated(lhsTotal, lhsCompleted), .progressUpdated(rhsTotal, rhsCompleted)):
             return (lhsTotal, lhsCompleted) == (rhsTotal, rhsCompleted)

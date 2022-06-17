@@ -101,33 +101,6 @@ class ImagePipelineDelegateTests: XCTestCase {
         ])
     }
 
-    func testUpdatePriorityEvents() {
-        // Given
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-
-        let request = Test.request
-        XCTAssertEqual(request.priority, .normal)
-
-        let operationQueueObserver = self.expect(queue).toEnqueueOperationsWithCount(1)
-
-        let task = pipeline.loadImage(with: request) { _ in }
-        wait() // Wait till the operation is created.
-
-        guard let operation = operationQueueObserver.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-        expect(operation).toUpdatePriority()
-        task.setPriority(.high)
-        wait()
-
-        // Then
-        XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.started,
-            .priorityUpdated(priority: .high)
-        ])
-    }
-
     func testCancellationEvents() {
         dataLoader.queue.isSuspended = true
 

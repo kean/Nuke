@@ -105,7 +105,6 @@ extension ImagePipelineDelegate {
 public enum ImageTaskEvent {
     case started
     case cancelled
-    case priorityUpdated(priority: ImageRequest.Priority)
     case intermediateResponseReceived(response: ImageResponse)
     case progressUpdated(completedUnitCount: Int64, totalUnitCount: Int64)
     case completed(result: Result<ImageResponse, ImagePipeline.Error>)
