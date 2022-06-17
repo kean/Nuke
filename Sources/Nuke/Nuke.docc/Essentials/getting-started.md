@@ -53,7 +53,7 @@ let request = ImageRequest(
 let response = try await pipeline.image(for: url)
 ```
 
-> Most Nuke APIs accept any type that conforms to ``ImageRequestConvertible``. By default, it includes `URL`, `URLRequest`, `String`, and ``ImageRequest`` itself. Learn more in <doc:image-requests>.
+> Most Nuke APIs accept any type that conforms to ``ImageRequestConvertible``. By default, it includes `URL`, `URLRequest`, and ``ImageRequest`` itself. Learn more in <doc:image-requests>.
 
 ## Caching
 

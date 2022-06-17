@@ -92,10 +92,6 @@ class ImagePipelinePublisherTests: XCTestCase {
 
     // MARK: ImageRequestConvertible
 
-    func testInitWithString() {
-        let _ = pipeline.imagePublisher(with: "https://example.com/image.jpeg")
-    }
-
     func testInitWithURL() {
         let _ = pipeline.imagePublisher(with: URL(string: "https://example.com/image.jpeg")!)
     }

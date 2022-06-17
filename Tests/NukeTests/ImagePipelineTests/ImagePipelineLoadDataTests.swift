@@ -116,7 +116,7 @@ class ImagePipelineLoadDataTests: XCTestCase {
         }
 
         // WHEN
-        let record = expect(pipeline).toLoadData(with: "http://example.com/invalid url")
+        let record = expect(pipeline).toLoadData(with: URL(string: "http://example.com/invalid url"))
         wait()
 
         // THEN
