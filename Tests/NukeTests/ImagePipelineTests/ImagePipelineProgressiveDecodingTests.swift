@@ -349,38 +349,4 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         wait()
     }
     #endif
-
-    // MARK: - Async/Await
-
-    func testProgressiveDecodingAsyncAwait() async throws {
-        var responses: [ImageResponse] = []
-        for try await response in pipeline.images(for: Test.request) {
-            responses.append(response)
-            dataLoader.resume()
-        }
-        XCTAssertEqual(responses.count, 3)
-    }
-
-    func testCancellationDuringDecodingAsyncAwait() async {
-        class Box {
-            var onCancel: (() -> Void)?
-        }
-
-        let box = Box()
-
-        let task = Task {
-            var responses: [ImageResponse] = []
-            do {
-                for try await response in pipeline.images(for: Test.request) {
-                    responses.append(response)
-                    box.onCancel?()
-                }
-            } catch {
-                XCTFail() // Stream terminates without throwing an error
-            }
-            XCTAssertEqual(responses.count, 1)
-        }
-        box.onCancel = task.cancel
-        await task.value
-    }
 }

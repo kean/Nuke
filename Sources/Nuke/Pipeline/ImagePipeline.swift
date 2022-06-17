@@ -130,37 +130,6 @@ public final class ImagePipeline: @unchecked Sendable {
         })
     }
 
-    // TODO: do we need this?
-
-    /// Loads an image for the given request, producing progressive images as
-    /// more data becomes available.
-    public func images(for request: any ImageRequestConvertible, delegate: ImageTaskDelegate? = nil) -> AsyncThrowingStream<ImageResponse, Swift.Error> {
-        let task = makeImageTask(request: request.asImageRequest(), queue: nil)
-        task.delegate = delegate
-
-        self.delegate.imageTaskCreated(task)
-        task.delegate?.imageTaskCreated(task)
-
-        return AsyncThrowingStream { continuation in
-            self.queue.async {
-                self.startImageTask(task, progress: { response, _, _ in
-                    if let response = response {
-                        continuation.yield(response)
-                    }
-                }, completion: { result in
-                    switch result {
-                    case .success(let response):
-                        continuation.yield(response)
-                        continuation.finish()
-                    case .failure(let error):
-                        continuation.finish(throwing: error)
-                    }
-                })
-            }
-            continuation.onTermination = { _ in task.cancel() }
-        }
-    }
-
     // MARK: - Loading Data (Async/Await)
 
     /// Loads an image for the given request.
