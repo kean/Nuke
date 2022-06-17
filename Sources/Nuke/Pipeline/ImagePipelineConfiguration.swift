@@ -3,9 +3,6 @@
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import os
-
-// MARK: - ImagePipeline.Configuration
 
 extension ImagePipeline {
     /// The pipeline configuration.
@@ -165,10 +162,6 @@ extension ImagePipeline {
         /// resume where it left off. Supports both validators (`ETag`,
         /// `Last-Modified`). Resumable downloads are enabled by default.
         public var isResumableDataEnabled = true
-
-        /// `false` by default. Set it to false to perform all data loading
-        /// operations immediately, ignoring `dataLoadingQueue`.
-        public var isDataLoadingQueueSkipped = false
 
         // MARK: - Options (Shared)
 

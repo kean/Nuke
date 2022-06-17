@@ -602,38 +602,6 @@ class ImagePipelineTests: XCTestCase {
 
     // MARK: Skip Data Loading Queue Option
 
-    func testSkipDataLoadingQueueWithURL() throws {
-        // Given
-        pipeline = pipeline.reconfigured {
-            $0.isDataLoadingQueueSkipped = true
-        }
-
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-
-        let request = ImageRequest(url: Test.url)
-
-        // Then image is still loaded
-        expect(pipeline).toLoadImage(with: request)
-        wait()
-    }
-
-    func testSkipDataLoadingQueueWithPublisher() throws {
-        // Given
-        pipeline = pipeline.reconfigured {
-            $0.isDataLoadingQueueSkipped = true
-        }
-
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-
-        let request = ImageRequest(id: "a", data: Just(Test.data))
-
-        // Then image is still loaded
-        expect(pipeline).toLoadImage(with: request)
-        wait()
-    }
-
     func testSkipDataLoadingQueuePerRequestWithURL() throws {
         // Given
         let queue = pipeline.configuration.dataLoadingQueue

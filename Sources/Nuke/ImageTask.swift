@@ -44,7 +44,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     var onCancel: (() -> Void)?
 
-    private weak var pipeline: ImagePipeline?
+    weak var pipeline: ImagePipeline?
+    weak var delegate: ImageTaskDelegate?
+    var callbackQueue: DispatchQueue?
+    var isDataTask = false
 
     deinit {
         self._isCancelled.deallocate()
@@ -53,11 +56,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         #endif
     }
 
-    init(taskId: Int64, request: ImageRequest, pipeline: ImagePipeline) {
+    init(taskId: Int64, request: ImageRequest) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
-        self.pipeline = pipeline
 
         self._isCancelled = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
         self._isCancelled.initialize(to: 0)
@@ -123,27 +125,15 @@ public protocol ImageTaskDelegate: AnyObject, Sendable {
 }
 
 extension ImageTaskDelegate {
-    public func imageTaskCreated(_ task: ImageTask) {
+    public func imageTaskCreated(_ task: ImageTask) {}
 
-    }
+    public func imageTaskStarted(_ task: ImageTask) {}
 
-    public func imageTaskStarted(_ task: ImageTask) {
-        // Do nothing
-    }
+    public func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {}
 
-    public func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
-        // Do nothing
-    }
+    public func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {}
 
-    public func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
-        // Do nothing
-    }
+    public func imageTaskDidCancel(_ task: ImageTask) {}
 
-    public func imageTaskDidCancel(_ task: ImageTask) {
-        // Do nothing
-    }
-
-    public func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
-        // Do nothing
-    }
+    public func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {}
 }
