@@ -1,5 +1,7 @@
 # Caching
 
+// TODO: Split this into separate files
+
 Nuke has three cache layers that you can configure to precisely match your app needs. The pipeline uses these caches when you request an image. Your app has advanced control over how images are stored and retrieved and direct access to all cache layers.
 
 ## Configuration
@@ -253,3 +255,20 @@ func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
     request.userInfo["imageId"] as? String
 }
 ```
+
+## Topics
+
+### Memory Cache
+
+- ``ImageCaching``
+- ``ImageCache``
+- ``ImageCacheKey``
+
+### Disk Cache
+
+- ``DataCaching``
+- ``DataCache``
+
+### Composite Cache
+
+- ``ImagePipeline/Cache-swift.struct``

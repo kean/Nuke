@@ -40,53 +40,35 @@ To learn Nuke, start with the basic guides and make your way through the documen
 
 ### Image Pipeline
 
+<!--Articles-->
 - <doc:image-pipeline-configuration>
 - <doc:image-pipeline-guide>
-- <doc:prefetching>
-- <doc:combine>
+- <doc:troubleshooting>
+
+<!--Collections-->
+- <doc:image-processing>
+- <doc:loading-data>
+- <doc:image-formats>
+
+<!--Symbols-->
 - ``ImagePipeline``
+- ``ImagePipeline/Configuration-swift.struct``
+
+// TODO: move image pipeline delegate to ImagePipeline somehow
+
 - ``ImagePipelineDelegate``
 - ``ImageTask``
 - ``ImageTaskDelegate``
 - ``ImageTaskEvent``
-- ``ImagePrefetcher``
-
-### Processing
-
-- <doc:image-processing>
-- ``ImageProcessing``
-- ``ImageProcessors``
-- ``ImageProcessingOptions``
-- ``ImageProcessingContext``
-- ``ImageProcessingError``
-
-### Caching
-
-- <doc:caching>
-- ``ImageCaching``
-- ``ImageCache``
-- ``DataCaching``
-- ``DataCache``
-- ``ImageCacheKey``
-- ``ImagePipeline/Cache-swift.struct``
-
-### Loading Data
-
-- ``DataLoading``
-- ``DataLoader``
-- ``DataLoaderObserving``
-- ``DataTaskEvent``
-- ``Cancellable``
-
-### Customization
-
-- <doc:plugins>
-- <doc:image-formats>
 
 ### Performance
 
+<!--Articles-->
 - <doc:performance-guide>
+- <doc:prefetching>
 
-### Deprecated
+<!--Collections-->
+- <doc:caching>
 
-- ``ImageDecoderRegistering``
+<!--Symbols-->
+- ``ImagePrefetcher``

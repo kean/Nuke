@@ -92,3 +92,18 @@ public protocol ImageProcessing {
 ```
 
 In addition to ``ImageProcessing/identifier`` (a `String`), you can implement ``ImageProcessing/hashableIdentifier-2i3a7`` to be used by the memory cache where string manipulations would be too slow. By default, this method returns the `identifier` string. A common approach is to make your processor `Hashable` and return `self` from `hashableIdentifier`.
+
+## Topics
+
+### Image Processing
+
+- ``ImageProcessing``
+- ``ImageProcessingOptions``
+- ``ImageProcessingContext``
+- ``ImageProcessingError``
+
+
+### Built-In Processors
+
+- ``ImageProcessors``
+- ``ImageProcessors/Resize``
