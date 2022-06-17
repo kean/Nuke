@@ -326,7 +326,7 @@ private final class AnonymousImateTaskDelegate: ImageTaskDelegate, @unchecked Se
 
     var onProgress: ((_ completed: Int64, _ total: Int64) -> Void)?
 
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
         onProgress?(progress.completed, progress.total)
     }
 

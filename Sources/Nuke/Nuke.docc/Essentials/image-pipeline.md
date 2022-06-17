@@ -49,7 +49,7 @@ func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
     // When downloading and image that supports progerssive decoding, previews are delivered here.
 }
 
-func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
+func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
     // Gets called when the download progress is updated.
 }
 ```
@@ -98,7 +98,7 @@ task.cancel()
 // Update the priority of the outstanding request.
 task.setPriority(.high)
 
-// Monitor the download progress using `Foundation.Progress` (not recommended).
+// Get the current download progress (must be accessed from a callback queue).
 let progress = task.progress
 ```
 

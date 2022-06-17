@@ -44,7 +44,7 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
         NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
     }
 
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
         append(.progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total))
     }
 

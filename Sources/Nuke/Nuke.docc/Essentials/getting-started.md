@@ -30,7 +30,7 @@ func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
     // When downloading and image that supports progerssive decoding, previews are delivered here.
 }
 
-func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
+func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
     // Gets called when the download progress is updated.
 }
 ```

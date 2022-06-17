@@ -183,15 +183,17 @@ public final class ImagePipeline: @unchecked Sendable {
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        loadImage(with: request, isConfined: false, queue: queue, progress: progress, completion: completion)
+        loadImage(with: request, isConfined: false, queue: queue, progress: {
+            progress?($0, $1.completed, $1.total)
+        }, completion: completion)
     }
 
     func loadImage(
         with request: any ImageRequestConvertible,
         isConfined: Bool,
         queue callbackQueue: DispatchQueue?,
-        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-        completion: ((_ result: Result<ImageResponse, Error>) -> Void)?
+        progress: ((ImageResponse?, ImageTask.Progress) -> Void)?,
+        completion: ((Result<ImageResponse, Error>) -> Void)?
     ) -> ImageTask {
         let task = makeImageTask(request: request, queue: callbackQueue)
         delegate.imageTaskCreated(task)
@@ -208,8 +210,8 @@ public final class ImagePipeline: @unchecked Sendable {
 
     private func startImageTask(
         _ task: ImageTask,
-        progress progressHandler: ((ImageResponse?, Int64, Int64) -> Void)?,
-        completion: ((_ result: Result<ImageResponse, Error>) -> Void)?
+        progress progressHandler: ((ImageResponse?, ImageTask.Progress) -> Void)?,
+        completion: ((Result<ImageResponse, Error>) -> Void)?
     ) {
         guard !isInvalidated else { return }
 
@@ -238,14 +240,14 @@ public final class ImagePipeline: @unchecked Sendable {
                             self.delegate.imageTask(task, didReceivePreview: response)
                             task.delegate?.imageTask(task, didReceivePreview: response)
 
-                            progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
+                            progressHandler?(response, task.progress)
                         }
                     case let .progress(progress):
-                        self.delegate.imageTask(task, didUpdateProgress: (progress.completed, progress.total))
-                        task.delegate?.imageTask(task, didUpdateProgress: (progress.completed, progress.total))
+                        self.delegate.imageTask(task, didUpdateProgress: progress)
+                        task.delegate?.imageTask(task, didUpdateProgress: progress)
 
-                        task.setProgress(progress)
-                        progressHandler?(nil, progress.completed, progress.total)
+                        task.progress = progress
+                        progressHandler?(nil, progress)
                     case let .error(error):
                         self.delegate.imageTask(task, didCompleteWithResult: .failure(error))
                         task.delegate?.imageTask(task, didCompleteWithResult: .failure(error))
@@ -341,7 +343,7 @@ public final class ImagePipeline: @unchecked Sendable {
                             completion(.success(response))
                         }
                     case let .progress(progress):
-                        task.setProgress(progress)
+                        task.progress = progress
                         progressHandler?(progress.completed, progress.total)
                     case let .error(error):
                         completion(.failure(error))

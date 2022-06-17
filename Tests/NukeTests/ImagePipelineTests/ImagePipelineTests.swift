@@ -58,31 +58,6 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
-    func testProgressObjectIsUpdated() {
-        // Given
-        let request = Test.request
-
-        dataLoader.results[Test.url] = .success(
-            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-        )
-
-        // When
-        let expectTaskFinished = self.expectation(description: "Task finished")
-        let task = pipeline.loadImage(with: request) { _ in
-            expectTaskFinished.fulfill()
-        }
-
-        // Then
-        self.expect(values: [20], for: task.progress, keyPath: \.totalUnitCount) { _, _ in
-            XCTAssertTrue(Thread.isMainThread)
-        }
-        self.expect(values: [10, 20], for: task.progress, keyPath: \.completedUnitCount) { _, _ in
-            XCTAssertTrue(Thread.isMainThread)
-        }
-
-        wait()
-    }
-
     func testTaskProgressIsUpdated() {
         // Given
         let request = ImageRequest(url: Test.url)

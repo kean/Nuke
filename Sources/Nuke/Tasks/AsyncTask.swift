@@ -267,10 +267,7 @@ extension AsyncTask {
     }
 }
 
-struct TaskProgress: Hashable {
-    let completed: Int64
-    let total: Int64
-}
+typealias TaskProgress = ImageTask.Progress // Using typealias for simplicity
 
 enum TaskPriority: Int, Comparable {
     case veryLow = 0, low, normal, high, veryHigh

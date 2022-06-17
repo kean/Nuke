@@ -69,6 +69,14 @@ extension ImageTask {
         get { _priority }
         set { setPriority(newValue) }
     }
+
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please use progress.completed instead.")
+    public var completedUnitCount: Int64 { progress.completed }
+
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please use progress.total instead.")
+    public var totalUnitCount: Int64 { progress.total }
 }
 
 extension DataCache {

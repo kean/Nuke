@@ -26,18 +26,11 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     // MARK: Progress
 
-    /// The number of bytes that the task has received.
-    public private(set) var completedUnitCount: Int64 = 0
-
-    /// A best-guess upper bound on the number of bytes of the resource.
-    public private(set) var totalUnitCount: Int64 = 0
-
-    /// Returns a progress object for the task, created lazily.
-    public var progress: Progress {
-        if _progress == nil { _progress = Progress() }
-        return _progress!
-    }
-    private var _progress: Progress?
+    /// Returns the current download progress. Returns zeros before the download
+    /// is started and the expected size of the resource is known.
+    ///
+    /// - warning: Must be accessed only from the callback queue (main by default).
+    public internal(set) var progress = Progress(completed: 0, total: 0)
 
     var isCancelled: Bool { _isCancelled.pointee == 1 }
     private let _isCancelled: UnsafeMutablePointer<Int32>
@@ -48,6 +41,20 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     weak var delegate: ImageTaskDelegate?
     var callbackQueue: DispatchQueue?
     var isDataTask = false
+
+    /// The download progress.
+    public struct Progress: Hashable, Sendable {
+        /// The number of bytes that the task has received.
+        public let completed: Int64
+        /// A best-guess upper bound on the number of bytes of the resource.
+        public let total: Int64
+
+        /// Returns the fraction of the completion.
+        public var fraction: Float {
+            guard total > 0 else { return 0 }
+            return min(1, Float(completed) / Float(total))
+        }
+    }
 
     deinit {
         self._isCancelled.deallocate()
@@ -80,13 +87,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         }
     }
 
-    func setProgress(_ progress: TaskProgress) {
-        completedUnitCount = progress.completed
-        totalUnitCount = progress.total
-        _progress?.completedUnitCount = progress.completed
-        _progress?.totalUnitCount = progress.total
-    }
-
     // MARK: Hashable
 
     public func hash(into hasher: inout Hasher) {
@@ -100,7 +100,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     // MARK: CustomStringConvertible
 
     public var description: String {
-        "ImageTask(id: \(taskId), priority: \(_priority), completedUnitCount: \(completedUnitCount), totalUnitCount: \(totalUnitCount), isCancelled: \(isCancelled))"
+        "ImageTask(id: \(taskId), priority: \(_priority), progress: \(progress.completed) / \(progress.total), isCancelled: \(isCancelled))"
     }
 }
 
@@ -116,13 +116,18 @@ public protocol ImageTaskDelegate: AnyObject, Sendable {
     func imageTaskDidStart(_ task: ImageTask)
 
     /// Gets called when the progress is updated.
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64))
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress)
 
     /// Gets called when a new progressive image is produced.
     func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse)
 
+    /// Gets called when the task is cancelled.
+    ///
+    /// - warning: This doesn't get called immediately
     func imageTaskDidCancel(_ task: ImageTask)
 
+    /// If you cancel the task from the same queue as the callback queue, this
+    /// callback is guaranteed not to be called.
     func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>)
 }
 
@@ -131,7 +136,7 @@ extension ImageTaskDelegate {
 
     public func imageTaskDidStart(_ task: ImageTask) {}
 
-    public func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {}
+    public func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {}
 
     public func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {}
 
