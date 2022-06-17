@@ -122,7 +122,7 @@ public final class ImagePipeline: @unchecked Sendable {
                 queue.async { [weak delegate] in
                     delegate?.imageTaskStarted(task)
 
-                    self.startImageTask(task, callbackQueue: nil, progress: { [weak delegate] response, completed, total in
+                    self.startImageTask(task, isConfined: true, callbackQueue: nil, progress: { [weak delegate] response, completed, total in
                         if let response = response {
                             delegate?.imageTask(task, didProduceProgressiveResponse: response)
                         } else {
@@ -151,7 +151,7 @@ public final class ImagePipeline: @unchecked Sendable {
             queue.async { [weak delegate] in
                 delegate?.imageTaskStarted(task)
 
-                self.startImageTask(task, callbackQueue: nil, progress: { [weak delegate] response, completed, total in
+                self.startImageTask(task, isConfined: true, callbackQueue: nil, progress: { [weak delegate] response, completed, total in
                     if let response = response {
                         delegate?.imageTask(task, didProduceProgressiveResponse: response)
                         continuation.yield(response)
@@ -239,17 +239,27 @@ public final class ImagePipeline: @unchecked Sendable {
     ) -> ImageTask {
         let task = makeImageTask(request: request)
         delegate.imageTaskCreated(task)
-        if isConfined {
-            self.startImageTask(task, callbackQueue: queue, progress: progress, completion: completion)
-        } else {
-            self.queue.async {
-                self.startImageTask(task, callbackQueue: queue, progress: progress, completion: completion)
-            }
-        }
+        self.startImageTask(task, isConfined: isConfined, callbackQueue: queue, progress: progress, completion: completion)
         return task
     }
 
     private func startImageTask(
+        _ task: ImageTask,
+        isConfined: Bool,
+        callbackQueue: DispatchQueue?,
+        progress: ((ImageResponse?, Int64, Int64) -> Void)?,
+        completion: ((_ result: Result<ImageResponse, Error>) -> Void)?
+    ) {
+        if isConfined {
+            _startImageTask(task, callbackQueue: callbackQueue, progress: progress, completion: completion)
+        } else {
+            self.queue.async {
+                self._startImageTask(task, callbackQueue: callbackQueue, progress: progress, completion: completion)
+            }
+        }
+    }
+
+    private func _startImageTask(
         _ task: ImageTask,
         callbackQueue: DispatchQueue?,
         progress progressHandler: ((ImageResponse?, Int64, Int64) -> Void)?,
