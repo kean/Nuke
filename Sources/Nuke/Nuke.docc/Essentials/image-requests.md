@@ -4,17 +4,42 @@ Learn how to create and customize image requests.
 
 ## Overview
 
-``ImageRequest`` allows you to set image processors, change the request priority, and more.
+``ImageRequest`` specifies what images to download, how to process it, set the request priority, and more.
 
 ```swift
 let request = ImageRequest(
     url: URL(string: "http://example.com/image.jpeg"),
-    processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
+    processors: [.resize(size: imageView.bounds.size)],
     priority: .high,
     options: [.reloadIgnoringCacheData]
 )
-Nuke.loadImage(with: url, into: imageView)
+let response = try await pipeline.image(for: url)
 ```
+
+## Creating a Request
+
+A request is initialized with a resource address. It can be either a [`URL`](https://developer.apple.com/documentation/foundation/url) or [`URLRequest`](https://developer.apple.com/documentation/foundation/urlrequest).
+
+```swift
+// With `URL`
+let request = ImageRequest(url: URL(string: "http://example.com/image.jpeg"))
+
+// With `URLRequest`
+let urlRequest = URLRequest(url: url, cachePolicy: .returnCacheDataDontLoad)
+let request = ImageRequest(urlRequest: urlRequest)
+```
+
+If you have a custom data source or want to process image data from memory, you can also use a special Combine-based initializer.
+
+```swift
+let request = ImageRequest(
+    id: "image-01",
+    data: Just(data),
+    processors: [ImageProcessors.Resize(width: 44)]
+)
+```
+
+## Customizing a Request
 
 ## Processors
 
@@ -63,24 +88,5 @@ By default, a pipeline uses URLs as unique image identifiers for caching and tas
 let request = ImageRequest(
     url: URL(string: "http://example.com/image.jpeg?token=123"),
     userInfo: [.imageIdKey: "http://example.com/image.jpeg"]
-)
-```
-
-## Sources
-
-The request can be instantiated either with a [`URL`](https://developer.apple.com/documentation/foundation/url) or with a [`URLRequest`](https://developer.apple.com/documentation/foundation/urlrequest).
-
-```swift
-let urlRequest = URLRequest(url: imageUrl, cachePolicy: .returnCacheDataDontLoad)
-let request = ImageRequest(urlRequest: urlRequest)
-```
-
-If you have a custom data source or want to process image data from memory, you can also use a special Combine-based initializer.
-
-```swift
-let request = ImageRequest(
-    id: "image-01",
-    data: Just(data),
-    processors: [ImageProcessors.Resize(width: 44)]
 )
 ```
