@@ -17,8 +17,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The original request.
     public let request: ImageRequest
 
-    let isDataTask: Bool
-
     /// Updates the priority of the task, even if it is already running.
     public func setPriority(_ priority: ImageRequest.Priority) {
         pipeline?.imageTaskUpdatePriorityCalled(self, priority: priority)
@@ -55,11 +53,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         #endif
     }
 
-    init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline) {
+    init(taskId: Int64, request: ImageRequest, pipeline: ImagePipeline) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
-        self.isDataTask = isDataTask
         self.pipeline = pipeline
 
         self._isCancelled = UnsafeMutablePointer<Int32>.allocate(capacity: 1)

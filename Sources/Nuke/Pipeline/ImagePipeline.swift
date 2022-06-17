@@ -183,7 +183,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// - parameter request: An image request.
     @discardableResult
     public func data(for request: any ImageRequestConvertible) async throws -> (Data, URLResponse?) {
-        let task = makeImageTask(request: request.asImageRequest(), isDataTask: true)
+        let task = makeImageTask(request: request.asImageRequest())
         return try await withTaskCancellationHandler(handler: {
             task.cancel()
         }, operation: {
@@ -303,8 +303,8 @@ public final class ImagePipeline: @unchecked Sendable {
         tasks[task] = context
     }
 
-    private func makeImageTask(request: ImageRequest, isDataTask: Bool = false) -> ImageTask {
-        ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self)
+    private func makeImageTask(request: ImageRequest) -> ImageTask {
+        ImageTask(taskId: nextTaskId, request: request, pipeline: self)
     }
 
     // MARK: - Loading Data (Closures)
@@ -348,7 +348,7 @@ public final class ImagePipeline: @unchecked Sendable {
         progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
-        let task = makeImageTask(request: request, isDataTask: true)
+        let task = makeImageTask(request: request)
         if isConfined {
             self.startDataTask(task, callbackQueue: queue, progress: progress, completion: completion)
         } else {
@@ -367,7 +367,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ) {
         guard !isInvalidated else { return }
 
-        let context = ImageTaskContext(callbackQueue: callbackQueue)
+        let context = ImageTaskContext(callbackQueue: callbackQueue, isDataTask: true)
         context.subscription = makeTaskLoadData(for: task.request)
             .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
@@ -416,7 +416,7 @@ public final class ImagePipeline: @unchecked Sendable {
         guard let context = self.tasks.removeValue(forKey: task) else { return }
         dispatchCallback(to: context.callbackQueue) {
             task.onCancel?()
-            if !task.isDataTask {
+            if !context.isDataTask {
                 self.delegate.imageTaskDidCancel(task)
             }
         }
@@ -493,11 +493,12 @@ public final class ImagePipeline: @unchecked Sendable {
 }
 
 private final class ImageTaskContext {
-    var callbackQueue: DispatchQueue?
+    let callbackQueue: DispatchQueue?
+    let isDataTask: Bool
     var subscription: TaskSubscription?
 
-    init(callbackQueue: DispatchQueue? = nil, subscription: TaskSubscription? = nil) {
+    init(callbackQueue: DispatchQueue? = nil, isDataTask: Bool = false) {
         self.callbackQueue = callbackQueue
-        self.subscription = subscription
+        self.isDataTask = isDataTask
     }
 }
