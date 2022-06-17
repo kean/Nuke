@@ -29,25 +29,25 @@ let urlRequest = URLRequest(url: url, cachePolicy: .returnCacheDataDontLoad)
 let request = ImageRequest(urlRequest: urlRequest)
 ```
 
-If you have a custom data source or want to process image data from memory, you can also use a special Combine-based initializer.
+Alternatively, you can pass image data directly either using an asynchronous function or a Combine publisher.
 
 ```swift
-let request = ImageRequest(
-    id: "image-01",
-    data: Just(data),
-    processors: [ImageProcessors.Resize(width: 44)]
-)
+ImageRequest(id: "image-id", data: {
+    let (data, _) = try await URLSession.shared.data(for: URLRequest(url: localURL))
+    return data
+})
 ```
 
 ## Customizing a Request
+
+In additional to a resource address, ``ImageRequest`` initializers like ``ImageRequest/init(url:processors:priority:options:userInfo:)`` accepts multiple other parameters. They can also be set using simple properties that are documented in the following section.
 
 ## Processors
 
 Set ``ImageRequest/processors`` to apply one of the built-in processors that can be found in ``ImageProcessors`` namespace or a custom one.
 
 ```swift
-var request = ImageRequest(url: URL(string: "http://..."))
-request.processors = [ImageProcessors.Resize(size: imageView.bounds.size)]
+request.processors = [.resize(size: imageView.bounds.size)]
 ```
 
 > Tip: See <doc:image-processing> for more information on image processing.
@@ -56,37 +56,52 @@ request.processors = [ImageProcessors.Resize(size: imageView.bounds.size)]
 
 The execution priority of the request. The priority affects the order in which the image requests are executed. By default, `.normal`.
 
-> The priority management is key for Nuke performance. ``ImagePrefetcher`` uses `.low` priority to avoid interfering with `.normal` requests.
-
-> Tip: You can change the priority of a running task using ``ImageTask/priority``.
+> Tip: You can change the priority of a running task using ``ImageTask/setPriority(_:)``.
 
 ```swift
-var request = ImageRequest(url: URL(string: "http://..."))
 request.priority = .high
 ```
 
 ## Options
 
-By default, the pipeline makes full use of all of its caching layers. You can change this behavior using ``ImageRequest/Options-swift.struct``. For example, you can ignore local caches using ``ImageRequest/Options-swift.struct/reloadIgnoringCachedData`` option.
+By default, the pipeline makes full use of all of its caching layers. You can change this behavior using options. For example, you can ignore local caches using ``ImageRequest/Options-swift.struct/reloadIgnoringCachedData`` option.
 
 ```swift
-var request = ImageRequest(url: URL(string: "http://..."))
 request.options = [.reloadIgnoringCachedData]
 ```
 
-Another useful cache policy is ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad`` that allows you to existing cache data and fail if no cached data is available.
-
-> Tip: See <doc:caching> for more information on caching.
+Another useful cache policy is ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad`` that allows you to existing cache data and fail if no cached data is available. For a complete list of options, see ``ImageRequest/Options-swift.struct``.
 
 ## User Info
 
-You can also provide custom options to the request via ``ImageRequest/userInfo``. There are also some rarely used built-in options that are passed via ``ImageRequest/userInfo`.
+``ImageRequest`` also supports custom options using ``ImageRequest/userInfo``. There are a couple of built-in options that are passed using ``ImageRequest/userInfo`` as well.
+
+### Image ID
 
 By default, a pipeline uses URLs as unique image identifiers for caching and task coalescing. You can override this behavior by providing an ``ImageRequest/UserInfoKey/imageIdKey`` instead. For example, you can use it to remove transient query parameters from the request.
 
 ```swift
-let request = ImageRequest(
-    url: URL(string: "http://example.com/image.jpeg?token=123"),
-    userInfo: [.imageIdKey: "http://example.com/image.jpeg"]
+var request = ImageRequest(url: URL(string: "http://example.com/image.jpeg?token=123"))
+request.userInfo[.imageIdKey] = "http://example.com/image.jpeg"
 )
+```
+
+### Thumbnails
+
+To load a thumbnail instead of a full image, pass ``ImageRequest/ThumbnailOptions`` in the request ``ImageRequest/userInfo`` using ``ImageRequest/UserInfoKey/thumbnailKey``.
+
+```swift
+request.userInfo[.thumbnailKey] = ImageRequest.ThumbnailOptions(maxPixelSize: 400) 
+```
+
+This operation generates the thumbnail directly from the image data using [`CGImageSourceCreateThumbnailAtIndex`](https://developer.apple.com/documentation/imageio/1465099-cgimagesourcecreatethumbnailatin). It is more efficient and uses significantly less memory than ``ImageProcessors/Resize``, especially when generating thumbnails for large images. 
+
+By default, it always generates a thumbnail. To use the thumbnail embedded in the image, see ``ImageRequest/ThumbnailOptions/createThumbnailFromImageAlways`` and ``ImageRequest/ThumbnailOptions/createThumbnailFromImageIfAbsent``.
+
+### Scale
+
+By default, ``ImagePipeline`` sets image [`scale`](https://developer.apple.com/documentation/uikit/uiimage/1624110-scale) to the scale of the screen. You can pass a custom scale to override it.
+
+```swift
+request.userInfo[.scaleKey] = 1.0
 ```
