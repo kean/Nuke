@@ -8,7 +8,7 @@ import Foundation
 ///
 /// - warning: The delegate methods are performed on the pipeline queue in the
 /// background.
-public protocol ImagePipelineDelegate: ImageTaskDelegate, Sendable { // swiftlint:disable:this class_delegate_protocol
+public protocol ImagePipelineDelegate: ImageTaskDelegate {
     // MARK: Configuration
 
     /// Returns data loader for the given request.

@@ -19,34 +19,47 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
 
     var events = [ImageTaskEvent]()
 
-    func imageTaskWillStart(_ task: ImageTask) {
+    private let lock = NSLock()
+
+    private func append(_ event: ImageTaskEvent) {
+        lock.lock()
+        events.append(event)
+        lock.unlock()
+    }
+
+    func imageTaskCreated(_ task: ImageTask) {
+        append(.created)
+    }
+
+    func imageTaskStarted(_ task: ImageTask) {
         startedTaskCount += 1
         NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
-        events.append(.started)
+        append(.started)
     }
 
     func imageTaskDidCancel(_ task: ImageTask) {
         cancelledTaskCount += 1
         NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
-        events.append(.cancelled)
+        append(.cancelled)
     }
 
     func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
-        events.append(.progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total))
+        append(.progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total))
     }
 
     func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
-        events.append(.intermediateResponseReceived(response: response))
+        append(.intermediateResponseReceived(response: response))
     }
 
     func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
         completedTaskCount += 1
         NotificationCenter.default.post(name: ImagePipelineObserver.didCompleteTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task, ImagePipelineObserver.resultKey: result])
-        events.append(.completed(result: result))
+        append(.completed(result: result))
     }
 }
 
 enum ImageTaskEvent: Equatable {
+    case created
     case started
     case cancelled
     case intermediateResponseReceived(response: ImageResponse)
@@ -55,6 +68,7 @@ enum ImageTaskEvent: Equatable {
 
     static func == (lhs: ImageTaskEvent, rhs: ImageTaskEvent) -> Bool {
         switch (lhs, rhs) {
+        case (.created, .created): return true
         case (.started, .started): return true
         case (.cancelled, .cancelled): return true
         case let (.intermediateResponseReceived(lhs), .intermediateResponseReceived(rhs)): return lhs == rhs

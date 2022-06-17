@@ -29,7 +29,8 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
         
         // Then
         XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.started,
+            ImageTaskEvent.created,
+            .started,
             .progressUpdated(completedUnitCount: 22789, totalUnitCount: 22789),
             .completed(result: try XCTUnwrap(result))
         ])
@@ -47,7 +48,8 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
         
         // Then
         XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.started,
+            ImageTaskEvent.created,
+            .started,
             .progressUpdated(completedUnitCount: 10, totalUnitCount: 20),
             .progressUpdated(completedUnitCount: 20, totalUnitCount: 20),
             .completed(result: try XCTUnwrap(result))
@@ -69,7 +71,8 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
         
         // Then
         XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.started,
+            ImageTaskEvent.created,
+            .started,
             .cancelled
         ])
     }

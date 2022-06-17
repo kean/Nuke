@@ -76,7 +76,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
     func testImageTaskReturnedImmediately() async throws {
         // GIVEN
-        taskDelegate.onWillStart = { [unowned self] in imageTask = $0 }
+        taskDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
 
         // WHEN
         _ = try await pipeline.image(for: Test.request, delegate: taskDelegate)
@@ -88,7 +88,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
     func testImageTaskDelegateDidCancelIsCalled() async throws {
         // GIVEN
         dataLoader.queue.isSuspended = true
-        taskDelegate.onWillStart = { [unowned self] in imageTask = $0 }
+        taskDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
 
         observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { [unowned self] _ in
             imageTask?.cancel()
@@ -189,7 +189,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
         let observer = expect(queue).toEnqueueOperationsWithCount(1)
 
-        taskDelegate.onWillStart = { [unowned self] in imageTask = $0 }
+        taskDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
 
         Task.detached { [unowned self] in
             try await self.pipeline.image(for: request, delegate: taskDelegate)
@@ -298,10 +298,16 @@ private struct Progress: Equatable {
 }
 
 private final class AnonymousImateTaskDelegate: ImageTaskDelegate, @unchecked Sendable {
-    var onWillStart: ((ImageTask) -> Void)?
+    var onTaskCreated: ((ImageTask) -> Void)?
 
-    func imageTaskWillStart(_ task: ImageTask) {
-        onWillStart?(task)
+    func imageTaskCreated(_ task: ImageTask) {
+        onTaskCreated?(task)
+    }
+
+    var onTaskStarted: ((ImageTask) -> Void)?
+
+    func imageTaskStarted(_ task: ImageTask) {
+
     }
 
     var onProgress: ((_ completed: Int64, _ total: Int64) -> Void)?
