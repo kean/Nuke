@@ -75,7 +75,7 @@ class ImagePipelineTests: XCTestCase {
             progress: { _, completed, total in
                 // Then
                 XCTAssertTrue(Thread.isMainThread)
-                expectedProgress.received((task.completedUnitCount, task.totalUnitCount))
+                expectedProgress.received((task.progress.completed, task.progress.total))
             },
             completion: { _ in }
         )
