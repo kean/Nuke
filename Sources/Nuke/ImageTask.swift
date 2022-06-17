@@ -44,7 +44,9 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     var onCancel: (() -> Void)?
 
-    private weak var pipeline: ImagePipeline?
+    weak var pipeline: ImagePipeline?
+    var callbackQueue: DispatchQueue?
+    var isDataTask = false
 
     deinit {
         self._isCancelled.deallocate()
@@ -53,11 +55,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         #endif
     }
 
-    init(taskId: Int64, request: ImageRequest, pipeline: ImagePipeline) {
+    init(taskId: Int64, request: ImageRequest) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
-        self.pipeline = pipeline
 
         self._isCancelled = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
         self._isCancelled.initialize(to: 0)
