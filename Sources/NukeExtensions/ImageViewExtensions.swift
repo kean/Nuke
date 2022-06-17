@@ -116,7 +116,7 @@ extension NSImageView: Nuke_ImageDisplaying {
     completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
 ) -> ImageTask? {
     let controller = ImageViewController.controller(for: view)
-    return controller.loadImage(with: request?.asImageRequest(), options: options, progress: progress, completion: completion)
+    return controller.loadImage(with: request, options: options, progress: progress, completion: completion)
 }
 
 /// Cancels an outstanding request associated with the view.
