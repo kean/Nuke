@@ -252,13 +252,11 @@ public final class ImagePipeline: @unchecked Sendable {
     ) {
         guard !isInvalidated else { return }
 
-        self.send(.started, task)
+        delegate.imageTaskWillStart(task)
 
         tasks[task] = makeTaskLoadImage(for: task.request)
             .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
-
-                self.send(ImageTaskEvent(event), task)
 
                 if event.isCompleted {
                     self.tasks[task] = nil
@@ -270,14 +268,18 @@ public final class ImagePipeline: @unchecked Sendable {
                     switch event {
                     case let .value(response, isCompleted):
                         if isCompleted {
+                            self.delegate.imageTask(task, didCompleteWithResult: .success(response))
                             completion?(.success(response))
                         } else {
+                            self.delegate.imageTask(task, didProduceProgressiveResponse: response)
                             progressHandler?(response, task.completedUnitCount, task.totalUnitCount)
                         }
                     case let .progress(progress):
+                        self.delegate.imageTask(task, didUpdateProgress: (progress.completed, progress.total))
                         task.setProgress(progress)
                         progressHandler?(nil, progress.completed, progress.total)
                     case let .error(error):
+                        self.delegate.imageTask(task, didCompleteWithResult: .failure(error))
                         completion?(.failure(error))
                     }
                 }
@@ -394,7 +396,7 @@ public final class ImagePipeline: @unchecked Sendable {
     private func cancel(_ task: ImageTask) {
         guard let subscription = self.tasks.removeValue(forKey: task) else { return }
         if !task.isDataTask {
-            self.send(.cancelled, task)
+            self.delegate.imageTaskDidCancel(task)
         }
         if let onCancel = task.onCancel {
             dispatchCallback(to: nil, onCancel)
@@ -469,9 +471,5 @@ public final class ImagePipeline: @unchecked Sendable {
                 TaskFetchOriginalImageData(self, request) :
                 TaskFetchWithPublisher(self, request)
         }
-    }
-
-    private func send(_ event: ImageTaskEvent, _ task: ImageTask) {
-        delegate.pipeline(self, imageTask: task, didReceiveEvent: event)
     }
 }
