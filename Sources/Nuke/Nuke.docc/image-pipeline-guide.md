@@ -25,7 +25,7 @@ This section describes the steps that the pipeline performs when getting an imag
 
 > Important: The disk cache described in steps 2 and 3 is disabled by default. The pipeline relies on the HTTP-compliant disk cache on a `URLSession` level. To learn how to enable the disk cache, see "Aggressive LRU Disk Cache".
 
-- If all caches are empty, load the image data. If any resumable data was left from a previous equivalent request, use it. Otherwise, start fresh. When the data is loaded, prepare the image for display as in the pervious steps.
+- If all caches are empty, load the image data. If any resumable data was left from a previous equivalent request, use it. Otherwise, start fresh. When the data is loaded, prepare the image for display as in the previous steps.
 
 Now that you saw a high-level overview, let's dive into more detail.
 

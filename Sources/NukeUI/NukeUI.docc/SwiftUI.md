@@ -171,7 +171,7 @@ struct GridExampleView: View {
 
 ### Combine
 
-If you use Combine support (``ImagePublisher``) to create a custom image publisher, ``FetchImage`` provides a simple way to display the resuling image.
+If you use Combine support (``ImagePublisher``) to create a custom image publisher, ``FetchImage`` provides a simple way to display the resulting image.
 
 ```swift
 let image = FetchImage()

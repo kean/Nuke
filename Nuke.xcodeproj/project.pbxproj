@@ -268,6 +268,8 @@
 		0CC6279E25C100E300466F04 /* ImageCachePerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6279D25C100E300466F04 /* ImageCachePerformanceTests.swift */; };
 		0CC627A525C100FA00466F04 /* ImageProcessingPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC627A425C100FA00466F04 /* ImageProcessingPerformanceTests.swift */; };
 		0CC893B5285CC6C60043D809 /* Nuke.docc in Sources */ = {isa = PBXBuildFile; fileRef = 0C023C06285ABD8D00F07BD1 /* Nuke.docc */; };
+		0CC893B7285D21C60043D809 /* NukeUI.docc in Sources */ = {isa = PBXBuildFile; fileRef = 0CC893B6285D21C60043D809 /* NukeUI.docc */; };
+		0CC893B9285D21D70043D809 /* NukeExtensions.docc in Sources */ = {isa = PBXBuildFile; fileRef = 0CC893B8285D21D70043D809 /* NukeExtensions.docc */; };
 		0CCBB534217D0B980026F552 /* MockProgressiveDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCBB533217D0B980026F552 /* MockProgressiveDataLoader.swift */; };
 		0CD37C9A25BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD37C9925BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift */; };
 		0CE2D9BA2084FDDD00934B28 /* ImageDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE2D9B92084FDDD00934B28 /* ImageDecoding.swift */; };
@@ -544,6 +546,8 @@
 		0CC6279625C100CE00466F04 /* ImageRequestPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRequestPerformanceTests.swift; sourceTree = "<group>"; };
 		0CC6279D25C100E300466F04 /* ImageCachePerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCachePerformanceTests.swift; sourceTree = "<group>"; };
 		0CC627A425C100FA00466F04 /* ImageProcessingPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessingPerformanceTests.swift; sourceTree = "<group>"; };
+		0CC893B6285D21C60043D809 /* NukeUI.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = NukeUI.docc; sourceTree = "<group>"; };
+		0CC893B8285D21D70043D809 /* NukeExtensions.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = NukeExtensions.docc; sourceTree = "<group>"; };
 		0CCBB52F217D0B6A0026F552 /* ImageViewIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewIntegrationTests.swift; sourceTree = "<group>"; };
 		0CCBB533217D0B980026F552 /* MockProgressiveDataLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProgressiveDataLoader.swift; sourceTree = "<group>"; };
 		0CCDB8D121D576F00032518B /* Nuke.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Nuke.xcconfig; sourceTree = "<group>"; };
@@ -716,6 +720,7 @@
 				0C55FD1D28567926000FD2C9 /* FetchImage.swift */,
 				0C38DB4F285690F90027F9FF /* Internal.swift */,
 				0C38DB57285691FE0027F9FF /* Gifu */,
+				0CC893B6285D21C60043D809 /* NukeUI.docc */,
 			);
 			path = NukeUI;
 			sourceTree = "<group>";
@@ -789,6 +794,7 @@
 			children = (
 				0C55FD1B28567926000FD2C9 /* ImageLoadingOptions.swift */,
 				0C55FD1C28567926000FD2C9 /* ImageViewExtensions.swift */,
+				0CC893B8285D21D70043D809 /* NukeExtensions.docc */,
 			);
 			path = NukeExtensions;
 			sourceTree = "<group>";
@@ -1633,6 +1639,7 @@
 				0C38DB702856A4D30027F9FF /* LazyImgeState.swift in Sources */,
 				0C38DB68285692290027F9FF /* Animator.swift in Sources */,
 				0C38DB56285690FA0027F9FF /* VideoPlayerView.swift in Sources */,
+				0CC893B7285D21C60043D809 /* NukeUI.docc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1682,6 +1689,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C55FD1F28567926000FD2C9 /* ImageViewExtensions.swift in Sources */,
+				0CC893B9285D21D70043D809 /* NukeExtensions.docc in Sources */,
 				0C55FD1E28567926000FD2C9 /* ImageLoadingOptions.swift in Sources */,
 				0C55FD2028567926000FD2C9 /* FetchImage.swift in Sources */,
 			);

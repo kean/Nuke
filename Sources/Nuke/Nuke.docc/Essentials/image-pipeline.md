@@ -25,7 +25,7 @@ In this section, you'll learn how to load images using ``ImagePipeline``.
 
 ### Load an Image (Async/Await)
 
-Use ``ImagePipeline/image(for:delegate:)`` that returns an ``ImageResponse`` containig an image in case of success.
+Use ``ImagePipeline/image(for:delegate:)`` that returns an ``ImageResponse`` containing an image in case of success.
 
 ```swift
 let response = try await ImagePipeline.shared.image(for: url)
