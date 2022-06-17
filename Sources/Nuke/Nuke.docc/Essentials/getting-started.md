@@ -22,15 +22,15 @@ func loadImage() async throws {
     let _ = try await pipeline.image(for: url, delegate: self)
 }
 
-func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {
+func imageTaskCreated(_ task: ImageTask) {
     // Gets called immediately when the task is created.
 }
 
-func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse, pipeline: ImagePipeline) {
+func imageTask(_ task: ImageTask, didProduceProgressiveResponse response: ImageResponse) {
     // When downloading and image that supports progerssive decoding, previews are delivered here.
 }
 
-func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64), pipeline: ImagePipeline) {
+func imageTask(_ task: ImageTask, didUpdateProgress progress: (completed: Int64, total: Int64)) {
     // Gets called when the download progress is updated.
 }
 ```
