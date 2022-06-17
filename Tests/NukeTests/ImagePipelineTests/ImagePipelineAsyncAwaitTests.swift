@@ -11,6 +11,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
     private var recordedProgress: [Progress] = []
     private var taskDelegate = AnonymousImateTaskDelegate()
+    private var pipelineDelegate = ImagePipelineObserver()
     private var imageTask: ImageTask?
     private let callbackQueue = DispatchQueue(label: "testChangingCallbackQueue")
     private let callbackQueueKey = DispatchSpecificKey<Void>()
@@ -19,7 +20,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         super.setUp()
 
         dataLoader = MockDataLoader()
-        pipeline = ImagePipeline {
+        pipeline = ImagePipeline(delegate: pipelineDelegate) {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
             $0.callbackQueue = callbackQueue
@@ -175,6 +176,19 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
         // THEN
         XCTAssertTrue(result.image === recordedResult?.value?.image)
+    }
+
+    func testImagePipelineDelegateCallbacksAlsoDelivered() async throws {
+        // WHEN
+        let response = try await pipeline.image(for: Test.request, delegate: taskDelegate)
+
+        // THEN
+        XCTAssertEqual(pipelineDelegate.events, [
+            .created,
+            .started,
+            .progressUpdated(completedUnitCount: 22789, totalUnitCount: 22789),
+            .completed(result: .success(response))
+        ])
     }
 
     // MARK: - Update Priority

@@ -45,6 +45,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     var onCancel: (() -> Void)?
 
     weak var pipeline: ImagePipeline?
+    weak var delegate: ImageTaskDelegate?
     var callbackQueue: DispatchQueue?
     var isDataTask = false
 
