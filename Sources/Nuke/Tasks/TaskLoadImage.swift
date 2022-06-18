@@ -209,6 +209,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     private func isDecompressionNeeded(for response: ImageResponse) -> Bool {
         (ImageDecompression.isDecompressionNeeded(for: response.image) ?? false) &&
+        !request.options.contains(.skipDecompression) &&
         pipeline.delegate.shouldDecompress(response: response, for: request, pipeline: pipeline)
     }
 

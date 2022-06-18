@@ -36,6 +36,10 @@ class MockAnonymousImageDecoder: ImageDecoding, @unchecked Sendable {
         self.closure = closure
     }
 
+    convenience init(output: PlatformImage) {
+        self.init { _, _ in output }
+    }
+
     func decode(_ data: Data) throws -> ImageContainer {
         guard let image = closure(data, true) else {
             throw ImageDecodingError.unknown

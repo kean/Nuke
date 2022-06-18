@@ -254,80 +254,54 @@ class ImagePipelineTests: XCTestCase {
 
     #if !os(macOS)
 
-    func testDisablingDecompression() {
-        let image = Test.image
-
-        // Given the pipeline which returns a predefined image and which
-        // has decompression disabled
-        let pipeline = ImagePipeline {
-            $0.dataLoader = MockDataLoader()
-            $0.makeImageDecoder = { _ in
-                MockAnonymousImageDecoder { _, _ in
-                    return image
-                }
-            }
-            $0.imageCache = nil
-
+    func testDisablingDecompression() async throws {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
             $0.isDecompressionEnabled = false
         }
 
-        // When
-        expect(pipeline).toLoadImage(with: Test.request) { result in
-            guard let output = result.value?.image else {
-                return XCTFail("Expected image to be loaded")
-            }
+        // WHEN
+        let response = try await pipeline.image(for: Test.url)
 
-            XCTAssertTrue(output === image)
-
-            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: output)
-            XCTAssertEqual(isDecompressionNeeded, true)
-        }
-        wait()
+        // THEN
+        XCTAssertEqual(true, ImageDecompression.isDecompressionNeeded(for: response.image))
     }
 
-    func testDecompression() {
-        let image = Test.image
+    func testDisablingDecompressionForIndividualRequest() async throws {
+        // GIVEN
+        let request = ImageRequest(url: Test.url, options: [.skipDecompression])
 
-        // Given the pipeline which returns a predefined image
-        let pipeline = ImagePipeline {
-            $0.dataLoader = MockDataLoader()
-            $0.makeImageDecoder = { _ in
-                MockAnonymousImageDecoder { _, _ in
-                    return image
-                }
-            }
-            $0.imageCache = nil
-        }
+        // WHEN
+        let response = try await pipeline.image(for: request)
 
-        // When
-        expect(pipeline).toLoadImage(with: Test.request) { result in
-            guard let output = result.value?.image else {
-                return XCTFail("Expected image to be loaded")
-            }
-
-            XCTAssertTrue(output !== image)
-
-            XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: output))
-        }
-        wait()
+        // THEN
+        XCTAssertEqual(true, ImageDecompression.isDecompressionNeeded(for: response.image))
     }
 
-    func testDecompressionNotPerformedWhenProcessorWasApplied() {
-        // Given request with scaling processor
+    func testDecompressionPerformed() async throws {
+        // WHEN
+        let response = try await pipeline.image(for: Test.request)
+
+        // THEN
+        XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: response.image))
+    }
+
+    func testDecompressionNotPerformedWhenProcessorWasApplied() async throws {
+        // GIVEN request with scaling processor
+        let input = Test.image
+        pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in MockAnonymousImageDecoder(output: input) }
+        }
+
         let request = ImageRequest(url: Test.url, processors: [
-            ImageProcessors.Resize(size: CGSize(width: 40, height: 40), contentMode: .aspectFit)
+            .resize(size: CGSize(width: 40, height: 40))
         ])
 
-        expect(pipeline).toLoadImage(with: request) { result in
-            guard let image = result.value?.image else {
-                return XCTFail("Expected image to be loaded")
-            }
+        // WHEN
+        let _ = try await pipeline.image(for: request)
 
-            // Expect decompression to not be performed
-            let isDecompressionNeeded = ImageDecompression.isDecompressionNeeded(for: image)
-            XCTAssertNil(isDecompressionNeeded)
-        }
-        wait()
+        // THEN
+        XCTAssertEqual(true, ImageDecompression.isDecompressionNeeded(for: input))
     }
 
     func testDecompressionPerformedWhenProcessorIsAppliedButDoesNothing() {
