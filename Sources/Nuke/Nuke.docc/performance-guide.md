@@ -2,6 +2,39 @@
 
 Nuke is highly [optimized](https://kean.blog/post/concurrency) and provides many performance [features](https://kean.blog/post/nuke-9), but it's ultimately up to your app to decide how to use them.
 
+## Coalescing
+
+The pipeline avoids doing any duplicated work when loading images. For example, let's take these two requests:
+
+```swift
+let url = URL(string: "http://example.com/image")
+pipeline.loadImage(with: ImageRequest(url: url, processors: [
+    ImageProcessor.Resize(size: CGSize(width: 44, height: 44)),
+    ImageProcessor.GaussianBlur(radius: 8)
+]))
+pipeline.loadImage(with: ImageRequest(url: url, processors: [
+    ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
+]))
+```
+
+Nuke will load the data only once, resize the image once and blur it also only once. There is no duplicated work done. The work only gets canceled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
+
+Coalescing can be disabled using ``ImagePipeline/Configuration-swift.struct/isTaskCoalescingEnabled`` configuration option.
+
+## Decompression
+
+When you instantiate `UIImage` with `Data`, the data can be in a compressed format like `JPEG`. `UIImage` does _not_ eagerly decompress this data until you display it. It leads to performance issues like scroll view stuttering. To avoid it, Nuke automatically decompresses the data in the background. Decompression only runs if needed; it won't run for already processed images.
+
+> Tip: See [Image and Graphics Best Practices](https://developer.apple.com/videos/play/wwdc2018/219) to learn more about image decoding and downsampling.
+
+## Progressive Decoding
+
+If progressive decoding is enabled, the pipeline attempts to produce a preview of any image every time a new chunk of data is loaded. See it in action in the [demo project](https://github.com/kean/NukeDemo).
+
+When the pipeline downloads the first chunk of data, it creates an instance of a decoder used for the entire image loading session. When the new chunks are loaded, the pipeline passes them to the decoder. The decoder can either produce a preview or return nil if not enough data is downloaded.
+
+Every image preview goes through the same processing and decompression phases that the final images do. The main difference is the introduction of backpressure. If one of the stages can’t process the input fast enough, then the pipeline waits until the current operation is finished, and only then starts the next one. When the data is fully downloaded, all outstanding progressive operations are canceled to save processing time.
+
 ## Caching
 
 ### Enable Aggressive Cache
