@@ -123,7 +123,6 @@
 		0C55FD1128567875000FD2C9 /* NukeExtensions.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0C55FD1E28567926000FD2C9 /* ImageLoadingOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C55FD1B28567926000FD2C9 /* ImageLoadingOptions.swift */; };
 		0C55FD1F28567926000FD2C9 /* ImageViewExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C55FD1C28567926000FD2C9 /* ImageViewExtensions.swift */; };
-		0C55FD2028567926000FD2C9 /* FetchImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C55FD1D28567926000FD2C9 /* FetchImage.swift */; };
 		0C55FD21285679A4000FD2C9 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C55FD2728567C12000FD2C9 /* ImageViewExtensionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C94466D1D47EC0E006DB314 /* ImageViewExtensionsTests.swift */; };
 		0C55FD2828567C18000FD2C9 /* ImageViewIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCBB52F217D0B6A0026F552 /* ImageViewIntegrationTests.swift */; };
@@ -1687,7 +1686,6 @@
 				0C55FD1F28567926000FD2C9 /* ImageViewExtensions.swift in Sources */,
 				0CC893B9285D21D70043D809 /* NukeExtensions.docc in Sources */,
 				0C55FD1E28567926000FD2C9 /* ImageLoadingOptions.swift in Sources */,
-				0C55FD2028567926000FD2C9 /* FetchImage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
