@@ -1,6 +1,10 @@
 # Prefetching
 
-Loading data ahead of time in anticipation of its use (prefetching) is a great way to improve user experience. It's especially effective for images; it can give users an impression that there is no networking and the images are just magically always there.
+Learn how to prefetch images to improve user experience.
+
+## Overview
+
+Loading data ahead of time in anticipation of its use ([prefetching](https://en.wikipedia.org/wiki/Prefetching)) is a great way to improve user experience. It's especially effective for images; it can give users an impression that there is no networking and the images are just magically always there.
 
 ## UICollectionView
 
@@ -19,27 +23,23 @@ final class PrefetchingDemoViewController: BaseDemoViewController {
 }
 
 extension PrefetchingDemoViewController: UICollectionViewDataSourcePrefetching {
-    func collectionView(_ collectionView: UICollectionView,
-                        prefetchItemsAt indexPaths: [IndexPath]) {
+    func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
         let urls = indexPaths.map { photos[$0.row] }
         prefetcher.startPrefetching(with: urls)
     }
 
-    func collectionView(_ collectionView: UICollectionView,
-                        cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
+    func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
         let urls = indexPaths.map { photos[$0.row] }
         prefetcher.startPrefetching(with: urls)
     }
 }
 ```
 
-This code sample comes straight from [Nuke Demo](https://github.com/kean/NukeDemo). So does the following screenshot.
+This code sample comes straight from [Nuke Demo](https://github.com/kean/NukeDemo).
 
-There are 32 items on the screen (the last row is partially visible). When you open it for the first time, the prefetch API asks the app to start prefetching for indices `[32-55]`. As you scroll, the prefetch "window" changes. You receive `cancelPrefetchingForItemsAt` calls for items no longer in the prefetch window.
+Let's say, there are 32 items on the screen (the last row is partially visible). When you open it for the first time, the prefetch API asks the app to start prefetching for indices `[32-55]`. As you scroll, the prefetch "window" changes. You receive `cancelPrefetchingForItemsAt` calls for items no longer in the prefetch window.
 
-> `UICollectionView` offers no customization options. If you want to have more control, check out [Preheat](https://github.com/kean/Preheat). I deprecated it, but you can find it helpful nevertheless.
-
-When the user goes to another screen, you can either cancel all the prefetching tasks (but then you'll need to figure out a way to restart them when the user comes back) or, with [Nuke 9.4.0](https://github.com/kean/Nuke/releases/tag/9.4.0), you can simply pause them.
+When the user goes to another screen, you can either cancel all the prefetching tasks (but then you'll need to figure out a way to restart them when the user comes back) or, with you can also pause them.
 
 ```swift
 override func viewWillAppear(_ animated: Bool) {
@@ -54,9 +54,10 @@ override func viewWillDisappear(_ animated: Bool) {
     // When you pause, the prefetcher will finish outstanding tasks
     // (by default, there are only 2 at a time), and pause the rest.
     prefetcher.isPaused = true
-}```
+}
+```
 
-> Starting with [Nuke 9.5.0](https://github.com/kean/Nuke/releases/tag/9.5.0), you can also change the prefetcher priority. For example, when the user goes to another screen that also has image prefetching, you can lower it to `.veryLow`. This way, the prefetching will continue for both screens, but the top screen will have priority.
+> Tip: Starting with [Nuke 9.5.0](https://github.com/kean/Nuke/releases/tag/9.5.0), you can also change the prefetcher priority. For example, when the user goes to another screen that also has image prefetching, you can lower it to `.veryLow`. This way, the prefetching will continue for both screens, but the top screen will have priority.
 
 ## ImagePrefetcher
  
@@ -77,10 +78,10 @@ To start prefetching, call ``ImagePrefetcher/startPrefetching(with:)`` method. W
 ```swift
 public extension ImagePrefetcher {
     func startPrefetching(with urls: [URL])
-    func startPrefetching(with requests: [ImageRequest])
+    func startPrefetching(with requests: [any ImageRequestConvertible])
 
     func stopPrefetching(with urls: [URL])
-    func stopPrefetching(with requests: [ImageRequest])
+    func stopPrefetching(with requests: [any ImageRequestConvertible])
     func stopPrefetching()
 }
 ```
@@ -89,11 +90,3 @@ The prefetcher automatically cancels all of the outstanding tasks when deallocat
 
 > Important: Keep in mind that prefetching takes up users' data and puts extra pressure on CPU and memory! To reduce the CPU and memory usage, you have an option to choose only the disk cache as a prefetching destination: `ImagePrefetcher(destination: .diskCache)`. It doesn't require image decoding and processing and therefore uses less CPU. The images are stored on disk, so they also take up less memory. This policy doesn't work with ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/storeEncodedImages`` cache policy and other policies that affect `loadData()`. 
 
-With [Nuke 9.4.0](https://github.com/kean/Nuke/releases/tag/9.4.0), you can now also pause prefetching (``ImagePrefetcher/isPaused``), which is useful when the user navigates to a different screen. And starting with [Nuke 9.5.0](https://github.com/kean/Nuke/releases/tag/9.5.0), you can also change the prefetcher priority. For example, when the user goes to another screen, you can lower it to `.veryLow`.
-
-```swift
-public extension ImagePrefetcher {
-    var isPaused: Bool = false
-    var priority: ImageRequest.Priority = .low
-}
-```
