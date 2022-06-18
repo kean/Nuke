@@ -1,6 +1,6 @@
 # Image Pipeline Configuration
 
-Nuke virtually unlimited possibilities for customization and most of them are done using ``ImagePipeline/Configuration-swift.struct``.
+Learn how to customize ``ImagePipeline``.
 
 ## Default Configuration
 
@@ -76,8 +76,6 @@ ImagePipeline.Configuration.isSignpostLoggingEnabled = false
 ## Custom Pipeline
 
 If you want to build a system that fits your specific needs, you won't be disappointed. There are a _lot of things_ to tweak. You can set custom data loaders and caches, configure image encoders and decoders, change the number of concurrent operations for each stage, disable and enable features like deduplication and rate-limiting, and more.
-
-> Tip: To learn more, see the inline documentation for ``ImagePipeline/Configuration-swift.struct`` and [Image Pipeline Guide](<doc:image-pipeline-guide>).
 
 The protocols that can be used for customization:
 

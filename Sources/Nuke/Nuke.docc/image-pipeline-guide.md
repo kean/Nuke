@@ -1,51 +1,6 @@
-# Image Pipeline Guide
-
-// TODO: This should be incorporate in the main image pipeline guide and on other pages.
-
-This guide describes in detail what happens under the hood when you call ``Nuke/loadImage(with:options:into:progress:completion:)`` method.
-
-## Nuke.loadImage()
-
-This method loads an image with the given request and displays it in the view.
-
-Before loading a new image, it prepares the view for reuse by canceling any outstanding requests and removing a previously displayed image.
-
-If the image is in the memory cache, it is displayed immediately with no animations. If not, it loads the image using an image pipeline. While it is loading, a `placeholder` is displayed. When the request completes, Nuke displays the image (or `failureImage` in case of an error) with the provided animation.
-
-## ImagePipeline.loadImage()
-
-This section describes the steps that the pipeline performs when getting an image ready. As a visual aid, use the [block diagram](https://github.com/kean/Nuke/blob/10.0.0/Documentation/Assets/image-pipeline.svg) (the data cache part does not yet reflect all changes from Nuke 9).
-
-
-- Check if the requested image is in the memory cache.
-
-- Check if the processed image data is in the disk cache (assuming disk cache for processed images is enabled. If yes, the iimage is decoded, decompressed, stored in the memory cache, and is delivered to the client.
-
-- Check if the original image data is in the disk cache. If yes, it repeats the same steps from the previous point, but this time, it also applies the processors.
-
-> Important: The disk cache described in steps 2 and 3 is disabled by default. The pipeline relies on the HTTP-compliant disk cache on a `URLSession` level. To learn how to enable the disk cache, see "Aggressive LRU Disk Cache".
-
-- If all caches are empty, load the image data. If any resumable data was left from a previous equivalent request, use it. Otherwise, start fresh. When the data is loaded, prepare the image for display as in the previous steps.
-
-Now that you saw a high-level overview, let's dive into more detail.
 
 ### Data Loading and Caching
 
-``DataLoader`` uses [`URLSession`](https://developer.apple.com/reference/foundation/nsurlsession) to load image data. The data is cached on disk using [`URLCache`](https://developer.apple.com/reference/foundation/urlcache), which by default is initialized with a memory capacity of 0 MB (Nuke only stores processed images in memory) and disk capacity of 150 MB.
-
-> Tip: See [Image Caching](https://kean.blog/post/image-caching) to learn more about HTTP cache. To learn more about caching in Nuke and how to configure it, see [Caching](/nuke/guides/caching).
-
-The `URLSession` class natively supports the following URL schemes: `data`, `file`, `ftp`, `http`, and `https`.
-
-The default ``DataLoader`` works great for most situation, but if you need to provide a custom networking layer, you can using a ``DataLoading`` protocol. See [Third Party Libraries](/nuke/guides/third-party-libraries) guide to learn more about. See also, [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin).
-
-## Resumable Downloads
-
-If the data task is terminated when the image is partially loaded (either because of a failure or a cancellation), the next load will resume where the previous left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators: `ETag` and `Last-Modified`. Resumable downloads are enabled by default. You can learn more in ["Resumable Downloads"](/post/resumable-downloads).
-
-## Memory Cache
-
-The processed images are stored in a fast in-memory cache (``ImageCache``). It uses [LRU (least recently used)](https://en.wikipedia.org/wiki/Cache_algorithms#Examples) replacement algorithm and has a limit of ~20% of available RAM. ``ImageCache`` automatically evicts images on memory warnings and removes a portion of its contents when the application enters background mode.
 
 ## Coalescing
 
