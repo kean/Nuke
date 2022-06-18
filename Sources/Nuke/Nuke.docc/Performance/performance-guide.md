@@ -95,7 +95,7 @@ final class ImageView: UIView {
 
 ## Create URLs Beforehand
 
-`URL` initializer is relatively expensive because it needs to parse the input string. It might take more time than the call to ``Nuke/loadImage(with:options:into:completion:)`` itself. Make sure to create the `URL` objects in the background.
+`URL` initializer is relatively expensive because it needs to parse the input string. Make sure to create the `URL` objects in the background.
 
 ## Auto Retry
 

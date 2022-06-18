@@ -1,72 +1,54 @@
 # ``Nuke``
 
-// TODO: Rewrite this
-
 Welcome to the documentation for Nuke, an image loading system for Apple platforms.
-
-**Nuke ILS** provides a simple and efficient way to download and display images in your app. It's easy to learn and use thanks to a clear and concise API. Its advanced architecture enables many powerful features while offering virtually unlimited possibilities for customization.
-
-Despite the number of features, the framework is lean and compiles in just under 3 seconds. Nuke has an automated test suite 2x the size of the codebase itself, ensuring excellent reliability. Every feature is carefully designed and optimized for performance.
 
 ## Overview
 
-Nuke is easy to learn and use. The best way to learn is by using this website. Nuke provides three types of documentation: **guides**, **tutorials**, and an **API reference**.
+Nuke provides an efficient way to download and display images in your app. It's easy to learn and use. Its architecture enables many powerful features while offering virtually unlimited possibilities for customization.
 
-The **guides** are available on this website and are split into three categories:
+The framework is lean and compiles in under 2 seconds¹. Nuke has an automated test suite 2x the size of the codebase itself, ensuring excellent reliability. Every feature is carefully designed and optimized for performance.
 
-- **Basics** – user guides covering the basics of using the framework
-- **Advanced** – user guides covering more advanced topics
-- **Guides** – in-depth guides on specific topics
+## Sponsors 💖
 
-There is currently one up-to-date **tutorial** — [Nuke Tutorial for iOS: Getting Started](https://www.raywenderlich.com/11070743-nuke-tutorial-for-ios-getting-started) — written by the [raywenderlich.com](https://www.raywenderlich.com) team.
-
-The **API reference** is hosted [separately](https://kean-org.github.io/docs/nuke/reference/10.2.0/) and is generated using [swift-doc](https://github.com/SwiftDocOrg/swift-doc).
+[Support](https://github.com/sponsors/kean) Nuke on GitHub Sponsors.
 
 ## Getting Started
 
-To learn Nuke, start with the basic guides and make your way through the documentation. Make sure to check out the [**demo project**](https://github.com/kean/NukeDemo). To install Nuke, use Swift Packager Manager.
+The best way to start learning Nuke is by starting with <doc:getting-started> and going through the rest of the articles in the documentation. Make sure to check out the [demo project](https://github.com/kean/NukeDemo).
 
-> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/blob/10.0.0/Documentation/Migrations).
+To install Nuke, use Swift Packager Manager.
+
+> Tip: Upgrading from the previous version? Use a [Migration Guide](https://github.com/kean/Nuke/tree/master/Documentation/Migrations).
 
 ## Plugins
 
-// TODO: make this a table
+|Name|Description|
+|--|--|
+|[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire)|
+|[**NukeWebP**](https://github.com/makleso6/NukeWebP)| **Community**. [WebP](https://developers.google.com/speed/webp/) support, built by [Maxim Kolesnik](https://github.com/makleso6)|
+|[**WebP Plugin**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **Community**. [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
+|[**AVIF Plugin**](https://github.com/delneg/Nuke-AVIF-Plugin)| **Community**. [AVIF](https://caniuse.com/avif) support, built by [Denis](https://github.com/delneg)|
+|[**Gifu Plugin**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
+|[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples|
+|[**Xamarin NuGet**](https://github.com/roubachof/Xamarin.Forms.Nuke)| **Community**. Makes it possible to use Nuke from Xamarin|
 
-### [NukeUI](https://github.com/kean/NukeUI)
+## Minimum Requirements
 
-A comprehensive solution for displaying lazily loaded images on Apple platforms.
-
-### [Nuke Builder](https://github.com/kean/NukeBuilder)
-
-A set of convenience APIs inspired by SwiftUI to create image requests.
-
-### [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin)
-
-Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire) and combine the power of both frameworks.
-
-### [RxNuke](https://github.com/kean/RxNuke)
-
-[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with many examples.
-
-### [WebP Plugin](https://github.com/ryokosuge/Nuke-WebP-Plugin)
-
-[WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge).
-
-### [NukeWebP](https://github.com/makleso6/NukeWebP)
-
-New plugin with [WebP](https://developers.google.com/speed/webp/) support, built by [Maxim Kolesnik](https://github.com/makleso6).
-
-### [Gifu Plugin](https://github.com/kean/Nuke-Gifu-Plugin)
-
-Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs.
-
-### [FLAnimatedImage Plugin](https://github.com/kean/Nuke-AnimatedImage-Plugin)
-
-Use [FLAnimatedImage](https://github.com/Flipboard/FLAnimatedImage) to load and display [animated GIFs]((https://www.youtube.com/watch?v=fEJqQMJrET4)).
-
-### [Xamarin NuGet](https://github.com/roubachof/Xamarin.Forms.Nuke)
-
-Makes it possible to use Nuke from Xamarin.
+| Nuke | Date         | Swift | Xcode | Platforms                                     |
+|------|--------------|-------|-------|-----------------------------------------------|
+| 11.0 | TBD          | 5.6   | 13.3  | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
+| 10.0 | June 1, 2021 | 5.3   | 12.0  | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0 |
+| 9.0  | May 20, 2020 | 5.1   | 11.0  | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0 |
+| 8.0  | July 8, 2019 | 5.0   | 10.2  | iOS 10.0, watchOS 3.0, macOS 10.12, tvOS 10.0 |
+| 7.6  | Apr 7, 2019  | 4.2   | 10.1  | iOS 10.0, watchOS 3.0, macOS 10.12, tvOS 10.0 |
+| 6.0  | Dec 23, 2017 | 4.0   | 9.2   | iOS 9.0, watchOS 2.0, macOS 10.11, tvOS 9.0   |
+| 5.0  | Feb 1, 2017  | 3.0   | 8.0   | iOS 9.0, watchOS 2.0, macOS 10.11, tvOS 9.0   |
+| 4.0  | Sep 19, 2016 | 3.0   | 8.0   | iOS 9.0, watchOS 2.0, macOS 10.11, tvOS 9.0   |
+| 3.0  | Mar 26, 2016 | 2.2   | 7.3   | iOS 8.0, watchOS 2.0, macOS 10.9, tvOS 9.0    |
+| 2.0  | Feb 6, 2016  | 2.0   | 7.1   | iOS 8.0, watchOS 2.0, macOS 10.9, tvOS 9.0    |
+| 2.0  | Feb 6, 2016  | 2.0   | 7.1   | iOS 8.0, watchOS 2.0, macOS 10.9, tvOS 9.0    |
+| 1.0  | Oct 18, 2015 | 2.0   | 7.0   | iOS 8.0, watchOS 2.0, macOS 10.9              |
+| 0.2  | Sep 18, 2015 | 2.0   | 7.0   | iOS 8.0, watchOS 2.0                          |
 
 ## Topics
 
