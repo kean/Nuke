@@ -298,7 +298,7 @@ class ImagePipelineTests: XCTestCase {
         ])
 
         // WHEN
-        let _ = try await pipeline.image(for: request)
+        _ = try await pipeline.image(for: request)
 
         // THEN
         XCTAssertEqual(true, ImageDecompression.isDecompressionNeeded(for: input))
