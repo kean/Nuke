@@ -13,7 +13,7 @@ If you want to perform cache lookup without download the image from the network,
 ```swift
 let request = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
 let response = try await pipeline.image(for: request)
-let cacheType = repsonse.cacheType // .memory, .disk, or nil
+let cacheType = response.cacheType // .memory, .disk, or nil
 ```
 
 > Important: This option only affects custom cache layers, but not `URLCache`, which is controlled by the [URL loading system](https://developer.apple.com/documentation/foundation/url_loading_system).
