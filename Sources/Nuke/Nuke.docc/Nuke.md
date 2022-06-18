@@ -83,7 +83,6 @@ To install Nuke, use Swift Packager Manager.
 <!--Articles-->
 - <doc:performance-guide>
 - <doc:prefetching>
-- <doc:troubleshooting>
 
 <!--Collections-->
 - <doc:caching>

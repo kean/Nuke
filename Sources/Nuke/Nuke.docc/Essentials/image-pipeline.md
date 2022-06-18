@@ -140,5 +140,5 @@ pipeline.cache[ImageRequest(url: url)] = nil
 pipeline.cache["https://example.com/image.jpeg"] = ImageContainer(image: image)
 ```
 
-> Tip: There are more ``ImagePipeline/Cache-swift.struct`` APIs and they are all covered in <doc:image-pipeline-cache>. 
+> Tip: There are more ``ImagePipeline/Cache-swift.struct`` APIs and they are all covered in <doc:accessing-caches>. 
 

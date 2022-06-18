@@ -1,4 +1,0 @@
-# Image Pipeline Cache
-
-
-## Overview
