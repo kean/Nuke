@@ -1,6 +1,12 @@
 # Image View Extensions
 
-Nuke provides convenience extension for image views with multiple options to control the image view extensions behavior.
+Learn about extensions for image views.
+
+## Overview
+
+Nuke provides a set of global functions that simplify loading of images into image views. It's a good starting point for some apps, but if you want to have more control, consider using Nuke's `ImagePipeline` directly.
+
+> Tip: For SwiftUI support, check out [NukeUI](https://github.com/kean/NukeUI). It also includes custom image views for UIKit and AppKit designed to be a better replacement for global functions in `NukeExtensions`.
 
 ## Image View
 
@@ -11,8 +17,6 @@ Nuke.loadImage(with: url, into: imageView)
 ```
 
 If the image is stored in the memory cache, it is displayed immediately with no animations. If not, the image is first loaded using an image pipeline.
-
-> See <doc:image-pipeline-guide> to learn how images are downloaded and processed.
 
 ## Table View
 
@@ -27,7 +31,7 @@ func tableView(_ tableView: UITableView, cellForItemAt indexPath: IndexPaths) ->
 
 What works for `UITableView`, also does for a `UICollectionView`. You can see `UICollectionView` in action in the [demo project](https://github.com/kean/NukeDemo).
 
-> When the view is deallocated, an associated request also gets canceled automatically. To manually cancel the request, call ``Nuke/cancelRequest(for:)``.
+> When the view is deallocated, an associated request also gets canceled automatically. To manually cancel the request, call ``NukeExtensions/cancelRequest(for:)``.
 
 ## ImageLoadingOptions
 
@@ -41,7 +45,7 @@ let options = ImageLoadingOptions(
 Nuke.loadImage(with: url, options: options, into: imageView)
 ```
 
-> The extensions have a limited set of options. If you need more, check out `LazyImageView` in [NukeUI](https://github.com/kean/NukeUI).
+> Tip: The extensions have a limited set of options. If you need more, check out `LazyImageView` from [NukeUI](https://github.com/kean/NukeUI).
 
 ### Placeholder
 
@@ -97,7 +101,7 @@ ImageLoadingOptions.shared.transition = .fadeIn(duration: 0.33))
 
 For a complete list of options, see ``ImageLoadingOptions``. Some options, such as ``ImageLoadingOptions/isProgressiveRenderingEnabled`` will be covered later.
 
-> Built-in extensions for image views are designed to get you up and running as quickly as possible. But if you want to have more control, or use some of the advanced features, like animated images, it is recommended to use ``ImagePipeline`` directly.
+> Built-in extensions for image views are designed to get you up and running as quickly as possible. But if you want to have more control, or use some of the advanced features, like animated images, it is recommended to use `ImagePipeline` directly.
 
 ## Progressive Decoding
 
@@ -117,8 +121,8 @@ extension UIImageView: Nuke_ImageDisplaying {
 }
 ```
 
-Nuke provides built-in implementations for `UIImageView`, `NSImageView`, and `WKInterfaceImage`.
+Nuke provides built-in implementations for `UIImageView` and `NSImageView`.
 
 ## Customizing Requests
 
-All the examples from this guide used ``Nuke/loadImage(with:options:into:progress:completion:)`` with a `URL`. But you can have even more control over the image download by using ``ImageRequest``. To learn more, see <doc:customizing-requests>.
+All the examples from this guide used ``NukeExtensions/loadImage(with:options:into:progress:completion:)`` with a `URL`. But you can have even more control over the image download by using `ImageRequest`. To learn more about `ImageRequest`, see the main Nuke documentation.
