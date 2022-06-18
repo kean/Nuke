@@ -55,7 +55,7 @@ extension ImagePipeline.Error {
             let underlying = error is ImageProcessingError ? "" : " Underlying error: \(error)."
             return "Failed to process the image using processor \(processor).\(underlying)"
         case .imageRequestMissing:
-            return "Load image method was called with no image request."
+            return "Load image method was called with no image request or no URL."
         }
     }
 }
