@@ -46,7 +46,6 @@ To install Nuke, use Swift Packager Manager.
 | 4.0  | Sep 19, 2016 | 3.0   | 8.0   | iOS 9.0, watchOS 2.0, macOS 10.11, tvOS 9.0   |
 | 3.0  | Mar 26, 2016 | 2.2   | 7.3   | iOS 8.0, watchOS 2.0, macOS 10.9, tvOS 9.0    |
 | 2.0  | Feb 6, 2016  | 2.0   | 7.1   | iOS 8.0, watchOS 2.0, macOS 10.9, tvOS 9.0    |
-| 2.0  | Feb 6, 2016  | 2.0   | 7.1   | iOS 8.0, watchOS 2.0, macOS 10.9, tvOS 9.0    |
 | 1.0  | Oct 18, 2015 | 2.0   | 7.0   | iOS 8.0, watchOS 2.0, macOS 10.9              |
 | 0.2  | Sep 18, 2015 | 2.0   | 7.0   | iOS 8.0, watchOS 2.0                          |
 
