@@ -1,6 +1,6 @@
 # Performance Guide
 
-Nuke is highly [optimized](https://kean.blog/post/concurrency) and provides many performance [features](https://kean.blog/post/nuke-9), but it's ultimately up to your app to decide how to use them.
+Learn how to improve image loading performance in your apps.
 
 ## Coalescing
 
@@ -45,7 +45,7 @@ By default, Nuke uses the native HTTP cache, but it's relatively slow and is sub
 
 ### Store Processed Images
 
-By default, the aggressive disk cache (if enabled) stores original image data. If your app applies expensive processors or downsamples images, consider storing processed images instead by setting ``ImagePipeline/Configuration-swift.struct/dataCacheOptions-swift.property`` to ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/automatic`` or ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/storeEncodedImages`` depending on the use case.
+By default, the aggressive disk cache (if enabled) stores original image data. If your app applies expensive processors or downsamples images, consider storing processed images instead by setting ``ImagePipeline/Configuration-swift.struct/dataCachePolicy-swift.property`` to ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/automatic`` or ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/storeEncodedImages`` depending on the use case.
 
 ### Use HEIF
 
