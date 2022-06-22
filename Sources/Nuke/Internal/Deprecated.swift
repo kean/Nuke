@@ -87,7 +87,7 @@ extension DataCache {
 
 extension ImageCaching {
     // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Please use ImagePipeline.Cache instead.")
+    @available(*, deprecated, message: "Please use ImagePipeline.Cache that goes through ImagePipelineDelegate instead.")
     public subscript(request: any ImageRequestConvertible) -> ImageContainer? {
         get { self[ImageCacheKey(request: request.asImageRequest())] }
         set { self[ImageCacheKey(request: request.asImageRequest())] = newValue }
