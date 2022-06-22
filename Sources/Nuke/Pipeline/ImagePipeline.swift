@@ -8,18 +8,12 @@ import Combine
 /// `ImagePipeline` is the primary way to load images directly (without a UI).
 ///
 /// The pipeline is fully customizable. You can change its configuration using
-/// ``ImagePipeline/Configuration-swift.struct`` type: set custom data loader and cache, configure
-/// image encoders and decoders, etc. You can also set an ``ImagePipelineDelegate``
-/// to get even more granular control on a per-request basis.
+/// ``ImagePipeline/Configuration-swift.struct`` by setting custom data loader
+/// and cache, configure image encoders and decoders, etc. You can also set an
+/// ``ImagePipelineDelegate`` to get even more granular control on a per-request
+/// basis.
 ///
-/// See ["Image Pipeline"](https://kean.blog/nuke/guides/image-pipeline) to learn
-/// more about how to use the pipeline. You can also learn about they way it
-/// works internally in a [dedicated guide](https://kean.blog/nuke/guides/image-pipeline-guide).
-///
-/// `ImagePipeline` also suppors Combine. You can learn more in a dedicated
-/// [guide](https://kean.blog/nuke/guides/combine) with some common use-cases.
-///
-/// `ImagePipeline` is fully thread-safe.
+/// ``ImagePipeline`` is fully thread-safe.
 public final class ImagePipeline: @unchecked Sendable {
     /// Shared image pipeline.
     public static var shared = ImagePipeline(configuration: .withURLCache)
@@ -59,7 +53,7 @@ public final class ImagePipeline: @unchecked Sendable {
         #endif
     }
 
-    /// Initializes `ImagePipeline` instance with the given configuration.
+    /// Initializes the instance with the given configuration.
     ///
     /// - parameter configuration: `Configuration()` by default.
     /// - parameter delegate: `nil` by default.
@@ -85,6 +79,16 @@ public final class ImagePipeline: @unchecked Sendable {
         #endif
     }
 
+    /// A convenience way to initialize the pipeline with a closure.
+    ///
+    /// Example usage:
+    ///
+    /// ```swift
+    /// ImagePipeline {
+    ///     $0.dataCache = try? DataCache(name: "com.myapp.datacache")
+    ///     $0.dataCachePolicy = .automatic
+    /// }
+    /// ```
     public convenience init(delegate: (any ImagePipelineDelegate)? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
         var configuration = ImagePipeline.Configuration()
         configure(&configuration)

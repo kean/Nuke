@@ -83,7 +83,6 @@ By default, a pipeline uses URLs as unique image identifiers for caching and tas
 ```swift
 var request = ImageRequest(url: URL(string: "http://example.com/image.jpeg?token=123"))
 request.userInfo[.imageIdKey] = "http://example.com/image.jpeg"
-)
 ```
 
 ### Thumbnails

@@ -4,7 +4,7 @@ Learn how to use ``ImagePipeline`` to load images.
 
 ## Overview
 
-``ImagePipeline`` is the primary way to load images directly (without a UI).
+``ImagePipeline`` is the primary way to load images.
 
 The pipeline is fully customizable. You can change its configuration using ``ImagePipeline/Configuration-swift.struct``: set custom data loader and cache, configure image encoders and decoders, etc. You can also set an ``ImagePipelineDelegate`` to get even more granular control on a per-request basis.
 
