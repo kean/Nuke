@@ -17,7 +17,7 @@ public protocol ImageCaching: AnyObject, Sendable {
 
 /// An opaque container that acts as a cache key.
 ///
-/// In general, you don't construct it directly, and use `ImagePipeline` or `ImagePipeline.Cache` APIs.
+/// In general, you don't construct it directly, and use ``ImagePipeline`` or ``ImagePipeline.Cache`` APIs.
 public struct ImageCacheKey: Hashable, Sendable {
     let key: Inner
 
@@ -36,11 +36,12 @@ public struct ImageCacheKey: Hashable, Sendable {
     }
 }
 
+// TODO: deprecate this?
 extension ImageCaching {
     /// A convenience API for getting an image for the given request.
     ///
-    /// - warning: If you provide a custom key using `ImagePipelineDelegate`, use
-    /// `ImagePipeline.Cache` instead.
+    /// - warning: If you provide a custom key using ``ImagePipelineDelegate``, use
+    /// ``ImagePipeline.Cache`` instead.
     public subscript(request: any ImageRequestConvertible) -> ImageContainer? {
         get { self[ImageCacheKey(request: request.asImageRequest())] }
         set { self[ImageCacheKey(request: request.asImageRequest())] = newValue }

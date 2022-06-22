@@ -6,7 +6,7 @@ import Foundation
 
 /// A delegate that allows you to customize the pipeline on a per-request basis.
 ///
-/// - warning: The delegate methods are performed on the pipeline queue in the
+/// - important: The delegate methods are performed on the pipeline queue in the
 /// background.
 public protocol ImagePipelineDelegate: ImageTaskDelegate {
     // MARK: Configuration

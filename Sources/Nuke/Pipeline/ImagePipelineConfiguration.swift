@@ -27,7 +27,7 @@ extension ImagePipeline {
         /// Data cache used by the pipeline.
         public var dataCache: (any DataCaching)?
 
-        /// Default implementation uses shared `ImageDecoderRegistry` to create
+        /// Default implementation uses shared ``ImageDecoderRegistry`` to create
         /// a decoder that matches the context.
         public var makeImageDecoder: @Sendable (ImageDecodingContext) -> (any ImageDecoding)? = {
             ImageDecoderRegistry.shared.decoder(for: $0)
@@ -89,7 +89,7 @@ extension ImagePipeline {
             /// For requests with no processors, store original image data, unless
             /// the resource is local (file:// or data:// scheme is used).
             ///
-            /// - warning: With this policy, the pipeline `loadData()` method
+            /// - important: With this policy, the pipeline ``ImagePipeline/loadData(with:completion:)`` method
             /// will not store the images in the disk cache for requests with
             /// any processors applied – this method only loads data and doesn't
             /// decode images.
@@ -104,9 +104,9 @@ extension ImagePipeline {
             ///
             /// - note: This is useful if you want to store images in a format
             /// different than provided by a server, e.g. decompressed. In other
-            /// scenarios, consider using `.automatic` policy instead.
+            /// scenarios, consider using ``automatic`` policy instead.
             ///
-            /// - warning: With this policy, the pipeline `loadData()` method
+            /// - important: With this policy, the pipeline ``ImagePipeline/loadData(with:completion:)`` method
             /// will not store the images in the disk cache – this method only
             /// loads data and doesn't decode images.
             case storeEncodedImages
@@ -149,12 +149,12 @@ extension ImagePipeline {
         /// image each time it receives a new portion of data from data loader.
         /// The decoder used by the image loading session determines whether
         /// to produce a partial image or not. The default image decoder
-        /// (`ImageDecoder`) supports progressive JPEG decoding.
+        /// (``ImageDecoders/Default) supports progressive JPEG decoding.
         public var isProgressiveDecodingEnabled = true
 
         /// `true` by default. If `true`, the pipeline will store all of the
         /// progressively generated previews in the memory cache. All of the
-        /// previews have `isPreview` flag set to `true`.
+        /// previews have ``ImageContainer/isPreview`` flag set to `true`.
         public var isStoringPreviewsInMemoryCache = true
 
         /// If the data task is terminated (either because of a failure or a
@@ -185,7 +185,7 @@ extension ImagePipeline {
             self.dataLoader = dataLoader
         }
 
-        /// A configuration with a `DataLoader` with an HTTP disk cache (`URLCache`)
+        /// A configuration with a ``DataLoader`` with an HTTP disk cache (`URLCache`)
         /// with a size limit of 150 MB.
         public static var withURLCache: Configuration { Configuration() }
 
@@ -195,7 +195,7 @@ extension ImagePipeline {
             withDataCache(sizeLimit: nil)
         }
 
-        /// A configuration with an aggressive disk cache (`DataCache`) with a
+        /// A configuration with an aggressive disk cache (``DataCache``) with a
         /// size limit of 150 MB by default. An HTTP cache (`URLCache`) is disabled.
         public static func withDataCache(sizeLimit: Int?) -> Configuration {
             let dataLoader: DataLoader = {

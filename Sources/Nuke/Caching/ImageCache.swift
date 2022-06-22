@@ -16,7 +16,7 @@ import Cocoa
 /// and is calculated based on the amount of physical memory available on the
 /// device. The default count limit is set to `Int.max`.
 ///
-/// `ImageCache` automatically removes all stored elements when it receives a
+/// ``ImageCache`` automatically removes all stored elements when it receives a
 /// memory warning. It also automatically removes *most* stored elements
 /// when the app enters the background.
 public final class ImageCache: ImageCaching {
@@ -41,7 +41,7 @@ public final class ImageCache: ImageCaching {
         set { impl.conf.ttl = newValue }
     }
 
-    /// The maximum cost of an entry in proportion to the `costLimit`.
+    /// The maximum cost of an entry in proportion to the ``costLimit``.
     /// By default, `0.1`.
     public var entryCostLimit: Double {
         get { impl.conf.entryCostLimit }

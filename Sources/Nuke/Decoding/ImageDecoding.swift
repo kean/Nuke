@@ -9,10 +9,10 @@ import Foundation
 /// A decoder is a one-shot object created for a single image decoding session.
 ///
 /// - note: If you need additional information in the decoder, you can pass
-/// anything that you might need from the `ImageDecodingContext`.
+/// anything that you might need from the ``ImageDecodingContext``.
 public protocol ImageDecoding: Sendable {
     /// Return `true` if you want the decoding to be performed on the decoding
-    /// queue (see `imageDecodingQueue`). If `false`, the decoding will be
+    /// queue (see ``ImagePipeline/Configuration-swift.struct/imageDecodingQueue``). If `false`, the decoding will be
     /// performed synchronously on the pipeline operation queue. By default, `true`.
     var isAsynchronous: Bool { get }
 
@@ -21,7 +21,7 @@ public protocol ImageDecoding: Sendable {
 
     /// Produces an image from the given partially downloaded image data.
     /// This method might be called multiple times during a single decoding
-    /// session. When the image download is complete, `decode(data:)` method is called.
+    /// session. When the image download is complete, ``decode(_:)`` method is called.
     ///
     /// - returns: nil by default.
     func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer?

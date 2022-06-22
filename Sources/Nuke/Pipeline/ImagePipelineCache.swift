@@ -6,10 +6,10 @@ import Foundation
 
 extension ImagePipeline {
     /// Provides a set of convenience APIs for managing the pipeline cache layers,
-    /// including `ImageCaching` (memory cache) and `DataCaching` (disk cache).
+    /// including ``ImageCaching`` (memory cache) and ``DataCaching`` (disk cache).
     ///
-    /// - warning: This class doesn't work with a `URLCache`. For more info,
-    /// see ["Caching"](https://kean.blog/nuke/guides/caching).
+    /// - important: This class doesn't work with a `URLCache`. For more info,
+    /// see <doc:caching>.
     ///
     /// Thread-safe.
     public struct Cache {
@@ -44,7 +44,7 @@ extension ImagePipeline.Cache {
 
     /// Returns a cached image any of the caches.
     ///
-    /// - note: Respects request options such as `cachePolicy`.
+    /// - note: Respects request options such as its cache policy.
     ///
     /// - parameter request: The request. Make sure to remove the processors
     /// if you want to retrieve an original image (if it's stored).
@@ -66,11 +66,11 @@ extension ImagePipeline.Cache {
     }
 
     /// Stores the image in all caches. To store image in the disk cache, it
-    /// will be encoded (see `ImageEncoding`)
+    /// will be encoded (see ``ImageEncoding``)
     ///
     /// - note: Respects request cache options.
     ///
-    /// - note: Default `DiskCache` stores data asynchronously, so it's safe
+    /// - note: Default ``DataCache`` stores data asynchronously, so it's safe
     /// to call this method even from the main thread.
     ///
     /// - note: Image previews are not stored.
@@ -161,7 +161,7 @@ extension ImagePipeline.Cache {
 
     /// Stores data for the given request.
     ///
-    /// - note: Default `DiskCache` stores data asynchronously, so it's safe
+    /// - note: Default ``DataCache`` stores data asynchronously, so it's safe
     /// to call this method even from the main thread.
     public func storeCachedData(_ data: Data, for request: any ImageRequestConvertible) {
         let request = request.asImageRequest()
@@ -222,8 +222,8 @@ extension ImagePipeline.Cache {
 
     /// Removes both images and data from all cache layes.
     ///
-    /// - warning: It clears only caches set in the pipeline configuration. If
-    /// you implement `ImagePipelineDelegate` that uses different caches for
+    /// - important: It clears only caches set in the pipeline configuration. If
+    /// you implement ``ImagePipelineDelegate`` that uses different caches for
     /// different requests, this won't remove images from them.
     public func removeAll(caches: Caches = [.all]) {
         if caches.contains(.memory) {

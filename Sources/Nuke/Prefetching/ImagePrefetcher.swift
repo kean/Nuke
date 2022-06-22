@@ -9,7 +9,7 @@ import Foundation
 ///
 /// The prefetcher cancels all of the outstanding tasks when deallocated.
 ///
-/// All `ImagePrefetcher` methods are thread-safe and are optimized to be used
+/// All ``ImagePrefetcher`` methods are thread-safe and are optimized to be used
 /// even from the main thread during scrolling.
 public final class ImagePrefetcher: @unchecked Sendable {
     private let pipeline: ImagePipeline
@@ -26,7 +26,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
         didSet { queue.isSuspended = isPaused }
     }
 
-    /// The priority of the requests. By default, `.low`.
+    /// The priority of the requests. By default, ``ImageRequest/Priority-swift.enum/low``.
     ///
     /// Changing the priority also changes the priority of all of the outstanding
     /// tasks managed by the prefetcher.
@@ -47,14 +47,14 @@ public final class ImagePrefetcher: @unchecked Sendable {
         /// Prefetches the image data and stores it in disk caches. It does not
         /// require decoding the image data and therefore requires less CPU.
         ///
-        /// - warning: This option is incompatible with `DataCachePolicy.automatic`
-        /// (for requests with processors) and `DataCachePolicy.storeEncodedImages`.
+        /// - important: This option is incompatible with ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/automatic``
+        /// (for requests with processors) and ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/storeEncodedImages``.
         case diskCache
     }
 
-    /// Initializes the `ImagePrefetcher` instance.
-    /// - parameter manager: `Loader.shared` by default.
-    /// - parameter destination: `.memoryCache` by default.
+    /// Initializes the ``ImagePrefetcher`` instance.
+    /// - parameter pipeline: ``ImagePipeline/shared`` by default.
+    /// - parameter destination: ``Destination/memoryCache`` by default.
     /// - parameter `maxConcurrentRequestCount`: 2 by default.
     public init(pipeline: ImagePipeline = ImagePipeline.shared,
                 destination: Destination = .memoryCache,
@@ -84,7 +84,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
 
     /// Starts prefetching images for the given requests.
     ///
-    /// When you need to display the same image later, use the `ImagePipeline`
+    /// When you need to display the same image later, use the ``ImagePipeline``
     /// or the view extensions to load it as usual. The pipeline will take care
     /// of coalescing the requests to avoid any duplicate work.
     ///
@@ -147,9 +147,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     ///
     /// You don't need to balance the number of `start` and `stop` requests.
     /// If you have multiple screens with prefetching, create multiple instances
-    /// of `ImagePrefetcher`.
-    ///
-    /// - parameter destination: `.memoryCache` by default.
+    /// of ``ImagePrefetcher``.
     public func stopPrefetching(with requests: [any ImageRequestConvertible]) {
         pipeline.queue.async {
             for request in requests {

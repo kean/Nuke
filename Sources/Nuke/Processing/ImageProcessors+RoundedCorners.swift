@@ -8,8 +8,8 @@ import CoreGraphics
 extension ImageProcessors {
     /// Rounds the corners of an image to the specified radius.
     ///
-    /// - warning: In order for the corners to be displayed correctly, the image must exactly match the size
-    /// of the image view in which it will be displayed. See `ImageProcessor.Resize` for more info.
+    /// - important: In order for the corners to be displayed correctly, the image must exactly match the size
+    /// of the image view in which it will be displayed. See ``ImageProcessors/Resize`` for more info.
     public struct RoundedCorners: ImageProcessing, Hashable, CustomStringConvertible {
         private let radius: CGFloat
         private let border: ImageProcessingOptions.Border?
@@ -17,7 +17,7 @@ extension ImageProcessors {
         /// Initializes the processor with the given radius.
         ///
         /// - parameter radius: The radius of the corners.
-        /// - parameter unit: Unit of the radius, `.points` by default.
+        /// - parameter unit: Unit of the radius, ``ImageProcessingOptions/Unit/points`` by default.
         /// - parameter border: An optional border drawn around the image.
         public init(radius: CGFloat, unit: ImageProcessingOptions.Unit = .points, border: ImageProcessingOptions.Border? = nil) {
             self.radius = radius.converted(to: unit)

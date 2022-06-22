@@ -5,7 +5,7 @@
 import Foundation
 import Combine
 
-/// `ImagePipeline` is the primary way to load images directly (without a UI).
+/// The pipeline is the primary way to load images directly (without a UI).
 ///
 /// The pipeline is fully customizable. You can change its configuration using
 /// ``ImagePipeline/Configuration-swift.struct`` by setting custom data loader
@@ -281,8 +281,8 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Loads the image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
     ///
-    /// You can call `loadImage(:)` for the request at any point after calling
-    /// `loadData(:)`, the pipeline will use the same operation to load the data,
+    /// You can call ``loadImage(with:completion:)`` for the request at any point after calling
+    /// ``loadData(with:completion:)``, the pipeline will use the same operation to load the data,
     /// no duplicated work will be performed.
     ///
     /// - parameter request: An image request.
@@ -355,9 +355,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - Loading Images (Combine)
 
-    /// Returns a publisher which starts a new `ImageTask` when a subscriber is added.
-    ///
-    /// - note: For more information, see `ImagePublisher`.
+    /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
     public func imagePublisher(with request: any ImageRequestConvertible) -> AnyPublisher<ImageResponse, Error> {
         ImagePublisher(request: request.asImageRequest(), pipeline: self).eraseToAnyPublisher()
     }

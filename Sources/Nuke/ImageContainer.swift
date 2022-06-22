@@ -37,7 +37,7 @@ public struct ImageContainer: @unchecked Sendable {
     /// Contains the original image `data`, but only if the decoder decides to
     /// attach it to the image.
     ///
-    /// The default decoder (`ImageDecoders.Default`) attaches data to GIFs to
+    /// The default decoder (``ImageDecoders/Default``) attaches data to GIFs to
     /// allow to display them using a rendering engine of your choice.
     ///
     /// - note: The `data`, along with the image container itself gets stored
@@ -73,7 +73,7 @@ public struct ImageContainer: @unchecked Sendable {
         return copy
     }
 
-    /// A key use in `userInfo`.
+    /// A key use in ``userInfo``.
     public struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable {
         public let rawValue: String
 

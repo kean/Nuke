@@ -19,7 +19,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
         #endif
     }
 
-    /// Initializes `DataLoader` with the given configuration.
+    /// Initializes ``DataLoader`` with the given configuration.
     /// - parameter configuration: `URLSessionConfiguration.default` with
     /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
     public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
@@ -45,7 +45,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
     }
 
     /// Validates `HTTP` responses by checking that the status code is 2xx. If
-    /// it's not returns `DataLoader.Error.statusCodeUnacceptable`.
+    /// it's not returns ``DataLoader/Error/statusCodeUnacceptable(_:)``.
     public static func validate(response: URLResponse) -> Swift.Error? {
         guard let response = response as? HTTPURLResponse else {
             return nil
@@ -66,7 +66,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
     }()
     #endif
 
-    /// Shared url cached used by a default `DataLoader`. The cache is
+    /// Shared url cached used by a default ``DataLoader``. The cache is
     /// initialized with 0 MB memory capacity and 150 MB disk capacity.
     public static let sharedUrlCache: URLCache = {
         let diskCapacity = 150 * 1024 * 1024 // 150 MB
@@ -83,7 +83,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
         impl.loadData(with: request, session: session, didReceiveData: didReceiveData, completion: completion)
     }
 
-    /// Errors produced by `DataLoader`.
+    /// Errors produced by ``DataLoader``.
     public enum Error: Swift.Error, CustomStringConvertible {
         /// Validation failed.
         case statusCodeUnacceptable(Int)

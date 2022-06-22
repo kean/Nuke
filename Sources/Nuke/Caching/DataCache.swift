@@ -6,7 +6,7 @@ import Foundation
 
 /// An LRU disk cache that stores data in separate files.
 ///
-/// The DataCache uses LRU cleanup policy (least recently used items are removed
+/// ``DataCache`` uses LRU cleanup policy (least recently used items are removed
 /// first). The elements stored in the cache are automatically discarded if
 /// either *cost* or *count* limit is reached. The sweeps are performed periodically.
 ///
@@ -14,26 +14,28 @@ import Foundation
 /// reading and writing data in parallel. This is implemented using a "staging"
 /// area which stores changes until they are flushed to disk:
 ///
-///     // Schedules data to be written asynchronously and returns immediately
-///     cache[key] = data
+/// ```swift
+/// // Schedules data to be written asynchronously and returns immediately
+/// cache[key] = data
 ///
-///     // The data is returned from the staging area
-///     let data = cache[key]
+/// // The data is returned from the staging area
+/// let data = cache[key]
 ///
-///     // Schedules data to be removed asynchronously and returns immediately
-///     cache[key] = nil
+/// // Schedules data to be removed asynchronously and returns immediately
+/// cache[key] = nil
 ///
-///     // Data is nil
-///     let data = cache[key]
+/// // Data is nil
+/// let data = cache[key]
 ///
 /// Thread-safe.
+/// ```
 ///
-/// - warning: It's possible to have more than one instance of `DataCache` with
-/// the same `path` but it is not recommended.
+/// - important: It's possible to have more than one instance of ``DataCache`` with
+/// the same path but it is not recommended.
 public final class DataCache: DataCaching, @unchecked Sendable {
     /// Size limit in bytes. `150 Mb` by default.
     ///
-    /// Changes to `sizeLimit` will take effect when the next LRU sweep is run.
+    /// Changes to the size limit will take effect when the next LRU sweep is run.
     public var sizeLimit: Int = 1024 * 1024 * 150
 
     /// When performing a sweep, the cache will remote entries until the size of
@@ -196,18 +198,19 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// in a staging area and returns immediately. The staging area allows for
     /// reading and writing data in parallel.
     ///
-    ///     // Schedules data to be written asynchronously and returns immediately
-    ///     cache[key] = data
+    /// ```swift
+    /// // Schedules data to be written asynchronously and returns immediately
+    /// cache[key] = data
     ///
-    ///     // The data is returned from the staging area
-    ///     let data = cache[key]
+    /// // The data is returned from the staging area
+    /// let data = cache[key]
     ///
-    ///     // Schedules data to be removed asynchronously and returns immediately
-    ///     cache[key] = nil
+    /// // Schedules data to be removed asynchronously and returns immediately
+    /// cache[key] = nil
     ///
-    ///     // Data is nil
-    ///     let data = cache[key]
-    ///
+    /// // Data is nil
+    /// let data = cache[key]
+    /// ```
     public subscript(key: String) -> Data? {
         get {
             cachedData(for: key)
@@ -223,7 +226,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     // MARK: Managing URLs
 
-    /// Uses the `FilenameGenerator` that the cache was initialized with to
+    /// Uses the the filename generator that the cache was initialized with to
     /// generate and return a filename for the given key.
     public func filename(for key: String) -> String? {
         filenameGenerator(key)
@@ -393,7 +396,8 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     // MARK: Inspection
 
     /// The total number of items in the cache.
-    /// - warning: Requires disk IO, avoid using from the main thread.
+    ///
+    /// - important: Requires disk IO, avoid using from the main thread.
     public var totalCount: Int {
         contents().count
     }

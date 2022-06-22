@@ -43,7 +43,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     }
 
     /// The relative priority of the request. The priority affects the order in
-    /// which the requests are performed. `.normal` by default.
+    /// which the requests are performed. ``Priority-swift.enum/normal`` by default.
     public var priority: Priority {
         get { ref.priority }
         set { mutate { $0.priority = newValue } }
@@ -90,10 +90,10 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
 
         /// By default, a pipeline uses URLs as unique image identifiers for
         /// caching and task coalescing. You can override this behavior by
-        /// providing an `imageIdKey` instead. For example, you can use it to remove
+        /// providing an image ID instead. For example, you can use it to remove
         /// transient query parameters from the request.
         ///
-        /// ```
+        /// ```swift
         /// let request = ImageRequest(
         ///     url: URL(string: "http://example.com/image.jpeg?token=123"),
         ///     userInfo: [.imageIdKey: "http://example.com/image.jpeg"]
@@ -108,7 +108,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         /// Specifies whether the pipeline should retrieve or generate a thumbnail
         /// instead of a full image. The thumbnail creation is generally significantly
         /// more efficient, especially in terms of memory usage, than image resizing
-        /// (`ImageProcessors.Resize`).
+        /// (``ImageProcessors/Resize``).
         ///
         /// - note: You must be using the default image decoder to make it work.
         public static let thumbnailKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/thumbmnailKey"
@@ -120,7 +120,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     ///
     /// - parameter url: The request URL.
     /// - parameter processors: Processors to be apply to the image. `[]` by default.
-    /// - parameter priority: The priority of the request, `.normal` by default.
+    /// - parameter priority: The priority of the request, ``Priority-swift.enum/normal`` by default.
     /// - parameter options: Image loading options. `[]` by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
     ///
@@ -149,7 +149,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     ///
     /// - parameter urlRequest: The URLRequest describing the image request.
     /// - parameter processors: Processors to be apply to the image. `[]` by default.
-    /// - parameter priority: The priority of the request, `.normal` by default.
+    /// - parameter priority: The priority of the request, ``Priority-swift.enum/normal`` by default.
     /// - parameter options: Image loading options. `[]` by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
     ///
@@ -179,12 +179,13 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     /// - parameter id: Uniquely identifies the image data.
     /// - parameter data: A data publisher to be used for fetching image data.
     /// - parameter processors: Processors to be apply to the image. `[]` by default.
-    /// - parameter priority: The priority of the request, `.normal` by default.
+    /// - parameter priority: The priority of the request, ``Priority-swift.enum/normal`` by default.
     /// - parameter options: Image loading options. `[]` by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
     ///
     /// For example, here is how you can use it with Photos framework (the
-    /// `imageDataPublisher()` API is a convenience extension).
+    /// `imageDataPublisher` API is a custom convenience extension not included
+    /// in the framework).
     ///
     /// ```swift
     /// let request = ImageRequest(
@@ -193,9 +194,9 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     /// )
     /// ```
     ///
-    /// - warning: If you don't want data to be stored in the disk cache, make
+    /// - important: If you don't want data to be stored in the disk cache, make
     /// sure to create a pipeline without it or disable it on a per-request basis.
-    /// You can also disable it dynamically using `ImagePipelineDelegate`.
+    /// You can also disable it dynamically using ``ImagePipelineDelegate``.
     public init<P>(id: String,
                    data: P,
                    processors: [any ImageProcessing] = [],
@@ -219,7 +220,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     /// - parameter id: Uniquely identifies the image data.
     /// - parameter data: A data publisher to be used for fetching image data.
     /// - parameter processors: Processors to be apply to the image. `[]` by default.
-    /// - parameter priority: The priority of the request, `.normal` by default.
+    /// - parameter priority: The priority of the request, ``Priority-swift.enum/normal`` by default.
     /// - parameter options: Image loading options. `[]` by default.
     /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
     ///
@@ -233,9 +234,9 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     /// )
     /// ```
     ///
-    /// - warning: If you don't want data to be stored in the disk cache, make
+    /// - important: If you don't want data to be stored in the disk cache, make
     /// sure to create a pipeline without it or disable it on a per-request basis.
-    /// You can also disable it dynamically using `ImagePipelineDelegate`.
+    /// You can also disable it dynamically using ``ImagePipelineDelegate``.
     public init(id: String,
                 data: @Sendable @escaping () async throws -> Data,
                 processors: [any ImageProcessing] = [],
@@ -266,27 +267,27 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
             self.rawValue = rawValue
         }
 
-        /// Disables memory cache reads (`ImageCaching`).
+        /// Disables memory cache reads (see ``ImageCaching``).
         public static let disableMemoryCacheReads = Options(rawValue: 1 << 0)
 
-        /// Disables memory cache writes (`ImageCaching`).
+        /// Disables memory cache writes (see ``ImageCaching``).
         public static let disableMemoryCacheWrites = Options(rawValue: 1 << 1)
 
-        /// Disables both memory cache reads and writes (`ImageCaching`).
+        /// Disables both memory cache reads and writes (see ``ImageCaching``).
         public static let disableMemoryCache: Options = [.disableMemoryCacheReads, .disableMemoryCacheWrites]
 
-        /// Disables disk cache reads (`DataCaching`).
+        /// Disables disk cache reads (see ``DataCaching``).
         public static let disableDiskCacheReads = Options(rawValue: 1 << 2)
 
-        /// Disables disk cache writes (`DataCaching`).
+        /// Disables disk cache writes (see ``DataCaching``).
         public static let disableDiskCacheWrites = Options(rawValue: 1 << 3)
 
-        /// Disables both disk cache reads and writes (`DataCaching`).
+        /// Disables both disk cache reads and writes (see ``DataCaching``).
         public static let disableDiskCache: Options = [.disableDiskCacheReads, .disableDiskCacheWrites]
 
         /// The image should be loaded only from the originating source.
         ///
-        /// This option only works `ImageCaching` and `DataCaching`, but not
+        /// This option only works ``ImageCaching`` and ``DataCaching``, but not
         /// `URLCache`. If you want to ignore `URLCache`, initialize the request
         /// with `URLRequest` with the respective policy
         public static let reloadIgnoringCachedData: Options = [.disableMemoryCacheReads, .disableDiskCacheReads]
@@ -298,10 +299,10 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         /// will happen lazily when you display the image.
         public static let skipDecompression = Options(rawValue: 1 << 5)
 
-        /// Perform data loading immediately, ignoring `dataLoadingQueue`. It
+        /// Perform data loading immediately, ignoring ``ImagePipeline/Configuration-swift.struct/dataLoadingQueue``. It
         /// can be used to elevate priority of certain tasks.
         ///
-        /// - warning: If there is an outstanding task for loading the same
+        /// - importajt: If there is an outstanding task for loading the same
         /// resource but without this option, a new task will be created.
         public static let skipDataLoadingQueue = Options(rawValue: 1 << 6)
     }
@@ -318,7 +319,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         /// Whether a thumbnail should be automatically created for an image if
         /// a thumbnail isn't present in the image source file. The thumbnail is
         /// created from the full image, subject to the limit specified by
-        /// `maxPixelSize`.
+        /// ``maxPixelSize``.
         ///
         /// By default, `true`.
         public var createThumbnailFromImageIfAbsent = true
@@ -326,7 +327,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         /// Whether a thumbnail should be created from the full image even if a
         /// thumbnail is present in the image source file. The thumbnail is created
         /// from the full image, subject to the limit specified by
-        /// `maxPixelSize`.
+        /// ``maxPixelSize``.
         ///
         /// By default, `true`.
         public var createThumbnailFromImageAlways = true
@@ -371,8 +372,8 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         closure(ref)
     }
 
-    /// Just like many Swift built-in types, `ImageRequest` uses CoW approach to
-    /// avoid memberwise retain/releases when `ImageRequest` is passed around.
+    /// Just like many Swift built-in types, ``ImageRequest`` uses CoW approach to
+    /// avoid memberwise retain/releases when ``ImageRequest`` is passed around.
     final class Container: @unchecked Sendable {
         // It's benefitial to put resource before priority and options because
         // of the resource size/stride of 9/16. Priority (1 byte) and Options
@@ -467,7 +468,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     }
 }
 
-/// Represents a type that can be converted to an `ImageRequest`.
+/// Represents a type that can be converted to an ``ImageRequest``.
 public protocol ImageRequestConvertible {
     func asImageRequest() -> ImageRequest
 }

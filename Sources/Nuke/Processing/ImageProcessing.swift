@@ -8,15 +8,15 @@ import Foundation
 ///
 /// For basic processing needs, implement the following method:
 ///
-/// ```
+/// ```swift
 /// func process(image: PlatformImage) -> PlatformImage?
 /// ```
 ///
-/// If your processor needs to manipulate image metadata (`ImageContainer`), or
-/// get access to more information via the context (`ImageProcessingContext`),
+/// If your processor needs to manipulate image metadata (``ImageContainer``), or
+/// get access to more information via the context (``ImageProcessingContext``),
 /// there is an additional method that allows you to do that:
 ///
-/// ```
+/// ```swift
 /// func process(image container: ImageContainer, context: ImageProcessingContext) -> ImageContainer?
 /// ```
 ///
@@ -43,10 +43,10 @@ public protocol ImageProcessing: Sendable {
     /// The default implementation simply returns `var identifier: String` but
     /// can be overridden as a performance optimization - creating and comparing
     /// strings is _expensive_ so you can opt-in to return something which is
-    /// fast to create and to compare. See `ImageProcessors.Resize` for an example.
+    /// fast to create and to compare. See ``ImageProcessors/Resize`` for an example.
     ///
     /// - note: A common approach is to make your processor `Hashable` and return `self`
-    /// from `hashableIdentifier`.
+    /// from ``hashableIdentifier``.
     var hashableIdentifier: AnyHashable { get }
 }
 
