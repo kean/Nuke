@@ -31,7 +31,7 @@ If you want to keep the image in caches but reload it, you can instruct the pipe
 
 ```swift
 let request = ImageRequest(url: url, options: [ .reloadIgnoringCacheData])
-Nuke.loadImage(with: request, into: imageView)
+let response = try await pipeline.image(for: request)
 ```
 
 ``ImageRequest/Options-swift.struct`` provides even more granluar control if needed, e.g. ``ImageRequest/Options-swift.struct/disableMemoryCacheReads`` and other similar options.

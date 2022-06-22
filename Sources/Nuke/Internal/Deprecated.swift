@@ -93,3 +93,11 @@ extension ImageCaching {
         set { self[ImageCacheKey(request: request.asImageRequest())] = newValue }
     }
 }
+
+extension ImageProcessing where Self == ImageProcessors.Anonymous {
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Renamed to `custom(id:_:)`.")
+    public static func process(id: String, _ closure: @Sendable @escaping (PlatformImage) -> PlatformImage?) -> ImageProcessors.Anonymous {
+        ImageProcessors.Anonymous(id: id, closure)
+    }
+}

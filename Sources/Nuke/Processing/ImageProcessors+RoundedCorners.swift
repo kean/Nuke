@@ -16,9 +16,10 @@ extension ImageProcessors {
 
         /// Initializes the processor with the given radius.
         ///
-        /// - parameter radius: The radius of the corners.
-        /// - parameter unit: Unit of the radius, ``ImageProcessingOptions/Unit/points`` by default.
-        /// - parameter border: An optional border drawn around the image.
+        /// - parameters:
+        ///   - radius: The radius of the corners.
+        ///   - unit: Unit of the radius.
+        ///   - border: An optional border drawn around the image.
         public init(radius: CGFloat, unit: ImageProcessingOptions.Unit = .points, border: ImageProcessingOptions.Border? = nil) {
             self.radius = radius.converted(to: unit)
             self.border = border

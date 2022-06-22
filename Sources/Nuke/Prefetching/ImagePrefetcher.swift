@@ -53,9 +53,11 @@ public final class ImagePrefetcher: @unchecked Sendable {
     }
 
     /// Initializes the ``ImagePrefetcher`` instance.
-    /// - parameter pipeline: ``ImagePipeline/shared`` by default.
-    /// - parameter destination: ``Destination/memoryCache`` by default.
-    /// - parameter `maxConcurrentRequestCount`: 2 by default.
+    ///
+    /// - parameters:
+    ///   - pipeline: The pipeline used for loading images.
+    ///   - destination: By default load images in all cache layers.
+    ///   - maxConcurrentRequestCount: 2 by default.
     public init(pipeline: ImagePipeline = ImagePipeline.shared,
                 destination: Destination = .memoryCache,
                 maxConcurrentRequestCount: Int = 2) {

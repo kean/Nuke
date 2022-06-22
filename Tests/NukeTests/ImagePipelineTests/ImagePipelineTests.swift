@@ -570,7 +570,7 @@ class ImagePipelineTests: XCTestCase {
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
 
-        let request = ImageRequest(id: "a", data: Just(Test.data), options: [
+        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data), options: [
             .skipDataLoadingQueue
         ])
 

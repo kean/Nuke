@@ -54,6 +54,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
             guard total > 0 else { return 0 }
             return min(1, Float(completed) / Float(total))
         }
+
+        /// Initializes progess with the given status.
+        public init(completed: Int64, total: Int64) {
+            self.completed = completed
+            self.total = total
+        }
     }
 
     deinit {
@@ -79,8 +85,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// Marks task as being cancelled.
     ///
     /// The pipeline will immediately cancel any work associated with a task
-    /// unless there is an equivalent outstanding task running (see
-    /// ``ImagePipeline/Configuration/isTaskCoalescingEnabled`` for more info).
+    /// unless there is an equivalent outstanding task running.
     public func cancel() {
         if OSAtomicCompareAndSwap32Barrier(0, 1, _isCancelled) {
             pipeline?.imageTaskCancelCalled(self)
@@ -123,7 +128,7 @@ public protocol ImageTaskDelegate: AnyObject, Sendable {
 
     /// Gets called when the task is cancelled.
     ///
-    /// - important: This doesn't get called immediately
+    /// - important: This doesn't get called immediately.
     func imageTaskDidCancel(_ task: ImageTask)
 
     /// If you cancel the task from the same queue as the callback queue, this

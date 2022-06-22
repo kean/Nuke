@@ -1,4 +1,4 @@
-# Supported Image Formats
+# Supported Formats
 
 Nuke has built-in support for basic image formats like `jpeg`, `png`, and `heif`. It also has the infrastructure for supporting a variety of custom image formats.
 
@@ -76,8 +76,11 @@ final class ImageView: UIView {
     func setImage(with url: URL) {
         prepareForReuse()
 
-        if let response = ImagePipeline.shared.cachedResponse(for: url) {
-            return imageView.display(response: response)
+        if let response = ImagePipeline.shared.cache[url] {
+            imageView.display(response: response)
+            if !response.isPreview {
+                return 
+            }
         }
 
         spinner.startAnimating()

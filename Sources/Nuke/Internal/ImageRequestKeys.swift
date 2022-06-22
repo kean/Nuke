@@ -45,7 +45,7 @@ struct CacheKey: Hashable {
     init(_ request: ImageRequest) {
         self.imageId = request.preferredImageId
         self.thumbnail = request.thubmnail
-        self.processors = request.ref.processors
+        self.processors = request.processors
     }
 
     func hash(into hasher: inout Hasher) {
@@ -93,7 +93,7 @@ struct DataLoadKey: Hashable {
 
     init(_ request: ImageRequest) {
         self.imageId = request.imageId
-        switch request.ref.resource {
+        switch request.resource {
         case .url, .publisher:
             self.cachePolicy = .useProtocolCachePolicy
             self.allowsCellularAccess = true

@@ -4,21 +4,15 @@
 
 import Foundation
 
-/// A delegate that allows you to customize the pipeline on a per-request basis.
+/// A delegate that allows you to customize the pipeline dynamically on a per-request basis.
 ///
 /// - important: The delegate methods are performed on the pipeline queue in the
 /// background.
 public protocol ImagePipelineDelegate: ImageTaskDelegate {
     // MARK: Configuration
 
-    func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)?
-
     /// Returns data loader for the given request.
     func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading
-
-    /// Returns disk cache for the given request. Return `nil` to prevent cache
-    /// reads and writes.
-    func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)?
 
     /// Returns image decoder for the given context.
     func imageDecoder(for context: ImageDecodingContext, pipeline: ImagePipeline) -> (any ImageDecoding)?
@@ -27,6 +21,13 @@ public protocol ImagePipelineDelegate: ImageTaskDelegate {
     func imageEncoder(for context: ImageEncodingContext, pipeline: ImagePipeline) -> any ImageEncoding
 
     // MARK: Caching
+
+    /// Returns in-memory image cache for the given request. Return `nil` to prevent cache reads and writes.
+    func imageCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any ImageCaching)?
+
+    /// Returns disk cache for the given request. Return `nil` to prevent cache
+    /// reads and writes.
+    func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)?
 
     /// Returns a cache key identifying the image produced for the given request
     /// (including image processors).
@@ -41,14 +42,15 @@ public protocol ImagePipelineDelegate: ImageTaskDelegate {
     /// This method calls only if the request parameters and data caching policy
     /// of the pipeline already allow caching.
     ///
-    /// - parameter data: Either the original data or the encoded image in case
-    /// of storing a processed or re-encoded image.
-    /// - parameter image: Non-nil in case storing an encoded image.
-    /// - parameter request: The request for which image is being stored.
-    /// - parameter completion: The implementation must call the completion closure
-    /// passing `non-nil` data to enable caching or `nil` to prevent it. You can
-    /// safely call it synchronously. The callback gets called on the background
-    /// thread.
+    /// - parameters:
+    ///   - data: Either the original data or the encoded image in case of storing
+    ///   a processed or re-encoded image.
+    ///   - image: Non-nil in case storing an encoded image.
+    ///   - request: The request for which image is being stored.
+    ///   - completion: The implementation must call the completion closure
+    ///   passing `non-nil` data to enable caching or `nil` to prevent it. You can
+    ///   safely call it synchronously. The callback gets called on the background
+    ///   thread.
     func willCache(data: Data, image: ImageContainer?, for request: ImageRequest, pipeline: ImagePipeline, completion: @escaping (Data?) -> Void)
 
     // MARK: Decompression

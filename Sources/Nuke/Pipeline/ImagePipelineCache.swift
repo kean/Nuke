@@ -10,9 +10,7 @@ extension ImagePipeline {
     ///
     /// - important: This class doesn't work with a `URLCache`. For more info,
     /// see <doc:caching>.
-    ///
-    /// Thread-safe.
-    public struct Cache {
+    public struct Cache: Sendable {
         let pipeline: ImagePipeline
         private var configuration: ImagePipeline.Configuration { pipeline.configuration }
     }
@@ -46,9 +44,10 @@ extension ImagePipeline.Cache {
     ///
     /// - note: Respects request options such as its cache policy.
     ///
-    /// - parameter request: The request. Make sure to remove the processors
-    /// if you want to retrieve an original image (if it's stored).
-    /// - parameter caches: `[.all]`, by default.
+    /// - parameters:
+    ///   - request: The request. Make sure to remove the processors if you want
+    ///   to retrieve an original image (if it's stored).
+    ///   - caches: `[.all]`, by default.
     public func cachedImage(for request: any ImageRequestConvertible, caches: Caches = [.all]) -> ImageContainer? {
         let request = request.asImageRequest()
         if caches.contains(.memory) {
@@ -75,9 +74,10 @@ extension ImagePipeline.Cache {
     ///
     /// - note: Image previews are not stored.
     ///
-    /// - parameter request: The request. Make sure to remove the processors
-    /// if you want to retrieve an original image (if it's stored).
-    /// - parameter caches: `[.all]`, by default.
+    /// - parameters:
+    ///   - request: The request. Make sure to remove the processors if you want
+    ///   to retrieve an original image (if it's stored).
+    ///   - caches: `[.all]`, by default.
     public func storeCachedImage(_ image: ImageContainer, for request: any ImageRequestConvertible, caches: Caches = [.all]) {
         let request = request.asImageRequest()
         if caches.contains(.memory) {

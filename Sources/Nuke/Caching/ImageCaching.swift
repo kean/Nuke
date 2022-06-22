@@ -17,7 +17,7 @@ public protocol ImageCaching: AnyObject, Sendable {
 
 /// An opaque container that acts as a cache key.
 ///
-/// In general, you don't construct it directly, and use ``ImagePipeline`` or ``ImagePipeline/Cache`` APIs.
+/// In general, you don't construct it directly, and use ``ImagePipeline`` or ``ImagePipeline/Cache-swift.struct`` APIs.
 public struct ImageCacheKey: Hashable, Sendable {
     let key: Inner
 

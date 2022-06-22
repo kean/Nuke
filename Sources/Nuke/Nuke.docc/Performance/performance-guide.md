@@ -8,13 +8,14 @@ The pipeline avoids doing any duplicated work when loading images. For example, 
 
 ```swift
 let url = URL(string: "http://example.com/image")
-pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ImageProcessor.Resize(size: CGSize(width: 44, height: 44)),
-    ImageProcessor.GaussianBlur(radius: 8)
+async let first = pipeline.image(for: ImageRequest(url: url, processors: [
+    .resize(size: CGSize(width: 44, height: 44)),
+    .gaussianBlur(radius: 8)
 ]))
-pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
+async let second = pipeline.image(for: ImageRequest(url: url, processors: [
+    .resize(size: CGSize(width: 44, height: 44))
 ]))
+let images = try await (first, second)
 ```
 
 Nuke will load the data only once, resize the image once and blur it also only once. There is no duplicated work done. The work only gets canceled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
@@ -59,7 +60,7 @@ Ideally, the app should download the images optimized for the target device scre
 // Target size is in points.
 let request = ImageRequest(
     url: URL(string: "http://..."),
-    processors: [ImageProcessors.Resize(size: imageView.bounds.size)]
+    processors: [.resize(size: imageView.bounds.size)]
 )
 ```
 
@@ -67,13 +68,14 @@ let request = ImageRequest(
 
 ## Prefetch Images
 
-Loading data ahead of time in anticipation of its use ([prefetching](https://en.wikipedia.org/wiki/Prefetching)) is a great way to improve user experience. It's especially effective for images; it can give users an impression that there is no networking and the images are just magically always there.
-
-To implement prefetching, see <doc:prefetching>
+Loading data ahead of time in anticipation of its use ([prefetching](https://en.wikipedia.org/wiki/Prefetching)) is a great way to improve user experience. It's especially effective for images; it can give users an impression that there is no networking and the images are just magically always there. For more info, see <doc:prefetching>.
 
 ## Resumable Downloads
 
-Make sure your server supports resumable downloads. By default, the pipeline enables resumable downloads on the client side.
+Make sure your server supports resumable downloads.
+
+If the data task is terminated when the image is partially loaded (either because of a failure or a cancellation), the next load will resume where the previous left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators: `ETag` and `Last-Modified`. Resumable downloads are enabled by default. You can learn more in ["Resumable Downloads"](https://kean.blog/post/resumable-downloads).
+
 
 ## Request Priorities
 
@@ -88,7 +90,7 @@ final class ImageView: UIView {
     override func willMove(toWindow newWindow: UIWindow?) {
         super.willMove(toWindow: newWindow)
 
-        task?.priority = newWindow == nil ? .low : .high
+        task?.setPriority(newWindow == nil ? .low : .high)
     }
 }
 ```

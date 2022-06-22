@@ -12,65 +12,7 @@ ImageRequest(url: url, processors: [
 ])
 ```
 
-## ImageProcessors
-
 The built-in processors can all be found in the ``ImageProcessors`` namespace, but the preferred way to create them is by using static factory methods on ``ImageProcessing`` protocol.
-
-### Resize
-
-To resize an image, use ``ImageProcessors/Resize``:
-
-```swift
-ImageRequest(url: url, processors: [
-    .resize(size: imageView.bounds.size)
-])
-```
-
-By default, the target size is in points. When the image is loaded, Nuke will downscale it to fill the target area, maintaining the aspect ratio. To crop the image, set `crop` to `true`. For more options, see ``ImageProcessors/Resize`` reference.
-
- ### Circle
-
-``ImageProcessors/Circle`` rounds the corners of an image into a circle. It can also add a border.
-
-```swift
-ImageRequest(url: url, processors: [
-    .circle()
-])
-```
-
-### RoundedCorners
-
-``ImageProcessors/RoundedCorners`` rounds the corners of an image to the specified radius.
-
-```swift
-ImageRequest(url: url, processors: [
-    .roundedCorners(radius: 8)
-])
-```
-
-> Important: Make sure to resize the image to match the size of the view in which it gets displayed so that the border appears correctly.
-
-### GaussianBlur
-
-``ImageProcessors/GaussianBlur`` blurs the input image using one of the [Core Image](https://developer.apple.com/library/archive/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html) filters.
-
-### CoreImageFilter
-
-Apply any of the vast number [Core Image filters](https://developer.apple.com/library/archive/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html) using ``ImageProcessors/CoreImageFilter`:
-
-```swift
-request.processors = [.coreImageFilter(name: "CISepiaTone")]
-```
-
-### Anonymous
-
-For simple one-off operations, use ``ImageProcessors/Anonymous`` to create a processor with a closure.
-
-```swift
-ImageProcessors.Anonymous(id: "profile-icon") { image in
-    // Perform processing operations...
-}
-```
 
 ## Custom Processors
 
@@ -104,7 +46,16 @@ In addition to ``ImageProcessing/identifier`` (a `String`), you can implement ``
 - ``ImageProcessingContext``
 - ``ImageProcessingError``
 
-
 ### Built-In Processors
 
+- ``ImageProcessing/resize(size:unit:contentMode:crop:upscale:)``
+- ``ImageProcessing/resize(width:unit:upscale:)``
+- ``ImageProcessing/resize(height:unit:upscale:)``
+- ``ImageProcessing/circle(border:)``
+- ``ImageProcessing/roundedCorners(radius:unit:border:)``
+- ``ImageProcessing/gaussianBlur(radius:)``
+- ``ImageProcessing/coreImageFilter(name:)``
+- ``ImageProcessing/coreImageFilter(name:parameters:identifier:)``
+- ``ImageProcessing/custom(id:_:)``
+- ``ImageProcessing/process(id:_:)``
 - ``ImageProcessors``

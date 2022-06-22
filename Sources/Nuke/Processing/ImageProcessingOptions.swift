@@ -40,9 +40,10 @@ public enum ImageProcessingOptions: Sendable {
         #if os(iOS) || os(tvOS) || os(watchOS)
         public let color: UIColor
 
-        /// - parameter color: Border color.
-        /// - parameter width: Border width. 1 points by default.
-        /// - parameter unit: Unit of the width, `.points` by default.
+        /// - parameters:
+        ///   - color: Border color.
+        ///   - width: Border width.
+        ///   - unit: Unit of the width.
         public init(color: UIColor, width: CGFloat = 1, unit: Unit = .points) {
             self.color = color
             self.width = width.converted(to: unit)
@@ -50,9 +51,10 @@ public enum ImageProcessingOptions: Sendable {
         #else
         public let color: NSColor
 
-        /// - parameter color: Border color.
-        /// - parameter width: Border width. 1 points by default.
-        /// - parameter unit: Unit of the width, `.points` by default.
+        /// - parameters:
+        ///   - color: Border color.
+        ///   - width: Border width.
+        ///   - unit: Unit of the width.
         public init(color: NSColor, width: CGFloat = 1, unit: Unit = .points) {
             self.color = color
             self.width = width.converted(to: unit)

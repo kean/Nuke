@@ -37,11 +37,11 @@ func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress
 
 The delegate is captured weakly and the callbacks are executed on the main queue by default.
 
-> Tip: You can customize ``ImagePipeline`` by initializing it with ``ImagePipeline/Configuration-swift.struct`` and ``ImagePipelineDelegate``. You can also provide custom caches, data loaders, adding support for new image formats, and more. Learn more in <doc:image-pipeline-configuration>.
+> Tip: You can start by using a ``ImagePipeline/shared`` pipeline and can create a custom one later if needed. To create a custom pipeline, you can use a convenience ``ImagePipeline/init(delegate:_:)`` initializer.
 
 ## Image Request
 
-``ImageRequest`` allows you to apply other image processors, downsample images, change the request priority, and provide other options.
+``ImageRequest`` allows you to apply other image processors, downsample images, change the request priority, and provide other options. See ``ImageRequest`` reference to learn about them.
 
 ```swift
 let request = ImageRequest(
@@ -50,10 +50,12 @@ let request = ImageRequest(
     priority: .high,
     options: [.reloadIgnoringCacheData]
 )
-let response = try await pipeline.image(for: url)
+let response = try await pipeline.image(for: request)
 ```
 
-> Most APIs accept types that conform to ``ImageRequestConvertible``. By default, it includes `URL`, `URLRequest`, and ``ImageRequest`` itself. Learn more in <doc:image-requests>.
+> Most APIs accept types that conform to ``ImageRequestConvertible``. By default, it includes `URL`, `URLRequest`, and ``ImageRequest`` itself.
+
+Set ``ImageRequest/processors`` to apply one of the built-in processors that can be found in ``ImageProcessors`` namespace or a custom one. See <doc:image-processing> for more on image processing.
 
 ## Caching
 

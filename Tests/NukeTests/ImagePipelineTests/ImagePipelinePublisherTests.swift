@@ -29,7 +29,7 @@ class ImagePipelinePublisherTests: XCTestCase {
 
     func testLoadWithPublisher() throws {
         // GIVEN
-        let request = ImageRequest(id: "a", data: Just(Test.data))
+        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
 
         // WHEN
         let record = expect(pipeline).toLoadImage(with: request)
@@ -42,7 +42,7 @@ class ImagePipelinePublisherTests: XCTestCase {
 
     func testLoadWithPublisherAndApplyProcessor() throws {
         // GIVEN
-        var request = ImageRequest(id: "a", data: Just(Test.data))
+        var request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
         request.processors = [MockImageProcessor(id: "1")]
 
         // WHEN
@@ -57,7 +57,7 @@ class ImagePipelinePublisherTests: XCTestCase {
 
     func testImageRequestWithPublisher() {
         // GIVEN
-        let request = ImageRequest(id: "a", data: Just(Test.data))
+        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
 
         // THEN
         XCTAssertNil(request.urlRequest)
@@ -79,7 +79,7 @@ class ImagePipelinePublisherTests: XCTestCase {
 
     func testDataIsStoredInDataCache() {
         // GIVEN
-        let request = ImageRequest(id: "a", data: Just(Test.data))
+        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
 
         // WHEN
         expect(pipeline).toLoadImage(with: request)

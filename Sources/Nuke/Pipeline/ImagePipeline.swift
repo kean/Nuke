@@ -12,10 +12,8 @@ import Combine
 /// and cache, configure image encoders and decoders, etc. You can also set an
 /// ``ImagePipelineDelegate`` to get even more granular control on a per-request
 /// basis.
-///
-/// ``ImagePipeline`` is fully thread-safe.
 public final class ImagePipeline: @unchecked Sendable {
-    /// Shared image pipeline.
+    /// Returns the shared image pipeline.
     public static var shared = ImagePipeline(configuration: .withURLCache)
 
     /// The pipeline configuration.
@@ -55,8 +53,9 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Initializes the instance with the given configuration.
     ///
-    /// - parameter configuration: `Configuration()` by default.
-    /// - parameter delegate: `nil` by default.
+    /// - parameters:
+    ///   - configuration: The pipeline configuration.
+    ///   - delegate: Provides more ways to customize the pipeline behavior on per-request basis.
     public init(configuration: Configuration = Configuration(), delegate: (any ImagePipelineDelegate)? = nil) {
         self.configuration = configuration
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
@@ -89,6 +88,10 @@ public final class ImagePipeline: @unchecked Sendable {
     ///     $0.dataCachePolicy = .automatic
     /// }
     /// ```
+    ///
+    /// - parameters:
+    ///   - configuration: The pipeline configuration.
+    ///   - delegate: Provides more ways to customize the pipeline behavior on per-request basis.
     public convenience init(delegate: (any ImagePipelineDelegate)? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
         var configuration = ImagePipeline.Configuration()
         configure(&configuration)
@@ -107,7 +110,13 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - Loading Images (Async/Await)
 
-    /// Loads an image for the given request.
+    /// Returns an image for the given request.
+    ///
+    /// - parameters:
+    ///   - request: An image request.
+    ///   - delegate: A delegate for monitoring the request progress. The delegate
+    ///   is captured as a weak reference and is called on the main queue. You
+    ///   can change the callback queue using ``Configuration-swift.struct/callbackQueue``.
     public func image(for request: any ImageRequestConvertible, delegate: ImageTaskDelegate? = nil) async throws -> ImageResponse {
         let task = makeImageTask(request: request, queue: nil)
         task.delegate = delegate
@@ -133,9 +142,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - Loading Data (Async/Await)
 
-    /// Loads an image for the given request.
-    ///
-    /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
+    /// Returns image data for the given request.
     ///
     /// - parameter request: An image request.
     @discardableResult
@@ -160,6 +167,11 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Loading Images (Closures)
 
     /// Loads an image for the given request.
+    ///
+    /// - parameters:
+    ///   - request: An image request.
+    ///   - completion: A closure to be called on the main thread when the request
+    ///   is finished.
     @discardableResult public func loadImage(
         with request: any ImageRequestConvertible,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
@@ -169,15 +181,14 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Loads an image for the given request.
     ///
-    /// See [Nuke Docs](https://kean.blog/nuke/guides/image-pipeline) to learn more.
-    ///
-    /// - parameter request: An image request.
-    /// - parameter queue: A queue on which to execute `progress` and `completion`
-    /// callbacks. By default, the pipeline uses `.main` queue.
-    /// - parameter progress: A closure to be called periodically on the main thread
-    /// when the progress is updated. `nil` by default.
-    /// - parameter completion: A closure to be called on the main thread when the
-    /// request is finished. `nil` by default.
+    /// - parameters:
+    ///   - request: An image request.
+    ///   - queue: A queue on which to execute `progress` and `completion` callbacks.
+    ///   By default, the pipeline uses `.main` queue.
+    ///   - progress: A closure to be called periodically on the main thread when
+    ///   the progress is updated.
+    ///   - completion: A closure to be called on the main thread when the request
+    ///   is finished.
     @discardableResult public func loadImage(
         with request: any ImageRequestConvertible,
         queue: DispatchQueue? = nil,
@@ -269,7 +280,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - Loading Data (Closures)
 
-    /// Loads the image data for the given request. The data doesn't get decoded
+    /// Loads image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
     @discardableResult public func loadData(
         with request: any ImageRequestConvertible,
@@ -285,13 +296,12 @@ public final class ImagePipeline: @unchecked Sendable {
     /// ``loadData(with:completion:)``, the pipeline will use the same operation to load the data,
     /// no duplicated work will be performed.
     ///
-    /// - parameter request: An image request.
-    /// - parameter queue: A queue on which to execute `progress` and `completion`
-    /// callbacks. By default, the pipeline uses `.main` queue.
-    /// - parameter progress: A closure to be called periodically on the main thread
-    /// when the progress is updated. `nil` by default.
-    /// - parameter completion: A closure to be called on the main thread when the
-    /// request is finished.
+    /// - parameters:
+    ///   - request: An image request.
+    ///   - queue: A queue on which to execute `progress` and `completion`
+    ///   callbacks. By default, the pipeline uses `.main` queue.
+    ///   - progress: A closure to be called periodically on the main thread when the progress is updated.
+    ///   - completion: A closure to be called on the main thread when the request is finished.
     @discardableResult public func loadData(
         with request: any ImageRequestConvertible,
         queue: DispatchQueue? = nil,

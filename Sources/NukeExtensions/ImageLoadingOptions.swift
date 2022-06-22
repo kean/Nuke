@@ -82,9 +82,10 @@ public struct ImageLoadingOptions {
         /// Content mode to be used when displaying a `placeholder`.
         public var placeholder: UIView.ContentMode
 
-        /// - parameter success: A content mode to be used with a loaded image.
-        /// - parameter failure: A content mode to be used with a `failureImage`.
-        /// - parameter placeholder: A content mode to be used with a `placeholder`.
+        /// - parameters:
+        ///   - success: A content mode to be used with a loaded image.
+        ///   - failure: A content mode to be used with a `failureImage`.
+        ///   - placeholder: A content mode to be used with a `placeholder`.
         public init(success: UIView.ContentMode, failure: UIView.ContentMode, placeholder: UIView.ContentMode) {
             self.success = success; self.failure = failure; self.placeholder = placeholder
         }
@@ -112,9 +113,10 @@ public struct ImageLoadingOptions {
         /// Tint color to be used when displaying a `placeholder`.
         public var placeholder: UIColor?
 
-        /// - parameter success: A tint color to be used with a loaded image.
-        /// - parameter failure: A tint color to be used with a `failureImage`.
-        /// - parameter placeholder: A tint color to be used with a `placeholder`.
+        /// - parameters:
+        ///   - success: A tint color to be used with a loaded image.
+        ///   - failure: A tint color to be used with a `failureImage`.
+        ///   - placeholder: A tint color to be used with a `placeholder`.
         public init(success: UIColor?, failure: UIColor?, placeholder: UIColor?) {
             self.success = success; self.failure = failure; self.placeholder = placeholder
         }
@@ -132,17 +134,16 @@ public struct ImageLoadingOptions {
 
     #if os(iOS) || os(tvOS)
 
-    /// - parameter placeholder: Placeholder to be displayed when the image is
-    /// loading . `nil` by default.
-    /// - parameter transition: The image transition animation performed when
-    /// displaying a loaded image. Only runs when the image was not found in
-    /// memory cache. `nil` by default (no animations).
-    /// - parameter failureImage: Image to be displayed when request fails.
-    /// `nil` by default.
-    /// - parameter failureImageTransition: The image transition animation
-    /// performed when displaying a failure image. `nil` by default.
-    /// - parameter contentModes: Content modes to be used for each image type
-    /// (placeholder, success, failure). `nil` by default (don't change content mode).
+    /// - parameters:
+    ///   - placeholder: Placeholder to be displayed when the image is loading.
+    ///   - transition: The image transition animation performed when
+    ///   displaying a loaded image. Only runs when the image was not found in
+    ///   memory cache.
+    ///   - failureImage: Image to be displayed when request fails.
+    ///   - failureImageTransition: The image transition animation
+    ///   performed when displaying a failure image.
+    ///  - contentModes: Content modes to be used for each image type
+    ///  (placeholder, success, failure).
     public init(placeholder: UIImage? = nil, transition: Transition? = nil, failureImage: UIImage? = nil, failureImageTransition: Transition? = nil, contentModes: ContentModes? = nil, tintColors: TintColors? = nil) {
         self.placeholder = placeholder
         self.transition = transition

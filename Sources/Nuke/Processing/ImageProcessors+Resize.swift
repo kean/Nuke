@@ -33,12 +33,13 @@ extension ImageProcessors {
 
         /// Initializes the processor with the given size.
         ///
-        /// - parameter size: The target size.
-        /// - parameter unit: Unit of the target size, ``ImageProcessingOptions/Unit/points`` by default.
-        /// - parameter contentMode: ``ContentMode/aspectFill`` by default.
-        /// - parameter crop: If `true` will crop the image to match the target size.
-        /// Does nothing with content mode .aspectFill. `false` by default.
-        /// - parameter upscale: `false` by default.
+        /// - parameters:
+        ///   - size: The target size.
+        ///   - unit: Unit of the target size.
+        ///   - contentMode: A target content mode.
+        ///   - crop: If `true` will crop the image to match the target size.
+        ///   Does nothing with content mode .aspectFill.
+        ///  - upscale: By default, upscaling is not allowed.
         public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
             self.size = Size(size: size, unit: unit)
             self.contentMode = contentMode
@@ -48,18 +49,20 @@ extension ImageProcessors {
 
         /// Scales an image to the given width preserving aspect ratio.
         ///
-        /// - parameter width: The target width.
-        /// - parameter unit: Unit of the target size, ``ImageProcessingOptions/Unit/points`` by default.
-        /// - parameter upscale: `false` by default.
+        /// - parameters:
+        ///   - width: The target width.
+        ///   - unit: Unit of the target size.
+        ///   - upscale: `false` by default.
         public init(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) {
             self.init(size: CGSize(width: width, height: 9999), unit: unit, contentMode: .aspectFit, crop: false, upscale: upscale)
         }
 
         /// Scales an image to the given height preserving aspect ratio.
         ///
-        /// - parameter height: The target height.
-        /// - parameter unit: Unit of the target size, ``ImageProcessingOptions/Unit/points`` by default.
-        /// - parameter upscale: `false` by default.
+        /// - parameters:
+        ///   - height: The target height.
+        ///   - unit: Unit of the target size.
+        ///   - upscale: By default, upscaling is not allowed.
         public init(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) {
             self.init(size: CGSize(width: 9999, height: height), unit: unit, contentMode: .aspectFit, crop: false, upscale: upscale)
         }

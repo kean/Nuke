@@ -96,16 +96,17 @@ extension NSImageView: Nuke_ImageDisplaying {
 /// completes the loaded image is displayed (or `failureImage` in case of an error)
 /// with the selected animation.
 ///
-/// - parameter request: The image request. If `nil`, it's handled as a failure
-/// scenario.
-/// - parameter options: `ImageLoadingOptions.shared` by default.
-/// - parameter view: Nuke keeps a weak reference to the view. If the view is deallocated
-/// the associated request automatically gets canceled.
-/// - parameter progress: A closure to be called periodically on the main thread
-/// when the progress is updated. `nil` by default.
-/// - parameter completion: A closure to be called on the main thread when the
-/// request is finished. Gets called synchronously if the response was found in
-/// the memory cache. `nil` by default.
+/// - parameters:
+///   - request: The image request. If `nil`, it's handled as a failure scenario.
+///   - options: `ImageLoadingOptions.shared` by default.
+///   - view: Nuke keeps a weak reference to the view. If the view is deallocated
+///   the associated request automatically gets canceled.
+///   - progress: A closure to be called periodically on the main thread
+///   when the progress is updated.
+///   - completion: A closure to be called on the main thread when the
+///   request is finished. Gets called synchronously if the response was found in
+///   the memory cache.
+///
 /// - returns: An image task or `nil` if the image was found in the memory cache.
 @MainActor
 @discardableResult public func loadImage(

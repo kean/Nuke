@@ -1,6 +1,6 @@
 # Image Decoding
 
-## ``ImageDecoding`` Protocol
+## ImageDecoding Protocol
 
 At the core of the decoding infrastructure is the ``ImageDecoding`` protocol.
 
@@ -41,69 +41,32 @@ The decoding is performed in the background on the operation queue provided in `
 
 ## Registering Decoders
 
-To register the decoders, use ``ImageDecoderRegistry``. There are two ways to register the decoder.
-
-The preferred approach is to make sure your decoders implement ``ImageDecoderRegistering`` protocol.
+To register the decoders, use ``ImageDecoderRegistry``.
 
 ```swift
-/// An image decoder which supports automatically registering in the decoder register.
-public protocol ImageDecoderRegistering: ImageDecoding {
-    /// Returns non-nil if the decoder can be used to decode the given data.
-    ///
-    /// - parameter data: The same data is going to be delivered to decoder via
-    /// `decode(_:)` method. The same instance of the decoder is going to be used.
-    init?(data: Data, context: ImageDecodingContext)
-
-    /// Returns non-nil if the decoder can be used to progressively decode the
-    /// given partially downloaded data.
-    ///
-    /// - parameter data: The first and the next data chunks are going to be
-    /// delivered to the decoder via `decodePartiallyDownloadedData(_:)` method.
-    init?(partiallyDownloadedData data: Data, context: ImageDecodingContext)
+func register() {
+    ImageDecoderRegistry.shared.register(ImageDecoders.SVG.init)
 }
 
-public extension ImageDecoderRegistering {
-    /// The default implementation which simply returns `nil` (no progressive
-    /// decoding available).
-    init?(partiallyDownloadedData data: Data, context: ImageDecodingContext) {
-        return nil
+extension ImageDecoders {
+    final class SVG: ImageDecoding {
+        init?(context: ImageDecodingContext) {
+            guard context.isCompleted else {
+                return nil // No progressive decoding
+            }
+
+            let isSVG = context.urlResponse?.url?.absoluteString.hasSuffix(".svg") ?? false
+            guard isSVG else {
+                return nil // Image format isn't supported.
+            }   
+        }
     }
 }
 ```
 
-By default, the registry is initialized with a single registered decoder, the default one:
+> Tip: To determine image type, use an ``AssetType`` initializer that takes data as input. ``AssetType`` represents uniform type identifiers or UTI.
 
-```swift
-public final class ImageDecoderRegistry {
-    public init() {
-        self.register(ImageDecoders.Default.self)
-    }
-}
-```
-
-If for some reason ``ImageDecoderRegistering`` does not work for you, use another ``ImageDecoderRegistry/register(_:)-8diym`` variant:
-
-```swift
-// Note: ImageDecoders.SVG not included in the framework.
-ImageDecoderRegistry.shared.register { context: ImageDecodingContext in
-    // Replace this with whatever works for. There are no magic numbers
-    // for SVG like are used for other binary formats, it's just XML.
-    let isSVG = context.urlResponse?.url?.absoluteString.hasSuffix(".svg") ?? false
-    return isSVG ? ImageDecoders.SVG() : nil
-}
-```
-
-> To determine image type, use an ``AssetType`` initializer that takes data as input. ``AssetType`` represents uniform type identifiers or UTI.
-
-When you register a decoder, you have access to the entire decoding context for the given decoding session:
-
-```swift
-public struct ImageDecodingContext {
-    public let request: ImageRequest
-    public let data: Data
-    public let urlResponse: URLResponse?
-}
-```
+When you register a decoder, you have access to ``ImageDecodingContext`` for the given decoding session.
 
 ## Rendering Engines
 
@@ -122,9 +85,12 @@ You can find all of the built-in decoders in the [`ImageDecoders`](https://kean-
 ``ImageDecoders/Default`` is used by default if no custom decoders are registered. It uses native `UIImage(data:)` (and `NSImage(data:)`) initializers to create images from data.
 
 > When working with `UIImage`, the decoder automatically sets the scale of the image to match the scale of the screen.
-{:.info}
 
 The default ``ImageDecoders/Default`` also supports progressively decoding JPEG. It produces a new preview every time it encounters a new frame.
+
+### ImageDecoders.Video 
+
+Generates a video preview and attaches downloaded data to the image container.
 
 ### ImageDecoders.Empty
 

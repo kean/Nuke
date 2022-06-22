@@ -26,8 +26,6 @@ import Foundation
 ///
 /// // Data is nil
 /// let data = cache[key]
-///
-/// Thread-safe.
 /// ```
 ///
 /// - important: It's possible to have more than one instance of ``DataCache`` with

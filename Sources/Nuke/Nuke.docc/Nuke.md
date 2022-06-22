@@ -54,17 +54,13 @@ To install Nuke, use Swift Packager Manager.
 ### Essentials
 
 - <doc:getting-started>
-- <doc:image-pipeline>
-- <doc:image-requests>
 - ``ImagePipeline``
 - ``ImageRequest``
 - ``ImageResponse``
 - ``ImageContainer``
+- ``ImageTask``
 
 ### Customization
-
-<!--Articles-->
-- <doc:image-pipeline-configuration>
 
 <!--Collections-->
 - <doc:image-processing>
@@ -73,7 +69,6 @@ To install Nuke, use Swift Packager Manager.
 
 <!--Symbols-->
 - ``ImagePipelineDelegate``
-- ``ImageTask``
 - ``ImageTaskDelegate``
 - ``ImageRequestConvertible``
 

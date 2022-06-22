@@ -25,10 +25,11 @@ final class RateLimiter: @unchecked Sendable {
     typealias Work = () -> Bool
 
     /// Initializes the `RateLimiter` with the given configuration.
-    /// - parameter queue: Queue on which to execute pending tasks.
-    /// - parameter rate: Maximum number of requests per second. 80 by default.
-    /// - parameter burst: Maximum number of requests which can be executed without
-    /// any delays when "bucket is full". 25 by default.
+    /// - parameters:
+    ///   - queue: Queue on which to execute pending tasks.
+    ///   - rate: Maximum number of requests per second. 80 by default.
+    ///   - burst: Maximum number of requests which can be executed without any
+    ///   delays when "bucket is full". 25 by default.
     init(queue: DispatchQueue, rate: Int = 80, burst: Int = 25) {
         self.queue = queue
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))

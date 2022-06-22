@@ -5,10 +5,57 @@
 import Foundation
 import Combine
 
-/// Represents an image request.
+/// Represents an image request that specifies what images to download, how to
+/// process them, set the request priority, and more.
+///
+/// Creating a request:
+///
+/// ```swift
+/// let request = ImageRequest(
+///     url: URL(string: "http://example.com/image.jpeg"),
+///     processors: [.resize(size: imageView.bounds.size)],
+///     priority: .high,
+///     options: [.reloadIgnoringCacheData]
+/// )
+/// let response = try await pipeline.image(for: request)
+/// ```
+///
+/// Most APIs accept any types that conform to ``ImageRequestConvertible``. By
+/// default, it includes `URL`, `URLRequest`, and ``ImageRequest`` itself.
 public struct ImageRequest: CustomStringConvertible, Sendable {
 
-    // MARK: Parameters
+    // MARK: Options
+
+    /// The relative priority of the request. The priority affects the order in
+    /// which the requests are performed. ``Priority-swift.enum/normal`` by default.
+    ///
+    /// - note: You can change the priority of a running task using ``ImageTask/setPriority(_:)``.
+    public var priority: Priority {
+        get { ref.priority }
+        set { mutate { $0.priority = newValue } }
+    }
+
+    /// Processor to be applied to the image. Empty by default.
+    ///
+    /// See <doc:image-processing> to learn more.
+    public var processors: [any ImageProcessing] {
+        get { ref.processors }
+        set { mutate { $0.processors = newValue } }
+    }
+
+    /// The request options. For a complete list of options, see ``ImageRequest/Options-swift.struct``.
+    public var options: Options {
+        get { ref.options }
+        set { mutate { $0.options = newValue } }
+    }
+
+    /// Custom info passed alongside the request.
+    public var userInfo: [UserInfoKey: Any] {
+        get { ref.userInfo ?? [:] }
+        set { mutate { $0.userInfo = newValue } }
+    }
+
+    // MARK: Instance Properties
 
     /// Returns the request `URLRequest`.
     ///
@@ -32,8 +79,8 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         }
     }
 
-    /// Returns the ID of the underlying image. For URL-based request, it's an
-    /// image URL. For publisher – a custom ID.
+    /// Returns the ID of the underlying image. For URL-based requests, it's an
+    /// image URL. For an async function – a custom ID provided in initializer.
     public var imageId: String? {
         switch ref.resource {
         case .url(let url): return url?.absoluteString
@@ -42,30 +89,168 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         }
     }
 
-    /// The relative priority of the request. The priority affects the order in
-    /// which the requests are performed. ``Priority-swift.enum/normal`` by default.
-    public var priority: Priority {
-        get { ref.priority }
-        set { mutate { $0.priority = newValue } }
+    /// Returns a debug request description.
+    public var description: String {
+        "ImageRequest(resource: \(ref.resource), priority: \(priority), processors: \(processors), options: \(options), userInfo: \(userInfo))"
     }
 
-    /// Processor to be applied to the image. Empty by default.
-    public var processors: [any ImageProcessing] {
-        get { ref.processors }
-        set { mutate { $0.processors = newValue } }
+    // MARK: Initializers
+
+    /// Initializes a request with the given `URL`.
+    ///
+    /// - parameters:
+    ///   - url: The request URL.
+    ///   - processors: Processors to be apply to the image. See <doc:image-processing> to learn more.
+    ///   - priority: The priority of the request.
+    ///   - options: Image loading options.
+    ///   - userInfo: Custom info passed alongside the request.
+    ///
+    /// ```swift
+    /// let request = ImageRequest(
+    ///     url: URL(string: "http://..."),
+    ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
+    ///     priority: .high
+    /// )
+    /// ```
+    public init(
+        url: URL?,
+        processors: [any ImageProcessing] = [],
+        priority: Priority = .normal,
+        options: Options = [],
+        userInfo: [UserInfoKey: Any]? = nil
+    ) {
+        self.ref = Container(
+            resource: Resource.url(url),
+            processors: processors,
+            priority: priority,
+            options: options,
+            userInfo: userInfo
+        )
     }
 
-    /// The request options.
-    public var options: Options {
-        get { ref.options }
-        set { mutate { $0.options = newValue } }
+    /// Initializes a request with the given `URLRequest`.
+    ///
+    /// - parameters:
+    ///   - urlRequest: The URLRequest describing the image request.
+    ///   - processors: Processors to be apply to the image. See <doc:image-processing> to learn more.
+    ///   - priority: The priority of the request.
+    ///   - options: Image loading options.
+    ///   - userInfo: Custom info passed alongside the request.
+    ///
+    /// ```swift
+    /// let request = ImageRequest(
+    ///     url: URLRequest(url: URL(string: "http://...")),
+    ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
+    ///     priority: .high
+    /// )
+    /// ```
+    public init(
+        urlRequest: URLRequest,
+        processors: [any ImageProcessing] = [],
+        priority: Priority = .normal,
+        options: Options = [],
+        userInfo: [UserInfoKey: Any]? = nil
+    ) {
+        self.ref = Container(
+            resource: Resource.urlRequest(urlRequest),
+            processors: processors,
+            priority: priority,
+            options: options,
+            userInfo: userInfo
+        )
     }
 
-    /// Custom info passed alongside the request.
-    public var userInfo: [UserInfoKey: Any] {
-        get { ref.userInfo ?? [:] }
-        set { mutate { $0.userInfo = newValue } }
+    /// Initializes a request with the given async function.
+    ///
+    /// For example, you can use it with the Photos framework after wrapping its
+    /// API in an async function.
+    ///
+    /// ```swift
+    /// ImageRequest(
+    ///     id: asset.localIdentifier,
+    ///     data: { try await PHAssetManager.default.imageData(for: asset) }
+    /// )
+    /// ```
+    ///
+    /// - important: If you are using a pipeline with a custom configuration that
+    /// enables aggressive disk cache, fetched data will be stored in this cache.
+    /// You can use ``Options-swift.struct/disableDiskCache`` to diasble it.
+    ///
+    /// - note: If the resource is identifiable with a `URL`, consider
+    /// implementing a custom data loader instead. See <doc:loading-data>.
+    ///
+    /// - parameters:
+    ///   - id: Uniquely identifies the fetched image.
+    ///   - data: An async function to be used to fetch image data.
+    ///   - processors: Processors to be apply to the image. See <doc:image-processing> to learn more.
+    ///   - priority: The priority of the request.
+    ///   - options: Image loading options.
+    ///   - userInfo: Custom info passed alongside the request.
+    public init(
+        id: String,
+        data: @Sendable @escaping () async throws -> Data,
+        processors: [any ImageProcessing] = [],
+        priority: Priority = .normal,
+        options: Options = [],
+        userInfo: [UserInfoKey: Any]? = nil
+    ) {
+        // It could technically be implemented without any special change to the
+        // pipeline by using a custom DataLoader and passing an async function in
+        // the request userInfo. g
+        self.ref = Container(
+            resource: .publisher(DataPublisher(id: id, data)),
+            processors: processors,
+            priority: priority,
+            options: options,
+            userInfo: userInfo
+        )
     }
+
+    /// Initializes a request with the given data publisher.
+    ///
+    /// For example, here is how you can use it with the Photos framework (the
+    /// `imageDataPublisher` API is a custom convenience extension not included
+    /// in the framework).
+    ///
+    /// ```swift
+    /// let request = ImageRequest(
+    ///     id: asset.localIdentifier,
+    ///     dataPublisher: PHAssetManager.imageDataPublisher(for: asset)
+    /// )
+    /// ```
+    ///
+    /// - important: If you are using a pipeline with a custom configuration that
+    /// enables aggressive disk cache, fetched data will be stored in this cache.
+    /// You can use ``Options-swift.struct/disableDiskCache`` to diasble it.
+    ///
+    /// - parameters:
+    ///   - id: Uniquely identifies the fetched image.
+    ///   - data: A data publisher to be used for fetching image data.
+    ///   - processors: Processors to be apply to the image. See <doc:image-processing> to learn more.
+    ///   - priority: The priority of the request, ``Priority-swift.enum/normal`` by default.
+    ///   - options: Image loading options.
+    ///   - userInfo: Custom info passed alongside the request.
+    public init<P>(
+        id: String,
+        dataPublisher: P,
+        processors: [any ImageProcessing] = [],
+        priority: Priority = .normal,
+        options: Options = [],
+        userInfo: [UserInfoKey: Any]? = nil
+    ) where P: Publisher, P.Output == Data {
+        // It could technically be implemented without any special change to the
+        // pipeline by using a custom DataLoader and passing a publisher in the
+        // request userInfo.
+        self.ref = Container(
+            resource: .publisher(DataPublisher(id: id, dataPublisher)),
+            processors: processors,
+            priority: priority,
+            options: options,
+            userInfo: userInfo
+        )
+    }
+
+    // MARK: Nested Types
 
     /// The priority affecting the order in which the requests are performed.
     public enum Priority: Int, Comparable, Sendable {
@@ -76,188 +261,16 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         }
     }
 
-    /// A key use in `userInfo`.
-    public struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable {
-        public let rawValue: String
-
-        public init(_ rawValue: String) {
-            self.rawValue = rawValue
-        }
-
-        public init(stringLiteral value: String) {
-            self.rawValue = value
-        }
-
-        /// By default, a pipeline uses URLs as unique image identifiers for
-        /// caching and task coalescing. You can override this behavior by
-        /// providing an image ID instead. For example, you can use it to remove
-        /// transient query parameters from the request.
-        ///
-        /// ```swift
-        /// let request = ImageRequest(
-        ///     url: URL(string: "http://example.com/image.jpeg?token=123"),
-        ///     userInfo: [.imageIdKey: "http://example.com/image.jpeg"]
-        /// )
-        /// ```
-        public static let imageIdKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
-
-        /// The image scale to be used. By default, the scale matches the scale
-        /// of the current display.
-        public static let scaleKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/scale"
-
-        /// Specifies whether the pipeline should retrieve or generate a thumbnail
-        /// instead of a full image. The thumbnail creation is generally significantly
-        /// more efficient, especially in terms of memory usage, than image resizing
-        /// (``ImageProcessors/Resize``).
-        ///
-        /// - note: You must be using the default image decoder to make it work.
-        public static let thumbnailKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/thumbmnailKey"
-    }
-
-    // MARK: Initializers
-
-    /// Initializes a request with the given URL.
-    ///
-    /// - parameter url: The request URL.
-    /// - parameter processors: Processors to be apply to the image. `[]` by default.
-    /// - parameter priority: The priority of the request, ``Priority-swift.enum/normal`` by default.
-    /// - parameter options: Image loading options. `[]` by default.
-    /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
-    ///
-    /// ```swift
-    /// let request = ImageRequest(
-    ///     url: URL(string: "http://..."),
-    ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
-    ///     priority: .high
-    /// )
-    /// ```
-    public init(url: URL?,
-                processors: [any ImageProcessing] = [],
-                priority: Priority = .normal,
-                options: Options = [],
-                userInfo: [UserInfoKey: Any]? = nil) {
-        self.ref = Container(
-            resource: Resource.url(url),
-            processors: processors,
-            priority: priority,
-            options: options,
-            userInfo: userInfo
-        )
-    }
-
-    /// Initializes a request with the given request.
-    ///
-    /// - parameter urlRequest: The URLRequest describing the image request.
-    /// - parameter processors: Processors to be apply to the image. `[]` by default.
-    /// - parameter priority: The priority of the request, ``Priority-swift.enum/normal`` by default.
-    /// - parameter options: Image loading options. `[]` by default.
-    /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
-    ///
-    /// ```swift
-    /// let request = ImageRequest(
-    ///     url: URLRequest(url: URL(string: "http://...")),
-    ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
-    ///     priority: .high
-    /// )
-    /// ```
-    public init(urlRequest: URLRequest,
-                processors: [any ImageProcessing] = [],
-                priority: Priority = .normal,
-                options: Options = [],
-                userInfo: [UserInfoKey: Any]? = nil) {
-        self.ref = Container(
-            resource: Resource.urlRequest(urlRequest),
-            processors: processors,
-            priority: priority,
-            options: options,
-            userInfo: userInfo
-        )
-    }
-
-    /// Initializes a request with the given data publisher.
-    ///
-    /// - parameter id: Uniquely identifies the image data.
-    /// - parameter data: A data publisher to be used for fetching image data.
-    /// - parameter processors: Processors to be apply to the image. `[]` by default.
-    /// - parameter priority: The priority of the request, ``Priority-swift.enum/normal`` by default.
-    /// - parameter options: Image loading options. `[]` by default.
-    /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
-    ///
-    /// For example, here is how you can use it with Photos framework (the
-    /// `imageDataPublisher` API is a custom convenience extension not included
-    /// in the framework).
-    ///
-    /// ```swift
-    /// let request = ImageRequest(
-    ///     id: asset.localIdentifier,
-    ///     data: PHAssetManager.imageDataPublisher(for: asset)
-    /// )
-    /// ```
-    ///
-    /// - important: If you don't want data to be stored in the disk cache, make
-    /// sure to create a pipeline without it or disable it on a per-request basis.
-    /// You can also disable it dynamically using ``ImagePipelineDelegate``.
-    public init<P>(id: String,
-                   data: P,
-                   processors: [any ImageProcessing] = [],
-                   priority: Priority = .normal,
-                   options: Options = [],
-                   userInfo: [UserInfoKey: Any]? = nil) where P: Publisher, P.Output == Data {
-        // It could technically be implemented without any special change to the
-        // pipeline by using a custom DataLoader, disabling resumable data, and
-        // passing a publisher in the request userInfo.
-        self.ref = Container(
-            resource: .publisher(DataPublisher(id: id, data)),
-            processors: processors,
-            priority: priority,
-            options: options,
-            userInfo: userInfo
-        )
-    }
-
-    /// Initializes a request with the given data publisher.
-    ///
-    /// - parameter id: Uniquely identifies the image data.
-    /// - parameter data: A data publisher to be used for fetching image data.
-    /// - parameter processors: Processors to be apply to the image. `[]` by default.
-    /// - parameter priority: The priority of the request, ``Priority-swift.enum/normal`` by default.
-    /// - parameter options: Image loading options. `[]` by default.
-    /// - parameter userInfo: Custom info passed alongside the request. `nil` by default.
-    ///
-    /// For example, here is how you can use it with Photos framework (the
-    /// `imageDataPublisher()` API is a convenience extension).
-    ///
-    /// ```swift
-    /// let request = ImageRequest(
-    ///     id: asset.localIdentifier,
-    ///     data: PHAssetManager.imageDataPublisher(for: asset)
-    /// )
-    /// ```
-    ///
-    /// - important: If you don't want data to be stored in the disk cache, make
-    /// sure to create a pipeline without it or disable it on a per-request basis.
-    /// You can also disable it dynamically using ``ImagePipelineDelegate``.
-    public init(id: String,
-                data: @Sendable @escaping () async throws -> Data,
-                processors: [any ImageProcessing] = [],
-                priority: Priority = .normal,
-                options: Options = [],
-                userInfo: [UserInfoKey: Any]? = nil) {
-        // It could technically be implemented without any special change to the
-        // pipeline by using a custom DataLoader, disabling resumable data, and
-        // passing a publisher in the request userInfo.
-        self.ref = Container(
-            resource: .publisher(DataPublisher(id: id, data)),
-            processors: processors,
-            priority: priority,
-            options: options,
-            userInfo: userInfo
-        )
-    }
-
-    // MARK: Options
-
     /// Image request options.
+    ///
+    /// By default, the pipeline makes full use of all of its caching layers. You can change this behavior using options. For example, you can ignore local caches using ``ImageRequest/Options-swift.struct/reloadIgnoringCachedData`` option.
+    ///
+    /// ```swift
+    ///     request.options = [.reloadIgnoringCachedData]
+    /// ```
+    ///
+    /// Another useful cache policy is ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad``
+    /// that terminates the request if no cached data is available.
     public struct Options: OptionSet, Hashable, Sendable {
         /// Returns a raw value.
         public let rawValue: UInt16
@@ -307,6 +320,50 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         public static let skipDataLoadingQueue = Options(rawValue: 1 << 6)
     }
 
+    /// A key used in `userInfo` for providing custom request options.
+    ///
+    /// There are a couple of built-in options that are passed using user info
+    /// as well, including ``imageIdKey``, ``scaleKey``, and ``thumbnailKey``.
+    public struct UserInfoKey: Hashable, ExpressibleByStringLiteral, Sendable {
+        /// Returns a key raw value.
+        public let rawValue: String
+
+        /// Initializes the key with a raw value.
+        public init(_ rawValue: String) {
+            self.rawValue = rawValue
+        }
+
+        /// Initializes the key with a raw value.
+        public init(stringLiteral value: String) {
+            self.rawValue = value
+        }
+
+        /// By default, a pipeline uses URLs as unique image identifiers for
+        /// caching and task coalescing. You can override this behavior by
+        /// providing an image ID instead. For example, you can use it to remove
+        /// transient query parameters from the request.
+        ///
+        /// ```swift
+        /// let request = ImageRequest(
+        ///     url: URL(string: "http://example.com/image.jpeg?token=123"),
+        ///     userInfo: [.imageIdKey: "http://example.com/image.jpeg"]
+        /// )
+        /// ```
+        public static let imageIdKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
+
+        /// The image scale to be used. By default, the scale matches the scale
+        /// of the current display.
+        public static let scaleKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/scale"
+
+        /// Specifies whether the pipeline should retrieve or generate a thumbnail
+        /// instead of a full image. The thumbnail creation is generally significantly
+        /// more efficient, especially in terms of memory usage, than image resizing
+        /// (``ImageProcessors/Resize``).
+        ///
+        /// - note: You must be using the default image decoder to make it work.
+        public static let thumbnailKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/thumbmnailKey"
+    }
+
     /// Thumbnail options.
     ///
     /// For more info, see https://developer.apple.com/documentation/imageio/cgimagesource/image_source_option_dictionary_keys
@@ -320,28 +377,20 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         /// a thumbnail isn't present in the image source file. The thumbnail is
         /// created from the full image, subject to the limit specified by
         /// ``maxPixelSize``.
-        ///
-        /// By default, `true`.
         public var createThumbnailFromImageIfAbsent = true
 
         /// Whether a thumbnail should be created from the full image even if a
         /// thumbnail is present in the image source file. The thumbnail is created
         /// from the full image, subject to the limit specified by
         /// ``maxPixelSize``.
-        ///
-        /// By default, `true`.
         public var createThumbnailFromImageAlways = true
 
         /// Whether the thumbnail should be rotated and scaled according to the
         /// orientation and pixel aspect ratio of the full image.
-        ///
-        /// By default, `true`.
         public var createThumbnailWithTransform = true
 
         /// Specifies whether image decoding and caching should happen at image
         /// creation time.
-        ///
-        /// By default, `true`.
         public var shouldCacheImmediately = true
 
         public init(maxPixelSize: Float,
@@ -363,7 +412,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
 
     // MARK: Internal
 
-    private(set) var ref: Container
+    private var ref: Container
 
     private mutating func mutate(_ closure: (Container) -> Void) {
         if !isKnownUniquelyReferenced(&ref) {
@@ -372,20 +421,51 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
         closure(ref)
     }
 
+    var resource: Resource { ref.resource }
+
+    func withProcessors(_ processors: [any ImageProcessing]) -> ImageRequest {
+        var request = self
+        request.processors = processors
+        return request
+    }
+
+    var preferredImageId: String {
+        if let imageId = ref.userInfo?[.imageIdKey] as? String {
+            return imageId
+        }
+        return imageId ?? ""
+    }
+
+    var thubmnail: ThumbnailOptions? {
+        ref.userInfo?[.thumbnailKey] as? ThumbnailOptions
+    }
+
+    var scale: Float? {
+        (ref.userInfo?[.scaleKey] as? NSNumber)?.floatValue
+    }
+
+    var publisher: DataPublisher? {
+        if case .publisher(let publisher) = ref.resource { return publisher }
+        return nil
+    }
+}
+
+// MARK: - ImageRequest (Private)
+
+extension ImageRequest {
     /// Just like many Swift built-in types, ``ImageRequest`` uses CoW approach to
     /// avoid memberwise retain/releases when ``ImageRequest`` is passed around.
-    final class Container: @unchecked Sendable {
+    private final class Container: @unchecked Sendable {
         // It's benefitial to put resource before priority and options because
         // of the resource size/stride of 9/16. Priority (1 byte) and Options
         // (2 bytes) slot just right in the remaining space.
         let resource: Resource
-        fileprivate(set) var priority: Priority
-        fileprivate(set) var options: Options
-        fileprivate(set) var processors: [any ImageProcessing]
-        fileprivate(set) var userInfo: [UserInfoKey: Any]?
-        // After trimming down the request size, it is no longer
-        // as beneficial using CoW for ImageRequest, but there
-        // still is a small but measurable difference.
+        var priority: Priority
+        var options: Options
+        var processors: [any ImageProcessing]
+        var userInfo: [UserInfoKey: Any]?
+        // After trimming the request size in Nuke 10, CoW it is no longer as
+        // beneficial, but there still is a measurable difference.
 
         deinit {
             #if TRACK_ALLOCATIONS
@@ -434,65 +514,28 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
             }
         }
     }
-
-    public var description: String {
-        "ImageRequest(resource: \(ref.resource), priority: \(priority), processors: \(processors), options: \(options), userInfo: \(userInfo))"
-    }
-
-    func withProcessors(_ processors: [any ImageProcessing]) -> ImageRequest {
-        var request = self
-        request.processors = processors
-        return request
-    }
-
-    var preferredImageId: String {
-        if let imageId = ref.userInfo?[.imageIdKey] as? String {
-            return imageId
-        }
-        return imageId ?? ""
-    }
-
-    var thubmnail: ThumbnailOptions? {
-        ref.userInfo?[.thumbnailKey] as? ThumbnailOptions
-    }
-
-    var scale: Float? {
-        (ref.userInfo?[.scaleKey] as? NSNumber)?.floatValue
-    }
-
-    var publisher: DataPublisher? {
-        guard case .publisher(let publisher) = ref.resource else {
-            return nil
-        }
-        return publisher
-    }
 }
+
+// MARK: - ImageRequestConvertible
 
 /// Represents a type that can be converted to an ``ImageRequest``.
 public protocol ImageRequestConvertible {
+    /// Returns a request.
     func asImageRequest() -> ImageRequest
 }
 
 extension ImageRequest: ImageRequestConvertible {
-    public func asImageRequest() -> ImageRequest {
-        self
-    }
+    public func asImageRequest() -> ImageRequest { self }
 }
 
 extension URL: ImageRequestConvertible {
-    public func asImageRequest() -> ImageRequest {
-        ImageRequest(url: self)
-    }
+    public func asImageRequest() -> ImageRequest { ImageRequest(url: self) }
 }
 
 extension Optional: ImageRequestConvertible where Wrapped == URL {
-    public func asImageRequest() -> ImageRequest {
-        ImageRequest(url: self)
-    }
+    public func asImageRequest() -> ImageRequest { ImageRequest(url: self) }
 }
 
 extension URLRequest: ImageRequestConvertible {
-    public func asImageRequest() -> ImageRequest {
-        ImageRequest(urlRequest: self)
-    }
+    public func asImageRequest() -> ImageRequest { ImageRequest(urlRequest: self) }
 }

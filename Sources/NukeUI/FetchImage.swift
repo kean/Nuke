@@ -34,17 +34,8 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// - note: Animation isn't used when image is available in memory cache.
     public var animation: Animation?
 
-    /// The download progress.
-    public struct Progress: Equatable {
-        /// The number of bytes that the task has received.
-        public let completed: Int64
-
-        /// A best-guess upper bound on the number of bytes the client expects to send.
-        public let total: Int64
-    }
-
     /// The progress of the image download.
-    @Published public private(set) var progress = Progress(completed: 0, total: 0)
+    @Published public private(set) var progress = ImageTask.Progress(completed: 0, total: 0)
 
     /// Updates the priority of the task, even if the task is already running.
     /// `nil` by default
@@ -117,13 +108,13 @@ public final class FetchImage: ObservableObject, Identifiable {
         }
 
         isLoading = true
-        progress = Progress(completed: 0, total: 0)
+        progress = ImageTask.Progress(completed: 0, total: 0)
 
         let task = pipeline.loadImage(
             with: request,
             progress: { [weak self] response, completed, total in
                 guard let self = self else { return }
-                self.progress = Progress(completed: completed, total: total)
+                self.progress = ImageTask.Progress(completed: completed, total: total)
                 if let response = response {
                     withAnimation(self.animation) {
                         self.handle(preview: response)
@@ -230,7 +221,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         if imageContainer != nil { imageContainer = nil }
         if result != nil { result = nil }
         lastResponse = nil // publisher-only
-        if progress != Progress(completed: 0, total: 0) { progress = Progress(completed: 0, total: 0) }
+        if progress != ImageTask.Progress(completed: 0, total: 0) { progress = ImageTask.Progress(completed: 0, total: 0) }
     }
 
     // MARK: View
