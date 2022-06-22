@@ -81,20 +81,16 @@ public struct Image: UIViewRepresentable {
         if let resizingMode = self.resizingMode {
             imageView.resizingMode = resizingMode
         }
-        if imageView.isVideoLooping != isVideoLooping {
-            imageView.isVideoLooping = isVideoLooping
-        }
-        imageView.onVideoFinished = onVideoFinished
+        imageView.videoPlayerView.isLooping = isVideoLooping
+        imageView.videoPlayerView.onVideoFinished = onVideoFinished
         onCreated?(imageView)
         return imageView
     }
 
     public func updateUIView(_ imageView: ImageView, context: Context) {
-        if imageView.isVideoLooping != isVideoLooping {
-            imageView.isVideoLooping = isVideoLooping
-        }
+        imageView.videoPlayerView.isLooping = isVideoLooping
         if restartVideo {
-            imageView.restartVideo()
+            imageView.videoPlayerView.restart()
         }
         guard imageView.imageContainer?.image !== imageContainer.image else { return }
         imageView.imageContainer = imageContainer

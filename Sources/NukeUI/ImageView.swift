@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import Nuke
 
 #if !os(watchOS)
 
@@ -18,13 +19,8 @@ public class ImageView: _PlatformBaseView {
 
     // MARK: Underlying Views
 
-#if os(macOS)
     /// Returns an underlying image view.
-    public let imageView = NSImageView()
-#else
-    /// Returns an underlying image view.
-    public let imageView = UIImageView()
-#endif
+    public let imageView = _PlatformImageView()
 
 #if os(iOS) || os(tvOS)
     /// Sets the content mode for all container views.
@@ -83,7 +79,7 @@ public class ImageView: _PlatformBaseView {
 
     private var _videoPlayerView: VideoPlayerView?
 
-    public var customContentView: _PlatformBaseView? {
+    public private(set) var customContentView: _PlatformBaseView? {
         get { _customContentView }
         set {
             _customContentView?.removeFromSuperview()
@@ -147,27 +143,17 @@ public class ImageView: _PlatformBaseView {
     }
     var _imageContainer: ImageContainer?
 
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please set `isLooping` on the underlying `viewPlayerView` directly.")
     public var isVideoLooping: Bool {
         get { videoPlayerView.isLooping }
         set { videoPlayerView.isLooping = newValue }
     }
-    var onVideoFinished: (() -> Void)?
 
-    func restartVideo() {
-        videoPlayerView.restart()
-    }
-
-#if os(macOS)
-    public var image: NSImage? {
+    public var image: PlatformImage? {
         get { imageContainer?.image }
         set { imageContainer = newValue.map { ImageContainer(image: $0) } }
     }
-#else
-    public var image: UIImage? {
-        get { imageContainer?.image }
-        set { imageContainer = newValue.map { ImageContainer(image: $0) } }
-    }
-#endif
 
     private func display(_ container: ImageContainer) {
         if let customView = makeCustomContentView(for: container) {
@@ -184,12 +170,12 @@ public class ImageView: _PlatformBaseView {
         if isVideoRenderingEnabled, let asset = container.asset {
             videoPlayerView.isHidden = false
             videoPlayerView.asset = asset
-            videoPlayerView.onVideoFinished = onVideoFinished
             videoPlayerView.play()
-        } else {
-            imageView.image = container.image
-            imageView.isHidden = false
+            return
         }
+
+        imageView.image = container.image
+        imageView.isHidden = false
     }
 
     private func makeCustomContentView(for container: ImageContainer) -> _PlatformBaseView? {
@@ -222,25 +208,14 @@ public class ImageView: _PlatformBaseView {
 
     // MARK: Extending Rendering System
 
-#if os(iOS) || os(tvOS)
     /// Registers a custom content view to be used for displaying the given image.
     ///
     /// - parameter closure: A closure to get called when the image needs to be
     /// displayed. The view gets added to the `contentView`. You can return `nil`
     /// if you want the default rendering to happen.
-    public static func registerContentView(_ closure: @escaping (ImageContainer) -> UIView?) {
+    public static func registerContentView(_ closure: @escaping (ImageContainer) -> _PlatformBaseView?) {
         registersContentViews.append(closure)
     }
-#else
-    /// Registers a custom content view to be used for displaying the given image.
-    ///
-    /// - parameter closure: A closure to get called when the image needs to be
-    /// displayed. The view gets added to the `contentView`. You can return `nil`
-    /// if you want the default rendering to happen.
-    public static func registerContentView(_ closure: @escaping (ImageContainer) -> NSView?) {
-        registersContentViews.append(closure)
-    }
-#endif
 
     public static func removeAllRegisteredContentViews() {
         registersContentViews.removeAll()

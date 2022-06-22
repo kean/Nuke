@@ -20,6 +20,7 @@ public final class VideoPlayerView: _PlatformBaseView {
     /// `true` by default. If disabled, will only play a video once.
     public var isLooping = true {
         didSet {
+            guard isLooping != oldValue else { return }
             player?.actionAtItemEnd = isLooping ? .none : .pause
             if isLooping, !(player?.nowPlaying ?? false) {
                 restart()

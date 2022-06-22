@@ -17,11 +17,11 @@ import Nuke
 
 #if os(macOS)
 public typealias _PlatformBaseView = NSView
-typealias _PlatformImageView = NSImageView
+public typealias _PlatformImageView = NSImageView
 typealias _PlatformColor = NSColor
 #else
 public typealias _PlatformBaseView = UIView
-typealias _PlatformImageView = UIImageView
+public typealias _PlatformImageView = UIImageView
 typealias _PlatformColor = UIColor
 #endif
 
