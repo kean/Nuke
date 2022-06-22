@@ -4,7 +4,7 @@ Learn how to create and customize image requests.
 
 ## Overview
 
-``ImageRequest`` specifies what images to download, how to process it, set the request priority, and more.
+``ImageRequest`` specifies what images to download, how to process them, set the request priority, and more.
 
 ```swift
 let request = ImageRequest(
@@ -70,7 +70,7 @@ By default, the pipeline makes full use of all of its caching layers. You can ch
 request.options = [.reloadIgnoringCachedData]
 ```
 
-Another useful cache policy is ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad`` that allows you to existing cache data and fail if no cached data is available. For a complete list of options, see ``ImageRequest/Options-swift.struct``.
+Another useful cache policy is ``ImageRequest/Options-swift.struct/returnCacheDataDontLoad`` that terminates the request if no cached data is available. For a complete list of options, see ``ImageRequest/Options-swift.struct``.
 
 ## User Info
 
@@ -100,7 +100,7 @@ By default, it always generates a thumbnail. To use the thumbnail embedded in th
 
 ### Scale
 
-By default, ``ImagePipeline`` sets image [`scale`](https://developer.apple.com/documentation/uikit/uiimage/1624110-scale) to the scale of the screen. You can pass a custom scale to override it.
+By default, ``ImagePipeline`` sets the image [`scale`](https://developer.apple.com/documentation/uikit/uiimage/1624110-scale) to the scale of the screen. You can pass a custom scale to override it.
 
 ```swift
 request.userInfo[.scaleKey] = 1.0

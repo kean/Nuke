@@ -8,8 +8,8 @@ import Combine
 /// `ImagePipeline` is the primary way to load images directly (without a UI).
 ///
 /// The pipeline is fully customizable. You can change its configuration using
-/// `ImagePipeline.Configuration` type: set custom data loader and cache, configure
-/// image encoders and decoders, etc. You can also set an `ImagePipelineDelegate`
+/// ``ImagePipeline/Configuration-swift.struct`` type: set custom data loader and cache, configure
+/// image encoders and decoders, etc. You can also set an ``ImagePipelineDelegate``
 /// to get even more granular control on a per-request basis.
 ///
 /// See ["Image Pipeline"](https://kean.blog/nuke/guides/image-pipeline) to learn

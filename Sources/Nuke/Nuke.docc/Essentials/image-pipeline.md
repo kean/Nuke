@@ -4,11 +4,13 @@ Learn how to use ``ImagePipeline`` to load images.
 
 ## Overview
 
-Use ``ImagePipeline`` to load images using Async/Await, closures, or Combine publishers. The recommended way is to use Async/Await as the other two will be deprecated in future versions.
+``ImagePipeline`` is the primary way to load images directly (without a UI).
+
+The pipeline is fully customizable. You can change its configuration using ``ImagePipeline/Configuration-swift.struct``: set custom data loader and cache, configure image encoders and decoders, etc. You can also set an ``ImagePipelineDelegate`` to get even more granular control on a per-request basis.
 
 ## Creating a Pipeline
 
-You can start by using a shared pipeline (``ImagePipeline/shared``) and can create a custom one later if needed. To create a custom pipeline, you can use a convenience ``ImagePipeline/init(delegate:_:)`` initializer:
+You can start by using a ``ImagePipeline/shared`` pipeline and can create a custom one later if needed. To create a custom pipeline, you can use a convenience ``ImagePipeline/init(delegate:_:)`` initializer:
 
 ```swift
 ImagePipeline {
@@ -17,11 +19,11 @@ ImagePipeline {
 }
 ```
 
-> Tip: There are many ways to customize the pipeline. For example, you can set ``ImagePipelineDelegate`` to provide custom option on a per-request basis. To learn more, see <doc:image-pipeline-configuration>.
+> Tip: There are many ways to customize the pipeline. For example, you can set ``ImagePipelineDelegate`` to provide custom options on a per-request basis. To learn more, see <doc:image-pipeline-configuration>.
 
 ## Loading Images
 
-In this section, you'll learn how to load images using ``ImagePipeline``.
+Use ``ImagePipeline`` to load images using Async/Await, closures, or Combine publishers. The recommended way is to use Async/Await as the other two will be deprecated in future versions.
 
 ### Load an Image (Async/Await)
 
@@ -71,7 +73,7 @@ func loadImage() async throws {
 
 ### Load an Image (Closures)
 
-``ImagePipeline`` also has a closure-based APIs that supports the same features as an Async/Await-based one. To load an image using closures, use ``ImagePipeline/loadImage(with:queue:progress:completion:)``.
+``ImagePipeline`` also has a closure-based API that supports the same features as an Async/Await-based one. To load an image using closures, use ``ImagePipeline/loadImage(with:queue:progress:completion:)``.
 
 ```swift
 let task = ImagePipeline.shared.loadImage(
@@ -85,7 +87,7 @@ let task = ImagePipeline.shared.loadImage(
 )
 ```
 
-The completion closure always gets called asynchronously. By default, it gets called on the main thread, but you can customize it using an optional `queue` parameter or setting a global callback queue (``ImagePipeline/Configuration-swift.struct/callbackQueue``) for the pipeline. To check if the image is stored in a memory cache synchronously, use a subcript.
+The completion closure always gets called asynchronously. By default, it gets called on the main thread, but you can customize it using an optional `queue` parameter or setting a global callback queue (``ImagePipeline/Configuration-swift.struct/callbackQueue``) for the pipeline. To check if the image is stored in a memory cache synchronously, use a subscript.
 
 When you start the request, the pipeline returns an ``ImageTask`` object, which can be used for cancellation and more. The pipeline maintains a strong reference to the task until the request finishes or fails. You can use ``ImageTask`` to control the outstanding request.
 
@@ -116,7 +118,7 @@ public extension ImagePipeline {
 
 There is also a way to download underlying image data using ``ImagePipeline/data(for:)``.
 
-``swift
+```swift
 let (data, urlResponse) = try await pipeline.data(for: url)
 ```
 
@@ -139,6 +141,3 @@ let image = pipeline.cache[URL(string: "https://example.com/image.jpeg")!]
 pipeline.cache[ImageRequest(url: url)] = nil
 pipeline.cache["https://example.com/image.jpeg"] = ImageContainer(image: image)
 ```
-
-> Tip: There are more ``ImagePipeline/Cache-swift.struct`` APIs and they are all covered in <doc:accessing-caches>. 
-
