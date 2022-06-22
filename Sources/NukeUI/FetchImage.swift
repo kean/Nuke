@@ -74,6 +74,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         imageTask?.cancel()
     }
 
+    /// Initialiazes the image. To load an image, use one of the `load()` methods.
     public init() {}
 
     // MARK: Load (ImageRequestConvertible)
@@ -154,11 +155,33 @@ public final class FetchImage: ObservableObject, Identifiable {
         onCompletion?(result)
     }
 
-    // MARK: Load (Publisher)
+    // MARK: Load (Async/Await)
+
+    /// Loads and displays an image using the given async function.
+    ///
+    /// - parameter action: Fetched the image.
+    public func load(_ action: @escaping () async throws -> ImageResponse) {
+        reset()
+        isLoading = true
+
+        let task = Task {
+            do {
+                let response = try await action()
+                withAnimation(animation) {
+                    handle(result: .success(response))
+                }
+            } catch {
+                handle(result: .failure(error))
+            }
+        }
+        cancellable = AnyCancellable { task.cancel() }
+    }
+
+    // MARK: Load (Combine)
 
     /// Loads an image with the given publisher.
     ///
-    /// - warning: Some `FetchImage` features, such as progress reporting and
+    /// - important: Some `FetchImage` features, such as progress reporting and
     /// dynamically changing the request priority, are not available when
     /// working with a publisher.
     public func load<P: Publisher>(_ publisher: P) where P.Output == ImageResponse {
@@ -184,27 +207,12 @@ public final class FetchImage: ObservableObject, Identifiable {
         })
     }
 
-    public func load(_ action: @escaping () async throws -> ImageResponse) {
-        reset()
-        isLoading = true
-
-        let task = Task {
-            do {
-                self.handle(result: .success(try await action()))
-            } catch {
-                self.handle(result: .failure(error))
-            }
-        }
-        cancellable = AnyCancellable { task.cancel() }
-    }
-
     // MARK: Cancel
 
-    /// Marks the request as being cancelled. Continues to display a downloaded
-    /// image.
+    /// Marks the request as being cancelled. Continues to display a downloaded image.
     public func cancel() {
         // pipeline-based
-        imageTask?.cancel() // Guarantees that no more callbacks are will be delivered
+        imageTask?.cancel() // Guarantees that no more callbacks will be delivered
         imageTask = nil
 
         // publisher-based
@@ -226,11 +234,12 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     // MARK: View
 
+    /// Returns an image view displaying a fetched image.
     public var view: SwiftUI.Image? {
 #if os(macOS)
-        return image.map(SwiftUI.Image.init(nsImage:))
+        image.map(SwiftUI.Image.init(nsImage:))
 #else
-        return image.map(SwiftUI.Image.init(uiImage:))
+        image.map(SwiftUI.Image.init(uiImage:))
 #endif
     }
 }

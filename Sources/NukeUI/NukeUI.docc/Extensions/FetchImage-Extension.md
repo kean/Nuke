@@ -27,7 +27,7 @@ struct ImageView: View {
 }
 ```
 
-> Important: In iOS 13, use `@ObservedObject`. Keep in mind that it doesn't own the object.
+> Important: In iOS 13, use [`@ObservedObject`](https://developer.apple.com/documentation/swiftui/observedobject). Be aware that it doesn't own the object.
 
 ``FetchImage`` gives you full control over how to manage the download and how to display the image. For example, if you want the download to continue when the view leaves the screen, change the appearance callbacks accordingly.
 
