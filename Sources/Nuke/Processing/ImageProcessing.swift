@@ -46,7 +46,7 @@ public protocol ImageProcessing: Sendable {
     /// fast to create and to compare. See ``ImageProcessors/Resize`` for an example.
     ///
     /// - note: A common approach is to make your processor `Hashable` and return `self`
-    /// from ``hashableIdentifier``.
+    /// as a hashable identifier.
     var hashableIdentifier: AnyHashable { get }
 }
 

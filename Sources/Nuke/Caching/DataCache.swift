@@ -408,7 +408,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// The total allocated size (see `totalAllocatedSize`. on disk might
     /// actually be bigger.
     ///
-    /// - warning: Requires disk IO, avoid using from the main thread.
+    /// - important: Requires disk IO, avoid using from the main thread.
     public var totalSize: Int {
         contents(keys: [.fileSizeKey]).reduce(0) {
             $0 + ($1.meta.fileSize ?? 0)
@@ -419,7 +419,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     ///
     /// Uses `URLResourceKey.totalFileAllocatedSizeKey`.
     ///
-    /// - warning: Requires disk IO, avoid using from the main thread.
+    /// - important: Requires disk IO, avoid using from the main thread.
     public var totalAllocatedSize: Int {
         contents(keys: [.totalFileAllocatedSizeKey]).reduce(0) {
             $0 + ($1.meta.totalFileAllocatedSize ?? 0)
