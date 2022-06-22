@@ -84,3 +84,12 @@ extension DataCache {
     @available(*, deprecated, message: "Please use String directly instead.")
     public typealias Key = String
 }
+
+extension ImageCaching {
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please use ImagePipeline.Cache instead.")
+    public subscript(request: any ImageRequestConvertible) -> ImageContainer? {
+        get { self[ImageCacheKey(request: request.asImageRequest())] }
+        set { self[ImageCacheKey(request: request.asImageRequest())] = newValue }
+    }
+}

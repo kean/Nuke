@@ -31,19 +31,7 @@ public struct ImageCacheKey: Hashable, Sendable {
         self.key = .custom(key)
     }
 
-    init(request: ImageRequest) {
+    public init(request: ImageRequest) {
         self.key = .default(request.makeImageCacheKey())
-    }
-}
-
-// TODO: deprecate this?
-extension ImageCaching {
-    /// A convenience API for getting an image for the given request.
-    ///
-    /// - warning: If you provide a custom key using ``ImagePipelineDelegate``, use
-    /// ``ImagePipeline.Cache`` instead.
-    public subscript(request: any ImageRequestConvertible) -> ImageContainer? {
-        get { self[ImageCacheKey(request: request.asImageRequest())] }
-        set { self[ImageCacheKey(request: request.asImageRequest())] = newValue }
     }
 }
