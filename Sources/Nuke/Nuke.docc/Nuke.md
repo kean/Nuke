@@ -1,12 +1,12 @@
 # ``Nuke``
 
-Welcome to the documentation for Nuke, an image loading system for Apple platforms.
+A powerful image loading system for Apple platforms.
 
 ## Overview
 
 Nuke provides an efficient way to download and display images in your app. It's easy to learn and use. Its architecture enables many powerful features while offering virtually unlimited possibilities for customization.
 
-The framework is lean and compiles in under 2 seconds¹. Nuke has an automated test suite 2x the size of the codebase itself, ensuring excellent reliability. Every feature is carefully designed and optimized for performance.
+The framework is lean and compiles in under 2 seconds. Nuke has an automated test suite 2x the size of the codebase itself, ensuring excellent reliability. Every feature is carefully designed and optimized for performance.
 
 ## Sponsors 💖
 
@@ -14,7 +14,7 @@ The framework is lean and compiles in under 2 seconds¹. Nuke has an automated t
 
 ## Getting Started
 
-The best way to start learning Nuke is by starting with <doc:getting-started> and going through the rest of the articles in the documentation. Make sure to check out the [demo project](https://github.com/kean/NukeDemo).
+Start learning with <doc:getting-started> and go through the rest of the articles in the documentation as you need it. Make sure to check out the [demo project](https://github.com/kean/NukeDemo).
 
 To install Nuke, use Swift Packager Manager.
 
