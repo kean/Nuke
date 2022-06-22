@@ -12,7 +12,7 @@ import AppKit
 import UIKit
 #endif
 
-/// Lazily loads and displays images.
+/// Displays images. Supports animated images and video playback.
 @MainActor
 public class ImageView: _PlatformBaseView {
 

@@ -11,6 +11,7 @@ import UIKit
 #endif
 
 #if os(macOS)
+/// Displays images. Supports animated images and video playback.
 @MainActor
 public struct Image: NSViewRepresentable {
     let imageContainer: ImageContainer
@@ -51,20 +52,9 @@ public struct Image: NSViewRepresentable {
         guard imageView.imageContainer?.image !== imageContainer.image else { return }
         imageView.imageContainer = imageContainer
     }
-
-    public func onVideoFinished(content: @escaping () -> Void) -> Self {
-        var copy = self
-        copy.onVideoFinished = content
-        return copy
-    }
-
-    public func restartVideo(_ value: Bool) -> Self {
-        var copy = self
-        copy.restartVideo = value
-        return copy
-    }
 }
 #elseif os(iOS) || os(tvOS)
+/// Displays images. Supports animated images and video playback.
 @MainActor
 public struct Image: UIViewRepresentable {
     let imageContainer: ImageContainer
@@ -116,7 +106,10 @@ public struct Image: UIViewRepresentable {
         copy.resizingMode = mode
         return copy
     }
+}
+#endif
 
+extension Image {
     public func onVideoFinished(content: @escaping () -> Void) -> Self {
         var copy = self
         copy.onVideoFinished = content
@@ -129,4 +122,3 @@ public struct Image: UIViewRepresentable {
         return copy
     }
 }
-#endif
