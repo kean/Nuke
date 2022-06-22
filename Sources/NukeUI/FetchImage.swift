@@ -58,6 +58,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// Gets called when the request is completed.
     public var onCompletion: ((_ result: Result<ImageResponse, Error>) -> Void)?
 
+    /// A pipeline used for performing image requests.
     public var pipeline: ImagePipeline = .shared
 
     /// Image processors to be applied unless the processors are provided in the
