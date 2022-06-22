@@ -32,10 +32,10 @@ private struct HashableRequest: Hashable {
 
 /// Lazily loads and displays images.
 ///
-/// The image view is lazy and doesn't know the size of the image before it is
-/// downloaded. You must specify the size for the view before loading the image.
-/// By default, the image will resize to fill the available space but preserve
-/// the aspect ratio. You can change this behavior by passing a different content mode.
+/// ``LazyImage`` is designed similar to the native [`AsyncImage`](https://developer.apple.com/documentation/SwiftUI/AsyncImage),
+/// but it uses [Nuke](https://github.com/kean/Nuke) for loading images so you
+/// can take advantage of all of its features, such as caching, prefetching,
+/// task coalescing, smart background decompression, request priorities, and more.
 @MainActor
 @available(iOS 14.0, tvOS 14.0, watchOS 7.0, macOS 10.16, *)
 public struct LazyImage<Content: View>: View {
@@ -64,29 +64,29 @@ public struct LazyImage<Content: View>: View {
     // MARK: Initializers
 
 #if !os(macOS)
-    /// Loads and displays an image from the given URL when the view appears on screen.
+    /// Loads and displays an image using ``Image``.
     ///
     /// - Parameters:
-    ///   - source: The image source (`String`, `URL`, `URLRequest`, or `ImageRequest`)
+    ///   - source: The image source (`URL`, `URLRequest`, or `ImageRequest`)
     ///   - resizingMode: `.aspectFill` by default.
     public init(source: (any ImageRequestConvertible)?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
         self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
         self.resizingMode = resizingMode
     }
 #else
-    /// Loads and displays an image from the given URL when the view appears on screen.
+    /// Loads and displays an image using ``Image``.
     ///
     /// - Parameters:
-    ///   - source: The image source (`String`, `URL`, `URLRequest`, or `ImageRequest`)
+    ///   - source: The image source (`URL`, `URLRequest`, or `ImageRequest`)
     public init(source: (any ImageRequestConvertible)?) where Content == Image {
         self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
     }
 #endif
 
-    /// Loads and displays an image from the given URL when the view appears on screen.
+    /// Loads an images and displays custom content for each state.
     ///
     /// - Parameters:
-    ///   - source: The image source (`String`, `URL`, `URLRequest`, or `ImageRequest`)
+    ///   - source: The image source (`URL`, `URLRequest`, or `ImageRequest`)
     ///   - content: The view to show for each of the image loading states.
     ///
     /// ```swift

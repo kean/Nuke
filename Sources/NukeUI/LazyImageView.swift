@@ -14,34 +14,33 @@ import UIKit
 #endif
 
 /// Lazily loads and displays images.
+///
+/// ``LazyImageView`` is a ``LazyImage`` counterpart for UIKit and AppKit with the equivalent set of APIs.
+///
+/// ```swift
+/// let imageView = LazyImageView()
+/// imageView.placeholderView = UIActivityIndicatorView()
+/// imageView.priority = .high
+/// imageView.pipeline = customPipeline
+/// imageView.onCompletion = { print("Request completed")
+///
+/// imageView.source = "https://example.com/image.jpeg"
+/// ````
 @MainActor
 public final class LazyImageView: _PlatformBaseView {
 
     // MARK: Placeholder View
 
-#if os(macOS)
     /// An image to be shown while the request is in progress.
-    public var placeholderImage: NSImage? {
+    public var placeholderImage: PlatformImage? {
         didSet { setPlaceholderImage(placeholderImage) }
     }
 
     /// A view to be shown while the request is in progress. For example,
     /// a spinner.
-    public var placeholderView: NSView? {
+    public var placeholderView: _PlatformBaseView? {
         didSet { setPlaceholderView(oldValue, placeholderView) }
     }
-#else
-    /// An image to be shown while the request is in progress.
-    public var placeholderImage: UIImage? {
-        didSet { setPlaceholderImage(placeholderImage) }
-    }
-
-    /// A view to be shown while the request is in progress. For example,
-    /// a spinner.
-    public var placeholderView: UIView? {
-        didSet { setPlaceholderView(oldValue, placeholderView) }
-    }
-#endif
 
     /// The position of the placeholder. `.fill` by default.
     ///
@@ -58,27 +57,15 @@ public final class LazyImageView: _PlatformBaseView {
 
     // MARK: Failure View
 
-#if os(macOS)
     /// An image to be shown if the request fails.
-    public var failureImage: NSImage? {
+    public var failureImage: PlatformImage? {
         didSet { setFailureImage(failureImage) }
     }
 
     /// A view to be shown if the request fails.
-    public var failureView: NSView? {
+    public var failureView: _PlatformBaseView? {
         didSet { setFailureView(oldValue, failureView) }
     }
-#else
-    /// An image to be shown if the request fails.
-    public var failureImage: UIImage? {
-        didSet { setFailureImage(failureImage) }
-    }
-
-    /// A view to be shown if the request fails.
-    public var failureView: UIView? {
-        didSet { setFailureView(oldValue, failureView) }
-    }
-#endif
 
     /// The position of the failure vuew. `.fill` by default.
     ///

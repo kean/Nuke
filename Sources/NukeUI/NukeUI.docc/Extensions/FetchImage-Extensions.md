@@ -64,7 +64,7 @@ struct ImageView: View {
 - ``cancel()``
 - ``reset()``
 
-### Published State
+### State
 
 - ``result``
 - ``image``
@@ -74,12 +74,11 @@ struct ImageView: View {
 
 ### Request Options
 
-- ``animation``
 - ``priority``
 - ``processors``
 - ``pipeline``
 
-### Displaying Image
+### Displaying Images
 
 - ``animation``
 - ``view``

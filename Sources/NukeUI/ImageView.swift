@@ -148,12 +148,8 @@ public class ImageView: _PlatformBaseView {
     var _imageContainer: ImageContainer?
 
     public var isVideoLooping: Bool {
-        get {
-            videoPlayerView.isLooping
-        }
-        set {
-            videoPlayerView.isLooping = newValue
-        }
+        get { videoPlayerView.isLooping }
+        set { videoPlayerView.isLooping = newValue }
     }
     var onVideoFinished: (() -> Void)?
 

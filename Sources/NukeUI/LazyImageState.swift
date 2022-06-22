@@ -7,6 +7,7 @@ import Nuke
 import SwiftUI
 import Combine
 
+/// Describes current image state.
 public struct LazyImageState {
     /// Returns the current fetch result.
     public let result: Result<ImageResponse, Error>?
