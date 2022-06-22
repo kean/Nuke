@@ -55,7 +55,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
             return min(1, Float(completed) / Float(total))
         }
 
-        /// Initializes progess with the given status.
+        /// Initializes progress with the given status.
         public init(completed: Int64, total: Int64) {
             self.completed = completed
             self.total = total

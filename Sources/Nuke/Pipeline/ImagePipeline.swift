@@ -99,7 +99,8 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     /// Invalidates the pipeline and cancels all outstanding tasks. No new
-    /// requests can be started.
+    /// requests can be started and will immediately fail with
+    /// ``ImagePipeline/Error/pipelineInvalidated`` error.
     public func invalidate() {
         queue.async {
             guard !self.isInvalidated else { return }
@@ -205,7 +206,7 @@ public final class ImagePipeline: @unchecked Sendable {
         isConfined: Bool,
         queue callbackQueue: DispatchQueue?,
         progress: ((ImageResponse?, ImageTask.Progress) -> Void)?,
-        completion: ((Result<ImageResponse, Error>) -> Void)?
+        completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         let task = makeImageTask(request: request, queue: callbackQueue)
         delegate.imageTaskCreated(task)
@@ -223,9 +224,18 @@ public final class ImagePipeline: @unchecked Sendable {
     private func startImageTask(
         _ task: ImageTask,
         progress progressHandler: ((ImageResponse?, ImageTask.Progress) -> Void)?,
-        completion: ((Result<ImageResponse, Error>) -> Void)?
+        completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) {
-        guard !isInvalidated else { return }
+        guard !isInvalidated else {
+            dispatchCallback(to: task.callbackQueue) {
+                let error = Error.pipelineInvalidated
+                self.delegate.imageTask(task, didCompleteWithResult: .failure(error))
+                task.delegate?.imageTask(task, didCompleteWithResult: .failure(error))
+
+                completion(.failure(error))
+            }
+            return
+        }
 
         self.delegate.imageTaskDidStart(task)
         task.delegate?.imageTaskDidStart(task)
@@ -247,7 +257,7 @@ public final class ImagePipeline: @unchecked Sendable {
                             self.delegate.imageTask(task, didCompleteWithResult: .success(response))
                             task.delegate?.imageTask(task, didCompleteWithResult: .success(response))
 
-                            completion?(.success(response))
+                            completion(.success(response))
                         } else {
                             self.delegate.imageTask(task, didReceivePreview: response)
                             task.delegate?.imageTask(task, didReceivePreview: response)
@@ -264,7 +274,7 @@ public final class ImagePipeline: @unchecked Sendable {
                         self.delegate.imageTask(task, didCompleteWithResult: .failure(error))
                         task.delegate?.imageTask(task, didCompleteWithResult: .failure(error))
 
-                        completion?(.failure(error))
+                        completion(.failure(error))
                     }
                 }
         }
@@ -335,7 +345,16 @@ public final class ImagePipeline: @unchecked Sendable {
         progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) {
-        guard !isInvalidated else { return }
+        guard !isInvalidated else {
+            dispatchCallback(to: task.callbackQueue) {
+                let error = Error.pipelineInvalidated
+                self.delegate.imageTask(task, didCompleteWithResult: .failure(error))
+                task.delegate?.imageTask(task, didCompleteWithResult: .failure(error))
+
+                completion(.failure(error))
+            }
+            return
+        }
 
         tasks[task] = makeTaskLoadData(for: task.request)
             .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in

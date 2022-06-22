@@ -399,18 +399,17 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
 
-    func testWhenInvalidatedNewTasksCantBeStarted() {
-        dataLoader.queue.isSuspended = true
+    func testThatInvalidatedTasksFailWithError() async throws {
+        // WHEN
         pipeline.invalidate()
 
-        let didStartExpectation = expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-        didStartExpectation.isInverted = true
-
-        pipeline.loadImage(with: Test.request) { _ in
+        // THEN
+        do {
+            _ = try await pipeline.image(for: Test.request)
             XCTFail()
+        } catch {
+            XCTAssertEqual(error as? ImagePipeline.Error, .pipelineInvalidated)
         }
-
-        waitForExpectations(timeout: 0.02, handler: nil)
     }
 
     // MARK: Error Handling

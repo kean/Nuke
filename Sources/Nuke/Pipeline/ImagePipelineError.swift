@@ -24,6 +24,8 @@ extension ImagePipeline {
         case processingFailed(processor: any ImageProcessing, context: ImageProcessingContext, error: Swift.Error)
         /// Load image method was called with no image request.
         case imageRequestMissing
+        /// Image pipeline is invalidated and no requests can be made.
+        case pipelineInvalidated
     }
 }
 
@@ -56,6 +58,8 @@ extension ImagePipeline.Error {
             return "Failed to process the image using processor \(processor).\(underlying)"
         case .imageRequestMissing:
             return "Load image method was called with no image request or no URL."
+        case .pipelineInvalidated:
+            return "Image pipeline is invalidated and no requests can be made."
         }
     }
 }

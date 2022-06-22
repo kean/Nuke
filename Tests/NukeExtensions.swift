@@ -16,6 +16,7 @@ extension ImagePipeline.Error: Equatable {
         case (.decodingFailed, .decodingFailed): return true
         case (.processingFailed, .processingFailed): return true
         case (.imageRequestMissing, .imageRequestMissing): return true
+        case (.pipelineInvalidated, .pipelineInvalidated): return true
         default: return false
         }
     }
