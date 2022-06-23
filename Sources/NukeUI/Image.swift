@@ -25,20 +25,19 @@ public struct Image: NSViewRepresentable {
 
     public init(_ imageContainer: ImageContainer, onCreated: ((ImageView) -> Void)? = nil) {
         self.imageContainer = imageContainer
-        self._isVideoLooping = isVideoLooping
         self.onCreated = onCreated
     }
 
     public func makeNSView(context: Context) -> ImageView {
         let view = ImageView()
-        view.onVideoFinished = onVideoFinished
+        view.videoPlayerView.onVideoFinished = onVideoFinished
         onCreated?(view)
         return view
     }
 
     public func updateNSView(_ imageView: ImageView, context: Context) {
         if restartVideo {
-            imageView.restartVideo()
+            imageView.videoPlayerView.restart()
         }
         guard imageView.imageContainer?.image !== imageContainer.image else { return }
         imageView.imageContainer = imageContainer

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0C0023052863E81A00B018B0 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C063F94266524190018F2C2 /* ImageResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C063F93266524190018F2C2 /* ImageResponse.swift */; };
 		0C09B1661FE9A65700E8FE3B /* fixture.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C09B1651FE9A65600E8FE3B /* fixture.jpeg */; };
 		0C09B1691FE9A65700E8FE3B /* fixture.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C09B1651FE9A65600E8FE3B /* fixture.jpeg */; };
@@ -286,13 +287,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		0C38DB37285690280027F9FF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 0C91748F1BAE99EE004A7905;
-			remoteInfo = Nuke;
-		};
 		0C38DB49285690D20027F9FF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
@@ -574,6 +568,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		0C0023042863E81700B018B0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0C0023052863E81A00B018B0 /* Nuke.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0C2CD78D25B7BF770017018F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -1207,11 +1209,11 @@
 			buildPhases = (
 				0C38DAA228568FAE0027F9FF /* Lint */,
 				0C38DAA328568FAE0027F9FF /* Sources */,
+				0C0023042863E81700B018B0 /* Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				0C38DB38285690280027F9FF /* PBXTargetDependency */,
 			);
 			name = NukeUI;
 			productName = Nuke;
@@ -1873,11 +1875,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		0C38DB38285690280027F9FF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 0C91748F1BAE99EE004A7905 /* Nuke */;
-			targetProxy = 0C38DB37285690280027F9FF /* PBXContainerItemProxy */;
-		};
 		0C38DB4A285690D20027F9FF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 0C38DAA128568FAE0027F9FF /* NukeUI */;
@@ -1987,10 +1984,10 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 10.11.2;
+				MARKETING_VERSION = 11.0.0;
 				OTHER_SWIFT_FLAGS = "-D DEBUG -D TRACK_ALLOCATIONS";
 				"OTHER_SWIFT_FLAGS[arch=*]" = "-D DEBUG -D TRACK_ALLOCATIONS";
-				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.NukeUI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -2009,8 +2006,8 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 10.11.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
+				MARKETING_VERSION = 11.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.NukeUI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -2127,7 +2124,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 10.11.2;
+				MARKETING_VERSION = 11.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.NukeExtensions;
 				PRODUCT_NAME = NukeExtensions;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG TRACK_ALLOCATIONS";
@@ -2148,7 +2145,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 10.11.2;
+				MARKETING_VERSION = 11.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.NukeExtensions;
 				PRODUCT_NAME = NukeExtensions;
 			};
@@ -2453,7 +2450,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 10.11.2;
+				MARKETING_VERSION = 11.0.0;
 				OTHER_SWIFT_FLAGS = "-D DEBUG -D TRACK_ALLOCATIONS";
 				"OTHER_SWIFT_FLAGS[arch=*]" = "-D DEBUG -D TRACK_ALLOCATIONS";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
@@ -2475,7 +2472,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 10.11.2;
+				MARKETING_VERSION = 11.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.Nuke;
 				PRODUCT_NAME = Nuke;
 			};
