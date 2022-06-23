@@ -16,7 +16,6 @@ import UIKit
 public struct Image: NSViewRepresentable {
     let imageContainer: ImageContainer
     let onCreated: ((ImageView) -> Void)?
-    @Binding var isVideoLooping: Bool
     var onVideoFinished: (() -> Void)?
     var restartVideo: Bool = false
 
@@ -24,9 +23,7 @@ public struct Image: NSViewRepresentable {
         self.init(ImageContainer(image: image))
     }
 
-    public init(_ imageContainer: ImageContainer,
-                isVideoLooping: Binding<Bool> = .constant(true),
-                onCreated: ((ImageView) -> Void)? = nil) {
+    public init(_ imageContainer: ImageContainer, onCreated: ((ImageView) -> Void)? = nil) {
         self.imageContainer = imageContainer
         self._isVideoLooping = isVideoLooping
         self.onCreated = onCreated
@@ -34,18 +31,12 @@ public struct Image: NSViewRepresentable {
 
     public func makeNSView(context: Context) -> ImageView {
         let view = ImageView()
-        if view.isVideoLooping != isVideoLooping {
-            view.isVideoLooping = isVideoLooping
-        }
         view.onVideoFinished = onVideoFinished
         onCreated?(view)
         return view
     }
 
     public func updateNSView(_ imageView: ImageView, context: Context) {
-        if imageView.isVideoLooping != isVideoLooping {
-            imageView.isVideoLooping = isVideoLooping
-        }
         if restartVideo {
             imageView.restartVideo()
         }
@@ -60,7 +51,6 @@ public struct Image: UIViewRepresentable {
     let imageContainer: ImageContainer
     let onCreated: ((ImageView) -> Void)?
     var resizingMode: ImageResizingMode?
-    @Binding var isVideoLooping: Bool
     var onVideoFinished: (() -> Void)?
     var restartVideo: Bool = false
 
@@ -68,11 +58,8 @@ public struct Image: UIViewRepresentable {
         self.init(ImageContainer(image: image))
     }
 
-    public init(_ imageContainer: ImageContainer,
-                isVideoLooping: Binding<Bool> = .constant(true),
-                onCreated: ((ImageView) -> Void)? = nil) {
+    public init(_ imageContainer: ImageContainer, onCreated: ((ImageView) -> Void)? = nil) {
         self.imageContainer = imageContainer
-        self._isVideoLooping = isVideoLooping
         self.onCreated = onCreated
     }
 
@@ -81,14 +68,12 @@ public struct Image: UIViewRepresentable {
         if let resizingMode = self.resizingMode {
             imageView.resizingMode = resizingMode
         }
-        imageView.videoPlayerView.isLooping = isVideoLooping
         imageView.videoPlayerView.onVideoFinished = onVideoFinished
         onCreated?(imageView)
         return imageView
     }
 
     public func updateUIView(_ imageView: ImageView, context: Context) {
-        imageView.videoPlayerView.isLooping = isVideoLooping
         if restartVideo {
             imageView.videoPlayerView.restart()
         }
@@ -106,12 +91,16 @@ public struct Image: UIViewRepresentable {
 #endif
 
 extension Image {
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Deprecated. Please use the underlying video player view directly or create a custom wrapper for it. More APIs coming in future versions.")
     public func onVideoFinished(content: @escaping () -> Void) -> Self {
         var copy = self
         copy.onVideoFinished = content
         return copy
     }
 
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Deprecated. Please use the underlying video player view directly or create a custom wrapper for it. More APIs coming in future versions.")
     public func restartVideo(_ value: Bool) -> Self {
         var copy = self
         copy.restartVideo = value
