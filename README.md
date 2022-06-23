@@ -17,7 +17,11 @@ The framework is lean and compiles in under 2 seconds[¹](#footnote-1). Nuke has
 
 ## Sponsors 💖
 
-[Support](https://github.com/sponsors/kean) Nuke on GitHub Sponsors.
+<a href="https://getstream.io/chat/sdk/swiftui/?utm_source=Nuke&utm_medium=Github_Repo_Content_Ad&utm_content=Developer&utm_campaign=Nuke_July2022_SwiftUIChat_klmh22"><img width="200px" src="https://user-images.githubusercontent.com/1567433/175186173-64eb53cb-b5d6-4ed4-aaca-87dbbb0834ab.png"></a>
+
+Nuke is proudly sponsored by [Stream](https://getstream.io/chat/sdk/swiftui/?utm_source=Nuke&utm_medium=Github_Repo_Content_Ad&utm_content=Developer&utm_campaign=Nuke_July2022_SwiftUIChat_klmh22), the leading provider in enterprise grade Feed & Chat APIs.
+
+> [Support](https://github.com/sponsors/kean) Nuke on GitHub Sponsors.
 
 ## Documentation
 
