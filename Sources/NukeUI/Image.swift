@@ -89,6 +89,7 @@ public struct Image: UIViewRepresentable {
 }
 #endif
 
+#if os(macOS) || os(iOS) || os(tvOS)
 extension Image {
     // Deprecated in Nuke 11.0
     @available(*, deprecated, message: "Deprecated. Please use the underlying video player view directly or create a custom wrapper for it. More APIs coming in future versions.")
@@ -106,3 +107,4 @@ extension Image {
         return copy
     }
 }
+#endif
