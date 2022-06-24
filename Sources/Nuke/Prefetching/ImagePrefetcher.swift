@@ -84,6 +84,11 @@ public final class ImagePrefetcher: @unchecked Sendable {
         #endif
     }
 
+    /// Starts prefetching images for the given URL.
+    public func startPrefetching(with urls: [URL]) {
+        startPrefetching(with: urls.map { ImageRequest(url: $0) })
+    }
+
     /// Starts prefetching images for the given requests.
     ///
     /// When you need to display the same image later, use the ``ImagePipeline``
@@ -92,7 +97,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     ///
     /// The priority of the requests is set to the priority of the prefetcher
     /// (`.low` by default).
-    public func startPrefetching(with requests: [any ImageRequestConvertible]) {
+    public func startPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
             for request in requests {
                 var request = request.asImageRequest()
@@ -144,13 +149,19 @@ public final class ImagePrefetcher: @unchecked Sendable {
         }
     }
 
+    /// Stops prefetching images for the given URLs and cancels outstanding
+    /// requests.
+    public func stopPrefetching(with urls: [URL]) {
+        stopPrefetching(with: urls.map { ImageRequest(url: $0) })
+    }
+
     /// Stops prefetching images for the given requests and cancels outstanding
     /// requests.
     ///
     /// You don't need to balance the number of `start` and `stop` requests.
     /// If you have multiple screens with prefetching, create multiple instances
     /// of ``ImagePrefetcher``.
-    public func stopPrefetching(with requests: [any ImageRequestConvertible]) {
+    public func stopPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
             for request in requests {
                 self._stopPrefetching(with: request.asImageRequest())
