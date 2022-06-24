@@ -2,55 +2,17 @@
 
 Learn how to improve image loading performance in your apps.
 
-## Coalescing
-
-The pipeline avoids doing any duplicated work when loading images. For example, let's take these two requests:
-
-```swift
-let url = URL(string: "http://example.com/image")
-async let first = pipeline.image(for: ImageRequest(url: url, processors: [
-    .resize(size: CGSize(width: 44, height: 44)),
-    .gaussianBlur(radius: 8)
-]))
-async let second = pipeline.image(for: ImageRequest(url: url, processors: [
-    .resize(size: CGSize(width: 44, height: 44))
-]))
-let images = try await (first, second)
-```
-
-Nuke will load the data only once, resize the image once and blur it also only once. There is no duplicated work done. The work only gets canceled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
-
-Coalescing can be disabled using ``ImagePipeline/Configuration-swift.struct/isTaskCoalescingEnabled`` configuration option.
-
 ## Decompression
 
 When you instantiate `UIImage` with `Data`, the data can be in a compressed format like `JPEG`. `UIImage` does _not_ eagerly decompress this data until you display it. It leads to performance issues like scroll view stuttering. To avoid it, Nuke automatically decompresses the data in the background. Decompression only runs if needed; it won't run for already processed images.
 
 > Tip: See [Image and Graphics Best Practices](https://developer.apple.com/videos/play/wwdc2018/219) to learn more about image decoding and downsampling.
 
-## Progressive Decoding
+## High-Resolution Images
 
-If progressive decoding is enabled, the pipeline attempts to produce a preview of any image every time a new chunk of data is loaded. See it in action in the [demo project](https://github.com/kean/NukeDemo).
+Bitmapped images take a lot of space in memory. For example, take a 6000x4000px image from a professional camera. Every pixel usually requires 4 bytes (RGBA). A JPEG of such an image might use anywhere from 3 to 30 MB. But if the uncompressed bitmap takes 92 MB.
 
-When the pipeline downloads the first chunk of data, it creates an instance of a decoder used for the entire image loading session. When the new chunks are loaded, the pipeline passes them to the decoder. The decoder can either produce a preview or return nil if not enough data is downloaded.
-
-Every image preview goes through the same processing and decompression phases that the final images do. The main difference is the introduction of backpressure. If one of the stages can’t process the input fast enough, then the pipeline waits until the current operation is finished, and only then starts the next one. When the data is fully downloaded, all outstanding progressive operations are canceled to save processing time.
-
-## Caching
-
-### Enable Aggressive Cache
-
-By default, Nuke uses the native HTTP cache, but it's relatively slow and is subject to the same maximum concurrent operations count as network tasks (because it's part of the URL loading system). If your app doesn't take advantage of complex HTTP cache-control parameters, consider enabling the custom aggressive disk cache.
-
-> The default behavior will most likely change in Nuke 10.
-
-### Store Processed Images
-
-By default, the aggressive disk cache (if enabled) stores original image data. If your app applies expensive processors or downsamples images, consider storing processed images instead by setting ``ImagePipeline/Configuration-swift.struct/dataCachePolicy-swift.property`` to ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/automatic`` or ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/storeEncodedImages`` depending on the use case.
-
-### Use HEIF
-
-To save disk space see ``ImageEncoders/ImageIO`` and ``ImageEncoders/Default/isHEIFPreferred`` option for HEIF support. By default, disabled.
+By default, Nuke stores decompressed (bitmapped) images in the memory cache. But this strategy might not be optimal for high-resolution images like this. Consider either downsampling such images or disabling memory cache for them to avoid taking too much memory.  
 
 ## Downsample Images
 
@@ -66,6 +28,26 @@ let request = ImageRequest(
 
 > Tips: See [Image and Graphics Best Practices](https://developer.apple.com/videos/play/wwdc2018/219) to learn more about image decoding and downsampling.
 
+## Progressive Decoding
+
+If progressive decoding is enabled, the pipeline attempts to produce a preview of any image every time a new chunk of data is loaded. See it in action in the [demo project](https://github.com/kean/NukeDemo).
+
+When the pipeline downloads the first chunk of data, it creates an instance of a decoder used for the entire image loading session. When the new chunks are loaded, the pipeline passes them to the decoder. The decoder can either produce a preview or return nil if not enough data is downloaded.
+
+Every image preview goes through the same processing and decompression phases that the final images do. The main difference is the introduction of backpressure. If one of the stages can’t process the input fast enough, then the pipeline waits until the current operation is finished, and only then starts the next one. When the data is fully downloaded, all outstanding progressive operations are canceled to save processing time.
+
+## Aggressive Cache
+
+By default, Nuke uses the native HTTP cache, but it's relatively slow and is subject to the same maximum concurrent operations count as network tasks (because it's part of the URL loading system). If your app doesn't take advantage of complex HTTP cache-control parameters, consider enabling the custom aggressive disk cache. Learn more in <doc:caching>.
+
+## Store Processed Images
+
+By default, the aggressive disk cache (if enabled) stores original image data. If your app applies expensive processors or downsamples images, consider storing processed images instead by setting ``ImagePipeline/Configuration-swift.struct/dataCachePolicy-swift.property`` to ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/automatic`` or ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/storeEncodedImages`` depending on the use case.
+
+## Use HEIF
+
+To save disk space see ``ImageEncoders/ImageIO`` and ``ImageEncoders/Default/isHEIFPreferred`` option for HEIF support. By default, disabled.
+
 ## Prefetch Images
 
 Loading data ahead of time in anticipation of its use ([prefetching](https://en.wikipedia.org/wiki/Prefetching)) is a great way to improve user experience. It's especially effective for images; it can give users an impression that there is no networking and the images are just magically always there. For more info, see <doc:prefetching>.
@@ -75,7 +57,6 @@ Loading data ahead of time in anticipation of its use ([prefetching](https://en.
 Make sure your server supports resumable downloads.
 
 If the data task is terminated when the image is partially loaded (either because of a failure or a cancellation), the next load will resume where the previous left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators: `ETag` and `Last-Modified`. Resumable downloads are enabled by default. You can learn more in ["Resumable Downloads"](https://kean.blog/post/resumable-downloads).
-
 
 ## Request Priorities
 
@@ -106,3 +87,23 @@ Enable [`waitsForConnectivity`](https://developer.apple.com/documentation/founda
 ## Measure
 
 If you want to see how the system behaves, how long each operation takes, and how many are performed in parallel, enable the ``ImagePipeline/Configuration-swift.struct/isSignpostLoggingEnabled`` option and use the `os_signpost` Instrument. For more information see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
+
+## Coalescing
+
+The pipeline avoids doing any duplicated work when loading images. For example, let's take these two requests:
+
+```swift
+let url = URL(string: "http://example.com/image")
+async let first = pipeline.image(for: ImageRequest(url: url, processors: [
+    .resize(size: CGSize(width: 44, height: 44)),
+    .gaussianBlur(radius: 8)
+]))
+async let second = pipeline.image(for: ImageRequest(url: url, processors: [
+    .resize(size: CGSize(width: 44, height: 44))
+]))
+let images = try await (first, second)
+```
+
+Nuke will load the data only once, resize the image once and blur it also only once. There is no duplicated work done. The work only gets canceled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
+
+Coalescing can be disabled using ``ImagePipeline/Configuration-swift.struct/isTaskCoalescingEnabled`` configuration option.

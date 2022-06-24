@@ -1945,6 +1945,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				DOCC_HOSTING_BASE_PATH = /nukeui/;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1963,6 +1964,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				DOCC_HOSTING_BASE_PATH = /nukeui/;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2034,6 +2036,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				DOCC_HOSTING_BASE_PATH = /nukeextensions/;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2052,6 +2055,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				DOCC_HOSTING_BASE_PATH = /nukeextensions/;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2334,6 +2338,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				DOCC_HOSTING_BASE_PATH = /nuke/;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2352,6 +2357,7 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				DOCC_HOSTING_BASE_PATH = /nuke/;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
