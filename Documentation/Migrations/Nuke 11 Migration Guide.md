@@ -7,9 +7,8 @@ This guide eases the transition of the existing apps that use Nuke 10.x to the l
 ## Minimum Requirements
 
 - iOS 13.0, tvOS 13.0, macOS 10.15, watchOS 6.0
-- Xcode 13.2
-- Swift 5.5.2
-
+- Xcode 13.3
+- Swift 5.6
 
 ## Error Reporting Improvements
 
@@ -71,3 +70,8 @@ extension ImageProcessors {
     }
 }
 ```
+
+## Invalidation
+
+If you invalidate the pipeline, any new requests will immediately fail with `ImagePipeline/Error/pipelineInvalidated` error.
+

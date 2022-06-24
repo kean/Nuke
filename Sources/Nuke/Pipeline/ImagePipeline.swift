@@ -98,9 +98,8 @@ public final class ImagePipeline: @unchecked Sendable {
         self.init(configuration: configuration, delegate: delegate)
     }
 
-    /// Invalidates the pipeline and cancels all outstanding tasks. No new
-    /// requests can be started and will immediately fail with
-    /// ``ImagePipeline/Error/pipelineInvalidated`` error.
+    /// Invalidates the pipeline and cancels all outstanding tasks. Any new
+    /// requests will immediately fail with ``ImagePipeline/Error/pipelineInvalidated`` error.
     public func invalidate() {
         queue.async {
             guard !self.isInvalidated else { return }
