@@ -62,24 +62,16 @@ To install Nuke, use Swift Packager Manager.
 
 ### Customization
 
-<!--Collections-->
 - <doc:image-processing>
 - <doc:loading-data>
 - <doc:image-formats>
-
-<!--Symbols-->
 - ``ImagePipelineDelegate``
 - ``ImageTaskDelegate``
 - ``ImageRequestConvertible``
 
 ### Performance
 
-<!--Articles-->
 - <doc:performance-guide>
 - <doc:prefetching>
-
-<!--Collections-->
 - <doc:caching>
-
-<!--Symbols-->
 - ``ImagePrefetcher``
