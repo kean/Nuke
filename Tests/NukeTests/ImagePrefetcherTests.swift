@@ -66,8 +66,8 @@ final class ImagePrefetcherTests: XCTestCase {
         wait()
 
         // THEN image saved in both caches
-        XCTAssertNotNil(pipeline.cache[Test.url])
-        XCTAssertNotNil(pipeline.cache.cachedData(for: Test.url))
+        XCTAssertNotNil(pipeline.cache[Test.request])
+        XCTAssertNotNil(pipeline.cache.cachedData(for: Test.request))
     }
 
     func testStartPrefetchingWithTwoEquivalentURLs() {
@@ -137,8 +137,8 @@ final class ImagePrefetcherTests: XCTestCase {
         wait()
 
         // THEN image saved in both caches
-        XCTAssertNil(pipeline.cache[Test.url])
-        XCTAssertNotNil(pipeline.cache.cachedData(for: Test.url))
+        XCTAssertNil(pipeline.cache[Test.request])
+        XCTAssertNotNil(pipeline.cache.cachedData(for: Test.request))
     }
 
     // MARK: Pause

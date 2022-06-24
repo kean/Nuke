@@ -231,17 +231,6 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertNil(cache.cachedData(for: Test.request))
     }
 
-    func testGetCachedImageWhenNoDecoder() {
-        // GIVEN
-        pipeline = pipeline.reconfigured {
-            $0.makeImageDecoder = { _ in nil }
-        }
-        cache.storeCachedData(Test.data, for: Test.url)
-
-        // THEN
-        XCTAssertNil(cache.cachedImage(for: Test.url, caches: [.disk]))
-    }
-
     // MARK: Store Cached Image
 
     func testStoreCachedImageMemoryCache() {
@@ -402,7 +391,6 @@ class ImagePipelineCacheTests: XCTestCase {
         // THEN
         XCTAssertNil(cache.cachedImage(for: request))
         XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: request)])
-        XCTAssertNil(memoryCache[cache.makeImageCacheKey(for: Test.url)])
     }
 
     func testRemoveFromDiskCache() {
@@ -416,7 +404,6 @@ class ImagePipelineCacheTests: XCTestCase {
         // THEN
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
         XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
-        XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: Test.url)))
     }
 
     func testRemoveFromAllCaches() {
@@ -473,7 +460,12 @@ class ImagePipelineCacheTests: XCTestCase {
 
     func testMakeSureAllAPIsAreAvailable() {
         cache[URL(string: "https://example.com/image.jpeg")!] = nil
-        cache[URLRequest(url: URL(string: "https://example.com/image.jpeg")!)] = nil
         cache[ImageRequest(url: URL(string: "https://example.com/image.jpeg")!)] = nil
+    }
+
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "")
+    func testDeprecatedSubscript() {
+        cache[URLRequest(url: URL(string: "https://example.com/image.jpeg")!)] = nil
     }
 }

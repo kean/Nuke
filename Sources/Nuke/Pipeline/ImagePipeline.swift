@@ -118,7 +118,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   is captured as a weak reference and is called on the main queue. You
     ///   can change the callback queue using ``Configuration-swift.struct/callbackQueue``.
     public func image(for url: URL, delegate: ImageTaskDelegate? = nil) async throws -> ImageResponse {
-        try await image(for: ImageRequest(url: url))
+        try await image(for: ImageRequest(url: url), delegate: delegate)
     }
 
     /// Returns an image for the given request.
