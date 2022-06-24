@@ -101,18 +101,3 @@ extension ImageProcessing where Self == ImageProcessors.Anonymous {
         ImageProcessors.Anonymous(id: id, closure)
     }
 }
-
-extension ImagePipeline.Cache {
-    // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Please use variants that accept URL or ImageRequest.")
-    public subscript(request: any ImageRequestConvertible) -> ImageContainer? {
-        get { self[request.asImageRequest()] }
-        nonmutating set { self[request.asImageRequest()] = newValue }
-    }
-
-    // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Please use variants that accept URL or ImageRequest.")
-    public func cachedImage(for request: any ImageRequestConvertible, caches: Caches = [.all]) -> ImageContainer? {
-        cachedImage(for: request.asImageRequest(), caches: caches)
-    }
-}
