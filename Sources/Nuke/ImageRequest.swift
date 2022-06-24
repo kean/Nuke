@@ -539,3 +539,7 @@ extension Optional: ImageRequestConvertible where Wrapped == URL {
 extension URLRequest: ImageRequestConvertible {
     public func asImageRequest() -> ImageRequest { ImageRequest(urlRequest: self) }
 }
+
+extension String: ImageRequestConvertible {
+    public func asImageRequest() -> ImageRequest { ImageRequest(url: URL(string: self)) }
+}
