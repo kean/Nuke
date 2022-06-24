@@ -75,3 +75,8 @@ extension ImageProcessors {
 
 If you invalidate the pipeline, any new requests will immediately fail with `ImagePipeline/Error/pipelineInvalidated` error.
 
+## ImageRequestConvertible
+
+`ImageRequestConvertible` is soft-deprecated in Nuke 11. The other soft-deprecated APIs, such as a closure-based `ImagePipeline/loadImage(:)` will continue working with it. The new APIs, such as async/await `ImagePipeline/image(for:)` will work with `URL` and `ImageRequest` which is better for discoverability and performance.
+
+If you are using `ImageRequestConvertible` in your code, consider removing it now. But it won't be officially deprecated until the next major release.
