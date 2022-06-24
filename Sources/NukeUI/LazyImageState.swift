@@ -42,23 +42,14 @@ public struct LazyImageState {
     /// Returns `true` if the image is being loaded.
     public let isLoading: Bool
 
-    /// The download progress.
-    public struct Progress: Equatable {
-        /// The number of bytes that the task has received.
-        public let completed: Int64
-
-        /// A best-guess upper bound on the number of bytes the client expects to send.
-        public let total: Int64
-    }
-
     /// The progress of the image download.
-    public let progress: Progress
+    public let progress: ImageTask.Progress
 
     @MainActor
     init(_ fetchImage: FetchImage) {
         self.result = fetchImage.result
         self.imageContainer = fetchImage.imageContainer
         self.isLoading = fetchImage.isLoading
-        self.progress = Progress(completed: fetchImage.progress.completed, total: fetchImage.progress.total)
+        self.progress = fetchImage.progress
     }
 }
