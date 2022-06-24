@@ -83,8 +83,10 @@ LazyImage(source: "https://example.com/image.jpeg")
 
 ### Initializers
 
-- ``init(source:resizingMode:)``
-- ``init(source:content:)``
+- ``init(url:resizingMode:)``
+- ``init(request:resizingMode:)``
+- ``init(url:content:)``
+- ``init(request:content:)``
 
 ### Accessing Undelying Views
 
@@ -108,3 +110,8 @@ LazyImage(source: "https://example.com/image.jpeg")
 - ``onSuccess(_:)``
 - ``onFailure(_:)``
 - ``onCompletion(_:)``
+
+### Deprecated
+
+- ``init(source:resizingMode:)``
+- ``init(source:content:)``

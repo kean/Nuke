@@ -68,30 +68,65 @@ public struct LazyImage<Content: View>: View {
     /// Loads and displays an image using ``Image``.
     ///
     /// - Parameters:
-    ///   - source: The image source (`URL`, `URLRequest`, or `ImageRequest`)
-    ///   - resizingMode: `.aspectFill` by default.
-    public init(source: (any ImageRequestConvertible)?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
-        self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
+    ///   - url: The image URL.
+    ///   - resizingMode: The displayed image resizing mode.
+    public init(url: URL?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
+        self.init(request: url.map { ImageRequest(url: $0) }, resizingMode: resizingMode)
+    }
+
+    /// Loads and displays an image using ``Image``.
+    ///
+    /// - Parameters:
+    ///   - request: The image request.
+    ///   - resizingMode: The displayed image resizing mode.
+    public init(request: ImageRequest?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
+        self.request = request.map { HashableRequest(request: $0.asImageRequest()) }
         self.resizingMode = resizingMode
+    }
+
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please use init(request:) or init(url).")
+    public init(source: (any ImageRequestConvertible)?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
+        self.init(request: source?.asImageRequest(), resizingMode: resizingMode)
     }
 #else
     /// Loads and displays an image using ``Image``.
     ///
     /// - Parameters:
-    ///   - source: The image source (`URL`, `URLRequest`, or `ImageRequest`)
+    ///   - url: The image URL.
+    public init(url: URL?) where Content == Image {
+        self.init(request: url.map { ImageRequest(url: $0) })
+    }
+
+    /// Loads and displays an image using ``Image``.
+    ///
+    /// - Parameters:
+    ///   - request: The image request.
+    public init(request: ImageRequest?) where Content == Image {
+        self.request = source.map { HashableRequest(request: $0) }
+    }
+
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please use init(request:) or init(url).")
     public init(source: (any ImageRequestConvertible)?) where Content == Image {
         self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
     }
 #endif
+    /// Loads an images and displays custom content for each state.
+    ///
+    /// See also ``init(request:content:)``
+    public init(url: URL?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+        self.init(request: url.map { ImageRequest(url: $0) }, content: content)
+    }
 
     /// Loads an images and displays custom content for each state.
     ///
     /// - Parameters:
-    ///   - source: The image source (`URL`, `URLRequest`, or `ImageRequest`)
+    ///   - request: The image request.
     ///   - content: The view to show for each of the image loading states.
     ///
     /// ```swift
-    /// LazyImage(source: $0) { state in
+    /// LazyImage(request: $0) { state in
     ///     if let image = state.image {
     ///         image // Displays the loaded image.
     ///     } else if state.error != nil {
@@ -101,6 +136,13 @@ public struct LazyImage<Content: View>: View {
     ///     }
     /// }
     /// ```
+    public init(request: ImageRequest?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+        self.request = request.map { HashableRequest(request: $0) }
+        self.makeContent = content
+    }
+
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please use init(request:) or init(url).")
     public init(source: (any ImageRequestConvertible)?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
         self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
         self.makeContent = content
