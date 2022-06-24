@@ -81,15 +81,20 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// Initialiazes the image. To load an image, use one of the `load()` methods.
     public init() {}
 
-    // MARK: Load (ImageRequestConvertible)
+    // MARK: Loading Images
 
     /// Loads an image with the given request.
-    public func load(_ request: (any ImageRequestConvertible)?) {
+    public func load(_ url: URL?) {
+        load(url.map { ImageRequest(url: $0) })
+    }
+
+    /// Loads an image with the given request.
+    public func load(_ request: ImageRequest?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
 
         reset()
 
-        guard var request = request?.asImageRequest() else {
+        guard var request = request else {
             handle(result: .failure(ImagePipeline.Error.imageRequestMissing))
             return
         }
@@ -139,6 +144,12 @@ public final class FetchImage: ObservableObject, Identifiable {
         )
         imageTask = task
         onStart?(task)
+    }
+
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please use load() methods that work either with URL or ImageRequest.")
+    public func load(_ request: (any ImageRequestConvertible)?) {
+        load(request?.asImageRequest())
     }
 
     private func handle(preview: ImageResponse) {

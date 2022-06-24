@@ -58,9 +58,9 @@ struct ImageView: View {
 
 ### Loading Images
 
-- ``load(_:)-1vg63``
+- ``load(_:)-9my9q``
+- ``load(_:)-53ybw``
 - ``load(_:)-6pey2``
-- ``load(_:)-9f9hu``
 - ``cancel()``
 - ``reset()``
 
@@ -91,3 +91,7 @@ struct ImageView: View {
 - ``onSuccess``
 - ``onFailure``
 - ``onCompletion``
+
+### Deprecated
+
+- ``load(_:)-1vg63``
