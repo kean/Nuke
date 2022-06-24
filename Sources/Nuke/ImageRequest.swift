@@ -338,10 +338,12 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
             self.rawValue = value
         }
 
-        /// By default, a pipeline uses URLs as unique image identifiers for
-        /// caching and task coalescing. You can override this behavior by
-        /// providing an image ID instead. For example, you can use it to remove
-        /// transient query parameters from the request.
+        /// Overrides the image identifier used for caching and task coalescing.
+        ///
+        /// By default, ``ImagePipeline`` uses an image URL as a unique identifier
+        /// for caching and task coalescing. You can override this behavior by
+        /// providing a custom identifier. For example, you can use it to remove
+        /// transient query parameters from the URL, like access token.
         ///
         /// ```swift
         /// let request = ImageRequest(
