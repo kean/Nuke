@@ -83,7 +83,8 @@ func loadImage() async throws {
 - ``image(for:delegate:)-2v6n0``
 - ``loadImage(with:completion:)``
 - ``loadImage(with:queue:progress:completion:)``
-- ``imagePublisher(with:)``
+- ``imagePublisher(with:)-8j2bd``
+- ``imagePublisher(with:)-3pzm6``
 
 ### Loading Data
 

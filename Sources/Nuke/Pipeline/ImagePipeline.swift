@@ -403,7 +403,12 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Loading Images (Combine)
 
     /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
-    public func imagePublisher(with request: any ImageRequestConvertible) -> AnyPublisher<ImageResponse, Error> {
+    public func imagePublisher(with url: URL) -> AnyPublisher<ImageResponse, Error> {
+        imagePublisher(with: ImageRequest(url: url))
+    }
+
+    /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
+    public func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, Error> {
         ImagePublisher(request: request.asImageRequest(), pipeline: self).eraseToAnyPublisher()
     }
 
