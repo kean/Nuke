@@ -85,6 +85,8 @@ public final class ImagePrefetcher: @unchecked Sendable {
     }
 
     /// Starts prefetching images for the given URL.
+    ///
+    /// See also ``startPrefetching(with:)-718dg`` that works with ``ImageRequest``.
     public func startPrefetching(with urls: [URL]) {
         startPrefetching(with: urls.map { ImageRequest(url: $0) })
     }
@@ -97,6 +99,8 @@ public final class ImagePrefetcher: @unchecked Sendable {
     ///
     /// The priority of the requests is set to the priority of the prefetcher
     /// (`.low` by default).
+    ///
+    /// See also ``startPrefetching(with:)-1jef2`` that works with `URL`.
     public func startPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
             for request in requests {
@@ -151,6 +155,8 @@ public final class ImagePrefetcher: @unchecked Sendable {
 
     /// Stops prefetching images for the given URLs and cancels outstanding
     /// requests.
+    ///
+    /// See also ``stopPrefetching(with:)-8cdam`` that works with ``ImageRequest``.
     public func stopPrefetching(with urls: [URL]) {
         stopPrefetching(with: urls.map { ImageRequest(url: $0) })
     }
@@ -161,6 +167,8 @@ public final class ImagePrefetcher: @unchecked Sendable {
     /// You don't need to balance the number of `start` and `stop` requests.
     /// If you have multiple screens with prefetching, create multiple instances
     /// of ``ImagePrefetcher``.
+    ///
+    /// See also ``stopPrefetching(with:)-2tcyq`` that works with `URL`.
     public func stopPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
             for request in requests {

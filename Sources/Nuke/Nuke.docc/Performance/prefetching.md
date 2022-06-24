@@ -73,18 +73,11 @@ public final class ImagePrefetcher {
 }
 ```
 
-To start prefetching, call ``ImagePrefetcher/startPrefetching(with:)`` method. When you need the same image later to display it, simply use the ``ImagePipeline`` or view extensions to load the image. The pipeline will take care of coalescing the requests for new without starting any new downloads.
+To start prefetching, call ``ImagePrefetcher/startPrefetching(with:)-718dg`` method. When you need the same image later to display it, simply use the ``ImagePipeline`` or view extensions to load the image. The pipeline will take care of coalescing the requests for new without starting any new downloads:
 
-```swift
-public extension ImagePrefetcher {
-    func startPrefetching(with urls: [URL])
-    func startPrefetching(with requests: [any ImageRequestConvertible])
-
-    func stopPrefetching(with urls: [URL])
-    func stopPrefetching(with requests: [any ImageRequestConvertible])
-    func stopPrefetching()
-}
-```
+- ``ImagePrefetcher/startPrefetching(with:)-718dg``
+- ``ImagePrefetcher/stopPrefetching(with:)-8cdam``
+- ``ImagePrefetcher/stopPrefetching()``
 
 The prefetcher automatically cancels all of the outstanding tasks when deallocated. All ``ImagePrefetcher`` methods are thread-safe and are optimized to be used even from the main thread during scrolling.
 

@@ -17,7 +17,7 @@ You can customize ``ImagePipeline`` by initializing it with ``ImagePipeline/Conf
 
 ## Loading Images
 
-Use ``ImagePipeline/image(for:delegate:)`` that returns an ``ImageResponse`` containing an image in case of success.
+Use ``ImagePipeline/image(for:delegate:)-2v6n0`` that works with both `URL` and ``ImageRequest`` and returns an ``ImageResponse`` with an image in case of success.
 
 ```swift
 let response = try await ImagePipeline.shared.image(for: url)
@@ -79,14 +79,16 @@ func loadImage() async throws {
 
 ### Loading Images
 
-- ``image(for:delegate:)``
+- ``image(for:delegate:)-9mq8k``
+- ``image(for:delegate:)-2v6n0``
 - ``loadImage(with:completion:)``
 - ``loadImage(with:queue:progress:completion:)``
 - ``imagePublisher(with:)``
 
 ### Loading Data
 
-- ``data(for:)``
+- ``data(for:)-86rhw``
+- ``data(for:)-54h5g``
 - ``loadData(with:completion:)``
 - ``loadData(with:queue:progress:completion:)``
 

@@ -42,11 +42,9 @@ You can access any caching layer directly, but the pipeline also offers a conven
 
 ### Subscript
 
-You can access memory cache with a subscript.
+You can access memory cache with a subscript that supports both `URL` and ``ImageRequest``.
 
 ```swift
-// It works with ImageRequestConvertible so it supports String, URL,
-// URLRequest, and ImageRequest
 let image = pipeline.cache[URL(string: "https://example.com/image.jpeg")!]
 pipeline.cache[ImageRequest(url: url)] = nil
 pipeline.cache["https://example.com/image.jpeg"] = ImageContainer(image: image)

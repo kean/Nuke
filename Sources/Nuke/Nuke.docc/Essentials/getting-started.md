@@ -4,7 +4,7 @@ Learn about main Nuke features and APIs.
 
 ## Image Pipeline
 
-``ImagePipeline`` implements all steps needed to download an image and prepare it for display. You can start by using a shared pipeline and can configure a custom one later if needed. To load an image, use an async method ``ImagePipeline/image(for:delegate:)`` that returns ``ImageResponse`` containing an image.
+``ImagePipeline`` implements all steps needed to download an image and prepare it for display. You can start by using a shared pipeline and can configure a custom one later if needed. To load an image, use an async method ``ImagePipeline/image(for:delegate:)-2v6n0`` that returns ``ImageResponse`` containing an image.
 
 ```swift
 let response = try await ImagePipeline.shared.image(for: url)
@@ -52,8 +52,6 @@ let request = ImageRequest(
 )
 let response = try await pipeline.image(for: request)
 ```
-
-> Most APIs accept types that conform to ``ImageRequestConvertible``. By default, it includes `URL`, `URLRequest`, and ``ImageRequest`` itself.
 
 Set ``ImageRequest/processors`` to apply one of the built-in processors that can be found in ``ImageProcessors`` namespace or a custom one. See <doc:image-processing> for more on image processing.
 

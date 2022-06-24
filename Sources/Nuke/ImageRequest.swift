@@ -19,9 +19,6 @@ import Combine
 /// )
 /// let response = try await pipeline.image(for: request)
 /// ```
-///
-/// Most APIs accept any types that conform to ``ImageRequestConvertible``. By
-/// default, it includes `URL`, `URLRequest`, and ``ImageRequest`` itself.
 public struct ImageRequest: CustomStringConvertible, Sendable {
 
     // MARK: Options
