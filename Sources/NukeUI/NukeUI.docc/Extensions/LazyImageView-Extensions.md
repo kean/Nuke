@@ -35,6 +35,7 @@
 
 - ``onStart``
 - ``onProgress``
+- ``onPreview``
 - ``onSuccess``
 - ``onFailure``
 - ``onCompletion``

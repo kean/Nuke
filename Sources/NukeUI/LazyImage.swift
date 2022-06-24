@@ -54,11 +54,12 @@ public struct LazyImage<Content: View>: View {
     private var priority: ImageRequest.Priority?
     private var pipeline: ImagePipeline = .shared
     private var onDisappearBehavior: DisappearBehavior? = .cancel
-    private var onStart: ((_ task: ImageTask) -> Void)?
-    private var onProgress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?
-    private var onSuccess: ((_ response: ImageResponse) -> Void)?
-    private var onFailure: ((_ response: Error) -> Void)?
-    private var onCompletion: ((_ result: Result<ImageResponse, Error>) -> Void)?
+    private var onStart: ((ImageTask) -> Void)?
+    private var onPreview: ((ImageResponse) -> Void)?
+    private var onProgress: ((ImageTask.Progress) -> Void)?
+    private var onSuccess: ((ImageResponse) -> Void)?
+    private var onFailure: ((Error) -> Void)?
+    private var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
     private var resizingMode: ImageResizingMode?
 
     // MARK: Initializers
@@ -150,27 +151,32 @@ public struct LazyImage<Content: View>: View {
     // MARK: Callbacks
 
     /// Gets called when the request is started.
-    public func onStart(_ closure: @escaping (_ task: ImageTask) -> Void) -> Self {
+    public func onStart(_ closure: @escaping (ImageTask) -> Void) -> Self {
         map { $0.onStart = closure }
     }
 
     /// Gets called when the request progress is updated.
-    public func onProgress(_ closure: @escaping (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void) -> Self {
+    public func onPreview(_ closure: @escaping (ImageResponse) -> Void) -> Self {
+        map { $0.onPreview = closure }
+    }
+
+    /// Gets called when the request progress is updated.
+    public func onProgress(_ closure: @escaping (ImageTask.Progress) -> Void) -> Self {
         map { $0.onProgress = closure }
     }
 
     /// Gets called when the requests finished successfully.
-    public func onSuccess(_ closure: @escaping (_ response: ImageResponse) -> Void) -> Self {
+    public func onSuccess(_ closure: @escaping (ImageResponse) -> Void) -> Self {
         map { $0.onSuccess = closure }
     }
 
     /// Gets called when the requests fails.
-    public func onFailure(_ closure: @escaping (_ response: Error) -> Void) -> Self {
+    public func onFailure(_ closure: @escaping (Error) -> Void) -> Self {
         map { $0.onFailure = closure }
     }
 
     /// Gets called when the request is completed.
-    public func onCompletion(_ closure: @escaping (_ result: Result<ImageResponse, Error>) -> Void) -> Self {
+    public func onCompletion(_ closure: @escaping (Result<ImageResponse, Error>) -> Void) -> Self {
         map { $0.onCompletion = closure }
     }
 
@@ -242,6 +248,7 @@ public struct LazyImage<Content: View>: View {
         if let priority = priority { model.priority = priority }
         model.pipeline = pipeline
         model.onStart = onStart
+        model.onPreview = onPreview
         model.onProgress = onProgress
         model.onSuccess = onSuccess
         model.onFailure = onFailure

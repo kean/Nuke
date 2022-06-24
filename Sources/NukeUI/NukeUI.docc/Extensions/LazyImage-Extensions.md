@@ -103,6 +103,7 @@ LazyImage(source: "https://example.com/image.jpeg")
 ### Callbacks
 
 - ``onStart(_:)``
+- ``onPreview(_:)``
 - ``onProgress(_:)``
 - ``onSuccess(_:)``
 - ``onFailure(_:)``

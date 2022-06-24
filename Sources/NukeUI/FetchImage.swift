@@ -44,19 +44,22 @@ public final class FetchImage: ObservableObject, Identifiable {
     }
 
     /// Gets called when the request is started.
-    public var onStart: ((_ task: ImageTask) -> Void)?
+    public var onStart: ((ImageTask) -> Void)?
+
+    /// Gets called when a progressive image preview is produced.
+    public var onPreview: ((ImageResponse) -> Void)?
 
     /// Gets called when the request progress is updated.
-    public var onProgress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?
+    public var onProgress: ((ImageTask.Progress) -> Void)?
 
     /// Gets called when the requests finished successfully.
-    public var onSuccess: ((_ response: ImageResponse) -> Void)?
+    public var onSuccess: ((ImageResponse) -> Void)?
 
     /// Gets called when the requests fails.
-    public var onFailure: ((_ response: Error) -> Void)?
+    public var onFailure: ((Error) -> Void)?
 
     /// Gets called when the request is completed.
-    public var onCompletion: ((_ result: Result<ImageResponse, Error>) -> Void)?
+    public var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
 
     /// A pipeline used for performing image requests.
     public var pipeline: ImagePipeline = .shared
@@ -116,13 +119,16 @@ public final class FetchImage: ObservableObject, Identifiable {
             with: request,
             progress: { [weak self] response, completed, total in
                 guard let self = self else { return }
-                self.progress = ImageTask.Progress(completed: completed, total: total)
+                let progress = ImageTask.Progress(completed: completed, total: total)
                 if let response = response {
+                    self.onPreview?(response)
                     withAnimation(self.animation) {
                         self.handle(preview: response)
                     }
+                } else {
+                    self.progress = progress
+                    self.onProgress?(progress)
                 }
-                self.onProgress?(response, completed, total)
             },
             completion: { [weak self] result in
                 guard let self = self else { return }

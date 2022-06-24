@@ -129,19 +129,22 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Callbacks
 
     /// Gets called when the request is started.
-    public var onStart: ((_ task: ImageTask) -> Void)?
+    public var onStart: ((ImageTask) -> Void)?
+
+    /// Gets called when a progressive image preview is produced.
+    public var onPreview: ((ImageResponse) -> Void)?
 
     /// Gets called when the request progress is updated.
-    public var onProgress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?
+    public var onProgress: ((ImageTask.Progress) -> Void)?
 
     /// Gets called when the requests finished successfully.
-    public var onSuccess: ((_ response: ImageResponse) -> Void)?
+    public var onSuccess: ((ImageResponse) -> Void)?
 
     /// Gets called when the requests fails.
-    public var onFailure: ((_ response: Error) -> Void)?
+    public var onFailure: ((Error) -> Void)?
 
     /// Gets called when the request is completed.
-    public var onCompletion: ((_ result: Result<ImageResponse, Error>) -> Void)?
+    public var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
 
     // MARK: Other Options
 
@@ -275,12 +278,15 @@ public final class LazyImageView: _PlatformBaseView {
         let task = pipeline.loadImage(
             with: request,
             queue: .main,
-            progress: { [weak self] response, completedCount, totalCount in
+            progress: { [weak self] response, completed, total in
                 guard let self = self else { return }
+                let progress = ImageTask.Progress(completed: completed, total: total)
                 if let response = response {
                     self.handle(preview: response)
+                    self.onPreview?(response)
+                } else {
+                    self.onProgress?(progress)
                 }
-                self.onProgress?(response, completedCount, totalCount)
             },
             completion: { [weak self] result in
                 self?.handle(result: result.mapError { $0 }, isSync: false)

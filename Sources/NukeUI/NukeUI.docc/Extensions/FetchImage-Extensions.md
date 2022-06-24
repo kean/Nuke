@@ -87,6 +87,7 @@ struct ImageView: View {
 
 - ``onStart``
 - ``onProgress``
+- ``onPreview``
 - ``onSuccess``
 - ``onFailure``
 - ``onCompletion``
