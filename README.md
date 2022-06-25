@@ -22,7 +22,7 @@ Nuke is easy to learn and use thanks to [**Nuke Docs**](https://kean-docs.github
 > Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Migrations). Switching from another framework? Use a [**Switching Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Switch).
 
 <a href="https://kean-docs.github.io/nuke/documentation/nuke/getting-started">
-<img width="690" alt="Nuke Docs" src="https://user-images.githubusercontent.com/1567433/175790021-6bbc8643-3fbb-47ef-861f-3dde445a5b04.png">
+<img width="690" alt="Nuke Docs" src="https://user-images.githubusercontent.com/1567433/175793167-b7e0c557-b887-444f-b18a-57d6f5ecf01a.png">
 </a>
 
 <a name="h_plugins"></a>
