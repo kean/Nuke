@@ -9,6 +9,8 @@
 
 ### Loading Images
 
+- ``url``
+- ``request``
 - ``source``
 - ``cancel()``
 - ``reset()``

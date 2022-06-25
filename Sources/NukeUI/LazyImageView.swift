@@ -204,13 +204,13 @@ public final class LazyImageView: _PlatformBaseView {
         transition = .fadeIn(duration: 0.33)
     }
 
-    /// Sets the given source and immediately starts the download.
+    /// Sets the given URL and immediately starts the download.
     public var url: URL? {
         get { request?.url }
         set { request = newValue.map { ImageRequest(url: $0) } }
     }
 
-    /// Sets the given source and immediately starts the download.
+    /// Sets the given request and immediately starts the download.
     public var request: ImageRequest? {
         didSet { load(request) }
     }
