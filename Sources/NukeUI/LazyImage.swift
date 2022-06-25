@@ -103,7 +103,7 @@ public struct LazyImage<Content: View>: View {
     /// - Parameters:
     ///   - request: The image request.
     public init(request: ImageRequest?) where Content == Image {
-        self.request = source.map { HashableRequest(request: $0) }
+        self.request = request.map { HashableRequest(request: $0) }
     }
 
     // Deprecated in Nuke 11.0
