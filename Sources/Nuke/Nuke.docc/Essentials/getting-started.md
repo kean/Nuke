@@ -4,16 +4,14 @@ Learn about main Nuke features and APIs.
 
 ## Image Pipeline
 
-``ImagePipeline`` implements all steps needed to download an image and prepare it for display. You can start by using a shared pipeline and can configure a custom one later if needed. To load an image, use an async method ``ImagePipeline/image(for:delegate:)-2v6n0`` that returns ``ImageResponse`` containing an image.
+``ImagePipeline`` downloads, caches images, and prepares them for display. To load an image, use an async method ``ImagePipeline/image(for:delegate:)-2v6n0`` that returns ``ImageResponse`` with an image.
 
 ```swift
 let response = try await ImagePipeline.shared.image(for: url)
 let image = response.image
 ```
 
-When you call this method, the pipeline checks if the image exists in any of its cache layers. If there is no cache, the pipeline starts the download. When the data is loaded, it decodes the data, applies the processors, and prepares the image for display by decompressing it.
-
-> `ImagePipeline` also has completion-based and Combine APIs, but the documentation uses Async/Await in most of the examples.
+> ``ImagePipeline`` also has completion-based and Combine APIs, but the documentation uses Async/Await in most of the examples.
 
 You can monitor the request by passing ``ImageTaskDelegate``.
 
