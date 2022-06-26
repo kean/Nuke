@@ -32,3 +32,14 @@ request.processors = [.resize(size: imageView.bounds.size)]
 - ``Options-swift.struct``
 - ``UserInfoKey``
 - ``ThumbnailOptions``
+
+### Instance Properties
+
+- ``urlRequest``
+- ``url``
+- ``imageId``
+- ``description``
+
+### Deprecated 
+
+- ``ImageRequestConvertible``
