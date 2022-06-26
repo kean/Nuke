@@ -57,7 +57,6 @@ To install Nuke, use Swift Packager Manager.
 - ``ImagePipeline``
 - ``ImageRequest``
 - ``ImageResponse``
-- ``ImageContainer``
 - ``ImageTask``
 
 ### Customization
