@@ -78,7 +78,7 @@ For animated images, it is not feasible to decode all of the frames and put them
 
 ## Built-In Image Decoders
 
-You can find all of the built-in decoders in the [`ImageDecoders`](https://kean-org.github.io/docs/nuke/reference/10.2.0/ImageDecoders/) namespace.
+You can find all of the built-in decoders in the ``ImageDecoders`` namespace.
 
 ### ImageDecoders.Default
 

@@ -36,7 +36,7 @@ To render the progressive JPEG, you can use the basic `UIImageView`/`NSImageView
 
 ``ImageEncoders/Default`` supports [HEIF](https://en.wikipedia.org/wiki/High_Efficiency_Image_File_Format) but doesn't use it by default. To enable it, use ``ImageEncoders/Default/isHEIFPreferred``.
 
-You can use [`ImageEncoders.ImageIO`](https://kean-org.github.io/docs/nuke/reference/10.2.0/ImageEncoders_ImageIO/) directly:
+You can use ``ImageEncoders/ImageIO`` directly:
 
 ```swift
 let image: UIImage

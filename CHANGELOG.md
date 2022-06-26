@@ -4,7 +4,7 @@
 
 *Jun 9, 2022*
 
-- Revert changes to the deployment targets introduced in .10 release
+- Revert changes to the deployment targets introduced in Nuke 10.10.0
 
 ## Nuke 10.11.1
 
@@ -164,7 +164,7 @@ ImageRequest(url: url, processors: [.resize(width: 320)])
 
 *Jun 6, 2021*
 
-> See also [Nuke 10.0 Release Notes](https://github.com/kean/Nuke/releases/tag/10.0.0))
+> See also [Nuke 10.0 Release Notes](https://github.com/kean/Nuke/releases/tag/10.0.0)
 
 - `ImageDecoders.Default` now generates previews for GIF
 - Add `onSuccess`, `onFailure`, and other callbacks to `FetchImage` 
