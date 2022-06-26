@@ -24,9 +24,7 @@ imageView.kf.setImage(with: URL(string: "https://example.com/image.jpeg"))
 Nuke.loadImage(with: "https://example.com/image.jpeg", into: imageView)
 ```
 
-With Nuke, you can pass `String`, `URL`, `URLRequest`, or `ImageRequest` into the `loadImage()` method.
-
-> Learn more in ["Image View Extensions."](https://kean.blog/nuke/guides/image-view-extensions). There is a ton of options available.
+> Learn more in ["Image View Extensions."](https://kean.blog/nuke/guides/image-view-extensions).
 
 ## SwiftUI
 
@@ -138,8 +136,8 @@ imageView.kf.setImage(
 let request = ImageRequest(
     url: URL(string: "https://example.com/image.jpeg"),
     processors: [
-        ImageProcessors.Resize(size: CGSize(width: 44, height: 44)),
-        ImageProcessors.RoundedCorners(radius: 8)
+        .resize(size: CGSize(width: 44, height: 44)),
+        .roundedCorners(radius: 8)
     ]
 )
 Nuke.loadImage(with: request, into: imageView)

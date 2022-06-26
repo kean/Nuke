@@ -140,8 +140,8 @@ imageView.sd_setImage(
 let request = ImageRequest(
     url: URL(string: "https://example.com/image.jpeg"),
     processors: [
-        ImageProcessors.Resize(size: CGSize(width: 44, height: 44)),
-        ImageProcessors.RoundedCorners(radius: 8)
+        .resize(size: CGSize(width: 44, height: 44)),
+        .roundedCorners(radius: 8)
     ]
 )
 Nuke.loadImage(with: request, into: imageView)
