@@ -25,7 +25,7 @@ func imageTaskCreated(_ task: ImageTask) {
 }
 
 func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-    // When downloading and image that supports progerssive decoding, previews are delivered here.
+    // Gets called for images that support progressive decoding.
 }
 
 func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
@@ -46,7 +46,7 @@ let request = ImageRequest(
     url: URL(string: "http://example.com/image.jpeg"),
     processors: [.resize(size: imageView.bounds.size)],
     priority: .high,
-    options: [.reloadIgnoringCacheData]
+    options: [.reloadIgnoringCachedData]
 )
 let response = try await pipeline.image(for: request)
 ```

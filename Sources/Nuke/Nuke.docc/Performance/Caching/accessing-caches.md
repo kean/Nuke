@@ -30,7 +30,7 @@ pipeline.cache.removeCachedImage(for: request)
 If you want to keep the image in caches but reload it, you can instruct the pipeline to ignore the cached data.
 
 ```swift
-let request = ImageRequest(url: url, options: [ .reloadIgnoringCacheData])
+let request = ImageRequest(url: url, options: [ .reloadIgnoringCachedData])
 let response = try await pipeline.image(for: request)
 ```
 

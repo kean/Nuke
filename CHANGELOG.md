@@ -413,7 +413,7 @@ There are deprecation warnings in place to help guide you through the migration 
 ### Additions
 
 - Add an option to remove an image from all cache layers `pipeline.removeCachedImage(for:)`
-- Add `ImageRequest.CachePolicy` to `ImageRequest`. Use `.reloadIgnoringCacheData` to reload the image ignoring all cached data - [#411](https://github.com/kean/Nuke/pull/411)
+- Add `ImageRequest.CachePolicy` to `ImageRequest`. Use `.reloadIgnoringCachedData` to reload the image ignoring all cached data - [#411](https://github.com/kean/Nuke/pull/411)
 - Add support for extended color spaces - [#408](https://github.com/kean/Nuke/pull/408)
 - Add `ImageProcessors.Circle` and `ImageProcessors.RoundedCorners` on macOS - [#410](https://github.com/kean/Nuke/pull/410)
 - Add `ImageProcessors.CoreImage` and `ImageProcessors.GaussianBlur` on macOS - [#413](https://github.com/kean/Nuke/pull/413)

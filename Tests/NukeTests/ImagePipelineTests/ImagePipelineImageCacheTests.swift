@@ -82,7 +82,7 @@ class ImagePipelineImageCacheTests: XCTestCase {
         XCTAssertNotNil(cache[Test.request])
     }
 
-    func testReloadIgnoringCacheData() {
+    func testReloadIgnoringCachedData() {
         // Given
         cache[Test.request] = ImageContainer(image: Test.image)
 

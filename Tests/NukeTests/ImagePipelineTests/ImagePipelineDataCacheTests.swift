@@ -112,7 +112,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
 
     // MARK: ImageRequest.CachePolicy
 
-    func testReloadIgnoringCacheData() {
+    func testReloadIgnoringCachedData() {
         // Given
         dataCache.store[Test.url.absoluteString] = Test.data
 

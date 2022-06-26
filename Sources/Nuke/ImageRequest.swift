@@ -15,7 +15,7 @@ import Combine
 ///     url: URL(string: "http://example.com/image.jpeg"),
 ///     processors: [.resize(size: imageView.bounds.size)],
 ///     priority: .high,
-///     options: [.reloadIgnoringCacheData]
+///     options: [.reloadIgnoringCachedData]
 /// )
 /// let response = try await pipeline.image(for: request)
 /// ```

@@ -14,11 +14,13 @@ The framework is lean and compiles in under 2 seconds. Nuke has an automated tes
 
 ## Getting Started
 
-Start learning with <doc:getting-started> and go through the rest of the articles in the documentation as you need it. Make sure to check out the [demo project](https://github.com/kean/NukeDemo).
+Start learning with <doc:getting-started> and go through the rest of the articles in the documentation as you need it. Check out the [demo project](https://github.com/kean/NukeDemo) to see Nuke in action.
+
+Upgrading from the previous version? Use a [Migration Guide](https://github.com/kean/Nuke/tree/master/Documentation/Migrations).
+
+Looking for UI components? See [NukeUI](https://kean-docs.github.io/nukeui/documentation/nukeui/) and [NukeExtensions](https://kean-docs.github.io/nukeextensions/documentation/nukeextensions/) documentation.
 
 To install Nuke, use Swift Packager Manager.
-
-> Tip: Upgrading from the previous version? Use a [Migration Guide](https://github.com/kean/Nuke/tree/master/Documentation/Migrations).
 
 ## Plugins
 

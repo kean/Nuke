@@ -309,7 +309,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
 
     // MARK: - Cache Policy
 
-    func testReloadIgnoringCacheData() {
+    func testReloadIgnoringCachedData() {
         // When the requested image is stored in memory cache
         var request = Test.request
         mockCache[request] = ImageContainer(image: PlatformImage())
