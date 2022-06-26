@@ -4,14 +4,14 @@ Learn about main Nuke features and APIs.
 
 ## Image Pipeline
 
-``ImagePipeline`` downloads, caches images, and prepares them for display. To load an image, use an async method ``ImagePipeline/image(for:delegate:)-2v6n0`` that returns ``ImageResponse`` with an image.
+``ImagePipeline`` downloads images, caches, and prepares them for display. To load an image, use an async method ``ImagePipeline/image(for:delegate:)-2v6n0`` returning ``ImageResponse`` with an image.
 
 ```swift
 let response = try await ImagePipeline.shared.image(for: url)
 let image = response.image
 ```
 
-> ``ImagePipeline`` also has completion-based and Combine APIs, but the documentation uses Async/Await in most of the examples.
+> Tip: You can start by using a ``ImagePipeline/shared`` pipeline and create a custom one later if needed. To create a custom pipeline, use a convenience ``ImagePipeline/init(delegate:_:)`` initializer or one of the pre-defined configurations, such as ``ImagePipeline/Configuration-swift.struct/withDataCache``.
 
 You can monitor the request by passing ``ImageTaskDelegate``.
 
@@ -35,11 +35,11 @@ func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress
 
 The delegate is captured weakly and the callbacks are executed on the main queue by default.
 
-> Tip: You can start by using a ``ImagePipeline/shared`` pipeline and can create a custom one later if needed. To create a custom pipeline, you can use a convenience ``ImagePipeline/init(delegate:_:)`` initializer.
+> The documentation uses Async/Await APIs in the examples, but ``ImagePipeline`` also has equivalent completion-based and Combine APIs.
 
 ## Image Request
 
-``ImageRequest`` allows you to apply other image processors, downsample images, change the request priority, and provide other options. See ``ImageRequest`` reference to learn about them.
+``ImageRequest`` allows you to set image processors, downsample images, change the request priority, and provide other options. See ``ImageRequest`` reference to learn more.
 
 ```swift
 let request = ImageRequest(
@@ -51,26 +51,40 @@ let request = ImageRequest(
 let response = try await pipeline.image(for: request)
 ```
 
-Set ``ImageRequest/processors`` to apply one of the built-in processors that can be found in ``ImageProcessors`` namespace or a custom one. See <doc:image-processing> for more on image processing.
+> Tip: You can use built-in processors or create custom ones. Learn more in <doc:image-processing>.
 
 ## Caching
 
-Nuke has two cache layers: memory cache and disk cache. By default, only memory cache is enabled. For caching data persistently, Nuke relies on system [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache).
+Nuke has two cache layers: memory cache and disk cache.
 
-``ImageCache`` stores images prepared for display (decompressed or "bitmapped") in memory. By default, it uses a fraction of available RAM and automatically removes most of the cached images when the app goes to the background or receives a memory pressure warning. It uses an LRU cleanup policy (the least recently used are removed first).
+``ImageCache`` stores images prepared for display in memory. It uses a fraction of available RAM and automatically removes most of the cached images when the app goes to the background or receives a memory pressure warning.
 
-By default, the pipeline creates a [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) instance with an increased capacity to by used on the `URLSession` level. One of the advantages of using `URLCache` is that it supports HTTP caching. It can also be a disadvantage in case the cache control is misconfigured on the server.
+For caching data persistently, by default, Nuke uses [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) with an increased capacity. One of its advantages is HTTP [`cache-control`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) support.
 
-To enable a custom disk cache (``DataCache``), use ``ImagePipeline/Configuration-swift.struct/withDataCache(sizeLimit:)``.
+You can also replace `URLCache` with a custom ``DataCache`` that ignores HTTP `cache-control` headers using ``ImagePipeline/Configuration-swift.struct/withDataCache(sizeLimit:)``.
 
 ```swift
 ImagePipeline.shared = ImagePipeline(configuration: .withDataCache)
 ```
 
-The custom disk cache ignores HTTP cache control headers and stores all downloaded images. ``DataCache`` is a bit faster than `URLCache` and provides more control to the client. For example, it can be configured to store only processed images. The downside is that the images don't get validated and if the URL content changes, the app will continue showing stale data.  
+``DataCache`` is a bit faster than `URLCache` and provides more control. For example, it can be configured to store processed images using ``ImagePipeline/Configuration-swift.struct/dataCachePolicy-swift.property``. The downside is that without HTTP `cache-control`, the images never get validated and if the URL content changes, the app will continue showing stale data.  
 
 > Tip: To learn more about caching, see <doc:caching> section.
 
 ## Performance
 
 One of the key Nuke's features is performance. It does a lot by default: custom cache layers, coalescing of equivalent requests, resumable HTTP downloads, and more. But there are certain things that the user of the framework can also do to use it more effectively, for example, <doc:prefetching>. To learn more about what you can do to improve image loading performance in your apps, see <doc:performance-guide>.
+
+## NukeUI
+
+**NukeUI** is a module that provides async image views for SwiftUI, UIKit, and AppKit.
+
+```swift
+struct ContainerView: View {
+    var body: some View {
+        LazyImage(url: URL(string: "https://example.com/image.jpeg"))
+    }
+}
+```
+
+Learn more more in NukeUI [documentation](https://kean-docs.github.io/nukeui/documentation/nukeui/).

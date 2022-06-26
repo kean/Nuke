@@ -2,7 +2,7 @@
 
 ## Using LazyImage
 
-The view is instantiated with a source where a source can be a `URL`, `URLRequest`, or an [`ImageRequest`](https://kean.blog/nuke/guides/customizing-requests).
+The view is instantiated with a `URL` or an ``ImageRequest``.
 
 ```swift
 struct ContainerView: View {
@@ -57,7 +57,7 @@ LazyImage(url: URL(string: "https://example.com/image.jpeg"))
     .pipeline(customPipeline)
 ```
 
-> `LazyImage` is built on top of Nuke's [`FetchImage`](https://kean.blog/nuke/guides/swiftui#fetchimage). If you want even more control, you can use it directly instead.  
+> ``LazyImage`` is built on top of ``FetchImage``. If you want even more control, you can use it directly instead.  
 
 You can also monitor the status of the download.
 

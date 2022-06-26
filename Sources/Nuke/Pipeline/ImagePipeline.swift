@@ -5,7 +5,7 @@
 import Foundation
 import Combine
 
-/// The pipeline is the primary way to load images directly (without a UI).
+/// The pipeline downloads images, caches, and prepares them for display. 
 ///
 /// The pipeline is fully customizable. You can change its configuration using
 /// ``ImagePipeline/Configuration-swift.struct`` by setting custom data loader
