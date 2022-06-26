@@ -27,7 +27,7 @@ let image = response.image
 You can monitor the request by passing ``ImageTaskDelegate``. The delegate is captured as a weak reference and all callbacks are executed on the main queue by default.
 
 ```swift
-private let imageTask: ImageTask?
+private var imageTask: ImageTask?
 
 func loadImage() async throws {
     imageView.image = try await pipeline.image(for: url, delegate: self).image

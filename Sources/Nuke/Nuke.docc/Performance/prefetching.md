@@ -11,8 +11,9 @@ Loading data ahead of time in anticipation of its use ([prefetching](https://en.
 Starting with iOS 10, it became easy to implement prefetching in a `UICollectionView` thanks to the [`UICollectionViewDataSourcePrefetching`](https://developer.apple.com/documentation/uikit/uicollectionviewdatasourceprefetching) API. All you need to do is set [`isPrefetchingEnabled`](https://developer.apple.com/documentation/uikit/uicollectionview/1771771-isprefetchingenabled) to `true` and set a [`prefetchDataSource`](https://developer.apple.com/documentation/uikit/uicollectionview/1771768-prefetchdatasource).
 
 ```swift
-final class PrefetchingDemoViewController: BaseDemoViewController {
-    let prefetcher = ImagePrefetcher()
+final class PrefetchingDemoViewController: UICollectionViewController {
+    private let prefetcher = ImagePrefetcher()
+    private var photos: [URL] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -62,16 +63,6 @@ override func viewWillDisappear(_ animated: Bool) {
 ## ImagePrefetcher
  
 You typically create one ``ImagePrefetcher`` per screen.
-
-```swift
-let prefetcher = ImagePrefetcher()
-
-public final class ImagePrefetcher {
-    public init(pipeline: ImagePipeline = ImagePipeline.shared,
-                destination: Destination = .memoryCache,
-                maxConcurrentRequestCount: Int = 2)
-}
-```
 
 To start prefetching, call ``ImagePrefetcher/startPrefetching(with:)-718dg`` method. When you need the same image later to display it, simply use the ``ImagePipeline`` or view extensions to load the image. The pipeline will take care of coalescing the requests for new without starting any new downloads:
 

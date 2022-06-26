@@ -8,6 +8,7 @@ import Nuke
 private let pipeline = ImagePipeline.shared
 private let url = URL(string: "https://example.com/image.jpeg")!
 private let image = Test.image
+private let data = Test.data
 
 // MARK: - Getting Started
 
@@ -122,5 +123,202 @@ private func checkAccessCachedImages07() {
 private final class CheckAccessCachedImages08: ImagePipelineDelegate {
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String? {
         request.userInfo["imageId"] as? String
+    }
+}
+
+// MARK: - Cache Configuration
+
+private func checkCacheConfiguration01() {
+    ImagePipeline.shared = ImagePipeline(configuration: .withDataCache)
+}
+
+// MARK: - Cache Layers
+
+private func checkCacheLayers01() {
+    // Configure cache
+    ImageCache.shared.costLimit = 1024 * 1024 * 100 // 100 MB
+    ImageCache.shared.countLimit = 100
+    ImageCache.shared.ttl = 120 // Invalidate image after 120 sec
+
+    // Read and write images
+    let request = ImageRequest(url: url)
+    ImageCache.shared[request] = ImageContainer(image: image)
+    let image = ImageCache.shared[request]
+
+    // Clear cache
+    ImageCache.shared.removeAll()
+
+    _ = image
+}
+
+private func checkCacheLayers02() {
+    // Configure cache
+    DataLoader.sharedUrlCache.diskCapacity = 100
+    DataLoader.sharedUrlCache.memoryCapacity = 0
+
+    // Read and write responses
+    let urlRequest = URLRequest(url: url)
+    let _ = DataLoader.sharedUrlCache.cachedResponse(for: urlRequest)
+    DataLoader.sharedUrlCache.removeCachedResponse(for: urlRequest)
+
+    // Clear cache
+    DataLoader.sharedUrlCache.removeAllCachedResponses()
+}
+
+private func checkCacheLayers03() {
+    _ = ImagePipeline {
+        $0.dataCache = try? DataCache(name: "com.myapp.datacache")
+    }
+}
+
+private func checkCacheLayers04() throws {
+    let dataCache = try DataCache(name: "my-cache")
+
+    dataCache.sizeLimit = 1024 * 1024 * 100 // 100 MB
+
+    dataCache.storeData(data, for: "key")
+    if dataCache.containsData(for: "key") {
+        print("Data is cached")
+    }
+    let data = dataCache.cachedData(for: "key")
+    // or let data = dataCache["key"]
+    dataCache.removeData(for: "key")
+    dataCache.removeAll()
+
+    _ = data
+}
+
+private func checkCacheLayers05() throws {
+    let dataCache = try DataCache(name: "my-cache")
+
+    dataCache.storeData(data, for: "key")
+    dataCache.flush()
+    // or dataCache.flush(for: "key")
+
+    let url = dataCache.url(for: "key")
+    // Access file directly
+
+    _ = url
+}
+
+// MARK: - Performance
+
+private func checkPerformance01() {
+    // Target size is in points.
+    let request = ImageRequest(
+        url: URL(string: "http://..."),
+        processors: [.resize(width: 320)]
+    )
+
+    _ = request
+}
+
+#if os(iOS)
+import UIKit
+
+private func checkPerformance02() {
+    final class ImageView: UIView {
+        private var task: ImageTask?
+
+        override func willMove(toWindow newWindow: UIWindow?) {
+            super.willMove(toWindow: newWindow)
+
+            task?.setPriority(newWindow == nil ? .low : .high)
+        }
+    }
+}
+#endif
+
+private func checkPerformance03() async throws {
+    let url = URL(string: "http://example.com/image")
+    async let first = pipeline.image(for: ImageRequest(url: url, processors: [
+        .resize(size: CGSize(width: 44, height: 44)),
+        .gaussianBlur(radius: 8)
+    ]))
+    async let second = pipeline.image(for: ImageRequest(url: url, processors: [
+        .resize(size: CGSize(width: 44, height: 44))
+    ]))
+    let images = try await (first, second)
+
+    _ = images
+}
+
+// MARK: - Prefetching
+
+#if os(iOS)
+private final class PrefetchingDemoViewController: UICollectionViewController {
+    private let prefetcher = ImagePrefetcher()
+    private var photos: [URL] = []
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        collectionView?.isPrefetchingEnabled = true
+        collectionView?.prefetchDataSource = self
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        prefetcher.isPaused = false
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+
+        // When you pause, the prefetcher will finish outstanding tasks
+        // (by default, there are only 2 at a time), and pause the rest.
+        prefetcher.isPaused = true
+    }
+}
+
+extension PrefetchingDemoViewController: UICollectionViewDataSourcePrefetching {
+    func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
+        let urls = indexPaths.map { photos[$0.row] }
+        prefetcher.startPrefetching(with: urls)
+    }
+
+    func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
+        let urls = indexPaths.map { photos[$0.row] }
+        prefetcher.startPrefetching(with: urls)
+    }
+}
+#endif
+
+// MARK: - ImagePipeline (Extension)
+
+private func checkImagePipelineExtension01() {
+    _ = ImagePipeline {
+        $0.dataCache = try? DataCache(name: "com.myapp.datacache")
+        $0.dataCachePolicy = .automatic
+    }
+}
+
+private func checkImagePipelineExtension02() async throws {
+    let response = try await ImagePipeline.shared.image(for: url)
+    let image = response.image
+
+    _ = image
+}
+
+@MainActor
+private final class CheckImagePipelineExtension03: UIView, ImageTaskDelegate {
+    private var imageTask: ImageTask?
+    private let imageView = _ImageView()
+
+    func loadImage() async throws {
+        imageView.image = try await pipeline.image(for: url, delegate: self).image
+    }
+
+    func imageTaskCreated(_ task: ImageTask) {
+        self.imageTask = task
+    }
+
+    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
+        // Gets called for images that support progressive decoding.
+    }
+
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
+        // Gets called when the download progress is updated.
     }
 }

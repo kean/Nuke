@@ -47,9 +47,9 @@ DataLoader.sharedUrlCache.diskCapacity = 100
 DataLoader.sharedUrlCache.memoryCapacity = 0
 
 // Read and write responses
-let request = ImageRequest(url: url)
-let _ = DataLoader.sharedUrlCache.cachedResponse(for: request.urlRequest)
-DataLoader.sharedUrlCache.removeCachedResponse(for: request.urlRequest)
+let urlRequest = URLRequest(url: url)
+_ = DataLoader.sharedUrlCache.cachedResponse(for: urlRequest)
+DataLoader.sharedUrlCache.removeCachedResponse(for: urlRequest)
 
 // Clear cache
 DataLoader.sharedUrlCache.removeAllCachedResponses()
@@ -82,7 +82,7 @@ By default, the pipeline stores only the original image data. You can change thi
 ```swift
 let dataCache = try DataCache(name: "my-cache")
 
-dataCache.sizeLimit = = 1024 * 1024 * 100 // 100 MB
+dataCache.sizeLimit = 1024 * 1024 * 100 // 100 MB
 
 dataCache.storeData(data, for: "key")
 if dataCache.containsData(for: "key") {

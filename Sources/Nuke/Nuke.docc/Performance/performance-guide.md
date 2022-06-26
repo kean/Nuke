@@ -66,7 +66,7 @@ There are many other creative ways to use priorities. For example, when the user
 
 ```swift
 final class ImageView: UIView {
-    private let task: ImageTask?
+    private var task: ImageTask?
 
     override func willMove(toWindow newWindow: UIWindow?) {
         super.willMove(toWindow: newWindow)

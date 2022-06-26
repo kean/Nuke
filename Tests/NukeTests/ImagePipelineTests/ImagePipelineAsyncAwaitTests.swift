@@ -293,6 +293,23 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         let response = try await loadImage()
         XCTAssertNotNil(response.image)
     }
+
+    // MARK: - Actor Isolation
+
+    @MainActor
+    func testImplementingProtocolWithMainActor() async throws {
+        // GIVEN
+        let taskDelegate = MainActorImageTaskDelegate()
+        taskDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.url, delegate: taskDelegate)
+
+        // THEN
+        XCTAssertNotNil(imageTask)
+
+        _ = taskDelegate
+    }
 }
 
 /// We have to mock it because there is no way to construct native `URLError`
@@ -346,5 +363,14 @@ private final class AnonymousImateTaskDelegate: ImageTaskDelegate, @unchecked Se
 
     func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
         onResult?(result)
+    }
+}
+
+@MainActor
+private final class MainActorImageTaskDelegate: ImageTaskDelegate {
+    var onTaskCreated: ((ImageTask) -> Void)?
+
+    func imageTaskCreated(_ task: ImageTask) {
+        onTaskCreated?(task)
     }
 }

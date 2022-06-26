@@ -111,7 +111,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
 /// A protocol that defines methods that image pipeline instances call on their
 /// delegates to handle task-level events.
-public protocol ImageTaskDelegate: AnyObject, Sendable {
+public protocol ImageTaskDelegate: AnyObject {
     /// Gets called when the task is created. Unlike other methods, it is called
     /// immediately on the caller's queue.
     func imageTaskCreated(_ task: ImageTask)
