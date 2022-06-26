@@ -188,7 +188,7 @@ extension ImagePipeline.Cache {
     // MARK: Keys
 
     /// Returns image cache (memory cache) key for the given request.
-    func makeImageCacheKey(for request: ImageRequest) -> ImageCacheKey {
+    public func makeImageCacheKey(for request: ImageRequest) -> ImageCacheKey {
         if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
             return ImageCacheKey(key: customKey)
         }
@@ -196,7 +196,7 @@ extension ImagePipeline.Cache {
     }
 
     /// Returns data cache (disk cache) key for the given request.
-    func makeDataCacheKey(for request: ImageRequest) -> String {
+    public func makeDataCacheKey(for request: ImageRequest) -> String {
         if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
             return customKey
         }

@@ -42,12 +42,11 @@ You can access any caching layer directly, but the pipeline also offers a conven
 
 ### Subscript
 
-You can access memory cache with a subscript that supports both `URL` and ``ImageRequest``.
+You can access memory cache with a subscript.
 
 ```swift
 let image = pipeline.cache[URL(string: "https://example.com/image.jpeg")!]
 pipeline.cache[ImageRequest(url: url)] = nil
-pipeline.cache["https://example.com/image.jpeg"] = ImageContainer(image: image)
 ```
 
 > ``ImageContainer`` contains some metadata about the image, and in the case of animated images or other images that require non-trivial rendering also contains `data`. It also allows you to distinguish between progressive previews in case ``ImagePipeline/Configuration-swift.struct/isStoringPreviewsInMemoryCache`` option is enabled.
@@ -56,7 +55,7 @@ All ``ImagePipeline/Cache-swift.struct`` respect request cache control options.
 
 ```swift
 let url = URL(string: "https://example.com/image.jpeg")!
-pipeline.cache[url] = image
+pipeline.cache[url] = ImageContainer(image: image)
 
 // Returns `nil` because memory cache reads are disabled
 let request = ImageRequest(url: url, options: [.disableMemoryCacheWrites])
@@ -80,9 +79,9 @@ cache.containsData(for: request) // Fast contains check
 
 // Stores image in the memory cache and stores an encoded
 // image in the disk cache
-cache.storeImage(image, for: request)
+cache.storeCachedImage(ImageContainer(image: image), for: request)
 
-cache.removeImage(for: request)
+cache.removeCachedImage(for: request)
 cache.removeAll()
 ```
 
@@ -91,6 +90,7 @@ cache.removeAll()
 You don't need to worry about cache keys when working with ``ImagePipeline/Cache-swift.struct``, but it also gives you access to them in case you need it.
 
 ```swift
+let request = ImageRequest(url: URL(string: "https://example.com/image.jpeg"))
 pipeline.cache.makeImageCacheKey(for: request)
 pipeline.cache.makeDataCacheKey(for: request)
 ```
