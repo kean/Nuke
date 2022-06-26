@@ -28,7 +28,7 @@ Nuke is proudly sponsored by [Stream](https://getstream.io/chat/sdk/swiftui/?utm
 
 Nuke is easy to learn and use thanks to [**Nuke Docs**](https://kean-docs.github.io/nuke/documentation/nuke/getting-started). Make sure to also check out [**Nuke Demo**](https://github.com/kean/NukeDemo).
 
-> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Migrations). Switching from another framework? Use a [**Switching Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Switch).
+> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Migrations).
 
 <a href="https://kean-docs.github.io/nuke/documentation/nuke/getting-started">
 <img width="690" alt="Nuke Docs" src="https://user-images.githubusercontent.com/1567433/175793167-b7e0c557-b887-444f-b18a-57d6f5ecf01a.png">

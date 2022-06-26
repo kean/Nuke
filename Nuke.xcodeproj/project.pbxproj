@@ -520,8 +520,6 @@
 		0CB6449B28567E5400916267 /* ImageViewLoadingOptionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewLoadingOptionsTests.swift; sourceTree = "<group>"; };
 		0CB644AA28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewExtensionsProgressiveDecodingTests.swift; sourceTree = "<group>"; };
 		0CBA07852852DA8B00CE29F4 /* ImagePipelineError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineError.swift; sourceTree = "<group>"; };
-		0CBBEA332662BC6E0048A3C6 /* switch-from-kingfisher.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "switch-from-kingfisher.md"; sourceTree = "<group>"; };
-		0CBBEA382662ECD40048A3C6 /* switch-from-sdwebimage.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "switch-from-sdwebimage.md"; sourceTree = "<group>"; };
 		0CC36A1125B8BC0800811018 /* Allocations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Allocations.swift; sourceTree = "<group>"; };
 		0CC36A1825B8BC2500811018 /* RateLimiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimiter.swift; sourceTree = "<group>"; };
 		0CC36A2425B8BC4900811018 /* Operation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Operation.swift; sourceTree = "<group>"; };
@@ -1060,15 +1058,6 @@
 			path = Pipeline;
 			sourceTree = "<group>";
 		};
-		0CBBEA322662BC590048A3C6 /* Switch */ = {
-			isa = PBXGroup;
-			children = (
-				0CBBEA332662BC6E0048A3C6 /* switch-from-kingfisher.md */,
-				0CBBEA382662ECD40048A3C6 /* switch-from-sdwebimage.md */,
-			);
-			path = Switch;
-			sourceTree = "<group>";
-		};
 		0CC13A0F285677F800E0557D /* Nuke */ = {
 			isa = PBXGroup;
 			children = (
@@ -1126,7 +1115,6 @@
 		0CDB92761DAF9BA500002905 /* Documentation */ = {
 			isa = PBXGroup;
 			children = (
-				0CBBEA322662BC590048A3C6 /* Switch */,
 				0CDB927C1DAF9BA500002905 /* Migrations */,
 			);
 			path = Documentation;
