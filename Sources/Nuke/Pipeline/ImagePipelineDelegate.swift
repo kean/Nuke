@@ -30,7 +30,8 @@ public protocol ImagePipelineDelegate: ImageTaskDelegate {
     func dataCache(for request: ImageRequest, pipeline: ImagePipeline) -> (any DataCaching)?
 
     /// Returns a cache key identifying the image produced for the given request
-    /// (including image processors).
+    /// (including image processors). The key is used for both in-memory and
+    /// on-disk caches.
     ///
     /// Return `nil` to use a default key.
     func cacheKey(for request: ImageRequest, pipeline: ImagePipeline) -> String?
