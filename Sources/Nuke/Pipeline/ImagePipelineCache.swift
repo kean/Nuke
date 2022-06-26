@@ -50,7 +50,6 @@ extension ImagePipeline.Cache {
     ///   to retrieve an original image (if it's stored).
     ///   - caches: `[.all]`, by default.
     public func cachedImage(for request: ImageRequest, caches: Caches = [.all]) -> ImageContainer? {
-        let request = request.asImageRequest()
         if caches.contains(.memory) {
             if let image = cachedImageFromMemoryCache(for: request) {
                 return image
@@ -80,7 +79,6 @@ extension ImagePipeline.Cache {
     ///   to retrieve an original image (if it's stored).
     ///   - caches: `[.all]`, by default.
     public func storeCachedImage(_ image: ImageContainer, for request: ImageRequest, caches: Caches = [.all]) {
-        let request = request.asImageRequest()
         if caches.contains(.memory) {
             storeCachedImageInMemoryCache(image, for: request)
         }
@@ -93,7 +91,6 @@ extension ImagePipeline.Cache {
 
     /// Removes the image from all caches.
     public func removeCachedImage(for request: ImageRequest, caches: Caches = [.all]) {
-        let request = request.asImageRequest()
         if caches.contains(.memory) {
             removeCachedImageFromMemoryCache(for: request)
         }
@@ -104,7 +101,6 @@ extension ImagePipeline.Cache {
 
     /// Returns `true` if any of the caches contain the image.
     public func containsCachedImage(for request: ImageRequest, caches: Caches = [.all]) -> Bool {
-        let request = request.asImageRequest()
         if caches.contains(.memory) && cachedImageFromMemoryCache(for: request) != nil {
             return true
         }
@@ -149,7 +145,6 @@ extension ImagePipeline.Cache {
 
     /// Returns cached data for the given request.
     public func cachedData(for request: ImageRequest) -> Data? {
-        let request = request.asImageRequest()
         guard !request.options.contains(.disableDiskCacheReads) else {
             return nil
         }
@@ -165,7 +160,6 @@ extension ImagePipeline.Cache {
     /// - note: Default ``DataCache`` stores data asynchronously, so it's safe
     /// to call this method even from the main thread.
     public func storeCachedData(_ data: Data, for request: ImageRequest) {
-        let request = request.asImageRequest()
         guard let dataCache = dataCache(for: request),
               !request.options.contains(.disableDiskCacheWrites) else {
             return
@@ -176,7 +170,6 @@ extension ImagePipeline.Cache {
 
     /// Returns true if the data cache contains data for the given image
     public func containsData(for request: ImageRequest) -> Bool {
-        let request = request.asImageRequest()
         guard let dataCache = dataCache(for: request) else {
             return false
         }
@@ -185,7 +178,6 @@ extension ImagePipeline.Cache {
 
     /// Removes cached data for the given request.
     public func removeCachedData(for request: ImageRequest) {
-        let request = request.asImageRequest()
         guard let dataCache = dataCache(for: request) else {
             return
         }

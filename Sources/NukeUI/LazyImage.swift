@@ -80,7 +80,7 @@ public struct LazyImage<Content: View>: View {
     ///   - request: The image request.
     ///   - resizingMode: The displayed image resizing mode.
     public init(request: ImageRequest?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
-        self.request = request.map { HashableRequest(request: $0.asImageRequest()) }
+        self.request = request.map { HashableRequest(request: $0) }
         self.resizingMode = resizingMode
     }
 

@@ -226,7 +226,7 @@ public final class ImagePipeline: @unchecked Sendable {
         progress: ((ImageResponse?, ImageTask.Progress) -> Void)?,
         completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        let task = makeImageTask(request: request, queue: callbackQueue)
+        let task = makeImageTask(request: request.asImageRequest(), queue: callbackQueue)
         delegate.imageTaskCreated(task)
         func start() {
             startImageTask(task, progress: progress, completion: completion)
@@ -298,8 +298,8 @@ public final class ImagePipeline: @unchecked Sendable {
         }
     }
 
-    private func makeImageTask(request: any ImageRequestConvertible, queue: DispatchQueue?, isDataTask: Bool = false) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId, request: request.asImageRequest())
+    private func makeImageTask(request: ImageRequest, queue: DispatchQueue?, isDataTask: Bool = false) -> ImageTask {
+        let task = ImageTask(taskId: nextTaskId, request: request)
         task.pipeline = self
         task.callbackQueue = queue
         task.isDataTask = isDataTask
@@ -346,7 +346,7 @@ public final class ImagePipeline: @unchecked Sendable {
         progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
-        let task = makeImageTask(request: request, queue: queue, isDataTask: true)
+        let task = makeImageTask(request: request.asImageRequest(), queue: queue, isDataTask: true)
         func start() {
             startDataTask(task, progress: progress, completion: completion)
         }
@@ -409,7 +409,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
     public func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, Error> {
-        ImagePublisher(request: request.asImageRequest(), pipeline: self).eraseToAnyPublisher()
+        ImagePublisher(request: request, pipeline: self).eraseToAnyPublisher()
     }
 
     // MARK: - Image Task Events

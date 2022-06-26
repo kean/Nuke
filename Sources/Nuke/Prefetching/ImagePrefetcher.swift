@@ -104,8 +104,10 @@ public final class ImagePrefetcher: @unchecked Sendable {
     public func startPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
             for request in requests {
-                var request = request.asImageRequest()
-                request.priority = self._priority
+                var request = request
+                if self._priority != request.priority {
+                    request.priority = self._priority
+                }
                 self._startPrefetching(with: request)
             }
         }
@@ -172,7 +174,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     public func stopPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
             for request in requests {
-                self._stopPrefetching(with: request.asImageRequest())
+                self._stopPrefetching(with: request)
             }
         }
     }
