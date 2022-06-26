@@ -49,11 +49,6 @@ The image pipeline is easy to customize and extend. Check out the following firs
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples|
 |[**Xamarin NuGet**](https://github.com/roubachof/Xamarin.Forms.Nuke)| **Community**. Makes it possible to use Nuke from Xamarin|
 
-<a name="h_contribute"></a>
-## Contribution
-
-[Nuke's roadmap](https://trello.com/b/Us4rHryT/nuke) is managed in Trello and is publicly available.
-
 <a name="h_requirements"></a>
 ## Minimum Requirements
 
@@ -61,8 +56,6 @@ The image pipeline is easy to customize and extend. Check out the following firs
 |------------|--------------|-------------|------------|-----------------------------------------------|
 | Nuke 11.0  | TBD          | Swift 5.6   | Xcode 13.3 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
 | Nuke 10.0  | Jun 1, 2021  | Swift 5.3   | Xcode 12.0 | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0 |
-
-See [Installation Guide](https://kean.blog/nuke/guides/installation) for information about the older versions.
 
 ## License
 
