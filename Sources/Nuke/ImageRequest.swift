@@ -13,7 +13,7 @@ import Combine
 /// ```swift
 /// let request = ImageRequest(
 ///     url: URL(string: "http://example.com/image.jpeg"),
-///     processors: [.resize(size: imageView.bounds.size)],
+///     processors: [.resize(width: 320)],
 ///     priority: .high,
 ///     options: [.reloadIgnoringCachedData]
 /// )

@@ -22,7 +22,7 @@ Ideally, the app should download the images optimized for the target device scre
 // Target size is in points.
 let request = ImageRequest(
     url: URL(string: "http://..."),
-    processors: [.resize(size: imageView.bounds.size)]
+    processors: [.resize(width: 320)]
 )
 ```
 

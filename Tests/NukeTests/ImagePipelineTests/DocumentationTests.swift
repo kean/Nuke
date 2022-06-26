@@ -7,7 +7,6 @@ import Nuke
 
 private let pipeline = ImagePipeline.shared
 private let url = URL(string: "https://example.com/image.jpeg")!
-private let imageView = _ImageView()
 
 // MARK: - Getting Started
 
@@ -36,11 +35,10 @@ private final class CheckGettingStarted02: ImageTaskDelegate {
     }
 }
 
-@MainActor
 private func checkGettingStarted03() async throws {
     let request = ImageRequest(
         url: URL(string: "http://example.com/image.jpeg"),
-        processors: [.resize(size: imageView.bounds.size)],
+        processors: [.resize(width: 320)],
         priority: .high,
         options: [.reloadIgnoringCachedData]
     )
