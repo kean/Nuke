@@ -110,6 +110,17 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - Loading Images (Async/Await)
 
+    /// Returns an image for the given URL.
+    ///
+    /// - parameters:
+    ///   - request: An image request.
+    ///   - delegate: A delegate for monitoring the request progress. The delegate
+    ///   is captured as a weak reference and is called on the main queue. You
+    ///   can change the callback queue using ``Configuration-swift.struct/callbackQueue``.
+    public func image(for url: URL, delegate: ImageTaskDelegate? = nil) async throws -> ImageResponse {
+        try await image(for: ImageRequest(url: url), delegate: delegate)
+    }
+
     /// Returns an image for the given request.
     ///
     /// - parameters:
@@ -117,7 +128,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - delegate: A delegate for monitoring the request progress. The delegate
     ///   is captured as a weak reference and is called on the main queue. You
     ///   can change the callback queue using ``Configuration-swift.struct/callbackQueue``.
-    public func image(for request: any ImageRequestConvertible, delegate: ImageTaskDelegate? = nil) async throws -> ImageResponse {
+    public func image(for request: ImageRequest, delegate: ImageTaskDelegate? = nil) async throws -> ImageResponse {
         let task = makeImageTask(request: request, queue: nil)
         task.delegate = delegate
 
@@ -142,11 +153,19 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - Loading Data (Async/Await)
 
+    /// Returns image data for the given URL.
+    ///
+    /// - parameter request: An image request.
+    @discardableResult
+    public func data(for url: URL) async throws -> (Data, URLResponse?) {
+        try await data(for: ImageRequest(url: url))
+    }
+
     /// Returns image data for the given request.
     ///
     /// - parameter request: An image request.
     @discardableResult
-    public func data(for request: any ImageRequestConvertible) async throws -> (Data, URLResponse?) {
+    public func data(for request: ImageRequest) async throws -> (Data, URLResponse?) {
         let task = makeImageTask(request: request, queue: nil, isDataTask: true)
         return try await withTaskCancellationHandler(handler: {
             task.cancel()
@@ -384,7 +403,12 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Loading Images (Combine)
 
     /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
-    public func imagePublisher(with request: any ImageRequestConvertible) -> AnyPublisher<ImageResponse, Error> {
+    public func imagePublisher(with url: URL) -> AnyPublisher<ImageResponse, Error> {
+        imagePublisher(with: ImageRequest(url: url))
+    }
+
+    /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
+    public func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, Error> {
         ImagePublisher(request: request.asImageRequest(), pipeline: self).eraseToAnyPublisher()
     }
 

@@ -17,12 +17,12 @@ Despite the number of features, the framework is lean and compiles in under 2 se
 
 ## Documentation
 
-Nuke is easy to learn and use thanks to [**Nuke Docs**](https://kean.blog/nuke/guides/welcome). Make sure to also check out [**Nuke Demo**](https://github.com/kean/NukeDemo).
+Nuke is easy to learn and use thanks to [**Nuke Docs**](https://kean-docs.github.io/nuke/documentation/nuke/getting-started). Make sure to also check out [**Nuke Demo**](https://github.com/kean/NukeDemo).
 
 > Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Migrations). Switching from another framework? Use a [**Switching Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Switch).
 
-<a href="https://kean.blog/nuke/guides/welcome">
-<img src="https://user-images.githubusercontent.com/1567433/114312077-59259b80-9abf-11eb-93f9-29fb87eb025a.png">
+<a href="https://kean-docs.github.io/nuke/documentation/nuke/getting-started">
+<img width="690" alt="Nuke Docs" src="https://user-images.githubusercontent.com/1567433/175793167-b7e0c557-b887-444f-b18a-57d6f5ecf01a.png">
 </a>
 
 <a name="h_plugins"></a>

@@ -57,7 +57,7 @@ struct ContentView: View {
     let url = URL(string: "https://example.com/image.jpeg")
 
     var body: some View {
-        LazyImage(source: url)
+        LazyImage(url: url)
     }
 }
 

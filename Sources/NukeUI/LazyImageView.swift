@@ -204,9 +204,22 @@ public final class LazyImageView: _PlatformBaseView {
         transition = .fadeIn(duration: 0.33)
     }
 
-    /// Sets the given source and immediately starts the download.
+    /// Sets the given URL and immediately starts the download.
+    public var url: URL? {
+        get { request?.url }
+        set { request = newValue.map { ImageRequest(url: $0) } }
+    }
+
+    /// Sets the given request and immediately starts the download.
+    public var request: ImageRequest? {
+        didSet { load(request) }
+    }
+    ///
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please `request` or `url` properties instead")
     public var source: (any ImageRequestConvertible)? {
-        didSet { load(source) }
+        get { request }
+        set { request = newValue?.asImageRequest() }
     }
 
     override public func updateConstraints() {
@@ -236,10 +249,10 @@ public final class LazyImageView: _PlatformBaseView {
         imageTask = nil
     }
 
-    // MARK: Load (ImageRequestConvertible)
+    // MARK: Loading Images
 
     /// Loads an image with the given request.
-    private func load(_ request: (any ImageRequestConvertible)?) {
+    private func load(_ request: ImageRequest?) {
         assert(Thread.isMainThread, "Must be called from the main thread")
 
         cancel()
@@ -250,7 +263,7 @@ public final class LazyImageView: _PlatformBaseView {
             isResetNeeded = true
         }
 
-        guard var request = request?.asImageRequest() else {
+        guard var request = request else {
             handle(result: .failure(ImagePipeline.Error.imageRequestMissing), isSync: true)
             return
         }

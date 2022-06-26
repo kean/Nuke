@@ -7,7 +7,7 @@ The view is instantiated with a source where a source can be a `URL`, `URLReques
 ```swift
 struct ContainerView: View {
     var body: some View {
-        LazyImage(source: "https://example.com/image.jpeg")
+        LazyImage(url: URL(string: "https://example.com/image.jpeg"))
     }
 }
 ```
@@ -17,7 +17,7 @@ The view is called "lazy" because it loads the image from source only when it ap
 The view doesn't know the size of the image before it downloads it. Thus, you must specify the view size before loading the image. By default, the image will resize preserving the aspect ratio to fill the available space. You can change this behavior by passing a different resizing mode.
 
 ```swift
-LazyImage(source: "https://example.com/image.jpeg", resizingMode: .center)
+LazyImage(url: URL(string: "https://example.com/image.jpeg"), resizingMode: .center)
     .frame(height: 300)
 ```
 
@@ -30,7 +30,7 @@ Until the image loads, the view displays a standard placeholder that fills the a
 You can also specify a custom placeholder, a view to be displayed on failure, or even show a download progress.
 
 ```swift
-LazyImage(source: $0) { state in
+LazyImage(url: $0) { state in
     if let image = state.image {
         image // Displays the loaded image
     } else if state.error != nil {
@@ -44,14 +44,14 @@ LazyImage(source: $0) { state in
 When the image is loaded, it is displayed with a default animation. You can change it using a custom `animation` option.
 
 ```swift
-LazyImage(source: "https://example.com/image.jpeg")
+LazyImage(url: URL(string: "https://example.com/image.jpeg"))
     .animation(nil) // Disable all animations
 ```
 
 You can pass a complete `ImageRequest` as a source, but you can also configure the download via convenience modifiers.
 
 ```swift
-LazyImage(source: "https://example.com/image.jpeg")
+LazyImage(url: URL(string: "https://example.com/image.jpeg"))
     .processors([ImageProcessors.Resize(width: 44)])
     .priority(.high)
     .pipeline(customPipeline)
@@ -62,7 +62,7 @@ LazyImage(source: "https://example.com/image.jpeg")
 You can also monitor the status of the download.
 
 ```swift
-LazyImage(source: "https://example.com/image.jpeg")
+LazyImage(url: URL(string: "https://example.com/image.jpeg"))
     .onStart { print("Task started \($0)") }
     .onProgress { ... }
     .onSuccess { ... }
@@ -73,7 +73,7 @@ LazyImage(source: "https://example.com/image.jpeg")
 And if some API isn't exposed yet, you can always access the underlying `ImageView` instance.
 
 ```swift
-LazyImage(source: "https://example.com/image.jpeg")
+LazyImage(url: URL(string: "https://example.com/image.jpeg"))
     .onCreated { view in 
         view.videoGravity = .resizeAspect
     }
@@ -83,8 +83,10 @@ LazyImage(source: "https://example.com/image.jpeg")
 
 ### Initializers
 
-- ``init(source:resizingMode:)``
-- ``init(source:content:)``
+- ``init(url:resizingMode:)``
+- ``init(request:resizingMode:)``
+- ``init(url:content:)``
+- ``init(request:content:)``
 
 ### Accessing Undelying Views
 
@@ -108,3 +110,8 @@ LazyImage(source: "https://example.com/image.jpeg")
 - ``onSuccess(_:)``
 - ``onFailure(_:)``
 - ``onCompletion(_:)``
+
+### Deprecated
+
+- ``init(source:resizingMode:)``
+- ``init(source:content:)``

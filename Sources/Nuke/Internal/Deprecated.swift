@@ -101,3 +101,33 @@ extension ImageProcessing where Self == ImageProcessors.Anonymous {
         ImageProcessors.Anonymous(id: id, closure)
     }
 }
+
+// MARK: - ImageRequestConvertible
+
+/// Represents a type that can be converted to an ``ImageRequest``.
+///
+/// - warning: Soft-deprecated in Nuke 11.0.
+public protocol ImageRequestConvertible {
+    /// Returns a request.
+    func asImageRequest() -> ImageRequest
+}
+
+extension ImageRequest: ImageRequestConvertible {
+    public func asImageRequest() -> ImageRequest { self }
+}
+
+extension URL: ImageRequestConvertible {
+    public func asImageRequest() -> ImageRequest { ImageRequest(url: self) }
+}
+
+extension Optional: ImageRequestConvertible where Wrapped == URL {
+    public func asImageRequest() -> ImageRequest { ImageRequest(url: self) }
+}
+
+extension URLRequest: ImageRequestConvertible {
+    public func asImageRequest() -> ImageRequest { ImageRequest(urlRequest: self) }
+}
+
+extension String: ImageRequestConvertible {
+    public func asImageRequest() -> ImageRequest { ImageRequest(url: URL(string: self)) }
+}

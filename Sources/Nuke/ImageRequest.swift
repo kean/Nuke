@@ -19,9 +19,6 @@ import Combine
 /// )
 /// let response = try await pipeline.image(for: request)
 /// ```
-///
-/// Most APIs accept any types that conform to ``ImageRequestConvertible``. By
-/// default, it includes `URL`, `URLRequest`, and ``ImageRequest`` itself.
 public struct ImageRequest: CustomStringConvertible, Sendable {
 
     // MARK: Options
@@ -516,32 +513,4 @@ extension ImageRequest {
             }
         }
     }
-}
-
-// MARK: - ImageRequestConvertible
-
-/// Represents a type that can be converted to an ``ImageRequest``.
-public protocol ImageRequestConvertible {
-    /// Returns a request.
-    func asImageRequest() -> ImageRequest
-}
-
-extension ImageRequest: ImageRequestConvertible {
-    public func asImageRequest() -> ImageRequest { self }
-}
-
-extension URL: ImageRequestConvertible {
-    public func asImageRequest() -> ImageRequest { ImageRequest(url: self) }
-}
-
-extension Optional: ImageRequestConvertible where Wrapped == URL {
-    public func asImageRequest() -> ImageRequest { ImageRequest(url: self) }
-}
-
-extension URLRequest: ImageRequestConvertible {
-    public func asImageRequest() -> ImageRequest { ImageRequest(urlRequest: self) }
-}
-
-extension String: ImageRequestConvertible {
-    public func asImageRequest() -> ImageRequest { ImageRequest(url: URL(string: self)) }
 }
