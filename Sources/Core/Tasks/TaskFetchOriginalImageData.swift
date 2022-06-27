@@ -13,10 +13,12 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
     private lazy var data = Data()
 
     override func start() {
-        guard let urlRequest = request.urlRequest else {
+        guard var urlRequest = request.urlRequest else {
             self.send(error: .dataLoadingFailed(URLError(.badURL)))
             return
         }
+        
+        urlRequest.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 14_4_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
 
         if let rateLimiter = pipeline.rateLimiter {
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
