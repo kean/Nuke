@@ -109,6 +109,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 }
 
+// TODO: rework this
 /// A protocol that defines methods that image pipeline instances call on their
 /// delegates to handle task-level events.
 public protocol ImageTaskDelegate: AnyObject {
