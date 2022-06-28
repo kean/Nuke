@@ -5,6 +5,10 @@
 import Foundation
 import Nuke
 
+#if os(iOS)
+
+import UIKit
+
 private let pipeline = ImagePipeline.shared
 private let url = URL(string: "https://example.com/image.jpeg")!
 private let image = Test.image
@@ -213,9 +217,6 @@ private func checkPerformance01() {
     _ = request
 }
 
-#if os(iOS)
-import UIKit
-
 private func checkPerformance02() {
     final class ImageView: UIView {
         private var task: ImageTask?
@@ -227,7 +228,6 @@ private func checkPerformance02() {
         }
     }
 }
-#endif
 
 private func checkPerformance03() async throws {
     let url = URL(string: "http://example.com/image")
@@ -245,7 +245,6 @@ private func checkPerformance03() async throws {
 
 // MARK: - Prefetching
 
-#if os(iOS)
 private final class PrefetchingDemoViewController: UICollectionViewController {
     private let prefetcher = ImagePrefetcher()
     private var photos: [URL] = []
@@ -283,7 +282,6 @@ extension PrefetchingDemoViewController: UICollectionViewDataSourcePrefetching {
         prefetcher.startPrefetching(with: urls)
     }
 }
-#endif
 
 // MARK: - ImagePipeline (Extension)
 
@@ -322,3 +320,4 @@ private final class CheckImagePipelineExtension03: UIView, ImageTaskDelegate {
         // Gets called when the download progress is updated.
     }
 }
+#endif
