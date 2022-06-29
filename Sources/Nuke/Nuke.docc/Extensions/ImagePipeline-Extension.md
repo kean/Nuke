@@ -27,22 +27,24 @@ let image = response.image
 You can monitor the request by passing ``ImageTaskDelegate``. The delegate is captured as a weak reference and all callbacks are executed on the main queue by default.
 
 ```swift
-private var imageTask: ImageTask?
+final class AsyncImageView: UIImageView, ImageTaskDelegate {
+    private var imageTask: ImageTask?
 
-func loadImage() async throws {
-    imageView.image = try await pipeline.image(for: url, delegate: self).image
-}
+    func loadImage() async throws {
+        imageView.image = try await pipeline.image(for: url, delegate: self).image
+    }
 
-func imageTaskCreated(_ task: ImageTask) {
-    self.imageTask = task
-}
+    func imageTaskCreated(_ task: ImageTask) {
+        self.imageTask = task
+    }
 
-func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-    // Gets called for images that support progressive decoding.
-}
+    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
+        // Gets called for images that support progressive decoding.
+    }
 
-func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-    // Gets called when the download progress is updated.
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
+        // Gets called when the download progress is updated.
+    }
 }
 ```
 

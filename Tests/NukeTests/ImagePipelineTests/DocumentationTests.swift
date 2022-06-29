@@ -299,7 +299,6 @@ private func checkImagePipelineExtension02() async throws {
     _ = image
 }
 
-@MainActor
 private final class CheckImagePipelineExtension03: UIView, ImageTaskDelegate {
     private var imageTask: ImageTask?
     private let imageView = _ImageView()

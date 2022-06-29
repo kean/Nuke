@@ -366,7 +366,6 @@ private final class AnonymousImateTaskDelegate: ImageTaskDelegate, @unchecked Se
     }
 }
 
-@MainActor
 private final class MainActorImageTaskDelegate: ImageTaskDelegate {
     var onTaskCreated: ((ImageTask) -> Void)?
 
