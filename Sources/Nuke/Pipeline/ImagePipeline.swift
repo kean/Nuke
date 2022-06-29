@@ -117,7 +117,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - delegate: A delegate for monitoring the request progress. The delegate
     ///   is captured as a weak reference and is called on the main queue. You
     ///   can change the callback queue using ``Configuration-swift.struct/callbackQueue``.
-    public func image(for url: URL, delegate: ImageTaskDelegate? = nil) async throws -> ImageResponse {
+    public func image(for url: URL, delegate: (any ImageTaskDelegate)? = nil) async throws -> ImageResponse {
         try await image(for: ImageRequest(url: url), delegate: delegate)
     }
 
@@ -128,7 +128,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - delegate: A delegate for monitoring the request progress. The delegate
     ///   is captured as a weak reference and is called on the main queue. You
     ///   can change the callback queue using ``Configuration-swift.struct/callbackQueue``.
-    public func image(for request: ImageRequest, delegate: ImageTaskDelegate? = nil) async throws -> ImageResponse {
+    public func image(for request: ImageRequest, delegate: (any ImageTaskDelegate)? = nil) async throws -> ImageResponse {
         let task = makeImageTask(request: request, queue: nil)
         task.delegate = delegate
 
