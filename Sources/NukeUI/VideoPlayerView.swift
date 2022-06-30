@@ -68,7 +68,7 @@ public final class VideoPlayerView: _PlatformBaseView {
 
     private var player: AVPlayer? {
         didSet {
-            registerNotification()
+            registerNotifications()
         }
     }
 
@@ -90,12 +90,22 @@ public final class VideoPlayerView: _PlatformBaseView {
         }
     }
 
-    private func registerNotification() {
-        NotificationCenter.default
-            .addObserver(self,
-                         selector: #selector(registerNotification(_:)),
-                         name: .AVPlayerItemDidPlayToEndTime,
-                         object: player?.currentItem)
+    private func registerNotifications() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playerItemDidPlayToEndTimeNotification(_:)),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: player?.currentItem
+        )
+
+#if os(iOS) || os(tvOS)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applicationWillEnterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
+#endif
     }
 
     public func restart() {
@@ -126,7 +136,7 @@ public final class VideoPlayerView: _PlatformBaseView {
         }
     }
 
-    @objc private func registerNotification(_ notification: Notification) {
+    @objc private func playerItemDidPlayToEndTimeNotification(_ notification: Notification) {
         guard let playerItem = notification.object as? AVPlayerItem else {
             return
         }
@@ -135,6 +145,26 @@ public final class VideoPlayerView: _PlatformBaseView {
         } else {
             onVideoFinished?()
         }
+    }
+
+    @objc private func applicationWillEnterForeground() {
+        if shouldResumeOnInterruption {
+            player?.play()
+        }
+    }
+
+#if os(iOS) || os(tvOS)
+    override public func willMove(toWindow newWindow: UIWindow?) {
+        if newWindow != nil && shouldResumeOnInterruption {
+            player?.play()
+        }
+    }
+#endif
+
+    private var shouldResumeOnInterruption: Bool {
+        return player?.nowPlaying == false &&
+        player?.status == .readyToPlay &&
+        isLooping
     }
 }
 
