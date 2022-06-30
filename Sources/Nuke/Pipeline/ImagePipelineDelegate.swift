@@ -8,7 +8,7 @@ import Foundation
 ///
 /// - important: The delegate methods are performed on the pipeline queue in the
 /// background.
-public protocol ImagePipelineDelegate: ImageTaskDelegate {
+public protocol ImagePipelineDelegate: ImageTaskDelegate, Sendable {
     // MARK: Configuration
 
     /// Returns data loader for the given request.
