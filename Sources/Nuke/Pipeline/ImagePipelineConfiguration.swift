@@ -56,7 +56,9 @@ extension ImagePipeline {
         public var isDecompressionEnabled = true
 #endif
 
-        /// `.storeOriginalData` by default.
+        /// If you use an aggressive disk cache ``DataCaching``, you can specify
+        /// a cache policy with multiple available options and
+        /// ``DataCachePolicy-swift.enum/storeOriginalData`` used by default.
         public var dataCachePolicy = DataCachePolicy.storeOriginalData
 
         /// Determines what images are stored in the disk cache.
@@ -187,19 +189,35 @@ extension ImagePipeline {
 
         // MARK: - Predefined Configurations
 
-        /// A configuration with a ``DataLoader`` with an HTTP disk cache (`URLCache`)
-        /// with a size limit of 150 MB.
+        /// A configuration with an HTTP disk cache (`URLCache`) with a size limit
+        /// of 150 MB. This is a default configuration.
+        ///
+        /// Also uses ``ImageCache/shared`` for in-memory caching with the size
+        /// that adjusts bsed on the amount of device memory.
         public static var withURLCache: Configuration { Configuration() }
 
-        /// A configuration with an aggressive disk cache (`DataCache`) with a
+        /// A configuration with an aggressive disk cache (``DataCache``) with a
         /// size limit of 150 MB. An HTTP cache (`URLCache`) is disabled.
+        ///
+        /// Also uses ``ImageCache/shared`` for in-memory caching with the size
+        /// that adjusts bsed on the amount of device memory.
         public static var withDataCache: Configuration {
-            withDataCache(sizeLimit: nil)
+            withDataCache()
         }
 
         /// A configuration with an aggressive disk cache (``DataCache``) with a
         /// size limit of 150 MB by default. An HTTP cache (`URLCache`) is disabled.
-        public static func withDataCache(sizeLimit: Int?) -> Configuration {
+        ///
+        /// Also uses ``ImageCache/shared`` for in-memory caching with the size
+        /// that adjusts bsed on the amount of device memory.
+        ///
+        /// - parameters:
+        ///   - name: Data cache name.
+        ///   - sizeLimit: Size limit, by default 150 MB.
+        public static func withDataCache(
+            name: String = "com.github.kean.Nuke.DataCache",
+            sizeLimit: Int? = nil
+        ) -> Configuration {
             let dataLoader: DataLoader = {
                 let config = URLSessionConfiguration.default
                 config.urlCache = nil
@@ -209,7 +227,7 @@ extension ImagePipeline {
             var config = Configuration()
             config.dataLoader = dataLoader
 
-            let dataCache = try? DataCache(name: "com.github.kean.Nuke.DataCache")
+            let dataCache = try? DataCache(name: name)
             if let sizeLimit = sizeLimit {
                 dataCache?.sizeLimit = sizeLimit
             }
