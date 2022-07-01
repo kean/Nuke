@@ -9,6 +9,12 @@ extension ImagePipeline {
     public struct Configuration: @unchecked Sendable {
         // MARK: - Dependencies
 
+        /// Data loader used by the pipeline.
+        public var dataLoader: any DataLoading
+
+        /// Data cache used by the pipeline.
+        public var dataCache: (any DataCaching)?
+
         /// Image cache used by the pipeline.
         public var imageCache: (any ImageCaching)? {
             // This exists simply to ensure we don't init ImageCache.shared if the
@@ -21,12 +27,6 @@ extension ImagePipeline {
         }
         private var customImageCache: (any ImageCaching)?
 
-        /// Data loader used by the pipeline.
-        public var dataLoader: any DataLoading
-
-        /// Data cache used by the pipeline.
-        public var dataCache: (any DataCaching)?
-
         /// Default implementation uses shared ``ImageDecoderRegistry`` to create
         /// a decoder that matches the context.
         public var makeImageDecoder: @Sendable (ImageDecodingContext) -> (any ImageDecoding)? = {
@@ -38,31 +38,7 @@ extension ImagePipeline {
             ImageEncoders.Default()
         }
 
-        // MARK: - Operation Queues
-
-        /// Data loading queue. Default maximum concurrent task count is 6.
-        public var dataLoadingQueue = OperationQueue(maxConcurrentCount: 6)
-
-        /// Data caching queue. Default maximum concurrent task count is 2.
-        public var dataCachingQueue = OperationQueue(maxConcurrentCount: 2)
-
-        /// Image decoding queue. Default maximum concurrent task count is 1.
-        public var imageDecodingQueue = OperationQueue(maxConcurrentCount: 1)
-
-        /// Image encoding queue. Default maximum concurrent task count is 1.
-        public var imageEncodingQueue = OperationQueue(maxConcurrentCount: 1)
-
-        /// Image processing queue. Default maximum concurrent task count is 2.
-        public var imageProcessingQueue = OperationQueue(maxConcurrentCount: 2)
-
-        /// Image decompressing queue. Default maximum concurrent task count is 2.
-        public var imageDecompressingQueue = OperationQueue(maxConcurrentCount: 2)
-
         // MARK: - Options
-
-        /// A queue on which all callbacks, like `progress` and `completion`
-        /// callbacks are called. `.main` by default.
-        public var callbackQueue = DispatchQueue.main
 
 #if os(macOS)
         /// Decompresses the loaded images. `true` by default.
@@ -149,7 +125,7 @@ extension ImagePipeline {
         /// image each time it receives a new portion of data from data loader.
         /// The decoder used by the image loading session determines whether
         /// to produce a partial image or not. The default image decoder
-        /// (``ImageDecoders/Default) supports progressive JPEG decoding.
+        /// ``ImageDecoders/Default`` supports progressive JPEG decoding.
         public var isProgressiveDecodingEnabled = true
 
         /// `true` by default. If `true`, the pipeline will store all of the
@@ -162,6 +138,10 @@ extension ImagePipeline {
         /// resume where it left off. Supports both validators (`ETag`,
         /// `Last-Modified`). Resumable downloads are enabled by default.
         public var isResumableDataEnabled = true
+
+        /// A queue on which all callbacks, like `progress` and `completion`
+        /// callbacks are called. `.main` by default.
+        public var callbackQueue = DispatchQueue.main
 
         // MARK: - Options (Shared)
 
@@ -176,14 +156,36 @@ extension ImagePipeline {
 
         var debugIsSyncImageEncoding = false
 
+        // MARK: - Operation Queues
+
+        /// Data loading queue. Default maximum concurrent task count is 6.
+        public var dataLoadingQueue = OperationQueue(maxConcurrentCount: 6)
+
+        /// Data caching queue. Default maximum concurrent task count is 2.
+        public var dataCachingQueue = OperationQueue(maxConcurrentCount: 2)
+
+        /// Image decoding queue. Default maximum concurrent task count is 1.
+        public var imageDecodingQueue = OperationQueue(maxConcurrentCount: 1)
+
+        /// Image encoding queue. Default maximum concurrent task count is 1.
+        public var imageEncodingQueue = OperationQueue(maxConcurrentCount: 1)
+
+        /// Image processing queue. Default maximum concurrent task count is 2.
+        public var imageProcessingQueue = OperationQueue(maxConcurrentCount: 2)
+
+        /// Image decompressing queue. Default maximum concurrent task count is 2.
+        public var imageDecompressingQueue = OperationQueue(maxConcurrentCount: 2)
+
         // MARK: - Initializer
 
-        /// Instantiates a default pipeline configuration.
+        /// Instantiates a pipeline configuration.
         ///
         /// - parameter dataLoader: `DataLoader()` by default.
         public init(dataLoader: any DataLoading = DataLoader()) {
             self.dataLoader = dataLoader
         }
+
+        // MARK: - Predefined Configurations
 
         /// A configuration with a ``DataLoader`` with an HTTP disk cache (`URLCache`)
         /// with a size limit of 150 MB.

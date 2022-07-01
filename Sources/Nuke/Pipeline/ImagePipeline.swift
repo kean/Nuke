@@ -5,13 +5,7 @@
 import Foundation
 import Combine
 
-/// The pipeline downloads images, caches, and prepares them for display. 
-///
-/// The pipeline is fully customizable. You can change its configuration using
-/// ``ImagePipeline/Configuration-swift.struct`` by setting custom data loader
-/// and cache, configure image encoders and decoders, etc. You can also set an
-/// ``ImagePipelineDelegate`` to get even more granular control on a per-request
-/// basis.
+/// The pipeline downloads and caches images, and prepares them for display. 
 public final class ImagePipeline: @unchecked Sendable {
     /// Returns the shared image pipeline.
     public static var shared = ImagePipeline(configuration: .withURLCache)

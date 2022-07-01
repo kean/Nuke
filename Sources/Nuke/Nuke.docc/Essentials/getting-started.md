@@ -87,4 +87,4 @@ struct ContainerView: View {
 }
 ```
 
-Learn more more in NukeUI [documentation](https://kean-docs.github.io/nukeui/documentation/nukeui/).
+Learn more in NukeUI [documentation](https://kean-docs.github.io/nukeui/documentation/nukeui/).
