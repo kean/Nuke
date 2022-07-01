@@ -10,7 +10,7 @@ Nuke has three cache layers:
 - ``DataCache`` – aggressive LRU **disk** cache
 - [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) – HTTP **disk** cache which is part of the native [URL loading system](https://developer.apple.com/documentation/foundation/url_loading_system)
 
-The default pipeline uses a combination of ``ImageCache`` and [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) with an increased disk size. Thie configuration supports HTTP [`cache-control`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control). 
+The default pipeline uses a combination of ``ImageCache`` and [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) with an increased disk size. This configuration supports HTTP [`cache-control`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control). 
 
 ### Memory Cache
 
