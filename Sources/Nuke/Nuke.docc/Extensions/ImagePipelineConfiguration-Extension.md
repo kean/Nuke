@@ -8,10 +8,10 @@
 
 ### Predefined Configurations
 
-To learn more about caching and built-in configuration, see <doc:cache-configuration>.
+To learn more about caching, see <doc:caching>.
 
 - ``withDataCache``
-- ``withDataCache(sizeLimit:)``
+- ``withDataCache(name:sizeLimit:)``
 - ``withURLCache``
 
 ### Dependencies
@@ -22,15 +22,18 @@ To learn more about caching and built-in configuration, see <doc:cache-configura
 - ``makeImageDecoder``
 - ``makeImageEncoder``
 
-### Options
+### Caching Options
 
-- ``isDecompressionEnabled``
 - ``dataCachePolicy-swift.property``
 - ``DataCachePolicy-swift.enum``
+- ``isStoringPreviewsInMemoryCache``
+
+### Other Options
+
+- ``isDecompressionEnabled``
 - ``isTaskCoalescingEnabled``
 - ``isRateLimiterEnabled``
 - ``isProgressiveDecodingEnabled``
-- ``isStoringPreviewsInMemoryCache``
 - ``isResumableDataEnabled``
 - ``callbackQueue``
 

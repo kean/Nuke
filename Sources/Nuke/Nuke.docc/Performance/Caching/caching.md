@@ -10,7 +10,6 @@ Nuke has three cache layers that you can configure to precisely match your app n
 
 ### Overview
 
-- <doc:cache-configuration>
 - <doc:cache-layers>
 - <doc:accessing-caches>
 

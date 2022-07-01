@@ -40,20 +40,21 @@ extension ImagePipeline {
 
         // MARK: - Options
 
+        /// Decompresses the loaded images. By default, enabled on all platforms
+        /// except for `macOS`.
+        ///
+        /// Decompressing compressed image formats (such as JPEG) can significantly
+        /// improve drawing performance as it allows a bitmap representation to be
+        /// created in a background rather than on the main thread.
+        public var isDecompressionEnabled: Bool {
+            get { _isDecompressionEnabled }
+            set { _isDecompressionEnabled = newValue }
+        }
+
 #if os(macOS)
-        /// Decompresses the loaded images. `true` by default.
-        ///
-        /// Decompressing compressed image formats (such as JPEG) can significantly
-        /// improve drawing performance as it allows a bitmap representation to be
-        /// created in a background rather than on the main thread.
-        public var isDecompressionEnabled = false
+        var _isDecompressionEnabled = false
 #else
-        /// Decompresses the loaded images. `true` by default.
-        ///
-        /// Decompressing compressed image formats (such as JPEG) can significantly
-        /// improve drawing performance as it allows a bitmap representation to be
-        /// created in a background rather than on the main thread.
-        public var isDecompressionEnabled = true
+        var _isDecompressionEnabled = true
 #endif
 
         /// If you use an aggressive disk cache ``DataCaching``, you can specify
