@@ -91,7 +91,7 @@ final class ImagePrefetcherTests: XCTestCase {
         dataLoader.isSuspended = true
 
         // GIVEN
-        pipeline.cache[Test.url] = Test.container
+        pipeline.cache[Test.request] = Test.container
 
         // WHEN
         prefetcher.startPrefetching(with: [Test.url])

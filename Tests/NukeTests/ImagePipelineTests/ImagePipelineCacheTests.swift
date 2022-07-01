@@ -459,7 +459,6 @@ class ImagePipelineCacheTests: XCTestCase {
     // MARK: ImageRequestConvertible
 
     func testMakeSureAllAPIsAreAvailable() {
-        cache[URL(string: "https://example.com/image.jpeg")!] = nil
         cache[ImageRequest(url: URL(string: "https://example.com/image.jpeg")!)] = nil
     }
 }

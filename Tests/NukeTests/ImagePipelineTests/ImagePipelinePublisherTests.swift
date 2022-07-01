@@ -153,7 +153,7 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
 
     func testImagePreviewsAreDeliveredFromMemoryCacheSynchronously() {
         // GIVEN
-        pipeline.cache[Test.url] = ImageContainer(image: Test.image, isPreview: true)
+        pipeline.cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
 
         let imagesProduced = self.expectation(description: "ImagesProduced")
         // 1 preview from sync cache lookup
