@@ -102,6 +102,12 @@ extension ImageProcessing where Self == ImageProcessors.Anonymous {
     }
 }
 
+extension ImagePipeline.Configuration {
+    // Deprecated in Nuke 11.0
+    @available(*, deprecated, message: "Please use `ImagePipeline.DataCachePolicy`")
+    public typealias DataCachePolicy = ImagePipeline.DataCachePolicy
+}
+
 // MARK: - ImageRequestConvertible
 
 /// Represents a type that can be converted to an ``ImageRequest``.

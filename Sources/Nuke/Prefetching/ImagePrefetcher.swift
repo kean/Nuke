@@ -47,8 +47,8 @@ public final class ImagePrefetcher: @unchecked Sendable {
         /// Prefetches the image data and stores it in disk caches. It does not
         /// require decoding the image data and therefore requires less CPU.
         ///
-        /// - important: This option is incompatible with ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/automatic``
-        /// (for requests with processors) and ``ImagePipeline/Configuration-swift.struct/DataCachePolicy-swift.enum/storeEncodedImages``.
+        /// - important: This option is incompatible with ``ImagePipeline/DataCachePolicy/automatic``
+        /// (for requests with processors) and ``ImagePipeline/DataCachePolicy/storeEncodedImages``.
         case diskCache
     }
 

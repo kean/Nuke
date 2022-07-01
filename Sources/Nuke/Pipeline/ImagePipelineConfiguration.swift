@@ -59,41 +59,8 @@ extension ImagePipeline {
 
         /// If you use an aggressive disk cache ``DataCaching``, you can specify
         /// a cache policy with multiple available options and
-        /// ``DataCachePolicy-swift.enum/storeOriginalData`` used by default.
-        public var dataCachePolicy = DataCachePolicy.storeOriginalData
-
-        /// Determines what images are stored in the disk cache.
-        public enum DataCachePolicy: Sendable {
-            /// For requests with processors, encode and store processed images.
-            /// For requests with no processors, store original image data, unless
-            /// the resource is local (file:// or data:// scheme is used).
-            ///
-            /// - important: With this policy, the pipeline ``ImagePipeline/loadData(with:completion:)`` method
-            /// will not store the images in the disk cache for requests with
-            /// any processors applied – this method only loads data and doesn't
-            /// decode images.
-            case automatic
-
-            /// For all requests, only store the original image data, unless
-            /// the resource is local (file:// or data:// scheme is used).
-            case storeOriginalData
-
-            /// For all requests, encode and store decoded images after all
-            /// processors are applied.
-            ///
-            /// - note: This is useful if you want to store images in a format
-            /// different than provided by a server, e.g. decompressed. In other
-            /// scenarios, consider using ``automatic`` policy instead.
-            ///
-            /// - important: With this policy, the pipeline ``ImagePipeline/loadData(with:completion:)`` method
-            /// will not store the images in the disk cache – this method only
-            /// loads data and doesn't decode images.
-            case storeEncodedImages
-
-            /// For requests with processors, encode and store processed images.
-            /// For all requests, store original image data.
-            case storeAll
-        }
+        /// ``ImagePipeline/DataCachePolicy/storeOriginalData`` used by default.
+        public var dataCachePolicy = ImagePipeline.DataCachePolicy.storeOriginalData
 
         /// `true` by default. If `true` the pipeline avoids duplicated work when
         /// loading images. The work only gets cancelled when all the registered
@@ -236,5 +203,38 @@ extension ImagePipeline {
 
             return config
         }
+    }
+
+    /// Determines what images are stored in the disk cache.
+    public enum DataCachePolicy: Sendable {
+        /// For requests with processors, encode and store processed images.
+        /// For requests with no processors, store original image data, unless
+        /// the resource is local (file:// or data:// scheme is used).
+        ///
+        /// - important: With this policy, the pipeline ``ImagePipeline/loadData(with:completion:)`` method
+        /// will not store the images in the disk cache for requests with
+        /// any processors applied – this method only loads data and doesn't
+        /// decode images.
+        case automatic
+
+        /// For all requests, only store the original image data, unless
+        /// the resource is local (file:// or data:// scheme is used).
+        case storeOriginalData
+
+        /// For all requests, encode and store decoded images after all
+        /// processors are applied.
+        ///
+        /// - note: This is useful if you want to store images in a format
+        /// different than provided by a server, e.g. decompressed. In other
+        /// scenarios, consider using ``automatic`` policy instead.
+        ///
+        /// - important: With this policy, the pipeline ``ImagePipeline/loadData(with:completion:)`` method
+        /// will not store the images in the disk cache – this method only
+        /// loads data and doesn't decode images.
+        case storeEncodedImages
+
+        /// For requests with processors, encode and store processed images.
+        /// For all requests, store original image data.
+        case storeAll
     }
 }

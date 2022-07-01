@@ -25,7 +25,7 @@ To learn more about caching, see <doc:caching>.
 ### Caching Options
 
 - ``dataCachePolicy-swift.property``
-- ``DataCachePolicy-swift.enum``
+- ``ImagePipeline/DataCachePolicy``
 - ``isStoringPreviewsInMemoryCache``
 
 ### Other Options
