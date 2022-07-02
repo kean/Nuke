@@ -24,7 +24,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
             let didChange: Bool = sync {
                 guard _priority != newValue else { return false }
                 _priority = newValue
-                return true
+                return _state == .running
             }
             guard didChange else { return }
             pipeline?.imageTaskUpdatePriorityCalled(self, priority: newValue)
