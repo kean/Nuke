@@ -30,14 +30,21 @@ public final class ImagePipeline: @unchecked Sendable {
     let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", qos: .userInitiated)
     private var isInvalidated = false
 
-    private var nextTaskId: Int64 { OSAtomicIncrement64(_nextTaskId) }
-    private let _nextTaskId: UnsafeMutablePointer<Int64>
+    private var nextTaskId: Int64 {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        _nextTaskId += 1
+        return _nextTaskId
+    }
+    private var _nextTaskId: Int64 = 0
+    private let lock: os_unfair_lock_t
 
     let rateLimiter: RateLimiter?
     let id = UUID()
 
     deinit {
-        _nextTaskId.deallocate()
+        lock.deinitialize(count: 1)
+        lock.deallocate()
 
         ResumableDataStorage.shared.unregister(self)
         #if TRACK_ALLOCATIONS
@@ -62,8 +69,8 @@ public final class ImagePipeline: @unchecked Sendable {
         self.tasksFetchOriginalImageData = TaskPool(isCoalescingEnabled)
         self.tasksProcessImage = TaskPool(isCoalescingEnabled)
 
-        self._nextTaskId = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
-        self._nextTaskId.initialize(to: 0)
+        self.lock = .allocate(capacity: 1)
+        self.lock.initialize(to: os_unfair_lock())
 
         ResumableDataStorage.shared.register(self)
 
