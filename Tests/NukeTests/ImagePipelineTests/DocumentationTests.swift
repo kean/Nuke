@@ -224,7 +224,7 @@ private func checkPerformance02() {
         override func willMove(toWindow newWindow: UIWindow?) {
             super.willMove(toWindow: newWindow)
 
-            task?.setPriority(newWindow == nil ? .low : .high)
+            task?.priority  = newWindow == nil ? .low : .high
         }
     }
 }

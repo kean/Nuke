@@ -64,13 +64,6 @@ extension ImageContainer {
 
 extension ImageTask {
     // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Please use setPriority(_:) method.")
-    public var priority: ImageRequest.Priority {
-        get { _priority }
-        set { setPriority(newValue) }
-    }
-
-    // Deprecated in Nuke 11.0
     @available(*, deprecated, message: "Please use progress.completed instead.")
     public var completedUnitCount: Int64 { progress.completed }
 

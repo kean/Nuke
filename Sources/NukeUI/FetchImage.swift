@@ -40,7 +40,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// Updates the priority of the task, even if the task is already running.
     /// `nil` by default
     public var priority: ImageRequest.Priority? {
-        didSet { priority.map { imageTask?.setPriority($0) } }
+        didSet { priority.map { imageTask?.priority = $0 } }
     }
 
     /// Gets called when the request is started.

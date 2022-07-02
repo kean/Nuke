@@ -2,14 +2,14 @@
 
 ## Topics
 
-### Managing Request
+### Cancelling Request
 
 - ``cancel()``
-- ``setPriority(_:)``
 
 ### Instance Properties
 
 - ``progress-swift.property``
+- ``priority``
 - ``request``
 - ``taskId``
 - ``description``

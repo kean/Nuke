@@ -215,7 +215,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
             return XCTFail("Failed to find operation")
         }
         expect(operation).toUpdatePriority()
-        imageTask?.setPriority(.high)
+        imageTask?.priority = .high
         wait()
     }
 

@@ -18,11 +18,19 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     public let request: ImageRequest
 
     /// Updates the priority of the task, even if it is already running.
-    public func setPriority(_ priority: ImageRequest.Priority) {
-        pipeline?.imageTaskUpdatePriorityCalled(self, priority: priority)
+    public var priority: ImageRequest.Priority {
+        get { sync { _priority } }
+        set {
+            let didChange = sync {
+                guard _priority != newValue else { return false }
+                _priority = newValue
+                return true
+            }
+            guard didChange else { return }
+            pipeline?.imageTaskUpdatePriorityCalled(self, priority: newValue)
+        }
     }
-    var _priority: ImageRequest.Priority // Backing store for access from pipeline only
-    // Putting all smaller units closer together (1 byte / 1 byte)
+    private var _priority: ImageRequest.Priority
 
     // MARK: Progress
 
@@ -32,12 +40,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// - important: Must be accessed only from the callback queue (main by default).
     public internal(set) var progress = Progress(completed: 0, total: 0)
 
-    var isCancelled: Bool {
-        os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
-        return _isCancelled
-    }
-
+    var isCancelled: Bool { sync { _isCancelled } }
     private var _isCancelled = false
 
     var onCancel: (() -> Void)?
@@ -104,6 +107,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         os_unfair_lock_unlock(lock)
 
         pipeline?.imageTaskCancelCalled(self)
+    }
+
+    private func sync<T>(_ closure: () -> T) -> T {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        return closure()
     }
 
     // MARK: Hashable

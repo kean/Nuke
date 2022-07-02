@@ -197,7 +197,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
         guard _priority != priority else { return }
         _priority = priority
         for task in tasks.values {
-            task.imageTask?.setPriority(priority)
+            task.imageTask?.priority = priority
         }
     }
 
