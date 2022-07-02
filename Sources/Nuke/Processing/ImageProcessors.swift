@@ -81,7 +81,7 @@ extension ImageProcessing where Self == ImageProcessors.Anonymous {
     /// - parameters:
     ///   - id: Uniquely identifies the operation performed by the processor.
     ///   - closure: A closure that transforms the images.
-    public static func custom(id: String, _ closure: @Sendable @escaping (PlatformImage) -> PlatformImage?) -> ImageProcessors.Anonymous {
+    public static func process(id: String, _ closure: @Sendable @escaping (PlatformImage) -> PlatformImage?) -> ImageProcessors.Anonymous {
         ImageProcessors.Anonymous(id: id, closure)
     }
 }

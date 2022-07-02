@@ -56,6 +56,5 @@ In addition to ``ImageProcessing/identifier`` (a `String`), you can implement ``
 - ``ImageProcessing/gaussianBlur(radius:)``
 - ``ImageProcessing/coreImageFilter(name:)``
 - ``ImageProcessing/coreImageFilter(name:parameters:identifier:)``
-- ``ImageProcessing/custom(id:_:)``
 - ``ImageProcessing/process(id:_:)``
 - ``ImageProcessors``

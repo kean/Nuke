@@ -87,14 +87,6 @@ extension ImageCaching {
     }
 }
 
-extension ImageProcessing where Self == ImageProcessors.Anonymous {
-    // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Renamed to `custom(id:_:)`.")
-    public static func process(id: String, _ closure: @Sendable @escaping (PlatformImage) -> PlatformImage?) -> ImageProcessors.Anonymous {
-        ImageProcessors.Anonymous(id: id, closure)
-    }
-}
-
 extension ImagePipeline.Configuration {
     // Deprecated in Nuke 11.0
     @available(*, deprecated, message: "Please use `ImagePipeline.DataCachePolicy`")
