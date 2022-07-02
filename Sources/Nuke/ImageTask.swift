@@ -32,8 +32,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
     private var _priority: ImageRequest.Priority
 
-    // MARK: Progress
-
     /// Returns the current download progress. Returns zeros before the download
     /// is started and the expected size of the resource is known.
     ///
