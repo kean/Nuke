@@ -21,7 +21,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     public var priority: ImageRequest.Priority {
         get { sync { _priority } }
         set {
-            let didChange = sync {
+            let didChange: Bool = sync {
                 guard _priority != newValue else { return false }
                 _priority = newValue
                 return true
