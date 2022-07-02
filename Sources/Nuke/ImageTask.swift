@@ -32,8 +32,13 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// - important: Must be accessed only from the callback queue (main by default).
     public internal(set) var progress = Progress(completed: 0, total: 0)
 
-    var isCancelled: Bool { _isCancelled.pointee == 1 }
-    private let _isCancelled: UnsafeMutablePointer<Int32>
+    var isCancelled: Bool {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        return _isCancelled
+    }
+
+    private var _isCancelled = false
 
     var onCancel: (() -> Void)?
 
@@ -62,8 +67,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         }
     }
 
+    private let lock: os_unfair_lock_t
+
     deinit {
-        self._isCancelled.deallocate()
+        lock.deinitialize(count: 1)
+        lock.deallocate()
+
         #if TRACK_ALLOCATIONS
         Allocations.decrement("ImageTask")
         #endif
@@ -74,8 +83,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         self.request = request
         self._priority = request.priority
 
-        self._isCancelled = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
-        self._isCancelled.initialize(to: 0)
+        lock = .allocate(capacity: 1)
+        lock.initialize(to: os_unfair_lock())
 
         #if TRACK_ALLOCATIONS
         Allocations.increment("ImageTask")
@@ -87,9 +96,15 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The pipeline will immediately cancel any work associated with a task
     /// unless there is an equivalent outstanding task running.
     public func cancel() {
-        if OSAtomicCompareAndSwap32Barrier(0, 1, _isCancelled) {
-            pipeline?.imageTaskCancelCalled(self)
+        os_unfair_lock_lock(lock)
+        if _isCancelled {
+            os_unfair_lock_unlock(lock)
+            return
         }
+        _isCancelled = true
+        os_unfair_lock_unlock(lock)
+
+        pipeline?.imageTaskCancelCalled(self)
     }
 
     // MARK: Hashable
