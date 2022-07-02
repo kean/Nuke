@@ -11,6 +11,8 @@ class RateLimiterTests: XCTestCase {
     var rateLimiter: RateLimiter!
 
     override func setUp() {
+        super.setUp()
+
         queue = DispatchQueue(label: "com.github.kean.rate-limiter-tests")
 
         queueKey = DispatchSpecificKey<Void>()

@@ -264,7 +264,7 @@ final class OperationQueueObserver {
     }
 
     private func _startObservingOperations() {
-        let observer = queue.observe(\.operations) { [weak self] (_, change) in
+        let observer = queue.observe(\.operations) { [weak self] _, _ in
             self?._didUpdateOperations()
         }
         _observers.append(observer)

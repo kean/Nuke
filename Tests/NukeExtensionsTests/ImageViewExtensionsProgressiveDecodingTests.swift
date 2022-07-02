@@ -13,6 +13,8 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     private var processorsFactory: MockProcessorFactory!
 
     override func setUp() {
+        super.setUp()
+
         dataLoader = MockProgressiveDataLoader()
         ResumableDataStorage.shared.removeAll()
 

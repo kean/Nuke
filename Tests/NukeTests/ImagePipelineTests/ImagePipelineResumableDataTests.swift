@@ -10,6 +10,8 @@ class ImagePipelineResumableDataTests: XCTestCase {
     private var pipeline: ImagePipeline!
 
     override func setUp() {
+        super.setUp()
+
         dataLoader = _MockResumableDataLoader()
         ResumableDataStorage.shared.removeAll()
         pipeline = ImagePipeline {
@@ -80,7 +82,6 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
                 }
             }
         }
-
 
         // Check if the client already has some resumable data available.
         if let range = headers?["Range"], let validator = headers?["If-Range"] {

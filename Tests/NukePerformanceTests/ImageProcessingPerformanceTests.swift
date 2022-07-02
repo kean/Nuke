@@ -36,7 +36,7 @@ class ImageProcessingPerformanceTests: XCTestCase {
         let data = Test.data
         measure {
             for _ in 0..<1_000 {
-                let _ = try? decoder.decode(data)
+                _ = try? decoder.decode(data)
             }
         }
     }

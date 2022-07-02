@@ -16,7 +16,7 @@ extension PlatformImage {
     }
 }
 
-private struct AssociatedKeys {
+private enum AssociatedKeys {
     static var ProcessorIDs = "nk_test_processorIDs"
 }
 

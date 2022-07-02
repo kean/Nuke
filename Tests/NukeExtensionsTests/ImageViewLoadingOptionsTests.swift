@@ -31,6 +31,8 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     }
 
     override func tearDown() {
+        super.tearDown()
+
         ImagePipeline.popShared()
     }
 

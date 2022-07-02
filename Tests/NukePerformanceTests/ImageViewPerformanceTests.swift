@@ -11,11 +11,15 @@ class ImageViewPerformanceTests: XCTestCase {
     private let dummyCacheRequest = ImageRequest(url: URL(string: "http://test.com/9999999)")!, processors: [ImageProcessors.Resize(size: CGSize(width: 2, height: 2))])
 
     override func setUp() {
+        super.setUp()
+
         // Store something in memory cache to avoid going through an optimized empty Dictionary path
         ImagePipeline.shared.configuration.imageCache?[dummyCacheRequest] = ImageContainer(image: PlatformImage())
     }
 
     override func tearDown() {
+        super.tearDown()
+
         ImagePipeline.shared.configuration.imageCache?[dummyCacheRequest] = nil
     }
 

@@ -93,11 +93,11 @@ class ImagePipelinePublisherTests: XCTestCase {
     // MARK: ImageRequestConvertible
 
     func testInitWithURL() {
-        let _ = pipeline.imagePublisher(with: URL(string: "https://example.com/image.jpeg")!)
+        _ = pipeline.imagePublisher(with: URL(string: "https://example.com/image.jpeg")!)
     }
 
     func testInitWithImageRequest() {
-        let _ = pipeline.imagePublisher(with: ImageRequest(url: URL(string: "https://example.com/image.jpeg")))
+        _ = pipeline.imagePublisher(with: ImageRequest(url: URL(string: "https://example.com/image.jpeg")))
     }
 }
 
@@ -108,6 +108,8 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
     private var cancellable: AnyCancellable?
 
     override func setUp() {
+        super.setUp()
+
         dataLoader = MockProgressiveDataLoader()
         imageCache = MockImageCache()
         ResumableDataStorage.shared.removeAll()
@@ -129,11 +131,10 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
 
         // WHEN
         let publisher = pipeline.imagePublisher(with: Test.url)
-        cancellable =  publisher.sink(receiveCompletion: { completion in
+        cancellable = publisher.sink(receiveCompletion: { completion in
             switch completion {
             case .failure:
                 XCTFail()
-                break
             case .finished:
                 completed.fulfill()
             }
@@ -172,7 +173,6 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
             switch completion {
             case .failure:
                 XCTFail()
-                break
             case .finished:
                 completed.fulfill()
             }

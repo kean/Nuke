@@ -13,6 +13,8 @@ class DataCacheTests: XCTestCase {
     var cache: DataCache!
 
     override func setUp() {
+        super.setUp()
+
         // Make sure that file names are different from the keys so that we
         // could know for sure that keyEncoder works as expected.
         cache = try! DataCache(
@@ -22,6 +24,8 @@ class DataCacheTests: XCTestCase {
     }
 
     override func tearDown() {
+        super.tearDown()
+
         try? FileManager.default.removeItem(at: cache.path)
     }
 

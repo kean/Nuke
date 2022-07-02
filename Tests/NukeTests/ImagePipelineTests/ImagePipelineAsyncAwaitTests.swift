@@ -54,7 +54,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
         var caughtError: Error?
         do {
-            let _ = try await task.value
+            _ = try await task.value
         } catch {
             caughtError = error
         }
@@ -133,7 +133,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         // THEN
         XCTAssertEqual(recordedProgress, [
             Progress(completed: 10, total: 20),
-            Progress(completed: 20, total: 20),
+            Progress(completed: 20, total: 20)
         ])
     }
 
@@ -293,7 +293,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         }
 
         do {
-            let _ = try await task.value
+            _ = try await task.value
         } catch {}
 
         XCTAssertNotNil(imageTask)

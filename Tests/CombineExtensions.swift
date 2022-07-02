@@ -6,14 +6,14 @@ import Nuke
 import Combine
 
 extension Publishers {
-    public struct Anonymous<Output, Failure: Swift.Error>: Publisher {
+    struct Anonymous<Output, Failure: Swift.Error>: Publisher {
         private var closure: (AnySubscriber<Output, Failure>) -> Void
 
-        public init(closure: @escaping (AnySubscriber<Output, Failure>) -> Void) {
+        init(closure: @escaping (AnySubscriber<Output, Failure>) -> Void) {
             self.closure = closure
         }
 
-        public func receive<S>(subscriber: S) where S : Subscriber, Anonymous.Failure == S.Failure, Anonymous.Output == S.Input {
+        func receive<S>(subscriber: S) where S: Subscriber, Anonymous.Failure == S.Failure, Anonymous.Output == S.Input {
             let subscription = Subscriptions.Anonymous(subscriber: subscriber)
             subscriber.receive(subscription: subscription)
             subscription.start(closure)

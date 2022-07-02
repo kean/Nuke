@@ -9,11 +9,15 @@ class DataCachePeformanceTests: XCTestCase {
     var cache: DataCache!
 
     override func setUp() {
+        super.setUp()
+
         cache = try! DataCache(name: UUID().uuidString)
         _ = cache["key"] // Wait till index is loaded.
     }
 
     override func tearDown() {
+        super.tearDown()
+
         try? FileManager.default.removeItem(at: cache.path)
     }
 

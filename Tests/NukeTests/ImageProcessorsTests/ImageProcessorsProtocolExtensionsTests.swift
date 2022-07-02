@@ -9,6 +9,6 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
 
     func testPassingProcessorsUsingProtocolExtensions() throws {
         // Just make sure it compiles
-        let _ = ImageRequest(url: nil, processors: [.resize(width: 100)])
+        _ = ImageRequest(url: nil, processors: [.resize(width: 100)])
     }
 }

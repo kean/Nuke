@@ -194,7 +194,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
         let expectation = self.expectation(description: "Second request completed")
 
-        queueObserver.didAddOperation = { operation in
+        queueObserver.didAddOperation = { _ in
             queueObserver.didAddOperation = nil
 
             // When loading image with the same request and processing for
@@ -306,7 +306,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
 
-        let _ = pipeline.loadImage(with: request1) { _ in }
+        _ = pipeline.loadImage(with: request1) { _ in }
         let task2 = pipeline.loadImage(with: request2) { _ in }
 
         dataLoader.queue.isSuspended = false

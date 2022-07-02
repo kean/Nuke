@@ -86,4 +86,4 @@ class ImagePipelineConfigurationTests: XCTestCase {
         ImagePipeline.Configuration.isSignpostLoggingEnabled = true
         ImagePipeline.Configuration.isSignpostLoggingEnabled = false
     }
-}   
+}

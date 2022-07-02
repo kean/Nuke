@@ -148,7 +148,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
 
         request = ImageRequest(url: Test.url, processors: [
             processorFactory.make(id: "1"),
-            processorFactory.make(id: "2"),
+            processorFactory.make(id: "2")
         ])
 
         intermediateRequest = ImageRequest(url: Test.url, processors: [

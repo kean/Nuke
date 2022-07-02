@@ -152,7 +152,7 @@ class ThreadSafetyTests: XCTestCase {
         for _ in 0..<5 {
             for idx in 0..<500 {
                 queue.addOperation {
-                    let _ = cache["\(idx)"]
+                    _ = cache["\(idx)"]
                 }
                 queue.addOperation {
                     cache["\(idx)"] = data

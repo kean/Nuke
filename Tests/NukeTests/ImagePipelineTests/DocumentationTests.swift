@@ -25,7 +25,7 @@ private func checkGettingStarted01() async throws {
 
 private final class CheckGettingStarted02: ImageTaskDelegate {
     func loadImage() async throws {
-        let _ = try await pipeline.image(for: url, delegate: self)
+        _ = try await pipeline.image(for: url, delegate: self)
     }
 
     func imageTaskCreated(_ task: ImageTask) {
@@ -162,7 +162,7 @@ private func checkCacheLayers02() {
 
     // Read and write responses
     let urlRequest = URLRequest(url: url)
-    let _ = DataLoader.sharedUrlCache.cachedResponse(for: urlRequest)
+    _ = DataLoader.sharedUrlCache.cachedResponse(for: urlRequest)
     DataLoader.sharedUrlCache.removeCachedResponse(for: urlRequest)
 
     // Clear cache
@@ -224,7 +224,7 @@ private func checkPerformance02() {
         override func willMove(toWindow newWindow: UIWindow?) {
             super.willMove(toWindow: newWindow)
 
-            task?.priority  = newWindow == nil ? .low : .high
+            task?.priority = newWindow == nil ? .low : .high
         }
     }
 }

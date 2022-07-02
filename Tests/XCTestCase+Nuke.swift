@@ -116,7 +116,6 @@ final class TestRecorededDataTask {
     }
 }
 
-
 extension XCTestCase {
     func expect(_ pipeline: ImagePipeline, _ dataLoader: MockProgressiveDataLoader) -> TestExpectationProgressivePipeline {
         return TestExpectationProgressivePipeline(test: self, pipeline: pipeline, dataLoader: dataLoader)
@@ -157,7 +156,6 @@ struct TestExpectationProgressivePipeline {
         )
     }
 }
-
 
 // MARK: - UIImage
 

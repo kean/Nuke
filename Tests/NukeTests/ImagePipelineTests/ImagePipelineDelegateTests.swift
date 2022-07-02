@@ -1,4 +1,4 @@
-//// The MIT License (MIT)
+// The MIT License (MIT)
 //
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
@@ -100,4 +100,3 @@ private final class MockImagePipelineDelegate: ImagePipelineDelegate, @unchecked
         completion(isCacheEnabled ? data : nil)
     }
 }
-

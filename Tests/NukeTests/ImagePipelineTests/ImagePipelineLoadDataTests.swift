@@ -1,4 +1,4 @@
-//// The MIT License (MIT)
+// The MIT License (MIT)
 //
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
@@ -98,7 +98,7 @@ class ImagePipelineLoadDataTests: XCTestCase {
 
         // WHEN/THEN
         let expectation = self.expectation(description: "Image data Loaded")
-        pipeline.loadData(with: Test.request,queue: queue, progress: { _, _ in
+        pipeline.loadData(with: Test.request, queue: queue, progress: { _, _ in
             XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
         }, completion: { _ in
             XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))

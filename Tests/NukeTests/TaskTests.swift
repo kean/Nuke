@@ -134,7 +134,7 @@ class TaskTests: XCTestCase {
     func testCantSubscribeToAlreadySucceededTask() {
         // Given
         let task = AsyncTask<Int, MyError>()
-        let _ = task.subscribe { _ in }
+        _ = task.subscribe { _ in }
 
         // When
         task.send(value: 1, isCompleted: true)
@@ -146,7 +146,7 @@ class TaskTests: XCTestCase {
     func testCantSubscribeToAlreadyFailedTasks() {
         // Given
         let task = AsyncTask<Int, MyError>()
-        let _ = task.subscribe { _ in }
+        _ = task.subscribe { _ in }
 
         // When
         task.send(error: .init(raw: "1"))
@@ -235,7 +235,7 @@ class TaskTests: XCTestCase {
         // Given
         let operation = Foundation.Operation()
         let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in} })
+        let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in } })
         let subscription = task.subscribe { _ in }
         XCTAssertFalse(operation.isCancelled)
 
@@ -251,7 +251,7 @@ class TaskTests: XCTestCase {
         let operation = Foundation.Operation()
         let task = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
         let subscription1 = task.subscribe { _ in }
-        let _ = task.subscribe { _ in }
+        _ = task.subscribe { _ in }
 
         // When
         subscription1?.unsubscribe()
@@ -368,7 +368,7 @@ class TaskTests: XCTestCase {
         // Given
         let operation = Foundation.Operation()
         let dependency = SimpleTask<Int, MyError>(starter: { $0.operation = operation })
-        let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in} })
+        let task = SimpleTask<Int, MyError>(starter: { $0.dependency = dependency.subscribe { _ in } })
         let subscription = task.subscribe { _ in }
 
         // When
@@ -385,7 +385,7 @@ class TaskTests: XCTestCase {
         let task = AsyncTask<Int, MyError>()
         var isDisposeCalled = false
         task.onDisposed = { isDisposeCalled = true }
-        let _ = task.subscribe { _ in }
+        _ = task.subscribe { _ in }
 
         // When
         task.send(value: 1) // Casually sending value
@@ -415,7 +415,7 @@ class TaskTests: XCTestCase {
         let task = AsyncTask<Int, MyError>()
         var isDisposeCalled = false
         task.onDisposed = { isDisposeCalled = true }
-        let _ = task.subscribe { _ in }
+        _ = task.subscribe { _ in }
 
         // When
         task.send(value: 1, isCompleted: true)
@@ -430,7 +430,7 @@ class TaskTests: XCTestCase {
         let task = AsyncTask<Int, MyError>()
         var isDisposeCalled = false
         task.onDisposed = { isDisposeCalled = true }
-        let _ = task.subscribe { _ in }
+        _ = task.subscribe { _ in }
 
         // When
         task.send(error: .init(raw: "1"))

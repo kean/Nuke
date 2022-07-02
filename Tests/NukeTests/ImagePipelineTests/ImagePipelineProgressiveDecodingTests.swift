@@ -12,6 +12,8 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     private var processorsFactory: MockProcessorFactory!
 
     override func setUp() {
+        super.setUp()
+
         dataLoader = MockProgressiveDataLoader()
         ResumableDataStorage.shared.removeAll()
 
@@ -56,7 +58,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         // When
         pipeline.loadImage(
             with: Test.request,
-            progress: { response, completed, total in
+            progress: { response, _, _ in
                 // This works because each new chunk resulted in a new scan
                 if let container = response?.container {
                     // Then image previews are produced
@@ -262,7 +264,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
         pipeline.loadImage(
             with: request,
-            progress: { image, _, _ in
+            progress: { _, _, _ in
 
             },
             completion: { result in
