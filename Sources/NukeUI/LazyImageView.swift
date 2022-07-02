@@ -115,7 +115,7 @@ public final class LazyImageView: _PlatformBaseView {
     public var priority: ImageRequest.Priority? {
         didSet {
             if let priority = self.priority {
-                imageTask?.setPriority(priority)
+                imageTask?.priority = priority
             }
         }
     }

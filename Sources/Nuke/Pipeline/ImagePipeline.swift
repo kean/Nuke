@@ -260,7 +260,7 @@ public final class ImagePipeline: @unchecked Sendable {
         task.delegate?.imageTaskDidStart(task)
 
         tasks[task] = makeTaskLoadImage(for: task.request)
-            .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in
+            .subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
                 if event.isCompleted {
@@ -376,7 +376,7 @@ public final class ImagePipeline: @unchecked Sendable {
         }
 
         tasks[task] = makeTaskLoadData(for: task.request)
-            .subscribe(priority: task._priority.taskPriority, subscriber: task) { [weak self, weak task] event in
+            .subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak self, weak task] event in
                 guard let self = self, let task = task else { return }
 
                 if event.isCompleted {
@@ -435,7 +435,6 @@ public final class ImagePipeline: @unchecked Sendable {
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
         queue.async {
-            task._priority = priority
             self.tasks[task]?.setPriority(priority.taskPriority)
         }
     }
