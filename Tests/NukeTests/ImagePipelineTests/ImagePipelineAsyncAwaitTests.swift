@@ -259,6 +259,47 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         }
     }
 
+    // MARK: ImageTask.State
+
+    func testImageTaskStateRunningToCompleted() async throws {
+        // GIVEN
+        taskDelegate.onTaskCreated = { [unowned self] in
+            imageTask = $0
+            XCTAssertEqual($0.state, .running)
+        }
+
+        // WHEN
+        _ = try await pipeline.image(for: Test.request, delegate: taskDelegate)
+
+        // THEN
+        XCTAssertNotNil(imageTask)
+        XCTAssertEqual(imageTask?.state, .completed)
+    }
+
+    func testImageTaskStateRunningToCancelled() async throws {
+        // GIVEN
+        dataLoader.isSuspended = true
+        taskDelegate.onTaskCreated = { [unowned self] in
+            imageTask = $0
+            XCTAssertEqual($0.state, .running)
+        }
+
+        let task = Task {
+            try await pipeline.image(for: Test.url, delegate: taskDelegate)
+        }
+
+        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
+            task.cancel()
+        }
+
+        do {
+            let _ = try await task.value
+        } catch {}
+
+        XCTAssertNotNil(imageTask)
+        XCTAssertEqual(imageTask?.state, .cancelled)
+    }
+
     // MARK: Common Use Cases
 
     func testLowDataMode() async throws {

@@ -26,7 +26,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     /// The relative priority of the request. The priority affects the order in
     /// which the requests are performed. ``Priority-swift.enum/normal`` by default.
     ///
-    /// - note: You can change the priority of a running task using ``ImageTask/setPriority(_:)``.
+    /// - note: You can change the priority of a running task using ``ImageTask/priority``.
     public var priority: Priority {
         get { ref.priority }
         set { mutate { $0.priority = newValue } }

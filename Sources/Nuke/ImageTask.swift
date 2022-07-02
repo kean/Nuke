@@ -42,8 +42,19 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
     private var _progress = Progress(completed: 0, total: 0)
 
-    var isCancelled: Bool { sync { _isCancelled } }
-    private var _isCancelled = false
+    /// The current state of the task.
+    public var state: State { sync { _state } }
+    private var _state: State = .running
+
+    /// The state of the image task.
+    public enum State {
+        /// The task is currently running.
+        case running
+        /// The task has received a cancel message.
+        case cancelled
+        /// The task has completed (without being canceled).
+        case completed
+    }
 
     var onCancel: (() -> Void)?
 
@@ -102,13 +113,22 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// unless there is an equivalent outstanding task running.
     public func cancel() {
         os_unfair_lock_lock(lock)
-        guard !_isCancelled else {
+        guard _state == .running else {
             return os_unfair_lock_unlock(lock)
         }
-        _isCancelled = true
+        _state = .cancelled
         os_unfair_lock_unlock(lock)
 
         pipeline?.imageTaskCancelCalled(self)
+    }
+
+    func didComplete() {
+        os_unfair_lock_lock(lock)
+        guard _state == .running else {
+            return os_unfair_lock_unlock(lock)
+        }
+        _state = .completed
+        os_unfair_lock_unlock(lock)
     }
 
     private func sync<T>(_ closure: () -> T) -> T {
@@ -130,7 +150,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     // MARK: CustomStringConvertible
 
     public var description: String {
-        "ImageTask(id: \(taskId), priority: \(_priority), progress: \(progress.completed) / \(progress.total), isCancelled: \(isCancelled))"
+        "ImageTask(id: \(taskId), priority: \(_priority), progress: \(progress.completed) / \(progress.total), state: \(state))"
     }
 }
 
