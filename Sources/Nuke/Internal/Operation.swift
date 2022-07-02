@@ -78,9 +78,8 @@ final class Operation: Foundation.Operation {
 
     private func _finish() {
         os_unfair_lock_lock(lock)
-        if isFinishCalled {
-            os_unfair_lock_unlock(lock)
-            return
+        guard !isFinishCalled else {
+            return os_unfair_lock_unlock(lock)
         }
         isFinishCalled = true
         os_unfair_lock_unlock(lock)

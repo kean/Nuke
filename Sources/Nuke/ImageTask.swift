@@ -97,9 +97,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// unless there is an equivalent outstanding task running.
     public func cancel() {
         os_unfair_lock_lock(lock)
-        if _isCancelled {
-            os_unfair_lock_unlock(lock)
-            return
+        guard !_isCancelled else {
+            return os_unfair_lock_unlock(lock)
         }
         _isCancelled = true
         os_unfair_lock_unlock(lock)
