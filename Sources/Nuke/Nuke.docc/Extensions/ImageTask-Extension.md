@@ -2,23 +2,26 @@
 
 ## Topics
 
-### Cancelling Request
+### Controlling the Task State
 
 - ``cancel()``
+- ``state-swift.property``
+- ``State-swift.enum``
+- ``priority``
+- ``ImageRequest/Priority-swift.enum``
 
-### Instance Properties
+### Task Progress
 
 - ``progress-swift.property``
 - ``Progress-swift.struct``
-- ``priority``
-- ``state-swift.property``
-- ``State-swift.enum``
+
+### General Task Information
+
 - ``request``
 - ``taskId``
 - ``description``
 
 ### Deprecated
 
-- ``priority``
 - ``completedUnitCount``
 - ``totalUnitCount``

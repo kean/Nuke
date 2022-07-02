@@ -42,6 +42,26 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
     private var _progress = Progress(completed: 0, total: 0)
 
+    /// The download progress.
+    public struct Progress: Hashable, Sendable {
+        /// The number of bytes that the task has received.
+        public let completed: Int64
+        /// A best-guess upper bound on the number of bytes of the resource.
+        public let total: Int64
+
+        /// Returns the fraction of the completion.
+        public var fraction: Float {
+            guard total > 0 else { return 0 }
+            return min(1, Float(completed) / Float(total))
+        }
+
+        /// Initializes progress with the given status.
+        public init(completed: Int64, total: Int64) {
+            self.completed = completed
+            self.total = total
+        }
+    }
+
     /// The current state of the task.
     public var state: State { sync { _state } }
     private var _state: State = .running
@@ -62,26 +82,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     weak var delegate: ImageTaskDelegate?
     var callbackQueue: DispatchQueue?
     var isDataTask = false
-
-    /// The download progress.
-    public struct Progress: Hashable, Sendable {
-        /// The number of bytes that the task has received.
-        public let completed: Int64
-        /// A best-guess upper bound on the number of bytes of the resource.
-        public let total: Int64
-
-        /// Returns the fraction of the completion.
-        public var fraction: Float {
-            guard total > 0 else { return 0 }
-            return min(1, Float(completed) / Float(total))
-        }
-
-        /// Initializes progress with the given status.
-        public init(completed: Int64, total: Int64) {
-            self.completed = completed
-            self.total = total
-        }
-    }
 
     private let lock: os_unfair_lock_t
 
