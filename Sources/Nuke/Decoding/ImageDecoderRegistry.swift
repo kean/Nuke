@@ -13,7 +13,7 @@ public final class ImageDecoderRegistry: @unchecked Sendable {
     private let lock = NSLock()
 
     /// Initializes a custom registry.
-    init() {
+    public init() {
         register(ImageDecoders.Default.init)
         #if !os(watchOS)
         register(ImageDecoders.Video.init)
