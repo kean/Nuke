@@ -38,7 +38,11 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// is started and the expected size of the resource is known.
     ///
     /// - important: Must be accessed only from the callback queue (main by default).
-    public internal(set) var progress = Progress(completed: 0, total: 0)
+    public internal(set) var progress: Progress {
+        get { sync { _progress } }
+        set { sync { _progress = newValue } }
+    }
+    private var _progress = Progress(completed: 0, total: 0)
 
     var isCancelled: Bool { sync { _isCancelled } }
     private var _isCancelled = false
