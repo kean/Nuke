@@ -5,26 +5,33 @@
 import Foundation
 
 final class Operation: Foundation.Operation {
-    private let _isExecuting: UnsafeMutablePointer<Int32>
-    private let _isFinished: UnsafeMutablePointer<Int32>
-    private let isFinishCalled: UnsafeMutablePointer<Int32>
-
     override var isExecuting: Bool {
-        get { _isExecuting.pointee == 1 }
+        get {
+            os_unfair_lock_lock(lock)
+            defer { os_unfair_lock_unlock(lock) }
+            return _isExecuting
+        }
         set {
-            guard OSAtomicCompareAndSwap32Barrier(newValue ? 0 : 1, newValue ? 1 : 0, _isExecuting) else {
-                return assertionFailure("Invalid state, operation is already (not) executing")
-            }
+            os_unfair_lock_lock(lock)
+            _isExecuting = newValue
+            os_unfair_lock_unlock(lock)
+
             willChangeValue(forKey: "isExecuting")
             didChangeValue(forKey: "isExecuting")
         }
     }
+
     override var isFinished: Bool {
-        get { _isFinished.pointee == 1 }
+        get {
+            os_unfair_lock_lock(lock)
+            defer { os_unfair_lock_unlock(lock) }
+            return _isFinished
+        }
         set {
-            guard OSAtomicCompareAndSwap32Barrier(newValue ? 0 : 1, newValue ? 1 : 0, _isFinished) else {
-                return assertionFailure("Invalid state, operation is already finished")
-            }
+            os_unfair_lock_lock(lock)
+            _isFinished = newValue
+            os_unfair_lock_unlock(lock)
+
             willChangeValue(forKey: "isFinished")
             didChangeValue(forKey: "isFinished")
         }
@@ -33,10 +40,14 @@ final class Operation: Foundation.Operation {
     typealias Starter = @Sendable (_ finish: @Sendable @escaping () -> Void) -> Void
     private let starter: Starter
 
+    private var _isExecuting = false
+    private var _isFinished = false
+    private var isFinishCalled = false
+    private let lock: os_unfair_lock_t
+
     deinit {
-        self._isExecuting.deallocate()
-        self._isFinished.deallocate()
-        self.isFinishCalled.deallocate()
+        self.lock.deinitialize(count: 1)
+        self.lock.deallocate()
 
         #if TRACK_ALLOCATIONS
         Allocations.decrement("Operation")
@@ -46,14 +57,8 @@ final class Operation: Foundation.Operation {
     init(starter: @escaping Starter) {
         self.starter = starter
 
-        self._isExecuting = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
-        self._isExecuting.initialize(to: 0)
-
-        self._isFinished = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
-        self._isFinished.initialize(to: 0)
-
-        self.isFinishCalled = UnsafeMutablePointer<Int32>.allocate(capacity: 1)
-        self.isFinishCalled.initialize(to: 0)
+        self.lock = .allocate(capacity: 1)
+        self.lock.initialize(to: os_unfair_lock())
 
         #if TRACK_ALLOCATIONS
         Allocations.increment("Operation")
@@ -72,11 +77,16 @@ final class Operation: Foundation.Operation {
     }
 
     private func _finish() {
-        // Make sure that we ignore if `finish` is called more than once.
-        if OSAtomicCompareAndSwap32Barrier(0, 1, isFinishCalled) {
-            isExecuting = false
-            isFinished = true
+        os_unfair_lock_lock(lock)
+        if isFinishCalled {
+            os_unfair_lock_unlock(lock)
+            return
         }
+        isFinishCalled = true
+        os_unfair_lock_unlock(lock)
+
+        isExecuting = false
+        isFinished = true
     }
 }
 
