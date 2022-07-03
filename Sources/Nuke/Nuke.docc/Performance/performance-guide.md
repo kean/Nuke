@@ -28,14 +28,6 @@ let request = ImageRequest(
 
 > Tips: See [Image and Graphics Best Practices](https://developer.apple.com/videos/play/wwdc2018/219) to learn more about image decoding and downsampling.
 
-## Progressive Decoding
-
-If progressive decoding is enabled, the pipeline attempts to produce a preview of any image every time a new chunk of data is loaded. See it in action in the [demo project](https://github.com/kean/NukeDemo).
-
-When the pipeline downloads the first chunk of data, it creates an instance of a decoder used for the entire image loading session. When the new chunks are loaded, the pipeline passes them to the decoder. The decoder can either produce a preview or return nil if not enough data is downloaded.
-
-Every image preview goes through the same processing and decompression phases that the final images do. The main difference is the introduction of backpressure. If one of the stages can’t process the input fast enough, then the pipeline waits until the current operation is finished, and only then starts the next one. When the data is fully downloaded, all outstanding progressive operations are canceled to save processing time.
-
 ## Aggressive Cache
 
 By default, Nuke uses the native HTTP cache, but it's relatively slow and is subject to the same maximum concurrent operations count as network tasks (because it's part of the URL loading system). If your app doesn't take advantage of complex HTTP cache-control parameters, consider enabling the custom aggressive disk cache. Learn more in <doc:caching>.
