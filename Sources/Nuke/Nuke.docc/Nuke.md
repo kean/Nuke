@@ -73,5 +73,6 @@ To install Nuke, use Swift Packager Manager.
 
 - <doc:performance-guide>
 - <doc:prefetching>
+- <doc:combine>
 - <doc:caching>
 - ``ImagePrefetcher``
