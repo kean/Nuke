@@ -201,7 +201,6 @@ private func checkCacheLayers05() throws {
 
     let url = dataCache.url(for: "key")
     // Access file directly
-
     _ = url
 }
 

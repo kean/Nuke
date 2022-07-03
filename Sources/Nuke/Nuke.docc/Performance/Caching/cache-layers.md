@@ -59,6 +59,17 @@ An HTTP disk cache (``ImagePipeline/Configuration-swift.struct/withURLCache`` op
 
 > Tip: Learn more about HTTP cache in ["Image Caching."](https://kean.blog/post/image-caching#http-caching)
 
+#### Serving Stale Images
+
+If the resource expires, `URLSession` isn’t going to serve it until it goes to the server and validates whether the contents stored in the cache are still fresh.
+
+**Solutions**
+
+- Increase the expiration age in HTTP `cache-control` headers
+- Use a custom disk cache that ignores HTTP `cache-control` headers
+- Ask `URLSession` to return an expired image using [URLRequest.CachePolicy.returnCacheDataDontLoad](https://developer.apple.com/documentation/foundation/nsurlrequest/cachepolicy/returncachedatadontload) and then validate it later in the background
+- Dynamically switch between `.useProtocolCachePolicy` to `.returnCacheDataDontLoad` when network appears to be offline
+
 ### Aggressive Disk Cache
 
 If HTTP caching is not your cup of tea, try a custom LRU disk cache for fast and reliable *aggressive* data caching (ignores [HTTP cache control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control)). You can enable it using the respective pipeline configuration.
