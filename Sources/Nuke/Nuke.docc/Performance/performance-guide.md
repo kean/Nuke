@@ -87,23 +87,3 @@ Enable [`waitsForConnectivity`](https://developer.apple.com/documentation/founda
 ## Measure
 
 If you want to see how the system behaves, how long each operation takes, and how many are performed in parallel, enable the ``ImagePipeline/Configuration-swift.struct/isSignpostLoggingEnabled`` option and use the `os_signpost` Instrument. For more information see [Apple Documentation: Logging](https://developer.apple.com/documentation/os/logging) and [WWDC 2018: Measuring Performance Using Logging](https://developer.apple.com/videos/play/wwdc2018/405/).
-
-## Coalescing
-
-The pipeline avoids doing any duplicated work when loading images. For example, let's take these two requests:
-
-```swift
-let url = URL(string: "http://example.com/image")
-async let first = pipeline.image(for: ImageRequest(url: url, processors: [
-    .resize(size: CGSize(width: 44, height: 44)),
-    .gaussianBlur(radius: 8)
-]))
-async let second = pipeline.image(for: ImageRequest(url: url, processors: [
-    .resize(size: CGSize(width: 44, height: 44))
-]))
-let images = try await (first, second)
-```
-
-Nuke will load the data only once, resize the image once and blur it also only once. There is no duplicated work done. The work only gets canceled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
-
-Coalescing can be disabled using ``ImagePipeline/Configuration-swift.struct/isTaskCoalescingEnabled`` configuration option.

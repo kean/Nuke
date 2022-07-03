@@ -63,6 +63,26 @@ func loadImage() async throws {
 
 > Tip: The recommended way to load images ``ImagePipeline`` is by using Async/Await API. But the pipeline also has API that works with closures and Combine publishers.
 
+## Coalescing
+
+The pipeline avoids doing any duplicated work when loading images. Let's take two requests with the same URL, but different processors as an example:
+
+```swift
+let url = URL(string: "http://example.com/image")
+async let first = pipeline.image(for: ImageRequest(url: url, processors: [
+    .resize(size: CGSize(width: 44, height: 44)),
+    .gaussianBlur(radius: 8)
+]))
+async let second = pipeline.image(for: ImageRequest(url: url, processors: [
+    .resize(size: CGSize(width: 44, height: 44))
+]))
+let images = try await (first, second)
+```
+
+The pipeline will load the data only once, resize the image once and blur it also only once. There is no duplicated work done. The work only gets canceled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
+
+Coalescing can be disabled using ``ImagePipeline/Configuration-swift.struct/isTaskCoalescingEnabled`` configuration option.
+
 ## Topics
 
 ### Getting a Pipeline
