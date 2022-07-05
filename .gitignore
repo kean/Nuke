@@ -5,6 +5,7 @@
 build/
 DerivedData
 Nuke.xcodeproj/xcshareddata/xcbaselines/
+.swiftpm/
 
 ## Various settings
 *.pbxuser

@@ -5,7 +5,7 @@
 import Foundation
 import Nuke
 
-final class MockDataCache: DataCaching {
+final class MockDataCache: DataCaching, @unchecked Sendable {
     var store = [String: Data]()
     var readCount = 0
     var writeCount = 0

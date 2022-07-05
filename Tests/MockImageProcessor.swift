@@ -16,14 +16,14 @@ extension PlatformImage {
     }
 }
 
-private struct AssociatedKeys {
+private enum AssociatedKeys {
     static var ProcessorIDs = "nk_test_processorIDs"
 }
 
 // MARK: - MockImageProcessor
 
-class MockImageProcessor: ImageProcessing, CustomStringConvertible {
-    var identifier: String
+final class MockImageProcessor: ImageProcessing, CustomStringConvertible {
+    let identifier: String
 
     init(id: String) {
         self.identifier = id
@@ -31,14 +31,14 @@ class MockImageProcessor: ImageProcessing, CustomStringConvertible {
 
     func process(_ image: PlatformImage) -> PlatformImage? {
         var processorIDs: [String] = image.nk_test_processorIDs
-        #if os(macOS)
+#if os(macOS)
         let processedImage = image.copy() as! PlatformImage
-        #else
+#else
         guard let copy = image.cgImage?.copy() else {
             return image
         }
         let processedImage = PlatformImage(cgImage: copy)
-        #endif
+#endif
         processorIDs.append(identifier)
         processedImage.nk_test_processorIDs = processorIDs
         return processedImage
@@ -51,27 +51,31 @@ class MockImageProcessor: ImageProcessing, CustomStringConvertible {
 
 // MARK: - MockFailingProcessor
 
-class MockFailingProcessor: ImageProcessing {
+final class MockFailingProcessor: ImageProcessing {
     func process(_ image: PlatformImage) -> PlatformImage? {
-        return nil
+        nil
     }
 
     var identifier: String {
-        return "MockFailingProcessor"
+        "MockFailingProcessor"
     }
+}
+
+struct MockError: Error, Equatable {
+    let description: String
 }
 
 // MARK: - MockEmptyImageProcessor
 
-class MockEmptyImageProcessor: ImageProcessing {
+final class MockEmptyImageProcessor: ImageProcessing {
     let identifier = "MockEmptyImageProcessor"
 
     func process(_ image: PlatformImage) -> PlatformImage? {
-        return image
+        image
     }
 
     static func == (lhs: MockEmptyImageProcessor, rhs: MockEmptyImageProcessor) -> Bool {
-        return true
+        true
     }
 }
 
@@ -82,18 +86,24 @@ final class MockProcessorFactory {
     var numberOfProcessorsApplied: Int = 0
     let lock = NSLock()
 
-    private final class Processor: MockImageProcessor {
+    private final class Processor: ImageProcessing, @unchecked Sendable {
+        var identifier: String { processor.identifier }
         var factory: MockProcessorFactory!
+        let processor: MockImageProcessor
 
-        override func process(_ image: PlatformImage) -> PlatformImage? {
+        init(id: String) {
+            self.processor = MockImageProcessor(id: id)
+        }
+
+        func process(_ image: PlatformImage) -> PlatformImage? {
             factory.lock.lock()
             factory.numberOfProcessorsApplied += 1
             factory.lock.unlock()
-            return super.process(image)
+            return processor.process(image)
         }
     }
 
-    func make(id: String) -> MockImageProcessor {
+    func make(id: String) -> any ImageProcessing {
         let processor = Processor(id: id)
         processor.factory = self
         return processor

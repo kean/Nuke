@@ -10,10 +10,6 @@ import Foundation
 import UIKit
 #endif
 
-#if os(watchOS)
-import WatchKit
-#endif
-
 #if os(macOS)
 import Cocoa
 #endif
@@ -87,30 +83,6 @@ struct TestExpectationImagePipeline {
     }
 }
 
-extension XCTestCase {
-    func expectToFinishLoadingImage(with request: ImageRequest,
-                                    options: ImageLoadingOptions = ImageLoadingOptions.shared,
-                                    into imageView: ImageDisplayingView,
-                                    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
-        let expectation = self.expectation(description: "Image loaded for \(request)")
-        Nuke.loadImage(
-            with: request,
-            options: options,
-            into: imageView,
-            completion: { result in
-                XCTAssertTrue(Thread.isMainThread)
-                completion?(result)
-                expectation.fulfill()
-        })
-    }
-
-    func expectToLoadImage(with request: ImageRequest, options: ImageLoadingOptions = ImageLoadingOptions.shared, into imageView: ImageDisplayingView) {
-        expectToFinishLoadingImage(with: request, options: options, into: imageView) { result in
-            XCTAssertTrue(result.isSuccess)
-        }
-    }
-}
-
 final class TestRecordedImageRequest {
     var task: ImageTask {
         _task
@@ -141,6 +113,47 @@ final class TestRecorededDataTask {
             return nil
         }
         return response.data
+    }
+}
+
+extension XCTestCase {
+    func expect(_ pipeline: ImagePipeline, _ dataLoader: MockProgressiveDataLoader) -> TestExpectationProgressivePipeline {
+        return TestExpectationProgressivePipeline(test: self, pipeline: pipeline, dataLoader: dataLoader)
+    }
+}
+
+struct TestExpectationProgressivePipeline {
+    let test: XCTestCase
+    let pipeline: ImagePipeline
+    let dataLoader: MockProgressiveDataLoader
+
+    // We expect two partial images (at 5 scans, and 9 scans marks).
+    func toProducePartialImages(for request: ImageRequest = Test.request,
+                                withCount count: Int = 2,
+                                progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                                completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
+        let expectPartialImageProduced = test.expectation(description: "Partial Image Is Produced")
+        expectPartialImageProduced.expectedFulfillmentCount = count
+
+        let expectFinalImageProduced = test.expectation(description: "Final Image Is Produced")
+
+        pipeline.loadImage(
+            with: request,
+            progress: { image, completed, total in
+                progress?(image, completed, total)
+
+                // This works because each new chunk resulted in a new scan
+                if image != nil {
+                    expectPartialImageProduced.fulfill()
+                    self.dataLoader.resume()
+                }
+            },
+            completion: { result in
+                completion?(result)
+                XCTAssertTrue(result.isSuccess)
+                expectFinalImageProduced.fulfill()
+            }
+        )
     }
 }
 

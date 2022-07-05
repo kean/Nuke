@@ -4,7 +4,7 @@
 
 *Jun 9, 2022*
 
-- Revert changes to the deployment targets introduced in .10 release
+- Revert changes to the deployment targets introduced in Nuke 10.10.0
 
 ## Nuke 10.11.1
 
@@ -119,20 +119,20 @@ ImageRequest(url: url, processors: [.resize(width: 320)])
 
 *Aug 30, 2021*
 
-- Fix build on watchOS (needs investigation why xcodebuild returns 0 for failed watchOS builds) - [#505](https://github.com/kean/Nuke/pull/505), thanks fo [David Harris](https://github.com/thedavidharris)
+- Fix build on watchOS (needs investigation why xcodebuild returns 0 for failed watchOS builds) - [#505](https://github.com/kean/Nuke/pull/505), thanks to [David Harris](https://github.com/thedavidharris)
 
 ## Nuke 10.4.0
 
 *Aug 28, 2021*
 
-- Add an API for efficiently image thumbnails or retreiving existings ones - [#503](https://github.com/kean/Nuke/pull/503)
+- Add an API for efficiently image thumbnails or retrieving existings ones - [#503](https://github.com/kean/Nuke/pull/503)
 - Fix an issue with scale (`ImageRequest.UserInfoKey.scaleKey`) not being applied to progressively decoded images
 
 ## Nuke 10.3.4
 
 *Aug 26, 2021*
 
-- Fix an issue where if you pass incorect strings (`String`) in the request, the pipeline eventually start failing silently - [#502](https://github.com/kean/Nuke/pull/502) 
+- Fix an issue where if you pass incorrect strings (`String`) in the request, the pipeline eventually start failing silently - [#502](https://github.com/kean/Nuke/pull/502) 
 
 ## Nuke 10.3.3
 
@@ -156,7 +156,7 @@ ImageRequest(url: url, processors: [.resize(width: 320)])
 
 *Jun 10, 2021*
 
-- Add `animation` propery to `FetchImage` that significantly simplifies how to animate image appearence
+- Add `animation` property to `FetchImage` that significantly simplifies how to animate image appearance
 - Add `imageType` parameter to `ImageDecoders.Empty`
 - Add an option to override image scale (`ImageRequest.UserInfoKey.scaleKey`)
 
@@ -164,7 +164,7 @@ ImageRequest(url: url, processors: [.resize(width: 320)])
 
 *Jun 6, 2021*
 
-> See also [Nuke 10.0 Release Notes](https://github.com/kean/Nuke/releases/tag/10.0.0))
+> See also [Nuke 10.0 Release Notes](https://github.com/kean/Nuke/releases/tag/10.0.0)
 
 - `ImageDecoders.Default` now generates previews for GIF
 - Add `onSuccess`, `onFailure`, and other callbacks to `FetchImage` 
@@ -398,7 +398,7 @@ There are deprecation warnings in place to help guide you through the migration 
 
 *Dec 26, 2020*
 
-- Deprecate `crop` parameter in `ImageProcessors.Resize` `init(height:)` and `init(width:)` initailizers (crop doesn't make sense in with these parameters)
+- Deprecate `crop` parameter in `ImageProcessors.Resize` `init(height:)` and `init(width:)` initializers (crop doesn't make sense in with these parameters)
 
 ## Nuke 9.2.1
 
@@ -413,7 +413,7 @@ There are deprecation warnings in place to help guide you through the migration 
 ### Additions
 
 - Add an option to remove an image from all cache layers `pipeline.removeCachedImage(for:)`
-- Add `ImageRequest.CachePolicy` to `ImageRequest`. Use `.reloadIgnoringCacheData` to reload the image ignoring all cached data - [#411](https://github.com/kean/Nuke/pull/411)
+- Add `ImageRequest.CachePolicy` to `ImageRequest`. Use `.reloadIgnoringCachedData` to reload the image ignoring all cached data - [#411](https://github.com/kean/Nuke/pull/411)
 - Add support for extended color spaces - [#408](https://github.com/kean/Nuke/pull/408)
 - Add `ImageProcessors.Circle` and `ImageProcessors.RoundedCorners` on macOS - [#410](https://github.com/kean/Nuke/pull/410)
 - Add `ImageProcessors.CoreImage` and `ImageProcessors.GaussianBlur` on macOS - [#413](https://github.com/kean/Nuke/pull/413)
@@ -814,7 +814,7 @@ Decompression runs on a new separate `imageDecompressingQueue`. To disable decom
 #### [#247 Avoiding Duplicated Work when Applying Processors](https://github.com/kean/Nuke/pull/247)
 
 The pipeline avoids doing any duplicated work when loading images. Now it also avoids applying the same processors more than once. For example, let's take these two requests:
-        
+
 ```swift
 let url = URL(string: "http://example.com/image")
 pipeline.loadImage(with: ImageRequest(url: url, processors: [
@@ -825,7 +825,7 @@ pipeline.loadImage(with: ImageRequest(url: url, processors: [
     ImageProcessor.Resize(size: CGSize(width: 44, height: 44))
 ]))
 ```
-        
+
 Nuke will load the image data only once, resize the image once and apply the blur also only once. There is no duplicated work done at any stage. If any of the intermediate results are available in the data cache, they will be used.
 
 ### ImagePipeline v2
@@ -878,7 +878,7 @@ public typealias Completion = (_ result: Result<ImageResponse, ImagePipeline.Err
 
 ### Performance
 
-Apart from the general performance improvements Nuke now also offers a great way to measure performance and gain visiblity into how the system behaves when loading images.
+Apart from the general performance improvements Nuke now also offers a great way to measure performance and gain visibility into how the system behaves when loading images.
 
 #### [#250 Integrate `os_signpost`](https://github.com/kean/Nuke/pull/250)
 
@@ -1021,7 +1021,7 @@ Nuke 7 had a lot of API changes, to make the migration easier it shipped with De
 
 *Jul 20, 2018*
 
-- `ImagePipeline` now updates the priority of shared operations when the registered tasks get canceled (was previosuly only reacting to added tasks)
+- `ImagePipeline` now updates the priority of shared operations when the registered tasks get canceled (was previously only reacting to added tasks)
 - Fix an issue where `didFinishCollectingMetrics` closure wasn't called for the tasks completed with images found in memory cache and the tasks canceled before they got a chance to run. Now _every_ created tasks gets a corresponding `didFinishCollectingMetrics` call.
 
 

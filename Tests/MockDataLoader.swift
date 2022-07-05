@@ -7,17 +7,17 @@ import Nuke
 
 private let data: Data = Test.data(name: "fixture", extension: "jpeg")
 
-private final class MockDataTask: Cancellable {
+private final class MockDataTask: Cancellable, @unchecked Sendable {
     var _cancel: () -> Void = { }
     func cancel() {
         _cancel()
     }
 }
 
-class MockDataLoader: DataLoading {
+class MockDataLoader: DataLoading, @unchecked Sendable {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
-    
+
     var createdTaskCount = 0
     var results = [URL: Result<(Data, URLResponse), NSError>]()
     let queue = OperationQueue()
@@ -38,15 +38,16 @@ class MockDataLoader: DataLoading {
                 switch result {
                 case let .success(val):
                     let data = val.0
-                    assert(!data.isEmpty)
-                    didReceiveData(data.prefix(data.count / 2), val.1)
-                    didReceiveData(data.suffix(data.count / 2), val.1)
+                    if !data.isEmpty {
+                        didReceiveData(data.prefix(data.count / 2), val.1)
+                        didReceiveData(data.suffix(data.count / 2), val.1)
+                    }
                     completion(nil)
                 case let .failure(err):
                     completion(err)
                 }
             } else {
-                didReceiveData(data, URLResponse())
+                didReceiveData(data, URLResponse(url: request.url ?? Test.url, mimeType: "jpeg", expectedContentLength: 22789, textEncodingName: nil))
                 completion(nil)
             }
         }

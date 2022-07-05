@@ -12,7 +12,7 @@ This guide is provided in order to ease the transition of existing applications 
 
 ## Overview
 
-Nuke 8 contains a bunch of new features, refinements, and performance improvements. The default pipeline works exactly the same as in the previous version. The release is mostly source compatible with Nuke 7. The deprecated APIs were added to [Deprecated.swift](https://gist.github.com/kean/05eaa36ac72e4c34dea50911ee68b801) file where every declaration has a comment which guides you throught migration. There are still some breaking changes which might affect you which are covered in this guide.
+Nuke 8 contains a bunch of new features, refinements, and performance improvements. The default pipeline works exactly the same as in the previous version. The release is mostly source compatible with Nuke 7. The deprecated APIs were added to [Deprecated.swift](https://gist.github.com/kean/05eaa36ac72e4c34dea50911ee68b801) file where every declaration has a comment which guides you through migration. There are still some breaking changes which might affect you which are covered in this guide.
 
 > The deprecated APIs are going to be removed 6 months after the release. If by the time you upgrade to Nuke 8, the deprecated APIs are already removed, you can temporarily drop the [Deprecated.swift](https://gist.github.com/kean/05eaa36ac72e4c34dea50911ee68b801) into your project to ease the migration.
 

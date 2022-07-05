@@ -8,25 +8,15 @@ import Nuke
 extension ImagePipeline.Error: Equatable {
     public static func == (lhs: ImagePipeline.Error, rhs: ImagePipeline.Error) -> Bool {
         switch (lhs, rhs) {
+        case (.dataMissingInCache, .dataMissingInCache): return true
         case let (.dataLoadingFailed(lhs), .dataLoadingFailed(rhs)):
             return lhs as NSError == rhs as NSError
+        case (.dataIsEmpty, .dataIsEmpty): return true
+        case (.decoderNotRegistered, .decoderNotRegistered): return true
         case (.decodingFailed, .decodingFailed): return true
         case (.processingFailed, .processingFailed): return true
-        default: return false
-        }
-    }
-}
-
-extension ImageTaskEvent: Equatable {
-    public static func == (lhs: ImageTaskEvent, rhs: ImageTaskEvent) -> Bool {
-        switch (lhs, rhs) {
-        case (.started, .started): return true
-        case (.cancelled, .cancelled): return true
-        case let (.priorityUpdated(lhs), .priorityUpdated(rhs)): return lhs == rhs
-        case let (.intermediateResponseReceived(lhs), .intermediateResponseReceived(rhs)): return lhs == rhs
-        case let (.progressUpdated(lhsTotal, lhsCompleted), .progressUpdated(rhsTotal, rhsCompleted)):
-            return (lhsTotal, lhsCompleted) == (rhsTotal, rhsCompleted)
-        case let (.completed(lhs), .completed(rhs)): return lhs == rhs
+        case (.imageRequestMissing, .imageRequestMissing): return true
+        case (.pipelineInvalidated, .pipelineInvalidated): return true
         default: return false
         }
     }
@@ -59,23 +49,25 @@ extension ImagePipeline {
     }
 }
 
-extension ImageLoadingOptions {
-    private static var stack = [ImageLoadingOptions]()
-
-    static func pushShared(_ shared: ImageLoadingOptions) {
-        stack.append(ImageLoadingOptions.shared)
-        ImageLoadingOptions.shared = shared
+extension ImageProcessing {
+    /// A throwing version of a regular method.
+    func processThrowing(_ image: PlatformImage) throws -> PlatformImage {
+        let context = ImageProcessingContext(request: Test.request, response: Test.response, isCompleted: true)
+        return (try process(ImageContainer(image: image), context: context)).image
     }
+}
 
-    static func popShared() {
-        ImageLoadingOptions.shared = stack.removeLast()
+extension ImageCaching {
+    subscript(request: any ImageRequestConvertible) -> ImageContainer? {
+        get { self[ImageCacheKey(request: request.asImageRequest())] }
+        set { self[ImageCacheKey(request: request.asImageRequest())] = newValue }
     }
 }
 
 #if os(macOS)
 import Cocoa
 typealias _ImageView = NSImageView
-#else
+#elseif os(iOS) || os(tvOS)
 import UIKit
 typealias _ImageView = UIImageView
 #endif

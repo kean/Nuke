@@ -19,7 +19,6 @@ extension XCTestCase {
 
 // MARK: - Publishers
 
-@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 extension XCTestCase {
     func expect<P: Publisher>(_ publisher: P) -> TestExpectationPublisher<P> {
         TestExpectationPublisher(test: self, publisher: publisher)
@@ -43,7 +42,6 @@ extension XCTestCase {
     }
 }
 
-@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 struct TestExpectationPublisher<P: Publisher> {
     let test: XCTestCase
     let publisher: P
@@ -65,7 +63,6 @@ struct TestExpectationPublisher<P: Publisher> {
     }
 }
 
-@available(iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15, *)
 final class TestRecordedPublisher<P: Publisher> {
     fileprivate(set) var values = [P.Output]()
     fileprivate(set) var completion: Subscribers.Completion<P.Failure>?
@@ -94,7 +91,7 @@ extension XCTestCase {
         let valuesExpectation = self.expect(values: values)
         let observation = object.observe(keyPath, options: [.new]) { (object, change) in
             changeHandler?(object, change)
-            DispatchQueue.main.async { // Syncrhonize access to `valuesExpectation`
+            DispatchQueue.main.async { // Synchronize access to `valuesExpectation`
                 valuesExpectation.received(change.newValue!)
             }
         }
@@ -267,7 +264,7 @@ final class OperationQueueObserver {
     }
 
     private func _startObservingOperations() {
-        let observer = queue.observe(\.operations) { [weak self] (_, change) in
+        let observer = queue.observe(\.operations) { [weak self] _, _ in
             self?._didUpdateOperations()
         }
         _observers.append(observer)

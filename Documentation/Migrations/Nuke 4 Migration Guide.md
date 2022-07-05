@@ -238,7 +238,7 @@ task.cancel()
 let cts = CancellationTokenSource()
 Loader.shared.loadImage(with: URL(string: "http://...")!, token: cts.token)
     .then { image in print("\(image) loaded") }
-    .catch { error in print("catched \(error)") }
+    .catch { error in print("caught \(error)") }
 cts.cancel()
 ```
 

@@ -30,7 +30,7 @@ enum Test {
 
     static func container(named name: String, extension ext: String) -> ImageContainer {
         let data = Test.data(name: name, extension: ext)
-        return ImageDecoders.Default().decode(data)!
+        return try! ImageDecoders.Default().decode(data)
     }
 
     static let url = URL(string: "http://test.com")!
@@ -60,6 +60,7 @@ enum Test {
 
     static let response = ImageResponse(
         container: .init(image: Test.image),
+        request: Test.request,
         urlResponse: urlResponse,
         cacheType: nil
     )
@@ -72,6 +73,22 @@ enum Test {
         print(url)
         let data = ImageEncoders.ImageIO(type: .png, compressionRatio: 1).encode(image)!
         try! data.write(to: url)
+    }
+}
+
+extension ImageDecodingContext {
+    static var mock: ImageDecodingContext {
+        mock(data: Test.data)
+    }
+
+    static func mock(data: Data) -> ImageDecodingContext {
+        ImageDecodingContext(request: Test.request, data: data, isCompleted: true, urlResponse: nil, cacheType: nil)
+    }
+}
+
+extension ImageProcessingContext {
+    static var mock: ImageProcessingContext {
+        ImageProcessingContext(request: Test.request, response: Test.response, isCompleted: true)
     }
 }
 
