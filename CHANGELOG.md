@@ -1,3 +1,113 @@
+# Nuke 11
+
+## Nuke 11.0.0
+
+*Jul 20, 2022*
+
+**Nuke 11** embraces **Swift Structured Concurrency** with full feature parity with legacy completion-based APIs. **NukeUI** is now part of the main repo. Docs were completely rewritten using DocC and hosted on GitHub: [Nuke](https://kean-docs.github.io/nuke/documentation/nuke/), [NukeUI](https://kean-docs.github.io/nukeui/documentation/nukeui/), [NukeExtensions](https://kean-docs.github.io/nukeextensions/documentation/nukeextensions/).
+
+There are no major source-breaking changes in this release. Instead, it adds dozens of API refinements to make the framework more ergonomic.
+
+- Increase the minimum supported Xcode version to 13.3
+- Increase minimum supported platforms: iOS 13.0, tvOS 13.0, watchOS 6.0, macOS 10.15
+
+### Structured Concurrency
+
+Extend Async/Await APIs to have complete feature parity with the existing completion-based APIs paving the road for its eventual deprecation and removal in the future major versions.
+
+- Add `@MainActor` to the following types: `FetchImage`, `LazyImage`, `LazyImageView`, Nuke `loadImage(into:)` method
+- Add `Sendable` to most of the Nuke types, including `ImagePipeline`, `ImageRequest`,` ImageResponse`, `ImageContainer`, `ImageTask`, and more
+- Add `ImageTaskDelegate` to achieve complete feature-parity with completion-based APIs - [#559](https://github.com/kean/Nuke/pull/559)
+- `ImageRequest` now accepts async/await function to fetch data as a resource
+
+Loading an image and monitoring download progress:
+
+```swift
+func loadImage() async throws {
+    let response = try await pipeline.image(for: "https://example.com/image.jpeg", delegate: self)
+}
+
+func imageTaskCreated(_ task: ImageTask) {
+    // You can capture the task instance here to change priority later, etc
+}
+
+func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
+    // Update progres
+}
+
+func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
+    // Display progressively decoded image
+}
+
+// And more...
+```
+
+### NukeUI and NukeExtensions
+
+**NukeUI** is now part of the main repo and the existing UIKit and AppKit UI extensions were moved from the main module to **NukeExtensions** and soft-deprecated.
+
+- Move [NukeUI](https://github.com/kean/NukeUI) to the main Nuke repo
+- Move `UIImageView` / `NSImageView` extensions to a separate target `NukeExtensions` and soft-deprecated them - [#555](https://github.com/kean/Nuke/pull/555)
+- Remove deprecated APIs from NukeUI
+- Add `ImageResponse` typealias to NukeUI
+- Use new `ImageTask.Progress` in NukeUI
+- NukeUI no longer exposes public Gifu dependency or its APIs
+
+### Error Reporting Improvements
+
+A complete overhaul of `ImagePipeline.Error` with many new cases covering every single point of failure in the pipeline.
+
+- Add `throws` to "advanced" `ImageProcessing`
+- Add `throws` to `ImageDecoding`
+- Add support for throwing processing in `ImageProcessors.CoreImageFilter`
+- Add `ImageDecoding` instance, `ImageDecodingContext`, and underlying error to `.decodingFailed` error case
+- Add `ImageProcessingContext` and underlying error to `.processingFailed` error case
+- Add `.dataMissingInCache` error case for a scenario where data is missing in cache and download is disabled using `.returnCacheDataDontLoad`.
+- Add `.dataIsEmpty` error case for a scenario where the data loader doesn't report an error, but the response is empty.
+- Add `.decoderNotRegistered(context:)` error case for a scenario where no decoders are registered for the downloaded data. This should never happen unless you remove the default decoder from the registry.
+- Add `.imageRequestMissing` error case for a scenario when the load image method is called with no image request.
+- Add `cacheType` to `ImageDecodingContext`
+
+### Other Changes
+
+- Fix [#511](https://github.com/kean/Nuke/issues/511) `OSAtomic` deprecation warnings - [#573](https://github.com/kean/Nuke/pull/573)
+- Add `ImageTask.State`. Improve performance when canceling and changing priority of completed tasks.
+- Add `ImageTask.Progress` to simplify progress reporting APIs
+- Add `ImageRequest.Options.skipDecompression`
+- Add public `ImageCacheKey` initializer with ``ImageRequest``
+- Add `imageCache(for:pipeline:)` method to `ImagePipelineDelegate`
+- Add automatic `hashableIdentifier` implementation to `ImageProcessing` types that implement `Hashable` protocol - [#563](https://github.com/kean/Nuke/pull/563)
+- Add a way to customize decompression using `ImagePipelineDelegate`
+- Add `ImageRequest` to `ImageResponse`
+- Improve decompression performance by using [`preparingForDisplay`](https://developer.apple.com/documentation/uikit/uiimage/3750834-preparingfordisplay) on iOS 15 and tvOS 15
+- Add metrics reporting using `DataLoaderObserving` protocol
+- Add custom disk caching for requests backed by data publishers - [#553](https://github.com/kean/Nuke/pull/553)
+- Add `.pipelineInvalidated` error that is thrown for new requests started on the invalidated pipeline
+- Add public write access to `ImageDecodingContext`,  `ImageProcessingContext`, `ImageResponse` properties
+- Add static `default` and `imageIO` functions to `ImageEncoding` protocol for easy creating of encoders
+- Add `sizeLimit` to `withDataCache` `ImagePipeline.Configuration` initializer
+- Make `ImageCache` `ttl` optional instead of using `0` as a "never expires" indicator
+
+### Removals and Deprecations
+
+- Soft-deprecate `ImageRequestConvertible` and use `ImageRequest` and `URL` directly in all news APIs for better discoverability and performance  - [#567](https://github.com/kean/Nuke/pull/567)
+- Deprecate `ImageDecoderRegistering`
+- Deprecate `ImageCaching` extension that works with `ImageRequest` 
+- Rename `isFinal` in `ImageProcessingContext` to `isCompleted` to match the renaming APIs
+- Rename `ImagePipeline/Configuration/DataCachePolicy` to `ImagePipeline/DataCachePolicy`
+- Remove `ImageRequestConvertible` conformance from `String`
+- Remove `ImageTaskEvent` and consolidate it with the new `ImageTaskDelegate` API - [#564](https://github.com/kean/Nuke/pull/564)
+- Remove progress monitoring using `Foundation.Progress`
+- Remove `WKInterfaceObject` support (in favor of SwiftUI)
+- Remove `ImageType` typealias (deprecated in 10.5)
+- Remove `Cancellable` conformance from `URLSessionTask`
+- Remove public `ImagePublisher` class (make it internal)
+
+### Non-Code Changes
+
+- Automatically discover typos on CI - [#549](https://github.com/kean/Nuke/pull/549)
+- Remove `CocoaPods` support
+
 # Nuke 10
 
 ## Nuke 10.11.2
