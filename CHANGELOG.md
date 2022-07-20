@@ -32,7 +32,7 @@ func imageTaskCreated(_ task: ImageTask) {
 }
 
 func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-    // Update progres
+    // Update progress
 }
 
 func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
