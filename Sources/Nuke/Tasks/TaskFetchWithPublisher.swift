@@ -50,7 +50,10 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
             }
         })
 
-        onCancelled = cancellable.cancel
+        onCancelled = {
+            finish()
+            cancellable.cancel()
+        }
     }
 
     private func dataTaskDidFinish(_ result: PublisherCompletion) {
