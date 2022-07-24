@@ -1,5 +1,11 @@
 # Nuke 11
 
+## Nuke 11.0.1
+
+*Jul 24, 2022*
+
+- Fix an issue with cancellation of requests created with Combine publishers - [#576](https://github.com/kean/Nuke/pull/576), thanks to [douknow](https://github.com/douknow)  
+
 ## Nuke 11.0.0
 
 *Jul 20, 2022*
