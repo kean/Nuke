@@ -61,6 +61,7 @@ public struct LazyImage<Content: View>: View {
     private var onFailure: ((Error) -> Void)?
     private var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
     private var resizingMode: ImageResizingMode?
+	private var isVideoRenderingEnabled: Bool
 
     // MARK: Initializers
 
@@ -70,8 +71,8 @@ public struct LazyImage<Content: View>: View {
     /// - Parameters:
     ///   - url: The image URL.
     ///   - resizingMode: The displayed image resizing mode.
-    public init(url: URL?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
-        self.init(request: url.map { ImageRequest(url: $0) }, resizingMode: resizingMode)
+    public init(url: URL?, resizingMode: ImageResizingMode = .aspectFill, isVideoRenderingEnabled: Bool = true) where Content == Image {
+        self.init(request: url.map { ImageRequest(url: $0) }, resizingMode: resizingMode, isVideoRenderingEnabled: isVideoRenderingEnabled)
     }
 
     /// Loads and displays an image using ``Image``.
@@ -79,44 +80,47 @@ public struct LazyImage<Content: View>: View {
     /// - Parameters:
     ///   - request: The image request.
     ///   - resizingMode: The displayed image resizing mode.
-    public init(request: ImageRequest?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
+	public init(request: ImageRequest?, resizingMode: ImageResizingMode = .aspectFill, isVideoRenderingEnabled: Bool = true) where Content == Image {
+		self.isVideoRenderingEnabled = isVideoRenderingEnabled
         self.request = request.map { HashableRequest(request: $0) }
         self.resizingMode = resizingMode
     }
 
     // Deprecated in Nuke 11.0
     @available(*, deprecated, message: "Please use init(request:) or init(url).")
-    public init(source: (any ImageRequestConvertible)?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
-        self.init(request: source?.asImageRequest(), resizingMode: resizingMode)
+    public init(source: (any ImageRequestConvertible)?, resizingMode: ImageResizingMode = .aspectFill, isVideoRenderingEnabled: Bool = true) where Content == Image {
+        self.init(request: source?.asImageRequest(), resizingMode: resizingMode, isVideoRenderingEnabled: isVideoRenderingEnabled)
     }
 #else
     /// Loads and displays an image using ``Image``.
     ///
     /// - Parameters:
     ///   - url: The image URL.
-    public init(url: URL?) where Content == Image {
-        self.init(request: url.map { ImageRequest(url: $0) })
+    public init(url: URL?, isVideoRenderingEnabled: Bool = true) where Content == Image {
+        self.init(request: url.map { ImageRequest(url: $0) }, isVideoRenderingEnabled: isVideoRenderingEnabled)
     }
 
     /// Loads and displays an image using ``Image``.
     ///
     /// - Parameters:
     ///   - request: The image request.
-    public init(request: ImageRequest?) where Content == Image {
-        self.request = request.map { HashableRequest(request: $0) }
+    public init(request: ImageRequest?, isVideoRenderingEnabled: Bool = true) where Content == Image {
+		self.isVideoRenderingEnabled = isVideoRenderingEnabled
+		self.request = request.map { HashableRequest(request: $0) }
     }
 
     // Deprecated in Nuke 11.0
     @available(*, deprecated, message: "Please use init(request:) or init(url).")
-    public init(source: (any ImageRequestConvertible)?) where Content == Image {
-        self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
+    public init(source: (any ImageRequestConvertible)?, isVideoRenderingEnabled: Bool = true) where Content == Image {
+		self.isVideoRenderingEnabled = isVideoRenderingEnabled
+		self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
     }
 #endif
     /// Loads an images and displays custom content for each state.
     ///
     /// See also ``init(request:content:)``
-    public init(url: URL?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
-        self.init(request: url.map { ImageRequest(url: $0) }, content: content)
+    public init(url: URL?, isVideoRenderingEnabled: Bool = true, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+		self.init(request: url.map { ImageRequest(url: $0) }, isVideoRenderingEnabled: isVideoRenderingEnabled, content: content)
     }
 
     /// Loads an images and displays custom content for each state.
@@ -136,14 +140,16 @@ public struct LazyImage<Content: View>: View {
     ///     }
     /// }
     /// ```
-    public init(request: ImageRequest?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+    public init(request: ImageRequest?, isVideoRenderingEnabled: Bool = true, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+		self.isVideoRenderingEnabled = isVideoRenderingEnabled
         self.request = request.map { HashableRequest(request: $0) }
         self.makeContent = content
     }
 
     // Deprecated in Nuke 11.0
     @available(*, deprecated, message: "Please use init(request:) or init(url).")
-    public init(source: (any ImageRequestConvertible)?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+    public init(source: (any ImageRequestConvertible)?, isVideoRenderingEnabled: Bool = true, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+		self.isVideoRenderingEnabled = isVideoRenderingEnabled
         self.request = source.map { HashableRequest(request: $0.asImageRequest()) }
         self.makeContent = content
     }
@@ -268,7 +274,7 @@ public struct LazyImage<Content: View>: View {
                     .resizable()
             }
 #else
-            Image(imageContainer) {
+			Image(imageContainer, isVideoRenderingEnabled: isVideoRenderingEnabled) {
 #if os(iOS) || os(tvOS)
                 if let resizingMode = self.resizingMode {
                     $0.resizingMode = resizingMode

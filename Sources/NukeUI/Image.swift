@@ -18,18 +18,21 @@ public struct Image: NSViewRepresentable {
     let onCreated: ((ImageView) -> Void)?
     var onVideoFinished: (() -> Void)?
     var restartVideo: Bool = false
+	var isVideoRenderingEnabled: Bool = true
 
-    public init(_ image: NSImage) {
-        self.init(ImageContainer(image: image))
+    public init(_ image: NSImage, isVideoRenderingEnabled: Bool = true) {
+        self.init(ImageContainer(image: image), isVideoRenderingEnabled: isVideoRenderingEnabled)
     }
 
-    public init(_ imageContainer: ImageContainer, onCreated: ((ImageView) -> Void)? = nil) {
+	public init(_ imageContainer: ImageContainer, isVideoRenderingEnabled: Bool = true, onCreated: ((ImageView) -> Void)? = nil) {
+		self.isVideoRenderingEnabled = isVideoRenderingEnabled
         self.imageContainer = imageContainer
         self.onCreated = onCreated
     }
 
     public func makeNSView(context: Context) -> ImageView {
-        let view = ImageView()
+		let view = ImageView()
+		view.isVideoRenderingEnabled = isVideoRenderingEnabled
         view.videoPlayerView.onVideoFinished = onVideoFinished
         onCreated?(view)
         return view
@@ -52,18 +55,21 @@ public struct Image: UIViewRepresentable {
     var resizingMode: ImageResizingMode?
     var onVideoFinished: (() -> Void)?
     var restartVideo: Bool = false
+	var isVideoRenderingEnabled: Bool = true
 
-    public init(_ image: UIImage) {
-        self.init(ImageContainer(image: image))
+    public init(_ image: UIImage, isVideoRenderingEnabled: Bool = true) {
+        self.init(ImageContainer(image: image), isVideoRenderingEnabled: isVideoRenderingEnabled)
     }
 
-    public init(_ imageContainer: ImageContainer, onCreated: ((ImageView) -> Void)? = nil) {
+    public init(_ imageContainer: ImageContainer, isVideoRenderingEnabled: Bool = true, onCreated: ((ImageView) -> Void)? = nil) {
+		self.isVideoRenderingEnabled = isVideoRenderingEnabled
         self.imageContainer = imageContainer
         self.onCreated = onCreated
     }
 
     public func makeUIView(context: Context) -> ImageView {
-        let imageView = ImageView()
+		let imageView = ImageView()
+		imageView.isVideoRenderingEnabled = isVideoRenderingEnabled
         if let resizingMode = self.resizingMode {
             imageView.resizingMode = resizingMode
         }
