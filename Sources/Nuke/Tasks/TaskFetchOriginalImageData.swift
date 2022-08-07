@@ -10,7 +10,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
     private var urlResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
-    private lazy var data = Data()
+    private var data = Data()
 
     override func start() {
         guard let urlRequest = request.urlRequest else {
