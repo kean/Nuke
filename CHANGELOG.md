@@ -1,5 +1,12 @@
 # Nuke 11
 
+## Nuke 11.0
+
+*Aug 7, 2022*
+
+- Add `DataLoader` delegate for easy Pulse integration - [#583](https://github.com/kean/Nuke/pull/583)
+- Add missing content mode to NukeUI - [#582](https://github.com/kean/Nuke/pull/582), thanks to [Ethan Pippin](https://github.com/LePips)
+
 ## Nuke 11.0.1
 
 *Jul 24, 2022*
