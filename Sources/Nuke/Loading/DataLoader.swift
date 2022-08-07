@@ -11,6 +11,17 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
 
     public var observer: (any DataLoaderObserving)?
 
+    /// The delegate that gets called for the callbacks handled by the data loader.
+    /// You can use it for observing the events sent by the data loader, but it
+    /// won't affect the requests in any way. For example, you can use it to
+    /// log network requests using [Pulse](https://github.com/kean/Pulse) which
+    /// is optimized to work with images.
+    ///
+    /// - note: The delegate retained.
+    public var delegate: URLSessionDelegate? {
+        didSet { impl.delegate = delegate }
+    }
+
     deinit {
         session.invalidateAndCancel()
 
@@ -20,8 +31,12 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
     }
 
     /// Initializes ``DataLoader`` with the given configuration.
-    /// - parameter configuration: `URLSessionConfiguration.default` with
-    /// `URLCache` with 0 MB memory capacity and 150 MB disk capacity.
+    ///
+    /// - parameters:
+    ///   - configuration: `URLSessionConfiguration.default` with `URLCache` with
+    ///   0 MB memory capacity and 150 MB disk capacity by default.
+    ///   - validate: Validates the response. By default, check if the status
+    ///   code is in the acceptable range (`200..<300`).
     public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
                 validate: @escaping (URLResponse) -> Swift.Error? = DataLoader.validate) {
         let queue = OperationQueue()
@@ -69,7 +84,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
     /// Shared url cached used by a default ``DataLoader``. The cache is
     /// initialized with 0 MB memory capacity and 150 MB disk capacity.
     public static let sharedUrlCache: URLCache = {
-        let diskCapacity = 150 * 1024 * 1024 // 150 MB
+        let diskCapacity = 150 * 1048576 // 150 MB
         #if targetEnvironment(macCatalyst)
         return URLCache(memoryCapacity: 0, diskCapacity: diskCapacity, directory: URL(fileURLWithPath: cachePath))
         #else
@@ -113,6 +128,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
 private final class _DataLoader: NSObject, URLSessionDataDelegate {
     var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
     private var handlers = [URLSessionTask: _Handler]()
+    var delegate: URLSessionDelegate?
     weak var observer: (any _DataLoaderObserving)?
 
     /// Loads data with the given request.
@@ -133,10 +149,21 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
 
     // MARK: URLSessionDelegate
 
+#if swift(>=5.7)
+    func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
+        if #available(iOS 16.0, macOS 13.0, tvOS 16.0, watchOS 9.0, *) {
+            (delegate as? URLSessionTaskDelegate)?.urlSession?(session, didCreateTask: task)
+        } else {
+            // Doesn't exist on earlier versions
+        }
+    }
+#endif
+
     func urlSession(_ session: URLSession,
                     dataTask: URLSessionDataTask,
                     didReceive response: URLResponse,
                     completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+        (delegate as? URLSessionDataDelegate)?.urlSession?(session, dataTask: dataTask, didReceive: response, completionHandler: { _ in })
         send(dataTask, .receivedResponse(response: response))
 
         guard let handler = handlers[dataTask] else {
@@ -152,6 +179,8 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didCompleteWithError: error)
+
         assert(task is URLSessionDataTask)
         if let dataTask = task as? URLSessionDataTask {
             send(dataTask, .completed(error: error))
@@ -165,12 +194,14 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didFinishCollecting: metrics)
         observer?.task(task, didFinishCollecting: metrics)
     }
 
     // MARK: URLSessionDataDelegate
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        (delegate as? URLSessionDataDelegate)?.urlSession?(session, dataTask: dataTask, didReceive: data)
         send(dataTask, .receivedData(data: data))
 
         guard let handler = handlers[dataTask], let response = dataTask.response else {
