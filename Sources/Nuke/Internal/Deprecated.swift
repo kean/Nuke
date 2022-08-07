@@ -122,3 +122,37 @@ extension URLRequest: ImageRequestConvertible {
 extension String: ImageRequestConvertible {
     public func asImageRequest() -> ImageRequest { ImageRequest(url: URL(string: self)) }
 }
+
+// Deprecated in Nuke 11.1
+@available(*, deprecated, message: "Please use `DataLoader/delegate` instead")
+public protocol DataLoaderObserving {
+    func dataLoader(_ loader: DataLoader, urlSession: URLSession, dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent)
+
+    /// Sent when complete statistics information has been collected for the task.
+    func dataLoader(_ loader: DataLoader, urlSession: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics)
+}
+
+@available(*, deprecated, message: "Please use `DataLoader/delegate` instead")
+extension DataLoaderObserving {
+    public func dataLoader(_ loader: DataLoader, urlSession: URLSession, dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent) {
+        // Do nothing
+    }
+
+    public func dataLoader(_ loader: DataLoader, urlSession: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        // Do nothing
+    }
+}
+
+/// Deprecated in Nuke 11.1
+public enum DataTaskEvent {
+    case resumed
+    case receivedResponse(response: URLResponse)
+    case receivedData(data: Data)
+    case completed(error: Error?)
+}
+
+// Deprecated in Nuke 11.1
+protocol _DataLoaderObserving: AnyObject {
+    func dataTask(_ dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent)
+    func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics)
+}

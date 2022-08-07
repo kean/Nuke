@@ -9,6 +9,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
     public let session: URLSession
     private let impl = _DataLoader()
 
+    @available(*, deprecated, message: "Please use `DataLoader/delegate` instead")
     public var observer: (any DataLoaderObserving)?
 
     /// The delegate that gets called for the callbacks handled by the data loader.
@@ -113,10 +114,12 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
 
     // MARK: _DataLoaderObserving
 
+    @available(*, deprecated, message: "Please use `DataLoader/delegate` instead")
     func dataTask(_ dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent) {
         observer?.dataLoader(self, urlSession: session, dataTask: dataTask, didReceiveEvent: event)
     }
 
+    @available(*, deprecated, message: "Please use `DataLoader/delegate` instead")
     func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
         observer?.dataLoader(self, urlSession: session, task: task, didFinishCollecting: metrics)
     }
@@ -226,38 +229,4 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
             self.completion = completion
         }
     }
-}
-
-// MARK: - DataLoaderObserving
-
-/// An event send by the data loader.
-public enum DataTaskEvent {
-    case resumed
-    case receivedResponse(response: URLResponse)
-    case receivedData(data: Data)
-    case completed(error: Error?)
-}
-
-/// Allows you to tap into internal events of the data loader. Events are
-/// delivered on the internal serial operation queue.
-public protocol DataLoaderObserving {
-    func dataLoader(_ loader: DataLoader, urlSession: URLSession, dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent)
-
-    /// Sent when complete statistics information has been collected for the task.
-    func dataLoader(_ loader: DataLoader, urlSession: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics)
-}
-
-extension DataLoaderObserving {
-    public func dataLoader(_ loader: DataLoader, urlSession: URLSession, dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent) {
-        // Do nothing
-    }
-
-    public func dataLoader(_ loader: DataLoader, urlSession: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
-        // Do nothing
-    }
-}
-
-protocol _DataLoaderObserving: AnyObject {
-    func dataTask(_ dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent)
-    func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics)
 }
