@@ -266,7 +266,7 @@ public struct LazyImage<Content: View>: View {
                 model.view?
                     .resizable()
             default:
-                model.view?
+                model.view
             }
 #else
             Image(imageContainer) {
