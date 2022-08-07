@@ -36,11 +36,7 @@ Nuke is easy to learn and use thanks to documentation generated using DocC: [**N
 
 ## Integrations
 
-Nuke provides an easy way to integrate [Pulse](https://github.com/kean/Pulse), a network logging framework which is optimized for working with images.
-
-```swift
-(ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = URLSessionProxyDelegate()
-```
+Nuke provides an easy way to integrate [Pulse](https://github.com/kean/Pulse), a network logging framework  optimized for images.
 
 ## Extensions
 
