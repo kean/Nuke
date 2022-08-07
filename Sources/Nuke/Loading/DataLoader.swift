@@ -14,9 +14,14 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
 
     /// The delegate that gets called for the callbacks handled by the data loader.
     /// You can use it for observing the events sent by the data loader, but it
-    /// won't affect the requests in any way. For example, you can use it to
-    /// log network requests using [Pulse](https://github.com/kean/Pulse) which
-    /// is optimized to work with images.
+    /// won't affect the requests in any way.
+    ///
+    /// For example, you can use it to log network requests using [Pulse](https://github.com/kean/Pulse)
+    /// which is optimized to work with images.
+    ///
+    /// ```swift
+    /// (ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = URLSessionProxyDelegate()
+    /// ```
     ///
     /// - note: The delegate retained.
     public var delegate: URLSessionDelegate? {
