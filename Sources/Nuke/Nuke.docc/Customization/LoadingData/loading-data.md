@@ -12,6 +12,14 @@ The `URLSession` class natively supports the following URL schemes: `data`, `fil
 
 The default ``DataLoader`` works great for most situation, but if you need to provide a custom networking layer, you can using a ``DataLoading`` protocol. See also, [Alamofire Plugin](https://github.com/kean/Nuke-Alamofire-Plugin).
 
+## Monitoring Network Requests
+
+Nuke can be used with [Pulse](https://github.com/kean/Pulse) for monitoring network traffic.
+
+```swift
+(ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = URLSessionProxyDelegate()
+```
+
 ## Resumable Downloads
 
 If the data task is terminated when the image is partially loaded (either because of a failure or a cancellation), the next load will resume where the previous left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators: `ETag` and `Last-Modified`. Resumable downloads are enabled by default. You can learn more in ["Resumable Downloads"](https://kean.blog/post/resumable-downloads).
@@ -62,8 +70,3 @@ public class AlamofireDataLoader: Nuke.DataLoading {
 - ``DataLoading``
 - ``DataLoader``
 - ``Cancellable``
-
-### Monitoring Data Events
-
-- ``DataLoaderObserving``
-- ``DataTaskEvent``

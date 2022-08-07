@@ -8,6 +8,7 @@ import XCTest
 class DataLoaderTests: XCTestCase {
     var sut: DataLoader!
     private let observer = MockDataLoaderObserver()
+    private let delegate = MockSessionDelegate()
 
     override func setUp() {
         super.setUp()
@@ -58,20 +59,45 @@ class DataLoaderTests: XCTestCase {
         wait()
 
         // THEN
-        XCTAssertEqual(observer.recorededEvents.count, 4)
-        XCTAssertEqual(observer.recorededMetrics.count, 1)
+        XCTAssertEqual(observer.recordedEvents.count, 4)
+        XCTAssertEqual(observer.recordedMetrics.count, 1)
+    }
+
+    // MARK: - Custom Delegate
+
+    func testCustomDelegate() {
+        // GIVEN
+        sut.delegate = delegate
+
+        // WHEN
+        let expectation = self.expectation(description: "DataLoaded")
+        _ = sut.loadData(with: URLRequest(url: url), didReceiveData: { _, _ in }, completion: { _ in
+            expectation.fulfill()
+        })
+        wait()
+
+        // THEN
+        XCTAssertEqual(delegate.recordedMetrics.count, 1)
     }
 }
 
 private final class MockDataLoaderObserver: DataLoaderObserving {
-    var recorededEvents: [DataTaskEvent] = []
-    var recorededMetrics: [URLSessionTaskMetrics] = []
+    var recordedEvents: [DataTaskEvent] = []
+    var recordedMetrics: [URLSessionTaskMetrics] = []
 
     func dataLoader(_ loader: DataLoader, urlSession: URLSession, dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent) {
-        recorededEvents.append(event)
+        recordedEvents.append(event)
     }
 
     func dataLoader(_ loader: DataLoader, urlSession: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
-        recorededMetrics.append(metrics)
+        recordedMetrics.append(metrics)
+    }
+}
+
+private final class MockSessionDelegate: NSObject, URLSessionTaskDelegate {
+    var recordedMetrics: [URLSessionTaskMetrics] = []
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        recordedMetrics.append(metrics)
     }
 }

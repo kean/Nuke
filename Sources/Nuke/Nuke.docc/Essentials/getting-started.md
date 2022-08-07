@@ -75,6 +75,12 @@ ImagePipeline.shared = ImagePipeline(configuration: .withDataCache)
 
 One of the key Nuke's features is performance. It does a lot by default: custom cache layers, coalescing of equivalent requests, resumable HTTP downloads, and more. But there are certain things that the user of the framework can also do to use it more effectively, for example, <doc:prefetching>. To learn more about what you can do to improve image loading performance in your apps, see <doc:performance-guide>.
 
+In order to optimize performance, you need to be able to monitor it. And that's where [Pulse](https://github.com/kean/Pulse) network logging framework comes in handy. It is optimized for working with images and is easy to integrate:
+
+```swift
+(ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = URLSessionProxyDelegate()
+```
+
 ## NukeUI
 
 **NukeUI** is a module that provides async image views for SwiftUI, UIKit, and AppKit.

@@ -89,6 +89,7 @@ extension NSColor {
 
 #if os(iOS) || os(tvOS)
 extension UIView.ContentMode {
+    // swiftlint:disable:next cyclomatic_complexity
     init(resizingMode: ImageResizingMode) {
         switch resizingMode {
         case .fill: self = .scaleToFill

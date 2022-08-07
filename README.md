@@ -34,7 +34,14 @@ Nuke is easy to learn and use thanks to documentation generated using DocC: [**N
 <img width="690" alt="Nuke Docs" src="https://user-images.githubusercontent.com/1567433/175793167-b7e0c557-b887-444f-b18a-57d6f5ecf01a.png">
 </a>
 
-<a name="h_plugins"></a>
+## Integrations
+
+Nuke provides an easy way to integrate [Pulse](https://github.com/kean/Pulse), a network logging framework which is optimized for working with images.
+
+```swift
+(ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = URLSessionProxyDelegate()
+```
+
 ## Extensions
 
 The image pipeline is easy to customize and extend. Check out the following first-class extensions and packages built by the community.
@@ -48,7 +55,6 @@ The image pipeline is easy to customize and extend. Check out the following firs
 |[**Gifu Plugin**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples|
 
-<a name="h_requirements"></a>
 ## Minimum Requirements
 
 | Nuke       | Date         | Swift       | Xcode      | Platforms                                     |
