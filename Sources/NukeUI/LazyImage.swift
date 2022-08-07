@@ -258,7 +258,6 @@ public struct LazyImage<Content: View>: View {
         if let imageContainer = model.imageContainer {
 #if os(watchOS)
             switch resizingMode ?? ImageResizingMode.aspectFill {
-            case .center: model.view
             case .aspectFit, .aspectFill:
                 model.view?
                     .resizable()
@@ -266,6 +265,8 @@ public struct LazyImage<Content: View>: View {
             case .fill:
                 model.view?
                     .resizable()
+            default:
+                model.view?
             }
 #else
             Image(imageContainer) {
@@ -319,8 +320,16 @@ public struct LazyImage<Content: View>: View {
 }
 
 public enum ImageResizingMode {
+    case fill
     case aspectFit
     case aspectFill
     case center
-    case fill
+    case top
+    case bottom
+    case left
+    case right
+    case topLeft
+    case topRight
+    case bottomLeft
+    case bottomRight
 }
