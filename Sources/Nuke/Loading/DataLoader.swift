@@ -13,8 +13,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
     public var observer: (any DataLoaderObserving)?
 
     /// The delegate that gets called for the callbacks handled by the data loader.
-    /// You can use it for observing the events sent by the data loader, but it
-    /// won't affect the requests in any way.
+    /// You can use it for observing the session events, but can't affect them.
     ///
     /// For example, you can use it to log network requests using [Pulse](https://github.com/kean/Pulse)
     /// which is optimized to work with images.
@@ -23,7 +22,7 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
     /// (ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = URLSessionProxyDelegate()
     /// ```
     ///
-    /// - note: The delegate retained.
+    /// - note: The delegate is retained.
     public var delegate: URLSessionDelegate? {
         didSet { impl.delegate = delegate }
     }

@@ -70,8 +70,3 @@ public class AlamofireDataLoader: Nuke.DataLoading {
 - ``DataLoading``
 - ``DataLoader``
 - ``Cancellable``
-
-### Monitoring Data Events
-
-- ``DataLoaderObserving``
-- ``DataTaskEvent``
