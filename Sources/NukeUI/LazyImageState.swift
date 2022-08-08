@@ -24,11 +24,11 @@ public struct LazyImageState {
     @MainActor
     public var image: Image? {
 #if os(macOS)
-        return imageContainer.map { Image($0) }
+        return imageContainer.map { Image($0, isVideoRenderingEnabled: isVideoRenderingEnabled) }
 #elseif os(watchOS)
-        return imageContainer.map { Image(uiImage: $0.image) }
+        return imageContainer.map { Image(uiImage: $0.image, isVideoRenderingEnabled: isVideoRenderingEnabled) }
 #else
-        return imageContainer.map { Image($0) }
+        return imageContainer.map { Image($0, isVideoRenderingEnabled: isVideoRenderingEnabled) }
 #endif
     }
 
@@ -45,11 +45,14 @@ public struct LazyImageState {
     /// The progress of the image download.
     public let progress: ImageTask.Progress
 
+	private let isVideoRenderingEnabled: Bool
+
     @MainActor
-    init(_ fetchImage: FetchImage) {
+	init(_ fetchImage: FetchImage, isVideoRenderingEnabled: Bool) {
         self.result = fetchImage.result
         self.imageContainer = fetchImage.imageContainer
         self.isLoading = fetchImage.isLoading
         self.progress = fetchImage.progress
+		self.isVideoRenderingEnabled = isVideoRenderingEnabled
     }
 }

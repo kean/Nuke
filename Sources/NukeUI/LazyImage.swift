@@ -254,7 +254,7 @@ public struct LazyImage<Content: View>: View {
 
     @ViewBuilder private var content: some View {
         if let makeContent = makeContent {
-            makeContent(LazyImageState(model))
+			makeContent(LazyImageState(model, isVideoRenderingEnabled: isVideoRenderingEnabled))
         } else {
             makeDefaultContent()
         }
