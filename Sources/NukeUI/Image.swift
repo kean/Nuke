@@ -73,7 +73,9 @@ public struct Image: UIViewRepresentable {
         if let resizingMode = self.resizingMode {
             imageView.resizingMode = resizingMode
         }
-        imageView.videoPlayerView.onVideoFinished = onVideoFinished
+		if imageView.isVideoRenderingEnabled {
+			imageView.videoPlayerView.onVideoFinished = onVideoFinished
+		}
         onCreated?(imageView)
         return imageView
     }
