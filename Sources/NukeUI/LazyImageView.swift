@@ -161,7 +161,6 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Private
 
     private var isResetNeeded = false
-    private var isDisplayingContent = false
 
     // MARK: Initializers
 
@@ -180,6 +179,7 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private func didInit() {
+        imageView.isHidden = true
         addSubview(imageView)
         imageView.pinToSuperview()
 
@@ -239,7 +239,6 @@ public final class LazyImageView: _PlatformBaseView {
         setPlaceholderViewHidden(true)
         setFailureViewHidden(true)
 
-        isDisplayingContent = false
         isResetNeeded = false
     }
 
@@ -345,9 +344,6 @@ public final class LazyImageView: _PlatformBaseView {
         if !isFromMemory, let transition = transition {
             runTransition(transition, container)
         }
-
-        // It's used to determine when to perform certain transitions
-        isDisplayingContent = true
     }
 
     // MARK: Private (Placeholder View)
@@ -369,7 +365,7 @@ public final class LazyImageView: _PlatformBaseView {
             oldView.removeFromSuperview()
         }
         if let newView = newView {
-            newView.isHidden = true
+            newView.isHidden = !imageView.isHidden
             insertSubview(newView, at: 0)
             setNeedsUpdateConstraints()
 #if os(iOS) || os(tvOS)
@@ -429,7 +425,7 @@ public final class LazyImageView: _PlatformBaseView {
 #if os(iOS) || os(tvOS)
 
     private func runFadeInTransition(duration: TimeInterval) {
-        guard !isDisplayingContent else { return }
+        guard !imageView.isHidden else { return }
         imageView.alpha = 0
         UIView.animate(withDuration: duration, delay: 0, options: [.allowUserInteraction]) {
             self.imageView.alpha = 1
@@ -439,7 +435,7 @@ public final class LazyImageView: _PlatformBaseView {
 #elseif os(macOS)
 
     private func runFadeInTransition(duration: TimeInterval) {
-        guard !isDisplayingContent else { return }
+        guard !imageView.isHidden else { return }
         imageView.layer?.animateOpacity(duration: duration)
     }
 
