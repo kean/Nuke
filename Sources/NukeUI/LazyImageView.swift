@@ -22,7 +22,7 @@ import UIKit
 /// imageView.placeholderView = UIActivityIndicatorView()
 /// imageView.priority = .high
 /// imageView.pipeline = customPipeline
-/// imageView.onCompletion = { print("Request completed")
+/// imageView.onCompletion = { print("Request completed") }
 ///
 /// imageView.url = URL(string: "https://example.com/image.jpeg")
 /// ````
