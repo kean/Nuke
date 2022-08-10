@@ -24,7 +24,7 @@ import UIKit
 /// imageView.pipeline = customPipeline
 /// imageView.onCompletion = { print("Request completed")
 ///
-/// imageView.source = "https://example.com/image.jpeg"
+/// imageView.url = URL(string: "https://example.com/image.jpeg")
 /// ````
 @MainActor
 public final class LazyImageView: _PlatformBaseView {
