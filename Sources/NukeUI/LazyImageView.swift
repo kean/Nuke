@@ -22,9 +22,9 @@ import UIKit
 /// imageView.placeholderView = UIActivityIndicatorView()
 /// imageView.priority = .high
 /// imageView.pipeline = customPipeline
-/// imageView.onCompletion = { print("Request completed")
+/// imageView.onCompletion = { _ in print("Request completed") }
 ///
-/// imageView.source = "https://example.com/image.jpeg"
+/// imageView.url = URL(string: "https://example.com/image.jpeg")
 /// ````
 @MainActor
 public final class LazyImageView: _PlatformBaseView {
