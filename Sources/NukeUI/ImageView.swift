@@ -33,6 +33,9 @@ public class ImageView: _PlatformBaseView {
             _videoPlayerView?.videoGravity = .init(resizingMode)
         }
     }
+#else
+    /// - warning: This option currently does nothing on macOS.
+    public var resizingMode: ImageResizingMode = .aspectFill
 #endif
 
 #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
