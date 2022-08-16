@@ -142,6 +142,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         let dataLoader = MockProgressiveDataLoader()
         pipeline = pipeline.reconfigured {
             $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
         }
 
         // WHEN/THEN
