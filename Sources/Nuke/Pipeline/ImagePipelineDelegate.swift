@@ -96,7 +96,7 @@ extension ImagePipelineDelegate {
 
     public func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse {
         var response = response
-        response.container.image = ImageDecompression.decompress(image: response.image)
+        response.container.image = ImageDecompression.decompress(image: response.image, isUsingPrepareForDisplay: pipeline.configuration.isUsingPrepareForDisplay)
         return response
     }
 }

@@ -51,6 +51,11 @@ extension ImagePipeline {
             set { _isDecompressionEnabled = newValue }
         }
 
+        /// Set this to `true` to use native `preparingForDisplay()` method for
+        /// decompression on iOS and tvOS 15.0 and later. Disabled by default.
+        /// If disabled, CoreGraphics-based decompression is used.
+        public var isUsingPrepareForDisplay: Bool = false
+
 #if os(macOS)
         var _isDecompressionEnabled = false
 #else
