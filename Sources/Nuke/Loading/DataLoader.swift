@@ -12,6 +12,10 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
     @available(*, deprecated, message: "Please use `DataLoader/delegate` instead")
     public var observer: (any DataLoaderObserving)?
 
+    /// Determines whether to deliver a partial response body in increments. By
+    /// default, `false`.
+    public var prefersIncrementalDelivery = false
+
     /// The delegate that gets called for the callbacks handled by the data loader.
     /// You can use it for observing the session events, but can't affect them.
     ///
@@ -100,7 +104,11 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
     public func loadData(with request: URLRequest,
                          didReceiveData: @escaping (Data, URLResponse) -> Void,
                          completion: @escaping (Swift.Error?) -> Void) -> any Cancellable {
-        impl.loadData(with: request, session: session, didReceiveData: didReceiveData, completion: completion)
+        let task = session.dataTask(with: request)
+        if #available(iOS 14.5, tvOS 14.5, watchOS 7.4, macOS 11.3, *) {
+            task.prefersIncrementalDelivery = prefersIncrementalDelivery
+        }
+        return impl.loadData(with: task, session: session, didReceiveData: didReceiveData, completion: completion)
     }
 
     /// Errors produced by ``DataLoader``.
@@ -139,11 +147,10 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     weak var observer: (any _DataLoaderObserving)?
 
     /// Loads data with the given request.
-    func loadData(with request: URLRequest,
+    func loadData(with task: URLSessionDataTask,
                   session: URLSession,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
                   completion: @escaping (Error?) -> Void) -> any Cancellable {
-        let task = session.dataTask(with: request)
         let handler = _Handler(didReceiveData: didReceiveData, completion: completion)
         session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler

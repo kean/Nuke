@@ -61,6 +61,7 @@ public final class ImagePipeline: @unchecked Sendable {
         self.configuration = configuration
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()
+        (configuration.dataLoader as? DataLoader)?.prefersIncrementalDelivery = configuration.isProgressiveDecodingEnabled
 
         let isCoalescingEnabled = configuration.isTaskCoalescingEnabled
         self.tasksLoadData = TaskPool(isCoalescingEnabled)
