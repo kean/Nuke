@@ -12,9 +12,10 @@ public final class VideoPlayerView: _PlatformBaseView {
     // MARK: Configuration
 
     /// `.resizeAspectFill` by default.
-    public var videoGravity: AVLayerVideoGravity {
-        get { playerLayer.videoGravity }
-        set { playerLayer.videoGravity = newValue }
+    public var videoGravity: AVLayerVideoGravity = .resizeAspectFill {
+        didSet {
+            _playerLayer?.videoGravity = videoGravity
+        }
     }
 
     /// `true` by default. If disabled, will only play a video once.
@@ -32,35 +33,37 @@ public final class VideoPlayerView: _PlatformBaseView {
     var onVideoFinished: (() -> Void)?
 
     // MARK: Initialization
-#if !os(macOS)
-    override public class var layerClass: AnyClass {
-        AVPlayerLayer.self
-    }
 
     public var playerLayer: AVPlayerLayer {
-        (layer as? AVPlayerLayer) ?? AVPlayerLayer() // The right side should never happen
-    }
-#else
-    public let playerLayer = AVPlayerLayer()
-
-    override public init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-
-        // Creating a view backed by a custom layer on macOS is ... hard
+        if let layer = _playerLayer {
+            return layer
+        }
+        let playerLayer = AVPlayerLayer()
+#if os(macOS)
         wantsLayer = true
-        layer?.addSublayer(playerLayer)
+        self.layer?.addSublayer(playerLayer)
+#else
+        self.layer.addSublayer(playerLayer)
+#endif
         playerLayer.frame = bounds
+        playerLayer.videoGravity = videoGravity
+        _playerLayer = playerLayer
+        return playerLayer
     }
 
+    private var _playerLayer: AVPlayerLayer?
+
+    #if os(iOS) || os(tvOS)
+    override public func layoutSubviews() {
+        super.layoutSubviews()
+
+        _playerLayer?.frame = bounds
+    }
+    #elseif os(macOS)
     override public func layout() {
         super.layout()
 
-        playerLayer.frame = bounds
-    }
-
-    @available(*, unavailable)
-    public required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        _playerLayer?.frame = bounds
     }
 #endif
 
@@ -75,7 +78,7 @@ public final class VideoPlayerView: _PlatformBaseView {
     private var playerObserver: AnyObject?
 
     public func reset() {
-        playerLayer.player = nil
+        _playerLayer?.player = nil
         player = nil
         playerObserver = nil
     }
@@ -173,8 +176,7 @@ extension AVLayerVideoGravity {
         switch contentMode {
         case .fill: self = .resize
         case .aspectFill: self = .resizeAspectFill
-        default:
-            self = .resizeAspect
+        default: self = .resizeAspect
         }
     }
 }

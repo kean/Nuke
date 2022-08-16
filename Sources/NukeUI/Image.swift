@@ -16,8 +16,10 @@ import UIKit
 public struct Image: NSViewRepresentable {
     let imageContainer: ImageContainer
     let onCreated: ((ImageView) -> Void)?
-    var onVideoFinished: (() -> Void)?
-    var restartVideo: Bool = false
+    var isAnimatedImageRenderingEnabled: Bool?
+    var isVideoRenderingEnabled: Bool?
+    var isVideoLooping: Bool?
+    var resizingMode: ImageResizingMode?
 
     public init(_ image: NSImage) {
         self.init(ImageContainer(image: image))
@@ -30,17 +32,12 @@ public struct Image: NSViewRepresentable {
 
     public func makeNSView(context: Context) -> ImageView {
         let view = ImageView()
-        view.videoPlayerView.onVideoFinished = onVideoFinished
         onCreated?(view)
         return view
     }
 
     public func updateNSView(_ imageView: ImageView, context: Context) {
-        if restartVideo {
-            imageView.videoPlayerView.restart()
-        }
-        guard imageView.imageContainer?.image !== imageContainer.image else { return }
-        imageView.imageContainer = imageContainer
+        updateImageView(imageView)
     }
 }
 #elseif os(iOS) || os(tvOS)
@@ -49,9 +46,10 @@ public struct Image: NSViewRepresentable {
 public struct Image: UIViewRepresentable {
     let imageContainer: ImageContainer
     let onCreated: ((ImageView) -> Void)?
+    var isAnimatedImageRenderingEnabled: Bool?
+    var isVideoRenderingEnabled: Bool?
+    var isVideoLooping: Bool?
     var resizingMode: ImageResizingMode?
-    var onVideoFinished: (() -> Void)?
-    var restartVideo: Bool = false
 
     public init(_ image: UIImage) {
         self.init(ImageContainer(image: image))
@@ -64,20 +62,26 @@ public struct Image: UIViewRepresentable {
 
     public func makeUIView(context: Context) -> ImageView {
         let imageView = ImageView()
-        if let resizingMode = self.resizingMode {
-            imageView.resizingMode = resizingMode
-        }
-        imageView.videoPlayerView.onVideoFinished = onVideoFinished
         onCreated?(imageView)
         return imageView
     }
 
     public func updateUIView(_ imageView: ImageView, context: Context) {
-        if restartVideo {
-            imageView.videoPlayerView.restart()
+        updateImageView(imageView)
+    }
+}
+#endif
+
+#if os(macOS) || os(iOS) || os(tvOS)
+extension Image {
+    func updateImageView(_ imageView: ImageView) {
+        if imageView.imageContainer?.image !== imageContainer.image {
+            imageView.imageContainer = imageContainer
         }
-        guard imageView.imageContainer?.image !== imageContainer.image else { return }
-        imageView.imageContainer = imageContainer
+        if let value = resizingMode { imageView.resizingMode = value }
+        if let value = isVideoRenderingEnabled { imageView.isVideoRenderingEnabled = value }
+        if let value = isAnimatedImageRenderingEnabled { imageView.isAnimatedImageRenderingEnabled = value }
+        if let value = isVideoLooping { imageView.isVideoLooping = value }
     }
 
     /// Sets the resizing mode for the image.
@@ -86,24 +90,22 @@ public struct Image: UIViewRepresentable {
         copy.resizingMode = mode
         return copy
     }
-}
-#endif
 
-#if os(macOS) || os(iOS) || os(tvOS)
-extension Image {
-    // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Deprecated. Please use the underlying video player view directly or create a custom wrapper for it. More APIs coming in future versions.")
-    public func onVideoFinished(content: @escaping () -> Void) -> Self {
+    public func videoRenderingEnabled(_ isEnabled: Bool) -> Self {
         var copy = self
-        copy.onVideoFinished = content
+        copy.isVideoRenderingEnabled = isEnabled
         return copy
     }
 
-    // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Deprecated. Please use the underlying video player view directly or create a custom wrapper for it. More APIs coming in future versions.")
-    public func restartVideo(_ value: Bool) -> Self {
+    public func videoLoopingEnabled(_ isEnabled: Bool) -> Self {
         var copy = self
-        copy.restartVideo = value
+        copy.isVideoLooping = isEnabled
+        return copy
+    }
+
+    public func animatedImageRenderingEnabled(_ isEnabled: Bool) -> Self {
+        var copy = self
+        copy.isAnimatedImageRenderingEnabled = isEnabled
         return copy
     }
 }

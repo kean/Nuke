@@ -143,11 +143,10 @@ public class ImageView: _PlatformBaseView {
     }
     var _imageContainer: ImageContainer?
 
-    // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Please set `isLooping` on the underlying `viewPlayerView` directly.")
-    public var isVideoLooping: Bool {
-        get { videoPlayerView.isLooping }
-        set { videoPlayerView.isLooping = newValue }
+    public var isVideoLooping: Bool = true {
+        didSet {
+            _videoPlayerView?.isLooping = isVideoLooping
+        }
     }
 
     public var image: PlatformImage? {
@@ -169,6 +168,7 @@ public class ImageView: _PlatformBaseView {
 #endif
         if isVideoRenderingEnabled, let asset = container.asset {
             videoPlayerView.isHidden = false
+            videoPlayerView.isLooping = isVideoLooping
             videoPlayerView.asset = asset
             videoPlayerView.play()
             return
