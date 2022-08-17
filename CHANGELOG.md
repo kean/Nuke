@@ -6,7 +6,7 @@
 
 - **Breaking** Progressive decoding is now disabled by default as a way to mitigate
 - Add `prefersIncrementalDelivery` to `DataLoader`. When progressive decoding is disabled, it now uses `prefersIncrementalDelivery` on `URLSessionTask`, slightly increasing the performance.
-- Fix an issue with placeholder not being shown by `LazyImage` when the intitial URL is `nil` – [#586](https://github.com/kean/Nuke/pull/586), thanks to [Jeffrey](https://github.com/jeffreykuiken)
+- Fix an issue with placeholder not being shown by `LazyImage` when the initial URL is `nil` – [#586](https://github.com/kean/Nuke/pull/586), thanks to [Jeffrey](https://github.com/jeffreykuiken)
 - Add convenience options to `Image` and `LazyImage`: `resizingMode(_:)`, `videoRenderingEnabled(_:)`, `videoLoopingEnabled(_:)`, `animatedImageRenderingEnabled(_:)`
 - Fix an issue where `AVPlayerLayer` was created eagerly
 - Disable `prepareForDisplay` by default and add a configuration option to enable it
