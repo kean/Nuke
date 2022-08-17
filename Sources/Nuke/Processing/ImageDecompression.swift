@@ -6,7 +6,7 @@ import Foundation
 
 enum ImageDecompression {
 
-    static func decompress(image: PlatformImage, isUsingPrepareForDisplay: Bool) -> PlatformImage {
+    static func decompress(image: PlatformImage, isUsingPrepareForDisplay: Bool = false) -> PlatformImage {
         image.decompressed(isUsingPrepareForDisplay: isUsingPrepareForDisplay) ?? image
     }
 

@@ -26,7 +26,7 @@ class ImageDecompressionTests: XCTestCase {
         XCTAssertEqual(input.cgImage?.bitsPerPixel, 8)
 
         // When
-        let output = ImageDecompression.decompress(image: input)
+        let output = ImageDecompression.decompress(image: input, isUsingPrepareForDisplay: true)
 
         // Then
         // The original image doesn't have an alpha channel (kCGImageAlphaNone),
