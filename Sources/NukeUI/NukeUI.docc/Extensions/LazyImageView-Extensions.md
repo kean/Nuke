@@ -42,6 +42,6 @@
 - ``onFailure``
 - ``onCompletion``
 
-### Accessing Undelying Views
+### Accessing Underlying Views
 
 - ``imageView``

@@ -171,7 +171,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     ///
     /// - important: If you are using a pipeline with a custom configuration that
     /// enables aggressive disk cache, fetched data will be stored in this cache.
-    /// You can use ``Options-swift.struct/disableDiskCache`` to diasble it.
+    /// You can use ``Options-swift.struct/disableDiskCache`` to disable it.
     ///
     /// - note: If the resource is identifiable with a `URL`, consider
     /// implementing a custom data loader instead. See <doc:loading-data>.
@@ -218,7 +218,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     ///
     /// - important: If you are using a pipeline with a custom configuration that
     /// enables aggressive disk cache, fetched data will be stored in this cache.
-    /// You can use ``Options-swift.struct/disableDiskCache`` to diasble it.
+    /// You can use ``Options-swift.struct/disableDiskCache`` to disable it.
     ///
     /// - parameters:
     ///   - id: Uniquely identifies the fetched image.
@@ -455,7 +455,7 @@ extension ImageRequest {
     /// Just like many Swift built-in types, ``ImageRequest`` uses CoW approach to
     /// avoid memberwise retain/releases when ``ImageRequest`` is passed around.
     private final class Container: @unchecked Sendable {
-        // It's benefitial to put resource before priority and options because
+        // It's beneficial to put resource before priority and options because
         // of the resource size/stride of 9/16. Priority (1 byte) and Options
         // (2 bytes) slot just right in the remaining space.
         let resource: Resource

@@ -65,7 +65,7 @@ public final class ImageCache: ImageCaching {
 
     /// Initializes `Cache`.
     /// - parameter costLimit: Default value representes a number of bytes and is
-    /// calculated based on the amount of the phisical memory available on the device.
+    /// calculated based on the amount of the physical memory available on the device.
     /// - parameter countLimit: `Int.max` by default.
     public init(costLimit: Int = ImageCache.defaultCostLimit(), countLimit: Int = Int.max) {
         impl = Cache(costLimit: costLimit, countLimit: countLimit)
@@ -76,7 +76,7 @@ public final class ImageCache: ImageCaching {
     }
 
     /// Returns a recommended cost limit which is computed based on the amount
-    /// of the phisical memory available on the device.
+    /// of the physicalbenefitial memory available on the device.
     public static func defaultCostLimit() -> Int {
         let physicalMemory = ProcessInfo.processInfo.physicalMemory
         let ratio = physicalMemory <= (536_870_912 /* 512 Mb */) ? 0.1 : 0.2
