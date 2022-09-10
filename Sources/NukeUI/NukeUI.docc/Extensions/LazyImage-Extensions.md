@@ -88,7 +88,7 @@ LazyImage(url: URL(string: "https://example.com/image.jpeg"))
 - ``init(url:content:)``
 - ``init(request:content:)``
 
-### Accessing Undelying Views
+### Accessing Underlying Views
 
 - ``onCreated(_:)``
 
