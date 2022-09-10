@@ -1,5 +1,11 @@
 # Nuke 11
 
+## Nuke 11.2.1
+
+*Sep 10, 2022*
+
+- Fix an issue with Mac Catalyst on Xcode 14.0  
+
 ## Nuke 11.2
 
 *Sep 10, 2022*
