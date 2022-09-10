@@ -54,9 +54,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "OS=9.0,name=Apple Watch Series 8 - 44mm"
-          Scripts/test.sh -s "NukeUI" -d "OS=9.0,name=Apple Watch Series 8 - 44mm"
-          Scripts/test.sh -s "Nuke Extensions" -d "OS=9.0,name=Apple Watch Series 8 - 44mm"
+          Scripts/test.sh -s "Nuke" -d "OS=9.0,name=Apple Watch Series 8 (45mm)"
+          Scripts/test.sh -s "NukeUI" -d "OS=9.0,name=Apple Watch Series 8 (45mm)"
+          Scripts/test.sh -s "Nuke Extensions" -d "OS=9.0,name=Apple Watch Series 8 (45mm)"
   ios-xcode-13:
     name: Unit Tests (iOS 15.5, Xcode 13.4.1)
     runs-on: macOS-12
