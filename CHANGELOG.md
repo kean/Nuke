@@ -1,5 +1,12 @@
 # Nuke 11
 
+## Nuke 11.2
+
+*Sep 10, 2022*
+
+- Add support for Xcode 14.0
+- Fix [#595](https://github.com/kean/Nuke/issues/595) – compilation issue on macOS
+
 ## Nuke 11.1.1
 
 *Aug 16, 2022*
