@@ -70,6 +70,17 @@ extension NSImageView: Nuke_ImageDisplaying {
 }
 #endif
 
+#if os(tvOS)
+import TVUIKit
+
+extension TVPosterView: Nuke_ImageDisplaying {
+    /// Displays an image.
+    open func nuke_display(image: UIImage?, data: Data? = nil) {
+        self.image = image
+    }
+}
+#endif
+
 // MARK: - ImageView Extensions
 
 /// Loads an image with the given request and displays it in the view.
