@@ -1,5 +1,11 @@
 # Nuke 11
 
+## Nuke 11.3.0
+
+*Sep 17, 2022*
+
+- Add support for loading image into `TVPosterView` (tvOS) - [#602](https://github.com/kean/Nuke/pull/602), thanks to [@lukaskukacka](https://github.com/lukaskukacka)
+
 ## Nuke 11.2.1
 
 *Sep 10, 2022*
