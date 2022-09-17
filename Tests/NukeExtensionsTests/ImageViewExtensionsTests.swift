@@ -3,6 +3,9 @@
 // Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
+#if os(tvOS)
+import TVUIKit
+#endif
 @testable import Nuke
 @testable import NukeExtensions
 
@@ -50,6 +53,20 @@ class ImageViewExtensionsTests: XCTestCase {
         // Expect the image to be downloaded and displayed
         XCTAssertNotNil(imageView.image)
     }
+
+    #if os(tvOS)
+    func testImageLoadedToTVPosterView() {
+        // Use local instance for this tvOS specific test for simplicity
+        let posterView = TVPosterView()
+
+        // When requesting an image with request
+        expectToLoadImage(with: Test.request, into: posterView)
+        wait()
+
+        // Expect the image to be downloaded and displayed
+        XCTAssertNotNil(posterView.image)
+    }
+    #endif
 
     func testImageLoadedWithURL() {
         // When requesting an image with URL
