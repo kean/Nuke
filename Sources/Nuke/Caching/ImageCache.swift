@@ -64,7 +64,7 @@ public final class ImageCache: ImageCaching {
     }
 
     /// Initializes `Cache`.
-    /// - parameter costLimit: Default value representes a number of bytes and is
+    /// - parameter costLimit: Default value represents a number of bytes and is
     /// calculated based on the amount of the physical memory available on the device.
     /// - parameter countLimit: `Int.max` by default.
     public init(costLimit: Int = ImageCache.defaultCostLimit(), countLimit: Int = Int.max) {
