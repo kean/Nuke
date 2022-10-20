@@ -205,6 +205,14 @@ class ImageTypeTests: XCTestCase {
         XCTAssertEqual(AssetType(data[0..<12]), .webp)
         XCTAssertEqual(AssetType(data), .webp)
     }
+    
+    func testDetectAnimatedWebP() {
+        let data = Test.data(name: "animated", extension: "webp")
+        XCTAssertNil(AssetType(data[0..<1]))
+        XCTAssertNil(AssetType(data[0..<2]))
+        XCTAssertEqual(AssetType(data[0..<34]), .animatedWebp)
+        XCTAssertEqual(AssetType(data), .animatedWebp)
+    }
 }
 
 class ImagePropertiesTests: XCTestCase {

@@ -285,6 +285,7 @@
 		0CF5456B25B39A0E00B45F1E /* left-orientation.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0CF5456A25B39A0E00B45F1E /* left-orientation.jpeg */; };
 		0CF58FF726DAAC3800D2650D /* ImageDownsampleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF58FF626DAAC3800D2650D /* ImageDownsampleTests.swift */; };
 		2DFD93B0233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DFD93AF233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift */; };
+		8C3AF28E2901A13200935891 /* animated.webp in Resources */ = {isa = PBXBuildFile; fileRef = 8C3AF28D2901A13200935891 /* animated.webp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -562,6 +563,7 @@
 		0CF5456A25B39A0E00B45F1E /* left-orientation.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "left-orientation.jpeg"; sourceTree = "<group>"; };
 		0CF58FF626DAAC3800D2650D /* ImageDownsampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDownsampleTests.swift; sourceTree = "<group>"; };
 		2DFD93AF233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineProcessorTests.swift; sourceTree = "<group>"; };
+		8C3AF28D2901A13200935891 /* animated.webp */ = {isa = PBXFileReference; lastKnownFileType = file; path = animated.webp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -655,6 +657,7 @@
 		0C09B1641FE9A62400E8FE3B /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				8C3AF28D2901A13200935891 /* animated.webp */,
 				0C70D9702089016800A49DAC /* baseline.jpeg */,
 				0CF5456A25B39A0E00B45F1E /* left-orientation.jpeg */,
 				0C4B34112572E233000FDDBA /* grayscale.jpeg */,
@@ -1508,6 +1511,7 @@
 				0C95FD542571B278008D4FC2 /* baseline.webp in Resources */,
 				0CF5456B25B39A0E00B45F1E /* left-orientation.jpeg in Resources */,
 				0C7CE28B243933550018C8C3 /* s-rounded-corners.png in Resources */,
+				8C3AF28E2901A13200935891 /* animated.webp in Resources */,
 				0CA4ECA426E67ED500BAC8E5 /* video.mp4 in Resources */,
 				0C70D9712089016800A49DAC /* progressive.jpeg in Resources */,
 				0C7CE28D2439342C0018C8C3 /* s-rounded-corners-border.png in Resources */,

@@ -28,6 +28,8 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
     /// iOS 14, watchOS 7, tvOS 14.
     public static let webp: AssetType = "public.webp"
 
+    public static let animatedWebp: AssetType = "public.animated.webp"
+
     public static let mp4: AssetType = "public.mpeg4"
 
     /// The M4V file format is a video container format developed by Apple and
@@ -73,7 +75,10 @@ extension AssetType {
         if _match([0x47, 0x49, 0x46]) { return .gif }
 
         // WebP magic numbers https://en.wikipedia.org/wiki/List_of_file_signatures
-        if _match([0x52, 0x49, 0x46, 0x46, nil, nil, nil, nil, 0x57, 0x45, 0x42, 0x50]) { return .webp }
+        if _match([0x52, 0x49, 0x46, 0x46, nil, nil, nil, nil, 0x57, 0x45, 0x42, 0x50]) {
+            if _match([0x41, 0x4E, 0x49, 0x4d], offset: 30) { return .animatedWebp }
+            return .webp
+        }
 
         // see https://stackoverflow.com/questions/21879981/avfoundation-avplayer-supported-formats-no-vob-or-mpg-containers
         // https://en.wikipedia.org/wiki/List_of_file_signatures
