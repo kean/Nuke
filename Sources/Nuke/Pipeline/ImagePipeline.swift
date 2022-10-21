@@ -137,20 +137,23 @@ public final class ImagePipeline: @unchecked Sendable {
         self.delegate.imageTaskCreated(task)
         task.delegate?.imageTaskCreated(task)
 
-        return try await withTaskCancellationHandler(handler: {
-            task.cancel()
-        }, operation: {
-            try await withUnsafeThrowingContinuation { continuation in
-                task.onCancel = {
-                    continuation.resume(throwing: CancellationError())
-                }
-                self.queue.async {
-                    self.startImageTask(task, progress: nil) { result in
-                        continuation.resume(with: result)
+        return try await withTaskCancellationHandler(
+            operation: {
+                try await withUnsafeThrowingContinuation { continuation in
+                    task.onCancel = {
+                        continuation.resume(throwing: CancellationError())
+                    }
+                    self.queue.async {
+                        self.startImageTask(task, progress: nil) { result in
+                            continuation.resume(with: result)
+                        }
                     }
                 }
+            },
+            onCancel: {
+                task.cancel()
             }
-        })
+        )
     }
 
     // MARK: - Loading Data (Async/Await)
@@ -169,20 +172,23 @@ public final class ImagePipeline: @unchecked Sendable {
     @discardableResult
     public func data(for request: ImageRequest) async throws -> (Data, URLResponse?) {
         let task = makeImageTask(request: request, queue: nil, isDataTask: true)
-        return try await withTaskCancellationHandler(handler: {
-            task.cancel()
-        }, operation: {
-            try await withUnsafeThrowingContinuation { continuation in
-                task.onCancel = {
-                    continuation.resume(throwing: CancellationError())
-                }
-                self.queue.async {
-                    self.startDataTask(task, progress: nil) { result in
-                        continuation.resume(with: result.map { $0 })
+        return try await withTaskCancellationHandler(
+            operation: {
+                try await withUnsafeThrowingContinuation { continuation in
+                    task.onCancel = {
+                        continuation.resume(throwing: CancellationError())
+                    }
+                    self.queue.async {
+                        self.startDataTask(task, progress: nil) { result in
+                            continuation.resume(with: result.map { $0 })
+                        }
                     }
                 }
+            },
+            onCancel: {
+                task.cancel()
             }
-        })
+        )
     }
 
     // MARK: - Loading Images (Closures)
