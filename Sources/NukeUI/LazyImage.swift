@@ -12,24 +12,6 @@ public typealias ImageResponse = Nuke.ImageResponse
 public typealias ImagePipeline = Nuke.ImagePipeline
 public typealias ImageContainer = Nuke.ImageContainer
 
-private struct HashableRequest: Hashable {
-    let request: ImageRequest
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(request.imageId)
-        hasher.combine(request.options)
-        hasher.combine(request.priority)
-    }
-
-    static func == (lhs: HashableRequest, rhs: HashableRequest) -> Bool {
-        let lhs = lhs.request
-        let rhs = rhs.request
-        return lhs.imageId == rhs.imageId &&
-        lhs.priority == rhs.priority &&
-        lhs.options == rhs.options
-    }
-}
-
 /// Lazily loads and displays images.
 ///
 /// ``LazyImage`` is designed similar to the native [`AsyncImage`](https://developer.apple.com/documentation/SwiftUI/AsyncImage),
@@ -332,4 +314,22 @@ public enum ImageResizingMode {
     case topRight
     case bottomLeft
     case bottomRight
+}
+
+private struct HashableRequest: Hashable {
+    let request: ImageRequest
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(request.imageId)
+        hasher.combine(request.options)
+        hasher.combine(request.priority)
+    }
+
+    static func == (lhs: HashableRequest, rhs: HashableRequest) -> Bool {
+        let lhs = lhs.request
+        let rhs = rhs.request
+        return lhs.imageId == rhs.imageId &&
+        lhs.priority == rhs.priority &&
+        lhs.options == rhs.options
+    }
 }

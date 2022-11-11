@@ -22,17 +22,22 @@ Looking for UI components? See [NukeUI](https://kean-docs.github.io/nukeui/docum
 
 To install Nuke, use Swift Packager Manager.
 
-## Plugins
+## Extensions
+
+The image pipeline is easy to customize and extend. Check out the following first-class extensions and packages built by the community.
 
 |Name|Description|
 |--|--|
+|[**Pulse**](https://github.com/kean/Pulse)|A network logging framework with easy [integration](https://github.com/kean/Nuke/pull/583)|
 |[**Alamofire Plugin**](https://github.com/kean/Nuke-Alamofire-Plugin)|Replace networking layer with [Alamofire](https://github.com/Alamofire/Alamofire)|
 |[**NukeWebP**](https://github.com/makleso6/NukeWebP)| **Community**. [WebP](https://developers.google.com/speed/webp/) support, built by [Maxim Kolesnik](https://github.com/makleso6)|
 |[**WebP Plugin**](https://github.com/ryokosuge/Nuke-WebP-Plugin)| **Community**. [WebP](https://developers.google.com/speed/webp/) support, built by [Ryo Kosuge](https://github.com/ryokosuge)|
 |[**AVIF Plugin**](https://github.com/delneg/Nuke-AVIF-Plugin)| **Community**. [AVIF](https://caniuse.com/avif) support, built by [Denis](https://github.com/delneg)|
-|[**Gifu Plugin**](https://github.com/kean/Nuke-Gifu-Plugin)|Use [Gifu](https://github.com/kaishin/Gifu) to load and display animated GIFs|
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples|
-|[**Xamarin NuGet**](https://github.com/roubachof/Xamarin.Forms.Nuke)| **Community**. Makes it possible to use Nuke from Xamarin|
+
+## Dependencies
+
+NukeUI uses [**Gifu**](https://github.com/kaishin/Gifu) to display GIFs. The library is embedded in the NukeUI source code and is kept private.
 
 ## Minimum Requirements
 

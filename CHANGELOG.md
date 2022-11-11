@@ -1,5 +1,12 @@
 # Nuke 11
 
+## Nuke 11.3.1
+
+*Oct 22, 2022*
+
+- Fix deprecated `withTaskCancellationHandler` usage - [#614](https://github.com/kean/Nuke/pull/614), thanks to [@swasta](https://github.com/swasta)
+- Fix xcodebuild & docc build issue on Xcode 14.0.1 - [#609](https://github.com/kean/Nuke/issues/609)
+
 ## Nuke 11.3.0
 
 *Sep 17, 2022*

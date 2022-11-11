@@ -358,7 +358,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0C023C06285ABD8D00F07BD1 /* Nuke.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = Nuke.docc; sourceTree = "<group>"; };
+		0C023C06285ABD8D00F07BD1 /* Nuke.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; name = Nuke.docc; path = ../../Documentation/Nuke.docc; sourceTree = "<group>"; };
 		0C063F93266524190018F2C2 /* ImageResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResponse.swift; sourceTree = "<group>"; };
 		0C09B1651FE9A65600E8FE3B /* fixture.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = fixture.jpeg; sourceTree = "<group>"; };
 		0C09B16A1FE9A65C00E8FE3B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -536,8 +536,8 @@
 		0CC6279625C100CE00466F04 /* ImageRequestPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRequestPerformanceTests.swift; sourceTree = "<group>"; };
 		0CC6279D25C100E300466F04 /* ImageCachePerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCachePerformanceTests.swift; sourceTree = "<group>"; };
 		0CC627A425C100FA00466F04 /* ImageProcessingPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessingPerformanceTests.swift; sourceTree = "<group>"; };
-		0CC893B6285D21C60043D809 /* NukeUI.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = NukeUI.docc; sourceTree = "<group>"; };
-		0CC893B8285D21D70043D809 /* NukeExtensions.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = NukeExtensions.docc; sourceTree = "<group>"; };
+		0CC893B6285D21C60043D809 /* NukeUI.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; name = NukeUI.docc; path = ../../Documentation/NukeUI.docc; sourceTree = "<group>"; };
+		0CC893B8285D21D70043D809 /* NukeExtensions.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; name = NukeExtensions.docc; path = ../../Documentation/NukeExtensions.docc; sourceTree = "<group>"; };
 		0CCBB52F217D0B6A0026F552 /* ImageViewIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewIntegrationTests.swift; sourceTree = "<group>"; };
 		0CCBB533217D0B980026F552 /* MockProgressiveDataLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockProgressiveDataLoader.swift; sourceTree = "<group>"; };
 		0CD195291D4348AC00E011BB /* ImagePrefetcherTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImagePrefetcherTests.swift; sourceTree = "<group>"; };
@@ -2252,7 +2252,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				MARKETING_VERSION = 11.3.0;
+				MARKETING_VERSION = 11.3.1;
 				ONLY_ACTIVE_ARCH = YES;
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "watchsimulator watchos macosx iphonesimulator iphoneos driverkit appletvsimulator appletvos";
@@ -2310,7 +2310,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				MARKETING_VERSION = 11.3.0;
+				MARKETING_VERSION = 11.3.1;
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "watchsimulator watchos macosx iphonesimulator iphoneos driverkit appletvsimulator appletvos";
 				SUPPORTS_MACCATALYST = YES;
