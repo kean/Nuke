@@ -48,6 +48,7 @@ public struct Image: UIViewRepresentable {
     let onCreated: ((ImageView) -> Void)?
     var isAnimatedImageRenderingEnabled: Bool?
     var isVideoRenderingEnabled: Bool?
+    var isVideoFrameAnimationEnabled: Bool?
     var isVideoLooping: Bool?
     var resizingMode: ImageResizingMode?
 
@@ -80,6 +81,7 @@ extension Image {
         }
         if let value = resizingMode { imageView.resizingMode = value }
         if let value = isVideoRenderingEnabled { imageView.isVideoRenderingEnabled = value }
+        if let value = isVideoFrameAnimationEnabled { imageView.isVideoFrameAnimationEnabled = value }
         if let value = isAnimatedImageRenderingEnabled { imageView.isAnimatedImageRenderingEnabled = value }
         if let value = isVideoLooping { imageView.isVideoLooping = value }
     }
@@ -100,6 +102,12 @@ extension Image {
     public func videoLoopingEnabled(_ isEnabled: Bool) -> Self {
         var copy = self
         copy.isVideoLooping = isEnabled
+        return copy
+    }
+
+    public func videoFrameAnimationEnabled(_ isEnabled: Bool) -> Self {
+        var copy = self
+        copy.isVideoFrameAnimationEnabled = isEnabled
         return copy
     }
 
