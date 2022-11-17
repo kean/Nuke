@@ -73,6 +73,36 @@ class ImageCacheTests: XCTestCase {
         // Then
         XCTAssertEqual(cache.countLimit, 1)
     }
+    
+    func testThatTTLChanges() {
+        //when
+        cache.ttl = 1
+        
+        // Then
+        XCTAssertEqual(cache.ttl, 1)
+    }
+    
+    func testThatItemsAreRemovedWhenTTLIsReached() {
+        // Given
+        cache.ttl = 0.1
+
+        // When
+        cache[request1] = Test.container
+        cache[request2] = Test.container
+        cache[request3] = Test.container
+
+        let exp = expectation(description: "Wait for load completion...")
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100), execute: {
+            exp.fulfill()
+        })
+        
+        wait(for: [exp], timeout: 0.2)
+        
+        // Then
+        XCTAssertNil(cache[request1])
+        XCTAssertNil(cache[request2])
+        XCTAssertNil(cache[request3])
+    }
 
     func testThatItemsAreRemoveImmediatelyWhenCountLimitIsReached() {
         // Given
