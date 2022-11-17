@@ -86,4 +86,21 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
 
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
+    
+    func testPassingProcessorsUsingProtocolExtensionsGaussianBlurEmpty() throws {
+        let processor = ImageProcessors.GaussianBlur()
+        
+        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.gaussianBlur()]))
+
+        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+    }
+    
+    func testPassingProcessorsUsingProtocolExtensionsGaussianBlur() throws {
+        let radius = 10
+        let processor = ImageProcessors.GaussianBlur(radius: radius)
+        
+        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.gaussianBlur(radius: radius)]))
+
+        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+    }
 }
