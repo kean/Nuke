@@ -48,4 +48,13 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
 
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
+    
+    func testPassingProcessorsUsingProtocolExtensionsRoundedCorners() throws {
+        let radius: CGFloat = 10
+        let processor = ImageProcessors.RoundedCorners(radius: radius)
+        
+        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.roundedCorners(radius: radius)]))
+
+        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+    }
 }
