@@ -57,4 +57,14 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
 
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
+    
+    func testPassingProcessorsUsingProtocolExtensionsAnonymous() throws {
+        let id = UUID().uuidString
+        let closure: (@Sendable (PlatformImage) -> PlatformImage?) = { _ in nil }
+        let processor = ImageProcessors.Anonymous(id: id, closure)
+        
+        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.process(id: id, closure)]))
+
+        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+    }
 }
