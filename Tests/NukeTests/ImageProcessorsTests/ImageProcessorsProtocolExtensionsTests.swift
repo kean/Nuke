@@ -67,4 +67,23 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
 
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
+
+    func testPassingProcessorsUsingProtocolExtensionsCoreImageFilterWithNameOnly() throws {
+        let name = "CISepiaTone"
+        let processor = ImageProcessors.CoreImageFilter(name: name)
+        
+        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.coreImageFilter(name: name)]))
+
+        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+    }
+    
+    func testPassingProcessorsUsingProtocolExtensionsCoreImageFilter() throws {
+        let name = "CISepiaTone"
+        let id = UUID().uuidString
+        let processor = ImageProcessors.CoreImageFilter(name: name, parameters: [:], identifier: id)
+        
+        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.coreImageFilter(name: name, parameters: [:], identifier: id)]))
+
+        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+    }
 }
