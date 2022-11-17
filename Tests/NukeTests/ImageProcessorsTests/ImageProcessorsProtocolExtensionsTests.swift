@@ -24,11 +24,28 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
     
-    func testPassingProcessorsUsingProtocolExtensionsHeightOnly() throws {
+    func testPassingProcessorsUsingProtocolExtensionsResizeHeightOnly() throws {
         let processor = ImageProcessors.Resize(height: 100)
         
         let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.resize(height: 100)]))
         
+        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+    }
+    
+    func testPassingProcessorsUsingProtocolExtensionsCircleEmpty() throws {
+        let processor = ImageProcessors.Circle()
+        
+        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.circle()]))
+
+        XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
+    }
+    
+    func testPassingProcessorsUsingProtocolExtensionsCircle() throws {
+        let border = ImageProcessingOptions.Border.init(color: .red)
+        let processor = ImageProcessors.Circle(border: border)
+        
+        let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.circle(border: border)]))
+
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
 }
