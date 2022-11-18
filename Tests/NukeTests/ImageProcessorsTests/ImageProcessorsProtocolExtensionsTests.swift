@@ -15,7 +15,7 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
         
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
-
+    
     func testPassingProcessorsUsingProtocolExtensionsResizeWidthOnly() throws {
         let processor = ImageProcessors.Resize(width: 100)
         
@@ -36,7 +36,7 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
         let processor = ImageProcessors.Circle()
         
         let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.circle()]))
-
+        
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
     
@@ -45,7 +45,7 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
         let processor = ImageProcessors.Circle(border: border)
         
         let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.circle(border: border)]))
-
+        
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
     
@@ -54,7 +54,7 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
         let processor = ImageProcessors.RoundedCorners(radius: radius)
         
         let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.roundedCorners(radius: radius)]))
-
+        
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
     
@@ -64,16 +64,17 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
         let processor = ImageProcessors.Anonymous(id: id, closure)
         
         let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.process(id: id, closure)]))
-
+        
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
-
+    
+#if os(iOS) || os(tvOS) || os(macOS)
     func testPassingProcessorsUsingProtocolExtensionsCoreImageFilterWithNameOnly() throws {
         let name = "CISepiaTone"
         let processor = ImageProcessors.CoreImageFilter(name: name)
         
         let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.coreImageFilter(name: name)]))
-
+        
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
     
@@ -83,7 +84,7 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
         let processor = ImageProcessors.CoreImageFilter(name: name, parameters: [:], identifier: id)
         
         let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.coreImageFilter(name: name, parameters: [:], identifier: id)]))
-
+        
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
     
@@ -91,7 +92,7 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
         let processor = ImageProcessors.GaussianBlur()
         
         let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.gaussianBlur()]))
-
+        
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
     
@@ -100,7 +101,8 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
         let processor = ImageProcessors.GaussianBlur(radius: radius)
         
         let request = try XCTUnwrap(ImageRequest(url: nil, processors: [.gaussianBlur(radius: radius)]))
-
+        
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
+#endif
 }
