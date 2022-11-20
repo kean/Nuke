@@ -18,6 +18,7 @@ public struct Image: NSViewRepresentable {
     let onCreated: ((ImageView) -> Void)?
     var isAnimatedImageRenderingEnabled: Bool?
     var isVideoRenderingEnabled: Bool?
+    var isVideoFrameAnimationEnabled: Bool?
     var isVideoLooping: Bool?
     var resizingMode: ImageResizingMode?
 
