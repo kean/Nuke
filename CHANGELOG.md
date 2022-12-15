@@ -1,5 +1,11 @@
 # Nuke 11
 
+## Nuke 11.4.0
+
+*Dec 14, 2022*
+
+- Add `isVideoFrameAnimationEnabled` option to NukeUI views, thanks to [@maciesielka](https://github.com/maciesielka) 
+
 ## Nuke 11.3.1
 
 *Oct 22, 2022*
