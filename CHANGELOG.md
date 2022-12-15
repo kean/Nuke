@@ -1,5 +1,11 @@
 # Nuke 11
 
+## Nuke 11.4.1
+
+*Dec 15, 2022*
+
+- Correct the release commit/branch
+
 ## Nuke 11.4.0
 
 *Dec 14, 2022*
