@@ -102,6 +102,13 @@ public class ImageView: _PlatformBaseView {
     /// `true` by default. Set to `true` to enable video support.
     public var isVideoRenderingEnabled = true
 
+    /// `true` by default. If disabled, the video will resize with the frame without animations
+    public var isVideoFrameAnimationEnabled = true {
+        didSet {
+            _videoPlayerView?.animatesFrameChanges = isVideoFrameAnimationEnabled
+        }
+    }
+
     // MARK: Initializers
 
     override public init(frame: CGRect) {
@@ -172,6 +179,7 @@ public class ImageView: _PlatformBaseView {
         if isVideoRenderingEnabled, let asset = container.asset {
             videoPlayerView.isHidden = false
             videoPlayerView.isLooping = isVideoLooping
+            videoPlayerView.animatesFrameChanges = isVideoFrameAnimationEnabled
             videoPlayerView.asset = asset
             videoPlayerView.play()
             return

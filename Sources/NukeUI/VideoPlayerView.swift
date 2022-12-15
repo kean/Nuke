@@ -18,6 +18,9 @@ public final class VideoPlayerView: _PlatformBaseView {
         }
     }
 
+    /// `true` by default. If disabled, the video will resize with the frame without animations
+    public var animatesFrameChanges = true
+
     /// `true` by default. If disabled, will only play a video once.
     public var isLooping = true {
         didSet {
@@ -57,13 +60,19 @@ public final class VideoPlayerView: _PlatformBaseView {
     override public func layoutSubviews() {
         super.layoutSubviews()
 
+        CATransaction.begin()
+        CATransaction.setDisableActions(!animatesFrameChanges)
         _playerLayer?.frame = bounds
+        CATransaction.commit()
     }
     #elseif os(macOS)
     override public func layout() {
         super.layout()
 
+        CATransaction.begin()
+        CATransaction.setDisableActions(!animatesFrameChanges)
         _playerLayer?.frame = bounds
+        CATransaction.commit()
     }
 #endif
 
