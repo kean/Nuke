@@ -40,7 +40,7 @@
 
 - Fix an issue with Mac Catalyst on Xcode 14.0  
 
-## Nuke 11.2
+## Nuke 11.2.0
 
 *Sep 10, 2022*
 
@@ -58,7 +58,7 @@
 - Fix an issue where `AVPlayerLayer` was created eagerly
 - Disable `prepareForDisplay` by default and add a configuration option to enable it
 
-## Nuke 11.0
+## Nuke 11.1.0
 
 *Aug 7, 2022*
 
