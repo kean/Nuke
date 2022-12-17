@@ -20,6 +20,19 @@ Nuke can be used with [Pulse](https://github.com/kean/Pulse) for monitoring netw
 (ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = URLSessionProxyDelegate()
 ```
 
+The same ``DataLoader/delegate`` can be used for modifying data loader behavior, e.g. for handling authentication requests and other aspects of data loading. 
+
+```swift
+// The delegate is retained by the `DataLoader`.
+(ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = YourDelegate()
+
+final class YourDelegate: URLSessionTaskDelegate {
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        // Handle authentication challenge...
+    }
+}
+```
+
 ## Resumable Downloads
 
 If the data task is terminated when the image is partially loaded (either because of a failure or a cancellation), the next load will resume where the previous left off. Resumable downloads require the server to support [HTTP Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests). Nuke supports both validators: `ETag` and `Last-Modified`. Resumable downloads are enabled by default. You can learn more in ["Resumable Downloads"](https://kean.blog/post/resumable-downloads).
