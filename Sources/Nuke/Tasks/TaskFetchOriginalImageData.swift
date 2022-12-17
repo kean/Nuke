@@ -109,7 +109,11 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         }
 
         // Append data and save response
-        data.append(chunk)
+        if data.isEmpty {
+            data = chunk
+        } else {
+            data.append(chunk)
+        }
         urlResponse = response
 
         let progress = TaskProgress(completed: Int64(data.count), total: response.expectedContentLength + resumedDataCount)
