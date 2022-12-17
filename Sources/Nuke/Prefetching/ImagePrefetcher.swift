@@ -13,7 +13,9 @@ import Foundation
 /// even from the main thread during scrolling.
 public final class ImagePrefetcher: @unchecked Sendable {
     private let pipeline: ImagePipeline
-    private var tasks = [ImageLoadKey: Task]()
+    private var tasks = [ImageLoadKey: Task]() {
+        didSet { if self.tasks.isEmpty { if oldValue.isEmpty != self.tasks.isEmpty { self.didComplete?() } } }
+    }
     private let destination: Destination
     let queue = OperationQueue() // internal for testing
     public var didComplete: (() -> Void)? // called when # of in-flight tasks decrements to 0
@@ -73,6 +75,8 @@ public final class ImagePrefetcher: @unchecked Sendable {
 
     deinit {
         let tasks = self.tasks.values // Make sure we don't retain self
+        self.tasks.removeAll()
+
         pipeline.queue.async {
             for task in tasks {
                 task.cancel()
@@ -150,9 +154,6 @@ public final class ImagePrefetcher: @unchecked Sendable {
     private func _remove(_ task: Task) {
         guard tasks[task.key] === task else { return } // Should never happen
         tasks[task.key] = nil
-        if tasks.isEmpty {
-            didComplete?()
-        }
     }
 
     /// Stops prefetching images for the given URLs and cancels outstanding
