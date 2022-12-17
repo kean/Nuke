@@ -10,22 +10,22 @@ on:
 
 jobs:
   ios-latest:
-    name: Unit Tests (iOS 15.5, Xcode 14.0)
+    name: Unit Tests (iOS 16.1, Xcode 14.1)
     runs-on: macOS-12
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_14.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "OS=16.0,name=iPhone 14 Pro"
-          Scripts/test.sh -s "NukeUI" -d "OS=16.0,name=iPhone 14 Pro"
-          Scripts/test.sh -s "Nuke Extensions" -d "OS=16.0,name=iPhone 14 Pro"
+          Scripts/test.sh -s "Nuke" -d "OS=16.1,name=iPhone 14 Pro"
+          Scripts/test.sh -s "NukeUI" -d "OS=16.1,name=iPhone 14 Pro"
+          Scripts/test.sh -s "Nuke Extensions" -d "OS=16.1,name=iPhone 14 Pro"
   macos-latest:
-    name: Unit Tests (macOS, Xcode 14.0)
+    name: Unit Tests (macOS, Xcode 14.1)
     runs-on: macOS-12
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_14.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
@@ -34,29 +34,29 @@ jobs:
           Scripts/test.sh -s "NukeUI" -d "arch=x86_64"
           Scripts/test.sh -s "Nuke Extensions" -d "arch=x86_64"
   tvos-latest:
-    name: Unit Tests (tvOS 15.4, Xcode 14.0)
+    name: Unit Tests (tvOS 16.1, Xcode 14.1)
     runs-on: macOS-12
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_14.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "OS=16.0,name=Apple TV"
-          Scripts/test.sh -s "NukeUI" -d "OS=16.0,name=Apple TV"
-          Scripts/test.sh -s "Nuke Extensions" -d "OS=16.0,name=Apple TV"
+          Scripts/test.sh -s "Nuke" -d "OS=16.1,name=Apple TV"
+          Scripts/test.sh -s "NukeUI" -d "OS=16.1,name=Apple TV"
+          Scripts/test.sh -s "Nuke Extensions" -d "OS=16.1,name=Apple TV"
   watchos-latest:
-    name: Unit Tests (watchOS 8.5, Xcode 14.0)
+    name: Unit Tests (watchOS 9.1, Xcode 14.1)
     runs-on: macOS-12
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_14.0.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "OS=9.0,name=Apple Watch Series 8 (45mm)"
-          Scripts/test.sh -s "NukeUI" -d "OS=9.0,name=Apple Watch Series 8 (45mm)"
-          Scripts/test.sh -s "Nuke Extensions" -d "OS=9.0,name=Apple Watch Series 8 (45mm)"
+          Scripts/test.sh -s "Nuke" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
+          Scripts/test.sh -s "NukeUI" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
+          Scripts/test.sh -s "Nuke Extensions" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
   ios-xcode-13:
     name: Unit Tests (iOS 15.5, Xcode 13.4.1)
     runs-on: macOS-12
