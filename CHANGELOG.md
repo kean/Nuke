@@ -4,9 +4,9 @@
 
 *Dec 17, 2022*
 
-- `DataLoader/delegate` now gets called for all `URLSession/delegate` methods, not just the ones requires by [Pulse](https://github.com/kean/Pulse). It allows you to modify `DataLoader` behavior in new ways, e.g. for handling authentication challenges.
-- Add new unit tests, thanks to [zzmasoud](https://github.com/zzmasoud) - [#626](https://github.com/kean/Nuke/pull/626)
-- Fix an issue with `ImagePrefetcher/didComplete` not being called when images are in the memory cache, thanks to [0xceed](https://github.com/0xceed) - [#635](https://github.com/kean/Nuke/pull/635)
+- `DataLoader/delegate` now gets called for all `URLSession/delegate` methods, not just the ones required by [Pulse](https://github.com/kean/Pulse). It allows you to modify `DataLoader` behavior in new ways, e.g. for handling authentication challenges.
+- Add new unit tests, thanks to [@zzmasoud](https://github.com/zzmasoud) - [#626](https://github.com/kean/Nuke/pull/626)
+- Fix an issue with `ImagePrefetcher/didComplete` not being called when images are in the memory cache, thanks to [@0xceed](https://github.com/0xceed) - [#635](https://github.com/kean/Nuke/pull/635)
 - Move .docc folders back to Sources/, so that the Nuke docs are now again available in Xcode
 
 ## Nuke 11.4.1

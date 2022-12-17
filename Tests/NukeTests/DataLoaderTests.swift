@@ -53,9 +53,11 @@ class DataLoaderTests: XCTestCase {
         // WHEN
         let expectation = self.expectation(description: "DataLoaded")
         _ = sut.loadData(with: URLRequest(url: url), didReceiveData: { _, _ in }, completion: { _ in
-            expectation.fulfill()
+            DispatchQueue.main.async {
+                expectation.fulfill()
+            }
         })
-        wait()
+        wait(for: [expectation], timeout: 2.0)
 
         // THEN
         XCTAssertEqual(delegate.recordedMetrics.count, 1)
