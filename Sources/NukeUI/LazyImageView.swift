@@ -267,7 +267,7 @@ public final class LazyImageView: _PlatformBaseView {
             return
         }
 
-        if let processors = self.processors, !processors.isEmpty, !request.processors.isEmpty {
+        if let processors = self.processors, !processors.isEmpty, request.processors.isEmpty {
             request.processors = processors
         }
         if let priority = self.priority {
