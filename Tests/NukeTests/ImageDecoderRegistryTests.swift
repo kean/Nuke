@@ -38,6 +38,23 @@ final class ImageDecoderRegistryTests: XCTestCase {
         let decoder2 = registry.decoder(for: context) as? MockImageDecoder
         XCTAssertEqual(decoder2?.name, "B")
     }
+    
+    func testClearDecoders() {
+        // Given
+        let registry = ImageDecoderRegistry()
+        let context = ImageDecodingContext.mock
+        
+        registry.register { _ in
+            return MockImageDecoder(name: "A")
+        }
+
+        // When
+        registry.clear()
+        
+        // Then
+        let noDecoder = registry.decoder(for: context)
+        XCTAssertNil(noDecoder)
+    }
 
     func testWhenReturningNextDecoderIsEvaluated() {
         // Given
