@@ -185,12 +185,7 @@ public final class LazyImageView: _PlatformBaseView {
 
         placeholderView = {
             let view = _PlatformBaseView()
-            let color: _PlatformColor
-            if #available(iOS 13.0, *) {
-                color = .secondarySystemBackground
-            } else {
-                color = _PlatformColor.lightGray.withAlphaComponent(0.5)
-            }
+            let color = _PlatformColor.secondarySystemBackground
 #if os(macOS)
             view.wantsLayer = true
             view.layer?.backgroundColor = color.cgColor
