@@ -126,7 +126,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
 
         let key = request.makeImageLoadKey()
         guard tasks[key] == nil else {
-            return false// Already started prefetching
+            return true// Already started prefetching
         }
 
         let task = Task(request: request, key: key)
