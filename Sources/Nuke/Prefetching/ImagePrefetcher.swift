@@ -107,24 +107,26 @@ public final class ImagePrefetcher: @unchecked Sendable {
     /// See also ``startPrefetching(with:)-1jef2`` that works with `URL`.
     public func startPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
-            for request in requests {
-                var request = request
-                if self._priority != request.priority {
-                    request.priority = self._priority
-                }
-                self._startPrefetching(with: request)
-            }
+            let starts = requests.map({
+                var copy = $0
+                copy.priority = self._priority
+                
+                return copy
+            }).map(self._startPrefetching(with:))
+            
+            guard starts.allSatisfy({ $0 == false }) else { return }
+            self.didComplete?()
         }
     }
 
-    private func _startPrefetching(with request: ImageRequest) {
+    private func _startPrefetching(with request: ImageRequest) -> Bool {
         guard pipeline.cache[request] == nil else {
-            return // The image is already in memory cache
+            return false // The image is already in memory cache
         }
 
         let key = request.makeImageLoadKey()
         guard tasks[key] == nil else {
-            return // Already started prefetching
+            return false// Already started prefetching
         }
 
         let task = Task(request: request, key: key)
@@ -132,7 +134,9 @@ public final class ImagePrefetcher: @unchecked Sendable {
             guard let self = self else { return finish() }
             self.loadImage(task: task, finish: finish)
         }
+        
         tasks[key] = task
+        return true
     }
 
     private func loadImage(task: Task, finish: @escaping () -> Void) {
