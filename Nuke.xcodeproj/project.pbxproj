@@ -215,6 +215,7 @@
 		0CA4ECD026E68FC000BAC8E5 /* DataCaching.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECCF26E68FC000BAC8E5 /* DataCaching.swift */; };
 		0CA4ECD326E68FDC00BAC8E5 /* ImageCaching.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECD226E68FDC00BAC8E5 /* ImageCaching.swift */; };
 		0CA5D954263CCEA500E08E17 /* ImagePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */; };
+		0CA8D8ED2958DA3700EDAA2C /* Atomic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA8D8EC2958DA3700EDAA2C /* Atomic.swift */; };
 		0CAAB0101E45D6DA00924450 /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
 		0CAAB0131E45D6DA00924450 /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
 		0CB0479A2856D9AC00DF9B6D /* Cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB047992856D9AC00DF9B6D /* Cache.swift */; };
@@ -511,6 +512,7 @@
 		0CA4ECD226E68FDC00BAC8E5 /* ImageCaching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCaching.swift; sourceTree = "<group>"; };
 		0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePublisher.swift; sourceTree = "<group>"; };
 		0CA82BDC237AE09F00338375 /* install_swiftlint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = install_swiftlint.sh; path = Scripts/install_swiftlint.sh; sourceTree = "<group>"; };
+		0CA8D8EC2958DA3700EDAA2C /* Atomic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Atomic.swift; sourceTree = "<group>"; };
 		0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NukeExtensions.swift; sourceTree = "<group>"; };
 		0CB047992856D9AC00DF9B6D /* Cache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cache.swift; sourceTree = "<group>"; };
 		0CB26801208F2565004C83F4 /* DataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataCache.swift; sourceTree = "<group>"; };
@@ -1093,6 +1095,7 @@
 				0CC36A3225B8BC7900811018 /* ResumableData.swift */,
 				0CC36A4025B8BCAC00811018 /* Log.swift */,
 				0C7150081FC9724C00B880AC /* Extensions.swift */,
+				0CA8D8EC2958DA3700EDAA2C /* Atomic.swift */,
 				0CE6202026542F7200AAB8C3 /* DataPublisher.swift */,
 				0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */,
 				0C472F822654AD69007FC0F0 /* ImageRequestKeys.swift */,
@@ -1828,6 +1831,7 @@
 				0CA4ECBA26E6850B00BAC8E5 /* Graphics.swift in Sources */,
 				0CA4ECB426E6844B00BAC8E5 /* ImageProcessors.swift in Sources */,
 				0C2A368B26437BF100F1D000 /* TaskLoadData.swift in Sources */,
+				0CA8D8ED2958DA3700EDAA2C /* Atomic.swift in Sources */,
 				0C0FD6041CA47FE1002A78FB /* ImageRequest.swift in Sources */,
 				0CA4EC9926E67CEC00BAC8E5 /* ImageDecoders+Default.swift in Sources */,
 				0CA4ECC226E685E100BAC8E5 /* ImageProcessors+Composition.swift in Sources */,
