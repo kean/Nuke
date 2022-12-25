@@ -12,14 +12,6 @@ import Foundation
 /// All ``ImagePrefetcher`` methods are thread-safe and are optimized to be used
 /// even from the main thread during scrolling.
 public final class ImagePrefetcher: @unchecked Sendable {
-    private let pipeline: ImagePipeline
-    private var tasks = [ImageLoadKey: Task]() {
-        didSet { if self.tasks.isEmpty { if oldValue.isEmpty != self.tasks.isEmpty { self.didComplete?() } } }
-    }
-    private let destination: Destination
-    let queue = OperationQueue() // internal for testing
-    public var didComplete: (() -> Void)? // called when # of in-flight tasks decrements to 0
-
     /// Pauses the prefetching.
     ///
     /// - note: When you pause, the prefetcher will finish outstanding tasks
@@ -38,7 +30,6 @@ public final class ImagePrefetcher: @unchecked Sendable {
             pipeline.queue.async { self.didUpdatePriority(to: newValue) }
         }
     }
-    private var _priority: ImageRequest.Priority = .low
 
     /// Prefetching destination.
     public enum Destination: Sendable {
@@ -53,6 +44,19 @@ public final class ImagePrefetcher: @unchecked Sendable {
         /// (for requests with processors) and ``ImagePipeline/DataCachePolicy/storeEncodedImages``.
         case diskCache
     }
+
+    /// The closure that gets called when the prefetching completes for all the
+    /// scheduled requests. The closure is always called on completion,
+    /// regardless of whether the requests succeed or some fail.
+    ///
+    /// - note: The closure is called on the main queue.
+    public var didComplete: (() -> Void)?
+
+    private let pipeline: ImagePipeline
+    private var tasks = [ImageLoadKey: Task]()
+    private let destination: Destination
+    private var _priority: ImageRequest.Priority = .low
+    let queue = OperationQueue() // internal for testing
 
     /// Initializes the ``ImagePrefetcher`` instance.
     ///
@@ -107,36 +111,36 @@ public final class ImagePrefetcher: @unchecked Sendable {
     /// See also ``startPrefetching(with:)-1jef2`` that works with `URL`.
     public func startPrefetching(with requests: [ImageRequest]) {
         pipeline.queue.async {
-            let starts = requests.map({
-                var copy = $0
-                copy.priority = self._priority
-                
-                return copy
-            }).map(self._startPrefetching(with:))
-            
-            guard starts.allSatisfy({ $0 == false }) else { return }
-            self.didComplete?()
+            self._startPrefetching(with: requests)
         }
     }
 
-    private func _startPrefetching(with request: ImageRequest) -> Bool {
-        guard pipeline.cache[request] == nil else {
-            return false // The image is already in memory cache
+    public func _startPrefetching(with requests: [ImageRequest]) {
+        for request in requests {
+            var request = request
+            if _priority != request.priority {
+                request.priority = _priority
+            }
+            _startPrefetching(with: request)
+            sendCompletionIfNeeded()
         }
+    }
 
+    private func _startPrefetching(with request: ImageRequest) {
+        guard pipeline.cache[request] == nil else {
+            return
+        }
         let key = request.makeImageLoadKey()
         guard tasks[key] == nil else {
-            return true// Already started prefetching
+            return
         }
-
         let task = Task(request: request, key: key)
         task.operation = queue.add { [weak self] finish in
             guard let self = self else { return finish() }
             self.loadImage(task: task, finish: finish)
         }
-        
         tasks[key] = task
-        return true
+        return
     }
 
     private func loadImage(task: Task, finish: @escaping () -> Void) {
@@ -158,6 +162,14 @@ public final class ImagePrefetcher: @unchecked Sendable {
     private func _remove(_ task: Task) {
         guard tasks[task.key] === task else { return } // Should never happen
         tasks[task.key] = nil
+        sendCompletionIfNeeded()
+    }
+
+    private func sendCompletionIfNeeded() {
+        guard tasks.isEmpty, let callback = didComplete else {
+            return
+        }
+        DispatchQueue.main.async(execute: callback)
     }
 
     /// Stops prefetching images for the given URLs and cancels outstanding

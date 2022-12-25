@@ -242,6 +242,26 @@ final class ImagePrefetcherTests: XCTestCase {
         wait()
     }
 
+    // MARK: DidComplete
+
+    func testDidCompleteIsCalled() {
+        let expectation = self.expectation(description: "PrefecherDidComplete")
+        prefetcher.didComplete = expectation.fulfill
+
+        prefetcher.startPrefetching(with: [Test.url])
+        wait()
+    }
+
+    func testDidCompleteIsCalledWhenImageCached() {
+        let expectation = self.expectation(description: "PrefecherDidComplete")
+        prefetcher.didComplete = expectation.fulfill
+
+        imageCache[Test.url] = Test.container
+
+        prefetcher.startPrefetching(with: [Test.url])
+        wait()
+    }
+
     // MARK: Misc
 
     func testThatAllPrefetchingRequestsAreStoppedWhenPrefetcherIsDeallocated() {
