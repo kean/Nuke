@@ -8,7 +8,13 @@ import Combine
 /// The pipeline downloads and caches images, and prepares them for display. 
 public final class ImagePipeline: @unchecked Sendable {
     /// Returns the shared image pipeline.
-    public static var shared = ImagePipeline(configuration: .withURLCache)
+    public static var shared: ImagePipeline {
+        get { _shared }
+        set { _shared = newValue }
+    }
+
+    @Atomic
+    private static var _shared = ImagePipeline(configuration: .withURLCache)
 
     /// The pipeline configuration.
     public let configuration: Configuration
