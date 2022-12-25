@@ -1,5 +1,13 @@
 # Nuke 11
 
+## Nuke 11.5.1
+
+*Dec 25, 2022*
+
+- Fix `ImagePipeline.shared` warning with Strit Concurrency Checking set to Complete
+- Fix an issue where `ImagePrefetcher/didComplete` wasn't called in some scenarios
+- `ImagePrefetcher/didComplete` is now called on the main queue
+
 ## Nuke 11.5.0
 
 *Dec 17, 2022*
