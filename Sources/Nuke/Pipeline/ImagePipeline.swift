@@ -277,13 +277,14 @@ public final class ImagePipeline: @unchecked Sendable {
                 guard let self = self, let task = task else { return }
 
                 if event.isCompleted {
-                    task.didComplete()
                     self.tasks[task] = nil
                 }
 
                 self.dispatchCallback(to: task.callbackQueue) {
                     guard task.state != .cancelled else { return }
-
+                    if event.isCompleted {
+                        task.didComplete() // Important: called on callback queue and in this order
+                    }
                     switch event {
                     case let .value(response, isCompleted):
                         if isCompleted {
@@ -394,13 +395,14 @@ public final class ImagePipeline: @unchecked Sendable {
                 guard let self = self, let task = task else { return }
 
                 if event.isCompleted {
-                    task.didComplete()
                     self.tasks[task] = nil
                 }
 
                 self.dispatchCallback(to: task.callbackQueue) {
                     guard task.state != .cancelled else { return }
-
+                    if event.isCompleted {
+                        task.didComplete() // Important: called on callback queue and in this order
+                    }
                     switch event {
                     case let .value(response, isCompleted):
                         if isCompleted {
