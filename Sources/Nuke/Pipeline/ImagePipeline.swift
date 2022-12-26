@@ -206,6 +206,19 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - completion: A closure to be called on the main thread when the request
     ///   is finished.
     @discardableResult public func loadImage(
+        with url: URL,
+        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
+    ) -> ImageTask {
+        loadImage(with: ImageRequest(url: url), queue: nil, progress: nil, completion: completion)
+    }
+
+    /// Loads an image for the given request.
+    ///
+    /// - parameters:
+    ///   - request: An image request.
+    ///   - completion: A closure to be called on the main thread when the request
+    ///   is finished.
+    @discardableResult public func loadImage(
         with request: ImageRequest,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
@@ -323,6 +336,15 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     // MARK: - Loading Data (Closures)
+
+    /// Loads image data for the given request. The data doesn't get decoded
+    /// or processed in any other way.
+    @discardableResult public func loadData(
+        with url: URL,
+        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+    ) -> ImageTask {
+        loadData(with: ImageRequest(url: url), queue: nil, progress: nil, completion: completion)
+    }
 
     /// Loads image data for the given request. The data doesn't get decoded
     /// or processed in any other way.

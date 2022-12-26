@@ -47,7 +47,7 @@ class ImagePipelineConfigurationTests: XCTestCase {
 
         // When/Then
         let expectation = self.expectation(description: "Image Loaded")
-        pipeline.loadImage(with: Test.url, progress: { _, _, _ in
+        pipeline.loadImage(with: Test.request, progress: { _, _, _ in
             XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
         }, completion: { _ in
             XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
