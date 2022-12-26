@@ -455,10 +455,4 @@ class ImagePipelineCacheTests: XCTestCase {
         XCTAssertNil(cache.cachedImage(for: request, caches: [.disk]))
         XCTAssertNil(diskCache.cachedData(for: cache.makeDataCacheKey(for: request)))
     }
-
-    // MARK: ImageRequestConvertible
-
-    func testMakeSureAllAPIsAreAvailable() {
-        cache[ImageRequest(url: URL(string: "https://example.com/image.jpeg")!)] = nil
-    }
 }
