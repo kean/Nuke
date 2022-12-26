@@ -58,9 +58,9 @@ extension ImageProcessing {
 }
 
 extension ImageCaching {
-    subscript(request: any ImageRequestConvertible) -> ImageContainer? {
-        get { self[ImageCacheKey(request: request.asImageRequest())] }
-        set { self[ImageCacheKey(request: request.asImageRequest())] = newValue }
+    subscript(request: ImageRequest) -> ImageContainer? {
+        get { self[ImageCacheKey(request: request)] }
+        set { self[ImageCacheKey(request: request)] = newValue }
     }
 }
 

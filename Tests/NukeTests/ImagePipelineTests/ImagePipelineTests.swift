@@ -93,7 +93,7 @@ class ImagePipelineTests: XCTestCase {
 
         // When/Then
         let expectation = self.expectation(description: "Image Loaded")
-        pipeline.loadImage(with: Test.url, queue: queue, progress: { _, _, _ in
+        pipeline.loadImage(with: Test.request, queue: queue, progress: { _, _, _ in
             XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
         }, completion: { _ in
             XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
@@ -588,7 +588,7 @@ class ImagePipelineTests: XCTestCase {
 
         // WHEN
         for _ in 0...100 {
-            expect(pipeline).toFailRequest(URL(string: "http://example.com/invalid url"))
+            expect(pipeline).toFailRequest(ImageRequest(url: URL(string: "http://example.com/invalid url")))
             wait()
         }
     }
