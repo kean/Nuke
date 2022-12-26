@@ -358,8 +358,8 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Loads the image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
     ///
-    /// You can call ``loadImage(with:completion:)`` for the request at any point after calling
-    /// ``loadData(with:completion:)``, the pipeline will use the same operation to load the data,
+    /// You can call ``loadImage(with:completion:)-43osv`` for the request at any point after calling
+    /// ``loadData(with:completion:)-6cwk3``, the pipeline will use the same operation to load the data,
     /// no duplicated work will be performed.
     ///
     /// - parameters:
