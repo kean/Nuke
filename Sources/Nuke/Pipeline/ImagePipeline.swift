@@ -206,7 +206,20 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - completion: A closure to be called on the main thread when the request
     ///   is finished.
     @discardableResult public func loadImage(
-        with request: any ImageRequestConvertible,
+        with url: URL,
+        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
+    ) -> ImageTask {
+        loadImage(with: ImageRequest(url: url), queue: nil, progress: nil, completion: completion)
+    }
+
+    /// Loads an image for the given request.
+    ///
+    /// - parameters:
+    ///   - request: An image request.
+    ///   - completion: A closure to be called on the main thread when the request
+    ///   is finished.
+    @discardableResult public func loadImage(
+        with request: ImageRequest,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         loadImage(with: request, queue: nil, progress: nil, completion: completion)
@@ -223,7 +236,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - completion: A closure to be called on the main thread when the request
     ///   is finished.
     @discardableResult public func loadImage(
-        with request: any ImageRequestConvertible,
+        with request: ImageRequest,
         queue: DispatchQueue? = nil,
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
@@ -234,13 +247,13 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     func loadImage(
-        with request: any ImageRequestConvertible,
+        with request: ImageRequest,
         isConfined: Bool,
         queue callbackQueue: DispatchQueue?,
         progress: ((ImageResponse?, ImageTask.Progress) -> Void)?,
         completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        let task = makeImageTask(request: request.asImageRequest(), queue: callbackQueue)
+        let task = makeImageTask(request: request, queue: callbackQueue)
         delegate.imageTaskCreated(task)
         func start() {
             startImageTask(task, progress: progress, completion: completion)
@@ -327,7 +340,16 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Loads image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
     @discardableResult public func loadData(
-        with request: any ImageRequestConvertible,
+        with url: URL,
+        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+    ) -> ImageTask {
+        loadData(with: ImageRequest(url: url), queue: nil, progress: nil, completion: completion)
+    }
+
+    /// Loads image data for the given request. The data doesn't get decoded
+    /// or processed in any other way.
+    @discardableResult public func loadData(
+        with request: ImageRequest,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
         loadData(with: request, queue: nil, progress: nil, completion: completion)
@@ -336,8 +358,8 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Loads the image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
     ///
-    /// You can call ``loadImage(with:completion:)`` for the request at any point after calling
-    /// ``loadData(with:completion:)``, the pipeline will use the same operation to load the data,
+    /// You can call ``loadImage(with:completion:)-43osv`` for the request at any point after calling
+    /// ``loadData(with:completion:)-6cwk3``, the pipeline will use the same operation to load the data,
     /// no duplicated work will be performed.
     ///
     /// - parameters:
@@ -347,7 +369,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - progress: A closure to be called periodically on the main thread when the progress is updated.
     ///   - completion: A closure to be called on the main thread when the request is finished.
     @discardableResult public func loadData(
-        with request: any ImageRequestConvertible,
+        with request: ImageRequest,
         queue: DispatchQueue? = nil,
         progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
@@ -356,13 +378,13 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     func loadData(
-        with request: any ImageRequestConvertible,
+        with request: ImageRequest,
         isConfined: Bool,
         queue: DispatchQueue?,
         progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
-        let task = makeImageTask(request: request.asImageRequest(), queue: queue, isDataTask: true)
+        let task = makeImageTask(request: request, queue: queue, isDataTask: true)
         func start() {
             startDataTask(task, progress: progress, completion: completion)
         }

@@ -118,7 +118,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         let finalLoaded = self.expectation(description: "Final image loaded")
 
         pipeline.loadImage(
-            with: Test.url,
+            with: Test.request,
             progress: { image, _, _ in
                 XCTAssertNil(image, "Expected partial images to never be produced") // Partial images never produced.
                 self.dataLoader.resume()

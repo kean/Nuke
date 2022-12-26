@@ -25,12 +25,12 @@ struct TestExpectationImagePipeline {
     let pipeline: ImagePipeline
 
     @discardableResult
-    func toLoadImage(with request: ImageRequestConvertible, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> TestRecordedImageRequest {
+    func toLoadImage(with request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> TestRecordedImageRequest {
         toLoadImage(with: request, progress: nil, completion: completion)
     }
 
     @discardableResult
-    func toLoadImage(with request: ImageRequestConvertible,
+    func toLoadImage(with request: ImageRequest,
                      progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
                      completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> TestRecordedImageRequest {
         let record = TestRecordedImageRequest()
@@ -46,12 +46,12 @@ struct TestExpectationImagePipeline {
     }
 
     @discardableResult
-    func toFailRequest(_ request: ImageRequestConvertible, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> ImageTask {
+    func toFailRequest(_ request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> ImageTask {
         toFailRequest(request, progress: nil, completion: completion)
     }
 
     @discardableResult
-    func toFailRequest(_ request: ImageRequestConvertible,
+    func toFailRequest(_ request: ImageRequest,
                        progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
                        completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
         let expectation = test.expectation(description: "Image request failed \(request)")
@@ -63,16 +63,16 @@ struct TestExpectationImagePipeline {
         }
     }
 
-    func toFailRequest(_ request: ImageRequestConvertible, with expectedError: ImagePipeline.Error, file: StaticString = #file, line: UInt = #line) {
+    func toFailRequest(_ request: ImageRequest, with expectedError: ImagePipeline.Error, file: StaticString = #file, line: UInt = #line) {
         toFailRequest(request) { result in
             XCTAssertEqual(result.error, expectedError, file: file, line: line)
         }
     }
 
     @discardableResult
-    func toLoadData(with request: ImageRequestConvertible) -> TestRecorededDataTask {
+    func toLoadData(with request: ImageRequest) -> TestRecorededDataTask {
         let record = TestRecorededDataTask()
-        let request = request.asImageRequest()
+        let request = request
         let expectation = test.expectation(description: "Data loaded for \(request)")
         record._task = pipeline.loadData(with: request, progress: nil) { result in
             XCTAssertTrue(Thread.isMainThread)

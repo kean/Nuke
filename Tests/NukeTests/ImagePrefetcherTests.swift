@@ -41,10 +41,10 @@ final class ImagePrefetcherTests: XCTestCase {
         dataLoader.isSuspended = true
 
         expect(prefetcher.queue).toEnqueueOperationsWithCount(1)
-        prefetcher.startPrefetching(with: [Test.url])
+        prefetcher.startPrefetching(with: [Test.request])
         wait()
 
-        expect(pipeline).toLoadImage(with: Test.url)
+        expect(pipeline).toLoadImage(with: Test.request)
         pipeline.queue.async {
             self.dataLoader.isSuspended = false
         }
@@ -256,9 +256,9 @@ final class ImagePrefetcherTests: XCTestCase {
         let expectation = self.expectation(description: "PrefecherDidComplete")
         prefetcher.didComplete = expectation.fulfill
 
-        imageCache[Test.url] = Test.container
+        imageCache[Test.request] = Test.container
 
-        prefetcher.startPrefetching(with: [Test.url])
+        prefetcher.startPrefetching(with: [Test.request])
         wait()
     }
 

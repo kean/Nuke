@@ -216,8 +216,8 @@ extension ImagePipeline {
         /// For requests with no processors, store original image data, unless
         /// the resource is local (file:// or data:// scheme is used).
         ///
-        /// - important: With this policy, the pipeline ``ImagePipeline/loadData(with:completion:)`` method
-        /// will not store the images in the disk cache for requests with
+        /// - important: With this policy, the pipeline's ``ImagePipeline/loadData(with:completion:)-6cwk3``
+        /// method will not store the images in the disk cache for requests with
         /// any processors applied – this method only loads data and doesn't
         /// decode images.
         case automatic
@@ -233,8 +233,8 @@ extension ImagePipeline {
         /// different than provided by a server, e.g. decompressed. In other
         /// scenarios, consider using ``automatic`` policy instead.
         ///
-        /// - important: With this policy, the pipeline ``ImagePipeline/loadData(with:completion:)`` method
-        /// will not store the images in the disk cache – this method only
+        /// - important: With this policy, the pipeline's ``ImagePipeline/loadData(with:completion:)-6cwk3``
+        /// method will not store the images in the disk cache – this method only
         /// loads data and doesn't decode images.
         case storeEncodedImages
 

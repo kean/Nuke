@@ -125,21 +125,29 @@ Every image preview goes through the same processing and decompression phases th
 - ``configuration-swift.property``
 - ``Configuration-swift.struct``
 
-### Loading Images
+### Loading Images (Async/Await)
 
 - ``image(for:delegate:)-9mq8k``
 - ``image(for:delegate:)-2v6n0``
-- ``loadImage(with:completion:)``
-- ``loadImage(with:queue:progress:completion:)``
+
+### Loading Images (Combine)
+
 - ``imagePublisher(with:)-8j2bd``
 - ``imagePublisher(with:)-3pzm6``
+
+### Loading Images (Closures)
+
+- ``loadImage(with:completion:)-6q74f``
+- ``loadImage(with:completion:)-43osv``
+- ``loadImage(with:queue:progress:completion:)-83u7i``
 
 ### Loading Data
 
 - ``data(for:)-86rhw``
 - ``data(for:)-54h5g``
-- ``loadData(with:completion:)``
-- ``loadData(with:queue:progress:completion:)``
+- ``loadData(with:completion:)-815rt``
+- ``loadData(with:completion:)-6cwk3``
+- ``loadData(with:queue:progress:completion:)-3ibfw``
 
 ### Accessing Cached Images
 
@@ -153,3 +161,10 @@ Every image preview goes through the same processing and decompression phases th
 ### Error Handling
 
 - ``Error``
+
+### Deprecated
+
+- ``loadImage(with:completion:)-6zpbm``
+- ``loadImage(with:queue:progress:completion:)-4thmv``
+- ``loadData(with:completion:)-4iiji``
+- ``loadData(with:queue:progress:completion:)-4j70q``
