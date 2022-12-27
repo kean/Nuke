@@ -88,7 +88,55 @@ extension TVPosterView: Nuke_ImageDisplaying {
 /// See the complete method signature for more information.
 @MainActor
 @discardableResult public func loadImage(
-    with request: (any ImageRequestConvertible)?,
+    with url: URL?,
+    options: ImageLoadingOptions = ImageLoadingOptions.shared,
+    into view: ImageDisplayingView,
+    completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
+) -> ImageTask? {
+    loadImage(with: url, options: options, into: view, progress: nil, completion: completion)
+}
+
+/// Loads an image with the given request and displays it in the view.
+///
+/// Before loading a new image, the view is prepared for reuse by canceling any
+/// outstanding requests and removing a previously displayed image.
+///
+/// If the image is stored in the memory cache, it is displayed immediately with
+/// no animations. If not, the image is loaded using an image pipeline. When the
+/// image is loading, the `placeholder` is displayed. When the request
+/// completes the loaded image is displayed (or `failureImage` in case of an error)
+/// with the selected animation.
+///
+/// - parameters:
+///   - request: The image request. If `nil`, it's handled as a failure scenario.
+///   - options: `ImageLoadingOptions.shared` by default.
+///   - view: Nuke keeps a weak reference to the view. If the view is deallocated
+///   the associated request automatically gets canceled.
+///   - progress: A closure to be called periodically on the main thread
+///   when the progress is updated.
+///   - completion: A closure to be called on the main thread when the
+///   request is finished. Gets called synchronously if the response was found in
+///   the memory cache.
+///
+/// - returns: An image task or `nil` if the image was found in the memory cache.
+@MainActor
+@discardableResult public func loadImage(
+    with url: URL?,
+    options: ImageLoadingOptions = ImageLoadingOptions.shared,
+    into view: ImageDisplayingView,
+    progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
+    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
+) -> ImageTask? {
+    let controller = ImageViewController.controller(for: view)
+    return controller.loadImage(with: url.map({ ImageRequest(url: $0) }), options: options, progress: progress, completion: completion)
+}
+
+/// Loads an image with the given request and displays it in the view.
+///
+/// See the complete method signature for more information.
+@MainActor
+@discardableResult public func loadImage(
+    with request: ImageRequest?,
     options: ImageLoadingOptions = ImageLoadingOptions.shared,
     into view: ImageDisplayingView,
     completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
@@ -119,6 +167,30 @@ extension TVPosterView: Nuke_ImageDisplaying {
 ///   the memory cache.
 ///
 /// - returns: An image task or `nil` if the image was found in the memory cache.
+@MainActor
+@discardableResult public func loadImage(
+    with request: ImageRequest?,
+    options: ImageLoadingOptions = ImageLoadingOptions.shared,
+    into view: ImageDisplayingView,
+    progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
+    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
+) -> ImageTask? {
+    let controller = ImageViewController.controller(for: view)
+    return controller.loadImage(with: request, options: options, progress: progress, completion: completion)
+}
+
+@available(*, deprecated, message: "Please use the variants of this method that accept `ImageRequest?` or `URL?`")
+@MainActor
+@discardableResult public func loadImage(
+    with request: (any ImageRequestConvertible)?,
+    options: ImageLoadingOptions = ImageLoadingOptions.shared,
+    into view: ImageDisplayingView,
+    completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
+) -> ImageTask? {
+    loadImage(with: request, options: options, into: view, progress: nil, completion: completion)
+}
+
+@available(*, deprecated, message: "Please use the variants of this method that accept `ImageRequest?` or `URL?`")
 @MainActor
 @discardableResult public func loadImage(
     with request: (any ImageRequestConvertible)?,
