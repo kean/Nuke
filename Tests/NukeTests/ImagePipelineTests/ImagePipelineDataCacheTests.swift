@@ -448,7 +448,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
 
     // MARK: DataCachPolicy.storeOriginalData
 
-    func testPolicystoreOriginalDataGivenRequestWithProcessors() {
+    func testPolicyStoreOriginalDataGivenRequestWithProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .storeOriginalData
@@ -468,7 +468,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         XCTAssertEqual(dataCache.store.count, 1)
     }
 
-    func testPolicystoreOriginalDataGivenRequestWithoutProcessors() {
+    func testPolicyStoreOriginalDataGivenRequestWithoutProcessors() {
         // GIVEN
         pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .storeOriginalData
@@ -488,7 +488,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         XCTAssertEqual(dataCache.store.count, 1)
     }
 
-    func testPolicystoreOriginalDataGivenTwoRequests() {
+    func testPolicyStoreOriginalDataGivenTwoRequests() {
         // GIVEN
         pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .storeOriginalData
@@ -594,6 +594,25 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         XCTAssertEqual(encoder.encodeCount, 0)
         XCTAssertEqual(dataCache.writeCount, 0)
         XCTAssertEqual(dataCache.store.count, 0)
+    }
+
+    func testProcessedImagesFromLocalStorageAreCached() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.dataCachePolicy = .automatic
+        }
+
+        // GIVEN request with a processor
+        let request = ImageRequest(url: URL(string: "file://example/image.jpeg") ,processors: [.resize(width: 100)])
+
+        // WHEN
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // THEN original image data is stored in disk cache
+        XCTAssertEqual(encoder.encodeCount, 1)
+        XCTAssertEqual(dataCache.writeCount, 1)
+        XCTAssertEqual(dataCache.store.count, 1)
     }
 
     func testImagesFromMemoryNotCached() {

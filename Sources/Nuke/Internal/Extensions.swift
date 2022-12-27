@@ -36,9 +36,8 @@ extension NSLock {
 }
 
 extension URL {
-    var isCacheable: Bool {
-        let scheme = self.scheme
-        return scheme != "file" && scheme != "data"
+    var isLocalResource: Bool {
+        scheme == "file" || scheme == "data"
     }
 }
 

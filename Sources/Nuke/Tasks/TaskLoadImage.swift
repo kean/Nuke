@@ -231,7 +231,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         guard !response.container.isPreview else {
             return
         }
-        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreFinalImageInDiskCache() else {
+        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreImageInDiskCache() else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
@@ -254,11 +254,17 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
     }
 
-    private func shouldStoreFinalImageInDiskCache() -> Bool {
-        guard request.url?.isCacheable ?? false else {
+    private func shouldStoreImageInDiskCache() -> Bool {
+        let isProcessed = !request.processors.isEmpty
+        switch pipeline.configuration.dataCachePolicy {
+        case .automatic:
+            return isProcessed
+        case .storeOriginalData:
             return false
+        case .storeEncodedImages:
+            return isProcessed || imageTasks.contains { $0.request.processors.isEmpty }
+        case .storeAll:
+            return isProcessed
         }
-        let policy = pipeline.configuration.dataCachePolicy
-        return ((policy == .automatic || policy == .storeAll) && !request.processors.isEmpty) || policy == .storeEncodedImages
     }
 }

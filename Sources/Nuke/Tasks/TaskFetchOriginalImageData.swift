@@ -171,13 +171,19 @@ extension ImagePipelineTask where Value == (Data, URLResponse?) {
     }
 
     private func shouldStoreDataInDiskCache() -> Bool {
-        guard (request.url?.isCacheable ?? false) || (request.publisher != nil) else {
-            return false
-        }
-        let policy = pipeline.configuration.dataCachePolicy
         guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
             return false
         }
-        return policy == .storeOriginalData || policy == .storeAll || (policy == .automatic && imageTasks.contains { $0.request.processors.isEmpty })
+        let isLocalResource = request.url?.isLocalResource ?? false
+        switch pipeline.configuration.dataCachePolicy {
+        case .automatic:
+            return !isLocalResource && imageTasks.contains { $0.request.processors.isEmpty }
+        case .storeOriginalData:
+            return !isLocalResource
+        case .storeEncodedImages:
+            return false
+        case .storeAll:
+            return !isLocalResource
+        }
     }
 }
