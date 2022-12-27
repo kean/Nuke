@@ -1,5 +1,12 @@
 # Nuke 11
 
+## Nuke 11.6.0
+
+*Dec 26, 2022*
+
+- Fix [#579](https://github.com/kean/Nuke/issues/579): `ImageEncoders.ImageIO` losing image orientation - [#643](https://github.com/kean/Nuke/pull/643)
+- Deprecate previously soft-deprecated `ImageRequestConvertible` - [#642](https://github.com/kean/Nuke/pull/642)
+
 ## Nuke 11.5.1
 
 *Dec 25, 2022*
