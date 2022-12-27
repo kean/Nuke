@@ -85,7 +85,8 @@ class ImageViewExtensionsTests: XCTestCase {
         imageView.image = Test.image
 
         let expectation = self.expectation(description: "Image loaded")
-        NukeExtensions.loadImage(with: nil, into: imageView) {
+        let request: ImageRequest? = nil
+        NukeExtensions.loadImage(with: request, into: imageView) {
             XCTAssertEqual($0.error, .imageRequestMissing)
             expectation.fulfill()
         }
@@ -101,7 +102,8 @@ class ImageViewExtensionsTests: XCTestCase {
 
         // WHEN
         let options = ImageLoadingOptions(failureImage: failureImage)
-        NukeExtensions.loadImage(with: nil, options: options, into: imageView)
+        let request: ImageRequest? = nil
+        NukeExtensions.loadImage(with: request, options: options, into: imageView)
 
         // THEN failure image is displayed
         XCTAssertTrue(imageView.image === failureImage)
