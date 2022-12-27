@@ -255,6 +255,9 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     private func shouldStoreImageInDiskCache() -> Bool {
+        guard !(request.url?.isLocalResource ?? false) else {
+            return false
+        }
         let isProcessed = !request.processors.isEmpty
         switch pipeline.configuration.dataCachePolicy {
         case .automatic:

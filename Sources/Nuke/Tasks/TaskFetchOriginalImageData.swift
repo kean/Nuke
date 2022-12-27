@@ -174,16 +174,18 @@ extension ImagePipelineTask where Value == (Data, URLResponse?) {
         guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
             return false
         }
-        let isLocalResource = request.url?.isLocalResource ?? false
+        guard !(request.url?.isLocalResource ?? false) else {
+            return false
+        }
         switch pipeline.configuration.dataCachePolicy {
         case .automatic:
-            return !isLocalResource && imageTasks.contains { $0.request.processors.isEmpty }
+            return imageTasks.contains { $0.request.processors.isEmpty }
         case .storeOriginalData:
-            return !isLocalResource
+            return true
         case .storeEncodedImages:
             return false
         case .storeAll:
-            return !isLocalResource
+            return true
         }
     }
 }
