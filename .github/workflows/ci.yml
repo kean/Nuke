@@ -45,18 +45,18 @@ jobs:
           Scripts/test.sh -s "Nuke" -d "OS=16.1,name=Apple TV"
           Scripts/test.sh -s "NukeUI" -d "OS=16.1,name=Apple TV"
           Scripts/test.sh -s "Nuke Extensions" -d "OS=16.1,name=Apple TV"
-#  watchos-latest:
-#    name: Unit Tests (watchOS 9.1, Xcode 14.1)
-#    runs-on: macOS-12
-#    env: 
-#      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
-#    steps:
-#      - uses: actions/checkout@v2
-#      - name: Run Tests
-#        run: |
-#          Scripts/test.sh -s "Nuke" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
-#          Scripts/test.sh -s "NukeUI" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
-#          Scripts/test.sh -s "Nuke Extensions" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
+  watchos-latest:
+    name: Unit Tests (watchOS 9.1, Xcode 14.1)
+    runs-on: macOS-12
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Tests
+        run: |
+          Scripts/test.sh -s "Nuke" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
+          Scripts/test.sh -s "NukeUI" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
+          Scripts/test.sh -s "Nuke Extensions" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
   ios-xcode-13:
     name: Unit Tests (iOS 15.5, Xcode 13.4.1)
     runs-on: macOS-12

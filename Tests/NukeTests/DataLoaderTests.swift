@@ -5,6 +5,8 @@
 import XCTest
 @testable import Nuke
 
+#if !os(watchOS) && !os(tvOS)
+
 class DataLoaderTests: XCTestCase {
     var sut: DataLoader!
     private let delegate = MockSessionDelegate()
@@ -46,7 +48,6 @@ class DataLoaderTests: XCTestCase {
 
     // MARK: - Custom Delegate
 
-#if !os(watchOS) && !os(tvOS)
     func testCustomDelegate() {
         // GIVEN
         sut.delegate = delegate
@@ -63,7 +64,6 @@ class DataLoaderTests: XCTestCase {
         // THEN
         XCTAssertEqual(delegate.recordedMetrics.count, 1)
     }
-#endif
 }
 
 private final class MockSessionDelegate: NSObject, URLSessionTaskDelegate {
@@ -73,3 +73,5 @@ private final class MockSessionDelegate: NSObject, URLSessionTaskDelegate {
         recordedMetrics.append(metrics)
     }
 }
+
+#endif
