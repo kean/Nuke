@@ -52,10 +52,4 @@ public struct ImageResponse: @unchecked Sendable {
         /// Disk cache (see ``DataCaching``)
         case disk
     }
-
-    func map(_ transform: (ImageContainer) throws -> ImageContainer) rethrows -> ImageResponse {
-        var response = self
-        response.container = try transform(response.container)
-        return response
-    }
 }
