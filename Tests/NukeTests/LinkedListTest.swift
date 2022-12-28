@@ -99,7 +99,7 @@ class LinkedListTests: XCTestCase {
         list.append(3)
 
         // When
-        list.removeAll()
+        list.removeAllElements()
 
         // Then
         XCTAssertNil(list.first)

@@ -112,7 +112,7 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
 
         dataLoader = MockProgressiveDataLoader()
         imageCache = MockImageCache()
-        ResumableDataStorage.shared.removeAll()
+        ResumableDataStorage.shared.removeAllResponses()
 
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader

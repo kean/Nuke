@@ -13,7 +13,7 @@ class ImagePipelineResumableDataTests: XCTestCase {
         super.setUp()
 
         dataLoader = _MockResumableDataLoader()
-        ResumableDataStorage.shared.removeAll()
+        ResumableDataStorage.shared.removeAllResponses()
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
