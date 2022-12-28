@@ -5,12 +5,9 @@
 import Foundation
 
 /// Provides basic networking using `URLSession`.
-public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sendable {
+public final class DataLoader: DataLoading, @unchecked Sendable {
     public let session: URLSession
     private let impl = _DataLoader()
-
-    @available(*, deprecated, message: "Please use `DataLoader/delegate` instead")
-    public var observer: (any DataLoaderObserving)?
 
     /// Determines whether to deliver a partial response body in increments. By
     /// default, `false`.
@@ -54,7 +51,6 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
         self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: queue)
         self.session.sessionDescription = "Nuke URLSession"
         self.impl.validate = validate
-        self.impl.observer = self
 
         #if TRACK_ALLOCATIONS
         Allocations.increment("DataLoader")
@@ -124,18 +120,6 @@ public final class DataLoader: DataLoading, _DataLoaderObserving, @unchecked Sen
             }
         }
     }
-
-    // MARK: _DataLoaderObserving
-
-    @available(*, deprecated, message: "Please use `DataLoader/delegate` instead")
-    func dataTask(_ dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent) {
-        observer?.dataLoader(self, urlSession: session, dataTask: dataTask, didReceiveEvent: event)
-    }
-
-    @available(*, deprecated, message: "Please use `DataLoader/delegate` instead")
-    func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
-        observer?.dataLoader(self, urlSession: session, task: task, didFinishCollecting: metrics)
-    }
 }
 
 // Actual data loader implementation. Hide NSObject inheritance, hide
@@ -145,7 +129,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
     private var handlers = [URLSessionTask: _Handler]()
     var delegate: URLSessionDelegate?
-    weak var observer: (any _DataLoaderObserving)?
 
     /// Loads data with the given request.
     func loadData(with task: URLSessionDataTask,
@@ -158,7 +141,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         }
         task.taskDescription = "Nuke Load Data"
         task.resume()
-        send(task, .resumed)
         return AnonymousCancellable { task.cancel() }
     }
 
@@ -179,7 +161,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
                     didReceive response: URLResponse,
                     completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         (delegate as? URLSessionDataDelegate)?.urlSession?(session, dataTask: dataTask, didReceive: response, completionHandler: { _ in })
-        send(dataTask, .receivedResponse(response: response))
 
         guard let handler = handlers[dataTask] else {
             completionHandler(.cancel)
@@ -195,12 +176,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didCompleteWithError: error)
-
         assert(task is URLSessionDataTask)
-        if let dataTask = task as? URLSessionDataTask {
-            send(dataTask, .completed(error: error))
-        }
-
         guard let handler = handlers[task] else {
             return
         }
@@ -210,7 +186,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
         (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, didFinishCollecting: metrics)
-        observer?.task(task, didFinishCollecting: metrics)
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
@@ -237,8 +212,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         (delegate as? URLSessionDataDelegate)?.urlSession?(session, dataTask: dataTask, didReceive: data)
 
-        send(dataTask, .receivedData(data: data))
-
         guard let handler = handlers[dataTask], let response = dataTask.response else {
             return
         }
@@ -252,10 +225,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     }
 
     // MARK: Internal
-
-    private func send(_ dataTask: URLSessionDataTask, _ event: DataTaskEvent) {
-        observer?.dataTask(dataTask, didReceiveEvent: event)
-    }
 
     private final class _Handler {
         let didReceiveData: (Data, URLResponse) -> Void
