@@ -316,7 +316,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         /// Perform data loading immediately, ignoring ``ImagePipeline/Configuration-swift.struct/dataLoadingQueue``. It
         /// can be used to elevate priority of certain tasks.
         ///
-        /// - importajt: If there is an outstanding task for loading the same
+        /// - important: If there is an outstanding task for loading the same
         /// resource but without this option, a new task will be created.
         public static let skipDataLoadingQueue = Options(rawValue: 1 << 6)
     }
