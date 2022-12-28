@@ -14,9 +14,3 @@
 ### Observing Events
 
 - ``delegate``
-
-### Deprecated
-
-- ``observer``
-- ``DataLoaderObserving``
-- ``DataTaskEvent``
