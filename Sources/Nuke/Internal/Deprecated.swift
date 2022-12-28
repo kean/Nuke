@@ -159,6 +159,7 @@ protocol _DataLoaderObserving: AnyObject {
     func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics)
 }
 
+// Deprecated in Nuke 11.6
 extension ImagePipeline {
     @available(*, deprecated, message: "Please use either `loadData` that accepts `ImageRequest` as a parameter or, preferably, the new async/await APIs")
     @discardableResult public func loadData(
