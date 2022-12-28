@@ -91,7 +91,3 @@ struct ImageView: View {
 - ``onSuccess``
 - ``onFailure``
 - ``onCompletion``
-
-### Deprecated
-
-- ``load(_:)-1vg63``

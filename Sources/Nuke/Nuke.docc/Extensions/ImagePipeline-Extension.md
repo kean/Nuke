@@ -161,10 +161,3 @@ Every image preview goes through the same processing and decompression phases th
 ### Error Handling
 
 - ``Error``
-
-### Deprecated
-
-- ``loadImage(with:completion:)-6zpbm``
-- ``loadImage(with:queue:progress:completion:)-4thmv``
-- ``loadData(with:completion:)-4iiji``
-- ``loadData(with:queue:progress:completion:)-4j70q``
