@@ -78,51 +78,10 @@ extension DataCache {
     public typealias Key = String
 }
 
-extension ImageCaching {
-    // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Please use ImagePipeline.Cache that goes through ImagePipelineDelegate instead.")
-    public subscript(request: any ImageRequestConvertible) -> ImageContainer? {
-        get { self[ImageCacheKey(request: request.asImageRequest())] }
-        set { self[ImageCacheKey(request: request.asImageRequest())] = newValue }
-    }
-}
-
 extension ImagePipeline.Configuration {
     // Deprecated in Nuke 11.0
     @available(*, deprecated, message: "Please use `ImagePipeline.DataCachePolicy`")
     public typealias DataCachePolicy = ImagePipeline.DataCachePolicy
-}
-
-/// Deprecated in Nuke 11.6. (Soft-deprecated in Nuke 11.0).
-@available(*, deprecated, message: "Please use ImageRequest or URL directrly`")
-public protocol ImageRequestConvertible {
-    /// Returns a request.
-    func asImageRequest() -> ImageRequest
-}
-
-@available(*, deprecated, message: "Please use ImageRequest or URL directrly`")
-extension ImageRequest: ImageRequestConvertible {
-    public func asImageRequest() -> ImageRequest { self }
-}
-
-@available(*, deprecated, message: "Please use ImageRequest or URL directrly`")
-extension URL: ImageRequestConvertible {
-    public func asImageRequest() -> ImageRequest { ImageRequest(url: self) }
-}
-
-@available(*, deprecated, message: "Please use ImageRequest or URL directrly`")
-extension Optional: ImageRequestConvertible where Wrapped == URL {
-    public func asImageRequest() -> ImageRequest { ImageRequest(url: self) }
-}
-
-@available(*, deprecated, message: "Please use ImageRequest or URL directrly`")
-extension URLRequest: ImageRequestConvertible {
-    public func asImageRequest() -> ImageRequest { ImageRequest(urlRequest: self) }
-}
-
-@available(*, deprecated, message: "Please use ImageRequest or URL directrly`")
-extension String: ImageRequestConvertible {
-    public func asImageRequest() -> ImageRequest { ImageRequest(url: URL(string: self)) }
 }
 
 // Deprecated in Nuke 11.1
@@ -157,45 +116,4 @@ public enum DataTaskEvent {
 protocol _DataLoaderObserving: AnyObject {
     func dataTask(_ dataTask: URLSessionDataTask, didReceiveEvent event: DataTaskEvent)
     func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics)
-}
-
-// Deprecated in Nuke 11.6
-extension ImagePipeline {
-    @available(*, deprecated, message: "Please use either `loadData` that accepts `ImageRequest` as a parameter or, preferably, the new async/await APIs")
-    @discardableResult public func loadData(
-        with request: any ImageRequestConvertible,
-        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
-    ) -> ImageTask {
-        loadData(with: request.asImageRequest(), queue: nil, progress: nil, completion: completion)
-    }
-
-    @available(*, deprecated, message: "Please use either `loadData` that accepts `ImageRequest` as a parameter or, preferably, the new async/await APIs")
-    @discardableResult public func loadData(
-        with request: any ImageRequestConvertible,
-        queue: DispatchQueue? = nil,
-        progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
-    ) -> ImageTask {
-        loadData(with: request.asImageRequest(), isConfined: false, queue: queue, progress: progress, completion: completion)
-    }
-
-    @available(*, deprecated, message: "Please use either `loadImage` that accepts `ImageRequest` as a parameter or, preferably, the new async/await APIs")
-    @discardableResult public func loadImage(
-        with request: any ImageRequestConvertible,
-        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
-    ) -> ImageTask {
-        loadImage(with: request.asImageRequest(), queue: nil, progress: nil, completion: completion)
-    }
-
-    @available(*, deprecated, message: "Please use either `loadImage` that accepts `ImageRequest` as a parameter or, preferably, the new async/await APIs")
-    @discardableResult public func loadImage(
-        with request: any ImageRequestConvertible,
-        queue: DispatchQueue? = nil,
-        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
-    ) -> ImageTask {
-        loadImage(with: request.asImageRequest(), isConfined: false, queue: queue, progress: {
-            progress?($0, $1.completed, $1.total)
-        }, completion: completion)
-    }
 }
