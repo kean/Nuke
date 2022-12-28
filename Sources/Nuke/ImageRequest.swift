@@ -19,8 +19,7 @@ import Combine
 /// )
 /// let response = try await pipeline.image(for: request)
 /// ```
-public struct ImageRequest: CustomStringConvertible, Sendable {
-
+public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStringLiteral {
     // MARK: Options
 
     /// The relative priority of the request. The priority affects the order in
@@ -92,6 +91,11 @@ public struct ImageRequest: CustomStringConvertible, Sendable {
     }
 
     // MARK: Initializers
+
+    /// Initializes the request with the given string.
+    public init(stringLiteral value: String) {
+        self.init(url: URL(string: value))
+    }
 
     /// Initializes a request with the given `URL`.
     ///

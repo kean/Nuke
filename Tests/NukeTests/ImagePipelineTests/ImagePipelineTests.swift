@@ -580,6 +580,11 @@ class ImagePipelineTests: XCTestCase {
 
     // MARK: Misc
 
+    func testLoadWithStringLiteral() async throws {
+        let response = try await pipeline.image(for: "https://example.com/image.jpeg")
+        XCTAssertNotEqual(response.image.size, .zero)
+    }
+
     func testLoadWithInvalidURL() throws {
         // GIVEN
         pipeline = pipeline.reconfigured {

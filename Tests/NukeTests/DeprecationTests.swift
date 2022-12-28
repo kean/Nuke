@@ -5,17 +5,6 @@
 import XCTest
 @testable import Nuke
 
-class NewImageRequestTests: XCTestCase {
-    // The compiler picks up the new version
-    func testInit() {
-        _ = ImageRequest(url: Test.url)
-        _ = ImageRequest(url: Test.url, processors: [])
-        _ = ImageRequest(url: Test.url, processors: [])
-        _ = ImageRequest(url: Test.url, priority: .high)
-        _ = ImageRequest(url: Test.url, options: [.reloadIgnoringCachedData])
-    }
-}
-
 @available(*, deprecated, message: "Deprecated")
 class ImageRequestConvertibleTests: XCTestCase {
     var dataLoader: MockDataLoader!
