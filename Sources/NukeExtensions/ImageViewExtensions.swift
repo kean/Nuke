@@ -179,30 +179,6 @@ extension TVPosterView: Nuke_ImageDisplaying {
     return controller.loadImage(with: request, options: options, progress: progress, completion: completion)
 }
 
-@available(*, deprecated, message: "Please use the variants of this method that accept `ImageRequest?` or `URL?`")
-@MainActor
-@discardableResult public func loadImage(
-    with request: (any ImageRequestConvertible)?,
-    options: ImageLoadingOptions = ImageLoadingOptions.shared,
-    into view: ImageDisplayingView,
-    completion: @escaping (_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void
-) -> ImageTask? {
-    loadImage(with: request, options: options, into: view, progress: nil, completion: completion)
-}
-
-@available(*, deprecated, message: "Please use the variants of this method that accept `ImageRequest?` or `URL?`")
-@MainActor
-@discardableResult public func loadImage(
-    with request: (any ImageRequestConvertible)?,
-    options: ImageLoadingOptions = ImageLoadingOptions.shared,
-    into view: ImageDisplayingView,
-    progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)? = nil,
-    completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
-) -> ImageTask? {
-    let controller = ImageViewController.controller(for: view)
-    return controller.loadImage(with: request?.asImageRequest(), options: options, progress: progress, completion: completion)
-}
-
 /// Cancels an outstanding request associated with the view.
 @MainActor
 public func cancelRequest(for view: ImageDisplayingView) {

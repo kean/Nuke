@@ -209,13 +209,6 @@ public final class LazyImageView: _PlatformBaseView {
     public var request: ImageRequest? {
         didSet { load(request) }
     }
-    ///
-    // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Please `request` or `url` properties instead")
-    public var source: (any ImageRequestConvertible)? {
-        get { request }
-        set { request = newValue?.asImageRequest() }
-    }
 
     override public func updateConstraints() {
         super.updateConstraints()

@@ -146,12 +146,6 @@ public final class FetchImage: ObservableObject, Identifiable {
         onStart?(task)
     }
 
-    // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Please use load() methods that work either with URL or ImageRequest.")
-    public func load(_ request: (any ImageRequestConvertible)?) {
-        load(request?.asImageRequest())
-    }
-
     private func handle(preview: ImageResponse) {
         // Display progressively decoded image
         self.imageContainer = preview.container
