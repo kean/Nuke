@@ -40,14 +40,14 @@ class ImageViewPerformanceTests: XCTestCase {
     func testImageViewMainThreadPerformanceCacheHit() {
         let view = _ImageView()
 
-        let urls = (0..<50_000).map { _ in return URL(string: "http://test.com/1)")! }
-        for url in urls {
-            ImagePipeline.shared.configuration.imageCache?[url] = ImageContainer(image: PlatformImage())
+        let requests = (0..<50_000).map { _ in ImageRequest(url: URL(string: "http://test.com/1)")!) }
+        for request in requests {
+            ImagePipeline.shared.configuration.imageCache?[request] = ImageContainer(image: PlatformImage())
         }
 
         measure {
-            for url in urls {
-                loadImage(with: url, into: view)
+            for request in requests {
+                loadImage(with: request, into: view)
             }
         }
     }

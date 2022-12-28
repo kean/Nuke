@@ -33,15 +33,15 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             $0.makeImageDecoder = { _ in ImageDecoders.Empty() }
         }
 
-        let urls = (0...5000).map { URL(string: "http://test.com/\($0)")! }
+        let requests = (0...5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
         let callbackQueue = DispatchQueue(label: "testLoaderOverallPerformance")
         measure {
             var finished: Int = 0
             let semaphore = DispatchSemaphore(value: 0)
-            for url in urls {
-                pipeline.loadImage(with: url, queue: callbackQueue, progress: nil) { _ in
+            for request in requests {
+                pipeline.loadImage(with: request, queue: callbackQueue, progress: nil) { _ in
                     finished += 1
-                    if finished == urls.count {
+                    if finished == requests.count {
                         semaphore.signal()
                     }
                 }
