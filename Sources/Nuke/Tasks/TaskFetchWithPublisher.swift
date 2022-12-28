@@ -19,7 +19,7 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
                 guard let self = self else {
                     return finish()
                 }
-                self.async {
+                self.pipeline.queue.async {
                     self.loadData { finish() }
                 }
             }
@@ -40,12 +40,12 @@ final class TaskFetchWithPublisher: ImagePipelineTask<(Data, URLResponse?)> {
         let cancellable = publisher.sink(receiveCompletion: { [weak self] result in
             finish() // Finish the operation!
             guard let self = self else { return }
-            self.async {
+            self.pipeline.queue.async {
                 self.dataTaskDidFinish(result)
             }
         }, receiveValue: { [weak self] data in
             guard let self = self else { return }
-            self.async {
+            self.pipeline.queue.async {
                 self.data.append(data)
             }
         })

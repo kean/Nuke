@@ -39,7 +39,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         let data = signpost("ReadCachedProcessedImageData") {
             pipeline.cache.cachedData(for: request)
         }
-        async {
+        pipeline.queue.async {
             if let data = data {
                 self.didReceiveCachedData(data)
             } else {
@@ -69,7 +69,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
                 guard let self = self else { return }
                 let response = decode()
-                self.async {
+                self.pipeline.queue.async {
                     self.didDecodeCachedData(response)
                 }
             }
@@ -200,7 +200,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
                 self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
             }
 
-            self.async {
+            self.pipeline.queue.async {
                 self.storeImageInCaches(response, isFromDiskCache: isFromDiskCache)
                 self.send(value: response, isCompleted: isCompleted)
             }

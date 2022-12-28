@@ -15,11 +15,6 @@ class ImagePipelineTask<Value>: AsyncTask<Value, ImagePipeline.Error> {
         self.pipeline = pipeline
         self.request = request
     }
-
-    /// Executes work on the pipeline synchronization queue.
-    func async(_ work: @Sendable @escaping () -> Void) {
-        pipeline.queue.async { work() }
-    }
 }
 
 // Returns all image tasks subscribed to the current pipeline task.

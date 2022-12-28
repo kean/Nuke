@@ -44,7 +44,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
                 guard let self = self else {
                     return finish()
                 }
-                self.async {
+                self.pipeline.queue.async {
                     self.loadData(urlRequest: urlRequest, finish: finish)
                 }
             }
@@ -73,14 +73,14 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
         let dataTask = dataLoader.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
             guard let self = self else { return }
-            self.async {
+            self.pipeline.queue.async {
                 self.dataTask(didReceiveData: data, response: response)
             }
         }, completion: { [weak self] error in
             finish() // Finish the operation!
             guard let self = self else { return }
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
-            self.async {
+            self.pipeline.queue.async {
                 self.dataTaskDidFinish(error: error)
             }
         })
