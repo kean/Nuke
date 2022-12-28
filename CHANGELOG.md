@@ -1,11 +1,11 @@
 # Nuke 11
 
-## Nuke 11.6.0
-
-*Dec 26, 2022*
+## Upcoming
 
 - Fix [#579](https://github.com/kean/Nuke/issues/579): `ImageEncoders.ImageIO` losing image orientation - [#643](https://github.com/kean/Nuke/pull/643)
 - Deprecate previously soft-deprecated `ImageRequestConvertible` - [#642](https://github.com/kean/Nuke/pull/642)
+- Add `isCompressionEnabled` option to `DataCache` that enables compressiong using Apple’s [lzfse](https://en.wikipedia.org/wiki/LZFSE) algorithm that offers both great performance and compression ratio. It can help reduce disk usage by up to 80%. If you enable it, you'll be able to store much more images and it might be worth reducing the cache size limit. By default, compression is disabled – [#646](https://github.com/kean/Nuke/pull/646)
+- Add `ExpressibleByStringLiteral` conformance to `ImageRequest`
 
 ## Nuke 11.5.1
 
