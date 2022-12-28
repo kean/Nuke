@@ -6,6 +6,7 @@
 - Deprecate previously soft-deprecated `ImageRequestConvertible` - [#642](https://github.com/kean/Nuke/pull/642)
 - Add `isCompressionEnabled` option to `DataCache` that enables compression using Apple’s [lzfse](https://en.wikipedia.org/wiki/LZFSE) algorithm offering an excellent balance between performance and compression ratio. It can reduce disk usage by up to 80%, allowing you to store many more images or reduce the cache size limit. By default, compression is disabled – [#646](https://github.com/kean/Nuke/pull/646)
 - Add `ExpressibleByStringLiteral` conformance to `ImageRequest`
+- Make compatible with Swift 6 mode
 
 ## Nuke 11.5.1
 
