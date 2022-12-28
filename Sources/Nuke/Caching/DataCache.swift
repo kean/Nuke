@@ -57,6 +57,12 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// other subsystems for the resources.
     private var initialSweepDelay: TimeInterval = 10
 
+    /// Enables compression. By default, disabled.
+    ///
+    /// - note: If enabled, uses `lzfse` compression algorithm that offers
+    /// optimal performance on Apple platforms.
+    public var isCompressionEnabled = false
+
     // Staging
 
     private let lock = NSLock()
@@ -137,7 +143,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         guard let url = url(for: key) else {
             return nil
         }
-        return try? Data(contentsOf: url)
+        return try? decompressed(Data(contentsOf: url))
     }
 
     /// Returns `true` if the cache contains the data for the given key.
@@ -318,15 +324,31 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         switch change.type {
         case let .add(data):
             do {
-                try data.write(to: url)
+                try compressed(data).write(to: url)
             } catch let error as NSError {
                 guard error.code == CocoaError.fileNoSuchFile.rawValue && error.domain == CocoaError.errorDomain else { return }
                 try? FileManager.default.createDirectory(at: self.path, withIntermediateDirectories: true, attributes: nil)
-                try? data.write(to: url) // re-create a directory and try again
+                try? compressed(data).write(to: url) // re-create a directory and try again
             }
         case .remove:
             try? FileManager.default.removeItem(at: url)
         }
+    }
+
+    // MARK: Compression
+
+    private func compressed(_ data: Data) throws -> Data {
+        guard isCompressionEnabled else {
+            return data
+        }
+        return try (data as NSData).compressed(using: .lzfse) as Data
+    }
+
+    private func decompressed(_ data: Data) throws -> Data {
+        guard isCompressionEnabled else {
+            return data
+        }
+        return try (data as NSData).decompressed(using: .lzfse) as Data
     }
 
     // MARK: Sweep

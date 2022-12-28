@@ -95,6 +95,9 @@ let dataCache = try DataCache(name: "my-cache")
 
 dataCache.sizeLimit = 1024 * 1024 * 100 // 100 MB
 
+// Dramatically reduces space usage, but adds a slight performance hit
+dataCache.isCompressionEnable = true
+
 dataCache.storeData(data, for: "key")
 if dataCache.containsData(for: "key") {
     print("Data is cached")
