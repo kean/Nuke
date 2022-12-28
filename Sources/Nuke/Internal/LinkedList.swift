@@ -11,7 +11,7 @@ final class LinkedList<Element> {
     private(set) var last: Node?
 
     deinit {
-        removeAll()
+        removeAllElements()
 
         #if TRACK_ALLOCATIONS
         Allocations.decrement("LinkedList")
@@ -61,7 +61,7 @@ final class LinkedList<Element> {
         node.previous = nil
     }
 
-    func removeAll() {
+    func removeAllElements() {
         // avoid recursive Nodes deallocation
         var node = first
         while let next = node?.next {

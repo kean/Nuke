@@ -97,7 +97,7 @@ public final class ImageCache: ImageCaching {
 
     /// Removes all cached images.
     public func removeAll() {
-        impl.removeAll()
+        impl.removeAllCachedValues()
     }
     /// Removes least recently used items from the cache until the total cost
     /// of the remaining items is less than the given cost limit.

@@ -187,7 +187,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// Removes all items. The method returns instantly, the data is removed
     /// asynchronously.
     public func removeAll() {
-        stage { staging.removeAll() }
+        stage { staging.removeAllStagedChanges() }
     }
 
     private func stage(_ change: () -> Void) {
@@ -504,7 +504,7 @@ private struct Staging {
         changes[key] = Change(key: key, id: nextChangeId, type: .remove)
     }
 
-    mutating func removeAll() {
+    mutating func removeAllStagedChanges() {
         nextChangeId += 1
         changeRemoveAll = ChangeRemoveAll(id: nextChangeId)
         changes.removeAll()

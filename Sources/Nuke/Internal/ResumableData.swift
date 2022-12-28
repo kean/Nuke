@@ -94,11 +94,11 @@ final class ResumableDataStorage: @unchecked Sendable {
         }
     }
 
-    func removeAll() {
+    func removeAllResponses() {
         lock.lock()
         defer { lock.unlock() }
 
-        cache?.removeAll()
+        cache?.removeAllCachedValues()
     }
 
     // MARK: Storage
