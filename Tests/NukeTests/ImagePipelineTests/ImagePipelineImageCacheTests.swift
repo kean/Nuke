@@ -394,7 +394,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
 
     func testGivenTwoRequestWhereOnlyOneHasDiskWritesDisabled() {
         // WHEN
-        pipeline.resgiterMultipleRequests {
+        pipeline.registerMultipleRequests {
             request.options.insert(.disableDiskCacheWrites)
             expect(pipeline).toLoadImage(with: request)
             request.options.remove(.disableDiskCacheWrites)

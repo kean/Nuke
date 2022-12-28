@@ -343,7 +343,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
 
         // WHEN
-        pipeline.resgiterMultipleRequests {
+        pipeline.registerMultipleRequests {
             expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url))
         }
@@ -430,7 +430,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
 
         // WHEN
-        pipeline.resgiterMultipleRequests {
+        pipeline.registerMultipleRequests {
             expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url))
         }
@@ -495,7 +495,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
 
         // WHEN
-        pipeline.resgiterMultipleRequests {
+        pipeline.registerMultipleRequests {
             expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url))
         }
