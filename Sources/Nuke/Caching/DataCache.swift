@@ -57,7 +57,11 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// other subsystems for the resources.
     private var initialSweepDelay: TimeInterval = 10
 
-    /// Enables compression. By default, disabled.
+    /// Enables compression. Disabled by default.
+    ///
+    /// Enabling compression significantly decreases disk usage allowing you
+    /// to store more images or reduce the cache size limit. There is a slight
+    /// performance hit associated with compression.
     ///
     /// - note: If enabled, uses `lzfse` compression algorithm that offers
     /// optimal performance on Apple platforms.
