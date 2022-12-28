@@ -110,8 +110,3 @@ LazyImage(url: URL(string: "https://example.com/image.jpeg"))
 - ``onSuccess(_:)``
 - ``onFailure(_:)``
 - ``onCompletion(_:)``
-
-### Deprecated
-
-- ``init(source:resizingMode:)``
-- ``init(source:content:)``
