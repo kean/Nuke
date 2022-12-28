@@ -4,7 +4,7 @@
 
 import Foundation
 
-/// Receives data from ``TaskLoadImageData` and decodes it as it arrives.
+/// Receives data from ``TaskLoadImageData`` and decodes it as it arrives.
 final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
     private var decoder: (any ImageDecoding)?
 
