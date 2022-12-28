@@ -122,8 +122,8 @@ public final class ImagePrefetcher: @unchecked Sendable {
                 request.priority = _priority
             }
             _startPrefetching(with: request)
-            sendCompletionIfNeeded()
         }
+        sendCompletionIfNeeded()
     }
 
     private func _startPrefetching(with request: ImageRequest) {
