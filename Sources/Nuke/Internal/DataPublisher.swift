@@ -33,7 +33,7 @@ final class DataPublisher {
     }
 }
 
-private func publisher(from closure: @Sendable @escaping () async throws -> Data) -> AnyPublisher<Data, Error> {
+private func publisher(from closure: @Sendable @escaping () async throws -> Data) -> any Publisher<Data, Error> {
     let subject = PassthroughSubject<Data, Error>()
     Task {
         do {
@@ -44,7 +44,7 @@ private func publisher(from closure: @Sendable @escaping () async throws -> Data
             subject.send(completion: .failure(error))
         }
     }
-    return subject.eraseToAnyPublisher()
+    return subject
 }
 
 enum PublisherCompletion {

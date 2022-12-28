@@ -53,8 +53,8 @@ cancellable = lowResImage.append(highResImage)
 
 ```swift
 public extension Publisher {
-    var orEmpty: AnyPublisher<Output, Never> {
-        catch { _ in Empty<Output, Never>() }.eraseToAnyPublisher()
+    var orEmpty: any Publisher<Output, Never> {
+        catch { _ in Empty<Output, Never>() }
     }
 }
 ```
