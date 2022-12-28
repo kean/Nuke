@@ -38,4 +38,32 @@ class DataCachePeformanceTests: XCTestCase {
             queue.waitUntilAllOperationsAreFinished()
         }
     }
+
+    func testReadFlushedPerformanceSync() {
+        for idx in 0..<1000 {
+            cache["\(idx)"] = Data(repeating: 1, count: 256 * 1024)
+        }
+        cache.flush()
+
+        measure {
+            for idx in 0..<1000 {
+                _ = self.cache["\(idx)"]
+            }
+        }
+    }
+
+    func testReadFlushedPerformanceWithCompression() {
+        cache.isCompressionEnabled = true
+
+        for idx in 0..<1000 {
+            cache["\(idx)"] = Data(repeating: 1, count: 256 * 1024)
+        }
+        cache.flush()
+
+        measure {
+            for idx in 0..<1000 {
+                _ = self.cache["\(idx)"]
+            }
+        }
+    }
 }
