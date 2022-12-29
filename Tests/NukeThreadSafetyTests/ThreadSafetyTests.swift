@@ -23,7 +23,9 @@ class ThreadSafetyTests: XCTestCase {
     func testSharingConfigurationBetweenPipelines() { // Especially operation queues
         var pipelines = [ImagePipeline]()
 
-        let configuration = ImagePipeline.Configuration()
+        var configuration = ImagePipeline.Configuration()
+        configuration.dataLoader = MockDataLoader()
+        configuration.imageCache = nil
 
         pipelines.append(ImagePipeline(configuration: configuration))
         pipelines.append(ImagePipeline(configuration: configuration))
