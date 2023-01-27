@@ -4,7 +4,6 @@
 
 *Jan 27, 2023*
 
-- Nuke is back on CocoaPods
 - Fix [#579](https://github.com/kean/Nuke/issues/579): `ImageEncoders.ImageIO` losing image orientation - [#643](https://github.com/kean/Nuke/pull/643)
 - Deprecate previously soft-deprecated `ImageRequestConvertible` - [#642](https://github.com/kean/Nuke/pull/642)
 - Add `isCompressionEnabled` option to `DataCache` that enables compression using Apple’s [lzfse](https://en.wikipedia.org/wiki/LZFSE) algorithm
