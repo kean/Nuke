@@ -706,7 +706,6 @@
 				0C55FD1D28567926000FD2C9 /* FetchImage.swift */,
 				0C38DB4F285690F90027F9FF /* Internal.swift */,
 				0C38DB57285691FE0027F9FF /* Gifu */,
-				0C222DE2294E2DEA00012288 /* NukeUI.docc */,
 			);
 			path = NukeUI;
 			sourceTree = "<group>";
@@ -780,7 +779,6 @@
 			children = (
 				0C55FD1B28567926000FD2C9 /* ImageLoadingOptions.swift */,
 				0C55FD1C28567926000FD2C9 /* ImageViewExtensions.swift */,
-				0C222DE4294E2E0200012288 /* NukeExtensions.docc */,
 			);
 			path = NukeExtensions;
 			sourceTree = "<group>";
@@ -1076,7 +1074,6 @@
 				0CA4ECD526E6903F00BAC8E5 /* Prefetching */,
 				0CB402D325B6568800F5A241 /* Tasks */,
 				0CC36A0B25B8BBF800811018 /* Internal */,
-				0C1B987F294E28D800C09310 /* Nuke.docc */,
 			);
 			path = Nuke;
 			sourceTree = "<group>";
@@ -1118,6 +1115,9 @@
 		0CDB92761DAF9BA500002905 /* Documentation */ = {
 			isa = PBXGroup;
 			children = (
+				0C1B987F294E28D800C09310 /* Nuke.docc */,
+				0C222DE2294E2DEA00012288 /* NukeUI.docc */,
+				0C222DE4294E2E0200012288 /* NukeExtensions.docc */,
 				0CDB927C1DAF9BA500002905 /* Migrations */,
 			);
 			path = Documentation;
