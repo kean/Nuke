@@ -1,12 +1,21 @@
 # Nuke 11
 
-## Upcoming
+## Nuke 11.6.0
 
+*Jan 27, 2023*
+
+- Nuke is back on CocoaPods
 - Fix [#579](https://github.com/kean/Nuke/issues/579): `ImageEncoders.ImageIO` losing image orientation - [#643](https://github.com/kean/Nuke/pull/643)
 - Deprecate previously soft-deprecated `ImageRequestConvertible` - [#642](https://github.com/kean/Nuke/pull/642)
-- Add `isCompressionEnabled` option to `DataCache` that enables compression using Apple’s [lzfse](https://en.wikipedia.org/wiki/LZFSE) algorithm offering an excellent balance between performance and compression ratio. It can reduce disk usage by up to 80%, allowing you to store many more images or reduce the cache size limit. By default, compression is disabled – [#646](https://github.com/kean/Nuke/pull/646)
+- Add `isCompressionEnabled` option to `DataCache` that enables compression using Apple’s [lzfse](https://en.wikipedia.org/wiki/LZFSE) algorithm
 - Add `ExpressibleByStringLiteral` conformance to `ImageRequest`
 - Make compatible with Swift 6 mode
+
+## Nuke 11.5.3
+
+*Jan 4, 2023*
+
+- Remove DocC files to address https://github.com/kean/Nuke/issues/609
 
 ## Nuke 11.5.1
 
