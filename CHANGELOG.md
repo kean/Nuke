@@ -1,5 +1,11 @@
 # Nuke 11
 
+## Nuke 11.6.1
+
+*Feb 5, 2023*
+
+- Fix [#653](https://github.com/kean/Nuke/issues/653): ImageView wasn't calling `prepareForReuse` on its `animatedImageView`
+
 ## Nuke 11.6.0
 
 *Jan 27, 2023*
