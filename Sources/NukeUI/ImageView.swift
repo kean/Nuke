@@ -208,6 +208,7 @@ public class ImageView: _PlatformBaseView {
 #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
         _animatedImageView?.isHidden = true
         _animatedImageView?.image = nil
+        _animatedImageView?.prepareForReuse()
 #endif
 
         _videoPlayerView?.isHidden = true
