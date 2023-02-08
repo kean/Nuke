@@ -44,6 +44,15 @@ class Animator {
     return frameStore?.frameCount ?? 0
   }
 
+  /// Tests if the `data` is truly an **animated** gif
+  public static func isAnimatedGif(data: Data) -> Bool {
+    if let imageSource = CGImageSourceCreateWithData(data as CFData, nil) {
+      return imageSource.isAnimatedGIF
+    } else {
+      return false
+    }
+  }
+
   /// Creates a new animator with a delegate.
   ///
   /// - parameter view: A view object that implements the `GIFAnimatable` protocol.
