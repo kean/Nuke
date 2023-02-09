@@ -238,3 +238,25 @@ public struct _LazyImageContents<I: View, P: View>: View {
         }
     }
 }
+
+#if DEBUG
+@available(iOS 15, *)
+struct LazyImage_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            LazyImage(url: URL(string: "https://kean.blog/images/pulse/01.png"))
+                .previewDisplayName("LazyImage")
+
+            LazyImage(url: URL(string: "https://kean.blog/images/pulse/01.png")) { image in
+                image.resizable().aspectRatio(contentMode: .fit)
+            } placeholder: {
+                Rectangle().foregroundColor(Color.secondary)
+            }
+            .previewDisplayName("Resizable")
+
+            AsyncImage(url: URL(string: "https://kean.blog/images/pulse/01.png"))
+                .previewDisplayName("AsyncImage")
+        }
+    }
+}
+#endif
