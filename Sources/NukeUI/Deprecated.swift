@@ -48,3 +48,19 @@ public class ImageView: NSImageView {}
 @MainActor
 public class ImageView: UIImageView {}
 #endif
+
+@available(*, deprecated, message: "The resizingMode is no longer supported. Please use one of the initializers that allows you to customize the displayed image directly.")
+public enum ImageResizingMode {
+    case fill
+    case aspectFit
+    case aspectFill
+    case center
+    case top
+    case bottom
+    case left
+    case right
+    case topLeft
+    case topRight
+    case bottomLeft
+    case bottomRight
+}

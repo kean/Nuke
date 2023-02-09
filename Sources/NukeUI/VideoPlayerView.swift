@@ -180,16 +180,6 @@ public final class VideoPlayerView: _PlatformBaseView {
     }
 }
 
-extension AVLayerVideoGravity {
-    init(_ contentMode: ImageResizingMode) {
-        switch contentMode {
-        case .fill: self = .resize
-        case .aspectFill: self = .resizeAspectFill
-        default: self = .resizeAspect
-        }
-    }
-}
-
 @MainActor
 extension AVPlayer {
     var nowPlaying: Bool {

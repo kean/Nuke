@@ -25,10 +25,6 @@ public struct LazyImage<Content: View>: View {
 
     private let request: HashableRequest?
 
-#if !os(watchOS)
-    private var onCreated: ((ImageView) -> Void)?
-#endif
-
     // Options
     private var makeContent: ((LazyImageState) -> Content)?
     private var animation: Animation? = .default
@@ -36,13 +32,6 @@ public struct LazyImage<Content: View>: View {
     private var priority: ImageRequest.Priority?
     private var pipeline: ImagePipeline = .shared
     private var onDisappearBehavior: DisappearBehavior? = .cancel
-    private var onStart: ((ImageTask) -> Void)?
-    private var onPreview: ((ImageResponse) -> Void)?
-    private var onProgress: ((ImageTask.Progress) -> Void)?
-    private var onSuccess: ((ImageResponse) -> Void)?
-    private var onFailure: ((Error) -> Void)?
-    private var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
-    private var resizingMode: ImageResizingMode?
 
     // MARK: Initializers
 
@@ -63,7 +52,6 @@ public struct LazyImage<Content: View>: View {
     ///   - resizingMode: The displayed image resizing mode.
     public init(request: ImageRequest?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
         self.request = request.map { HashableRequest(request: $0) }
-        self.resizingMode = resizingMode
     }
 #else
     /// Loads and displays an image using ``Image``.
@@ -211,21 +199,6 @@ public struct LazyImage<Content: View>: View {
         closure(&copy)
         return copy
     }
-}
-
-public enum ImageResizingMode {
-    case fill
-    case aspectFit
-    case aspectFill
-    case center
-    case top
-    case bottom
-    case left
-    case right
-    case topLeft
-    case topRight
-    case bottomLeft
-    case bottomRight
 }
 
 private struct HashableRequest: Hashable {
