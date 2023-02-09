@@ -27,36 +27,12 @@ public class ImageView: _PlatformBaseView {
     public var resizingMode: ImageResizingMode = .aspectFill {
         didSet {
             imageView.contentMode = .init(resizingMode: resizingMode)
-#if !targetEnvironment(macCatalyst)
-            _animatedImageView?.contentMode = .init(resizingMode: resizingMode)
-#endif
             _videoPlayerView?.videoGravity = .init(resizingMode)
         }
     }
 #else
     /// - warning: This option currently does nothing on macOS.
     public var resizingMode: ImageResizingMode = .aspectFill
-#endif
-
-#if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
-    /// Returns an underlying animated image view used for rendering animated images.
-    public var animatedImageView: AnimatedImageView {
-        if let view = _animatedImageView {
-            return view
-        }
-        let view = makeAnimatedImageView()
-        addContentView(view)
-        _animatedImageView = view
-        return view
-    }
-
-    private func makeAnimatedImageView() -> AnimatedImageView {
-        let view = AnimatedImageView()
-        view.contentMode = .init(resizingMode: resizingMode)
-        return view
-    }
-
-    private var _animatedImageView: AnimatedImageView?
 #endif
 
     /// Returns an underlying video player view.
@@ -169,13 +145,6 @@ public class ImageView: _PlatformBaseView {
             customContentView = customView
             return
         }
-#if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
-        if isAnimatedImageRenderingEnabled, let data = container.data, container.type == .gif, Animator.isAnimatedGif(data: data) {
-            animatedImageView.animate(withGIFData: data)
-            animatedImageView.isHidden = false
-            return
-        }
-#endif
         if isVideoRenderingEnabled, let asset = container.asset {
             videoPlayerView.isHidden = false
             videoPlayerView.isLooping = isVideoLooping
@@ -204,12 +173,6 @@ public class ImageView: _PlatformBaseView {
 
         imageView.isHidden = true
         imageView.image = nil
-
-#if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
-        _animatedImageView?.isHidden = true
-        _animatedImageView?.image = nil
-        _animatedImageView?.prepareForReuse()
-#endif
 
         _videoPlayerView?.isHidden = true
         _videoPlayerView?.reset()
