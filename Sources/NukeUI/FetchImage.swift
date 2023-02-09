@@ -247,11 +247,11 @@ public final class FetchImage: ObservableObject, Identifiable {
     // MARK: View
 
     /// Returns an image view displaying a fetched image.
-    public var view: SwiftUI.Image? {
+    public var view: Image? {
 #if os(macOS)
-        image.map(SwiftUI.Image.init(nsImage:))
+        image.map(Image.init(nsImage:))
 #else
-        image.map(SwiftUI.Image.init(uiImage:))
+        image.map(Image.init(uiImage:))
 #endif
     }
 }

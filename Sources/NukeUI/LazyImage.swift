@@ -36,24 +36,17 @@ public struct LazyImage<Content: View>: View {
     // MARK: Initializers
 
 #if !os(macOS)
-    /// Loads and displays an image using ``Image``.
-    ///
-    /// - Parameters:
-    ///   - url: The image URL.
-    ///   - resizingMode: The displayed image resizing mode.
-    public init(url: URL?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
+    @available(*, deprecated, message: "The resizingMode is no longer supported. Please use one of the initializers that allows you to customize the displayed image directly.")
+    public init(url: URL?, resizingMode: ImageResizingMode) where Content == Image {
         self.init(request: url.map { ImageRequest(url: $0) }, resizingMode: resizingMode)
     }
 
-    /// Loads and displays an image using ``Image``.
-    ///
-    /// - Parameters:
-    ///   - request: The image request.
-    ///   - resizingMode: The displayed image resizing mode.
-    public init(request: ImageRequest?, resizingMode: ImageResizingMode = .aspectFill) where Content == Image {
-        self.request = request.map { HashableRequest(request: $0) }
+    @available(*, deprecated, message: "The resizingMode is no longer supported. Please use one of the initializers that allows you to customize the displayed image directly.")
+    public init(request: ImageRequest?, resizingMode: ImageResizingMode) where Content == Image {
+        self.init(request: request)
     }
-#else
+#endif
+
     /// Loads and displays an image using ``Image``.
     ///
     /// - Parameters:
@@ -67,9 +60,34 @@ public struct LazyImage<Content: View>: View {
     /// - Parameters:
     ///   - request: The image request.
     public init(request: ImageRequest?) where Content == Image {
-        self.request = request.map { HashableRequest(request: $0) }
+        self.request = request.map(HashableRequest.init)
     }
-#endif
+
+    /// Loads and displays an image from the specified URL using a custom
+    /// placeholder until the image loads.
+    public init<I: View, P: View>(
+        request: ImageRequest?,
+        content: @escaping (Image) -> I,
+        placeholder: @escaping () -> P
+    ) where Content == _LazyImageContents<I, P> {
+        self.request = request.map(HashableRequest.init)
+        self.makeContent = { _LazyImageContents(state: $0, content: content, placeholder: placeholder) }
+    }
+
+    /// Loads and displays an image from the specified URL using a custom
+    /// placeholder until the image loads.
+    public init<I: View, P: View>(
+        url: URL?,
+        scale: CGFloat = 1,
+        content: @escaping (Image) -> I,
+        placeholder: @escaping () -> P
+    ) where Content == _LazyImageContents<I, P> {
+        self.request = url.map {
+            HashableRequest(request: ImageRequest(url: $0, userInfo: [.scaleKey: scale]))
+        }
+        self.makeContent = { _LazyImageContents(state: $0, content: content, placeholder: placeholder) }
+    }
+
     /// Loads an images and displays custom content for each state.
     ///
     /// See also ``init(request:content:)``
@@ -216,5 +234,19 @@ private struct HashableRequest: Hashable {
         return lhs.imageId == rhs.imageId &&
         lhs.priority == rhs.priority &&
         lhs.options == rhs.options
+    }
+}
+
+public struct _LazyImageContents<I: View, P: View>: View {
+    let state: LazyImageState
+    let content: (SwiftUI.Image) -> I
+    let placeholder: () -> P
+
+    public var body: some View {
+        if let image = state.image {
+            content(image)
+        } else {
+            placeholder()
+        }
     }
 }
