@@ -39,8 +39,8 @@ public struct LazyImage<Content: View>: View {
     ///
     /// - Parameters:
     ///   - url: The image URL.
-    public init(url: URL?) where Content == Image {
-        self.init(request: url.map { ImageRequest(url: $0) })
+    public init(url: URL?, scale: CGFloat = 1) where Content == Image {
+        self.init(request: url.map { ImageRequest(url: $0, userInfo: [.scaleKey: scale]) })
     }
 
     /// Loads and displays an image using ``Image``.
