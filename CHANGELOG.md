@@ -1,5 +1,11 @@
 # Nuke 11
 
+## Nuke 11.6.2
+
+*Feb 9, 2023*
+
+- Fix an issue with static GIFs not rendered correctly – [#667](https://github.com/kean/Nuke/pull/667) by [@Havhingstor](https://github.com/Havhingstor)
+
 ## Nuke 11.6.1
 
 *Feb 5, 2023*
