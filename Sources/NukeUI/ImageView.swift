@@ -170,7 +170,7 @@ public class ImageView: _PlatformBaseView {
             return
         }
 #if (os(iOS) || os(tvOS)) && !targetEnvironment(macCatalyst)
-        if isAnimatedImageRenderingEnabled, let data = container.data, container.type == .gif {
+        if isAnimatedImageRenderingEnabled, let data = container.data, container.type == .gif, Animator.isAnimatedGif(data: data) {
             animatedImageView.animate(withGIFData: data)
             animatedImageView.isHidden = false
             return
