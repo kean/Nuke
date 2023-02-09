@@ -167,37 +167,17 @@ public struct LazyImage<Content: View>: View {
     }
 
     @ViewBuilder private var content: some View {
+        let state = LazyImageState(model)
         if let makeContent = makeContent {
-            makeContent(LazyImageState(model))
+            makeContent(state)
         } else {
-            makeDefaultContent()
+            makeDefaultContent(for: state)
         }
     }
 
-    @ViewBuilder private func makeDefaultContent() -> some View {
-        if let imageContainer = model.imageContainer {
-#if os(watchOS)
-            switch resizingMode ?? ImageResizingMode.aspectFill {
-            case .aspectFit, .aspectFill:
-                model.view?
-                    .resizable()
-                    .aspectRatio(contentMode: resizingMode == .aspectFit ? .fit : .fill)
-            case .fill:
-                model.view?
-                    .resizable()
-            default:
-                model.view
-            }
-#else
-            Image(imageContainer) {
-#if os(iOS) || os(tvOS)
-                if let resizingMode = self.resizingMode {
-                    $0.resizingMode = resizingMode
-                }
-#endif
-                onCreated?($0)
-            }
-#endif
+    @ViewBuilder private func makeDefaultContent(for state: LazyImageState) -> some View {
+        if let image = state.image {
+            image
         } else {
             Rectangle().foregroundColor(Color(.secondarySystemBackground))
         }

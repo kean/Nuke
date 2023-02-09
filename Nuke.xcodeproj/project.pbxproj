@@ -78,8 +78,6 @@
 		0C38DB472856909B0027F9FF /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
 		0C38DB48285690CF0027F9FF /* NukeUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; };
 		0C38DB51285690FA0027F9FF /* LazyImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4B285690F90027F9FF /* LazyImageView.swift */; };
-		0C38DB52285690FA0027F9FF /* Image.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4C285690F90027F9FF /* Image.swift */; };
-		0C38DB53285690FA0027F9FF /* ImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4D285690F90027F9FF /* ImageView.swift */; };
 		0C38DB54285690FA0027F9FF /* LazyImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4E285690F90027F9FF /* LazyImage.swift */; };
 		0C38DB55285690FA0027F9FF /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4F285690F90027F9FF /* Internal.swift */; };
 		0C38DB56285690FA0027F9FF /* VideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB50285690F90027F9FF /* VideoPlayerView.swift */; };
@@ -375,8 +373,6 @@
 		0C38DAE028568FAE0027F9FF /* NukeUI.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NukeUI.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C38DB3428568FE20027F9FF /* NukeUI Unit Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "NukeUI Unit Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C38DB4B285690F90027F9FF /* LazyImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LazyImageView.swift; sourceTree = "<group>"; };
-		0C38DB4C285690F90027F9FF /* Image.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Image.swift; sourceTree = "<group>"; };
-		0C38DB4D285690F90027F9FF /* ImageView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
 		0C38DB4E285690F90027F9FF /* LazyImage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LazyImage.swift; sourceTree = "<group>"; };
 		0C38DB4F285690F90027F9FF /* Internal.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Internal.swift; sourceTree = "<group>"; };
 		0C38DB50285690F90027F9FF /* VideoPlayerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VideoPlayerView.swift; sourceTree = "<group>"; };
@@ -674,8 +670,6 @@
 		0C38DAE228568FC30027F9FF /* NukeUI */ = {
 			isa = PBXGroup;
 			children = (
-				0C38DB4C285690F90027F9FF /* Image.swift */,
-				0C38DB4D285690F90027F9FF /* ImageView.swift */,
 				0C38DB4E285690F90027F9FF /* LazyImage.swift */,
 				0C38DB6F2856A4D30027F9FF /* LazyImageState.swift */,
 				0C38DB4B285690F90027F9FF /* LazyImageView.swift */,
@@ -1530,10 +1524,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C38DB54285690FA0027F9FF /* LazyImage.swift in Sources */,
-				0C38DB53285690FA0027F9FF /* ImageView.swift in Sources */,
 				0CFCEE532995B5700079B47A /* Deprecated.swift in Sources */,
 				0C38DB51285690FA0027F9FF /* LazyImageView.swift in Sources */,
-				0C38DB52285690FA0027F9FF /* Image.swift in Sources */,
 				0C38DB55285690FA0027F9FF /* Internal.swift in Sources */,
 				0C38DB39285690340027F9FF /* FetchImage.swift in Sources */,
 				0C38DB702856A4D30027F9FF /* LazyImageState.swift in Sources */,

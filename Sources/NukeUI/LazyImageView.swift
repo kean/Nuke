@@ -100,7 +100,7 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Underlying Views
 
     /// Returns the underlying image view.
-    public let imageView = ImageView()
+    public let imageView = _PlatformImageView()
 
     // MARK: Managing Image Tasks
 
@@ -221,7 +221,7 @@ public final class LazyImageView: _PlatformBaseView {
     public func reset() {
         cancel()
 
-        imageView.imageContainer = nil
+        imageView.image = nil
         imageView.isHidden = true
 
         setPlaceholderViewHidden(true)
@@ -326,7 +326,7 @@ public final class LazyImageView: _PlatformBaseView {
     private func display(_ container: ImageContainer, isFromMemory: Bool) {
         resetIfNeeded()
 
-        imageView.imageContainer = container
+        imageView.image = container.image
         imageView.isHidden = false
 
         if !isFromMemory, let transition = transition {

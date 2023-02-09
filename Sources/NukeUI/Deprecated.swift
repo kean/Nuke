@@ -5,6 +5,14 @@
 import Foundation
 import Nuke
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
+#if canImport(AppKit)
+import AppKit
+#endif
+
 @available(iOS 14.0, tvOS 14.0, watchOS 7.0, macOS 10.16, *)
 extension LazyImage {
     @available(*, deprecated, message: "This callback no longer gets called. Please create a custom view and use ``FetchImage`` directly to set these callbacks")
@@ -30,3 +38,13 @@ extension LazyImage {
     public func onCreated(_ configure: ((ImageView) -> Void)?) -> Self { self }
 #endif
 }
+
+#if os(macOS)
+@available(*, deprecated, message: "ImageView is deprecated starting with version 12.0")
+@MainActor
+public class ImageView: NSImageView {}
+#else
+@available(*, deprecated, message: "ImageView is deprecated starting with version 12.0")
+@MainActor
+public class ImageView: UIImageView {}
+#endif
