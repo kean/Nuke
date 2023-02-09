@@ -35,18 +35,6 @@ public struct LazyImage<Content: View>: View {
 
     // MARK: Initializers
 
-#if !os(macOS)
-    @available(*, deprecated, message: "The resizingMode is no longer supported. Please use one of the initializers that allows you to customize the displayed image directly.")
-    public init(url: URL?, resizingMode: ImageResizingMode) where Content == Image {
-        self.init(request: url.map { ImageRequest(url: $0) }, resizingMode: resizingMode)
-    }
-
-    @available(*, deprecated, message: "The resizingMode is no longer supported. Please use one of the initializers that allows you to customize the displayed image directly.")
-    public init(request: ImageRequest?, resizingMode: ImageResizingMode) where Content == Image {
-        self.init(request: request)
-    }
-#endif
-
     /// Loads and displays an image using ``Image``.
     ///
     /// - Parameters:

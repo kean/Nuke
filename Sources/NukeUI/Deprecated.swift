@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import SwiftUI
 import Nuke
 
 #if canImport(UIKit)
@@ -15,6 +16,18 @@ import AppKit
 
 @available(iOS 14.0, tvOS 14.0, watchOS 7.0, macOS 10.16, *)
 extension LazyImage {
+#if !os(macOS)
+    @available(*, deprecated, message: "The resizingMode is no longer supported. Please use one of the initializers that allows you to customize the displayed image directly.")
+    public init(url: URL?, resizingMode: ImageResizingMode) where Content == Image {
+        self.init(request: url.map { ImageRequest(url: $0) }, resizingMode: resizingMode)
+    }
+
+    @available(*, deprecated, message: "The resizingMode is no longer supported. Please use one of the initializers that allows you to customize the displayed image directly.")
+    public init(request: ImageRequest?, resizingMode: ImageResizingMode) where Content == Image {
+        self.init(request: request)
+    }
+#endif
+
     @available(*, deprecated, message: "This callback no longer gets called. Please create a custom view and use ``FetchImage`` directly to set these callbacks")
     public func onStart(_ closure: @escaping (ImageTask) -> Void) -> Self { self }
 
