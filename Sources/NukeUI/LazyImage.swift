@@ -240,7 +240,7 @@ public struct _LazyImageContents<I: View, P: View>: View {
 }
 
 #if DEBUG
-@available(iOS 15, *)
+@available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
 struct LazyImage_Previews: PreviewProvider {
     static var previews: some View {
         Group {

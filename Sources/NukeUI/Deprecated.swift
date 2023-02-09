@@ -56,7 +56,7 @@ extension LazyImage {
 @available(*, deprecated, message: "ImageView is deprecated starting with version 12.0")
 @MainActor
 public class ImageView: NSImageView {}
-#else
+#elseif !os(watchOS)
 @available(*, deprecated, message: "ImageView is deprecated starting with version 12.0")
 @MainActor
 public class ImageView: UIImageView {}
