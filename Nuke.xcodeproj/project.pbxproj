@@ -672,9 +672,9 @@
 			children = (
 				0C38DB4E285690F90027F9FF /* LazyImage.swift */,
 				0C38DB6F2856A4D30027F9FF /* LazyImageState.swift */,
+				0C55FD1D28567926000FD2C9 /* FetchImage.swift */,
 				0C38DB4B285690F90027F9FF /* LazyImageView.swift */,
 				0C38DB50285690F90027F9FF /* VideoPlayerView.swift */,
-				0C55FD1D28567926000FD2C9 /* FetchImage.swift */,
 				0C38DB4F285690F90027F9FF /* Internal.swift */,
 				0CFCEE522995B5700079B47A /* Deprecated.swift */,
 			);
