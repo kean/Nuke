@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
@@ -153,49 +153,6 @@ public struct LazyImage<Content: View>: View {
         map { $0.onDisappearBehavior = behavior }
     }
 
-    // MARK: Callbacks
-
-    /// Gets called when the request is started.
-    public func onStart(_ closure: @escaping (ImageTask) -> Void) -> Self {
-        map { $0.onStart = closure }
-    }
-
-    /// Gets called when the request progress is updated.
-    public func onPreview(_ closure: @escaping (ImageResponse) -> Void) -> Self {
-        map { $0.onPreview = closure }
-    }
-
-    /// Gets called when the request progress is updated.
-    public func onProgress(_ closure: @escaping (ImageTask.Progress) -> Void) -> Self {
-        map { $0.onProgress = closure }
-    }
-
-    /// Gets called when the requests finished successfully.
-    public func onSuccess(_ closure: @escaping (ImageResponse) -> Void) -> Self {
-        map { $0.onSuccess = closure }
-    }
-
-    /// Gets called when the requests fails.
-    public func onFailure(_ closure: @escaping (Error) -> Void) -> Self {
-        map { $0.onFailure = closure }
-    }
-
-    /// Gets called when the request is completed.
-    public func onCompletion(_ closure: @escaping (Result<ImageResponse, Error>) -> Void) -> Self {
-        map { $0.onCompletion = closure }
-    }
-
-#if !os(watchOS)
-
-    /// Returns an underlying image view.
-    ///
-    /// - parameter configure: A closure that gets called once when the view is
-    /// created and allows you to configure it based on your needs.
-    public func onCreated(_ configure: ((ImageView) -> Void)?) -> Self {
-        map { $0.onCreated = configure }
-    }
-#endif
-
     // MARK: Body
 
     public var body: some View {
@@ -253,12 +210,6 @@ public struct LazyImage<Content: View>: View {
         if let processors = processors { model.processors = processors }
         if let priority = priority { model.priority = priority }
         model.pipeline = pipeline
-        model.onStart = onStart
-        model.onPreview = onPreview
-        model.onProgress = onProgress
-        model.onSuccess = onSuccess
-        model.onFailure = onFailure
-        model.onCompletion = onCompletion
 
         load(request)
     }
