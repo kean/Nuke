@@ -87,28 +87,6 @@ extension NSColor {
 }
 #endif
 
-#if os(iOS) || os(tvOS)
-extension UIView.ContentMode {
-    // swiftlint:disable:next cyclomatic_complexity
-    init(resizingMode: ImageResizingMode) {
-        switch resizingMode {
-        case .fill: self = .scaleToFill
-        case .aspectFill: self = .scaleAspectFill
-        case .aspectFit: self = .scaleAspectFit
-        case .center: self = .center
-        case .top: self = .top
-        case .bottom: self = .bottom
-        case .left: self = .left
-        case .right: self = .right
-        case .topLeft: self = .topLeft
-        case .topRight: self = .topRight
-        case .bottomLeft: self = .bottomLeft
-        case .bottomRight: self = .bottomRight
-        }
-    }
-}
-#endif
-
 #endif
 
 #if os(tvOS) || os(watchOS)
