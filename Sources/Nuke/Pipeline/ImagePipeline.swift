@@ -461,7 +461,10 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     private func cancel(_ task: ImageTask) {
-        guard let subscription = tasks.removeValue(forKey: task) else { return }
+        guard let subscription = tasks.removeValue(forKey: task) else {
+            task.onCancel?()
+            return
+        }
         dispatchCallback(to: task.callbackQueue) {
             if !task.isDataTask {
                 self.delegate.imageTaskDidCancel(task)
