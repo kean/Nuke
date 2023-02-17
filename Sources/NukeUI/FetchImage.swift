@@ -35,7 +35,22 @@ public final class FetchImage: ObservableObject, Identifiable {
     public var animation: Animation?
 
     /// The progress of the image download.
-    @Published public private(set) var progress = ImageTask.Progress(completed: 0, total: 0)
+    @Published public private(set) var progress: Progress?
+
+    /// The download progress.
+    public final class Progress: ObservableObject {
+        /// The number of bytes that the task has received.
+        public internal(set) var completed: Int64 = 0
+
+        /// A best-guess upper bound on the number of bytes of the resource.
+        public internal(set) var total: Int64 = 0
+
+        /// Returns the fraction of the completion.
+        public var fraction: Float {
+            guard total > 0 else { return 0 }
+            return min(1, Float(completed) / Float(total))
+        }
+    }
 
     /// Updates the priority of the task, even if the task is already running.
     /// `nil` by default
@@ -118,7 +133,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         }
 
         isLoading = true
-        progress = ImageTask.Progress(completed: 0, total: 0)
+        self.progress = Progress()
 
         let task = pipeline.loadImage(
             with: request,
@@ -131,7 +146,8 @@ public final class FetchImage: ObservableObject, Identifiable {
                         self.handle(preview: response)
                     }
                 } else {
-                    self.progress = progress
+                    self.progress?.completed = completed
+                    self.progress?.total = total
                     self.onProgress?(progress)
                 }
             },
@@ -241,7 +257,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         if imageContainer != nil { imageContainer = nil }
         if result != nil { result = nil }
         lastResponse = nil // publisher-only
-        if progress != ImageTask.Progress(completed: 0, total: 0) { progress = ImageTask.Progress(completed: 0, total: 0) }
+        if progress != nil { progress = nil }
     }
 
     // MARK: View

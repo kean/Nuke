@@ -150,6 +150,12 @@ public struct LazyImage<Content: View>: View {
     // MARK: Body
 
     public var body: some View {
+        let _ = (count += 1)
+        let _ = print(count)
+        if #available(iOS 15, *) {
+            let _ = Self._printChanges()
+        }
+
         // Using ZStack to add an identity to the view to prevent onAppear from
         // getting called whenever the content changes.
         ZStack {
@@ -207,6 +213,8 @@ public struct LazyImage<Content: View>: View {
     }
 }
 
+var count = 0
+
 private struct HashableRequest: Hashable {
     let request: ImageRequest
 
@@ -243,20 +251,20 @@ public struct _LazyImageContents<I: View, P: View>: View {
 @available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
 struct LazyImage_Previews: PreviewProvider {
     static var previews: some View {
-        Group {
+//        Group {
             LazyImage(url: URL(string: "https://kean.blog/images/pulse/01.png"))
                 .previewDisplayName("LazyImage")
 
-            LazyImage(url: URL(string: "https://kean.blog/images/pulse/01.png")) { image in
-                image.resizable().aspectRatio(contentMode: .fit)
-            } placeholder: {
-                Rectangle().foregroundColor(Color.secondary)
-            }
-            .previewDisplayName("Resizable")
-
-            AsyncImage(url: URL(string: "https://kean.blog/images/pulse/01.png"))
-                .previewDisplayName("AsyncImage")
-        }
+//            LazyImage(url: URL(string: "https://kean.blog/images/pulse/01.png")) { image in
+//                image.resizable().aspectRatio(contentMode: .fit)
+//            } placeholder: {
+//                Rectangle().foregroundColor(Color.secondary)
+//            }
+//            .previewDisplayName("Resizable")
+//
+//            AsyncImage(url: URL(string: "https://kean.blog/images/pulse/01.png"))
+//                .previewDisplayName("AsyncImage")
+//        }
     }
 }
 #endif

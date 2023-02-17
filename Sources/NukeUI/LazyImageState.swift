@@ -41,7 +41,7 @@ public struct LazyImageState {
     public let isLoading: Bool
 
     /// The progress of the image download.
-    public let progress: ImageTask.Progress
+    public let progress: FetchImage.Progress?
 
     @MainActor
     init(_ fetchImage: FetchImage) {
