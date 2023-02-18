@@ -27,7 +27,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     @Published public private(set) var imageContainer: ImageContainer?
 
     /// Returns `true` if the image is being loaded.
-    @Published public private(set) var isLoading: Bool = false
+    @Published public private(set) var isLoading = false
 
     /// Animations to be used when displaying the loaded images. By default, `nil`.
     ///
