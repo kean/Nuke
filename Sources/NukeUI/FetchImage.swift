@@ -58,24 +58,6 @@ public final class FetchImage: ObservableObject, Identifiable {
         didSet { priority.map { imageTask?.priority = $0 } }
     }
 
-    /// Gets called when the request is started.
-    public var onStart: ((ImageTask) -> Void)?
-
-    /// Gets called when a progressive image preview is produced.
-    public var onPreview: ((ImageResponse) -> Void)?
-
-    /// Gets called when the request progress is updated.
-    public var onProgress: ((ImageTask.Progress) -> Void)?
-
-    /// Gets called when the requests finished successfully.
-    public var onSuccess: ((ImageResponse) -> Void)?
-
-    /// Gets called when the requests fails.
-    public var onFailure: ((Error) -> Void)?
-
-    /// Gets called when the request is completed.
-    public var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
-
     /// A pipeline used for performing image requests.
     public var pipeline: ImagePipeline = .shared
 
@@ -139,16 +121,13 @@ public final class FetchImage: ObservableObject, Identifiable {
             with: request,
             progress: { [weak self] response, completed, total in
                 guard let self = self else { return }
-                let progress = ImageTask.Progress(completed: completed, total: total)
                 if let response = response {
-                    self.onPreview?(response)
                     withAnimation(self.animation) {
                         self.handle(preview: response)
                     }
                 } else {
                     self.progress?.completed = completed
                     self.progress?.total = total
-                    self.onProgress?(progress)
                 }
             },
             completion: { [weak self] result in
@@ -159,7 +138,6 @@ public final class FetchImage: ObservableObject, Identifiable {
             }
         )
         imageTask = task
-        onStart?(task)
     }
 
     private func handle(preview: ImageResponse) {
@@ -169,18 +147,12 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     private func handle(result: Result<ImageResponse, Error>) {
         isLoading = false
+        imageTask = nil
 
         if case .success(let response) = result {
             self.imageContainer = response.container
         }
         self.result = result
-
-        imageTask = nil
-        switch result {
-        case .success(let response): onSuccess?(response)
-        case .failure(let error): onFailure?(error)
-        }
-        onCompletion?(result)
     }
 
     // MARK: Load (Async/Await)
