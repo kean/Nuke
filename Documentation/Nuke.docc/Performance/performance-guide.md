@@ -34,7 +34,7 @@ By default, Nuke uses the native HTTP cache, but it's relatively slow and is sub
 
 ## Store Processed Images
 
-By default, the aggressive disk cache (if enabled) stores original image data. If your app applies expensive processors or downsamples images, consider storing processed images instead by setting ``ImagePipeline/Configuration-swift.struct/dataCachePolicy-swift.property`` to ``ImagePipeline/DataCachePolicy/automatic`` or ``ImagePipeline/DataCachePolicy/storeEncodedImages`` depending on the use case.
+By default, the aggressive disk cache (if enabled) stores original image data. If your app applies expensive processors or downsamples images, consider storing processed images instead by setting ``ImagePipeline/Configuration-swift.struct/dataCachePolicy`` to ``ImagePipeline/DataCachePolicy/automatic`` or ``ImagePipeline/DataCachePolicy/storeEncodedImages`` depending on the use case.
 
 ## Use HEIF
 

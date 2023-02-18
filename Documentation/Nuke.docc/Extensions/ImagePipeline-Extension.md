@@ -77,7 +77,7 @@ You can also replace `URLCache` with a custom ``DataCache`` that ignores HTTP `c
 ImagePipeline.shared = ImagePipeline(configuration: .withDataCache)
 ```
 
-``DataCache`` is a bit faster than `URLCache` and provides more control. For example, it can be configured to store processed images using ``ImagePipeline/Configuration-swift.struct/dataCachePolicy-swift.property``. The downside is that without HTTP `cache-control`, the images never get validated and if the URL content changes, the app will continue showing stale data.  
+``DataCache`` is a bit faster than `URLCache` and provides more control. For example, it can be configured to store processed images using ``ImagePipeline/Configuration-swift.struct/dataCachePolicy``. The downside is that without HTTP `cache-control`, the images never get validated and if the URL content changes, the app will continue showing stale data.  
 
 > Tip: To learn more about caching, see <doc:caching> section.
 
@@ -139,7 +139,7 @@ Every image preview goes through the same processing and decompression phases th
 
 - ``loadImage(with:completion:)-6q74f``
 - ``loadImage(with:completion:)-43osv``
-- ``loadImage(with:queue:progress:completion:)-83u7i``
+- ``loadImage(with:queue:progress:completion:)``
 
 ### Loading Data
 
@@ -147,7 +147,7 @@ Every image preview goes through the same processing and decompression phases th
 - ``data(for:)-54h5g``
 - ``loadData(with:completion:)-815rt``
 - ``loadData(with:completion:)-6cwk3``
-- ``loadData(with:queue:progress:completion:)-3ibfw``
+- ``loadData(with:queue:progress:completion:)``
 
 ### Accessing Cached Images
 

@@ -35,7 +35,7 @@ public struct LazyImage<Content: View>: View {
 
     // MARK: Initializers
 
-    /// Loads and displays an image using ``Image``.
+    /// Loads and displays an image using `SwiftUI.Image`.
     ///
     /// - Parameters:
     ///   - url: The image URL.
@@ -43,7 +43,7 @@ public struct LazyImage<Content: View>: View {
         self.init(request: url.map { ImageRequest(url: $0, userInfo: [.scaleKey: scale]) })
     }
 
-    /// Loads and displays an image using ``Image``.
+    /// Loads and displays an image using `SwiftUI.Image`.
     ///
     /// - Parameters:
     ///   - request: The image request.

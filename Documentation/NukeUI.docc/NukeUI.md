@@ -6,8 +6,8 @@ Image loading for SwiftUI, UIKit, and AppKit views.
 
 There are four main views provided by the framework:
 
-- ``LazyImage`` and ``Image`` for SwiftUI
-- ``LazyImageView`` and ``ImageView`` for UIKit and AppKit
+- ``LazyImage`` for SwiftUI
+- ``LazyImageView`` for UIKit and AppKit
 
 ``LazyImage`` is designed similar to the native [`AsyncImage`](https://developer.apple.com/documentation/SwiftUI/AsyncImage), but it uses [Nuke](https://github.com/kean/Nuke) for loading images so you can take advantage of all of its features, such as caching, prefetching, task coalescing, smart background decompression, request priorities, and more.
 
@@ -23,14 +23,11 @@ NukeUI supports progressive images, has GIF support powered by [Gifu](https://gi
 - ``LazyImageView``
 - ``LazyImageState``
 
-### Other Views
-
-- ``Image``
-- ``ImageView``
-- ``AnimatedImageView``
-- ``VideoPlayerView``
-
 ### Helpers
 
 - ``FetchImage``
 - ``ImageResizingMode``
+
+### Deprecated
+
+- ``ImageView``

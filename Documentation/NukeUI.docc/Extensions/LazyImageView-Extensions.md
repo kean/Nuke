@@ -11,7 +11,6 @@
 
 - ``url``
 - ``request``
-- ``source``
 - ``cancel()``
 - ``reset()``
 
