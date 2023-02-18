@@ -398,7 +398,7 @@
 		0C53C8B0263C968200E62D03 /* ImagePipelineDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineDelegate.swift; sourceTree = "<group>"; };
 		0C54E64126616E9D00ED1049 /* Nuke 10 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 10 Migration Guide.md"; sourceTree = "<group>"; };
 		0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NukeExtensions.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		0C55FD0428567875000FD2C9 /* Nuke Extensions Unit Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke Extensions Unit Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0C55FD0428567875000FD2C9 /* NukeExtensions Unit Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "NukeExtensions Unit Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C55FD1B28567926000FD2C9 /* ImageLoadingOptions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageLoadingOptions.swift; sourceTree = "<group>"; };
 		0C55FD1C28567926000FD2C9 /* ImageViewExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewExtensions.swift; sourceTree = "<group>"; };
 		0C55FD1D28567926000FD2C9 /* FetchImage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FetchImage.swift; sourceTree = "<group>"; };
@@ -856,7 +856,7 @@
 				0C4F8FDF22E4B6ED0070ECFD /* Nuke Thread Safety Tests.xctest */,
 				0C2CD79025B7BF770017018F /* Nuke Memory Management Tests.xctest */,
 				0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */,
-				0C55FD0428567875000FD2C9 /* Nuke Extensions Unit Tests.xctest */,
+				0C55FD0428567875000FD2C9 /* NukeExtensions Unit Tests.xctest */,
 				0C38DAE028568FAE0027F9FF /* NukeUI.framework */,
 				0C38DB3428568FE20027F9FF /* NukeUI Unit Tests.xctest */,
 				0C7584AA29A151FF00F985F8 /* NukeVideo.framework */,
@@ -1187,9 +1187,9 @@
 			productReference = 0C4F8FDF22E4B6ED0070ECFD /* Nuke Thread Safety Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		0C55FCFC28567875000FD2C9 /* Nuke Extensions */ = {
+		0C55FCFC28567875000FD2C9 /* NukeExtensions */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0C55FD1228567875000FD2C9 /* Build configuration list for PBXNativeTarget "Nuke Extensions" */;
+			buildConfigurationList = 0C55FD1228567875000FD2C9 /* Build configuration list for PBXNativeTarget "NukeExtensions" */;
 			buildPhases = (
 				0C55FCF828567875000FD2C9 /* Headers */,
 				0C55FCF928567875000FD2C9 /* Sources */,
@@ -1200,14 +1200,14 @@
 			);
 			dependencies = (
 			);
-			name = "Nuke Extensions";
+			name = NukeExtensions;
 			productName = NukeExtensions;
 			productReference = 0C55FCFD28567875000FD2C9 /* NukeExtensions.framework */;
 			productType = "com.apple.product-type.framework";
 		};
-		0C55FD0328567875000FD2C9 /* Nuke Extensions Unit Tests */ = {
+		0C55FD0328567875000FD2C9 /* NukeExtensions Unit Tests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0C55FD1628567875000FD2C9 /* Build configuration list for PBXNativeTarget "Nuke Extensions Unit Tests" */;
+			buildConfigurationList = 0C55FD1628567875000FD2C9 /* Build configuration list for PBXNativeTarget "NukeExtensions Unit Tests" */;
 			buildPhases = (
 				0C55FD0028567875000FD2C9 /* Sources */,
 				0C55FD0128567875000FD2C9 /* Frameworks */,
@@ -1218,9 +1218,9 @@
 			dependencies = (
 				0C55FD0728567875000FD2C9 /* PBXTargetDependency */,
 			);
-			name = "Nuke Extensions Unit Tests";
+			name = "NukeExtensions Unit Tests";
 			productName = NukeExtensionsTests;
-			productReference = 0C55FD0428567875000FD2C9 /* Nuke Extensions Unit Tests.xctest */;
+			productReference = 0C55FD0428567875000FD2C9 /* NukeExtensions Unit Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		0C75849B29A151FF00F985F8 /* NukeVideo */ = {
@@ -1378,10 +1378,10 @@
 				0C8D7BE71D9DC02B00D12EB7 /* Nuke Performance Tests */,
 				0C2CD78F25B7BF770017018F /* Nuke Memory Management Tests */,
 				0C8D7BCF1D9DBF1600D12EB7 /* Nuke Tests Host */,
-				0C55FCFC28567875000FD2C9 /* Nuke Extensions */,
-				0C55FD0328567875000FD2C9 /* Nuke Extensions Unit Tests */,
 				0C38DAA128568FAE0027F9FF /* NukeUI */,
 				0C38DAE428568FE20027F9FF /* NukeUI Unit Tests */,
+				0C55FCFC28567875000FD2C9 /* NukeExtensions */,
+				0C55FD0328567875000FD2C9 /* NukeExtensions Unit Tests */,
 				0C75849B29A151FF00F985F8 /* NukeVideo */,
 			);
 		};
@@ -1853,12 +1853,12 @@
 		};
 		0C55FD0728567875000FD2C9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 0C55FCFC28567875000FD2C9 /* Nuke Extensions */;
+			target = 0C55FCFC28567875000FD2C9 /* NukeExtensions */;
 			targetProxy = 0C55FD0628567875000FD2C9 /* PBXContainerItemProxy */;
 		};
 		0C55FD0F28567875000FD2C9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 0C55FCFC28567875000FD2C9 /* Nuke Extensions */;
+			target = 0C55FCFC28567875000FD2C9 /* NukeExtensions */;
 			targetProxy = 0C55FD0E28567875000FD2C9 /* PBXContainerItemProxy */;
 		};
 		0C8D7BEF1D9DC02B00D12EB7 /* PBXTargetDependency */ = {
@@ -1873,7 +1873,7 @@
 		};
 		0CB644AE28567FC500916267 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 0C55FCFC28567875000FD2C9 /* Nuke Extensions */;
+			target = 0C55FCFC28567875000FD2C9 /* NukeExtensions */;
 			targetProxy = 0CB644AD28567FC500916267 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -2469,7 +2469,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0C55FD1228567875000FD2C9 /* Build configuration list for PBXNativeTarget "Nuke Extensions" */ = {
+		0C55FD1228567875000FD2C9 /* Build configuration list for PBXNativeTarget "NukeExtensions" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0C55FD1328567875000FD2C9 /* Debug */,
@@ -2478,7 +2478,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0C55FD1628567875000FD2C9 /* Build configuration list for PBXNativeTarget "Nuke Extensions Unit Tests" */ = {
+		0C55FD1628567875000FD2C9 /* Build configuration list for PBXNativeTarget "NukeExtensions Unit Tests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0C55FD1728567875000FD2C9 /* Debug */,
