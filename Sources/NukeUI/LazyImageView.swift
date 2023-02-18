@@ -99,8 +99,12 @@ public final class LazyImageView: _PlatformBaseView {
 
     // MARK: Underlying Views
 
+#if os(macOS)
     /// Returns the underlying image view.
-    public let imageView = _PlatformImageView()
+    public let imageView = NSImageView()
+#else
+    public let imageView = UIImageView()
+#endif
 
     // MARK: Managing Image Tasks
 
