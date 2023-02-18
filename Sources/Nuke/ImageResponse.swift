@@ -14,7 +14,7 @@ import AppKit.NSImage
 public struct ImageResponse: @unchecked Sendable {
     /// An image container with an image and associated metadata.
     public var container: ImageContainer
-    
+
 #if os(macOS)
     /// A convenience computed property that returns an image from the container.
     public var image: NSImage { container.image }

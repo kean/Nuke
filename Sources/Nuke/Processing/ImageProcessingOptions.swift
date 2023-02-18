@@ -36,10 +36,10 @@ public enum ImageProcessingOptions: Sendable {
     /// option regardless.
     public struct Border: Hashable, CustomStringConvertible, @unchecked Sendable {
         public let width: CGFloat
-        
+
 #if os(iOS) || os(tvOS) || os(watchOS)
         public let color: UIColor
-        
+
         /// - parameters:
         ///   - color: Border color.
         ///   - width: Border width.
@@ -50,7 +50,7 @@ public enum ImageProcessingOptions: Sendable {
         }
 #else
         public let color: NSColor
-        
+
         /// - parameters:
         ///   - color: Border color.
         ///   - width: Border width.
@@ -60,7 +60,7 @@ public enum ImageProcessingOptions: Sendable {
             self.width = width.converted(to: unit)
         }
 #endif
-        
+
         public var description: String {
             "Border(color: \(color.hex), width: \(width) pixels)"
         }

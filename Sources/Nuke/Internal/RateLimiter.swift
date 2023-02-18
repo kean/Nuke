@@ -33,18 +33,18 @@ final class RateLimiter: @unchecked Sendable {
     init(queue: DispatchQueue, rate: Int = 80, burst: Int = 25) {
         self.queue = queue
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
-        
+
 #if TRACK_ALLOCATIONS
         Allocations.increment("RateLimiter")
 #endif
     }
-    
+
     deinit {
 #if TRACK_ALLOCATIONS
         Allocations.decrement("RateLimiter")
 #endif
     }
-    
+
     /// - parameter closure: Returns `true` if the close was executed, `false`
     /// if the work was cancelled.
     func execute( _ work: @escaping Work) {

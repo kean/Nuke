@@ -86,7 +86,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     deinit {
         Allocations.decrement("AsyncTask")
     }
-    
+
     init() {
         Allocations.increment("AsyncTask")
     }

@@ -15,12 +15,12 @@ final class Operation: Foundation.Operation {
             os_unfair_lock_lock(lock)
             _isExecuting = newValue
             os_unfair_lock_unlock(lock)
-            
+
             willChangeValue(forKey: "isExecuting")
             didChangeValue(forKey: "isExecuting")
         }
     }
-    
+
     override var isFinished: Bool {
         get {
             os_unfair_lock_lock(lock)
@@ -31,40 +31,40 @@ final class Operation: Foundation.Operation {
             os_unfair_lock_lock(lock)
             _isFinished = newValue
             os_unfair_lock_unlock(lock)
-            
+
             willChangeValue(forKey: "isFinished")
             didChangeValue(forKey: "isFinished")
         }
     }
-    
+
     typealias Starter = @Sendable (_ finish: @Sendable @escaping () -> Void) -> Void
     private let starter: Starter
-    
+
     private var _isExecuting = false
     private var _isFinished = false
     private var isFinishCalled = false
     private let lock: os_unfair_lock_t
-    
+
     deinit {
         self.lock.deinitialize(count: 1)
         self.lock.deallocate()
-        
+
 #if TRACK_ALLOCATIONS
         Allocations.decrement("Operation")
 #endif
     }
-    
+
     init(starter: @escaping Starter) {
         self.starter = starter
-        
+
         self.lock = .allocate(capacity: 1)
         self.lock.initialize(to: os_unfair_lock())
-        
+
 #if TRACK_ALLOCATIONS
         Allocations.increment("Operation")
 #endif
     }
-    
+
     override func start() {
         guard !isCancelled else {
             isFinished = true
@@ -75,7 +75,7 @@ final class Operation: Foundation.Operation {
             self?._finish()
         }
     }
-    
+
     private func _finish() {
         os_unfair_lock_lock(lock)
         guard !isFinishCalled else {
@@ -83,7 +83,7 @@ final class Operation: Foundation.Operation {
         }
         isFinishCalled = true
         os_unfair_lock_unlock(lock)
-        
+
         isExecuting = false
         isFinished = true
     }
@@ -96,7 +96,7 @@ extension OperationQueue {
         addOperation(operation)
         return operation
     }
-    
+
     /// Adds asynchronous operation (`Nuke.Operation`) with the given starter.
     func add(_ starter: @escaping Operation.Starter) -> Operation {
         let operation = Operation(starter: starter)
