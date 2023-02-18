@@ -145,6 +145,7 @@
 		0C7584A629A151FF00F985F8 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C7584AE29A1533700F985F8 /* ImageDecoders+Video.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7584AD29A1533700F985F8 /* ImageDecoders+Video.swift */; };
 		0C7584B029A153B200F985F8 /* AVDataAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7584AF29A153B200F985F8 /* AVDataAsset.swift */; };
+		0C7584B229A1553200F985F8 /* VideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7584B129A1553200F985F8 /* VideoPlayerView.swift */; };
 		0C78A2A7263F4E680051E0FF /* ImagePipelineCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C78A2A6263F4E680051E0FF /* ImagePipelineCache.swift */; };
 		0C78A2A9263F560A0051E0FF /* ImagePipelineCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C78A2A8263F560A0051E0FF /* ImagePipelineCacheTests.swift */; };
 		0C7C067C1BCA882A00089D7F /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
@@ -422,6 +423,7 @@
 		0C7584AA29A151FF00F985F8 /* NukeVideo.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = NukeVideo.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C7584AD29A1533700F985F8 /* ImageDecoders+Video.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImageDecoders+Video.swift"; sourceTree = "<group>"; };
 		0C7584AF29A153B200F985F8 /* AVDataAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVDataAsset.swift; sourceTree = "<group>"; };
+		0C7584B129A1553200F985F8 /* VideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerView.swift; sourceTree = "<group>"; };
 		0C78A2A6263F4E680051E0FF /* ImagePipelineCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineCache.swift; sourceTree = "<group>"; };
 		0C78A2A8263F560A0051E0FF /* ImagePipelineCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineCacheTests.swift; sourceTree = "<group>"; };
 		0C7C06771BCA882A00089D7F /* Nuke Unit Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke Unit Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -768,6 +770,7 @@
 			children = (
 				0C7584AD29A1533700F985F8 /* ImageDecoders+Video.swift */,
 				0C7584AF29A153B200F985F8 /* AVDataAsset.swift */,
+				0C7584B129A1553200F985F8 /* VideoPlayerView.swift */,
 			);
 			path = NukeVideo;
 			sourceTree = "<group>";
@@ -1682,6 +1685,7 @@
 				0C7584A229A151FF00F985F8 /* FetchImage.swift in Sources */,
 				0C7584A329A151FF00F985F8 /* LazyImageState.swift in Sources */,
 				0C7584A429A151FF00F985F8 /* NukeUI.docc in Sources */,
+				0C7584B229A1553200F985F8 /* VideoPlayerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

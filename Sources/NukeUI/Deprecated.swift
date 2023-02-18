@@ -55,15 +55,9 @@ extension LazyImage {
 #if os(macOS)
 @available(*, deprecated, message: "ImageView was removed in version 12.0 and is no longer supported.")
 @MainActor public class ImageView: NSImageView {}
-
-@available(*, deprecated, message: "VideoPlayerView was removed in version 12.0 and is no longer supported. You can use the following snippet https://gist.github.com/kean/fd1df0e1345f787552497095eb84d252.")
-@MainActor public class VideoPlayerView: UIImageView {}
 #elseif !os(watchOS)
 @available(*, deprecated, message: "ImageView was removed in version 12.0 and is no longer supported.")
 @MainActor public class ImageView: UIImageView {}
-
-@available(*, deprecated, message: "VideoPlayerView was removed in version 12.0 and is no longer supported. You can use the following snippet https://gist.github.com/kean/fd1df0e1345f787552497095eb84d252.")
-@MainActor public class VideoPlayerView: UIImageView {}
 #endif
 
 @available(*, deprecated, message: "The resizingMode is no longer supported. Please use one of the initializers that allows you to customize the displayed image directly.")
