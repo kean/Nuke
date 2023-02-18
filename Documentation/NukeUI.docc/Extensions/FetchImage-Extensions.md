@@ -70,7 +70,7 @@ struct ImageView: View {
 - ``image``
 - ``imageContainer``
 - ``isLoading``
-- ``progress``
+- ``progress-swift.property``
 
 ### Request Options
 

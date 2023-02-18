@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -82,7 +82,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     /// Publishes the results of the task.
     var publisher: Publisher { Publisher(task: self) }
 
-    #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
     deinit {
         Allocations.decrement("AsyncTask")
     }
@@ -90,7 +90,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     init() {
         Allocations.increment("AsyncTask")
     }
-    #endif
+#endif
 
     /// Override this to start image task. Only gets called once.
     func start() {}

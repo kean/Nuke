@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 @testable import Nuke
@@ -12,47 +12,47 @@ import XCTest
 class ImageViewIntegrationTests: XCTestCase {
     var imageView: _ImageView!
     var pipeline: ImagePipeline!
-
+    
     @MainActor
     override func setUp() {
         super.setUp()
-
+        
         pipeline = ImagePipeline {
             $0.dataLoader = DataLoader()
             $0.imageCache = MockImageCache()
         }
-
+        
         // Nuke.loadImage(...) methods use shared pipeline by default.
         ImagePipeline.pushShared(pipeline)
-
+        
         imageView = _ImageView()
     }
-
+    
     override func tearDown() {
         super.tearDown()
-
+        
         ImagePipeline.popShared()
     }
-
+    
     var url: URL {
         Test.url(forResource: "fixture", extension: "jpeg")
     }
-
+    
     var request: ImageRequest {
         ImageRequest(url: url)
     }
-
+    
     // MARK: - Loading
-
+    
     func testImageLoaded() {
         // When
         expectToLoadImage(with: request, into: imageView)
         wait()
-
+        
         // Then
         XCTAssertNotNil(imageView.image)
     }
-
+    
     func testImageLoadedWithURL() {
         // When
         let expectation = self.expectation(description: "Image loaded")
@@ -60,13 +60,13 @@ class ImageViewIntegrationTests: XCTestCase {
             expectation.fulfill()
         }
         wait()
-
+        
         // Then
         XCTAssertNotNil(imageView.image)
     }
-
+    
     // MARK: - Loading with Invalid URL
-
+    
     func testLoadImageWithInvalidURLString() {
         // WHEN
         let expectation = self.expectation(description: "Image loaded")
@@ -75,16 +75,16 @@ class ImageViewIntegrationTests: XCTestCase {
             expectation.fulfill()
         }
         wait()
-
+        
         // THEN
         XCTAssertNil(imageView.image)
     }
-
+    
     func testLoadingWithNilURL() {
         // GIVEN
         var urlRequest = URLRequest(url: Test.url)
         urlRequest.url = nil // Not sure why this is even possible
-
+        
         // WHEN
         let expectation = self.expectation(description: "Image loaded")
         NukeExtensions.loadImage(with: ImageRequest(urlRequest: urlRequest), into: imageView) { result in
@@ -93,15 +93,15 @@ class ImageViewIntegrationTests: XCTestCase {
             expectation.fulfill()
         }
         wait()
-
+        
         // THEN
         XCTAssertNil(imageView.image)
     }
-
+    
     func testLoadingWithRequestWithNilURL() {
         // GIVEN
         let input = ImageRequest(url: nil)
-
+        
         // WHEN/THEN
         let expectation = self.expectation(description: "ImageLoaded")
         pipeline.loadImage(with: input) {
@@ -111,18 +111,18 @@ class ImageViewIntegrationTests: XCTestCase {
         }
         wait()
     }
-
+    
     // MARK: - Data Passed
-
-    #if os(iOS)
+    
+#if os(iOS)
     private final class MockView: UIView, Nuke_ImageDisplaying {
         func nuke_display(image: PlatformImage?, data: Data?) {
             recordedData.append(data)
         }
-
+        
         var recordedData = [Data?]()
     }
-
+    
     func _testThatAttachedDataIsPassed() throws {
         // GIVEN
         pipeline = pipeline.reconfigured {
@@ -130,13 +130,13 @@ class ImageViewIntegrationTests: XCTestCase {
                 ImageDecoders.Empty()
             }
         }
-
+        
         let imageView = MockView()
-
+        
         var options = ImageLoadingOptions()
         options.pipeline = pipeline
         options.isPrepareForReuseEnabled = false
-
+        
         // WHEN
         let expectation = self.expectation(description: "Image loaded")
         NukeExtensions.loadImage(with: Test.url, options: options, into: imageView) { result in
@@ -145,13 +145,13 @@ class ImageViewIntegrationTests: XCTestCase {
             expectation.fulfill()
         }
         wait()
-
+        
         // THEN
         let data = try XCTUnwrap(imageView.recordedData.first)
         XCTAssertNotNil(data)
     }
-
-    #endif
+    
+#endif
 }
 
 #endif

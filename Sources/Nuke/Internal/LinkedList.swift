@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -13,15 +13,15 @@ final class LinkedList<Element> {
     deinit {
         removeAllElements()
 
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.decrement("LinkedList")
-        #endif
+#endif
     }
 
     init() {
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.increment("LinkedList")
-        #endif
+#endif
     }
 
     var isEmpty: Bool {

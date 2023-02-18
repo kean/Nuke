@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0C55FCFC28567875000FD2C9"
-               BuildableName = "NukeExtensions.framework"
-               BlueprintName = "NukeExtensions"
+               BlueprintIdentifier = "0C75849B29A151FF00F985F8"
+               BuildableName = "NukeVideo.framework"
+               BlueprintName = "NukeVideo"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -28,16 +28,6 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0C55FD0328567875000FD2C9"
-               BuildableName = "NukeExtensions Unit Tests.xctest"
-               BlueprintName = "NukeExtensions Unit Tests"
-               ReferencedContainer = "container:Nuke.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
@@ -60,9 +50,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0C55FCFC28567875000FD2C9"
-            BuildableName = "NukeExtensions.framework"
-            BlueprintName = "NukeExtensions"
+            BlueprintIdentifier = "0C75849B29A151FF00F985F8"
+            BuildableName = "NukeVideo.framework"
+            BlueprintName = "NukeVideo"
             ReferencedContainer = "container:Nuke.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

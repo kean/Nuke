@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -33,9 +33,9 @@ struct ImageProcessingExtensions {
         guard let cgImage = image.cgImage else {
             return nil
         }
-        #if os(iOS) || os(tvOS) || os(watchOS)
+#if os(iOS) || os(tvOS) || os(watchOS)
         let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
-        #endif
+#endif
         let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: contentMode)
         guard scale < 1 || upscale else {
             return image // The image doesn't require scaling
@@ -50,9 +50,9 @@ struct ImageProcessingExtensions {
         guard let cgImage = image.cgImage else {
             return nil
         }
-        #if os(iOS) || os(tvOS) || os(watchOS)
+#if os(iOS) || os(tvOS) || os(watchOS)
         let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
-        #endif
+#endif
         let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: .aspectFill)
         let scaledSize = cgImage.size.scaled(by: scale)
         let drawRect = scaledSize.centeredInRectWithSize(targetSize)

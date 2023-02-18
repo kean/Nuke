@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -54,11 +54,11 @@ extension ImageDecoding {
                 throw ImageDecodingError.unknown
             }
         }
-        #if !os(macOS)
+#if !os(macOS)
         if container.userInfo[.isThumbnailKey] == nil {
             ImageDecompression.setDecompressionNeeded(true, for: container.image)
         }
-        #endif
+#endif
         return ImageResponse(container: container, request: context.request, urlResponse: context.urlResponse, cacheType: context.cacheType)
     }
 }

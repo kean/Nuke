@@ -5,7 +5,11 @@
 import AVKit
 import Foundation
 
-#if !os(watchOS)
+#if os(macOS)
+public typealias _PlatformBaseView = NSView
+#else
+public typealias _PlatformBaseView = UIView
+#endif
 
 @MainActor
 public final class VideoPlayerView: _PlatformBaseView {
@@ -33,7 +37,7 @@ public final class VideoPlayerView: _PlatformBaseView {
     }
 
     /// Add if you want to do something at the end of the video
-    var onVideoFinished: (() -> Void)?
+    public var onVideoFinished: (() -> Void)?
 
     // MARK: Initialization
 
@@ -56,7 +60,7 @@ public final class VideoPlayerView: _PlatformBaseView {
 
     private var _playerLayer: AVPlayerLayer?
 
-    #if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS)
     override public func layoutSubviews() {
         super.layoutSubviews()
 
@@ -65,7 +69,7 @@ public final class VideoPlayerView: _PlatformBaseView {
         _playerLayer?.frame = bounds
         CATransaction.commit()
     }
-    #elseif os(macOS)
+#elseif os(macOS)
     override public func layout() {
         super.layout()
 
@@ -186,5 +190,3 @@ extension AVPlayer {
         rate != 0 && error == nil
     }
 }
-
-#endif

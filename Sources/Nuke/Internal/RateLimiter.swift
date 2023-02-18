@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -34,15 +34,15 @@ final class RateLimiter: @unchecked Sendable {
         self.queue = queue
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
 
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.increment("RateLimiter")
-        #endif
+#endif
     }
 
     deinit {
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.decrement("RateLimiter")
-        #endif
+#endif
     }
 
     /// - parameter closure: Returns `true` if the close was executed, `false`

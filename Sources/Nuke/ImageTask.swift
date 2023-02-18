@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -89,9 +89,9 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         lock.deinitialize(count: 1)
         lock.deallocate()
 
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.decrement("ImageTask")
-        #endif
+#endif
     }
 
     init(taskId: Int64, request: ImageRequest) {
@@ -102,9 +102,9 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         lock = .allocate(capacity: 1)
         lock.initialize(to: os_unfair_lock())
 
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.increment("ImageTask")
-        #endif
+#endif
     }
 
     /// Marks task as being cancelled.

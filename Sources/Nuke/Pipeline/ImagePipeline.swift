@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Combine
@@ -53,9 +53,9 @@ public final class ImagePipeline: @unchecked Sendable {
         lock.deallocate()
 
         ResumableDataStorage.shared.unregister(self)
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.decrement("ImagePipeline")
-        #endif
+#endif
     }
 
     /// Initializes the instance with the given configuration.
@@ -81,9 +81,9 @@ public final class ImagePipeline: @unchecked Sendable {
 
         ResumableDataStorage.shared.register(self)
 
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.increment("ImagePipeline")
-        #endif
+#endif
     }
 
     /// A convenience way to initialize the pipeline with a closure.
