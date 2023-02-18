@@ -46,7 +46,6 @@ class FetchImageTests: XCTestCase {
         let result = try XCTUnwrap(try XCTUnwrap(record.last))
         XCTAssertTrue(result.isSuccess)
         XCTAssertNotNil(image.image)
-        XCTAssertNotNil(image.view)
     }
 
     func testIsLoadingUpdated() {
@@ -120,7 +119,6 @@ class FetchImageTests: XCTestCase {
         let result = try XCTUnwrap(try XCTUnwrap(record.last))
         XCTAssertTrue(result.isSuccess)
         XCTAssertNotNil(image.image)
-        XCTAssertNotNil(image.view)
     }
 
     func testPublisherIsLoadingUpdated() {

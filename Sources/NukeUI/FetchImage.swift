@@ -13,11 +13,13 @@ public final class FetchImage: ObservableObject, Identifiable {
     @Published public private(set) var result: Result<ImageResponse, Error>?
 
     /// Returns the fetched image.
-    ///
-    /// - note: In case pipeline has `isProgressiveDecodingEnabled` option enabled
-    /// and the image being downloaded supports progressive decoding, the `image`
-    /// might be updated multiple times during the download.
-    public var image: PlatformImage? { imageContainer?.image }
+    public var image: Image? {
+#if os(macOS)
+        imageContainer.map { Image(nsImage: $0.image) }
+#else
+        imageContainer.map { Image(uiImage: $0.image) }
+#endif
+    }
 
     /// Returns the fetched image.
     ///
@@ -236,16 +238,5 @@ public final class FetchImage: ObservableObject, Identifiable {
         if result != nil { result = nil }
         if _progress != nil { _progress = nil }
         lastResponse = nil // publisher-only
-    }
-
-    // MARK: View
-
-    /// Returns an image view displaying a fetched image.
-    public var view: Image? {
-#if os(macOS)
-        image.map(Image.init(nsImage:))
-#else
-        image.map(Image.init(uiImage:))
-#endif
     }
 }
