@@ -32,9 +32,9 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
     deinit {
         session.invalidateAndCancel()
 
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.decrement("DataLoader")
-        #endif
+#endif
     }
 
     /// Initializes ``DataLoader`` with the given configuration.
@@ -52,9 +52,9 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
         self.session.sessionDescription = "Nuke URLSession"
         self.impl.validate = validate
 
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.increment("DataLoader")
-        #endif
+#endif
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
@@ -74,9 +74,9 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
         return (200..<300).contains(response.statusCode) ? nil : Error.statusCodeUnacceptable(response.statusCode)
     }
 
-    #if !os(macOS) && !targetEnvironment(macCatalyst)
+#if !os(macOS) && !targetEnvironment(macCatalyst)
     private static let cachePath = "com.github.kean.Nuke.Cache"
-    #else
+#else
     private static let cachePath: String = {
         let cachePaths = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true)
         if let cachePath = cachePaths.first, let identifier = Bundle.main.bundleIdentifier {
@@ -85,17 +85,17 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 
         return ""
     }()
-    #endif
+#endif
 
     /// Shared url cached used by a default ``DataLoader``. The cache is
     /// initialized with 0 MB memory capacity and 150 MB disk capacity.
     public static let sharedUrlCache: URLCache = {
         let diskCapacity = 150 * 1048576 // 150 MB
-        #if targetEnvironment(macCatalyst)
+#if targetEnvironment(macCatalyst)
         return URLCache(memoryCapacity: 0, diskCapacity: diskCapacity, directory: URL(fileURLWithPath: cachePath))
-        #else
+#else
         return URLCache(memoryCapacity: 0, diskCapacity: diskCapacity, diskPath: cachePath)
-        #endif
+#endif
     }()
 
     public func loadData(with request: URLRequest,

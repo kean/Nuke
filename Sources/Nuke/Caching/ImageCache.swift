@@ -58,9 +58,9 @@ public final class ImageCache: ImageCaching {
     public static let shared = ImageCache()
 
     deinit {
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.decrement("ImageCache")
-        #endif
+#endif
     }
 
     /// Initializes `Cache`.
@@ -70,9 +70,9 @@ public final class ImageCache: ImageCaching {
     public init(costLimit: Int = ImageCache.defaultCostLimit(), countLimit: Int = Int.max) {
         impl = Cache(costLimit: costLimit, countLimit: countLimit)
 
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.increment("ImageCache")
-        #endif
+#endif
     }
 
     /// Returns a recommended cost limit which is computed based on the amount
@@ -80,8 +80,8 @@ public final class ImageCache: ImageCaching {
     public static func defaultCostLimit() -> Int {
         let physicalMemory = ProcessInfo.processInfo.physicalMemory
         let ratio = physicalMemory <= (536_870_912 /* 512 Mb */) ? 0.1 : 0.2
-        let limit = physicalMemory / UInt64(1 / ratio)
-        return limit > UInt64(Int.max) ? Int.max : Int(limit)
+        let limit = min(536_870_912, physicalMemory / UInt64(1 / ratio))
+        return Int(limit)
     }
 
     public subscript(key: ImageCacheKey) -> ImageContainer? {
