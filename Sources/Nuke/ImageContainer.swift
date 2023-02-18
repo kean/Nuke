@@ -44,11 +44,6 @@ public struct ImageContainer: @unchecked Sendable {
     /// in the memory cache.
     public var data: Data?
 
-    #if !os(watchOS)
-    /// Represents in-memory video asset.
-    public var asset: AVAsset?
-    #endif
-
     /// An metadata provided by the user.
     public var userInfo: [UserInfoKey: Any]
 
@@ -59,12 +54,6 @@ public struct ImageContainer: @unchecked Sendable {
         self.isPreview = isPreview
         self.data = data
         self.userInfo = userInfo
-
-        #if !os(watchOS)
-        if type?.isVideo == true {
-            self.asset = data.flatMap { AVDataAsset(data: $0, type: type) }
-        }
-        #endif
     }
 
     func map(_ closure: (PlatformImage) throws -> PlatformImage) rethrows -> ImageContainer {

@@ -15,9 +15,6 @@ public final class ImageDecoderRegistry: @unchecked Sendable {
     /// Initializes a custom registry.
     public init() {
         register(ImageDecoders.Default.init)
-        #if !os(watchOS)
-        register(ImageDecoders.Video.init)
-        #endif
     }
 
     /// Returns a decoder that matches the given context.

@@ -4,6 +4,7 @@
 
 import AVKit
 import Foundation
+import Nuke
 
 #if !os(watchOS)
 
