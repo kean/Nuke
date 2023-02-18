@@ -53,11 +53,11 @@ public final class ImagePipeline: @unchecked Sendable {
         lock.deallocate()
 
         ResumableDataStorage.shared.unregister(self)
-        #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
         Allocations.decrement("ImagePipeline")
-        #endif
+#endif
     }
-
+    
     /// Initializes the instance with the given configuration.
     ///
     /// - parameters:
@@ -68,22 +68,22 @@ public final class ImagePipeline: @unchecked Sendable {
         self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()
         (configuration.dataLoader as? DataLoader)?.prefersIncrementalDelivery = configuration.isProgressiveDecodingEnabled
-
+        
         let isCoalescingEnabled = configuration.isTaskCoalescingEnabled
         self.tasksLoadData = TaskPool(isCoalescingEnabled)
         self.tasksLoadImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchDecodedImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalImageData = TaskPool(isCoalescingEnabled)
         self.tasksProcessImage = TaskPool(isCoalescingEnabled)
-
+        
         self.lock = .allocate(capacity: 1)
         self.lock.initialize(to: os_unfair_lock())
-
+        
         ResumableDataStorage.shared.register(self)
-
-        #if TRACK_ALLOCATIONS
+        
+#if TRACK_ALLOCATIONS
         Allocations.increment("ImagePipeline")
-        #endif
+#endif
     }
 
     /// A convenience way to initialize the pipeline with a closure.

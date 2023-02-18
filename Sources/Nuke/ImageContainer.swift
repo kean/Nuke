@@ -20,13 +20,13 @@ public typealias PlatformImage = NSImage
 
 /// An image container with an image and associated metadata.
 public struct ImageContainer: @unchecked Sendable {
-    #if os(macOS)
+#if os(macOS)
     /// A fetched image.
     public var image: NSImage
-    #else
+#else
     /// A fetched image.
     public var image: UIImage
-    #endif
+#endif
 
     /// An image type.
     public var type: AssetType?

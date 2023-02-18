@@ -27,10 +27,10 @@ import AppKit.NSImage
 @objc public protocol Nuke_ImageDisplaying {
     /// Display a given image.
     @objc func nuke_display(image: PlatformImage?, data: Data?)
-
-    #if os(macOS)
+    
+#if os(macOS)
     @objc var layer: CALayer? { get }
-    #endif
+#endif
 }
 
 extension Nuke_ImageDisplaying {
@@ -197,27 +197,27 @@ private final class ImageViewController {
     private weak var imageView: ImageDisplayingView?
     private var task: ImageTask?
     private var options: ImageLoadingOptions
-
-    #if os(iOS) || os(tvOS)
+    
+#if os(iOS) || os(tvOS)
     // Image view used for cross-fade transition between images with different
     // content modes.
     private lazy var transitionImageView = UIImageView()
-    #endif
-
+#endif
+    
     // Automatically cancel the request when the view is deallocated.
     deinit {
         task?.cancel()
     }
-
+    
     init(view: /* weak */ ImageDisplayingView) {
         self.imageView = view
         self.options = .shared
     }
-
+    
     // MARK: - Associating Controller
-
+    
     static var controllerAK = "ImageViewController.AssociatedKey"
-
+    
     // Lazily create a controller for a given view and associate it with a view.
     static func controller(for view: ImageDisplayingView) -> ImageViewController {
         if let controller = objc_getAssociatedObject(view, &ImageViewController.controllerAK) as? ImageViewController {
@@ -227,9 +227,9 @@ private final class ImageViewController {
         objc_setAssociatedObject(view, &ImageViewController.controllerAK, controller, .OBJC_ASSOCIATION_RETAIN)
         return controller
     }
-
+    
     // MARK: - Loading Images
-
+    
     func loadImage(
         with request: ImageRequest?,
         options: ImageLoadingOptions,
@@ -237,22 +237,22 @@ private final class ImageViewController {
         completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil
     ) -> ImageTask? {
         cancelOutstandingTask()
-
+        
         guard let imageView = imageView else {
             return nil
         }
-
+        
         self.options = options
-
+        
         if options.isPrepareForReuseEnabled { // enabled by default
-            #if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS)
             imageView.layer.removeAllAnimations()
-            #elseif os(macOS)
+#elseif os(macOS)
             let layer = (imageView as? NSView)?.layer ?? imageView.layer
             layer?.removeAllAnimations()
-            #endif
+#endif
         }
-
+        
         // Handle a scenario where request is `nil` (in the same way as a failure)
         guard var request = request else {
             if options.isPrepareForReuseEnabled {
@@ -263,12 +263,12 @@ private final class ImageViewController {
             completion?(result)
             return nil
         }
-
+        
         let pipeline = options.pipeline ?? ImagePipeline.shared
         if !options.processors.isEmpty && request.processors.isEmpty {
             request.processors = options.processors
         }
-
+        
         // Quick synchronous memory cache lookup.
         if let image = pipeline.cache[request] {
             display(image, true, .success)
@@ -277,14 +277,14 @@ private final class ImageViewController {
                 return nil // No task to perform
             }
         }
-
+        
         // Display a placeholder.
         if let placeholder = options.placeholder {
             display(ImageContainer(image: placeholder), true, .placeholder)
         } else if options.isPrepareForReuseEnabled {
             imageView.nuke_display(image: nil, data: nil) // Remove previously displayed images (if any)
         }
-
+        
         task = pipeline.loadImage(with: request, queue: .main, progress: { [weak self] response, completedCount, totalCount in
             if let response = response, options.isProgressiveRenderingEnabled {
                 self?.handle(partialImage: response)
@@ -296,14 +296,14 @@ private final class ImageViewController {
         })
         return task
     }
-
+    
     func cancelOutstandingTask() {
         task?.cancel() // The pipeline guarantees no callbacks to be deliver after cancellation
         task = nil
     }
-
+    
     // MARK: - Handling Responses
-
+    
     private func handle(result: Result<ImageResponse, ImagePipeline.Error>, isFromMemory: Bool) {
         switch result {
         case let .success(response):
@@ -315,27 +315,27 @@ private final class ImageViewController {
         }
         self.task = nil
     }
-
+    
     private func handle(partialImage response: ImageResponse) {
         display(response.container, false, .success)
     }
-
-    #if os(iOS) || os(tvOS) || os(macOS)
-
+    
+#if os(iOS) || os(tvOS) || os(macOS)
+    
     private func display(_ image: ImageContainer, _ isFromMemory: Bool, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
         }
-
+        
         var image = image
-
-        #if os(iOS) || os(tvOS)
+        
+#if os(iOS) || os(tvOS)
         if let tintColor = options.tintColor(for: response) {
             image.image = image.image.withRenderingMode(.alwaysTemplate)
             imageView.tintColor = tintColor
         }
-        #endif
-
+#endif
+        
         if !isFromMemory || options.alwaysTransition, let transition = options.transition(for: response) {
             switch transition.style {
             case let .fadeIn(params):
@@ -348,33 +348,33 @@ private final class ImageViewController {
         } else {
             imageView.display(image)
         }
-
-        #if os(iOS) || os(tvOS)
+        
+#if os(iOS) || os(tvOS)
         if let contentMode = options.contentMode(for: response) {
             imageView.contentMode = contentMode
         }
-        #endif
+#endif
     }
-
-    #elseif os(watchOS)
-
+    
+#elseif os(watchOS)
+    
     private func display(_ image: ImageContainer, _ isFromMemory: Bool, _ response: ImageLoadingOptions.ResponseType) {
         imageView?.display(image)
     }
-
-    #endif
+    
+#endif
 }
 
 // MARK: - ImageViewController (Transitions)
 
 extension ImageViewController {
-    #if os(iOS) || os(tvOS)
-
+#if os(iOS) || os(tvOS)
+    
     private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
             return
         }
-
+        
         // Special case where it animates between content modes, only works
         // on imageView subclasses.
         if let contentMode = options.contentMode(for: response), imageView.contentMode != contentMode, let imageView = imageView as? UIImageView, imageView.image != nil {
@@ -383,12 +383,12 @@ extension ImageViewController {
             runSimpleFadeIn(image: image, params: params)
         }
     }
-
+    
     private func runSimpleFadeIn(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters) {
         guard let imageView = imageView else {
             return
         }
-
+        
         UIView.transition(
             with: imageView,
             duration: params.duration,
@@ -399,25 +399,25 @@ extension ImageViewController {
             completion: nil
         )
     }
-
+    
     /// Performs cross-dissolve animation alonside transition to a new content
     /// mode. This isn't natively supported feature and it requires a second
     /// image view. There might be better ways to implement it.
     private func runCrossDissolveWithContentMode(imageView: UIImageView, image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters) {
         // Lazily create a transition view.
         let transitionView = self.transitionImageView
-
+        
         // Create a transition view which mimics current view's contents.
         transitionView.image = imageView.image
         transitionView.contentMode = imageView.contentMode
         imageView.addSubview(transitionView)
         transitionView.frame = imageView.bounds
-
+        
         // "Manual" cross-fade.
         transitionView.alpha = 1
         imageView.alpha = 0
         imageView.display(image) // Display new image in current view
-
+        
         UIView.animate(
             withDuration: params.duration,
             delay: 0,
@@ -433,20 +433,20 @@ extension ImageViewController {
             }
         )
     }
-
-    #elseif os(macOS)
-
+    
+#elseif os(macOS)
+    
     private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, response: ImageLoadingOptions.ResponseType) {
         let animation = CABasicAnimation(keyPath: "opacity")
         animation.duration = params.duration
         animation.fromValue = 0
         animation.toValue = 1
         imageView?.layer?.add(animation, forKey: "imageTransition")
-
+        
         imageView?.display(image)
     }
-
-    #endif
+    
+#endif
 }
 
 #endif

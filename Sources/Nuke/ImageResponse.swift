@@ -14,14 +14,14 @@ import AppKit.NSImage
 public struct ImageResponse: @unchecked Sendable {
     /// An image container with an image and associated metadata.
     public var container: ImageContainer
-
-    #if os(macOS)
+    
+#if os(macOS)
     /// A convenience computed property that returns an image from the container.
     public var image: NSImage { container.image }
-    #else
+#else
     /// A convenience computed property that returns an image from the container.
     public var image: UIImage { container.image }
-    #endif
+#endif
 
     /// Returns `true` if the image in the container is a preview of the image.
     public var isPreview: Bool { container.isPreview }

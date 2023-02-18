@@ -54,11 +54,11 @@ extension ImageDecoding {
                 throw ImageDecodingError.unknown
             }
         }
-        #if !os(macOS)
+#if !os(macOS)
         if container.userInfo[.isThumbnailKey] == nil {
             ImageDecompression.setDecompressionNeeded(true, for: container.image)
         }
-        #endif
+#endif
         return ImageResponse(container: container, request: context.request, urlResponse: context.urlResponse, cacheType: context.cacheType)
     }
 }

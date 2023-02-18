@@ -71,25 +71,25 @@ public final class ImagePrefetcher: @unchecked Sendable {
         self.destination = destination
         self.queue.maxConcurrentOperationCount = maxConcurrentRequestCount
         self.queue.underlyingQueue = pipeline.queue
-
-        #if TRACK_ALLOCATIONS
+        
+#if TRACK_ALLOCATIONS
         Allocations.increment("ImagePrefetcher")
-        #endif
+#endif
     }
-
+    
     deinit {
         let tasks = self.tasks.values // Make sure we don't retain self
         self.tasks.removeAll()
-
+        
         pipeline.queue.async {
             for task in tasks {
                 task.cancel()
             }
         }
-
-        #if TRACK_ALLOCATIONS
+        
+#if TRACK_ALLOCATIONS
         Allocations.decrement("ImagePrefetcher")
-        #endif
+#endif
     }
 
     /// Starts prefetching images for the given URL.

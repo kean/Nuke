@@ -471,9 +471,9 @@ extension ImageRequest {
         // beneficial, but there still is a measurable difference.
 
         deinit {
-            #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
             Allocations.decrement("ImageRequest.Container")
-            #endif
+#endif
         }
 
         /// Creates a resource with a default processor.
@@ -484,9 +484,9 @@ extension ImageRequest {
             self.options = options
             self.userInfo = userInfo
 
-            #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
             Allocations.increment("ImageRequest.Container")
-            #endif
+#endif
         }
 
         /// Creates a copy.
@@ -497,9 +497,9 @@ extension ImageRequest {
             self.options = ref.options
             self.userInfo = ref.userInfo
 
-            #if TRACK_ALLOCATIONS
+#if TRACK_ALLOCATIONS
             Allocations.increment("ImageRequest.Container")
-            #endif
+#endif
         }
     }
 

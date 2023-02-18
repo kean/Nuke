@@ -26,16 +26,16 @@ extension PlatformImage {
 
 struct ImageProcessingExtensions {
     let image: PlatformImage
-
+    
     func byResizing(to targetSize: CGSize,
                     contentMode: ImageProcessors.Resize.ContentMode,
                     upscale: Bool) -> PlatformImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
-        #if os(iOS) || os(tvOS) || os(watchOS)
+#if os(iOS) || os(tvOS) || os(watchOS)
         let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
-        #endif
+#endif
         let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: contentMode)
         guard scale < 1 || upscale else {
             return image // The image doesn't require scaling
@@ -43,22 +43,22 @@ struct ImageProcessingExtensions {
         let size = cgImage.size.scaled(by: scale).rounded()
         return image.draw(inCanvasWithSize: size)
     }
-
+    
     /// Crops the input image to the given size and resizes it if needed.
     /// - note: this method will always upscale.
     func byResizingAndCropping(to targetSize: CGSize) -> PlatformImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
-        #if os(iOS) || os(tvOS) || os(watchOS)
+#if os(iOS) || os(tvOS) || os(watchOS)
         let targetSize = targetSize.rotatedForOrientation(image.imageOrientation)
-        #endif
+#endif
         let scale = cgImage.size.getScale(targetSize: targetSize, contentMode: .aspectFill)
         let scaledSize = cgImage.size.scaled(by: scale)
         let drawRect = scaledSize.centeredInRectWithSize(targetSize)
         return image.draw(inCanvasWithSize: targetSize, drawRect: drawRect)
     }
-
+    
     func byDrawingInCircle(border: ImageProcessingOptions.Border?) -> PlatformImage? {
         guard let squared = byCroppingToSquare(), let cgImage = squared.cgImage else {
             return nil
@@ -66,18 +66,18 @@ struct ImageProcessingExtensions {
         let radius = CGFloat(cgImage.width) // Can use any dimension since image is a square
         return squared.processed.byAddingRoundedCorners(radius: radius / 2.0, border: border)
     }
-
+    
     /// Draws an image in square by preserving an aspect ratio and filling the
     /// square if needed. If the image is already a square, returns an original image.
     func byCroppingToSquare() -> PlatformImage? {
         guard let cgImage = image.cgImage else {
             return nil
         }
-
+        
         guard cgImage.width != cgImage.height else {
             return image // Already a square
         }
-
+        
         let imageSize = cgImage.size
         let side = min(cgImage.width, cgImage.height)
         let targetSize = CGSize(width: side, height: side)
@@ -90,7 +90,7 @@ struct ImageProcessingExtensions {
         }
         return PlatformImage.make(cgImage: cropped, source: image)
     }
-
+    
     /// Adds rounded corners with the given radius to the image.
     /// - parameter radius: Radius in pixels.
     /// - parameter border: Optional stroke border.
@@ -106,7 +106,7 @@ struct ImageProcessingExtensions {
         ctx.addPath(path)
         ctx.clip()
         ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: cgImage.size))
-
+        
         if let border = border {
             ctx.setStrokeColor(border.color.cgColor)
             ctx.addPath(path)
@@ -143,7 +143,7 @@ extension PlatformImage {
         }
         return PlatformImage.make(cgImage: outputCGImage, source: self)
     }
-
+    
     /// Decompresses the input image by drawing in the the `CGContext`.
     func decompressed(isUsingPrepareForDisplay: Bool) -> PlatformImage? {
 #if os(iOS) || os(tvOS)
@@ -161,7 +161,7 @@ extension PlatformImage {
 private extension CGContext {
     static func make(_ image: CGImage, size: CGSize, alphaInfo: CGImageAlphaInfo? = nil) -> CGContext? {
         let alphaInfo: CGImageAlphaInfo = alphaInfo ?? (image.isOpaque ? .noneSkipLast : .premultipliedLast)
-
+        
         // Create the context which matches the input image.
         if let ctx = CGContext(
             data: nil,
@@ -174,7 +174,7 @@ private extension CGContext {
         ) {
             return ctx
         }
-
+        
         // In case the combination of parameters (color space, bits per component, etc)
         // is nit supported by Core Graphics, switch to default context.
         // - Quartz 2D Programming Guide
@@ -204,7 +204,7 @@ extension CGSize {
     func getScale(targetSize: CGSize, contentMode: ImageProcessors.Resize.ContentMode) -> CGFloat {
         let scaleHor = targetSize.width / width
         let scaleVert = targetSize.height / height
-
+        
         switch contentMode {
         case .aspectFill:
             return max(scaleHor, scaleVert)
@@ -212,7 +212,7 @@ extension CGSize {
             return min(scaleHor, scaleVert)
         }
     }
-
+    
     /// Calculates a rect such that the output rect will be in the center of
     /// the rect of the input size (assuming origin: .zero)
     func centeredInRectWithSize(_ targetSize: CGSize) -> CGRect {
@@ -262,15 +262,15 @@ extension NSImage {
     var cgImage: CGImage? {
         cgImage(forProposedRect: nil, context: nil, hints: nil)
     }
-
+    
     var ciImage: CIImage? {
         cgImage.map { CIImage(cgImage: $0) }
     }
-
+    
     static func make(cgImage: CGImage, source: NSImage) -> NSImage {
         NSImage(cgImage: cgImage, size: .zero)
     }
-
+    
     convenience init(cgImage: CGImage) {
         self.init(cgImage: cgImage, size: .zero)
     }
@@ -289,7 +289,7 @@ extension CGImage {
         let alpha = alphaInfo
         return alpha == .none || alpha == .noneSkipFirst || alpha == .noneSkipLast
     }
-
+    
     var size: CGSize {
         CGSize(width: width, height: height)
     }
@@ -299,7 +299,7 @@ extension CGSize {
     func scaled(by scale: CGFloat) -> CGSize {
         CGSize(width: width * scale, height: height * scale)
     }
-
+    
     func rounded() -> CGSize {
         CGSize(width: CGFloat(round(width)), height: CGFloat(round(height)))
     }

@@ -163,11 +163,11 @@ private struct ProgressiveJPEGScanner: Sendable {
 
 extension ImageDecoders.Default {
     private static func _decode(_ data: Data, scale: CGFloat?) -> PlatformImage? {
-        #if os(macOS)
+#if os(macOS)
         return NSImage(data: data)
-        #else
+#else
         return UIImage(data: data, scale: scale ?? Screen.scale)
-        #endif
+#endif
     }
 }
 
