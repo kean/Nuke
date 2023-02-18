@@ -67,3 +67,11 @@ private func makePreview(for data: Data, type: AssetType) -> PlatformImage? {
 }
 
 #endif
+
+#if os(macOS)
+extension NSImage {
+    convenience init(cgImage: CGImage) {
+        self.init(cgImage: cgImage, size: .zero)
+    }
+}
+#endif

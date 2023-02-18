@@ -61,7 +61,6 @@
 		0C38DB2E28568FE20027F9FF /* video.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 0CA4ECA226E67E3D00BAC8E5 /* video.mp4 */; };
 		0C38DB2F28568FE20027F9FF /* progressive.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C70D96F2089016700A49DAC /* progressive.jpeg */; };
 		0C38DB3028568FE20027F9FF /* s-rounded-corners-border.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C7CE28C2439342C0018C8C3 /* s-rounded-corners-border.png */; };
-		0C38DB39285690340027F9FF /* FetchImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C55FD1D28567926000FD2C9 /* FetchImage.swift */; };
 		0C38DB3A2856908E0027F9FF /* FetchImageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF52DCB26516F6B0094BC66 /* FetchImageTests.swift */; };
 		0C38DB3B285690960027F9FF /* ImagePipelineObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C14539F2657EFA7005E24B3 /* ImagePipelineObserver.swift */; };
 		0C38DB3C285690960027F9FF /* MockDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6D0A8720E574400037B68F /* MockDataCache.swift */; };
@@ -77,10 +76,6 @@
 		0C38DB462856909B0027F9FF /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068D1BCA888800089D7F /* Helpers.swift */; };
 		0C38DB472856909B0027F9FF /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
 		0C38DB48285690CF0027F9FF /* NukeUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C38DAE028568FAE0027F9FF /* NukeUI.framework */; };
-		0C38DB51285690FA0027F9FF /* LazyImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4B285690F90027F9FF /* LazyImageView.swift */; };
-		0C38DB54285690FA0027F9FF /* LazyImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4E285690F90027F9FF /* LazyImage.swift */; };
-		0C38DB55285690FA0027F9FF /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4F285690F90027F9FF /* Internal.swift */; };
-		0C38DB702856A4D30027F9FF /* LazyImageState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB6F2856A4D30027F9FF /* LazyImageState.swift */; };
 		0C472F812654AA46007FC0F0 /* DeprecationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C472F802654AA46007FC0F0 /* DeprecationTests.swift */; };
 		0C472F842654AD88007FC0F0 /* ImageRequestKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C472F822654AD69007FC0F0 /* ImageRequestKeys.swift */; };
 		0C49232920BACA81001DFCC8 /* XCTestCase+Nuke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C49232820BACA81001DFCC8 /* XCTestCase+Nuke.swift */; };
@@ -135,12 +130,6 @@
 		0C7150091FC9724C00B880AC /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7150081FC9724C00B880AC /* Extensions.swift */; };
 		0C75279E1D473AEF00EC6222 /* MockImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06891BCA888800089D7F /* MockImageCache.swift */; };
 		0C75279F1D473AEF00EC6222 /* MockImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068A1BCA888800089D7F /* MockImageProcessor.swift */; };
-		0C75849E29A151FF00F985F8 /* LazyImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4E285690F90027F9FF /* LazyImage.swift */; };
-		0C75849F29A151FF00F985F8 /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFCEE522995B5700079B47A /* Deprecated.swift */; };
-		0C7584A029A151FF00F985F8 /* LazyImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4B285690F90027F9FF /* LazyImageView.swift */; };
-		0C7584A129A151FF00F985F8 /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4F285690F90027F9FF /* Internal.swift */; };
-		0C7584A229A151FF00F985F8 /* FetchImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C55FD1D28567926000FD2C9 /* FetchImage.swift */; };
-		0C7584A329A151FF00F985F8 /* LazyImageState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB6F2856A4D30027F9FF /* LazyImageState.swift */; };
 		0C7584A429A151FF00F985F8 /* NukeUI.docc in Sources */ = {isa = PBXBuildFile; fileRef = 0C222DE2294E2DEA00012288 /* NukeUI.docc */; };
 		0C7584A629A151FF00F985F8 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C7584AE29A1533700F985F8 /* ImageDecoders+Video.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7584AD29A1533700F985F8 /* ImageDecoders+Video.swift */; };
@@ -275,10 +264,15 @@
 		0CE6202726546FD100AAB8C3 /* CombineExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE6202626546FD100AAB8C3 /* CombineExtensions.swift */; };
 		0CE745751D4767B900123F65 /* MockImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE745741D4767B900123F65 /* MockImageDecoder.swift */; };
 		0CF1754C22913F9800A8946E /* ImagePipelineConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF1754B22913F9800A8946E /* ImagePipelineConfiguration.swift */; };
+		0CF235E129A16006001BCA2F /* LazyImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4B285690F90027F9FF /* LazyImageView.swift */; };
+		0CF235E229A16006001BCA2F /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFCEE522995B5700079B47A /* Deprecated.swift */; };
+		0CF235E329A16006001BCA2F /* Internal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4F285690F90027F9FF /* Internal.swift */; };
+		0CF235E429A16006001BCA2F /* LazyImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB4E285690F90027F9FF /* LazyImage.swift */; };
+		0CF235E529A16006001BCA2F /* FetchImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C55FD1D28567926000FD2C9 /* FetchImage.swift */; };
+		0CF235E629A16006001BCA2F /* LazyImageState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C38DB6F2856A4D30027F9FF /* LazyImageState.swift */; };
 		0CF4DE7D1D412A9E00170289 /* ImagePrefetcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF4DE7C1D412A9E00170289 /* ImagePrefetcher.swift */; };
 		0CF5456B25B39A0E00B45F1E /* left-orientation.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0CF5456A25B39A0E00B45F1E /* left-orientation.jpeg */; };
 		0CF58FF726DAAC3800D2650D /* ImageDownsampleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF58FF626DAAC3800D2650D /* ImageDownsampleTests.swift */; };
-		0CFCEE532995B5700079B47A /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFCEE522995B5700079B47A /* Deprecated.swift */; };
 		2DFD93B0233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DFD93AF233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -1586,13 +1580,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C38DB54285690FA0027F9FF /* LazyImage.swift in Sources */,
-				0CFCEE532995B5700079B47A /* Deprecated.swift in Sources */,
-				0C38DB51285690FA0027F9FF /* LazyImageView.swift in Sources */,
-				0C38DB55285690FA0027F9FF /* Internal.swift in Sources */,
-				0C38DB39285690340027F9FF /* FetchImage.swift in Sources */,
-				0C38DB702856A4D30027F9FF /* LazyImageState.swift in Sources */,
+				0CF235E429A16006001BCA2F /* LazyImage.swift in Sources */,
+				0CF235E229A16006001BCA2F /* Deprecated.swift in Sources */,
+				0CF235E529A16006001BCA2F /* FetchImage.swift in Sources */,
+				0CF235E129A16006001BCA2F /* LazyImageView.swift in Sources */,
+				0CF235E329A16006001BCA2F /* Internal.swift in Sources */,
 				0C222DE3294E2DEA00012288 /* NukeUI.docc in Sources */,
+				0CF235E629A16006001BCA2F /* LazyImageState.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1676,14 +1670,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0C75849E29A151FF00F985F8 /* LazyImage.swift in Sources */,
-				0C75849F29A151FF00F985F8 /* Deprecated.swift in Sources */,
 				0C7584AE29A1533700F985F8 /* ImageDecoders+Video.swift in Sources */,
-				0C7584A029A151FF00F985F8 /* LazyImageView.swift in Sources */,
-				0C7584A129A151FF00F985F8 /* Internal.swift in Sources */,
 				0C7584B029A153B200F985F8 /* AVDataAsset.swift in Sources */,
-				0C7584A229A151FF00F985F8 /* FetchImage.swift in Sources */,
-				0C7584A329A151FF00F985F8 /* LazyImageState.swift in Sources */,
 				0C7584A429A151FF00F985F8 /* NukeUI.docc in Sources */,
 				0C7584B229A1553200F985F8 /* VideoPlayerView.swift in Sources */,
 			);
@@ -1971,6 +1959,7 @@
 		0C38DB3228568FE20027F9FF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				DEAD_CODE_STRIPPING = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1987,6 +1976,7 @@
 		0C38DB3328568FE20027F9FF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				DEAD_CODE_STRIPPING = YES;
 				LD_RUNPATH_SEARCH_PATHS = (

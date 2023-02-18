@@ -5,8 +5,14 @@
 import AVKit
 import Foundation
 
+#if os(macOS)
+public typealias _PlatformBaseView = NSView
+#else
+public typealias _PlatformBaseView = UIView
+#endif
+
 @MainActor
-public final class VideoPlayerView: UIImageView {
+public final class VideoPlayerView: _PlatformBaseView {
     // MARK: Configuration
 
     /// `.resizeAspectFill` by default.
@@ -31,7 +37,7 @@ public final class VideoPlayerView: UIImageView {
     }
 
     /// Add if you want to do something at the end of the video
-    var onVideoFinished: (() -> Void)?
+    public var onVideoFinished: (() -> Void)?
 
     // MARK: Initialization
 
