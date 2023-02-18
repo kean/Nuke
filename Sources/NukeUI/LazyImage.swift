@@ -27,7 +27,7 @@ public struct LazyImage<Content: View>: View {
 
     // Options
     private var makeContent: ((LazyImageState) -> Content)?
-    private var animation: Animation? = .default
+    private var animation: Animation?
     private var processors: [any ImageProcessing]?
     private var priority: ImageRequest.Priority?
     private var pipeline: ImagePipeline = .shared
