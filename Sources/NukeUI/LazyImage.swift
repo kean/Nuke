@@ -161,7 +161,7 @@ public struct LazyImage<Content: View>: View {
     }
 
     @ViewBuilder private var content: some View {
-        let state = LazyImageState(model)
+        let state = LazyImageState(viewModel: model)
         if let makeContent = makeContent {
             makeContent(state)
         } else {
