@@ -34,16 +34,23 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// - note: Animation isn't used when image is available in memory cache.
     public var animation: Animation?
 
-    /// The progress of the image download.
-    @Published public private(set) var progress: Progress?
+    /// The progress of the current image download.
+    public var progress: Progress {
+        if _progress == nil {
+            _progress = Progress()
+        }
+        return _progress!
+    }
+
+    private var _progress: Progress?
 
     /// The download progress.
     public final class Progress: ObservableObject {
         /// The number of bytes that the task has received.
-        public internal(set) var completed: Int64 = 0
+        @Published public internal(set) var completed: Int64 = 0
 
         /// A best-guess upper bound on the number of bytes of the resource.
-        public internal(set) var total: Int64 = 0
+        @Published public internal(set) var total: Int64 = 0
 
         /// Returns the fraction of the completion.
         public var fraction: Float {
@@ -115,7 +122,6 @@ public final class FetchImage: ObservableObject, Identifiable {
         }
 
         isLoading = true
-        self.progress = Progress()
 
         let task = pipeline.loadImage(
             with: request,
@@ -126,8 +132,8 @@ public final class FetchImage: ObservableObject, Identifiable {
                         self.handle(preview: response)
                     }
                 } else {
-                    self.progress?.completed = completed
-                    self.progress?.total = total
+                    self._progress?.completed = completed
+                    self._progress?.total = total
                 }
             },
             completion: { [weak self] result in
@@ -228,8 +234,8 @@ public final class FetchImage: ObservableObject, Identifiable {
         if isLoading { isLoading = false }
         if imageContainer != nil { imageContainer = nil }
         if result != nil { result = nil }
+        if _progress != nil { _progress = nil }
         lastResponse = nil // publisher-only
-        if progress != nil { progress = nil }
     }
 
     // MARK: View
