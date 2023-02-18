@@ -21,7 +21,7 @@ public typealias ImageContainer = Nuke.ImageContainer
 @MainActor
 @available(iOS 14.0, tvOS 14.0, watchOS 7.0, macOS 10.16, *)
 public struct LazyImage<Content: View>: View {
-    @StateObject private var model = FetchImage()
+    @StateObject private var viewModel = FetchImage()
 
     private let request: HashableRequest?
 
@@ -161,7 +161,7 @@ public struct LazyImage<Content: View>: View {
     }
 
     @ViewBuilder private var content: some View {
-        let state = LazyImageState(viewModel: model)
+        let state = LazyImageState(viewModel: viewModel)
         if let makeContent = makeContent {
             makeContent(state)
         } else {
@@ -178,25 +178,23 @@ public struct LazyImage<Content: View>: View {
     }
 
     private func onAppear() {
-        // Unfortunately, you can't modify @State directly in the properties
-        // that set these options.
-        model.animation = animation
-        if let processors = processors { model.processors = processors }
-        if let priority = priority { model.priority = priority }
-        model.pipeline = pipeline
-
         load(request)
     }
 
     private func load(_ request: HashableRequest?) {
-        model.load(request?.request)
+        viewModel.animation = animation
+        viewModel.processors = processors ?? []
+        viewModel.priority = priority
+        viewModel.pipeline = pipeline
+
+        viewModel.load(request?.request)
     }
 
     private func onDisappear() {
         guard let behavior = onDisappearBehavior else { return }
         switch behavior {
-        case .cancel: model.cancel()
-        case .lowerPriority: model.priority = .veryLow
+        case .cancel: viewModel.cancel()
+        case .lowerPriority: viewModel.priority = .veryLow
         }
     }
 
