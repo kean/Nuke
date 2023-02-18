@@ -36,7 +36,7 @@ extension PrefetchingDemoViewController: UICollectionViewDataSourcePrefetching {
 }
 ```
 
-> Warning: If you are using any of the processors when displaying the images, e.g. ``ImageProcessors/Resize``, you need to use the same processors for prefetching. Othwerise, the prefetcher will bitmap and cache the original image, defeating the main purpose of prefetching to get images fully ready for dispay before the user even sees them.   
+> Warning: If you are using any of the processors when displaying the images, e.g. ``ImageProcessors/Resize``, you need to use the same processors for prefetching. Otherwise, the prefetcher will bitmap and cache the original image, defeating the main purpose of prefetching to get images fully ready for display before the user even sees them.   
 
 This code sample comes straight from [Nuke Demo](https://github.com/kean/NukeDemo).
 
