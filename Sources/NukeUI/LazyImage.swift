@@ -8,9 +8,6 @@ import SwiftUI
 import Combine
 
 public typealias ImageRequest = Nuke.ImageRequest
-//public typealias ImageResponse = Nuke.ImageResponse
-//public typealias ImagePipeline = Nuke.ImagePipeline
-//public typealias ImageContainer = Nuke.ImageContainer
 
 /// Lazily loads and displays images.
 ///
@@ -24,8 +21,6 @@ public struct LazyImage<Content: View>: View {
     @StateObject private var viewModel = FetchImage()
 
     private var context: LazyImageContext?
-
-    // Options
     private var makeContent: ((LazyImageState) -> Content)?
     private var animation: Animation?
     private var pipeline: ImagePipeline = .shared
