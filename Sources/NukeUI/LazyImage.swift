@@ -222,7 +222,11 @@ private struct LazyImageDemoView: View {
                 }
             }
             Button("Next Image") {
-                url = URL(string: "https://kean.blog/images/pulse/02.png")
+                if url == URL(string: "https://kean.blog/images/pulse/01.png") {
+                    url = URL(string: "https://kean.blog/images/pulse/02.png")
+                } else {
+                    url = URL(string: "https://kean.blog/images/pulse/01.png")
+                }
             }
         }
     }
