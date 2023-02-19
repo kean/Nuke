@@ -8,9 +8,9 @@ import SwiftUI
 import Combine
 
 public typealias ImageRequest = Nuke.ImageRequest
-public typealias ImageResponse = Nuke.ImageResponse
-public typealias ImagePipeline = Nuke.ImagePipeline
-public typealias ImageContainer = Nuke.ImageContainer
+//public typealias ImageResponse = Nuke.ImageResponse
+//public typealias ImagePipeline = Nuke.ImagePipeline
+//public typealias ImageContainer = Nuke.ImageContainer
 
 /// Lazily loads and displays images.
 ///
