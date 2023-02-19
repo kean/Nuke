@@ -137,7 +137,8 @@ public struct LazyImage<Content: View>: View {
         .onChange(of: context) { viewModel.load($0?.request) }
     }
 
-    @ViewBuilder private func makeDefaultContent(for state: LazyImageState) -> some View {
+    @ViewBuilder
+    private func makeDefaultContent(for state: LazyImageState) -> some View {
         if let image = state.image {
             image
         } else {
@@ -183,7 +184,7 @@ struct LazyImage_Previews: PreviewProvider {
     static var previews: some View {
         Group {
             LazyImageDemoView()
-                .previewDisplayName("LazyImage ")
+                .previewDisplayName("LazyImage")
 
             LazyImage(url: URL(string: "https://kean.blog/images/pulse/01.png"))
                 .previewDisplayName("LazyImage (Default)")
