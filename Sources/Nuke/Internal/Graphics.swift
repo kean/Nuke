@@ -348,8 +348,8 @@ func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions) -> Platfo
         kCGImageSourceCreateThumbnailFromImageIfAbsent: options.createThumbnailFromImageIfAbsent,
         kCGImageSourceShouldCacheImmediately: options.shouldCacheImmediately,
         kCGImageSourceCreateThumbnailWithTransform: options.createThumbnailWithTransform,
-        kCGImageSourceThumbnailMaxPixelSize: options.maxPixelSize] as CFDictionary
-    guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options) else {
+        kCGImageSourceThumbnailMaxPixelSize: options.maxPixelSize] as [CFString: Any]
+    guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
         return nil
     }
     return PlatformImage(cgImage: image)
