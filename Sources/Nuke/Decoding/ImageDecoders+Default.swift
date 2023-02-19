@@ -166,7 +166,7 @@ extension ImageDecoders.Default {
 #if os(macOS)
         return NSImage(data: data)
 #else
-        return UIImage(data: data, scale: scale ?? Screen.scale)
+        return UIImage(data: data, scale: scale ?? 1)
 #endif
     }
 }
