@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
-import AVKit
+@preconcurrency import AVKit
 import Foundation
 
 #if os(macOS)

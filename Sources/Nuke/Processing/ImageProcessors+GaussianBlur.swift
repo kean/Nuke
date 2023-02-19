@@ -7,6 +7,12 @@
 import Foundation
 import CoreImage
 
+#if !os(macOS)
+import UIKit
+#else
+import AppKit
+#endif
+
 extension ImageProcessors {
     /// Blurs an image using `CIGaussianBlur` filter.
     public struct GaussianBlur: ImageProcessing, Hashable, CustomStringConvertible {

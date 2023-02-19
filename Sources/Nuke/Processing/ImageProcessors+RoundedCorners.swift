@@ -5,6 +5,12 @@
 import Foundation
 import CoreGraphics
 
+#if !os(macOS)
+import UIKit
+#else
+import AppKit
+#endif
+
 extension ImageProcessors {
     /// Rounds the corners of an image to the specified radius.
     ///

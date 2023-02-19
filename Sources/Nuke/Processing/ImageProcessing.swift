@@ -4,6 +4,12 @@
 
 import Foundation
 
+#if !os(macOS)
+import UIKit
+#else
+import AppKit
+#endif
+
 /// Performs image processing.
 ///
 /// For basic processing needs, implement the following method:

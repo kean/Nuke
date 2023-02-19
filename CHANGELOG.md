@@ -1,5 +1,11 @@
 # Nuke 11
 
+## Nuke 11.6.3
+
+*Feb 18, 2023*
+
+- Fix warnings in Xcode 14.3
+
 ## Nuke 11.6.2
 
 *Feb 9, 2023*

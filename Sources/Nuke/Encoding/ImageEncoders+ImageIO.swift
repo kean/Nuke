@@ -6,6 +6,12 @@ import Foundation
 import CoreGraphics
 import ImageIO
 
+#if !os(macOS)
+import UIKit
+#else
+import AppKit
+#endif
+
 extension ImageEncoders {
     /// An Image I/O based encoder.
     ///

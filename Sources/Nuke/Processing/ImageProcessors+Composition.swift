@@ -4,6 +4,12 @@
 
 import Foundation
 
+#if !os(macOS)
+import UIKit
+#else
+import AppKit
+#endif
+
 extension ImageProcessors {
     /// Composes multiple processors.
     public struct Composition: ImageProcessing, Hashable, CustomStringConvertible {

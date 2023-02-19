@@ -4,6 +4,12 @@
 
 import Foundation
 
+#if !os(macOS)
+import UIKit
+#else
+import AppKit
+#endif
+
 extension ImageProcessors {
 
     /// Rounds the corners of an image into a circle. If the image is not a square,

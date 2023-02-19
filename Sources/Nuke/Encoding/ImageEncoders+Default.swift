@@ -4,6 +4,12 @@
 
 import Foundation
 
+#if !os(macOS)
+import UIKit
+#else
+import AppKit
+#endif
+
 extension ImageEncoders {
     /// A default adaptive encoder which uses best encoder available depending
     /// on the input image and its configuration.
