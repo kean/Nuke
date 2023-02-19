@@ -72,22 +72,9 @@ struct ImageView: View {
 - ``isLoading``
 - ``progress-swift.property``
 
-### Request Options
+### Options
 
 - ``priority``
 - ``processors``
 - ``pipeline``
-
-### Displaying Images
-
 - ``animation``
-- ``view``
-
-### Callbacks
-
-- ``onStart``
-- ``onProgress``
-- ``onPreview``
-- ``onSuccess``
-- ``onFailure``
-- ``onCompletion``

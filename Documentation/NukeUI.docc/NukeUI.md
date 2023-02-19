@@ -26,8 +26,3 @@ NukeUI supports progressive images, has GIF support powered by [Gifu](https://gi
 ### Helpers
 
 - ``FetchImage``
-- ``ImageResizingMode``
-
-### Deprecated
-
-- ``ImageView``

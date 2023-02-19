@@ -83,14 +83,8 @@ LazyImage(url: URL(string: "https://example.com/image.jpeg"))
 
 ### Initializers
 
-- ``init(url:resizingMode:)``
-- ``init(request:resizingMode:)``
 - ``init(url:content:)``
 - ``init(request:content:)``
-
-### Accessing Underlying Views
-
-- ``onCreated(_:)``
 
 ### Cancellation
 
@@ -101,12 +95,3 @@ LazyImage(url: URL(string: "https://example.com/image.jpeg"))
 - ``priority(_:)``
 - ``processors(_:)``
 - ``pipeline(_:)``
-
-### Callbacks
-
-- ``onStart(_:)``
-- ``onPreview(_:)``
-- ``onProgress(_:)``
-- ``onSuccess(_:)``
-- ``onFailure(_:)``
-- ``onCompletion(_:)``
