@@ -23,7 +23,7 @@ public typealias ImageContainer = Nuke.ImageContainer
 public struct LazyImage<Content: View>: View {
     @StateObject private var viewModel = FetchImage()
 
-    private let request: HashableRequest?
+    private let context: LazyImageContext?
 
     // Options
     private var makeContent: ((LazyImageState) -> Content)?
@@ -48,7 +48,7 @@ public struct LazyImage<Content: View>: View {
     /// - Parameters:
     ///   - request: The image request.
     public init(request: ImageRequest?) where Content == Image {
-        self.request = request.map(HashableRequest.init)
+        self.context = request.map(LazyImageContext.init)
     }
 
     /// Loads and displays an image from the specified URL using a custom
@@ -58,7 +58,7 @@ public struct LazyImage<Content: View>: View {
         content: @escaping (Image) -> I,
         placeholder: @escaping () -> P
     ) where Content == _LazyImageContents<I, P> {
-        self.request = request.map(HashableRequest.init)
+        self.context = request.map(LazyImageContext.init)
         self.makeContent = { _LazyImageContents(state: $0, content: content, placeholder: placeholder) }
     }
 
@@ -70,8 +70,8 @@ public struct LazyImage<Content: View>: View {
         content: @escaping (Image) -> I,
         placeholder: @escaping () -> P
     ) where Content == _LazyImageContents<I, P> {
-        self.request = url.map {
-            HashableRequest(request: ImageRequest(url: $0, userInfo: [.scaleKey: scale]))
+        self.context = url.map {
+            LazyImageContext(request: ImageRequest(url: $0, userInfo: [.scaleKey: scale]))
         }
         self.makeContent = { _LazyImageContents(state: $0, content: content, placeholder: placeholder) }
     }
@@ -101,7 +101,7 @@ public struct LazyImage<Content: View>: View {
     /// }
     /// ```
     public init(request: ImageRequest?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
-        self.request = request.map { HashableRequest(request: $0) }
+        self.context = request.map { LazyImageContext(request: $0) }
         self.makeContent = content
     }
 
@@ -157,7 +157,7 @@ public struct LazyImage<Content: View>: View {
         }
         .onAppear(perform: { onAppear() })
         .onDisappear(perform: { onDisappear() })
-        .onChange(of: request, perform: { load($0) })
+        .onChange(of: context, perform: { load($0) })
     }
 
     @ViewBuilder private var content: some View {
@@ -178,10 +178,10 @@ public struct LazyImage<Content: View>: View {
     }
 
     private func onAppear() {
-        load(request)
+        load(context)
     }
 
-    private func load(_ request: HashableRequest?) {
+    private func load(_ request: LazyImageContext?) {
         viewModel.animation = animation
         viewModel.processors = processors ?? []
         viewModel.priority = priority
@@ -205,16 +205,10 @@ public struct LazyImage<Content: View>: View {
     }
 }
 
-private struct HashableRequest: Hashable {
+private struct LazyImageContext: Equatable {
     let request: ImageRequest
 
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(request.imageId)
-        hasher.combine(request.options)
-        hasher.combine(request.priority)
-    }
-
-    static func == (lhs: HashableRequest, rhs: HashableRequest) -> Bool {
+    static func == (lhs: LazyImageContext, rhs: LazyImageContext) -> Bool {
         let lhs = lhs.request
         let rhs = rhs.request
         return lhs.imageId == rhs.imageId &&
