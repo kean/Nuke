@@ -7,6 +7,12 @@
 import Foundation
 import CoreImage
 
+#if !os(macOS)
+import UIKit
+#else
+import AppKit
+#endif
+
 extension ImageProcessors {
 
     /// Applies Core Image filter (`CIFilter`) to the image.

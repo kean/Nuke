@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
 
 import SwiftUI
+import Nuke
 
 #if os(macOS)
 import AppKit

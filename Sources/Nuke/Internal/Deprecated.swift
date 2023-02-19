@@ -4,6 +4,12 @@
 
 import Foundation
 
+#if !os(macOS)
+import UIKit
+#else
+import AppKit
+#endif
+
 // Deprecated in Nuke 11.0
 @available(*, deprecated, message: "Please use ImageDecodingRegistry directly.")
 public protocol ImageDecoderRegistering: ImageDecoding {
