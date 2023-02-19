@@ -134,7 +134,10 @@ public struct LazyImage<Content: View>: View {
         }
         .onAppear { onAppear() }
         .onDisappear { onDisappear() }
-        .onChange(of: context) { viewModel.load($0?.request) }
+        .onChange(of: context) {
+            print("load from change")
+            viewModel.load($0?.request)
+        }
     }
 
     @ViewBuilder
@@ -150,6 +153,7 @@ public struct LazyImage<Content: View>: View {
         viewModel.animation = animation
         viewModel.pipeline = pipeline
 
+        print("load from appear")
         viewModel.load(context?.request)
     }
 
@@ -200,6 +204,7 @@ struct LazyImage_Previews: PreviewProvider {
 private struct LazyImageDemoView: View {
     @State var url = URL(string: "https://kean.blog/images/pulse/01.png")
     @State var isBlured = false
+    @State var imageViewId = UUID()
 
     var body: some View {
         VStack {
@@ -211,17 +216,19 @@ private struct LazyImageDemoView: View {
                 }
             }
             .processors(isBlured ? [ImageProcessors.GaussianBlur()] : [])
+            .id(imageViewId) // Example of how to implement retyr
 
             Spacer()
-            VStack(alignment: .leading) {
-                Button("Next Image") {
+            VStack(alignment: .leading, spacing: 16) {
+                Button("Change Image") {
                     if url == URL(string: "https://kean.blog/images/pulse/01.png") {
                         url = URL(string: "https://kean.blog/images/pulse/02.png")
                     } else {
                         url = URL(string: "https://kean.blog/images/pulse/01.png")
                     }
                 }
-                Toggle("Blur", isOn: $isBlured)
+                Button("Retry") { imageViewId = UUID() }
+                Toggle("Apply Blur", isOn: $isBlured)
             }
             .padding()
             .background(Material.ultraThick)
