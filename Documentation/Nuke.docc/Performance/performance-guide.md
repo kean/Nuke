@@ -10,7 +10,7 @@ When you instantiate `UIImage` with `Data`, the data can be in a compressed form
 
 ## High-Resolution Images
 
-Bitmapped images take a lot of space in memory. For example, take a 6000x4000px image from a professional camera. Every pixel usually requires 4 bytes (RGBA). A JPEG of such an image might use anywhere from 3 to 30 MB. But if the uncompressed bitmap takes 92 MB.
+Bitmapped images take a lot of space in memory. For example, take a 6000x4000px image from a professional camera. Every pixel usually requires 4 bytes (RGBA). A JPEG of such an image might use anywhere from 3 to 30 MB. But the uncompressed bitmap takes 92 MB.
 
 By default, Nuke stores decompressed (bitmapped) images in the memory cache. But this strategy might not be optimal for high-resolution images like this. Consider either downsampling such images or disabling memory cache for them to avoid taking too much memory.  
 
