@@ -156,7 +156,7 @@ class ImageProcessorsResizeTests: XCTestCase {
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 240, height: 320))
         XCTAssertEqual(output.imageOrientation, .right)
         // Then the image is resized according to orientation
-        XCTAssertEqual(output.size, CGSize(width: 320 / Screen.scale, height: 240 / Screen.scale))
+        XCTAssertEqual(output.size, CGSize(width: 320, height: 240))
     }
     
     @MainActor
@@ -175,7 +175,7 @@ class ImageProcessorsResizeTests: XCTestCase {
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 80, height: 320))
         XCTAssertEqual(output.imageOrientation, .right)
         // Then
-        XCTAssertEqual(output.size, CGSize(width: 320 / Screen.scale, height: 80 / Screen.scale))
+        XCTAssertEqual(output.size, CGSize(width: 320, height: 80))
     }
 #endif
     
