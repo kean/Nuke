@@ -32,10 +32,8 @@ public struct LazyImage<Content: View>: View {
     ///
     /// - Parameters:
     ///   - url: The image URL.
-    public init(url: URL?, scale: CGFloat = 1) where Content == Image {
-        self.init(request: url.map {
-            ImageRequest(url: $0, userInfo: [.scaleKey: scale])
-        })
+    public init(url: URL?) where Content == Image {
+        self.init(request: url.map { ImageRequest(url: $0) })
     }
 
     /// Loads and displays an image using `SwiftUI.Image`.
@@ -49,10 +47,8 @@ public struct LazyImage<Content: View>: View {
     /// Loads an images and displays custom content for each state.
     ///
     /// See also ``init(request:content:)``
-    public init(url: URL?, scale: CGFloat = 1, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
-        self.init(request: url.map {
-            ImageRequest(url: $0, userInfo: [.scaleKey: scale])
-        }, content: content)
+    public init(url: URL?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+        self.init(request: url.map { ImageRequest(url: $0) }, content: content)
     }
 
     /// Loads an images and displays custom content for each state.
