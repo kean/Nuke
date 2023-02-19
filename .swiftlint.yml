@@ -29,9 +29,6 @@ nesting:
 included:
     - Sources/
 
-excluded:
-    - Sources/NukeUI/Gifu/
-
 file_length:
     warning: 1000
     error: 1500

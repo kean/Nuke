@@ -13,8 +13,6 @@ There are four main views provided by the framework:
 
 ![nukeui demo](nukeui-preview)
 
-NukeUI supports progressive images, has GIF support powered by [Gifu](https://github.com/kaishin/Gifu), and can even play short videos, which is [a more efficient](https://web.dev/replace-gifs-with-videos/) way to display animated images.
-
 ## Topics
 
 ### Essentials

@@ -47,14 +47,11 @@ The image pipeline is easy to customize and extend. Check out the following firs
 |[**AVIF Plugin**](https://github.com/delneg/Nuke-AVIF-Plugin)| **Community**. [AVIF](https://caniuse.com/avif) support, built by [Denis](https://github.com/delneg)|
 |[**RxNuke**](https://github.com/kean/RxNuke)|[RxSwift](https://github.com/ReactiveX/RxSwift) extensions for Nuke with examples|
 
-## Dependencies
-
-NukeUI uses [**Gifu**](https://github.com/kaishin/Gifu) to display GIFs. The library is embedded in the NukeUI source code and is kept private.
-
 ## Minimum Requirements
 
 | Nuke       | Date         | Swift       | Xcode      | Platforms                                     |
 |------------|--------------|-------------|------------|-----------------------------------------------|
+| Nuke 12.0  | TBD          | Swift 5.6   | Xcode 13.3 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
 | Nuke 11.0  | Jul 20, 2022 | Swift 5.6   | Xcode 13.3 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
 | Nuke 10.0  | Jun 1, 2021  | Swift 5.3   | Xcode 12.0 | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0 |
 
