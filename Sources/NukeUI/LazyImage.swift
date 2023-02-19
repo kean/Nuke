@@ -128,9 +128,9 @@ public struct LazyImage<Content: View>: View {
         ZStack {
             content
         }
-        .onAppear(perform: { onAppear() })
-        .onDisappear(perform: { onDisappear() })
-        .onChange(of: context, perform: { load($0) })
+        .onAppear { onAppear() }
+        .onDisappear { onDisappear() }
+        .onChange(of: context) { load($0) }
     }
 
     @ViewBuilder private var content: some View {
