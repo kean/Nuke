@@ -23,13 +23,11 @@ public typealias ImageContainer = Nuke.ImageContainer
 public struct LazyImage<Content: View>: View {
     @StateObject private var viewModel = FetchImage()
 
-    private let context: LazyImageContext?
+    private var context: LazyImageContext?
 
     // Options
     private var makeContent: ((LazyImageState) -> Content)?
     private var animation: Animation?
-    private var processors: [any ImageProcessing]?
-    private var priority: ImageRequest.Priority?
     private var pipeline: ImagePipeline = .shared
     private var onDisappearBehavior: DisappearBehavior? = .cancel
 
@@ -96,12 +94,12 @@ public struct LazyImage<Content: View>: View {
     /// If you pass an image requests with a non-empty list of processors as
     /// a source, your processors will be applied instead.
     public func processors(_ processors: [any ImageProcessing]?) -> Self {
-        map { $0.processors = processors }
+        map { $0.context?.request.processors = processors ?? [] }
     }
 
     /// Sets the priority of the requests.
     public func priority(_ priority: ImageRequest.Priority?) -> Self {
-        map { $0.priority = priority }
+        map { $0.context?.request.priority = priority ?? .normal }
     }
 
     /// Changes the underlying pipeline used for image loading.
@@ -158,8 +156,6 @@ public struct LazyImage<Content: View>: View {
 
     private func load(_ request: LazyImageContext?) {
         viewModel.animation = animation
-        viewModel.processors = processors ?? []
-        viewModel.priority = priority
         viewModel.pipeline = pipeline
 
         viewModel.load(request?.request)
@@ -168,8 +164,10 @@ public struct LazyImage<Content: View>: View {
     private func onDisappear() {
         guard let behavior = onDisappearBehavior else { return }
         switch behavior {
-        case .cancel: viewModel.cancel()
-        case .lowerPriority: viewModel.priority = .veryLow
+        case .cancel:
+            viewModel.cancel()
+        case .lowerPriority:
+            viewModel.priority = .veryLow
         }
     }
 
@@ -181,12 +179,14 @@ public struct LazyImage<Content: View>: View {
 }
 
 private struct LazyImageContext: Equatable {
-    let request: ImageRequest
+    var request: ImageRequest
 
     static func == (lhs: LazyImageContext, rhs: LazyImageContext) -> Bool {
         let lhs = lhs.request
         let rhs = rhs.request
         return lhs.imageId == rhs.imageId &&
+        lhs.priority == rhs.priority &&
+        lhs.processors == rhs.processors &&
         lhs.priority == rhs.priority &&
         lhs.options == rhs.options
     }
@@ -197,11 +197,11 @@ private struct LazyImageContext: Equatable {
 struct LazyImage_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            LazyImage(url: URL(string: "https://kean.blog/images/pulse/01.png"))
-                .previewDisplayName("LazyImage")
-
             LazyImageDemoView()
-                .previewDisplayName("Resizable")
+                .previewDisplayName("LazyImage ")
+
+            LazyImage(url: URL(string: "https://kean.blog/images/pulse/01.png"))
+                .previewDisplayName("LazyImage (Default)")
 
             AsyncImage(url: URL(string: "https://kean.blog/images/pulse/01.png"))
                 .previewDisplayName("AsyncImage")
@@ -210,24 +210,35 @@ struct LazyImage_Previews: PreviewProvider {
 }
 
 // This demonstrates that the view reacts correctly to the URL changes.
-@available(iOS 14, tvOS 14, macOS 11, watchOS 7, *)
+@available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
 private struct LazyImageDemoView: View {
     @State var url = URL(string: "https://kean.blog/images/pulse/01.png")
+    @State var isBlured = false
 
     var body: some View {
         VStack {
+            Spacer()
+
             LazyImage(url: url) { state in
                 if let image = state.image {
                     image.resizable().aspectRatio(contentMode: .fit)
                 }
             }
-            Button("Next Image") {
-                if url == URL(string: "https://kean.blog/images/pulse/01.png") {
-                    url = URL(string: "https://kean.blog/images/pulse/02.png")
-                } else {
-                    url = URL(string: "https://kean.blog/images/pulse/01.png")
+            .processors(isBlured ? [ImageProcessors.GaussianBlur()] : [])
+
+            Spacer()
+            VStack(alignment: .leading) {
+                Button("Next Image") {
+                    if url == URL(string: "https://kean.blog/images/pulse/01.png") {
+                        url = URL(string: "https://kean.blog/images/pulse/02.png")
+                    } else {
+                        url = URL(string: "https://kean.blog/images/pulse/01.png")
+                    }
                 }
+                Toggle("Blur", isOn: $isBlured)
             }
+            .padding()
+            .background(Material.ultraThick)
         }
     }
 }
