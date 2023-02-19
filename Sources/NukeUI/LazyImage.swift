@@ -26,7 +26,7 @@ public struct LazyImage<Content: View>: View {
     private let context: LazyImageContext?
 
     // Options
-    private var makeContent: ((FetchImage) -> Content)?
+    private var makeContent: ((LazyImageState) -> Content)?
     private var animation: Animation?
     private var processors: [any ImageProcessing]?
     private var priority: ImageRequest.Priority?
@@ -49,31 +49,6 @@ public struct LazyImage<Content: View>: View {
     ///   - request: The image request.
     public init(request: ImageRequest?) where Content == Image {
         self.context = request.map(LazyImageContext.init)
-    }
-
-    /// Loads and displays an image from the specified URL using a custom
-    /// placeholder until the image loads.
-    public init<I: View, P: View>(
-        request: ImageRequest?,
-        content: @escaping (Image) -> I,
-        placeholder: @escaping () -> P
-    ) where Content == _LazyImageContents<I, P> {
-        self.context = request.map(LazyImageContext.init)
-        self.makeContent = { _LazyImageContents(viewModel: $0, content: content, placeholder: placeholder) }
-    }
-
-    /// Loads and displays an image from the specified URL using a custom
-    /// placeholder until the image loads.
-    public init<I: View, P: View>(
-        url: URL?,
-        scale: CGFloat = 1,
-        content: @escaping (Image) -> I,
-        placeholder: @escaping () -> P
-    ) where Content == _LazyImageContents<I, P> {
-        self.context = url.map {
-            LazyImageContext(request: ImageRequest(url: $0, userInfo: [.scaleKey: scale]))
-        }
-        self.makeContent = { _LazyImageContents(viewModel: $0, content: content, placeholder: placeholder) }
     }
 
     /// Loads an images and displays custom content for each state.
@@ -102,7 +77,7 @@ public struct LazyImage<Content: View>: View {
     /// ```
     public init(request: ImageRequest?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
         self.context = request.map { LazyImageContext(request: $0) }
-        self.makeContent = { content(LazyImageState(viewModel: $0)) }
+        self.makeContent = content
     }
 
     // MARK: Animation
@@ -163,7 +138,7 @@ public struct LazyImage<Content: View>: View {
     @ViewBuilder private var content: some View {
         let state = LazyImageState(viewModel: viewModel)
         if let makeContent = makeContent {
-            makeContent(viewModel)
+            makeContent(state)
         } else {
             makeDefaultContent(for: state)
         }
@@ -217,21 +192,6 @@ private struct LazyImageContext: Equatable {
     }
 }
 
-public struct _LazyImageContents<I: View, P: View>: View {
-    @ObservedObject var viewModel: FetchImage
-
-    let content: (SwiftUI.Image) -> I
-    let placeholder: () -> P
-
-    public var body: some View {
-        if let image = viewModel.image {
-            content(image)
-        } else {
-            placeholder()
-        }
-    }
-}
-
 #if DEBUG
 @available(iOS 15, tvOS 15, macOS 12, watchOS 8, *)
 struct LazyImage_Previews: PreviewProvider {
@@ -241,14 +201,7 @@ struct LazyImage_Previews: PreviewProvider {
                 .previewDisplayName("LazyImage")
 
             LazyImageDemoView()
-                .previewDisplayName("ChangeOf")
-
-            LazyImage(url: URL(string: "https://kean.blog/images/pulse/01.png")) { image in
-                image.resizable().aspectRatio(contentMode: .fit)
-            } placeholder: {
-                Rectangle().foregroundColor(Color.secondary)
-            }
-            .previewDisplayName("Resizable")
+                .previewDisplayName("Resizable")
 
             AsyncImage(url: URL(string: "https://kean.blog/images/pulse/01.png"))
                 .previewDisplayName("AsyncImage")
@@ -263,10 +216,10 @@ private struct LazyImageDemoView: View {
 
     var body: some View {
         VStack {
-            LazyImage(url: url) { image in
-                image.resizable().aspectRatio(contentMode: .fit)
-            } placeholder: {
-                Rectangle().foregroundColor(Color.secondary)
+            LazyImage(url: url) { state in
+                if let image = state.image {
+                    image.resizable().aspectRatio(contentMode: .fit)
+                }
             }
             Button("Next Image") {
                 url = URL(string: "https://kean.blog/images/pulse/02.png")
