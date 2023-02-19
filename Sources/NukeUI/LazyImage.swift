@@ -49,8 +49,10 @@ public struct LazyImage<Content: View>: View {
     /// Loads an images and displays custom content for each state.
     ///
     /// See also ``init(request:content:)``
-    public init(url: URL?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
-        self.init(request: url.map { ImageRequest(url: $0) }, content: content)
+    public init(url: URL?, scale: CGFloat = 1, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+        self.init(request: url.map {
+            ImageRequest(url: $0, userInfo: [.scaleKey: scale])
+        }, content: content)
     }
 
     /// Loads an images and displays custom content for each state.
@@ -84,7 +86,7 @@ public struct LazyImage<Content: View>: View {
         map { $0.animation = animation }
     }
 
-    // MARK: Managing Image Tasks
+    // MARK: Options
 
     /// Sets processors to be applied to the image.
     ///
