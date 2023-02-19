@@ -115,26 +115,26 @@ public struct LazyImage<Content: View>: View {
         map { $0.onDisappearBehavior = behavior }
     }
 
+    private func map(_ closure: (inout LazyImage) -> Void) -> Self {
+        var copy = self
+        closure(&copy)
+        return copy
+    }
+
     // MARK: Body
 
     public var body: some View {
-        // Using ZStack to add an identity to the view to prevent onAppear from
-        // getting called whenever the content changes.
         ZStack {
-            content
+            let state = LazyImageState(viewModel: viewModel)
+            if let makeContent = makeContent {
+                makeContent(state)
+            } else {
+                makeDefaultContent(for: state)
+            }
         }
         .onAppear { onAppear() }
         .onDisappear { onDisappear() }
-        .onChange(of: context) { load($0) }
-    }
-
-    @ViewBuilder private var content: some View {
-        let state = LazyImageState(viewModel: viewModel)
-        if let makeContent = makeContent {
-            makeContent(state)
-        } else {
-            makeDefaultContent(for: state)
-        }
+        .onChange(of: context) { viewModel.load($0?.request) }
     }
 
     @ViewBuilder private func makeDefaultContent(for state: LazyImageState) -> some View {
@@ -146,14 +146,10 @@ public struct LazyImage<Content: View>: View {
     }
 
     private func onAppear() {
-        load(context)
-    }
-
-    private func load(_ request: LazyImageContext?) {
         viewModel.animation = animation
         viewModel.pipeline = pipeline
 
-        viewModel.load(request?.request)
+        viewModel.load(context?.request)
     }
 
     private func onDisappear() {
@@ -164,12 +160,6 @@ public struct LazyImage<Content: View>: View {
         case .lowerPriority:
             viewModel.priority = .veryLow
         }
-    }
-
-    private func map(_ closure: (inout LazyImage) -> Void) -> Self {
-        var copy = self
-        closure(&copy)
-        return copy
     }
 }
 
