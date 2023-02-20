@@ -154,9 +154,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertTrue(caughtError is CancellationError)
     }
 
-#warning("fix")
-    // MARK: - ImageTaskDelegate
-
     func testImageTaskReturnedImmediately() async throws {
         // GIVEN
         pipelineDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
@@ -167,34 +164,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         // THEN
         XCTAssertNotNil(imageTask)
     }
-
-#warning("fix")
-//    func testImageTaskDelegateDidCancelIsCalled() async throws {
-//        // GIVEN
-//        dataLoader.queue.isSuspended = true
-//        let imageTask = pipeline.imageTask(with: Test.url)
-//        imageTask.delegate = taskDelegate
-//
-//        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
-//            imageTask.cancel()
-//        }
-//
-//        // WHEN/THEN
-//
-//        var isOnCancelCalled = false
-//        taskDelegate.onCancel = { [unowned self] in
-//            XCTAssertNotNil(DispatchQueue.getSpecific(key: callbackQueueKey))
-//            isOnCancelCalled = true
-//        }
-//
-//        do {
-//            _ = try await imageTask.response
-//        } catch {
-//            XCTAssertTrue(error is CancellationError)
-//        }
-//
-//        XCTAssertTrue(isOnCancelCalled)
-//    }
 
     func testProgressUdpated() async throws {
         // GIVEN
@@ -246,39 +215,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertEqual(recordedPreviews.count, 2)
         XCTAssertTrue(recordedPreviews.allSatisfy { $0.container.isPreview })
     }
-
-#warning("fix")
-//    func testImageTaskDelegateDidCompleteCalled() async throws {
-//        // GIVEN
-//        var recordedResult: Result<ImageResponse, ImagePipeline.Error>?
-//        taskDelegate.onResult = { [unowned self] in
-//            XCTAssertNotNil(DispatchQueue.getSpecific(key: callbackQueueKey))
-//            recordedResult = $0
-//        }
-//
-//        // WHEN
-//        let imageTask = pipeline.imageTask(with: Test.url)
-//        imageTask.delegate = taskDelegate
-//        let image = try await imageTask.image
-//
-//        // THEN
-//        XCTAssertTrue(image === recordedResult?.value?.image)
-//    }
-
-#warning("fix")
-//    func testImagePipelineDelegateCallbacksAlsoDelivered() async throws {
-//        // WHEN
-//        let imageTask = pipeline.imageTask(with: Test.url)
-//        imageTask.delegate = taskDelegate
-//        let response = try await imageTask.response
-//
-//        // THEN
-//        XCTAssertEqual(pipelineDelegate.events, [
-//            .started,
-//            .progressUpdated(completedUnitCount: 22789, totalUnitCount: 22789),
-//            .completed(result: .success(response))
-//        ])
-//    }
 
     // MARK: - Update Priority
 
@@ -347,114 +283,39 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         }
     }
 
-    // MARK: ImageTask.State
+    // MARK: Common Use Cases
 
-#warning("fix")
-//    func testImageTaskStateRunningToCompleted() async throws {
-//        // WHEN
-//        let imageTask = pipeline.imageTask(with: Test.request)
-//        XCTAssertEqual(imageTask.state, .running)
-//        imageTask.delegate = taskDelegate
-//        let _ = try await imageTask.response
-//
-//        // THEN
-//        XCTAssertEqual(imageTask.state, .completed)
-//    }
-//
-//    func testImageTaskCancelWrappedInUnstructuredTask() async throws {
-//        // GIVEN
-//        dataLoader.isSuspended = true
-//
-//        let imageTask = pipeline.imageTask(with: Test.request)
-//        XCTAssertEqual(imageTask.state, .running)
-//
-//        let task = Task {
-//            try await imageTask.response
-//        }
-//
-//        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
-//            task.cancel()
-//        }
-//
-//        do {
-//            _ = try await task.value
-//        } catch {}
-//
-//        XCTAssertEqual(imageTask.state, .cancelled)
-//    }
-//
-//    func testImageTaskCancelWrappedInUnstructuredTaskWhenAccessingImage() async throws {
-//        // GIVEN
-//        dataLoader.isSuspended = true
-//
-//        let imageTask = pipeline.imageTask(with: Test.request)
-//        XCTAssertEqual(imageTask.state, .running)
-//
-//        let task = Task {
-//            try await imageTask.image
-//        }
-//
-//        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
-//            task.cancel()
-//        }
-//
-//        do {
-//            _ = try await task.value
-//        } catch {}
-//
-//        XCTAssertEqual(imageTask.state, .cancelled)
-//    }
-//
-//    // MARK: Common Use Cases
-//
-//    func testLowDataMode() async throws {
-//        // GIVEN
-//        let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
-//        let lowQualityImageURL = URL(string: "https://example.com/low-quality-image.jpeg")!
-//
-//        dataLoader.results[highQualityImageURL] = .failure(URLError(networkUnavailableReason: .constrained) as NSError)
-//        dataLoader.results[lowQualityImageURL] = .success((Test.data, Test.urlResponse))
-//
-//        // WHEN
-//        let pipeline = self.pipeline!
-//
-//        // Create the default request to fetch the high quality image.
-//        var urlRequest = URLRequest(url: highQualityImageURL)
-//        urlRequest.allowsConstrainedNetworkAccess = false
-//        let request = ImageRequest(urlRequest: urlRequest)
-//
-//        // WHEN
-//        @Sendable func loadImage() async throws -> PlatformImage {
-//            do {
-//                return try await pipeline.image(for: request)
-//            } catch {
-//                guard let error = (error as? ImagePipeline.Error),
-//                      (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
-//                    throw error
-//                }
-//                return try await pipeline.image(for: lowQualityImageURL)
-//            }
-//        }
-//
-//        _ = try await loadImage()
-//    }
-//
-//    // MARK: - Actor Isolation
-//
-//    @MainActor
-//    func testImplementingProtocolWithMainActor() async throws {
-//        // GIVEN
-//        let taskDelegate = MainActorImageTaskDelegate()
-//        taskDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
-//
-//        // WHEN
-//        let task = pipeline.imageTask(with: Test.request)
-//        task.delegate = taskDelegate
-//        _ = try await task.response
-//
-//        // THEN
-//        _ = taskDelegate
-//    }
+    func testLowDataMode() async throws {
+        // GIVEN
+        let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
+        let lowQualityImageURL = URL(string: "https://example.com/low-quality-image.jpeg")!
+
+        dataLoader.results[highQualityImageURL] = .failure(URLError(networkUnavailableReason: .constrained) as NSError)
+        dataLoader.results[lowQualityImageURL] = .success((Test.data, Test.urlResponse))
+
+        // WHEN
+        let pipeline = self.pipeline!
+
+        // Create the default request to fetch the high quality image.
+        var urlRequest = URLRequest(url: highQualityImageURL)
+        urlRequest.allowsConstrainedNetworkAccess = false
+        let request = ImageRequest(urlRequest: urlRequest)
+
+        // WHEN
+        @Sendable func loadImage() async throws -> PlatformImage {
+            do {
+                return try await pipeline.image(for: request)
+            } catch {
+                guard let error = (error as? ImagePipeline.Error),
+                      (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
+                    throw error
+                }
+                return try await pipeline.image(for: lowQualityImageURL)
+            }
+        }
+
+        _ = try await loadImage()
+    }
 }
 
 /// We have to mock it because there is no way to construct native `URLError`
