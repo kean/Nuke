@@ -124,31 +124,58 @@ public struct LazyImage<Content: View>: View {
     // MARK: Body
 
     public var body: some View {
+        if #available(iOS 15, *) {
+            let _ = Self._printChanges()
+        }
         ZStack {
+            let state = makeState()
             if let makeContent = makeContent {
-                makeContent(viewModel)
+                makeContent(state)
             } else {
-                makeDefaultContent()
+                makeDefaultContent(for: state)
             }
         }
         .onAppear { onAppear() }
         .onDisappear { onDisappear() }
-        .onChange(of: context) { viewModel.load($0?.request) }
+        .onChange(of: context) {
+            viewModel.isCacheLookupNeeded = true
+            viewModel.cachedResponse = nil
+            viewModel.load($0?.request)
+        }
     }
 
     @ViewBuilder
-    private func makeDefaultContent() -> some View {
-        if let image = viewModel.image {
+    private func makeDefaultContent(for state: LazyImageState) -> some View {
+        if let image = state.image {
             image
         } else {
             Rectangle().foregroundColor(Color(.secondarySystemBackground))
         }
     }
 
-    private func onAppear() {
+    #warning("check if it's final")
+    private func makeState() -> LazyImageState {
         viewModel.animation = animation
         viewModel.pipeline = pipeline
+        if let context = context {
+            if viewModel.isCacheLookupNeeded {
+                print("perform cache lookup")
+            }
+            viewModel.performCacheLookupIfNeeded(for: context.request)
+        }
+        if let response = viewModel.cachedResponse {
+            return LazyImageStateCached(response: response)
+        }
+        print("redner viewmodel")
+        return viewModel
+    }
 
+    private func onAppear() {
+        guard viewModel.cachedResponse == nil else {
+            print("skip load")
+            return
+        }
+        print("load on appear")
         viewModel.load(context?.request)
     }
 

@@ -78,6 +78,9 @@ public final class FetchImage: ObservableObject, Identifiable {
     private var lastResponse: ImageResponse?
     private var cancellable: AnyCancellable?
 
+    var isCacheLookupNeeded = true
+    var cachedResponse: ImageResponse?
+
     deinit {
         imageTask?.cancel()
     }
@@ -86,6 +89,15 @@ public final class FetchImage: ObservableObject, Identifiable {
     public init() {}
 
     // MARK: Loading Images
+
+    func performCacheLookupIfNeeded(for request: ImageRequest) {
+        guard isCacheLookupNeeded else { return }
+        isCacheLookupNeeded = false
+
+        cachedResponse = pipeline.cache[request].map {
+            ImageResponse(container: $0, request: request, cacheType: .memory)
+        }
+    }
 
     /// Loads an image with the given request.
     public func load(_ url: URL?) {
@@ -111,7 +123,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         }
 
         // Quick synchronous memory cache lookup
-        if let image = pipeline.cache[request] {
+        if let image = pipeline.cache[request], isCacheLookupNeeded {
             if image.isPreview {
                 imageContainer = image // Display progressive image
             } else {

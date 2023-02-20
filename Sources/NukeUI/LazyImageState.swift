@@ -13,9 +13,6 @@ public protocol LazyImageState {
     /// Returns the current fetch result.
     var result: Result<ImageResponse, Error>? { get }
 
-    /// Returns an image view.
-    var image: Image? { get }
-
     /// Returns the fetched image.
     ///
     /// - note: In case pipeline has `isProgressiveDecodingEnabled` option enabled
@@ -38,6 +35,24 @@ extension LazyImageState {
         }
         return nil
     }
+
+    /// Returns an image view.
+    public var image: Image? {
+#if os(macOS)
+        imageContainer.map { Image(nsImage: $0.image) }
+#else
+        imageContainer.map { Image(uiImage: $0.image) }
+#endif
+    }
 }
 
 extension FetchImage: LazyImageState {}
+
+struct LazyImageStateCached: LazyImageState {
+    var response: ImageResponse
+
+    var result: Result<ImageResponse, Error>? { .success(response)}
+    var imageContainer: ImageContainer? { response.container }
+    var isLoading: Bool { false }
+    var progress: FetchImage.Progress { .init() }
+}
