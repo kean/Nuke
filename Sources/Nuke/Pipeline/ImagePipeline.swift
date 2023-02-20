@@ -119,15 +119,17 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Loading Images (Async/Await)
 
     /// Creates a task with the given URL.
-    public func imageTask(with url: URL) -> ImageTask {
+    public func imageTask(with url: URL) -> AsyncImageTask {
         imageTask(with: ImageRequest(url: url))
     }
 
     /// Creates a task with the given request.
-    public func imageTask(with request: ImageRequest) -> ImageTask {
-        let task = makeImageTask(request: request, queue: nil)
-        task.isAsyncCompatible = true
-        return task
+    public func imageTask(with request: ImageRequest) -> AsyncImageTask {
+        let imageTask = makeImageTask(request: request, queue: nil)
+        let task = Task<ImageResponse, Swift.Error> {
+            try await self._image(for: imageTask)
+        }
+        return AsyncImageTask(imageTask: imageTask, task: task)
     }
 
     /// Returns an image for the given URL.

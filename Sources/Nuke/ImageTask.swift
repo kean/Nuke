@@ -74,8 +74,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case completed
     }
 
-    private var imageTask: Task<ImageResponse, Error>?
-
+    #warning("make internal")
     /// The task's delegate.
     public weak var delegate: ImageTaskDelegate?
 
@@ -84,27 +83,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     weak var pipeline: ImagePipeline?
     var callbackQueue: DispatchQueue?
     var isDataTask = false
-    var isAsyncCompatible = false
 
     private let lock: os_unfair_lock_t
-
-    /// The fetched image.
-    public var image: PlatformImage {
-        get async throws {
-            try await response.image
-        }
-    }
-
-    /// The image response.
-    public var response: ImageResponse {
-        get async throws {
-            try await withTaskCancellationHandler {
-                try await getImageTask().value
-            } onCancel: {
-                self.cancel()
-            }
-        }
-    }
 
     deinit {
         lock.deinitialize(count: 1)
@@ -166,24 +146,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
         ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
-    }
-
-    // MARK: Managing Async Tasks
-
-    #warning("rename = check retain cycles")
-    private func getImageTask() -> Task<ImageResponse, Error> {
-        assert(isAsyncCompatible, "The Async/Await API can only be used with tasks created using ImagePipeline/imageTask(with:) method.")
-        os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
-        if imageTask == nil {
-            imageTask = Task<ImageResponse, Swift.Error> { [weak self] in
-                guard let self = self, let pipeline = self.pipeline else {
-                    throw ImagePipeline.Error.pipelineInvalidated
-                }
-                return try await pipeline._image(for: self)
-            }
-        }
-        return imageTask!
     }
 
     // MARK: CustomStringConvertible

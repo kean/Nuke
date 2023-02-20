@@ -168,6 +168,7 @@
 		0C91B0F42438E38B007F9100 /* CompositionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C91B0F32438E38B007F9100 /* CompositionTests.swift */; };
 		0C91B0F62438E3CB007F9100 /* GaussianBlurTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C91B0F52438E3CB007F9100 /* GaussianBlurTests.swift */; };
 		0C91B0F82438E84E007F9100 /* fixture-tiny.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C91B0F72438E84E007F9100 /* fixture-tiny.jpeg */; };
+		0C91B62229A3DEAE009B80EA /* AsyncImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C91B62129A3DEAE009B80EA /* AsyncImageTask.swift */; };
 		0C933E642859686D00F43606 /* ImageContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C933E632859686D00F43606 /* ImageContainer.swift */; };
 		0C95FD542571B278008D4FC2 /* baseline.webp in Resources */ = {isa = PBXBuildFile; fileRef = 0C95FD532571B278008D4FC2 /* baseline.webp */; };
 		0C967EB328688B3F0050E083 /* DocumentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C967EB228688B3F0050E083 /* DocumentationTests.swift */; };
@@ -455,6 +456,7 @@
 		0C91B0F32438E38B007F9100 /* CompositionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositionTests.swift; sourceTree = "<group>"; };
 		0C91B0F52438E3CB007F9100 /* GaussianBlurTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GaussianBlurTests.swift; sourceTree = "<group>"; };
 		0C91B0F72438E84E007F9100 /* fixture-tiny.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "fixture-tiny.jpeg"; sourceTree = "<group>"; };
+		0C91B62129A3DEAE009B80EA /* AsyncImageTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncImageTask.swift; sourceTree = "<group>"; };
 		0C933E632859686D00F43606 /* ImageContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageContainer.swift; sourceTree = "<group>"; };
 		0C94466D1D47EC0E006DB314 /* ImageViewExtensionsTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageViewExtensionsTests.swift; sourceTree = "<group>"; };
 		0C95FD532571B278008D4FC2 /* baseline.webp */ = {isa = PBXFileReference; lastKnownFileType = file; path = baseline.webp; sourceTree = "<group>"; };
@@ -1013,6 +1015,7 @@
 				0C063F93266524190018F2C2 /* ImageResponse.swift */,
 				0C933E632859686D00F43606 /* ImageContainer.swift */,
 				0C86AB69228B3B5100A81BA1 /* ImageTask.swift */,
+				0C91B62129A3DEAE009B80EA /* AsyncImageTask.swift */,
 				0CBA07842852DA7A00CE29F4 /* Pipeline */,
 				0CA4ECCB26E68F9900BAC8E5 /* Loading */,
 				0CA4ECD126E68FD300BAC8E5 /* Caching */,
@@ -1798,6 +1801,7 @@
 				0CB0479A2856D9AC00DF9B6D /* Cache.swift in Sources */,
 				0CA4ECB626E6846800BAC8E5 /* ImageProcessors+Resize.swift in Sources */,
 				0C1B9880294E28D800C09310 /* Nuke.docc in Sources */,
+				0C91B62229A3DEAE009B80EA /* AsyncImageTask.swift in Sources */,
 				0CC36A3325B8BC7900811018 /* ResumableData.swift in Sources */,
 				0CE6202326543B6A00AAB8C3 /* TaskFetchWithPublisher.swift in Sources */,
 				0CA4ECC426E685F500BAC8E5 /* ImageProcessors+GaussianBlur.swift in Sources */,
