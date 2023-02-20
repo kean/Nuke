@@ -9,12 +9,28 @@ import Combine
 
 /// Describes current image state.
 @MainActor
-public struct LazyImageState {
-    let viewModel: FetchImage
-
+public protocol LazyImageState {
     /// Returns the current fetch result.
-    public var result: Result<ImageResponse, Error>? { viewModel.result }
+    var result: Result<ImageResponse, Error>? { get }
 
+    /// Returns an image view.
+    var image: Image? { get }
+
+    /// Returns the fetched image.
+    ///
+    /// - note: In case pipeline has `isProgressiveDecodingEnabled` option enabled
+    /// and the image being downloaded supports progressive decoding, the `image`
+    /// might be updated multiple times during the download.
+    var imageContainer: ImageContainer? { get }
+
+    /// Returns `true` if the image is being loaded.
+    var isLoading: Bool { get  }
+
+    /// The progress of the image download.
+    var progress: FetchImage.Progress { get }
+}
+
+extension LazyImageState {
     /// Returns the current error.
     public var error: Error? {
         if case .failure(let error) = result {
@@ -22,20 +38,6 @@ public struct LazyImageState {
         }
         return nil
     }
-
-    /// Returns an image view.
-    public var image: Image? { viewModel.image }
-
-    /// Returns the fetched image.
-    ///
-    /// - note: In case pipeline has `isProgressiveDecodingEnabled` option enabled
-    /// and the image being downloaded supports progressive decoding, the `image`
-    /// might be updated multiple times during the download.
-    public var imageContainer: ImageContainer? { viewModel.imageContainer }
-
-    /// Returns `true` if the image is being loaded.
-    public var isLoading: Bool { viewModel.isLoading }
-
-    /// The progress of the image download.
-    public var progress: FetchImage.Progress { viewModel.progress }
 }
+
+extension FetchImage: LazyImageState {}

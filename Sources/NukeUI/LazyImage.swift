@@ -125,11 +125,10 @@ public struct LazyImage<Content: View>: View {
 
     public var body: some View {
         ZStack {
-            let state = LazyImageState(viewModel: viewModel)
             if let makeContent = makeContent {
-                makeContent(state)
+                makeContent(viewModel)
             } else {
-                makeDefaultContent(for: state)
+                makeDefaultContent()
             }
         }
         .onAppear { onAppear() }
@@ -138,8 +137,8 @@ public struct LazyImage<Content: View>: View {
     }
 
     @ViewBuilder
-    private func makeDefaultContent(for state: LazyImageState) -> some View {
-        if let image = state.image {
+    private func makeDefaultContent() -> some View {
+        if let image = viewModel.image {
             image
         } else {
             Rectangle().foregroundColor(Color(.secondarySystemBackground))
