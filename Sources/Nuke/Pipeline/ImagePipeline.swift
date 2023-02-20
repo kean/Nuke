@@ -128,7 +128,7 @@ public final class ImagePipeline: @unchecked Sendable {
         let imageTask = makeImageTask(request: request, queue: queue)
         let context = AsyncTaskContext()
         let task = Task<ImageResponse, Swift.Error> {
-            try await self._image(for: imageTask, context: context)
+            try await self.image(for: imageTask, context: context)
         }
         let progress = AsyncStream<ImageTask.Progress> { context.progress = $0 }
         let previews = AsyncStream<ImageResponse> { context.previews = $0 }
@@ -149,10 +149,10 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - request: An image request.
     public func image(for request: ImageRequest) async throws -> PlatformImage {
         let task = makeImageTask(request: request, queue: queue)
-        return try await _image(for: task).image
+        return try await image(for: task).image
     }
 
-    func _image(for task: ImageTask, context: AsyncTaskContext? = nil) async throws -> ImageResponse {
+    private func image(for task: ImageTask, context: AsyncTaskContext? = nil) async throws -> ImageResponse {
         try await withTaskCancellationHandler(operation: {
             try await withUnsafeThrowingContinuation { continuation in
                 self.queue.async {
