@@ -158,41 +158,35 @@ public final class ImagePipeline: @unchecked Sendable {
         return try await _image(for: task).image
     }
 
-#warning("is it eager?")
-#warning("refactor")
-
     func _image(for task: ImageTask, context: AsyncTaskContext? = nil) async throws -> ImageResponse {
-        try await withTaskCancellationHandler(
-            operation: {
-                try await withUnsafeThrowingContinuation { continuation in
-                    self.queue.async {
-                        guard task.state != .cancelled else {
-                            return continuation.resume(throwing: CancellationError())
-                        }
-                        task.onCancel = {
-                            context?.progress?.finish()
-                            context?.previews?.finish()
-                            continuation.resume(throwing: CancellationError())
-#warning("add unit tests")
-                        }
-                        self.startImageTask(task, progress: { response, progress in
-                            if let response = response {
-                                context?.previews?.yield(response)
-                            } else {
-                                context?.progress?.yield(progress)
-                            }
-                        }, completion: { result in
-                            context?.progress?.finish()
-                            context?.previews?.finish()
-                            continuation.resume(with: result)
-                        })
+        try await withTaskCancellationHandler(operation: {
+            try await withUnsafeThrowingContinuation { continuation in
+                self.queue.async {
+                    guard task.state != .cancelled else {
+                        return continuation.resume(throwing: CancellationError())
                     }
+                    task.onCancel = {
+                        context?.progress?.finish()
+                        context?.previews?.finish()
+                        continuation.resume(throwing: CancellationError())
+#warning("add unit tests")
+                    }
+                    self.startImageTask(task, progress: { response, progress in
+                        if let response = response {
+                            context?.previews?.yield(response)
+                        } else {
+                            context?.progress?.yield(progress)
+                        }
+                    }, completion: { result in
+                        context?.progress?.finish()
+                        context?.previews?.finish()
+                        continuation.resume(with: result)
+                    })
                 }
-            },
-            onCancel: {
-                task.cancel()
             }
-        )
+        }, onCancel: {
+            task.cancel()
+        })
     }
 
     // MARK: - Loading Data (Async/Await)
