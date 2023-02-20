@@ -10,11 +10,6 @@
 - ``priority``
 - ``ImageRequest/Priority-swift.enum``
 
-### Accessing Response
-
-- ``response``
-- ``image``
-
 ### Task Progress
 
 - ``progress-swift.property``

@@ -116,8 +116,10 @@ Every image preview goes through the same processing and decompression phases th
 
 ### Loading Images (Async/Await)
 
-- ``image(for:delegate:)-9mq8k``
-- ``image(for:delegate:)-2v6n0``
+- ``image(for:)-4akzh``
+- ``image(for:)-9egg6``
+- ``imageTask(with:)-7s0fc``
+- ``imageTask(with:)-6aagk``
 
 ### Loading Images (Combine)
 
