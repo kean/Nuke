@@ -118,6 +118,12 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - Loading Images (Async/Await)
 
+    /// Creates a task with the given URL.
+    public func imageTask(with url: URL) -> ImageTask {
+        imageTask(with: ImageRequest(url: url))
+    }
+
+    /// Creates a task with the given request.
     public func imageTask(with request: ImageRequest) -> ImageTask {
         let task = makeImageTask(request: request, queue: nil)
         task.isAsyncCompatible = true
@@ -128,27 +134,17 @@ public final class ImagePipeline: @unchecked Sendable {
     ///
     /// - parameters:
     ///   - request: An image request.
-    ///   - delegate: A delegate for monitoring the request progress. The delegate
-    ///   is captured as a weak reference and is called on the main queue. You
-    ///   can change the callback queue using ``Configuration-swift.struct/callbackQueue``.
-    public func image(for url: URL, delegate: (any ImageTaskDelegate)? = nil) async throws -> PlatformImage {
-        try await image(for: ImageRequest(url: url), delegate: delegate)
+    public func image(for url: URL) async throws -> PlatformImage {
+        try await image(for: ImageRequest(url: url))
     }
 
     /// Returns an image for the given request.
     ///
     /// - parameters:
     ///   - request: An image request.
-    ///   - delegate: A delegate for monitoring the request progress. The delegate
-    ///   is captured as a weak reference and is called on the main queue. You
-    ///   can change the callback queue using ``Configuration-swift.struct/callbackQueue``.
-    public func image(for request: ImageRequest, delegate: (any ImageTaskDelegate)? = nil) async throws -> PlatformImage {
+    public func image(for request: ImageRequest) async throws -> PlatformImage {
         let task = makeImageTask(request: request, queue: nil)
-        task.delegate = delegate
-
         self.delegate.imageTaskCreated(task)
-        task.delegate?.imageTaskCreated(task)
-
         return try await _image(for: task).image
     }
 

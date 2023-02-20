@@ -16,11 +16,9 @@ You can monitor the request by passing ``ImageTaskDelegate``.
 
 ```swift
 func loadImage() async throws {
-    _ = try await pipeline.image(for: url, delegate: self)
-}
-
-func imageTaskCreated(_ task: ImageTask) {
-    // Gets called immediately when the task is created.
+    let imageTask = ImagePipeline.shared.imageTask(with: url)
+    imageTask.delegate = self
+    _ = try await imageTask.image
 }
 
 func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {

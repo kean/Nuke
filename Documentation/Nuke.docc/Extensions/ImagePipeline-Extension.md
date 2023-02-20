@@ -27,14 +27,10 @@ You can monitor the request by passing ``ImageTaskDelegate``. The delegate is ca
 
 ```swift
 final class AsyncImageView: UIImageView, ImageTaskDelegate {
-    private var imageTask: ImageTask?
-
     func loadImage() async throws {
-        imageView.image = try await pipeline.image(for: url, delegate: self)
-    }
-
-    func imageTaskCreated(_ task: ImageTask) {
-        self.imageTask = task
+        let imageTask = ImagePipeline.shared.imageTask(with: url)
+        imageTask.delegate = self
+        imageView.image = try await imageTask.image
     }
 
     func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {

@@ -23,7 +23,9 @@ private func checkGettingStarted01() async throws {
 
 private final class CheckGettingStarted02: ImageTaskDelegate {
     func loadImage() async throws {
-        _ = try await pipeline.image(for: url, delegate: self)
+        let imageTask = pipeline.imageTask(with: url)
+        imageTask.delegate = self
+        _ = try await imageTask.image
     }
 
     func imageTaskCreated(_ task: ImageTask) {
@@ -299,8 +301,9 @@ private final class CheckImagePipelineExtension03: UIView, ImageTaskDelegate {
     private var imageTask: ImageTask?
     private let imageView = _ImageView()
 
+    #warning("update progress API tracking")
     func loadImage() async throws {
-        imageView.image = try await pipeline.image(for: url, delegate: self)
+        imageView.image = try await pipeline.image(for: url)
     }
 
     func imageTaskCreated(_ task: ImageTask) {

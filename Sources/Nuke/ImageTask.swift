@@ -4,7 +4,6 @@
 
 import Foundation
 
-#warning("make delegate public?")
 #warning("make progress published?")
 
 /// A task performed by the ``ImagePipeline``.
@@ -171,6 +170,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     // MARK: Managing Async Tasks
 
+    #warning("rename = check retain cycles")
     private func getImageTask() -> Task<ImageResponse, Error> {
         assert(isAsyncCompatible, "The Async/Await API can only be used with tasks created using ImagePipeline/imageTask(with:) method.")
         os_unfair_lock_lock(lock)
