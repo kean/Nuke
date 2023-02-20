@@ -205,10 +205,8 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         // WHEN
         do {
             let task = pipeline.imageTask(with: Test.url)
-            Task {
-                for await progres in task.progress {
-                    recordedProgress.append(progres)
-                }
+            for await progress in task.progress {
+                recordedProgress.append(progress)
             }
             _ = try await task.image
         } catch {

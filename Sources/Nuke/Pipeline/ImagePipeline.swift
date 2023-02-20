@@ -130,6 +130,7 @@ public final class ImagePipeline: @unchecked Sendable {
         let task = Task<ImageResponse, Swift.Error> {
             try await self._image(for: imageTask, context: context)
         }
+#warning("any way to create these lazily?")
         let progress = AsyncStream<ImageTask.Progress> { contiunation in
             context.progress = contiunation
         }
@@ -157,6 +158,9 @@ public final class ImagePipeline: @unchecked Sendable {
         return try await _image(for: task).image
     }
 
+#warning("is it eager?")
+#warning("refactor")
+
     func _image(for task: ImageTask, context: AsyncTaskContext? = nil) async throws -> ImageResponse {
         try await withTaskCancellationHandler(
             operation: {
@@ -166,10 +170,10 @@ public final class ImagePipeline: @unchecked Sendable {
                             return continuation.resume(throwing: CancellationError())
                         }
                         task.onCancel = {
-                            continuation.resume(throwing: CancellationError())
-#warning("add unit tests")
                             context?.progress?.finish()
                             context?.previews?.finish()
+                            continuation.resume(throwing: CancellationError())
+#warning("add unit tests")
                         }
                         self.startImageTask(task, progress: { response, progress in
                             if let response = response {
@@ -178,9 +182,9 @@ public final class ImagePipeline: @unchecked Sendable {
                                 context?.progress?.yield(progress)
                             }
                         }, completion: { result in
-                            continuation.resume(with: result)
                             context?.progress?.finish()
                             context?.previews?.finish()
+                            continuation.resume(with: result)
                         })
                     }
                 }
