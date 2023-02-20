@@ -5,6 +5,7 @@
 import Foundation
 
 #warning("make delegate public?")
+#warning("make progress published?")
 
 /// A task performed by the ``ImagePipeline``.
 ///
@@ -80,10 +81,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     private var imageTask: Task<ImageResponse, Error>?
 
+    /// The task's delegate.
+    public weak var delegate: ImageTaskDelegate?
+
     var onCancel: (() -> Void)?
 
     weak var pipeline: ImagePipeline?
-    weak var delegate: ImageTaskDelegate?
     var callbackQueue: DispatchQueue?
     var isDataTask = false
     var isAsyncCompatible = false
@@ -169,6 +172,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     // MARK: Managing Async Tasks
 
     private func getImageTask() -> Task<ImageResponse, Error> {
+        assert(isAsyncCompatible, "The Async/Await API can only be used with tasks created using ImagePipeline/imageTask(with:) method.")
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
         if imageTask == nil {

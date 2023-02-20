@@ -33,10 +33,10 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
     func testImageIsLoaded() async throws {
         // WHEN
-        let response = try await pipeline.image(for: Test.request)
+        let image = try await pipeline.image(for: Test.request)
 
         // THEN
-        XCTAssertEqual(response.image.sizeInPixels, CGSize(width: 640, height: 480))
+        XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
     }
 
     // MARK: - Task-based API
@@ -253,22 +253,22 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         }
 
         // WHEN
-        let result = try await pipeline.image(for: Test.request, delegate: taskDelegate)
+        let image = try await pipeline.image(for: Test.request, delegate: taskDelegate)
 
         // THEN
-        XCTAssertTrue(result.image === recordedResult?.value?.image)
+        XCTAssertTrue(image === recordedResult?.value?.image)
     }
 
     func testImagePipelineDelegateCallbacksAlsoDelivered() async throws {
         // WHEN
-        let response = try await pipeline.image(for: Test.request, delegate: taskDelegate)
+        let image = try await pipeline.image(for: Test.request, delegate: taskDelegate)
 
         // THEN
         XCTAssertEqual(pipelineDelegate.events, [
             .created,
             .started,
             .progressUpdated(completedUnitCount: 22789, totalUnitCount: 22789),
-            .completed(result: .success(response))
+            .completed(result: .success(ImageResponse(container: ImageContainer(image: image), request: Test.request)))
         ])
     }
 
@@ -313,10 +313,10 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
                 return data
             })
 
-            let container = try await pipeline.image(for: request)
+            let image = try await pipeline.image(for: request)
 
             // THEN
-            XCTAssertEqual(container.image.sizeInPixels, CGSize(width: 640, height: 480))
+            XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
         }
     }
 
@@ -400,7 +400,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         let request = ImageRequest(urlRequest: urlRequest)
 
         // WHEN
-        @Sendable func loadImage() async throws -> ImageResponse {
+        @Sendable func loadImage() async throws -> PlatformImage {
             do {
                 return try await pipeline.image(for: request)
             } catch {
@@ -412,8 +412,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
             }
         }
 
-        let response = try await loadImage()
-        XCTAssertNotNil(response.image)
+        _ = try await loadImage()
     }
 
     // MARK: - Actor Isolation
