@@ -134,10 +134,7 @@ public struct LazyImage<Content: View>: View {
         }
         .onAppear { onAppear() }
         .onDisappear { onDisappear() }
-        .onChange(of: context) {
-            print("load from change")
-            viewModel.load($0?.request)
-        }
+        .onChange(of: context) { viewModel.load($0?.request) }
     }
 
     @ViewBuilder
@@ -153,7 +150,6 @@ public struct LazyImage<Content: View>: View {
         viewModel.animation = animation
         viewModel.pipeline = pipeline
 
-        print("load from appear")
         viewModel.load(context?.request)
     }
 

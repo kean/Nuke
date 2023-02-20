@@ -75,8 +75,6 @@ public final class FetchImage: ObservableObject, Identifiable {
     public var processors: [any ImageProcessing] = []
 
     private var imageTask: ImageTask?
-
-    // publisher support
     private var lastResponse: ImageResponse?
     private var cancellable: AnyCancellable?
 
