@@ -130,12 +130,8 @@ public final class ImagePipeline: @unchecked Sendable {
         let task = Task<ImageResponse, Swift.Error> {
             try await self._image(for: imageTask, context: context)
         }
-        let progress = AsyncStream<ImageTask.Progress> { contiunation in
-            context.progress = contiunation
-        }
-        let previews = AsyncStream<ImageResponse> { contiunation in
-            context.previews = contiunation
-        }
+        let progress = AsyncStream<ImageTask.Progress> { context.progress = $0 }
+        let previews = AsyncStream<ImageResponse> { context.previews = $0 }
         return AsyncImageTask(imageTask: imageTask, task: task, progress: progress, previews: previews)
     }
 
@@ -153,7 +149,6 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - request: An image request.
     public func image(for request: ImageRequest) async throws -> PlatformImage {
         let task = makeImageTask(request: request, queue: queue)
-        self.delegate.imageTaskCreated(task, pipeline: self)
         return try await _image(for: task).image
     }
 
@@ -282,7 +277,6 @@ public final class ImagePipeline: @unchecked Sendable {
         completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         let task = makeImageTask(request: request, queue: callbackQueue)
-        delegate.imageTaskCreated(task, pipeline: self)
         func start() {
             startImageTask(task, progress: progress, completion: completion)
         }
@@ -349,6 +343,7 @@ public final class ImagePipeline: @unchecked Sendable {
         task.pipeline = self
         task.callbackQueue = queue
         task.isDataTask = isDataTask
+        delegate.imageTaskCreated(task, pipeline: self)
         return task
     }
 
