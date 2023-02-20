@@ -17,28 +17,22 @@ You can customize ``ImagePipeline`` by initializing it with ``ImagePipeline/Conf
 
 ## Loading Images
 
-Use ``ImagePipeline/image(for:delegate:)-2v6n0`` that works with both `URL` and ``ImageRequest`` and returns an ``ImageResponse`` with an image in case of success.
+Use ``ImagePipeline/image(for:)-4akzh`` that works with both `URL` and ``ImageRequest`` and returns an image.
 
 ```swift
 let image = try await ImagePipeline.shared.image(for: url)
 ```
 
-You can monitor the request by passing ``ImageTaskDelegate``. The delegate is captured as a weak reference and all callbacks are executed on the main queue by default.
+Alternatively, you can create an ``AsyncImageTask`` and access its ``AsyncImageTask/image`` or ``AsyncImageTask/response`` to fetch the image.
 
 ```swift
-final class AsyncImageView: UIImageView, ImageTaskDelegate {
+final class AsyncImageView: UIImageView {
     func loadImage() async throws {
         let imageTask = ImagePipeline.shared.imageTask(with: url)
-        imageTask.delegate = self
+        for await progress in imageTask.progress {
+            // Update progress
+        }
         imageView.image = try await imageTask.image
-    }
-
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-        // Gets called for images that support progressive decoding.
-    }
-
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-        // Gets called when the download progress is updated.
     }
 }
 ```

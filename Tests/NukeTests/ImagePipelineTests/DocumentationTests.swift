@@ -13,6 +13,7 @@ private let pipeline = ImagePipeline.shared
 private let url = URL(string: "https://example.com/image.jpeg")!
 private let image = Test.image
 private let data = Test.data
+private let imageView = UIImageView()
 
 // MARK: - Getting Started
 
@@ -21,24 +22,15 @@ private func checkGettingStarted01() async throws {
     _ = image
 }
 
-private final class CheckGettingStarted02: ImagePipelineDelegate {
-#warning("fix")
-//    func loadImage() async throws {
-//        let imageTask = pipeline.imageTask(with: url)
-//        imageTask.delegate = self
-//        _ = try await imageTask.image
-//    }
-
-    func imageTaskCreated(_ task: ImageTask) {
-        // Gets called immediately when the task is created.
-    }
-
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-        // Gets called for images that support progressive decoding.
-    }
-
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-        // Gets called when the download progress is updated.
+private final class CheckGettingStarted02 {
+    @MainActor
+    func loadImage() async throws {
+        let imageTask = ImagePipeline.shared.imageTask(with: url)
+        for await progress in imageTask.progress {
+            // Update progress
+            _ = progress
+        }
+        imageView.image = try await imageTask.image
     }
 }
 
@@ -49,9 +41,9 @@ private func checkGettingStarted03() async throws {
         priority: .high,
         options: [.reloadIgnoringCachedData]
     )
-    let response = try await pipeline.image(for: request)
+    let image = try await pipeline.image(for: request)
 
-    _ = response
+    _ = image
 }
 
 private func checkGettingStarted04() {
@@ -60,13 +52,12 @@ private func checkGettingStarted04() {
 
 // MARK: - Access Cached Images
 
-#warning("update for new progress API")
 private func checkAccessCachedImages01() async throws {
     let request = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
-    let response = try await pipeline.image(for: request)
-//    let cacheType = response.cacheType // .memory, .disk, or nil
+    let response = try await pipeline.imageTask(with: request).response
+    let cacheType = response.cacheType // .memory, .disk, or nil
 
-//    _ = cacheType
+    _ = cacheType
 }
 
 private func checkAccessCachedImages02() {
@@ -298,25 +289,14 @@ private func checkImagePipelineExtension02() async throws {
     _ = image
 }
 
-private final class CheckImagePipelineExtension03: UIView, ImagePipelineDelegate {
-    private var imageTask: ImageTask?
-    private let imageView = _ImageView()
-
-    #warning("update progress API tracking")
+private final class AsyncImageView: UIImageView {
     func loadImage() async throws {
-        imageView.image = try await pipeline.image(for: url)
-    }
-
-    func imageTaskCreated(_ task: ImageTask) {
-        self.imageTask = task
-    }
-
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-        // Gets called for images that support progressive decoding.
-    }
-
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-        // Gets called when the download progress is updated.
+        let imageTask = ImagePipeline.shared.imageTask(with: url)
+        for await progress in imageTask.progress {
+            // Update progress
+            _ = progress
+        }
+        imageView.image = try await imageTask.image
     }
 }
 #endif

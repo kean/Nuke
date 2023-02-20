@@ -4,7 +4,7 @@ Learn about main Nuke features and APIs.
 
 ## Image Pipeline
 
-``ImagePipeline`` downloads images, caches, and prepares them for display. To load an image, use an async method ``ImagePipeline/image(for:delegate:)-2v6n0`` returning ``ImageResponse`` with an image.
+``ImagePipeline`` downloads images, caches, and prepares them for display. To load an image, use an async method ``ImagePipeline/image(for:)-4akzh`` returning an image.
 
 ```swift
 let image = try await ImagePipeline.shared.image(for: url)
@@ -12,21 +12,15 @@ let image = try await ImagePipeline.shared.image(for: url)
 
 > Tip: You can start by using a ``ImagePipeline/shared`` pipeline and create a custom one later if needed. To create a custom pipeline, use a convenience ``ImagePipeline/init(delegate:_:)`` initializer or one of the pre-defined configurations, such as ``ImagePipeline/Configuration-swift.struct/withDataCache``.
 
-You can monitor the request by passing ``ImageTaskDelegate``.
+Alternatively, you can create an ``AsyncImageTask`` and access its ``AsyncImageTask/image`` or ``AsyncImageTask/response`` to fetch the image.
 
 ```swift
 func loadImage() async throws {
     let imageTask = ImagePipeline.shared.imageTask(with: url)
-    imageTask.delegate = self
-    _ = try await imageTask.image
-}
-
-func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-    // Gets called for images that support progressive decoding.
-}
-
-func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-    // Gets called when the download progress is updated.
+    for await progress in imageTask.progress {
+        // Update progress
+    }
+    imageView.image = try await imageTask.image
 }
 ```
 
@@ -45,7 +39,7 @@ let request = ImageRequest(
     priority: .high,
     options: [.reloadIgnoringCachedData]
 )
-let response = try await pipeline.image(for: request)
+let image = try await pipeline.image(for: request)
 ```
 
 > Tip: You can use built-in processors or create custom ones. Learn more in <doc:image-processing>.
