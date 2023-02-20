@@ -39,6 +39,17 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertEqual(response.image.sizeInPixels, CGSize(width: 640, height: 480))
     }
 
+    func testNewAsyncAwaitAPI() async throws {
+        // GIVEN
+        let task = pipeline.imageTask(with: Test.request)
+
+        // WHEN
+        let response = try await task.response
+
+        // THEN
+        XCTAssertEqual(response.image.sizeInPixels, CGSize(width: 640, height: 480))
+    }
+
     private var observer: AnyObject?
 
     // MARK: - Cancellation

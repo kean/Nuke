@@ -76,6 +76,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case completed
     }
 
+    var task: Task<ImageResponse, Error>?
     var onCancel: (() -> Void)?
 
     weak var pipeline: ImagePipeline?
@@ -84,6 +85,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     var isDataTask = false
 
     private let lock: os_unfair_lock_t
+
+    public var response: ImageResponse {
+        get async throws {
+            try await task!.value
+        }
+    }
 
     deinit {
         lock.deinitialize(count: 1)
