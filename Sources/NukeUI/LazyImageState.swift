@@ -21,7 +21,7 @@ public protocol LazyImageState {
     var imageContainer: ImageContainer? { get }
 
     /// Returns `true` if the image is being loaded.
-    var isLoading: Bool { get  }
+    var isLoading: Bool { get }
 
     /// The progress of the image download.
     var progress: FetchImage.Progress { get }
@@ -51,7 +51,7 @@ extension FetchImage: LazyImageState {}
 struct LazyImageStateCached: LazyImageState {
     var response: ImageResponse
 
-    var result: Result<ImageResponse, Error>? { .success(response)}
+    var result: Result<ImageResponse, Error>? { .success(response) }
     var imageContainer: ImageContainer? { response.container }
     var isLoading: Bool { false }
     var progress: FetchImage.Progress { .init() }

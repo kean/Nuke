@@ -125,7 +125,6 @@ public struct LazyImage<Content: View>: View {
 
     public var body: some View {
         ZStack {
-            let _ = performCacheLookupIfNeeded()
             let state = makeState()
             if let makeContent = makeContent {
                 makeContent(state)
@@ -152,6 +151,8 @@ public struct LazyImage<Content: View>: View {
     }
 
     private func makeState() -> LazyImageState {
+        performCacheLookupIfNeeded()
+
         if let response = viewModel.cachedResponse {
             return LazyImageStateCached(response: response)
         }
