@@ -74,10 +74,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case completed
     }
 
-    #warning("make internal")
-    /// The task's delegate.
-    public weak var delegate: ImageTaskDelegate?
-
     var onCancel: (() -> Void)?
 
     weak var pipeline: ImagePipeline?
