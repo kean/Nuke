@@ -119,30 +119,7 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Loading Images (Async/Await)
 
     public func imageTask(with request: ImageRequest) -> ImageTask {
-        let task = makeImageTask(request: request, queue: nil)
-        task.task = Task<ImageResponse, Swift.Error> {
-            try await withTaskCancellationHandler(
-                operation: {
-                    try await withUnsafeThrowingContinuation { continuation in
-                        self.queue.async {
-                            guard task.state != .cancelled else {
-                                return continuation.resume(throwing: CancellationError())
-                            }
-                            task.onCancel = {
-                                continuation.resume(throwing: CancellationError())
-                            }
-                            self.startImageTask(task, progress: nil) { result in
-                                continuation.resume(with: result)
-                            }
-                        }
-                    }
-                },
-                onCancel: {
-                    task.cancel()
-                }
-            )
-        }
-        return task
+        makeImageTask(request: request, queue: nil)
     }
 
     /// Returns an image for the given URL.
@@ -170,7 +147,11 @@ public final class ImagePipeline: @unchecked Sendable {
         self.delegate.imageTaskCreated(task)
         task.delegate?.imageTaskCreated(task)
 
-        return try await withTaskCancellationHandler(
+        return try await _image(for: task)
+    }
+
+    func _image(for task: ImageTask) async throws -> ImageResponse {
+        try await withTaskCancellationHandler(
             operation: {
                 try await withUnsafeThrowingContinuation { continuation in
                     self.queue.async {

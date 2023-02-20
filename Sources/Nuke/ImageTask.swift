@@ -76,7 +76,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case completed
     }
 
-    var task: Task<ImageResponse, Error>?
+    private var imageTask: Task<ImageResponse, Error>?
+
     var onCancel: (() -> Void)?
 
     weak var pipeline: ImagePipeline?
@@ -88,7 +89,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     public var response: ImageResponse {
         get async throws {
-            try await task!.value
+            try await getImageTask().value
         }
     }
 
@@ -152,6 +153,22 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
         ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+    }
+
+    // MARK: Managing Async Tasks
+
+    private func getImageTask() -> Task<ImageResponse, Error> {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        if imageTask == nil {
+            imageTask = Task<ImageResponse, Swift.Error> { [weak self] in
+                guard let self = self, let pipeline = self.pipeline else {
+                    throw ImagePipeline.Error.pipelineInvalidated
+                }
+                return try await pipeline._image(for: self)
+            }
+        }
+        return imageTask!
     }
 
     // MARK: CustomStringConvertible
