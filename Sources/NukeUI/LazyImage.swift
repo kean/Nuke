@@ -194,10 +194,14 @@ public struct LazyImage<Content: View>: View {
 private struct LazyImageContext: Equatable {
     var request: ImageRequest
 
+    init(request: ImageRequest) {
+        self.request = request
+    }
+
     static func == (lhs: LazyImageContext, rhs: LazyImageContext) -> Bool {
         let lhs = lhs.request
         let rhs = rhs.request
-        return lhs.imageId == rhs.imageId &&
+        return lhs.preferredImageId == rhs.preferredImageId &&
         lhs.priority == rhs.priority &&
         lhs.processors == rhs.processors &&
         lhs.priority == rhs.priority &&

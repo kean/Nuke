@@ -109,3 +109,12 @@ func == (lhs: [any ImageProcessing], rhs: [any ImageProcessing]) -> Bool {
         $0.hashableIdentifier == $1.hashableIdentifier
     }
 }
+
+extension ImageRequest {
+    var preferredImageId: String {
+        if let imageId = ref.userInfo?[.imageIdKey] as? String {
+            return imageId
+        }
+        return imageId ?? ""
+    }
+}
