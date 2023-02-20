@@ -17,33 +17,22 @@ You can customize ``ImagePipeline`` by initializing it with ``ImagePipeline/Conf
 
 ## Loading Images
 
-Use ``ImagePipeline/image(for:delegate:)-2v6n0`` that works with both `URL` and ``ImageRequest`` and returns an ``ImageResponse`` with an image in case of success.
+Use ``ImagePipeline/image(for:)-4akzh`` that works with both `URL` and ``ImageRequest`` and returns an image.
 
 ```swift
-let response = try await ImagePipeline.shared.image(for: url)
-let image = response.image
+let image = try await ImagePipeline.shared.image(for: url)
 ```
 
-You can monitor the request by passing ``ImageTaskDelegate``. The delegate is captured as a weak reference and all callbacks are executed on the main queue by default.
+Alternatively, you can create an ``AsyncImageTask`` and access its ``AsyncImageTask/image`` or ``AsyncImageTask/response`` to fetch the image.
 
 ```swift
-final class AsyncImageView: UIImageView, ImageTaskDelegate {
-    private var imageTask: ImageTask?
-
+final class AsyncImageView: UIImageView {
     func loadImage() async throws {
-        imageView.image = try await pipeline.image(for: url, delegate: self).image
-    }
-
-    func imageTaskCreated(_ task: ImageTask) {
-        self.imageTask = task
-    }
-
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-        // Gets called for images that support progressive decoding.
-    }
-
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-        // Gets called when the download progress is updated.
+        let imageTask = ImagePipeline.shared.imageTask(with: url)
+        for await progress in imageTask.progress {
+            // Update progress
+        }
+        imageView.image = try await imageTask.image
     }
 }
 ```
@@ -127,8 +116,10 @@ Every image preview goes through the same processing and decompression phases th
 
 ### Loading Images (Async/Await)
 
-- ``image(for:delegate:)-9mq8k``
-- ``image(for:delegate:)-2v6n0``
+- ``image(for:)-4akzh``
+- ``image(for:)-9egg6``
+- ``imageTask(with:)-7s0fc``
+- ``imageTask(with:)-6aagk``
 
 ### Loading Images (Combine)
 

@@ -69,7 +69,6 @@ The image pipeline is easy to customize and extend. Check out the following firs
 - <doc:loading-data>
 - <doc:image-formats>
 - ``ImagePipelineDelegate``
-- ``ImageTaskDelegate``
 
 ### Performance
 

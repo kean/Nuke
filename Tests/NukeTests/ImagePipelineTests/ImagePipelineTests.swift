@@ -261,10 +261,10 @@ class ImagePipelineTests: XCTestCase {
         }
         
         // WHEN
-        let response = try await pipeline.image(for: Test.url)
+        let image = try await pipeline.image(for: Test.url)
         
         // THEN
-        XCTAssertEqual(true, ImageDecompression.isDecompressionNeeded(for: response.image))
+        XCTAssertEqual(true, ImageDecompression.isDecompressionNeeded(for: image))
     }
     
     func testDisablingDecompressionForIndividualRequest() async throws {
@@ -272,18 +272,18 @@ class ImagePipelineTests: XCTestCase {
         let request = ImageRequest(url: Test.url, options: [.skipDecompression])
         
         // WHEN
-        let response = try await pipeline.image(for: request)
+        let image = try await pipeline.image(for: request)
         
         // THEN
-        XCTAssertEqual(true, ImageDecompression.isDecompressionNeeded(for: response.image))
+        XCTAssertEqual(true, ImageDecompression.isDecompressionNeeded(for: image))
     }
     
     func testDecompressionPerformed() async throws {
         // WHEN
-        let response = try await pipeline.image(for: Test.request)
+        let image = try await pipeline.image(for: Test.request)
         
         // THEN
-        XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: response.image))
+        XCTAssertNil(ImageDecompression.isDecompressionNeeded(for: image))
     }
     
     func testDecompressionNotPerformedWhenProcessorWasApplied() async throws {
@@ -581,8 +581,8 @@ class ImagePipelineTests: XCTestCase {
     // MARK: Misc
     
     func testLoadWithStringLiteral() async throws {
-        let response = try await pipeline.image(for: "https://example.com/image.jpeg")
-        XCTAssertNotEqual(response.image.size, .zero)
+        let image = try await pipeline.image(for: "https://example.com/image.jpeg")
+        XCTAssertNotEqual(image.size, .zero)
     }
     
     func testLoadWithInvalidURL() throws {

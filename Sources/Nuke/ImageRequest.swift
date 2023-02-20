@@ -17,7 +17,7 @@ import Combine
 ///     priority: .high,
 ///     options: [.reloadIgnoringCachedData]
 /// )
-/// let response = try await pipeline.image(for: request)
+/// let image = try await pipeline.image(for: request)
 /// ```
 public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStringLiteral {
     // MARK: Options
