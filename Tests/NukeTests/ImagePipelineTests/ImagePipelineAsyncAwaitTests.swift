@@ -361,8 +361,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertEqual(imageTask.state, .completed)
     }
 
-#warning("fix")
-    func _testImageTaskStateRunningToCancelled() async throws {
+    func testImageTaskCancelWrappedInUnstructuredTask() async throws {
         // GIVEN
         dataLoader.isSuspended = true
 
@@ -371,6 +370,28 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
         let task = Task {
             try await imageTask.response
+        }
+
+        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
+            task.cancel()
+        }
+
+        do {
+            _ = try await task.value
+        } catch {}
+
+        XCTAssertEqual(imageTask.state, .cancelled)
+    }
+
+    func testImageTaskCancelWrappedInUnstructuredTaskWhenAccessingImage() async throws {
+        // GIVEN
+        dataLoader.isSuspended = true
+
+        let imageTask = pipeline.imageTask(with: Test.request)
+        XCTAssertEqual(imageTask.state, .running)
+
+        let task = Task {
+            try await imageTask.image
         }
 
         observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in

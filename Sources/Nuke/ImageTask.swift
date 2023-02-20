@@ -95,14 +95,18 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The fetched image.
     public var image: PlatformImage {
         get async throws {
-            try await getImageTask().value.image
+            try await response.image
         }
     }
 
     /// The image response.
     public var response: ImageResponse {
         get async throws {
-            try await getImageTask().value
+            try await withTaskCancellationHandler {
+                try await getImageTask().value
+            } onCancel: {
+                self.cancel()
+            }
         }
     }
 
