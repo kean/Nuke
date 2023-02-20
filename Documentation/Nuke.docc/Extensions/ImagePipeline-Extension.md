@@ -20,8 +20,7 @@ You can customize ``ImagePipeline`` by initializing it with ``ImagePipeline/Conf
 Use ``ImagePipeline/image(for:delegate:)-2v6n0`` that works with both `URL` and ``ImageRequest`` and returns an ``ImageResponse`` with an image in case of success.
 
 ```swift
-let response = try await ImagePipeline.shared.image(for: url)
-let image = response.image
+let image = try await ImagePipeline.shared.image(for: url)
 ```
 
 You can monitor the request by passing ``ImageTaskDelegate``. The delegate is captured as a weak reference and all callbacks are executed on the main queue by default.
@@ -31,7 +30,7 @@ final class AsyncImageView: UIImageView, ImageTaskDelegate {
     private var imageTask: ImageTask?
 
     func loadImage() async throws {
-        imageView.image = try await pipeline.image(for: url, delegate: self).image
+        imageView.image = try await pipeline.image(for: url, delegate: self)
     }
 
     func imageTaskCreated(_ task: ImageTask) {

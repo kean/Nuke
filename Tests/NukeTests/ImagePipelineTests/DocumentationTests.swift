@@ -17,9 +17,7 @@ private let data = Test.data
 // MARK: - Getting Started
 
 private func checkGettingStarted01() async throws {
-    let response = try await ImagePipeline.shared.image(for: url)
-    let image = response.image
-
+    let image = try await ImagePipeline.shared.image(for: url)
     _ = image
 }
 
@@ -59,12 +57,13 @@ private func checkGettingStarted04() {
 
 // MARK: - Access Cached Images
 
+#warning("update for new progress API")
 private func checkAccessCachedImages01() async throws {
     let request = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
     let response = try await pipeline.image(for: request)
-    let cacheType = response.cacheType // .memory, .disk, or nil
+//    let cacheType = response.cacheType // .memory, .disk, or nil
 
-    _ = cacheType
+//    _ = cacheType
 }
 
 private func checkAccessCachedImages02() {
@@ -292,9 +291,7 @@ private func checkImagePipelineExtension01() {
 }
 
 private func checkImagePipelineExtension02() async throws {
-    let response = try await ImagePipeline.shared.image(for: url)
-    let image = response.image
-
+    let image = try await ImagePipeline.shared.image(for: url)
     _ = image
 }
 
@@ -303,7 +300,7 @@ private final class CheckImagePipelineExtension03: UIView, ImageTaskDelegate {
     private let imageView = _ImageView()
 
     func loadImage() async throws {
-        imageView.image = try await pipeline.image(for: url, delegate: self).image
+        imageView.image = try await pipeline.image(for: url, delegate: self)
     }
 
     func imageTaskCreated(_ task: ImageTask) {

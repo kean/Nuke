@@ -7,8 +7,7 @@ Learn about main Nuke features and APIs.
 ``ImagePipeline`` downloads images, caches, and prepares them for display. To load an image, use an async method ``ImagePipeline/image(for:delegate:)-2v6n0`` returning ``ImageResponse`` with an image.
 
 ```swift
-let response = try await ImagePipeline.shared.image(for: url)
-let image = response.image
+let image = try await ImagePipeline.shared.image(for: url)
 ```
 
 > Tip: You can start by using a ``ImagePipeline/shared`` pipeline and create a custom one later if needed. To create a custom pipeline, use a convenience ``ImagePipeline/init(delegate:_:)`` initializer or one of the pre-defined configurations, such as ``ImagePipeline/Configuration-swift.struct/withDataCache``.
