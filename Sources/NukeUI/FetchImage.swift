@@ -78,6 +78,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     private var lastResponse: ImageResponse?
     private var cancellable: AnyCancellable?
 
+    // Used only as `LazyImage` optimization.
     var isCacheLookupNeeded = true
     var cachedResponse: ImageResponse?
 
@@ -89,15 +90,6 @@ public final class FetchImage: ObservableObject, Identifiable {
     public init() {}
 
     // MARK: Loading Images
-
-    func performCacheLookupIfNeeded(for request: ImageRequest) {
-        guard isCacheLookupNeeded else { return }
-        isCacheLookupNeeded = false
-
-        cachedResponse = pipeline.cache[request].map {
-            ImageResponse(container: $0, request: request, cacheType: .memory)
-        }
-    }
 
     /// Loads an image with the given request.
     public func load(_ url: URL?) {

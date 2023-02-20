@@ -124,10 +124,8 @@ public struct LazyImage<Content: View>: View {
     // MARK: Body
 
     public var body: some View {
-        if #available(iOS 15, *) {
-            let _ = Self._printChanges()
-        }
         ZStack {
+            let _ = performCacheLookupIfNeeded()
             let state = makeState()
             if let makeContent = makeContent {
                 makeContent(state)
@@ -153,29 +151,31 @@ public struct LazyImage<Content: View>: View {
         }
     }
 
-    #warning("check if it's final")
     private func makeState() -> LazyImageState {
-        viewModel.animation = animation
-        viewModel.pipeline = pipeline
-        if let context = context {
-            if viewModel.isCacheLookupNeeded {
-                print("perform cache lookup")
-            }
-            viewModel.performCacheLookupIfNeeded(for: context.request)
-        }
         if let response = viewModel.cachedResponse {
             return LazyImageStateCached(response: response)
         }
-        print("redner viewmodel")
         return viewModel
     }
 
-    private func onAppear() {
-        guard viewModel.cachedResponse == nil else {
-            print("skip load")
+    /// Optimization: perform the memory cache lookup on the first `body`
+    /// calculation eliminating an unnecessary `body` call, placeholder
+    /// creation, and saving a few `objectWillChange` calls in `FetchImage`.
+    private func performCacheLookupIfNeeded() {
+        guard let request = context?.request, viewModel.isCacheLookupNeeded else {
             return
         }
-        print("load on appear")
+        viewModel.isCacheLookupNeeded = false
+        if let container = pipeline.cache[request], !container.isPreview {
+            viewModel.cachedResponse = ImageResponse(container: container, request: request, cacheType: .memory)
+        }
+    }
+
+    private func onAppear() {
+        viewModel.animation = animation
+        viewModel.pipeline = pipeline
+
+        guard viewModel.cachedResponse == nil else { return }
         viewModel.load(context?.request)
     }
 
