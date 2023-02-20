@@ -33,14 +33,21 @@ public final class AsyncImageTask: Sendable {
         }
     }
 
+    /// Returns all images responses including the previews for progressive images.
+    public let previews: AsyncStream<ImageResponse>
+
     /// Returns the current download progress. Returns zeros before the download
     /// is started and the expected size of the resource is known.
     public let progress: AsyncStream<ImageTask.Progress>
 
-    init(imageTask: ImageTask, task: Task<ImageResponse, Error>, progress: AsyncStream<ImageTask.Progress>) {
+    init(imageTask: ImageTask,
+         task: Task<ImageResponse, Error>,
+         progress: AsyncStream<ImageTask.Progress>,
+         previews: AsyncStream<ImageResponse>) {
         self.imageTask = imageTask
         self.task = task
         self.progress = progress
+        self.previews = previews
     }
 
     /// Marks task as being cancelled.
@@ -54,4 +61,5 @@ public final class AsyncImageTask: Sendable {
 
 final class AsyncTaskContext {
     var progress: AsyncStream<ImageTask.Progress>.Continuation?
+    var previews: AsyncStream<ImageResponse>.Continuation?
 }

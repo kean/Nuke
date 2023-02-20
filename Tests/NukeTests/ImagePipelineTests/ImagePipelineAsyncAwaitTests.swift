@@ -10,6 +10,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
     var pipeline: ImagePipeline!
 
     private var recordedProgress: [ImageTask.Progress] = []
+    private var recordedPreviews: [ImageResponse] = []
     private var taskDelegate = AnonymousImateTaskDelegate()
     private var pipelineDelegate = ImagePipelineObserver()
     private var imageTask: ImageTask?
@@ -221,35 +222,32 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         ])
     }
 
-#warning("fix")
-//    func testImageTaskDelegateProgressiveDecodingIsCalled() async throws {
-//        // GIVEN
-//        let dataLoader = MockProgressiveDataLoader()
-//        pipeline = pipeline.reconfigured {
-//            $0.dataLoader = dataLoader
-//            $0.isProgressiveDecodingEnabled = true
-//        }
-//
-//        // WHEN/THEN
-//        var recorededProgressiveResponses: [ImageResponse] = []
-//        taskDelegate.onProgressiveResponse = { [unowned self] response in
-//            XCTAssertNotNil(DispatchQueue.getSpecific(key: callbackQueueKey))
-//            recorededProgressiveResponses.append(response)
-//            dataLoader.resume()
-//        }
-//
-//        do {
-//            let imageTask = pipeline.imageTask(with: Test.url)
-//            imageTask.delegate = taskDelegate
-//            _ = try await imageTask.response
-//        } catch {
-//            // Expect decoding to failed because of bogus data
-//        }
-//
-//        // THEN
-//        XCTAssertEqual(recorededProgressiveResponses.count, 2)
-//        XCTAssertTrue(recorededProgressiveResponses.allSatisfy { $0.container.isPreview })
-//    }
+    func testImageTaskDelegateProgressiveDecodingIsCalled() async throws {
+        // GIVEN
+        let dataLoader = MockProgressiveDataLoader()
+        pipeline = pipeline.reconfigured {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+        }
+
+        // WHEN
+        do {
+            let task = pipeline.imageTask(with: Test.url)
+            Task {
+                for await preview in task.previews {
+                    recordedPreviews.append(preview)
+                    dataLoader.resume()
+                }
+            }
+            _ = try await task.image
+        } catch {
+            // Expect decoding to failed because of bogus data
+        }
+
+        // THEN
+        XCTAssertEqual(recordedPreviews.count, 2)
+        XCTAssertTrue(recordedPreviews.allSatisfy { $0.container.isPreview })
+    }
 
 #warning("fix")
 //    func testImageTaskDelegateDidCompleteCalled() async throws {

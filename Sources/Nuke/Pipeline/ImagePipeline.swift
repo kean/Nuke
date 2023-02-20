@@ -133,7 +133,10 @@ public final class ImagePipeline: @unchecked Sendable {
         let progress = AsyncStream<ImageTask.Progress> { contiunation in
             context.progress = contiunation
         }
-        return AsyncImageTask(imageTask: imageTask, task: task, progress: progress)
+        let previews = AsyncStream<ImageResponse> { contiunation in
+            context.previews = contiunation
+        }
+        return AsyncImageTask(imageTask: imageTask, task: task, progress: progress, previews: previews)
     }
 
     /// Returns an image for the given URL.
@@ -164,14 +167,20 @@ public final class ImagePipeline: @unchecked Sendable {
                         }
                         task.onCancel = {
                             continuation.resume(throwing: CancellationError())
+#warning("add unit tests")
+                            context?.progress?.finish()
+                            context?.previews?.finish()
                         }
                         self.startImageTask(task, progress: { response, progress in
-                            if response == nil {
+                            if let response = response {
+                                context?.previews?.yield(response)
+                            } else {
                                 context?.progress?.yield(progress)
                             }
                         }, completion: { result in
                             continuation.resume(with: result)
                             context?.progress?.finish()
+                            context?.previews?.finish()
                         })
                     }
                 }
