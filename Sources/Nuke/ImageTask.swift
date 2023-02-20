@@ -4,6 +4,8 @@
 
 import Foundation
 
+#warning("make delegate public?")
+
 /// A task performed by the ``ImagePipeline``.
 ///
 /// The pipeline maintains a strong reference to the task until the request
@@ -84,9 +86,18 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     weak var delegate: ImageTaskDelegate?
     var callbackQueue: DispatchQueue?
     var isDataTask = false
+    var isAsyncCompatible = false
 
     private let lock: os_unfair_lock_t
 
+    /// The fetched image.
+    public var image: PlatformImage {
+        get async throws {
+            try await getImageTask().value.image
+        }
+    }
+
+    /// The image response.
     public var response: ImageResponse {
         get async throws {
             try await getImageTask().value

@@ -39,7 +39,9 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertEqual(response.image.sizeInPixels, CGSize(width: 640, height: 480))
     }
 
-    func testNewAsyncAwaitAPI() async throws {
+    // MARK: - Task-based API
+
+    func testTaskBasedImageResponse() async throws {
         // GIVEN
         let task = pipeline.imageTask(with: Test.request)
 
@@ -48,6 +50,17 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
         // THEN
         XCTAssertEqual(response.image.sizeInPixels, CGSize(width: 640, height: 480))
+    }
+
+    func testTaskBasedImage() async throws {
+        // GIVEN
+        let task = pipeline.imageTask(with: Test.request)
+
+        // WHEN
+        let image = try await task.image
+
+        // THEN
+        XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
     }
 
     private var observer: AnyObject?
