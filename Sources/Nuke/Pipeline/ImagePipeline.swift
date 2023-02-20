@@ -125,7 +125,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Creates a task with the given request.
     public func imageTask(with request: ImageRequest) -> AsyncImageTask {
-        let imageTask = makeImageTask(request: request, queue: nil)
+        let imageTask = makeImageTask(request: request, queue: queue)
         let context = AsyncTaskContext()
         let task = Task<ImageResponse, Swift.Error> {
             try await self._image(for: imageTask, context: context)
@@ -153,7 +153,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// - parameters:
     ///   - request: An image request.
     public func image(for request: ImageRequest) async throws -> PlatformImage {
-        let task = makeImageTask(request: request, queue: nil)
+        let task = makeImageTask(request: request, queue: queue)
         self.delegate.imageTaskCreated(task)
         return try await _image(for: task).image
     }
