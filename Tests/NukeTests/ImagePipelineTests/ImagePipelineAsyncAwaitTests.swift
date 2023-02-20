@@ -89,7 +89,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
     func testCancelFromTaskCreated() async throws {
         dataLoader.queue.isSuspended = true
-
         pipelineDelegate.onTaskCreated = { $0.cancel() }
 
         let task = Task {
@@ -111,7 +110,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         let task = Task {
             try await pipeline.image(for: Test.url)
         }
-
         task.cancel()
 
         var caughtError: Error?
