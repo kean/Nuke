@@ -146,10 +146,13 @@ public final class ImagePipeline: @unchecked Sendable {
         return try await withTaskCancellationHandler(
             operation: {
                 try await withUnsafeThrowingContinuation { continuation in
-                    task.onCancel = {
-                        continuation.resume(throwing: CancellationError())
-                    }
                     self.queue.async {
+                        guard task.state != .cancelled else {
+                            return continuation.resume(throwing: CancellationError())
+                        }
+                        task.onCancel = {
+                            continuation.resume(throwing: CancellationError())
+                        }
                         self.startImageTask(task, progress: nil) { result in
                             continuation.resume(with: result)
                         }
@@ -181,10 +184,13 @@ public final class ImagePipeline: @unchecked Sendable {
         return try await withTaskCancellationHandler(
             operation: {
                 try await withUnsafeThrowingContinuation { continuation in
-                    task.onCancel = {
-                        continuation.resume(throwing: CancellationError())
-                    }
                     self.queue.async {
+                        guard task.state != .cancelled else {
+                            return continuation.resume(throwing: CancellationError())
+                        }
+                        task.onCancel = {
+                            continuation.resume(throwing: CancellationError())
+                        }
                         self.startDataTask(task, progress: nil) { result in
                             continuation.resume(with: result.map { $0 })
                         }

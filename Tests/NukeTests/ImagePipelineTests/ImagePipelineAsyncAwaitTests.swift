@@ -41,6 +41,8 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
     private var observer: AnyObject?
 
+    // MARK: - Cancellation
+
     func testCancellation() async throws {
         dataLoader.queue.isSuspended = true
 
@@ -61,6 +63,43 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertTrue(caughtError is CancellationError)
     }
 
+    func testCancelFromTaskCreated() async throws {
+        dataLoader.queue.isSuspended = true
+
+        taskDelegate.onTaskCreated = { $0.cancel() }
+
+        let task = Task {
+            try await pipeline.image(for: Test.url, delegate: taskDelegate)
+        }
+
+        var caughtError: Error?
+        do {
+            _ = try await task.value
+        } catch {
+            caughtError = error
+        }
+        XCTAssertTrue(caughtError is CancellationError)
+    }
+
+    func testCancelImmediately() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = Task {
+            try await pipeline.image(for: Test.url, delegate: taskDelegate)
+        }
+        task.cancel()
+
+        var caughtError: Error?
+        do {
+            _ = try await task.value
+        } catch {
+            caughtError = error
+        }
+        XCTAssertTrue(caughtError is CancellationError)
+    }
+
+    // MARK: - Load Data
+
     func testLoadData() async throws {
         // GIVEN
         dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
@@ -71,6 +110,23 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         // THEN
         XCTAssertEqual(data.count, 22788)
         XCTAssertNotNil(response?.url, Test.url.absoluteString)
+    }
+
+    func testLoadDataCancelImmediately() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = Task {
+            try await pipeline.data(for: Test.url)
+        }
+        task.cancel()
+
+        var caughtError: Error?
+        do {
+            _ = try await task.value
+        } catch {
+            caughtError = error
+        }
+        XCTAssertTrue(caughtError is CancellationError)
     }
 
     // MARK: - ImageTaskDelegate
