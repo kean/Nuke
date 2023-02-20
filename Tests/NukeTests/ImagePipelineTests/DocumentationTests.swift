@@ -67,9 +67,9 @@ private func checkAccessCachedImages02() {
 
 private func checkAccessCachedImages03() async throws {
     let request = ImageRequest(url: url, options: [ .reloadIgnoringCachedData])
-    let response = try await pipeline.image(for: request)
+    let image = try await pipeline.image(for: request)
 
-    _ = response
+    _ = image
 }
 
 private func checkAccessCachedImages04() {
