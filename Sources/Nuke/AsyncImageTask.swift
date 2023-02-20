@@ -33,9 +33,14 @@ public final class AsyncImageTask: Sendable {
         }
     }
 
-    init(imageTask: ImageTask, task: Task<ImageResponse, Error>) {
+    /// Returns the current download progress. Returns zeros before the download
+    /// is started and the expected size of the resource is known.
+    public let progress: AsyncStream<ImageTask.Progress>
+
+    init(imageTask: ImageTask, task: Task<ImageResponse, Error>, progress: AsyncStream<ImageTask.Progress>) {
         self.imageTask = imageTask
         self.task = task
+        self.progress = progress
     }
 
     /// Marks task as being cancelled.
@@ -45,4 +50,8 @@ public final class AsyncImageTask: Sendable {
     public func cancel() {
         imageTask.cancel()
     }
+}
+
+final class AsyncTaskContext {
+    var progress: AsyncStream<ImageTask.Progress>.Continuation?
 }

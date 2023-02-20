@@ -126,10 +126,14 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Creates a task with the given request.
     public func imageTask(with request: ImageRequest) -> AsyncImageTask {
         let imageTask = makeImageTask(request: request, queue: nil)
+        let context = AsyncTaskContext()
         let task = Task<ImageResponse, Swift.Error> {
-            try await self._image(for: imageTask)
+            try await self._image(for: imageTask, context: context)
         }
-        return AsyncImageTask(imageTask: imageTask, task: task)
+        let progress = AsyncStream<ImageTask.Progress> { contiunation in
+            context.progress = contiunation
+        }
+        return AsyncImageTask(imageTask: imageTask, task: task, progress: progress)
     }
 
     /// Returns an image for the given URL.
@@ -150,7 +154,7 @@ public final class ImagePipeline: @unchecked Sendable {
         return try await _image(for: task).image
     }
 
-    func _image(for task: ImageTask) async throws -> ImageResponse {
+    func _image(for task: ImageTask, context: AsyncTaskContext? = nil) async throws -> ImageResponse {
         try await withTaskCancellationHandler(
             operation: {
                 try await withUnsafeThrowingContinuation { continuation in
@@ -161,9 +165,14 @@ public final class ImagePipeline: @unchecked Sendable {
                         task.onCancel = {
                             continuation.resume(throwing: CancellationError())
                         }
-                        self.startImageTask(task, progress: nil) { result in
+                        self.startImageTask(task, progress: { response, progress in
+                            if response == nil {
+                                context?.progress?.yield(progress)
+                            }
+                        }, completion: { result in
                             continuation.resume(with: result)
-                        }
+                            context?.progress?.finish()
+                        })
                     }
                 }
             },

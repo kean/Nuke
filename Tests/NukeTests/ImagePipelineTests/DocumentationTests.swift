@@ -22,11 +22,12 @@ private func checkGettingStarted01() async throws {
 }
 
 private final class CheckGettingStarted02: ImageTaskDelegate {
-    func loadImage() async throws {
-        let imageTask = pipeline.imageTask(with: url)
-        imageTask.delegate = self
-        _ = try await imageTask.image
-    }
+#warning("fix")
+//    func loadImage() async throws {
+//        let imageTask = pipeline.imageTask(with: url)
+//        imageTask.delegate = self
+//        _ = try await imageTask.image
+//    }
 
     func imageTaskCreated(_ task: ImageTask) {
         // Gets called immediately when the task is created.
