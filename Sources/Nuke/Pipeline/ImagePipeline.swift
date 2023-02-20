@@ -138,7 +138,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Returns an image for the given URL.
     ///
     /// - parameters:
-    ///   - request: An image request.
+    ///   - request: An image URL.
     public func image(for url: URL) async throws -> PlatformImage {
         try await image(for: ImageRequest(url: url))
     }
