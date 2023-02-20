@@ -4,8 +4,6 @@
 
 import Foundation
 
-#warning("make progress published?")
-
 /// A task performed by the ``ImagePipeline``.
 ///
 /// The pipeline maintains a strong reference to the task until the request
@@ -36,8 +34,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     /// Returns the current download progress. Returns zeros before the download
     /// is started and the expected size of the resource is known.
-    ///
-    /// - important: Must be accessed only from the callback queue (main by default).
     public internal(set) var progress: Progress {
         get { sync { _progress } }
         set { sync { _progress = newValue } }
