@@ -112,7 +112,7 @@ func == (lhs: [any ImageProcessing], rhs: [any ImageProcessing]) -> Bool {
 
 extension ImageRequest {
     var preferredImageId: String {
-        if let imageId = ref.userInfo?[.imageIdKey] as? String {
+        if !userInfo.isEmpty, let imageId = userInfo[.imageIdKey] as? String {
             return imageId
         }
         return imageId ?? ""
