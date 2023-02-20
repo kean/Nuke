@@ -1,5 +1,11 @@
 # Nuke 11
 
+## Nuke 11.6.4
+
+*Feb 19, 2023*
+
+- Fix [#671](https://github.com/kean/Nuke/pull/671): `ImagePipeline/image(for:)` hangs if you cancel the async Task before its started 
+
 ## Nuke 11.6.3
 
 *Feb 18, 2023*
