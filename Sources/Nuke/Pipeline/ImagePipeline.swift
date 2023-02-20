@@ -154,7 +154,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - request: An image request.
     public func image(for request: ImageRequest) async throws -> PlatformImage {
         let task = makeImageTask(request: request, queue: queue)
-        self.delegate.imageTaskCreated(task)
+        self.delegate.imageTaskCreated(task, pipeline: self)
         return try await _image(for: task).image
     }
 
@@ -290,7 +290,7 @@ public final class ImagePipeline: @unchecked Sendable {
         completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         let task = makeImageTask(request: request, queue: callbackQueue)
-        delegate.imageTaskCreated(task)
+        delegate.imageTaskCreated(task, pipeline: self)
         func start() {
             startImageTask(task, progress: progress, completion: completion)
         }
@@ -310,13 +310,13 @@ public final class ImagePipeline: @unchecked Sendable {
         guard !isInvalidated else {
             dispatchCallback(to: task.callbackQueue) {
                 let error = Error.pipelineInvalidated
-                self.delegate.imageTask(task, didCompleteWithResult: .failure(error))
+                self.delegate.imageTask(task, didCompleteWithResult: .failure(error), pipeline: self)
                 completion(.failure(error))
             }
             return
         }
 
-        delegate.imageTaskDidStart(task)
+        delegate.imageTaskDidStart(task, pipeline: self)
 
         tasks[task] = makeTaskLoadImage(for: task.request)
             .subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak self, weak task] event in
@@ -334,18 +334,18 @@ public final class ImagePipeline: @unchecked Sendable {
                     switch event {
                     case let .value(response, isCompleted):
                         if isCompleted {
-                            self.delegate.imageTask(task, didCompleteWithResult: .success(response))
+                            self.delegate.imageTask(task, didCompleteWithResult: .success(response), pipeline: self)
                             completion(.success(response))
                         } else {
-                            self.delegate.imageTask(task, didReceivePreview: response)
+                            self.delegate.imageTask(task, didReceivePreview: response, pipeline: self)
                             progressHandler?(response, task.progress)
                         }
                     case let .progress(progress):
-                        self.delegate.imageTask(task, didUpdateProgress: progress)
+                        self.delegate.imageTask(task, didUpdateProgress: progress, pipeline: self)
                         task.progress = progress
                         progressHandler?(nil, progress)
                     case let .error(error):
-                        self.delegate.imageTask(task, didCompleteWithResult: .failure(error))
+                        self.delegate.imageTask(task, didCompleteWithResult: .failure(error), pipeline: self)
                         completion(.failure(error))
                     }
                 }
@@ -429,7 +429,7 @@ public final class ImagePipeline: @unchecked Sendable {
         guard !isInvalidated else {
             dispatchCallback(to: task.callbackQueue) {
                 let error = Error.pipelineInvalidated
-                self.delegate.imageTask(task, didCompleteWithResult: .failure(error))
+                self.delegate.imageTask(task, didCompleteWithResult: .failure(error), pipeline: self)
                 completion(.failure(error))
             }
             return
@@ -487,7 +487,7 @@ public final class ImagePipeline: @unchecked Sendable {
         guard let subscription = tasks.removeValue(forKey: task) else { return }
         dispatchCallback(to: task.callbackQueue) {
             if !task.isDataTask {
-                self.delegate.imageTaskDidCancel(task)
+                self.delegate.imageTaskDidCancel(task, pipeline: self)
             }
             task.onCancel?() // Order is important
         }

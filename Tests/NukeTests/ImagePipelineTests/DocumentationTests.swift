@@ -21,7 +21,7 @@ private func checkGettingStarted01() async throws {
     _ = image
 }
 
-private final class CheckGettingStarted02: ImageTaskDelegate {
+private final class CheckGettingStarted02: ImagePipelineDelegate {
 #warning("fix")
 //    func loadImage() async throws {
 //        let imageTask = pipeline.imageTask(with: url)
@@ -298,7 +298,7 @@ private func checkImagePipelineExtension02() async throws {
     _ = image
 }
 
-private final class CheckImagePipelineExtension03: UIView, ImageTaskDelegate {
+private final class CheckImagePipelineExtension03: UIView, ImagePipelineDelegate {
     private var imageTask: ImageTask?
     private let imageView = _ImageView()
 

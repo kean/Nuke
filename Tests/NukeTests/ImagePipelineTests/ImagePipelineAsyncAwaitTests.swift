@@ -11,7 +11,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
     private var recordedProgress: [ImageTask.Progress] = []
     private var recordedPreviews: [ImageResponse] = []
-    private var taskDelegate = AnonymousImateTaskDelegate()
     private var pipelineDelegate = ImagePipelineObserver()
     private var imageTask: ImageTask?
     private let callbackQueue = DispatchQueue(label: "testChangingCallbackQueue")
@@ -155,6 +154,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertTrue(caughtError is CancellationError)
     }
 
+#warning("fix")
     // MARK: - ImageTaskDelegate
 
     func testImageTaskReturnedImmediately() async throws {
@@ -220,7 +220,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         ])
     }
 
-    func testImageTaskDelegateProgressiveDecodingIsCalled() async throws {
+    func testThatProgressivePreviewsAreDelivered() async throws {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
         pipeline = pipeline.reconfigured {
@@ -466,52 +466,5 @@ private struct URLError: Swift.Error {
         case cellular
         case expensive
         case constrained
-    }
-}
-
-private final class AnonymousImateTaskDelegate: ImageTaskDelegate, @unchecked Sendable {
-    var onTaskCreated: ((ImageTask) -> Void)?
-
-    func imageTaskCreated(_ task: ImageTask) {
-        onTaskCreated?(task)
-    }
-
-    var onTaskStarted: ((ImageTask) -> Void)?
-
-    func imageTaskDidStart(_ task: ImageTask) {
-
-    }
-
-    var onProgress: ((_ completed: Int64, _ total: Int64) -> Void)?
-
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-        onProgress?(progress.completed, progress.total)
-    }
-
-    var onProgressiveResponse: ((ImageResponse) -> Void)?
-
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-        onProgressiveResponse?(response)
-    }
-
-    var onCancel: (() -> Void)?
-
-    func imageTaskDidCancel(_ task: ImageTask) {
-        onCancel?()
-    }
-
-    var onResult: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)?
-
-    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
-        onResult?(result)
-    }
-}
-
-#warning("where is MainActor?")
-private final class MainActorImageTaskDelegate: ImageTaskDelegate {
-    var onTaskCreated: ((ImageTask) -> Void)?
-
-    func imageTaskCreated(_ task: ImageTask) {
-        onTaskCreated?(task)
     }
 }
