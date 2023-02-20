@@ -40,6 +40,27 @@ class ImagePipelinePerfomanceTests: XCTestCase {
                 await withTaskGroup(of: Void.self) { group in
                     for request in requests {
                         group.addTask {
+                            _ = try? await pipeline.image(for: request)
+                        }
+                    }
+                }
+                semaphore.signal()
+            }
+            semaphore.wait()
+        }
+    }
+
+    func testAsyncImageTaskPerformance() {
+        let pipeline = makePipeline()
+
+        let requests = (0...5000).map { ImageRequest(url: URL(string: "http://test.com/\($0)")) }
+
+        measure {
+            let semaphore = DispatchSemaphore(value: 0)
+            Task.detached {
+                await withTaskGroup(of: Void.self) { group in
+                    for request in requests {
+                        group.addTask {
                             _ = try? await pipeline.imageTask(with: request).image
                         }
                     }
