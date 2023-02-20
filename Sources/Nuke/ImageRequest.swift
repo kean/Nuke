@@ -77,13 +77,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
 
     /// Returns the ID of the underlying image. For URL-based requests, it's an
     /// image URL. For an async function – a custom ID provided in initializer.
-    public var imageId: String? {
-        switch ref.resource {
-        case .url(let url): return url?.absoluteString
-        case .urlRequest(let urlRequest): return urlRequest.url?.absoluteString
-        case .publisher(let publisher): return publisher.id
-        }
-    }
+    public var imageId: String? { ref.originalImageId }
 
     /// Returns a debug request description.
     public var description: String {
@@ -465,6 +459,7 @@ extension ImageRequest {
         let resource: Resource
         var priority: Priority
         var options: Options
+        var originalImageId: String?
         var processors: [any ImageProcessing]
         var userInfo: [UserInfoKey: Any]?
         // After trimming the request size in Nuke 10, CoW it is no longer as
@@ -482,6 +477,7 @@ extension ImageRequest {
             self.processors = processors
             self.priority = priority
             self.options = options
+            self.originalImageId = resource.imageId
             self.userInfo = userInfo
 
 #if TRACK_ALLOCATIONS
@@ -495,6 +491,7 @@ extension ImageRequest {
             self.processors = ref.processors
             self.priority = ref.priority
             self.options = ref.options
+            self.originalImageId = ref.originalImageId
             self.userInfo = ref.userInfo
 
 #if TRACK_ALLOCATIONS
@@ -514,6 +511,14 @@ extension ImageRequest {
             case .url(let url): return "\(url?.absoluteString ?? "nil")"
             case .urlRequest(let urlRequest): return "\(urlRequest)"
             case .publisher(let data): return "\(data)"
+            }
+        }
+
+        var imageId: String? {
+            switch self {
+            case .url(let url): return url?.absoluteString
+            case .urlRequest(let urlRequest): return urlRequest.url?.absoluteString
+            case .publisher(let publisher): return publisher.id
             }
         }
     }
