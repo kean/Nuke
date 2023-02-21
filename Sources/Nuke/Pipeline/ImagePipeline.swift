@@ -198,26 +198,23 @@ public final class ImagePipeline: @unchecked Sendable {
     @discardableResult
     public func data(for request: ImageRequest) async throws -> (Data, URLResponse?) {
         let task = makeImageTask(request: request, queue: nil, isDataTask: true)
-        return try await withTaskCancellationHandler(
-            operation: {
-                try await withUnsafeThrowingContinuation { continuation in
-                    self.queue.async {
-                        guard task.state != .cancelled else {
-                            return continuation.resume(throwing: CancellationError())
-                        }
-                        task.onCancel = {
-                            continuation.resume(throwing: CancellationError())
-                        }
-                        self.startDataTask(task, progress: nil) { result in
-                            continuation.resume(with: result.map { $0 })
-                        }
+        return try await withTaskCancellationHandler(operation: {
+            try await withUnsafeThrowingContinuation { continuation in
+                self.queue.async {
+                    guard task.state != .cancelled else {
+                        return continuation.resume(throwing: CancellationError())
+                    }
+                    task.onCancel = {
+                        continuation.resume(throwing: CancellationError())
+                    }
+                    self.startDataTask(task, progress: nil) { result in
+                        continuation.resume(with: result.map { $0 })
                     }
                 }
-            },
-            onCancel: {
-                task.cancel()
             }
-        )
+        }, onCancel: {
+            task.cancel()
+        })
     }
 
     // MARK: - Loading Images (Closures)
