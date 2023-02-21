@@ -146,7 +146,7 @@ public struct LazyImage<Content: View>: View {
         if let image = state.image {
             image
         } else {
-            Rectangle().foregroundColor(Color(.secondarySystemBackground))
+            Color(.secondarySystemBackground)
         }
     }
 
