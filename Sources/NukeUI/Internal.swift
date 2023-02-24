@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import Nuke
 
 #if !os(watchOS)
 
