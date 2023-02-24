@@ -378,6 +378,7 @@
 		0C38DB4E285690F90027F9FF /* LazyImage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LazyImage.swift; sourceTree = "<group>"; };
 		0C38DB4F285690F90027F9FF /* Internal.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Internal.swift; sourceTree = "<group>"; };
 		0C38DB6F2856A4D30027F9FF /* LazyImageState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyImageState.swift; sourceTree = "<group>"; };
+		0C3EE97829A862CA0014F5D5 /* Nuke 12 Migration Guide.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Nuke 12 Migration Guide.md"; sourceTree = "<group>"; };
 		0C4326262424338200799446 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		0C472F802654AA46007FC0F0 /* DeprecationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeprecationTests.swift; sourceTree = "<group>"; };
 		0C472F822654AD69007FC0F0 /* ImageRequestKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRequestKeys.swift; sourceTree = "<group>"; };
@@ -1075,6 +1076,7 @@
 		0CDB927C1DAF9BA500002905 /* Migrations */ = {
 			isa = PBXGroup;
 			children = (
+				0C3EE97829A862CA0014F5D5 /* Nuke 12 Migration Guide.md */,
 				0C97DD9E284C00EA00F55FDA /* Nuke 11 Migration Guide.md */,
 				0C54E64126616E9D00ED1049 /* Nuke 10 Migration Guide.md */,
 				0C6784DC24341207005B8CF5 /* Nuke 9 Migration Guide.md */,
