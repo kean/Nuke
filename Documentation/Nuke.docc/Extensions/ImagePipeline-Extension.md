@@ -23,7 +23,7 @@ Use ``ImagePipeline/image(for:)-4akzh`` that works with both `URL` and ``ImageRe
 let image = try await ImagePipeline.shared.image(for: url)
 ```
 
-Alternatively, you can create an ``AsyncImageTask`` and access its ``AsyncImageTask/image`` or ``AsyncImageTask/response`` to fetch the image.
+Alternatively, you can create an ``AsyncImageTask`` and access its ``AsyncImageTask/image`` or ``AsyncImageTask/response`` to fetch the image. You can use ``AsyncImageTask`` to cancel the request, change the priority of the running task, and observe its progress.
 
 ```swift
 final class AsyncImageView: UIImageView {
@@ -34,19 +34,6 @@ final class AsyncImageView: UIImageView {
         }
         imageView.image = try await imageTask.image
     }
-}
-```
-
-You can use `ImageTask` returned by the delegate to cancel the request, change the priority of the running task, and observe its progress. But you can also the request by using Swift [`Task`](https://developer.apple.com/documentation/swift/task):
-
-```swift
-func loadImage() async throws {
-    let task = Task {
-        try await pipeline.image(for: url)
-    }
-
-    // Later
-    task.cancel()
 }
 ```
 

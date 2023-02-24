@@ -10,9 +10,7 @@ Learn about main Nuke features and APIs.
 let image = try await ImagePipeline.shared.image(for: url)
 ```
 
-> Tip: You can start by using a ``ImagePipeline/shared`` pipeline and create a custom one later if needed. To create a custom pipeline, use a convenience ``ImagePipeline/init(delegate:_:)`` initializer or one of the pre-defined configurations, such as ``ImagePipeline/Configuration-swift.struct/withDataCache``.
-
-Alternatively, you can create an ``AsyncImageTask`` and access its ``AsyncImageTask/image`` or ``AsyncImageTask/response`` to fetch the image.
+To get more control over the download, use ``ImagePipeline/imageTask(with:)-7s0fc`` to create an ``AsyncImageTask`` and then access its ``AsyncImageTask/image`` or ``AsyncImageTask/response`` to receive the image.
 
 ```swift
 func loadImage() async throws {
@@ -24,7 +22,7 @@ func loadImage() async throws {
 }
 ```
 
-The delegate is captured weakly and the callbacks are executed on the main queue by default.
+> Tip: You can start by using a ``ImagePipeline/shared`` pipeline and create a custom one later if needed. To create a custom pipeline, use a convenience ``ImagePipeline/init(delegate:_:)`` initializer or one of the pre-defined configurations, such as ``ImagePipeline/Configuration-swift.struct/withDataCache``.
 
 > The documentation uses Async/Await APIs in the examples, but ``ImagePipeline`` also has equivalent completion-based and Combine APIs.
 

@@ -121,6 +121,24 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertTrue(caughtError is CancellationError)
     }
 
+    func testCancelAsyncImageTask() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = pipeline.imageTask(with: Test.url)
+
+        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
+            task.cancel()
+        }
+
+        var caughtError: Error?
+        do {
+            _ = try await task.image
+        } catch {
+            caughtError = error
+        }
+        XCTAssertTrue(caughtError is CancellationError)
+    }
+
     // MARK: - Load Data
 
     func testLoadData() async throws {
@@ -163,7 +181,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertNotNil(imageTask)
     }
 
-    func testProgressUdpated() async throws {
+    func testProgressUpdated() async throws {
         // GIVEN
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))

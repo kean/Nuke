@@ -4,7 +4,8 @@
 
 import Foundation
 
-/// A task performed by the ``ImagePipeline``.
+/// A task performed by the ``ImagePipeline``. Use ``ImagePipeline/imageTask(with:)-7s0fc``
+/// to create a task.
 public final class AsyncImageTask: Sendable {
     private let imageTask: ImageTask
     private let task: Task<ImageResponse, Error>
