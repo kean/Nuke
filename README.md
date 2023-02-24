@@ -24,6 +24,10 @@ Nuke is proudly sponsored by [Stream](https://getstream.io/chat/sdk/swiftui/?utm
 
 > [Support](https://github.com/sponsors/kean) Nuke on GitHub Sponsors.
 
+## Installation
+
+Nuke supports two installation options: [Swift Package Manager](https://www.swift.org/package-manager/) and binary frameworks that you can find attached to the [releases](https://github.com/kean/Nuke/releases).
+
 ## Documentation
 
 Nuke is easy to learn and use thanks to documentation generated using DocC: [**Nuke**](https://kean-docs.github.io/nuke/documentation/nuke/getting-started/), [**NukeUI**](https://kean-docs.github.io/nukeui/documentation/nukeui/), [**NukeExtensions**](https://kean-docs.github.io/nukeextensions/documentation/nukeextensions/). Make sure to also check out [**Nuke Demo**](https://github.com/kean/NukeDemo).
