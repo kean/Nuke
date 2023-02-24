@@ -5,7 +5,7 @@
 import XCTest
 @testable import Nuke
 
-class ImagePipelineAsyncAwaitTests: XCTestCase {
+class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
 
