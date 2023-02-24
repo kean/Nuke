@@ -26,7 +26,7 @@ Nuke is proudly sponsored by [Stream](https://getstream.io/chat/sdk/swiftui/?utm
 
 ## Installation
 
-Nuke supports two installation options: [Swift Package Manager](https://www.swift.org/package-manager/) and binary frameworks that you can find attached to the [releases](https://github.com/kean/Nuke/releases).
+Nuke supports [Swift Package Manager](https://www.swift.org/package-manager/), which is the recommended option. If that doesn't work for you, you can use binary frameworks attached to the [releases](https://github.com/kean/Nuke/releases).
 
 ## Documentation
 
