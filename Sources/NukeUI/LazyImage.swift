@@ -9,7 +9,7 @@ import Combine
 
 public typealias ImageRequest = Nuke.ImageRequest
 
-/// Lazily loads and displays images.
+/// A view that asynchronously loads and displays an image.
 ///
 /// ``LazyImage`` is designed to be similar to the native [`AsyncImage`](https://developer.apple.com/documentation/SwiftUI/AsyncImage),
 /// but it uses [Nuke](https://github.com/kean/Nuke) for loading images. You
