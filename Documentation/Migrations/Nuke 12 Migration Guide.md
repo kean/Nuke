@@ -56,3 +56,50 @@ imageView.image = try await imageTask.image
 ```
 
 The new API is both easier to use, _and_ it's fully `Sendable` compliant.
+
+## LazyImage
+
+In addition to the changes to the `LazyImage` interface, there are a couple of important internal changes:
+
+- It now uses `SwiftUI.Image` for displayed fetched images, which changes its self-sizing and layout behavior that now exactly matches `AsyncImage`
+- It no longer plays GIFs and videos
+- Transition animations are disabled by default
+- Progress updates no longer trigger `content` reload
+
+So it's best to think about it as an entirely new component, rather than an improvement of the previous one. This is one of the major reasons that instead of API deprecations, this release straight-up changes the exisitng APIs.
+
+To achieve the previous sizing behavior, you'll now need to provide a `content` closure – just like with `AsyncImage`. It's slightly more code, but it provides you complete access to the underlying image.
+
+```swift
+// Before (Nuke 11)
+LazyImage(url: URL(string: "https://example.com/image.jpeg"), resizingMode: .aspectFill) 
+
+// After (Nuke 12)
+LazyImage(url: URL(string: "https://example.com/image.jpeg")) { state in
+    if let image = state.image {
+        image
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+    }
+}
+```
+
+To display animated image, use one of the GIF rendering frameworks, such as [Gifu](https://github.com/kaishin/Gifu), directly:
+
+```swift
+// After (Nuke 12)
+LazyImage(url: URL(string: "https://example.com/image.jpeg")) { state in
+    if let container = state.imageContainer {
+        if container.type == .gif {
+            // Use a view capable of displaying animated images
+        } else {
+            state.image // Use the default view
+        }
+    }
+}
+```
+
+The same approach applies to videos, but you can use the built-in `NukeVideo` module to render them.
+
+TODO: how to enable transitions
+TODO: how to implement progress updates
