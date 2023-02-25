@@ -30,15 +30,12 @@ extension ImageEncoders {
             self.compressionRatio = compressionRatio
         }
 
-        private static let lock = NSLock()
-        private static var availability = [AssetType: Bool]()
+        @Atomic private static var availability = [AssetType: Bool]()
 
         /// Returns `true` if the encoding is available for the given format on
         /// the current hardware. Some of the most recent formats might not be
         /// available so its best to check before using them.
         public static func isSupported(type: AssetType) -> Bool {
-            lock.lock()
-            defer { lock.unlock() }
             if let isAvailable = availability[type] {
                 return isAvailable
             }

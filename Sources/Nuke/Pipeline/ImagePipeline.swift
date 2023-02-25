@@ -279,7 +279,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ) -> ImageTask {
         let task = makeImageTask(request: request, queue: callbackQueue)
         delegate.imageTaskCreated(task, pipeline: self)
-        func start() {
+        @Sendable func start() {
             startImageTask(task, progress: progress, completion: completion)
         }
         if isConfined {
@@ -398,7 +398,7 @@ public final class ImagePipeline: @unchecked Sendable {
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
         let task = makeImageTask(request: request, queue: queue, isDataTask: true)
-        func start() {
+        @Sendable func start() {
             startDataTask(task, progress: progress, completion: completion)
         }
         if isConfined {
