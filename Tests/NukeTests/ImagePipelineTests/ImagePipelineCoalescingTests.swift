@@ -265,7 +265,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         _ = expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
         let task1 = pipeline.loadImage(with: Test.request) { _ in }
         let task2 = pipeline.loadImage(with: Test.request) { _ in }
-        wait() // wait until the tasks is started or we might be cancelling non-exisitng task
+        wait() // wait until the tasks is started or we might be cancelling non-existing task
 
         _ = expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
         task1.cancel()

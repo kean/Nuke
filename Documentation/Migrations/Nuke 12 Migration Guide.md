@@ -66,7 +66,7 @@ In addition to the changes to the `LazyImage` interface, there are a couple of i
 - Transition animations are disabled by default
 - Progress updates no longer trigger `content` reload
 
-So it's best to think about it as an entirely new component, rather than an improvement of the previous one. This is one of the major reasons that instead of API deprecations, this release straight-up changes the exisitng APIs.
+So it's best to think about it as an entirely new component, rather than an improvement of the previous one. This is one of the major reasons that instead of API deprecations, this release straight-up changes the existing APIs.
 
 To achieve the previous sizing behavior, you'll now need to provide a `content` closure – just like with `AsyncImage`. It's slightly more code, but it provides you complete access to the underlying image.
 
