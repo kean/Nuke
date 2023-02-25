@@ -68,7 +68,9 @@ public final class AsyncImageTask: Sendable {
     }
 }
 
-final class AsyncTaskContext {
+// Making it Sendable because the closures are set once right after initialization
+// and are never mutated afterward.
+final class AsyncTaskContext: @unchecked Sendable {
     var progress: AsyncStream<ImageTask.Progress>.Continuation?
     var previews: AsyncStream<ImageResponse>.Continuation?
 }
