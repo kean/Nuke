@@ -12,7 +12,7 @@ private let request1 = _request(index: 1)
 private let request2 = _request(index: 2)
 private let request3 = _request(index: 3)
 
-class ImageCacheTests: XCTestCase {
+class ImageCacheTests: XCTestCase, @unchecked Sendable {
     var cache: ImageCache!
     
     override func setUp() {
