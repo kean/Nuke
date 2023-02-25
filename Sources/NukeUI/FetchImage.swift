@@ -132,7 +132,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             progress: { [weak self] response, completed, total in
                 guard let self = self else { return }
                 if let response = response {
-                    withTransaction(transaction) {
+                    withTransaction(self.transaction) {
                         self.handle(preview: response)
                     }
                 } else {
