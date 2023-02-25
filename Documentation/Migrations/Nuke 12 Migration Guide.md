@@ -57,6 +57,24 @@ imageView.image = try await imageTask.image
 
 The new API is both easier to use, _and_ it's fully `Sendable` compliant.
 
+If you implement `ImageTaskDelegate` as part of the pipeline's delegate, make sure to update the method to include the new `pipeline` parameter:
+
+```swift
+// Before (Nuke 11)
+final class YourPipelineDelegate: ImagePipelineDelegate {
+    func imageTaskCreated(_ task: ImageTask) {
+        // ...
+    }
+}
+
+// After (Nuke 12)
+final class YourPipelineDelegate: ImagePipelineDelegate {
+    func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {
+        // ...
+    }
+}
+```
+
 ## LazyImage
 
 In addition to the changes to the `LazyImage` interface, there are a couple of important internal changes:
