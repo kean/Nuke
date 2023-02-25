@@ -34,7 +34,7 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// Animations to be used when displaying the loaded images. By default, `nil`.
     ///
     /// - note: Animation isn't used when image is available in memory cache.
-    public var animation: Animation?
+    public var transaction = Transaction(animation: nil)
 
     /// The progress of the current image download.
     public var progress: Progress {
@@ -132,7 +132,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             progress: { [weak self] response, completed, total in
                 guard let self = self else { return }
                 if let response = response {
-                    withAnimation(self.animation) {
+                    withTransaction(transaction) {
                         self.handle(preview: response)
                     }
                 } else {
@@ -142,7 +142,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             },
             completion: { [weak self] result in
                 guard let self = self else { return }
-                withAnimation(self.animation) {
+                withTransaction(self.transaction) {
                     self.handle(result: result.mapError { $0 })
                 }
             }
@@ -177,7 +177,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         let task = Task {
             do {
                 let response = try await action()
-                withAnimation(animation) {
+                withTransaction(transaction) {
                     handle(result: .success(response))
                 }
             } catch {

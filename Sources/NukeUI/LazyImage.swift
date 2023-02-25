@@ -22,7 +22,7 @@ public struct LazyImage<Content: View>: View {
 
     private var context: LazyImageContext?
     private var makeContent: ((LazyImageState) -> Content)?
-    private var animation: Animation?
+    private var transaction: Transaction
     private var pipeline: ImagePipeline = .shared
     private var onDisappearBehavior: DisappearBehavior? = .cancel
 
@@ -42,13 +42,16 @@ public struct LazyImage<Content: View>: View {
     ///   - request: The image request.
     public init(request: ImageRequest?) where Content == Image {
         self.context = request.map(LazyImageContext.init)
+        self.transaction = Transaction(animation: nil)
     }
 
     /// Loads an images and displays custom content for each state.
     ///
     /// See also ``init(request:content:)``
-    public init(url: URL?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
-        self.init(request: url.map { ImageRequest(url: $0) }, content: content)
+    public init(url: URL?,
+                transaction: Transaction = Transaction(animation: nil),
+                @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+        self.init(request: url.map { ImageRequest(url: $0) }, transaction: transaction, content: content)
     }
 
     /// Loads an images and displays custom content for each state.
@@ -68,18 +71,12 @@ public struct LazyImage<Content: View>: View {
     ///     }
     /// }
     /// ```
-    public init(request: ImageRequest?, @ViewBuilder content: @escaping (LazyImageState) -> Content) {
+    public init(request: ImageRequest?,
+                transaction: Transaction = Transaction(animation: nil),
+                @ViewBuilder content: @escaping (LazyImageState) -> Content) {
         self.context = request.map { LazyImageContext(request: $0) }
+        self.transaction = transaction
         self.makeContent = content
-    }
-
-    // MARK: Animation
-
-    /// Animations to be used when displaying the loaded images. By default, `.default`.
-    ///
-    /// - note: Animation isn't used when image is available in memory cache.
-    public func animation(_ animation: Animation?) -> Self {
-        map { $0.animation = animation }
     }
 
     // MARK: Options
@@ -173,7 +170,7 @@ public struct LazyImage<Content: View>: View {
     }
 
     private func onAppear() {
-        viewModel.animation = animation
+        viewModel.transaction = transaction
         viewModel.pipeline = pipeline
 
         guard viewModel.cachedResponse == nil else { return }

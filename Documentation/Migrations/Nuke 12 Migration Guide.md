@@ -101,5 +101,42 @@ LazyImage(url: URL(string: "https://example.com/image.jpeg")) { state in
 
 The same approach applies to videos, but you can use the built-in `NukeVideo` module to render them.
 
-TODO: how to enable transitions
-TODO: how to implement progress updates
+The way you enable animations have also been updated and matches `AsyncImage`:
+
+```swift
+// Before (Nuke 11)
+LazyImage(url: URL(string: "https://example.com/image.jpeg"))
+    .animation(.default)
+    
+// After (Nuke 12)
+LazyImage(url: URL(string: "https://example.com/image.jpeg"),
+          transaction: .init(animation: .default)) {
+    $0.image
+}
+```
+
+And progress updates are no longer bundled with the rest of the state updates, which significantly reduces the number of `LazyImage` `content` reloads.
+
+```swift
+// Before (Nuke 11)
+LazyImage(url: URL(string: "https://example.com/image.jpeg")) { state in 
+    if state.isLoading {
+        Text("\(state.progress.fraction * 100) %")
+    }
+}
+    
+// After (Nuke 12)
+LazyImage(url: URL(string: "https://example.com/image.jpeg")) { state in
+    if state.isLoading {
+        ProgressView(state.progress)
+    }
+}
+
+struct ProgressView: View {
+    @ObservedObject var progress: FetchImage.Progress
+
+    var body: some View {
+        Text("progress.fraction * 100 %")
+    }
+}
+```
