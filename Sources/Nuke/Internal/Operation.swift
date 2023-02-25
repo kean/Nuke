@@ -46,12 +46,8 @@ final class Operation: Foundation.Operation {
     private let lock: os_unfair_lock_t
 
     deinit {
-        self.lock.deinitialize(count: 1)
-        self.lock.deallocate()
-
-#if TRACK_ALLOCATIONS
-        Allocations.decrement("Operation")
-#endif
+        lock.deinitialize(count: 1)
+        lock.deallocate()
     }
 
     init(starter: @escaping Starter) {
@@ -59,10 +55,6 @@ final class Operation: Foundation.Operation {
 
         self.lock = .allocate(capacity: 1)
         self.lock.initialize(to: os_unfair_lock())
-
-#if TRACK_ALLOCATIONS
-        Allocations.increment("Operation")
-#endif
     }
 
     override func start() {

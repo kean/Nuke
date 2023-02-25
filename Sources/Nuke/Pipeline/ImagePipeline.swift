@@ -61,9 +61,6 @@ public final class ImagePipeline: @unchecked Sendable {
         lock.deallocate()
 
         ResumableDataStorage.shared.unregister(self)
-#if TRACK_ALLOCATIONS
-        Allocations.decrement("ImagePipeline")
-#endif
     }
 
     /// Initializes the instance with the given configuration.
@@ -88,10 +85,6 @@ public final class ImagePipeline: @unchecked Sendable {
         self.lock.initialize(to: os_unfair_lock())
 
         ResumableDataStorage.shared.register(self)
-
-#if TRACK_ALLOCATIONS
-        Allocations.increment("ImagePipeline")
-#endif
     }
 
     /// A convenience way to initialize the pipeline with a closure.

@@ -11,17 +11,9 @@ final class LinkedList<Element> {
     private(set) var last: Node?
 
     deinit {
+        // This way we make sure that the deallocations do no happen recursively
+        // (and potentially overflow the stack).
         removeAllElements()
-
-#if TRACK_ALLOCATIONS
-        Allocations.decrement("LinkedList")
-#endif
-    }
-
-    init() {
-#if TRACK_ALLOCATIONS
-        Allocations.increment("LinkedList")
-#endif
     }
 
     var isEmpty: Bool {

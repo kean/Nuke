@@ -86,10 +86,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     deinit {
         lock.deinitialize(count: 1)
         lock.deallocate()
-
-#if TRACK_ALLOCATIONS
-        Allocations.decrement("ImageTask")
-#endif
     }
 
     init(taskId: Int64, request: ImageRequest) {
@@ -99,10 +95,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
         lock = .allocate(capacity: 1)
         lock.initialize(to: os_unfair_lock())
-
-#if TRACK_ALLOCATIONS
-        Allocations.increment("ImageTask")
-#endif
     }
 
     /// Marks task as being cancelled.

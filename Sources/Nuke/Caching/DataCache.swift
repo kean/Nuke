@@ -108,16 +108,6 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         self.path = path
         self.filenameGenerator = filenameGenerator
         try self.didInit()
-
-        #if TRACK_ALLOCATIONS
-        Allocations.increment("DataCache")
-        #endif
-    }
-
-    deinit {
-        #if TRACK_ALLOCATIONS
-        Allocations.decrement("ImageCache")
-        #endif
     }
 
     /// A `FilenameGenerator` implementation which uses SHA1 hash function to

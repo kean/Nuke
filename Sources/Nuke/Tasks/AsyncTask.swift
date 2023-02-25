@@ -82,16 +82,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     /// Publishes the results of the task.
     var publisher: Publisher { Publisher(task: self) }
 
-#if TRACK_ALLOCATIONS
-    deinit {
-        Allocations.decrement("AsyncTask")
-    }
-
-    init() {
-        Allocations.increment("AsyncTask")
-    }
-#endif
-
     /// Override this to start image task. Only gets called once.
     func start() {}
 

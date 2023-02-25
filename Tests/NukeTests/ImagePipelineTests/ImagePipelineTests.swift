@@ -584,7 +584,7 @@ class ImagePipelineTests: XCTestCase {
         let image = try await pipeline.image(for: "https://example.com/image.jpeg")
         XCTAssertNotEqual(image.size, .zero)
     }
-    
+
     func testLoadWithInvalidURL() throws {
         // GIVEN
         pipeline = pipeline.reconfigured {

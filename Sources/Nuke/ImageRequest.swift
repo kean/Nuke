@@ -465,12 +465,6 @@ extension ImageRequest {
         // After trimming the request size in Nuke 10, CoW it is no longer as
         // beneficial, but there still is a measurable difference.
 
-        deinit {
-#if TRACK_ALLOCATIONS
-            Allocations.decrement("ImageRequest.Container")
-#endif
-        }
-
         /// Creates a resource with a default processor.
         init(resource: Resource, processors: [any ImageProcessing], priority: Priority, options: Options, userInfo: [UserInfoKey: Any]?) {
             self.resource = resource
@@ -479,10 +473,6 @@ extension ImageRequest {
             self.options = options
             self.originalImageId = resource.imageId
             self.userInfo = userInfo
-
-#if TRACK_ALLOCATIONS
-            Allocations.increment("ImageRequest.Container")
-#endif
         }
 
         /// Creates a copy.
@@ -493,10 +483,6 @@ extension ImageRequest {
             self.options = ref.options
             self.originalImageId = ref.originalImageId
             self.userInfo = ref.userInfo
-
-#if TRACK_ALLOCATIONS
-            Allocations.increment("ImageRequest.Container")
-#endif
         }
     }
 

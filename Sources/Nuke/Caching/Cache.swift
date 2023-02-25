@@ -57,18 +57,10 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
             await registerForEnterBackground()
         }
 #endif
-
-#if TRACK_ALLOCATIONS
-        Allocations.increment("Cache")
-#endif
     }
 
     deinit {
         memoryPressure.cancel()
-
-#if TRACK_ALLOCATIONS
-        Allocations.decrement("Cache")
-#endif
     }
 
 #if os(iOS) || os(tvOS)

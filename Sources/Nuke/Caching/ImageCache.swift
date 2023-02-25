@@ -57,22 +57,12 @@ public final class ImageCache: ImageCaching {
     /// Shared `Cache` instance.
     public static let shared = ImageCache()
 
-    deinit {
-#if TRACK_ALLOCATIONS
-        Allocations.decrement("ImageCache")
-#endif
-    }
-
     /// Initializes `Cache`.
     /// - parameter costLimit: Default value represents a number of bytes and is
     /// calculated based on the amount of the physical memory available on the device.
     /// - parameter countLimit: `Int.max` by default.
     public init(costLimit: Int = ImageCache.defaultCostLimit(), countLimit: Int = Int.max) {
         impl = Cache(costLimit: costLimit, countLimit: countLimit)
-
-#if TRACK_ALLOCATIONS
-        Allocations.increment("ImageCache")
-#endif
     }
 
     /// Returns a recommended cost limit which is computed based on the amount

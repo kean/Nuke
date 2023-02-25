@@ -31,10 +31,6 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 
     deinit {
         session.invalidateAndCancel()
-
-#if TRACK_ALLOCATIONS
-        Allocations.decrement("DataLoader")
-#endif
     }
 
     /// Initializes ``DataLoader`` with the given configuration.
@@ -51,10 +47,6 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
         self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: queue)
         self.session.sessionDescription = "Nuke URLSession"
         self.impl.validate = validate
-
-#if TRACK_ALLOCATIONS
-        Allocations.increment("DataLoader")
-#endif
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
