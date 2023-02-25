@@ -65,7 +65,6 @@ struct ImageView: View {
 ### State
 
 - ``result``
-- ``image``
 - ``imageContainer``
 - ``isLoading``
 - ``progress-swift.property``
@@ -75,4 +74,4 @@ struct ImageView: View {
 - ``priority``
 - ``processors``
 - ``pipeline``
-- ``animation``
+- ``transaction``

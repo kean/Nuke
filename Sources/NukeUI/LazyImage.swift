@@ -47,7 +47,7 @@ public struct LazyImage<Content: View>: View {
 
     /// Loads an images and displays custom content for each state.
     ///
-    /// See also ``init(request:content:)``
+    /// See also ``init(request:transaction:content:)``
     public init(url: URL?,
                 transaction: Transaction = Transaction(animation: nil),
                 @ViewBuilder content: @escaping (LazyImageState) -> Content) {
