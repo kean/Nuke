@@ -285,6 +285,7 @@ public final class ImagePipeline: @unchecked Sendable {
         completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         let task = makeImageTask(request: request, queue: callbackQueue)
+        delegate.imageTaskCreated(task, pipeline: self)
         func start() {
             startImageTask(task, progress: progress, completion: completion)
         }
