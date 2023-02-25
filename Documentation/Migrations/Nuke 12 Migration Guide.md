@@ -23,7 +23,7 @@ let image: ImageResponse = try await ImagePipeline.shared.image(for: url)
 // After (Nuke 12)
 let image: UIImage = try await ImagePipeline.shared.image(for: url)
 
-// To retrieve an `ImageResponse` use a new `imageTask(with:)` method (Nuke 12)
+// To retrieve `ImageResponse` use new `imageTask(with:)` method (Nuke 12)
 let response = try await ImagePipeline.shared.imageTask(with: url).response
 ```
 
