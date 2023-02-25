@@ -53,9 +53,7 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
         self.memoryPressure.resume()
 
 #if os(iOS) || os(tvOS)
-        Task {
-            await registerForEnterBackground()
-        }
+        registerForEnterBackground()
 #endif
     }
 
@@ -64,7 +62,6 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
     }
 
 #if os(iOS) || os(tvOS)
-    @MainActor
     private func registerForEnterBackground() {
         notificationObserver = NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { [weak self] _ in
             self?.clearCacheOnEnterBackground()
