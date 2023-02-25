@@ -5,6 +5,14 @@
 import Foundation
 import Combine
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
+#if canImport(AppKit)
+import AppKit
+#endif
+
 /// The pipeline downloads and caches images, and prepares them for display. 
 public final class ImagePipeline: @unchecked Sendable {
     /// Returns the shared image pipeline.
@@ -126,6 +134,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Creates a task with the given request.
     public func imageTask(with request: ImageRequest) -> AsyncImageTask {
         let imageTask = makeImageTask(request: request, queue: queue)
+        delegate.imageTaskCreated(imageTask, pipeline: self)
         let context = AsyncTaskContext()
         let task = Task<ImageResponse, Swift.Error> {
             try await self.image(for: imageTask, context: context)
@@ -148,7 +157,9 @@ public final class ImagePipeline: @unchecked Sendable {
     /// - parameters:
     ///   - request: An image request.
     public func image(for request: ImageRequest) async throws -> PlatformImage {
+        // Optimization: fetch image directly without creating an associated task
         let task = makeImageTask(request: request, queue: queue)
+        delegate.imageTaskCreated(task, pipeline: self)
         return try await image(for: task).image
     }
 
@@ -340,7 +351,6 @@ public final class ImagePipeline: @unchecked Sendable {
         task.pipeline = self
         task.callbackQueue = queue
         task.isDataTask = isDataTask
-        delegate.imageTaskCreated(task, pipeline: self)
         return task
     }
 
