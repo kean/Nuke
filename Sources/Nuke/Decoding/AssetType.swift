@@ -36,10 +36,6 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
     public static let m4v: AssetType = "public.m4v"
 
     public static let mov: AssetType = "public.mov"
-
-    public var isVideo: Bool {
-        self == .mp4 || self == .m4v || self == .mov
-    }
 }
 
 extension AssetType {

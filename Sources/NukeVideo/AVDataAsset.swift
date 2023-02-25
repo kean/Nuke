@@ -6,6 +6,13 @@ import AVKit
 import Foundation
 import Nuke
 
+extension AssetType {
+    /// Returns `true` if the asset represents a video file
+    public var isVideo: Bool {
+        self == .mp4 || self == .m4v || self == .mov
+    }
+}
+
 #if !os(watchOS)
 
 private extension AssetType {
