@@ -103,7 +103,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// ```swift
     /// let request = ImageRequest(
     ///     url: URL(string: "http://..."),
-    ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
+    ///     processors: [.resize(size: imageView.bounds.size)],
     ///     priority: .high
     /// )
     /// ```
@@ -135,7 +135,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     /// ```swift
     /// let request = ImageRequest(
     ///     url: URLRequest(url: URL(string: "http://...")),
-    ///     processors: [ImageProcessors.Resize(size: imageView.bounds.size)],
+    ///     processors: [.resize(size: imageView.bounds.size)],
     ///     priority: .high
     /// )
     /// ```

@@ -40,7 +40,7 @@ class ImagePipelineDelegateTests: XCTestCase {
         // GIVEN image is loaded from medium size URL and saved in cache using imageId "image-01-small"
         let requestA = ImageRequest(
             url: imageURLMedium,
-            processors: [ImageProcessors.Resize(width: 44)],
+            processors: [.resize(width: 44)],
             userInfo: ["imageId": "image-01-small"]
         )
         expect(pipeline).toLoadImage(with: requestA)
