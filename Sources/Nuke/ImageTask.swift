@@ -80,6 +80,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     var callbackQueue: DispatchQueue?
     var isDataTask = false
 
+    /// Using it without a wrapper to reduce the number of allocations.
     private let lock: os_unfair_lock_t
 
     deinit {
