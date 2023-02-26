@@ -322,10 +322,10 @@ class ImagePipelineTests: XCTestCase {
 #endif
     
     // MARK: - Thubmnail
-    
+
     func testThatThumbnailIsGenerated() {
         // GIVEN
-        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
         
         // WHEN
@@ -341,7 +341,7 @@ class ImagePipelineTests: XCTestCase {
     
     func testThumbnailIsGeneratedOnDecodingQueue() {
         // GIVEN
-        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
         
         // WHEN/THEN
@@ -355,7 +355,7 @@ class ImagePipelineTests: XCTestCase {
         pipeline.configuration.imageDecompressingQueue.isSuspended = true
         
         // GIVEN
-        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
         
         // WHEN/THEN
@@ -378,9 +378,9 @@ class ImagePipelineTests: XCTestCase {
     }
     
     func testCacheKeyForRequestWithThumbnail() {
-        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
+        let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.comcom.github/kean/nuke/thumbnail?mxs=400.0,options=truetruetruetrue")
+        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.comcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue")
     }
     
     // MARK: - Invalidate

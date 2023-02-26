@@ -240,10 +240,34 @@ extension CGImagePropertyOrientation {
         }
     }
 }
+
+extension UIImage.Orientation {
+    init(_ orientation: CGImagePropertyOrientation) {
+        switch orientation {
+        case .up: self = .up
+        case .upMirrored: self = .upMirrored
+        case .down: self = .down
+        case .downMirrored: self = .downMirrored
+        case .left: self = .left
+        case .leftMirrored: self = .leftMirrored
+        case .right: self = .right
+        case .rightMirrored: self = .rightMirrored
+        }
+    }
+}
 #endif
 
 #if os(iOS) || os(tvOS) || os(watchOS)
 private extension CGSize {
+    func rotatedForOrientation(_ imageOrientation: CGImagePropertyOrientation) -> CGSize {
+        switch imageOrientation {
+        case .left, .leftMirrored, .right, .rightMirrored:
+            return CGSize(width: height, height: width) // Rotate 90 degrees
+        case .up, .upMirrored, .down, .downMirrored:
+            return self
+        }
+    }
+
     func rotatedForOrientation(_ imageOrientation: UIImage.Orientation) -> CGSize {
         switch imageOrientation {
         case .left, .leftMirrored, .right, .rightMirrored:
@@ -343,14 +367,34 @@ func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions) -> Platfo
     guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary) else {
         return nil
     }
+
+    let maxPixelSize = getMaxPixelSize(for: source, options: options)
     let options = [
         kCGImageSourceCreateThumbnailFromImageAlways: options.createThumbnailFromImageAlways,
         kCGImageSourceCreateThumbnailFromImageIfAbsent: options.createThumbnailFromImageIfAbsent,
         kCGImageSourceShouldCacheImmediately: options.shouldCacheImmediately,
         kCGImageSourceCreateThumbnailWithTransform: options.createThumbnailWithTransform,
-        kCGImageSourceThumbnailMaxPixelSize: options.maxPixelSize] as [CFString: Any]
+        kCGImageSourceThumbnailMaxPixelSize: maxPixelSize] as [CFString: Any]
     guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
         return nil
     }
     return PlatformImage(cgImage: image)
+}
+
+private func getMaxPixelSize(for source: CGImageSource, options thumbnailOptions: ImageRequest.ThumbnailOptions) -> CGFloat {
+    var targetSize = thumbnailOptions.size.cgSize
+    let options = [kCGImageSourceShouldCache: false] as CFDictionary
+    guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, options) as? [CFString: Any],
+          let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+          let height = properties[kCGImagePropertyPixelHeight] as? CGFloat else {
+        return max(targetSize.width, targetSize.height)
+    }
+
+    let orientation = (properties[kCGImagePropertyOrientation] as? UInt32).flatMap(CGImagePropertyOrientation.init) ?? .up
+    targetSize = targetSize.rotatedForOrientation(orientation)
+
+    let imageSize = CGSize(width: width, height: height)
+    let scale = imageSize.getScale(targetSize: targetSize, contentMode: thumbnailOptions.contentMode)
+    let size = imageSize.scaled(by: scale).rounded()
+    return max(size.width, size.height)
 }

@@ -133,7 +133,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         dataLoader.queue.isSuspended = true
 
         // GIVEN requests with the same URLs but one accesses thumbnail
-        let request1 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
+        let request1 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)])
         let request2 = ImageRequest(url: Test.url)
 
         // WHEN loading images for those requests

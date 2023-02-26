@@ -365,21 +365,17 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
     ///
     /// For more info, see https://developer.apple.com/documentation/imageio/cgimagesource/image_source_option_dictionary_keys
     public struct ThumbnailOptions: Hashable, Sendable {
-        /// The maximum width and height in pixels of a thumbnail. If this key
-        /// is not specified, the width and height of a thumbnail is not limited
-        /// and thumbnails may be as big as the image itself.
-        public var maxPixelSize: Float
+        let size: ImageTargetSize
+        let contentMode: ImageProcessingOptions.ContentMode
 
         /// Whether a thumbnail should be automatically created for an image if
         /// a thumbnail isn't present in the image source file. The thumbnail is
-        /// created from the full image, subject to the limit specified by
-        /// ``maxPixelSize``.
+        /// created from the full image, subject to the limit specified by size.
         public var createThumbnailFromImageIfAbsent = true
 
         /// Whether a thumbnail should be created from the full image even if a
         /// thumbnail is present in the image source file. The thumbnail is created
-        /// from the full image, subject to the limit specified by
-        /// ``maxPixelSize``.
+        /// from the full image, subject to the limit specified by size.
         public var createThumbnailFromImageAlways = true
 
         /// Whether the thumbnail should be rotated and scaled according to the
@@ -390,20 +386,13 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         /// creation time.
         public var shouldCacheImmediately = true
 
-        public init(maxPixelSize: Float,
-                    createThumbnailFromImageIfAbsent: Bool = true,
-                    createThumbnailFromImageAlways: Bool = true,
-                    createThumbnailWithTransform: Bool = true,
-                    shouldCacheImmediately: Bool = true) {
-            self.maxPixelSize = maxPixelSize
-            self.createThumbnailFromImageIfAbsent = createThumbnailFromImageIfAbsent
-            self.createThumbnailFromImageAlways = createThumbnailFromImageAlways
-            self.createThumbnailWithTransform = createThumbnailWithTransform
-            self.shouldCacheImmediately = shouldCacheImmediately
+        public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessingOptions.ContentMode = .aspectFill) {
+            self.size = ImageTargetSize(size: size, unit: unit)
+            self.contentMode = contentMode
         }
 
         var identifier: String {
-            "com.github/kean/nuke/thumbnail?mxs=\(maxPixelSize),options=\(createThumbnailFromImageIfAbsent)\(createThumbnailFromImageAlways)\(createThumbnailWithTransform)\(shouldCacheImmediately)"
+            "com.github/kean/nuke/thumbnail?width=\(size.cgSize.width),height=\(size.cgSize.height),contentMode=\(contentMode),options=\(createThumbnailFromImageIfAbsent)\(createThumbnailFromImageAlways)\(createThumbnailWithTransform)\(shouldCacheImmediately)"
         }
     }
 
