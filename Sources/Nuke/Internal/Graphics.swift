@@ -380,7 +380,9 @@ private func getMaxPixelSize(for source: CGImageSource, options thumbnailOptions
         }
 
         let orientation = (properties[kCGImagePropertyOrientation] as? UInt32).flatMap(CGImagePropertyOrientation.init) ?? .up
+#if canImport(UIKit)
         targetSize = targetSize.rotatedForOrientation(orientation)
+#endif
 
         let imageSize = CGSize(width: width, height: height)
         let scale = imageSize.getScale(targetSize: targetSize, contentMode: contentMode)

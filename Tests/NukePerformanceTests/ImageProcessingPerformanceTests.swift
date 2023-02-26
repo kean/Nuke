@@ -40,7 +40,7 @@ class ImageProcessingPerformanceTests: XCTestCase {
         }
     }
 
-    // MARK: Creating Thumbnals
+    // MARK: Creating Thumbnails
 
     func testResizeImage() throws {
         let image = try XCTUnwrap(makeHighResolutionImage())

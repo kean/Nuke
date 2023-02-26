@@ -22,6 +22,8 @@
 		0C1453A12657EFA7005E24B3 /* ImagePipelineObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C14539F2657EFA7005E24B3 /* ImagePipelineObserver.swift */; };
 		0C179C7B2283597F008AB488 /* ImageEncoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C179C7A2283597F008AB488 /* ImageEncoding.swift */; };
 		0C1B9880294E28D800C09310 /* Nuke.docc in Sources */ = {isa = PBXBuildFile; fileRef = 0C1B987F294E28D800C09310 /* Nuke.docc */; };
+		0C1C201D29ABBF19004B38FD /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
+		0C1C201E29ABBF19004B38FD /* Nuke.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0C1E620B1D6F817700AD5CF5 /* ImageRequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E620A1D6F817700AD5CF5 /* ImageRequestTests.swift */; };
 		0C1ECA421D526461009063A9 /* ImageCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* ImageCacheTests.swift */; };
 		0C211E502856328500F48AA6 /* DataLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C211E4F2856328500F48AA6 /* DataLoaderTests.swift */; };
@@ -267,6 +269,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		0C1C201F29ABBF19004B38FD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0C91748F1BAE99EE004A7905;
+			remoteInfo = Nuke;
+		};
 		0C38DB49285690D20027F9FF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0C9174871BAE99EE004A7905 /* Project object */;
@@ -319,6 +328,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				0C55FD1128567875000FD2C9 /* NukeExtensions.framework in Embed Frameworks */,
+				0C1C201E29ABBF19004B38FD /* Nuke.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -592,6 +602,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C55FD1028567875000FD2C9 /* NukeExtensions.framework in Frameworks */,
+				0C1C201D29ABBF19004B38FD /* Nuke.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1216,6 +1227,7 @@
 			);
 			dependencies = (
 				0C55FD0F28567875000FD2C9 /* PBXTargetDependency */,
+				0C1C202029ABBF19004B38FD /* PBXTargetDependency */,
 			);
 			name = "Nuke Tests Host";
 			productName = "Nuke iOS Tests Host";
@@ -1758,6 +1770,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		0C1C202029ABBF19004B38FD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0C91748F1BAE99EE004A7905 /* Nuke */;
+			targetProxy = 0C1C201F29ABBF19004B38FD /* PBXContainerItemProxy */;
+		};
 		0C38DB4A285690D20027F9FF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 0C38DAA128568FAE0027F9FF /* NukeUI */;

@@ -23,7 +23,7 @@ Ideally, the app should download the images optimized for the target device scre
 let request = ImageRequest(url: url,  processors: [.resize(width: 320)])
 ```
 
-> Tip: Some image formats, such as jpeg, can have thumbnails embedded in the original image data. If you are working with a large image and want to show only a thumbnail, consider using ``ImageRequest/ThumbnailOptions``. If the thumbnails aren't available, they are generated. It can be up to 2x faster than using ``ImageProcessors/Resize`` for high-resolution images. 
+> Tip: Some image formats, such as jpeg, can have thumbnails embedded in the original image data. If you are working with a large image and want to show only a thumbnail, consider using ``ImageRequest/ThumbnailOptions``. If the thumbnails aren't available, they are generated. It can be up to 4x faster than using ``ImageProcessors/Resize`` for high-resolution images. 
 
 ## Aggressive Cache
 

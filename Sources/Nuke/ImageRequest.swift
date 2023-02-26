@@ -4,6 +4,7 @@
 
 import Foundation
 import Combine
+import CoreGraphics
 
 /// Represents an image request that specifies what images to download, how to
 /// process them, set the request priority, and more.
