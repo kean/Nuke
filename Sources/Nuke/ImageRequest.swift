@@ -418,6 +418,11 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
             self.targetSize = .flexible(size: ImageTargetSize(size: size, unit: unit), contentMode: contentMode)
         }
 
+        /// Generates a thumbnail from the given image data.
+        public func makeThumbnail(with data: Data) -> PlatformImage? {
+            Nuke.makeThumbnail(data: data, options: self)
+        }
+
         var identifier: String {
             "com.github/kean/nuke/thumbnail?\(targetSize.parameters),options=\(createThumbnailFromImageIfAbsent)\(createThumbnailFromImageAlways)\(createThumbnailWithTransform)\(shouldCacheImmediately)"
         }
