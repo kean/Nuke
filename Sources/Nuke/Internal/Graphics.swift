@@ -28,7 +28,7 @@ struct ImageProcessingExtensions {
     let image: PlatformImage
 
     func byResizing(to targetSize: CGSize,
-                    contentMode: ImageProcessors.Resize.ContentMode,
+                    contentMode: ImageProcessingOptions.ContentMode,
                     upscale: Bool) -> PlatformImage? {
         guard let cgImage = image.cgImage else {
             return nil
@@ -201,7 +201,7 @@ extension CGFloat {
 }
 
 extension CGSize {
-    func getScale(targetSize: CGSize, contentMode: ImageProcessors.Resize.ContentMode) -> CGFloat {
+    func getScale(targetSize: CGSize, contentMode: ImageProcessingOptions.ContentMode) -> CGFloat {
         let scaleHor = targetSize.width / width
         let scaleVert = targetSize.height / height
 

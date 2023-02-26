@@ -25,7 +25,7 @@ extension ImageProcessing where Self == ImageProcessors.Resize {
     ///   - crop: If `true` will crop the image to match the target size. Does
     ///   nothing with content mode .aspectFill. `false` by default.
     ///   - upscale: Upscaling is not allowed by default.
-    public static func resize(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessors.Resize.ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) -> ImageProcessors.Resize {
+    public static func resize(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessingOptions.ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) -> ImageProcessors.Resize {
         ImageProcessors.Resize(size: size, unit: unit, contentMode: contentMode, crop: crop, upscale: upscale)
     }
 
