@@ -14,7 +14,7 @@ class ImageThumbnailTest: XCTestCase {
     func testThatImageIsResized() throws {
         // WHEN
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-        let output = try XCTUnwrap(makeThumbnail(data: Test.data, options: options))
+        let output = try XCTUnwrap(options.makeThumbnail(with: Test.data))
 
         // THEN
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 400, height: 300))
@@ -25,7 +25,7 @@ class ImageThumbnailTest: XCTestCase {
         let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)
 
         // When
-        let output = try XCTUnwrap(makeThumbnail(data: Test.data, options: options))
+        let output = try XCTUnwrap(options.makeThumbnail(with: Test.data))
 
         // Then
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 533, height: 400))
@@ -48,7 +48,7 @@ class ImageThumbnailTest: XCTestCase {
         let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
 
         // When
-        let output = try XCTUnwrap(makeThumbnail(data: Test.data, options: options))
+        let output = try XCTUnwrap(options.makeThumbnail(with: Test.data))
 
         // Then
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 400, height: 300))
@@ -60,7 +60,7 @@ class ImageThumbnailTest: XCTestCase {
 
         // When
         // Input: 640 × 360
-        let output = try XCTUnwrap(makeThumbnail(data: Test.data(name: "fixture", extension: "png"), options: options))
+        let output = try XCTUnwrap(options.makeThumbnail(with: Test.data(name: "fixture", extension: "png")))
 
         // Then
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 160, height: 90))
@@ -77,7 +77,7 @@ class ImageThumbnailTest: XCTestCase {
         // When we resize the image to fit 320x480px frame, we expect the processor
         // to take image orientation into the account and produce a 320x240px.
         let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 320, height: 1000), unit: .pixels, contentMode: .aspectFit)
-        let output = try XCTUnwrap(makeThumbnail(data: input, options: options))
+        let output = try XCTUnwrap(options.makeThumbnail(with: input))
 
         // Then the output thumbnail is rotated
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 320, height: 240))
