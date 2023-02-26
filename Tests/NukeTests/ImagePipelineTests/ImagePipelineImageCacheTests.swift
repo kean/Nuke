@@ -100,7 +100,7 @@ class ImagePipelineImageCacheTests: XCTestCase {
 
     func testGeneratedThumbnailDataIsStoredIncache() throws {
         // When
-        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
+        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)])
         expect(pipeline).toLoadImage(with: request)
 
         // Then

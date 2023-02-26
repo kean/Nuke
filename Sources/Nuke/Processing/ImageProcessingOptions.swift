@@ -65,4 +65,22 @@ public enum ImageProcessingOptions: Sendable {
             "Border(color: \(color.hex), width: \(width) pixels)"
         }
     }
+
+    /// An option for how to resize the image.
+    public enum ContentMode: CustomStringConvertible, Sendable {
+        /// Scales the image so that it completely fills the target area.
+        /// Maintains the aspect ratio of the original image.
+        case aspectFill
+
+        /// Scales the image so that it fits the target size. Maintains the
+        /// aspect ratio of the original image.
+        case aspectFit
+
+        public var description: String {
+            switch self {
+            case .aspectFill: return ".aspectFill"
+            case .aspectFit: return ".aspectFit"
+            }
+        }
+    }
 }

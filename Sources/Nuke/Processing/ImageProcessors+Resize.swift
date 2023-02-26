@@ -14,28 +14,13 @@ import AppKit
 extension ImageProcessors {
     /// Scales an image to a specified size.
     public struct Resize: ImageProcessing, Hashable, CustomStringConvertible {
-        private let size: Size
-        private let contentMode: ContentMode
+        private let size: ImageTargetSize
+        private let contentMode: ImageProcessingOptions.ContentMode
         private let crop: Bool
         private let upscale: Bool
 
-        /// An option for how to resize the image.
-        public enum ContentMode: CustomStringConvertible, Sendable {
-            /// Scales the image so that it completely fills the target area.
-            /// Maintains the aspect ratio of the original image.
-            case aspectFill
-
-            /// Scales the image so that it fits the target size. Maintains the
-            /// aspect ratio of the original image.
-            case aspectFit
-
-            public var description: String {
-                switch self {
-                case .aspectFill: return ".aspectFill"
-                case .aspectFit: return ".aspectFit"
-                }
-            }
-        }
+        @available(*, deprecated, message: "Renamed to `ImageProcessingOptions.ContentMode")
+        public typealias ContentMode = ImageProcessingOptions.ContentMode
 
         /// Initializes the processor with the given size.
         ///
@@ -46,8 +31,8 @@ extension ImageProcessors {
         ///   - crop: If `true` will crop the image to match the target size.
         ///   Does nothing with content mode .aspectFill.
         ///  - upscale: By default, upscaling is not allowed.
-        public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
-            self.size = Size(size: size, unit: unit)
+        public init(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessingOptions.ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) {
+            self.size = ImageTargetSize(size: size, unit: unit)
             self.contentMode = contentMode
             self.crop = crop
             self.upscale = upscale
@@ -91,7 +76,7 @@ extension ImageProcessors {
 }
 
 // Adds Hashable without making changes to public CGSize API
-private struct Size: Hashable {
+struct ImageTargetSize: Hashable {
     let cgSize: CGSize
 
     /// Creates the size in pixels by scaling to the input size to the screen scale

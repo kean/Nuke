@@ -139,7 +139,6 @@ class ImageProcessorsResizeTests: XCTestCase {
 #endif
     
 #if os(iOS) || os(tvOS) || os(watchOS)
-    @MainActor
     func testResizeImageWithOrientationLeft() throws {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
@@ -158,8 +157,7 @@ class ImageProcessorsResizeTests: XCTestCase {
         // Then the image is resized according to orientation
         XCTAssertEqual(output.size, CGSize(width: 320, height: 240))
     }
-    
-    @MainActor
+
     func testResizeAndCropWithOrientationLeft() throws {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel

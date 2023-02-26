@@ -14,18 +14,16 @@ Bitmapped images take a lot of space in memory. For example, take a 6000x4000px 
 
 By default, Nuke stores decompressed (bitmapped) images in the memory cache. But this strategy might not be optimal for high-resolution images like this. Consider either downsampling such images or disabling memory cache for them to avoid taking too much memory.  
 
-Some image formats, such as jpeg, can have thumbnails embedded in the original image data. If you are working with a large image and want to show only a thumbnail, consider using [`ImageRequest.ThumbnailOptions`](https://kean-docs.github.io/nuke/documentation/nuke/imagerequest/thumbnailoptions).
-
 ## Downsample Images
 
-Ideally, the app should download the images optimized for the target device screen size; but it's not always feasible. To reduce the memory usage, downsample the images.
+Ideally, the app should download the images optimized for the target device screen size, but it's not always possible. To reduce the memory usage, downsample the images.
 
 ```swift
-// Target size is in points.
-let request = ImageRequest(url: URL(string: "http://..."), processors: [.resize(width: 320)])
+// Target size is in points
+let request = ImageRequest(url: url,  processors: [.resize(width: 320)])
 ```
 
-> Tips: See [Image and Graphics Best Practices](https://developer.apple.com/videos/play/wwdc2018/219) to learn more about image decoding and downsampling.
+> Tip: Some image formats, such as jpeg, can have thumbnails embedded in the original image data. If you are working with a large image and want to show only a thumbnail, consider using ``ImageRequest/ThumbnailOptions``. If the thumbnails aren't available, they are generated. It can be up to 4x faster than using ``ImageProcessors/Resize`` for high-resolution images. 
 
 ## Aggressive Cache
 
