@@ -240,21 +240,6 @@ extension CGImagePropertyOrientation {
         }
     }
 }
-
-extension UIImage.Orientation {
-    init(_ orientation: CGImagePropertyOrientation) {
-        switch orientation {
-        case .up: self = .up
-        case .upMirrored: self = .upMirrored
-        case .down: self = .down
-        case .downMirrored: self = .downMirrored
-        case .left: self = .left
-        case .leftMirrored: self = .leftMirrored
-        case .right: self = .right
-        case .rightMirrored: self = .rightMirrored
-        }
-    }
-}
 #endif
 
 #if os(iOS) || os(tvOS) || os(watchOS)
