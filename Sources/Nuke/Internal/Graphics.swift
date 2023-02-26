@@ -382,19 +382,24 @@ func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions) -> Platfo
 }
 
 private func getMaxPixelSize(for source: CGImageSource, options thumbnailOptions: ImageRequest.ThumbnailOptions) -> CGFloat {
-    var targetSize = thumbnailOptions.size.cgSize
-    let options = [kCGImageSourceShouldCache: false] as CFDictionary
-    guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, options) as? [CFString: Any],
-          let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
-          let height = properties[kCGImagePropertyPixelHeight] as? CGFloat else {
-        return max(targetSize.width, targetSize.height)
+    switch thumbnailOptions.targetSize {
+    case .fixed(let size):
+        return CGFloat(size)
+    case let .flexible(size, contentMode):
+        var targetSize = size.cgSize
+        let options = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, options) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+              let height = properties[kCGImagePropertyPixelHeight] as? CGFloat else {
+            return max(targetSize.width, targetSize.height)
+        }
+
+        let orientation = (properties[kCGImagePropertyOrientation] as? UInt32).flatMap(CGImagePropertyOrientation.init) ?? .up
+        targetSize = targetSize.rotatedForOrientation(orientation)
+
+        let imageSize = CGSize(width: width, height: height)
+        let scale = imageSize.getScale(targetSize: targetSize, contentMode: contentMode)
+        let size = imageSize.scaled(by: scale).rounded()
+        return max(size.width, size.height)
     }
-
-    let orientation = (properties[kCGImagePropertyOrientation] as? UInt32).flatMap(CGImagePropertyOrientation.init) ?? .up
-    targetSize = targetSize.rotatedForOrientation(orientation)
-
-    let imageSize = CGSize(width: width, height: height)
-    let scale = imageSize.getScale(targetSize: targetSize, contentMode: thumbnailOptions.contentMode)
-    let size = imageSize.scaled(by: scale).rounded()
-    return max(size.width, size.height)
 }

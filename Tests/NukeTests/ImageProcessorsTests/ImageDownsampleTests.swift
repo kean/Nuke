@@ -12,13 +12,8 @@ import XCTest
 class ImageThumbnailTest: XCTestCase {
 
     func testThatImageIsResized() throws {
-            for _ in 0..<100 {
-                let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
-                let _ = makeThumbnail(data: Test.data, options: options)
-            }
-
         // WHEN
-        let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
         let output = try XCTUnwrap(makeThumbnail(data: Test.data, options: options))
 
         // THEN
