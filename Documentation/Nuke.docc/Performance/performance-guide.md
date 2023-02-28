@@ -67,7 +67,7 @@ Nuke has a whole range of optimizations across the board to make sure it does as
 
 - **CoW**. The primary type in Nuke is ``ImageRequest``. It has multiple options, so the struct is quite large. To make sure that passing it around is as efficient as possible, ``ImageRequest``  uses a Copy-on-Write technique.
 - **OptionSet**. In one of the recent version of Nuke, ``ImageRequest`` was optimized even further by using option sets and reordering of properties to take advantage of gaps in memory stride. It currently takes only 48 bytes in memory (compared to 176 bytes in the previous versions).
-- **ImageRequest.CacheKey**. A typical framework would use strings to uniquely identify a request. But string manipulations are expensive, this is why in Nuke, there is a special internal type, `ImageRequest.CacheKey`, which allows for efficient equality checks for image requests with no string attached.
+- **ImageRequest.CacheKey**. Most frameworks use strings to uniquely identify requests. But string manipulations are expensive, this is why in Nuke, there is a special internal type, `ImageRequest.CacheKey`, which allows for efficient equality checks with no strings manipulation.
 
 These are just some examples of the optimization techniques used in Nuke. There are many more. Every new feature in Nuke is designed with performance in mind to make sure there are no performance regressions ever.
 
@@ -84,11 +84,11 @@ Thanks to coalescing (enabled by default), the pipeline avoids doing any duplica
 ```swift
 let url = URL(string: "http://example.com/image")
 pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ImageProcessors.Resize(size: CGSize(width: 44, height: 44)),
-    ImageProcessors.GaussianBlur(radius: 8)
+    .resize(size: CGSize(width: 44, height: 44)),
+    .gaussianBlur(radius: 8)
 ]))
 pipeline.loadImage(with: ImageRequest(url: url, processors: [
-    ImageProcessors.Resize(size: CGSize(width: 44, height: 44))
+    .resize(size: CGSize(width: 44, height: 44))
 ]))
 ```
 
