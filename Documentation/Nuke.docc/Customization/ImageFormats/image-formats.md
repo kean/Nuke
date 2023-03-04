@@ -31,7 +31,3 @@ Nuke is capable of driving progressive decoding, animated image rendering, progr
 - ``ImageEncoding``
 - ``ImageEncoders``
 - ``ImageEncodingContext``
-
-### Deprecated
-
-- ``ImageDecoderRegistering``

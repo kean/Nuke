@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 import Nuke
@@ -10,7 +10,7 @@ class ImageCachePerformanceTests: XCTestCase {
         let cache = ImageCache()
         let image = ImageContainer(image: PlatformImage())
 
-        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
+        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
         let requests = urls.map { ImageRequest(url: $0) }
 
         measure {
@@ -24,13 +24,13 @@ class ImageCachePerformanceTests: XCTestCase {
         let cache = ImageCache()
         let image = ImageContainer(image: PlatformImage())
 
-        for index in 0..<200 {
+        for index in 0..<2000 {
             cache[ImageRequest(url: URL(string: "http://test.com/\(index)")!)] = image
         }
 
         var hits = 0
 
-        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
+        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(rnd(2000))")! }
         let requests = urls.map { ImageRequest(url: $0) }
 
         measure {
@@ -49,7 +49,7 @@ class ImageCachePerformanceTests: XCTestCase {
 
         var misses = 0
 
-        let urls = (0..<10_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
+        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
         let requests = urls.map { ImageRequest(url: $0) }
 
         measure {

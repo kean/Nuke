@@ -1,13 +1,22 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 #if !os(watchOS)
 
 import Foundation
 import AVKit
+import AVFoundation
+import Nuke
 
 extension ImageDecoders {
+    /// The video decoder.
+    ///
+    /// To enable the video decoder, register it with a shared registry:
+    ///
+    /// ```swift
+    /// ImageDecoderRegistry.shared.register(ImageDecoders.Video.init)
+    /// ```
     public final class Video: ImageDecoding, @unchecked Sendable {
         private var didProducePreview = false
         private let type: AssetType
@@ -36,9 +45,16 @@ extension ImageDecoders {
                 return nil
             }
             didProducePreview = true
-            return ImageContainer(image: preview, type: type, isPreview: true, data: data)
+            return ImageContainer(image: preview, type: type, isPreview: true, data: data, userInfo: [
+                .videoAssetKey: AVDataAsset(data: data, type: type)
+            ])
         }
     }
+}
+
+extension ImageContainer.UserInfoKey {
+    /// A key for a video asset (`AVAsset`)
+    public static let videoAssetKey: ImageContainer.UserInfoKey = "com.github/kean/nuke/video-asset"
 }
 
 private func makePreview(for data: Data, type: AssetType) -> PlatformImage? {
@@ -50,4 +66,12 @@ private func makePreview(for data: Data, type: AssetType) -> PlatformImage? {
     return PlatformImage(cgImage: cgImage)
 }
 
+#endif
+
+#if os(macOS)
+extension NSImage {
+    convenience init(cgImage: CGImage) {
+        self.init(cgImage: cgImage, size: .zero)
+    }
+}
 #endif

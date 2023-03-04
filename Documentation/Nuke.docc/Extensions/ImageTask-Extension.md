@@ -20,8 +20,3 @@
 - ``request``
 - ``taskId``
 - ``description``
-
-### Deprecated
-
-- ``completedUnitCount``
-- ``totalUnitCount``

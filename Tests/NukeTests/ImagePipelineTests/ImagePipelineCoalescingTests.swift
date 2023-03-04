@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 @testable import Nuke
@@ -265,7 +265,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         _ = expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
         let task1 = pipeline.loadImage(with: Test.request) { _ in }
         let task2 = pipeline.loadImage(with: Test.request) { _ in }
-        wait() // wait until the tasks is started or we might be cancelling non-exisitng task
+        wait() // wait until the tasks is started or we might be cancelling non-existing task
 
         _ = expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
         task1.cancel()

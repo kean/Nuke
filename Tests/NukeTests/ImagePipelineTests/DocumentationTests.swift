@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
@@ -13,31 +13,24 @@ private let pipeline = ImagePipeline.shared
 private let url = URL(string: "https://example.com/image.jpeg")!
 private let image = Test.image
 private let data = Test.data
+private let imageView = UIImageView()
 
 // MARK: - Getting Started
 
 private func checkGettingStarted01() async throws {
-    let response = try await ImagePipeline.shared.image(for: url)
-    let image = response.image
-
+    let image = try await ImagePipeline.shared.image(for: url)
     _ = image
 }
 
-private final class CheckGettingStarted02: ImageTaskDelegate {
+private final class CheckGettingStarted02 {
+    @MainActor
     func loadImage() async throws {
-        _ = try await pipeline.image(for: url, delegate: self)
-    }
-
-    func imageTaskCreated(_ task: ImageTask) {
-        // Gets called immediately when the task is created.
-    }
-
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-        // Gets called for images that support progressive decoding.
-    }
-
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-        // Gets called when the download progress is updated.
+        let imageTask = ImagePipeline.shared.imageTask(with: url)
+        for await progress in imageTask.progress {
+            // Update progress
+            _ = progress
+        }
+        imageView.image = try await imageTask.image
     }
 }
 
@@ -48,9 +41,9 @@ private func checkGettingStarted03() async throws {
         priority: .high,
         options: [.reloadIgnoringCachedData]
     )
-    let response = try await pipeline.image(for: request)
+    let image = try await pipeline.image(for: request)
 
-    _ = response
+    _ = image
 }
 
 private func checkGettingStarted04() {
@@ -61,7 +54,7 @@ private func checkGettingStarted04() {
 
 private func checkAccessCachedImages01() async throws {
     let request = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
-    let response = try await pipeline.image(for: request)
+    let response = try await pipeline.imageTask(with: request).response
     let cacheType = response.cacheType // .memory, .disk, or nil
 
     _ = cacheType
@@ -74,9 +67,9 @@ private func checkAccessCachedImages02() {
 
 private func checkAccessCachedImages03() async throws {
     let request = ImageRequest(url: url, options: [ .reloadIgnoringCachedData])
-    let response = try await pipeline.image(for: request)
+    let image = try await pipeline.image(for: request)
 
-    _ = response
+    _ = image
 }
 
 private func checkAccessCachedImages04() {
@@ -292,30 +285,18 @@ private func checkImagePipelineExtension01() {
 }
 
 private func checkImagePipelineExtension02() async throws {
-    let response = try await ImagePipeline.shared.image(for: url)
-    let image = response.image
-
+    let image = try await ImagePipeline.shared.image(for: url)
     _ = image
 }
 
-private final class CheckImagePipelineExtension03: UIView, ImageTaskDelegate {
-    private var imageTask: ImageTask?
-    private let imageView = _ImageView()
-
+private final class AsyncImageView: UIImageView {
     func loadImage() async throws {
-        imageView.image = try await pipeline.image(for: url, delegate: self).image
-    }
-
-    func imageTaskCreated(_ task: ImageTask) {
-        self.imageTask = task
-    }
-
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-        // Gets called for images that support progressive decoding.
-    }
-
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-        // Gets called when the download progress is updated.
+        let imageTask = ImagePipeline.shared.imageTask(with: url)
+        for await progress in imageTask.progress {
+            // Update progress
+            _ = progress
+        }
+        imageView.image = try await imageTask.image
     }
 }
 #endif

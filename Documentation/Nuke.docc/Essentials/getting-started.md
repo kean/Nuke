@@ -4,36 +4,25 @@ Learn about main Nuke features and APIs.
 
 ## Image Pipeline
 
-``ImagePipeline`` downloads images, caches, and prepares them for display. To load an image, use an async method ``ImagePipeline/image(for:delegate:)-2v6n0`` returning ``ImageResponse`` with an image.
+``ImagePipeline`` downloads images, caches, and prepares them for display. To load an image, use an async method ``ImagePipeline/image(for:)-4akzh`` returning an image.
 
 ```swift
-let response = try await ImagePipeline.shared.image(for: url)
-let image = response.image
+let image = try await ImagePipeline.shared.image(for: url)
 ```
 
-> Tip: You can start by using a ``ImagePipeline/shared`` pipeline and create a custom one later if needed. To create a custom pipeline, use a convenience ``ImagePipeline/init(delegate:_:)`` initializer or one of the pre-defined configurations, such as ``ImagePipeline/Configuration-swift.struct/withDataCache``.
-
-You can monitor the request by passing ``ImageTaskDelegate``.
+To get more control over the download, use ``ImagePipeline/imageTask(with:)-7s0fc`` to create an ``AsyncImageTask`` and then access its ``AsyncImageTask/image`` or ``AsyncImageTask/response`` to receive the image.
 
 ```swift
 func loadImage() async throws {
-    _ = try await pipeline.image(for: url, delegate: self)
-}
-
-func imageTaskCreated(_ task: ImageTask) {
-    // Gets called immediately when the task is created.
-}
-
-func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-    // Gets called for images that support progressive decoding.
-}
-
-func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-    // Gets called when the download progress is updated.
+    let imageTask = ImagePipeline.shared.imageTask(with: url)
+    for await progress in imageTask.progress {
+        // Update progress
+    }
+    imageView.image = try await imageTask.image
 }
 ```
 
-The delegate is captured weakly and the callbacks are executed on the main queue by default.
+> Tip: You can start by using a ``ImagePipeline/shared`` pipeline and create a custom one later if needed. To create a custom pipeline, use a convenience ``ImagePipeline/init(delegate:_:)`` initializer or one of the pre-defined configurations, such as ``ImagePipeline/Configuration-swift.struct/withDataCache``.
 
 > The documentation uses Async/Await APIs in the examples, but ``ImagePipeline`` also has equivalent completion-based and Combine APIs.
 
@@ -48,7 +37,7 @@ let request = ImageRequest(
     priority: .high,
     options: [.reloadIgnoringCachedData]
 )
-let response = try await pipeline.image(for: request)
+let image = try await pipeline.image(for: request)
 ```
 
 > Tip: You can use built-in processors or create custom ones. Learn more in <doc:image-processing>.
@@ -67,7 +56,7 @@ You can also replace `URLCache` with a custom ``DataCache`` that ignores HTTP `c
 ImagePipeline.shared = ImagePipeline(configuration: .withDataCache)
 ```
 
-``DataCache`` is a bit faster than `URLCache` and provides more control. For example, it can be configured to store processed images using ``ImagePipeline/Configuration-swift.struct/dataCachePolicy-swift.property``. The downside is that without HTTP `cache-control`, the images never get validated and if the URL content changes, the app will continue showing stale data.  
+``DataCache`` is a bit faster than `URLCache` and provides more control. For example, it can be configured to store processed images using ``ImagePipeline/Configuration-swift.struct/dataCachePolicy``. The downside is that without HTTP `cache-control`, the images never get validated and if the URL content changes, the app will continue showing stale data.  
 
 > Tip: To learn more about caching, see <doc:caching> section.
 

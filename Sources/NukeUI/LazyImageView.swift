@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 import Nuke
@@ -99,8 +99,12 @@ public final class LazyImageView: _PlatformBaseView {
 
     // MARK: Underlying Views
 
+#if os(macOS)
     /// Returns the underlying image view.
-    public let imageView = ImageView()
+    public let imageView = NSImageView()
+#else
+    public let imageView = UIImageView()
+#endif
 
     // MARK: Managing Image Tasks
 
@@ -149,8 +153,6 @@ public final class LazyImageView: _PlatformBaseView {
     // MARK: Other Options
 
     /// `true` by default. If disabled, progressive image scans will be ignored.
-    ///
-    /// This option also affects the previews for animated images or videos.
     public var isProgressiveImageRenderingEnabled = true
 
     /// `true` by default. If enabled, the image view will be cleared before the
@@ -209,13 +211,6 @@ public final class LazyImageView: _PlatformBaseView {
     public var request: ImageRequest? {
         didSet { load(request) }
     }
-    ///
-    // Deprecated in Nuke 11.0
-    @available(*, deprecated, message: "Please `request` or `url` properties instead")
-    public var source: (any ImageRequestConvertible)? {
-        get { request }
-        set { request = newValue?.asImageRequest() }
-    }
 
     override public func updateConstraints() {
         super.updateConstraints()
@@ -228,7 +223,7 @@ public final class LazyImageView: _PlatformBaseView {
     public func reset() {
         cancel()
 
-        imageView.imageContainer = nil
+        imageView.image = nil
         imageView.isHidden = true
 
         setPlaceholderViewHidden(true)
@@ -333,7 +328,7 @@ public final class LazyImageView: _PlatformBaseView {
     private func display(_ container: ImageContainer, isFromMemory: Bool) {
         resetIfNeeded()
 
-        imageView.imageContainer = container
+        imageView.image = container.image
         imageView.isHidden = false
 
         if !isFromMemory, let transition = transition {

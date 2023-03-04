@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 #if !os(macOS)
 import UIKit
@@ -163,11 +163,11 @@ private struct ProgressiveJPEGScanner: Sendable {
 
 extension ImageDecoders.Default {
     private static func _decode(_ data: Data, scale: CGFloat?) -> PlatformImage? {
-        #if os(macOS)
+#if os(macOS)
         return NSImage(data: data)
-        #else
-        return UIImage(data: data, scale: scale ?? Screen.scale)
-        #endif
+#else
+        return UIImage(data: data, scale: scale ?? 1)
+#endif
     }
 }
 

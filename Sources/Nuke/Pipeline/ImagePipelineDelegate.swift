@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -8,7 +8,7 @@ import Foundation
 ///
 /// - important: The delegate methods are performed on the pipeline queue in the
 /// background.
-public protocol ImagePipelineDelegate: ImageTaskDelegate, Sendable {
+public protocol ImagePipelineDelegate: AnyObject, Sendable {
     // MARK: Configuration
 
     /// Returns data loader for the given request.
@@ -59,6 +59,31 @@ public protocol ImagePipelineDelegate: ImageTaskDelegate, Sendable {
     func shouldDecompress(response: ImageResponse, for request: ImageRequest, pipeline: ImagePipeline) -> Bool
 
     func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse
+
+    // MARK: ImageTaskDelegate
+
+    /// Gets called when the task is created. Unlike other methods, it is called
+    /// immediately on the caller's queue.
+    func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline)
+
+    /// Gets called when the task is started. The caller can save the instance
+    /// of the class to update the task later.
+    func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline)
+
+    /// Gets called when the progress is updated.
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress, pipeline: ImagePipeline)
+
+    /// Gets called when a new progressive image is produced.
+    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse, pipeline: ImagePipeline)
+
+    /// Gets called when the task is cancelled.
+    ///
+    /// - important: This doesn't get called immediately.
+    func imageTaskDidCancel(_ task: ImageTask, pipeline: ImagePipeline)
+
+    /// If you cancel the task from the same queue as the callback queue, this
+    /// callback is guaranteed not to be called.
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>, pipeline: ImagePipeline)
 }
 
 extension ImagePipelineDelegate {
@@ -99,6 +124,18 @@ extension ImagePipelineDelegate {
         response.container.image = ImageDecompression.decompress(image: response.image, isUsingPrepareForDisplay: pipeline.configuration.isUsingPrepareForDisplay)
         return response
     }
+
+    public func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {}
+
+    public func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {}
+
+    public func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress, pipeline: ImagePipeline) {}
+
+    public func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse, pipeline: ImagePipeline) {}
+
+    public func imageTaskDidCancel(_ task: ImageTask, pipeline: ImagePipeline) {}
+
+    public func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>, pipeline: ImagePipeline) {}
 }
 
 final class ImagePipelineDefaultDelegate: ImagePipelineDelegate {}

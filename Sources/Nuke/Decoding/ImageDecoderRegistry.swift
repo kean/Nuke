@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -15,9 +15,6 @@ public final class ImageDecoderRegistry: @unchecked Sendable {
     /// Initializes a custom registry.
     public init() {
         register(ImageDecoders.Default.init)
-        #if !os(watchOS)
-        register(ImageDecoders.Video.init)
-        #endif
     }
 
     /// Returns a decoder that matches the given context.

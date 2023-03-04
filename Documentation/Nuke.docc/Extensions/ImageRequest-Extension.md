@@ -40,7 +40,3 @@ request.processors = [.resize(width: 320)]
 - ``url``
 - ``imageId``
 - ``description``
-
-### Deprecated 
-
-- ``ImageRequestConvertible``

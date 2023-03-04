@@ -2,7 +2,7 @@
 
 ## Overview
 
-``FetchImage`` is an observable object ([`ObservableObject`](https://developer.apple.com/documentation/combine/observableobject)) that allows you to manage the download of an image and observe the download status. It acts as a ViewModel that manages image download state making it easy to add image loading to your custom SwiftUI views.
+``FetchImage`` is an observable object ([`ObservableObject`](https://developer.apple.com/documentation/combine/observableobject)) that allows you to manage the download of an image and observe the download status. It acts as a ViewModel that manages the image download state making it easy to add image loading to your custom SwiftUI views.
 
 ## Creating Custom Views
 
@@ -26,8 +26,6 @@ struct ImageView: View {
     }
 }
 ```
-
-> Important: In iOS 13, use [`@ObservedObject`](https://developer.apple.com/documentation/swiftui/observedobject). Be aware that it doesn't own the object.
 
 ``FetchImage`` gives you full control over how to manage the download and how to display the image. For example, if you want the download to continue when the view leaves the screen, change the appearance callbacks accordingly.
 
@@ -67,31 +65,13 @@ struct ImageView: View {
 ### State
 
 - ``result``
-- ``image``
 - ``imageContainer``
 - ``isLoading``
-- ``progress``
+- ``progress-swift.property``
 
-### Request Options
+### Options
 
 - ``priority``
 - ``processors``
 - ``pipeline``
-
-### Displaying Images
-
-- ``animation``
-- ``view``
-
-### Callbacks
-
-- ``onStart``
-- ``onProgress``
-- ``onPreview``
-- ``onSuccess``
-- ``onFailure``
-- ``onCompletion``
-
-### Deprecated
-
-- ``load(_:)-1vg63``
+- ``transaction``

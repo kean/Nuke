@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -34,8 +34,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     /// Returns the current download progress. Returns zeros before the download
     /// is started and the expected size of the resource is known.
-    ///
-    /// - important: Must be accessed only from the callback queue (main by default).
     public internal(set) var progress: Progress {
         get { sync { _progress } }
         set { sync { _progress = newValue } }
@@ -79,19 +77,15 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     var onCancel: (() -> Void)?
 
     weak var pipeline: ImagePipeline?
-    weak var delegate: ImageTaskDelegate?
     var callbackQueue: DispatchQueue?
     var isDataTask = false
 
+    /// Using it without a wrapper to reduce the number of allocations.
     private let lock: os_unfair_lock_t
 
     deinit {
         lock.deinitialize(count: 1)
         lock.deallocate()
-
-        #if TRACK_ALLOCATIONS
-        Allocations.decrement("ImageTask")
-        #endif
     }
 
     init(taskId: Int64, request: ImageRequest) {
@@ -101,10 +95,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
         lock = .allocate(capacity: 1)
         lock.initialize(to: os_unfair_lock())
-
-        #if TRACK_ALLOCATIONS
-        Allocations.increment("ImageTask")
-        #endif
     }
 
     /// Marks task as being cancelled.
@@ -152,45 +142,4 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     public var description: String {
         "ImageTask(id: \(taskId), priority: \(_priority), progress: \(progress.completed) / \(progress.total), state: \(state))"
     }
-}
-
-/// A protocol that defines methods that image pipeline instances call on their
-/// delegates to handle task-level events.
-public protocol ImageTaskDelegate: AnyObject {
-    /// Gets called when the task is created. Unlike other methods, it is called
-    /// immediately on the caller's queue.
-    func imageTaskCreated(_ task: ImageTask)
-
-    /// Gets called when the task is started. The caller can save the instance
-    /// of the class to update the task later.
-    func imageTaskDidStart(_ task: ImageTask)
-
-    /// Gets called when the progress is updated.
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress)
-
-    /// Gets called when a new progressive image is produced.
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse)
-
-    /// Gets called when the task is cancelled.
-    ///
-    /// - important: This doesn't get called immediately.
-    func imageTaskDidCancel(_ task: ImageTask)
-
-    /// If you cancel the task from the same queue as the callback queue, this
-    /// callback is guaranteed not to be called.
-    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>)
-}
-
-extension ImageTaskDelegate {
-    public func imageTaskCreated(_ task: ImageTask) {}
-
-    public func imageTaskDidStart(_ task: ImageTask) {}
-
-    public func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {}
-
-    public func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {}
-
-    public func imageTaskDidCancel(_ task: ImageTask) {}
-
-    public func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {}
 }

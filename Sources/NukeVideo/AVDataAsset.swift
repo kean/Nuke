@@ -1,9 +1,17 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import AVKit
 import Foundation
+import Nuke
+
+extension AssetType {
+    /// Returns `true` if the asset represents a video file
+    public var isVideo: Bool {
+        self == .mp4 || self == .m4v || self == .mov
+    }
+}
 
 #if !os(watchOS)
 

@@ -1,16 +1,16 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 @testable import Nuke
 
-class ImagePipelineAsyncAwaitTests: XCTestCase {
+class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
 
-    private var recordedProgress: [Progress] = []
-    private var taskDelegate = AnonymousImateTaskDelegate()
+    private var recordedProgress: [ImageTask.Progress] = []
+    private var recordedPreviews: [ImageResponse] = []
     private var pipelineDelegate = ImagePipelineObserver()
     private var imageTask: ImageTask?
     private let callbackQueue = DispatchQueue(label: "testChangingCallbackQueue")
@@ -33,10 +33,34 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
     func testImageIsLoaded() async throws {
         // WHEN
-        let response = try await pipeline.image(for: Test.request)
+        let image = try await pipeline.image(for: Test.request)
+
+        // THEN
+        XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
+    }
+
+    // MARK: - Task-based API
+
+    func testTaskBasedImageResponse() async throws {
+        // GIVEN
+        let task = pipeline.imageTask(with: Test.request)
+
+        // WHEN
+        let response = try await task.response
 
         // THEN
         XCTAssertEqual(response.image.sizeInPixels, CGSize(width: 640, height: 480))
+    }
+
+    func testTaskBasedImage() async throws {
+        // GIVEN
+        let task = pipeline.imageTask(with: Test.request)
+
+        // WHEN
+        let image = try await task.image
+
+        // THEN
+        XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
     }
 
     private var observer: AnyObject?
@@ -65,11 +89,10 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
 
     func testCancelFromTaskCreated() async throws {
         dataLoader.queue.isSuspended = true
-
-        taskDelegate.onTaskCreated = { $0.cancel() }
+        pipelineDelegate.onTaskCreated = { $0.cancel() }
 
         let task = Task {
-            try await pipeline.image(for: Test.url, delegate: taskDelegate)
+            try await pipeline.image(for: Test.url)
         }
 
         var caughtError: Error?
@@ -85,13 +108,31 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         dataLoader.queue.isSuspended = true
 
         let task = Task {
-            try await pipeline.image(for: Test.url, delegate: taskDelegate)
+            try await pipeline.image(for: Test.url)
         }
         task.cancel()
 
         var caughtError: Error?
         do {
             _ = try await task.value
+        } catch {
+            caughtError = error
+        }
+        XCTAssertTrue(caughtError is CancellationError)
+    }
+
+    func testCancelAsyncImageTask() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = pipeline.imageTask(with: Test.url)
+
+        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
+            task.cancel()
+        }
+
+        var caughtError: Error?
+        do {
+            _ = try await task.image
         } catch {
             caughtError = error
         }
@@ -129,71 +170,42 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertTrue(caughtError is CancellationError)
     }
 
-    // MARK: - ImageTaskDelegate
-
     func testImageTaskReturnedImmediately() async throws {
         // GIVEN
-        taskDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
+        pipelineDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
 
         // WHEN
-        _ = try await pipeline.image(for: Test.request, delegate: taskDelegate)
+        _ = try await pipeline.image(for: Test.request)
 
         // THEN
         XCTAssertNotNil(imageTask)
     }
 
-    func testImageTaskDelegateDidCancelIsCalled() async throws {
-        // GIVEN
-        dataLoader.queue.isSuspended = true
-        taskDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
-
-        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { [unowned self] _ in
-            imageTask?.cancel()
-        }
-
-        // WHEN/THEN
-
-        var isOnCancelCalled = false
-        taskDelegate.onCancel = { [unowned self] in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: callbackQueueKey))
-            isOnCancelCalled = true
-        }
-
-        do {
-            _ = try await pipeline.image(for: Test.url, delegate: taskDelegate)
-        } catch {
-            XCTAssertTrue(error is CancellationError)
-        }
-
-        XCTAssertTrue(isOnCancelCalled)
-    }
-
-    func testImageTaskDelegateProgressIsCalled() async throws {
+    func testProgressUpdated() async throws {
         // GIVEN
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
         // WHEN
-        taskDelegate.onProgress = { [unowned self] in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: callbackQueueKey))
-            recordedProgress.append(Progress(completed: $0, total: $1))
-        }
-
         do {
-            _ = try await pipeline.image(for: Test.request, delegate: taskDelegate)
+            let task = pipeline.imageTask(with: Test.url)
+            for await progress in task.progress {
+                recordedProgress.append(progress)
+            }
+            _ = try await task.image
         } catch {
             // Expect decoding to failed because of bogus data
         }
 
         // THEN
         XCTAssertEqual(recordedProgress, [
-            Progress(completed: 10, total: 20),
-            Progress(completed: 20, total: 20)
+            ImageTask.Progress(completed: 10, total: 20),
+            ImageTask.Progress(completed: 20, total: 20)
         ])
     }
 
-    func testImageTaskDelegateProgressiveDecodingIsCalled() async throws {
+    func testThatProgressivePreviewsAreDelivered() async throws {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
         pipeline = pipeline.reconfigured {
@@ -201,51 +213,23 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
             $0.isProgressiveDecodingEnabled = true
         }
 
-        // WHEN/THEN
-        var recorededProgressiveResponses: [ImageResponse] = []
-        taskDelegate.onProgressiveResponse = { [unowned self] response in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: callbackQueueKey))
-            recorededProgressiveResponses.append(response)
-            dataLoader.resume()
-        }
-
+        // WHEN
         do {
-            _ = try await pipeline.image(for: Test.request, delegate: taskDelegate)
+            let task = pipeline.imageTask(with: Test.url)
+            Task {
+                for await preview in task.previews {
+                    recordedPreviews.append(preview)
+                    dataLoader.resume()
+                }
+            }
+            _ = try await task.image
         } catch {
             // Expect decoding to failed because of bogus data
         }
 
         // THEN
-        XCTAssertEqual(recorededProgressiveResponses.count, 2)
-        XCTAssertTrue(recorededProgressiveResponses.allSatisfy { $0.container.isPreview })
-    }
-
-    func testImageTaskDelegateDidCompleteCalled() async throws {
-        // GIVEN
-        var recordedResult: Result<ImageResponse, ImagePipeline.Error>?
-        taskDelegate.onResult = { [unowned self] in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: callbackQueueKey))
-            recordedResult = $0
-        }
-
-        // WHEN
-        let result = try await pipeline.image(for: Test.request, delegate: taskDelegate)
-
-        // THEN
-        XCTAssertTrue(result.image === recordedResult?.value?.image)
-    }
-
-    func testImagePipelineDelegateCallbacksAlsoDelivered() async throws {
-        // WHEN
-        let response = try await pipeline.image(for: Test.request, delegate: taskDelegate)
-
-        // THEN
-        XCTAssertEqual(pipelineDelegate.events, [
-            .created,
-            .started,
-            .progressUpdated(completedUnitCount: 22789, totalUnitCount: 22789),
-            .completed(result: .success(response))
-        ])
+        XCTAssertEqual(recordedPreviews.count, 2)
+        XCTAssertTrue(recordedPreviews.allSatisfy { $0.container.isPreview })
     }
 
     // MARK: - Update Priority
@@ -259,11 +243,10 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         XCTAssertEqual(request.priority, .normal)
 
         let observer = expect(queue).toEnqueueOperationsWithCount(1)
+        let imageTask = pipeline.imageTask(with: request)
 
-        taskDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
-
-        Task.detached { [unowned self] in
-            try await self.pipeline.image(for: request, delegate: taskDelegate)
+        Task.detached {
+            try await imageTask.response
         }
         wait()
 
@@ -272,7 +255,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
             return XCTFail("Failed to find operation")
         }
         expect(operation).toUpdatePriority()
-        imageTask?.priority = .high
+        imageTask.priority = .high
         wait()
     }
 
@@ -289,10 +272,10 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
                 return data
             })
 
-            let container = try await pipeline.image(for: request)
+            let image = try await pipeline.image(for: request)
 
             // THEN
-            XCTAssertEqual(container.image.sizeInPixels, CGSize(width: 640, height: 480))
+            XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
         }
     }
 
@@ -316,47 +299,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         }
     }
 
-    // MARK: ImageTask.State
-
-    func testImageTaskStateRunningToCompleted() async throws {
-        // GIVEN
-        taskDelegate.onTaskCreated = { [unowned self] in
-            imageTask = $0
-            XCTAssertEqual($0.state, .running)
-        }
-
-        // WHEN
-        _ = try await pipeline.image(for: Test.request, delegate: taskDelegate)
-
-        // THEN
-        XCTAssertNotNil(imageTask)
-        XCTAssertEqual(imageTask?.state, .completed)
-    }
-
-    func testImageTaskStateRunningToCancelled() async throws {
-        // GIVEN
-        dataLoader.isSuspended = true
-        taskDelegate.onTaskCreated = { [unowned self] in
-            imageTask = $0
-            XCTAssertEqual($0.state, .running)
-        }
-
-        let task = Task {
-            try await pipeline.image(for: Test.url, delegate: taskDelegate)
-        }
-
-        observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
-            task.cancel()
-        }
-
-        do {
-            _ = try await task.value
-        } catch {}
-
-        XCTAssertNotNil(imageTask)
-        XCTAssertEqual(imageTask?.state, .cancelled)
-    }
-
     // MARK: Common Use Cases
 
     func testLowDataMode() async throws {
@@ -376,7 +318,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
         let request = ImageRequest(urlRequest: urlRequest)
 
         // WHEN
-        @Sendable func loadImage() async throws -> ImageResponse {
+        @Sendable func loadImage() async throws -> PlatformImage {
             do {
                 return try await pipeline.image(for: request)
             } catch {
@@ -388,25 +330,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase {
             }
         }
 
-        let response = try await loadImage()
-        XCTAssertNotNil(response.image)
-    }
-
-    // MARK: - Actor Isolation
-
-    @MainActor
-    func testImplementingProtocolWithMainActor() async throws {
-        // GIVEN
-        let taskDelegate = MainActorImageTaskDelegate()
-        taskDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
-
-        // WHEN
-        _ = try await pipeline.image(for: Test.url, delegate: taskDelegate)
-
-        // THEN
-        XCTAssertNotNil(imageTask)
-
-        _ = taskDelegate
+        _ = try await loadImage()
     }
 }
 
@@ -419,55 +343,5 @@ private struct URLError: Swift.Error {
         case cellular
         case expensive
         case constrained
-    }
-}
-
-private struct Progress: Equatable {
-    let completed, total: Int64
-}
-
-private final class AnonymousImateTaskDelegate: ImageTaskDelegate, @unchecked Sendable {
-    var onTaskCreated: ((ImageTask) -> Void)?
-
-    func imageTaskCreated(_ task: ImageTask) {
-        onTaskCreated?(task)
-    }
-
-    var onTaskStarted: ((ImageTask) -> Void)?
-
-    func imageTaskDidStart(_ task: ImageTask) {
-
-    }
-
-    var onProgress: ((_ completed: Int64, _ total: Int64) -> Void)?
-
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
-        onProgress?(progress.completed, progress.total)
-    }
-
-    var onProgressiveResponse: ((ImageResponse) -> Void)?
-
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
-        onProgressiveResponse?(response)
-    }
-
-    var onCancel: (() -> Void)?
-
-    func imageTaskDidCancel(_ task: ImageTask) {
-        onCancel?()
-    }
-
-    var onResult: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)?
-
-    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
-        onResult?(result)
-    }
-}
-
-private final class MainActorImageTaskDelegate: ImageTaskDelegate {
-    var onTaskCreated: ((ImageTask) -> Void)?
-
-    func imageTaskCreated(_ task: ImageTask) {
-        onTaskCreated?(task)
     }
 }

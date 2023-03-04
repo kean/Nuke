@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -156,7 +156,9 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
         dependency2 = pipeline.makeTaskProcessImage(key: key, process: {
             try signpost("ProcessImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
-                try response.map { try processor.process($0, context: context) }
+                var response = response
+                response.container = try processor.process(response.container, context: context)
+                return response
             }
         }).subscribe(priority: priority) { [weak self] event in
             guard let self = self else { return }

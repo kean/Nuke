@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 @testable import Nuke
@@ -40,7 +40,7 @@ class ImagePipelineDelegateTests: XCTestCase {
         // GIVEN image is loaded from medium size URL and saved in cache using imageId "image-01-small"
         let requestA = ImageRequest(
             url: imageURLMedium,
-            processors: [ImageProcessors.Resize(width: 44)],
+            processors: [.resize(width: 44)],
             userInfo: ["imageId": "image-01-small"]
         )
         expect(pipeline).toLoadImage(with: requestA)

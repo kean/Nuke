@@ -5,6 +5,22 @@
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES">
+      <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "0C55FCFC28567875000FD2C9"
+               BuildableName = "NukeExtensions.framework"
+               BlueprintName = "NukeExtensions"
+               ReferencedContainer = "container:Nuke.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
    </BuildAction>
    <TestAction
       buildConfiguration = "Debug"
@@ -17,8 +33,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0C55FD0328567875000FD2C9"
-               BuildableName = "Nuke Extensions Unit Tests.xctest"
-               BlueprintName = "Nuke Extensions Unit Tests"
+               BuildableName = "NukeExtensions Unit Tests.xctest"
+               BlueprintName = "NukeExtensions Unit Tests"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -41,6 +57,15 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "0C55FCFC28567875000FD2C9"
+            BuildableName = "NukeExtensions.framework"
+            BlueprintName = "NukeExtensions"
+            ReferencedContainer = "container:Nuke.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

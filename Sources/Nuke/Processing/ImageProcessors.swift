@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -20,12 +20,12 @@ extension ImageProcessing where Self == ImageProcessors.Resize {
     ///
     /// - parameters
     ///   - size: The target size.
-    ///   - unit: Unit of the target size.
+    ///   - unit: Unit of the target size. By default, `.points`.
     ///   - contentMode: Target content mode.
     ///   - crop: If `true` will crop the image to match the target size. Does
     ///   nothing with content mode .aspectFill. `false` by default.
     ///   - upscale: Upscaling is not allowed by default.
-    public static func resize(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessors.Resize.ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) -> ImageProcessors.Resize {
+    public static func resize(size: CGSize, unit: ImageProcessingOptions.Unit = .points, contentMode: ImageProcessingOptions.ContentMode = .aspectFill, crop: Bool = false, upscale: Bool = false) -> ImageProcessors.Resize {
         ImageProcessors.Resize(size: size, unit: unit, contentMode: contentMode, crop: crop, upscale: upscale)
     }
 
@@ -33,7 +33,7 @@ extension ImageProcessing where Self == ImageProcessors.Resize {
     ///
     /// - parameters:
     ///   - width: The target width.
-    ///   - unit: Unit of the target size.
+    ///   - unit: Unit of the target size. By default, `.points`.
     ///   - upscale: `false` by default.
     public static func resize(width: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) -> ImageProcessors.Resize {
         ImageProcessors.Resize(width: width, unit: unit, upscale: upscale)
@@ -43,7 +43,7 @@ extension ImageProcessing where Self == ImageProcessors.Resize {
     ///
     /// - parameters:
     ///   - height: The target height.
-    ///   - unit: Unit of the target size.
+    ///   - unit: Unit of the target size. By default, `.points`.
     ///   - upscale: `false` by default.
     public static func resize(height: CGFloat, unit: ImageProcessingOptions.Unit = .points, upscale: Bool = false) -> ImageProcessors.Resize {
         ImageProcessors.Resize(height: height, unit: unit, upscale: upscale)

@@ -12,7 +12,7 @@ If you want to perform cache lookup without download the image from the network,
 
 ```swift
 let request = ImageRequest(url: url, options: [.returnCacheDataDontLoad])
-let response = try await pipeline.image(for: request)
+let response = try await pipeline.imageTask(with: request).response
 let cacheType = response.cacheType // .memory, .disk, or nil
 ```
 
@@ -31,7 +31,7 @@ If you want to keep the image in caches but reload it, you can instruct the pipe
 
 ```swift
 let request = ImageRequest(url: url, options: [ .reloadIgnoringCachedData])
-let response = try await pipeline.image(for: request)
+let response = try await pipeline.imageTask(with: request).response
 ```
 
 ``ImageRequest/Options-swift.struct`` provides even more granluar control if needed, e.g. ``ImageRequest/Options-swift.struct/disableMemoryCacheReads`` and other similar options.

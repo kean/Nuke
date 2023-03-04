@@ -36,6 +36,8 @@ extension PrefetchingDemoViewController: UICollectionViewDataSourcePrefetching {
 }
 ```
 
+> Warning: If you are using any of the processors when displaying the images, e.g. ``ImageProcessors/Resize``, you need to use the same processors for prefetching. Otherwise, the prefetcher will bitmap and cache the original image, defeating the main purpose of prefetching to get images fully ready for display before the user even sees them.   
+
 This code sample comes straight from [Nuke Demo](https://github.com/kean/NukeDemo).
 
 Let's say, there are 32 items on the screen (the last row is partially visible). When you open it for the first time, the prefetch API asks the app to start prefetching for indices `[32-55]`. As you scroll, the prefetch "window" changes. You receive `cancelPrefetchingForItemsAt` calls for items no longer in the prefetch window.

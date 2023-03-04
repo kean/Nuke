@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
 @testable import Nuke
@@ -19,6 +19,8 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
 
     var events = [ImageTaskEvent]()
 
+    var onTaskCreated: ((ImageTask) -> Void)?
+
     private let lock = NSLock()
 
     private func append(_ event: ImageTaskEvent) {
@@ -27,32 +29,33 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
         lock.unlock()
     }
 
-    func imageTaskCreated(_ task: ImageTask) {
+    func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {
+        onTaskCreated?(task)
         append(.created)
     }
 
-    func imageTaskDidStart(_ task: ImageTask) {
+    func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
         startedTaskCount += 1
         NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
         append(.started)
     }
 
-    func imageTaskDidCancel(_ task: ImageTask) {
+    func imageTaskDidCancel(_ task: ImageTask, pipeline: ImagePipeline) {
         append(.cancelled)
 
         cancelledTaskCount += 1
         NotificationCenter.default.post(name: ImagePipelineObserver.didCancelTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])
     }
 
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress) {
+    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress, pipeline: ImagePipeline) {
         append(.progressUpdated(completedUnitCount: progress.completed, totalUnitCount: progress.total))
     }
 
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse) {
+    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse, pipeline: ImagePipeline) {
         append(.intermediateResponseReceived(response: response))
     }
 
-    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>) {
+    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>, pipeline: ImagePipeline) {
         append(.completed(result: result))
 
         completedTaskCount += 1

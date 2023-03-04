@@ -20,7 +20,7 @@ jobs:
         run: |
           Scripts/test.sh -s "Nuke" -d "OS=16.1,name=iPhone 14 Pro"
           Scripts/test.sh -s "NukeUI" -d "OS=16.1,name=iPhone 14 Pro"
-          Scripts/test.sh -s "Nuke Extensions" -d "OS=16.1,name=iPhone 14 Pro"
+          Scripts/test.sh -s "NukeExtensions" -d "OS=16.1,name=iPhone 14 Pro"
   macos-latest:
     name: Unit Tests (macOS, Xcode 14.1)
     runs-on: macOS-12
@@ -32,7 +32,7 @@ jobs:
         run: |
           Scripts/test.sh -s "Nuke" -d "arch=x86_64"
           Scripts/test.sh -s "NukeUI" -d "arch=x86_64"
-          Scripts/test.sh -s "Nuke Extensions" -d "arch=x86_64"
+          Scripts/test.sh -s "NukeExtensions" -d "arch=x86_64"
   tvos-latest:
     name: Unit Tests (tvOS 16.1, Xcode 14.1)
     runs-on: macOS-12
@@ -44,7 +44,7 @@ jobs:
         run: |
           Scripts/test.sh -s "Nuke" -d "OS=16.1,name=Apple TV"
           Scripts/test.sh -s "NukeUI" -d "OS=16.1,name=Apple TV"
-          Scripts/test.sh -s "Nuke Extensions" -d "OS=16.1,name=Apple TV"
+          Scripts/test.sh -s "NukeExtensions" -d "OS=16.1,name=Apple TV"
 # There is a problem with watchOS runners where they often fail to launch on CI
 #
 #  watchos-latest:
@@ -70,7 +70,7 @@ jobs:
         run: |
           Scripts/test.sh -s "Nuke" -d "OS=15.5,name=iPhone 13 Pro"
           Scripts/test.sh -s "NukeUI" -d "OS=15.5,name=iPhone 13 Pro"
-          Scripts/test.sh -s "Nuke Extensions" -d "OS=15.5,name=iPhone 13 Pro"
+          Scripts/test.sh -s "NukeExtensions" -d "OS=15.5,name=iPhone 13 Pro"
   ios-xcode-13-2:
     name: Unit Tests (iOS 15.4, Xcode 13.3.1)
     runs-on: macOS-12
@@ -82,7 +82,7 @@ jobs:
         run: |
           Scripts/test.sh -s "Nuke" -d "OS=15.4,name=iPhone 13 Pro"
           Scripts/test.sh -s "NukeUI" -d "OS=15.4,name=iPhone 13 Pro"
-          Scripts/test.sh -s "Nuke Extensions" -d "OS=15.4,name=iPhone 13 Pro"
+          Scripts/test.sh -s "NukeExtensions" -d "OS=15.4,name=iPhone 13 Pro"
   ios-thread-safety:
     name: Thread Safety Tests (TSan Enabled)
     runs-on: macOS-12

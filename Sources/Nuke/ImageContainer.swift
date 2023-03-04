@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 #if !os(watchOS)
 import AVKit
@@ -20,13 +20,13 @@ public typealias PlatformImage = NSImage
 
 /// An image container with an image and associated metadata.
 public struct ImageContainer: @unchecked Sendable {
-    #if os(macOS)
+#if os(macOS)
     /// A fetched image.
     public var image: NSImage
-    #else
+#else
     /// A fetched image.
     public var image: UIImage
-    #endif
+#endif
 
     /// An image type.
     public var type: AssetType?
@@ -44,11 +44,6 @@ public struct ImageContainer: @unchecked Sendable {
     /// in the memory cache.
     public var data: Data?
 
-    #if !os(watchOS)
-    /// Represents in-memory video asset.
-    public var asset: AVAsset?
-    #endif
-
     /// An metadata provided by the user.
     public var userInfo: [UserInfoKey: Any]
 
@@ -59,12 +54,6 @@ public struct ImageContainer: @unchecked Sendable {
         self.isPreview = isPreview
         self.data = data
         self.userInfo = userInfo
-
-        #if !os(watchOS)
-        if type?.isVideo == true {
-            self.asset = data.flatMap { AVDataAsset(data: $0, type: type) }
-        }
-        #endif
     }
 
     func map(_ closure: (PlatformImage) throws -> PlatformImage) rethrows -> ImageContainer {

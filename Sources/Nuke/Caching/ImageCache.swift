@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 #if !os(macOS)
@@ -57,22 +57,12 @@ public final class ImageCache: ImageCaching {
     /// Shared `Cache` instance.
     public static let shared = ImageCache()
 
-    deinit {
-        #if TRACK_ALLOCATIONS
-        Allocations.decrement("ImageCache")
-        #endif
-    }
-
     /// Initializes `Cache`.
     /// - parameter costLimit: Default value represents a number of bytes and is
     /// calculated based on the amount of the physical memory available on the device.
     /// - parameter countLimit: `Int.max` by default.
     public init(costLimit: Int = ImageCache.defaultCostLimit(), countLimit: Int = Int.max) {
         impl = Cache(costLimit: costLimit, countLimit: countLimit)
-
-        #if TRACK_ALLOCATIONS
-        Allocations.increment("ImageCache")
-        #endif
     }
 
     /// Returns a recommended cost limit which is computed based on the amount
@@ -80,8 +70,8 @@ public final class ImageCache: ImageCaching {
     public static func defaultCostLimit() -> Int {
         let physicalMemory = ProcessInfo.processInfo.physicalMemory
         let ratio = physicalMemory <= (536_870_912 /* 512 Mb */) ? 0.1 : 0.2
-        let limit = physicalMemory / UInt64(1 / ratio)
-        return limit > UInt64(Int.max) ? Int.max : Int(limit)
+        let limit = min(536_870_912, physicalMemory / UInt64(1 / ratio))
+        return Int(limit)
     }
 
     public subscript(key: ImageCacheKey) -> ImageContainer? {

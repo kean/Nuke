@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -37,7 +37,7 @@ public enum ImageProcessingOptions: Sendable {
     public struct Border: Hashable, CustomStringConvertible, @unchecked Sendable {
         public let width: CGFloat
 
-        #if os(iOS) || os(tvOS) || os(watchOS)
+#if os(iOS) || os(tvOS) || os(watchOS)
         public let color: UIColor
 
         /// - parameters:
@@ -48,7 +48,7 @@ public enum ImageProcessingOptions: Sendable {
             self.color = color
             self.width = width.converted(to: unit)
         }
-        #else
+#else
         public let color: NSColor
 
         /// - parameters:
@@ -59,10 +59,28 @@ public enum ImageProcessingOptions: Sendable {
             self.color = color
             self.width = width.converted(to: unit)
         }
-        #endif
+#endif
 
         public var description: String {
             "Border(color: \(color.hex), width: \(width) pixels)"
+        }
+    }
+
+    /// An option for how to resize the image.
+    public enum ContentMode: CustomStringConvertible, Sendable {
+        /// Scales the image so that it completely fills the target area.
+        /// Maintains the aspect ratio of the original image.
+        case aspectFill
+
+        /// Scales the image so that it fits the target size. Maintains the
+        /// aspect ratio of the original image.
+        case aspectFit
+
+        public var description: String {
+            switch self {
+            case .aspectFill: return ".aspectFill"
+            case .aspectFit: return ".aspectFit"
+            }
         }
     }
 }

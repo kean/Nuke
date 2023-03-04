@@ -16,9 +16,9 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0C2CD78F25B7BF770017018F"
-               BuildableName = "Nuke Memory Management Tests.xctest"
-               BlueprintName = "Nuke Memory Management Tests"
+               BlueprintIdentifier = "0C55FD0328567875000FD2C9"
+               BuildableName = "NukeExtensions Unit Tests.xctest"
+               BlueprintName = "NukeExtensions Unit Tests"
                ReferencedContainer = "container:Nuke.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -34,18 +34,6 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <EnvironmentVariables>
-         <EnvironmentVariable
-            key = "NUKE_PRINT_ALL_ALLOCATIONS"
-            value = "true"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-         <EnvironmentVariable
-            key = "NUKE_ALLOCATIONS_PERIODIC_LOG"
-            value = "true"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

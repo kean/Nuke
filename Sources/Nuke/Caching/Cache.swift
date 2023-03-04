@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -53,20 +53,12 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
         self.memoryPressure.resume()
 
 #if os(iOS) || os(tvOS)
-        self.registerForEnterBackground()
-#endif
-
-#if TRACK_ALLOCATIONS
-        Allocations.increment("Cache")
+        registerForEnterBackground()
 #endif
     }
 
     deinit {
         memoryPressure.cancel()
-
-#if TRACK_ALLOCATIONS
-        Allocations.decrement("Cache")
-#endif
     }
 
 #if os(iOS) || os(tvOS)

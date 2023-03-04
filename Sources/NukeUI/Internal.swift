@@ -1,8 +1,9 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2021 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import Nuke
 
 #if !os(watchOS)
 
@@ -17,11 +18,11 @@ import Nuke
 
 #if os(macOS)
 public typealias _PlatformBaseView = NSView
-public typealias _PlatformImageView = NSImageView
+typealias _PlatformImageView = NSImageView
 typealias _PlatformColor = NSColor
 #else
 public typealias _PlatformBaseView = UIView
-public typealias _PlatformImageView = UIImageView
+typealias _PlatformImageView = UIImageView
 typealias _PlatformColor = UIColor
 #endif
 
@@ -87,28 +88,6 @@ extension NSColor {
 }
 #endif
 
-#if os(iOS) || os(tvOS)
-extension UIView.ContentMode {
-    // swiftlint:disable:next cyclomatic_complexity
-    init(resizingMode: ImageResizingMode) {
-        switch resizingMode {
-        case .fill: self = .scaleToFill
-        case .aspectFill: self = .scaleAspectFill
-        case .aspectFit: self = .scaleAspectFit
-        case .center: self = .center
-        case .top: self = .top
-        case .bottom: self = .bottom
-        case .left: self = .left
-        case .right: self = .right
-        case .topLeft: self = .topLeft
-        case .topRight: self = .topRight
-        case .bottomLeft: self = .bottomLeft
-        case .bottomRight: self = .bottomRight
-        }
-    }
-}
-#endif
-
 #endif
 
 #if os(tvOS) || os(watchOS)
@@ -120,3 +99,23 @@ extension UIColor {
     }
 }
 #endif
+
+func == (lhs: [any ImageProcessing], rhs: [any ImageProcessing]) -> Bool {
+    guard lhs.count == rhs.count else {
+        return false
+    }
+    // Lazily creates `hashableIdentifiers` because for some processors the
+    // identifiers might be expensive to compute.
+    return zip(lhs, rhs).allSatisfy {
+        $0.hashableIdentifier == $1.hashableIdentifier
+    }
+}
+
+extension ImageRequest {
+    var preferredImageId: String {
+        if !userInfo.isEmpty, let imageId = userInfo[.imageIdKey] as? String {
+            return imageId
+        }
+        return imageId ?? ""
+    }
+}

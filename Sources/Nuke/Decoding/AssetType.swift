@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2022 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -36,10 +36,6 @@ public struct AssetType: ExpressibleByStringLiteral, Hashable, Sendable {
     public static let m4v: AssetType = "public.m4v"
 
     public static let mov: AssetType = "public.mov"
-
-    public var isVideo: Bool {
-        self == .mp4 || self == .m4v || self == .mov
-    }
 }
 
 extension AssetType {
