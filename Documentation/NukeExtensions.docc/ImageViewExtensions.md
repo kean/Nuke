@@ -125,4 +125,4 @@ Nuke provides built-in implementations for `UIImageView` and `NSImageView`.
 
 ## Customizing Requests
 
-All the examples from this guide used ``NukeExtensions/loadImage(with:options:into:progress:completion:)`` with a `URL`. But you can have even more control over the image download by using `ImageRequest`. To learn more about `ImageRequest`, see the main Nuke documentation.
+All the examples from this guide used ``NukeExtensions/loadImage(with:options:into:completion:)-6ksm2`` with a `URL`. But you can have even more control over the image download by using `ImageRequest`. To learn more about `ImageRequest`, see the main Nuke documentation.
