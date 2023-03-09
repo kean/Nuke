@@ -109,7 +109,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
     }
     
     func testThatImagesAreRemovedOnCountLimitChange() {
-        // Givne
+        // Given
         cache.countLimit = 2
         
         cache[request1] = Test.container
