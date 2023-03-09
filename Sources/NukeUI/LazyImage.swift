@@ -240,7 +240,7 @@ private struct LazyImageDemoView: View {
                 }
             }
             .processors(isBlured ? [ImageProcessors.GaussianBlur()] : [])
-            .id(imageViewId) // Example of how to implement retyr
+            .id(imageViewId) // Example of how to implement retry
 
             Spacer()
             VStack(alignment: .leading, spacing: 16) {
