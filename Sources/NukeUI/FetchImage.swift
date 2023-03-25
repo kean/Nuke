@@ -74,6 +74,9 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// request. `[]` by default.
     public var processors: [any ImageProcessing] = []
 
+    /// Gets called when the current request is completed.
+    public var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
+
     private var imageTask: ImageTask?
     private var lastResponse: ImageResponse?
     private var cancellable: AnyCancellable?
@@ -163,6 +166,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             self.imageContainer = response.container
         }
         self.result = result
+        self.onCompletion?(result)
     }
 
     // MARK: Load (Async/Await)

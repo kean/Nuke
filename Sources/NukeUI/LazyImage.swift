@@ -25,6 +25,7 @@ public struct LazyImage<Content: View>: View {
     private var transaction: Transaction
     private var pipeline: ImagePipeline = .shared
     private var onDisappearBehavior: DisappearBehavior? = .cancel
+    private var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
 
     // MARK: Initializers
 
@@ -112,6 +113,11 @@ public struct LazyImage<Content: View>: View {
         map { $0.onDisappearBehavior = behavior }
     }
 
+    /// Gets called when the current request is completed.
+    public func onCompletion(_ closure: @escaping (Result<ImageResponse, Error>) -> Void) -> Self {
+        map { $0.onCompletion = closure }
+    }
+
     private func map(_ closure: (inout LazyImage) -> Void) -> Self {
         var copy = self
         closure(&copy)
@@ -172,6 +178,7 @@ public struct LazyImage<Content: View>: View {
     private func onAppear() {
         viewModel.transaction = transaction
         viewModel.pipeline = pipeline
+        viewModel.onCompletion = onCompletion
 
         guard viewModel.cachedResponse == nil else { return }
         viewModel.load(context?.request)
