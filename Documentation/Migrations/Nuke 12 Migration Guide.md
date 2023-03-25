@@ -158,3 +158,28 @@ struct ProgressView: View {
     }
 }
 ```
+
+## NukeVideo
+
+To enable video support, you'll now need to import the new `NukeVideo` framework to your project and register the video decoder.
+
+```swift
+ImageDecoderRegistry.shared.register(ImageDecoders.Video.init)
+```
+
+Here is an example of playing the video using `LazyImageView` (NukeUI) and `VideoPlayerView` (NukeVideo):
+
+```swift
+let imageView = LazyImageView()
+imageView.makeImageView = { container in
+    if let type = container.type, type.isVideo, let asset = container.userInfo[.videoAssetKey] as? AVAsset {
+        let view = VideoPlayerView()
+        view.asset = asset
+        view.play()
+        return view
+    }
+    return nil
+}
+
+imageView.url = /* video URL */
+```
