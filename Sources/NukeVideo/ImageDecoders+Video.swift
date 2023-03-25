@@ -30,7 +30,9 @@ extension ImageDecoders {
         }
 
         public func decode(_ data: Data) throws -> ImageContainer {
-            ImageContainer(image: PlatformImage(), type: type, data: data)
+            ImageContainer(image: PlatformImage(), type: type, data: data, userInfo: [
+                .videoAssetKey: AVDataAsset(data: data, type: type)
+            ])
         }
 
         public func decodePartiallyDownloadedData(_ data: Data) -> ImageContainer? {
