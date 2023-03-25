@@ -106,6 +106,13 @@ public final class LazyImageView: _PlatformBaseView {
     public let imageView = UIImageView()
 #endif
 
+    /// Creates a custom view for displaying the given image response.
+    ///
+    /// Return `nil` to use the default platform image view.
+    public var makeImageView: ((ImageContainer) -> _PlatformBaseView?)?
+
+    private var customImageView: _PlatformBaseView?
+
     // MARK: Managing Image Tasks
 
     /// Processors to be applied to the image. `nil` by default.
@@ -226,6 +233,8 @@ public final class LazyImageView: _PlatformBaseView {
         imageView.image = nil
         imageView.isHidden = true
 
+        customImageView?.removeFromSuperview()
+
         setPlaceholderViewHidden(true)
         setFailureViewHidden(true)
 
@@ -328,8 +337,14 @@ public final class LazyImageView: _PlatformBaseView {
     private func display(_ container: ImageContainer, isFromMemory: Bool) {
         resetIfNeeded()
 
-        imageView.image = container.image
-        imageView.isHidden = false
+        if let view = makeImageView?(container) {
+            addSubview(view)
+            view.pinToSuperview()
+            customImageView = view
+        } else {
+            imageView.image = container.image
+            imageView.isHidden = false
+        }
 
         if !isFromMemory, let transition = transition {
             runTransition(transition, container)
