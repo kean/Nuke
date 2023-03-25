@@ -1,5 +1,13 @@
 # Nuke 12
 
+## Nuke 12.1.0
+
+*Mar 25, 2023*
+
+- Add `makeImageView` closure to `LazyImageView` to allow using custom view for rendering images 
+- Fix an issue with `.videoAssetKey` value missing from `ImageContainer`
+- Fix an issue with `.gif` being encoded as `.jpeg` when `.storeEncodedImages` policy is used 
+
 ## Nuke 12.0.0
 
 *Mar 4, 2023*
