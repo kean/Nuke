@@ -2,7 +2,7 @@
 
 ## Creating a Pipeline
 
-You can start by using a ``ImagePipeline/shared`` pipeline and can create a custom one later if needed. To create a custom pipeline, you can use a convenience ``ImagePipeline/init(delegate:_:)`` initializer:
+You can start using a ``ImagePipeline/shared`` pipeline and create a custom one later if needed. To create a custom pipeline, you can use a convenience ``ImagePipeline/init(delegate:_:)`` initializer:
 
 ```swift
 ImagePipeline {
@@ -83,7 +83,7 @@ If progressive decoding is enabled, the pipeline attempts to produce a preview o
 
 When the pipeline downloads the first chunk of data, it creates an instance of a decoder used for the entire image loading session. When the new chunks are loaded, the pipeline passes them to the decoder. The decoder can either produce a preview or return `nil` if not enough data is downloaded.
 
-Every image preview goes through the same processing and decompression phases that the final images do. The main difference is the introduction of backpressure. If one of the stages can’t process the input fast enough, then the pipeline waits until the current operation is finished, and only then starts the next one. When the data is fully downloaded, all outstanding progressive operations are canceled to save processing time.
+Every image preview goes through the same processing and decompression phases as the final images. The main difference is the introduction of backpressure. If one of the stages can't process the input fast enough, the pipeline waits until the current operation is finished, and only then the next one starts. All outstanding progressive operations are canceled to save processing time when the data is fully downloaded.
 
 ## Topics
 

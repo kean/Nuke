@@ -46,7 +46,7 @@ let image = try await pipeline.image(for: request)
 
 Nuke has two cache layers: memory cache and disk cache.
 
-``ImageCache`` stores images prepared for display in memory. It uses a fraction of available RAM and automatically removes most of the cached images when the app goes to the background or receives a memory pressure warning.
+``ImageCache`` stores images prepared for display in memory. It uses a fraction of available RAM and automatically removes most cached images when the app goes to the background or receives a memory pressure warning.
 
 For caching data persistently, by default, Nuke uses [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) with an increased capacity. One of its advantages is HTTP [`cache-control`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) support.
 
@@ -56,15 +56,15 @@ You can also replace `URLCache` with a custom ``DataCache`` that ignores HTTP `c
 ImagePipeline.shared = ImagePipeline(configuration: .withDataCache)
 ```
 
-``DataCache`` is a bit faster than `URLCache` and provides more control. For example, it can be configured to store processed images using ``ImagePipeline/Configuration-swift.struct/dataCachePolicy``. The downside is that without HTTP `cache-control`, the images never get validated and if the URL content changes, the app will continue showing stale data.  
+``DataCache`` is faster than `URLCache` and provides more control. For example, it can be configured to store processed images using ``ImagePipeline/Configuration-swift.struct/dataCachePolicy``. The downside is that without HTTP `cache-control`, the images never get validated, and if the URL content changes, the app will continue showing stale data.  
 
 > Tip: To learn more about caching, see <doc:caching> section.
 
 ## Performance
 
-One of the key Nuke's features is performance. It does a lot by default: custom cache layers, coalescing of equivalent requests, resumable HTTP downloads, and more. But there are certain things that the user of the framework can also do to use it more effectively, for example, <doc:prefetching>. To learn more about what you can do to improve image loading performance in your apps, see <doc:performance-guide>.
+One of the key Nuke features is performance. It does a lot by default: custom cache layers, coalescing of equivalent requests, resumable HTTP downloads, and more. But there are certain things that the user of the framework can also do to use it more effectively, for example, <doc:prefetching>. To learn more about what you can do to improve image loading performance in your apps, see <doc:performance-guide>.
 
-In order to optimize performance, you need to be able to monitor it. And that's where [Pulse](https://github.com/kean/Pulse) network logging framework comes in handy. It is optimized for working with images and is easy to integrate:
+To optimize performance, you need to be able to monitor it. And that's where [Pulse](https://github.com/kean/Pulse) network logging framework comes in handy. It is optimized for working with images and is easy to integrate:
 
 ```swift
 (ImagePipeline.shared.configuration.dataLoader as? DataLoader)?.delegate = URLSessionProxyDelegate()
