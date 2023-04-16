@@ -159,6 +159,10 @@ struct ProgressView: View {
 }
 ```
 
+## Image Scale
+
+`ImageDecoder` now defaults to scale 1 for images (configurable using [UserInfoKey/scaleKey](https://kean-docs.github.io/nuke/documentation/nuke/imagerequest/userinfokey/scalekey/)).
+
 ## NukeVideo
 
 To enable video support, you'll now need to import the new `NukeVideo` framework to your project and register the video decoder.
