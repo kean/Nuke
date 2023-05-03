@@ -12,9 +12,9 @@ import XCTest
 #if os(iOS) || os(tvOS)
 class ImageProcessorsCircleTests: XCTestCase {
 
-    func _testThatImageIsCroppedToSquareAutomatically() throws {
+    func testThatImageIsCroppedToSquareAutomatically() throws {
         // Given
-        let input = Test.image(named: "fixture-tiny.jpeg")
+        let input = Test.image(named: "fixture-tiny_1.jpeg")
         let processor = ImageProcessors.Circle()
 
         // When
