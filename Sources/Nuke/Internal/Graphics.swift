@@ -82,8 +82,8 @@ struct ImageProcessingExtensions {
         let side = min(cgImage.width, cgImage.height)
         let targetSize = CGSize(width: side, height: side)
         let cropRect = CGRect(origin: .zero, size: targetSize).offsetBy(
-            dx: max(0, (imageSize.width - targetSize.width) / 2),
-            dy: max(0, (imageSize.height - targetSize.height) / 2)
+            dx: max(0, (imageSize.width - targetSize.width) / 2).rounded(.down),
+            dy: max(0, (imageSize.height - targetSize.height) / 2).rounded(.down)
         )
         guard let cropped = cgImage.cropping(to: cropRect) else {
             return nil
