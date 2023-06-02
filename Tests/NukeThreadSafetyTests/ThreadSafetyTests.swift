@@ -129,7 +129,7 @@ class ThreadSafetyTests: XCTestCase {
         
         for _ in 0..<10000 {
             queue.addOperation {
-                ops.randomItem()()
+                ops.randomElement()?()
             }
         }
         
@@ -219,7 +219,7 @@ final class RandomizedTests: XCTestCase {
         }
         
         func randomSleep() {
-            let ms = TimeInterval(arc4random_uniform(100)) / 1000.0
+            let ms = TimeInterval.random(in: 0 ..< 100) / 1000.0
             Thread.sleep(forTimeInterval: ms)
         }
         
