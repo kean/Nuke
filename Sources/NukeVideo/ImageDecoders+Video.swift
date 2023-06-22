@@ -60,12 +60,16 @@ extension ImageContainer.UserInfoKey {
 }
 
 private func makePreview(for data: Data, type: AssetType) -> PlatformImage? {
+#if os(xrOS)
+    return nil
+#else
     let asset = AVDataAsset(data: data, type: type)
     let generator = AVAssetImageGenerator(asset: asset)
     guard let cgImage = try? generator.copyCGImage(at: CMTime(value: 0, timescale: 1), actualTime: nil) else {
         return nil
     }
     return PlatformImage(cgImage: cgImage)
+#endif
 }
 
 #endif
