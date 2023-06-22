@@ -12,7 +12,7 @@ enum ImageDecompression {
 
     // MARK: Managing Decompression State
 
-    static var isDecompressionNeededAK = "ImageDecompressor.isDecompressionNeeded.AssociatedKey"
+    static var isDecompressionNeededAK: UInt8 = 0
 
     static func setDecompressionNeeded(_ isDecompressionNeeded: Bool, for image: PlatformImage) {
         objc_setAssociatedObject(image, &isDecompressionNeededAK, isDecompressionNeeded, .OBJC_ASSOCIATION_RETAIN)

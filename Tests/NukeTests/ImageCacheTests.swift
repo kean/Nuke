@@ -85,7 +85,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
     func testThatItemsAreRemoveImmediatelyWhenCountLimitIsReached() {
         // Given
         cache.countLimit = 1
-        
+
         // When
         cache[request1] = Test.container
         cache[request2] = Test.container

@@ -6,6 +6,7 @@
 import UIKit
 #else
 import Cocoa
+import AppKit
 #endif
 
 import ImageIO

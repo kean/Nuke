@@ -8,8 +8,12 @@ import Foundation
 import UIKit
 #endif
 
-#if os(macOS)
-import Cocoa
+#if canImport(UIKit)
+import UIKit
+#endif
+
+#if canImport(AppKit)
+import AppKit
 #endif
 
 /// A namespace for all processors that implement ``ImageProcessing`` protocol.

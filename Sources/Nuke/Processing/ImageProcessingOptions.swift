@@ -10,6 +10,7 @@ import UIKit
 
 #if os(macOS)
 import Cocoa
+import AppKit
 #endif
 
 /// A namespace with shared image processing options.
