@@ -266,6 +266,7 @@
 		0CF5456B25B39A0E00B45F1E /* left-orientation.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0CF5456A25B39A0E00B45F1E /* left-orientation.jpeg */; };
 		0CF58FF726DAAC3800D2650D /* ImageDownsampleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF58FF626DAAC3800D2650D /* ImageDownsampleTests.swift */; };
 		2DFD93B0233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DFD93AF233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift */; };
+		4480674C2A448C9F00DE7CF8 /* DataPublisherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4480674B2A448C9F00DE7CF8 /* DataPublisherTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -537,6 +538,7 @@
 		0CF5456A25B39A0E00B45F1E /* left-orientation.jpeg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "left-orientation.jpeg"; sourceTree = "<group>"; };
 		0CF58FF626DAAC3800D2650D /* ImageDownsampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDownsampleTests.swift; sourceTree = "<group>"; };
 		2DFD93AF233A6AB300D84DB9 /* ImagePipelineProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineProcessorTests.swift; sourceTree = "<group>"; };
+		4480674B2A448C9F00DE7CF8 /* DataPublisherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataPublisherTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -709,6 +711,7 @@
 			isa = PBXGroup;
 			children = (
 				0C1E620A1D6F817700AD5CF5 /* ImageRequestTests.swift */,
+				4480674B2A448C9F00DE7CF8 /* DataPublisherTests.swift */,
 				0C7C06871BCA888800089D7F /* ImageCacheTests.swift */,
 				0C70D9772089017500A49DAC /* ImageDecoderTests.swift */,
 				0C68F608208A1F40007DC696 /* ImageDecoderRegistryTests.swift */,
@@ -1617,6 +1620,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4480674C2A448C9F00DE7CF8 /* DataPublisherTests.swift in Sources */,
 				0CD37C9A25BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift in Sources */,
 				0C75279F1D473AEF00EC6222 /* MockImageProcessor.swift in Sources */,
 				0C69FA4E1D4E222D00DA9982 /* ImagePrefetcherTests.swift in Sources */,
