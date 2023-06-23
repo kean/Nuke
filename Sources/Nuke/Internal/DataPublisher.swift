@@ -34,17 +34,18 @@ final class DataPublisher {
 }
 
 private func publisher(from closure: @Sendable @escaping () async throws -> Data) -> AnyPublisher<Data, Error> {
-    let subject = PassthroughSubject<Data, Error>()
-    Task {
-        do {
-            let data = try await closure()
-            subject.send(data)
-            subject.send(completion: .finished)
-        } catch {
-            subject.send(completion: .failure(error))
+    Deferred {
+        Future { promise in
+            Task {
+                do {
+                    let data = try await closure()
+                    promise(.success(data))
+                } catch {
+                    promise(.failure(error))
+                }
+            }
         }
-    }
-    return subject.eraseToAnyPublisher()
+    }.eraseToAnyPublisher()
 }
 
 enum PublisherCompletion {
