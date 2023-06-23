@@ -17,7 +17,7 @@ extension PlatformImage {
 }
 
 private enum AssociatedKeys {
-    static var ProcessorIDs = "nk_test_processorIDs"
+    static var ProcessorIDs: UInt8 = 0
 }
 
 // MARK: - MockImageProcessor

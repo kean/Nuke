@@ -34,7 +34,7 @@ extension XCTestCase {
         return record
     }
 
-    private static var cancellablesAK = "TestExpectationPublisher.AssociatedKey"
+    private static var cancellablesAK: UInt8 = 0
 
     fileprivate var cancellables: [AnyCancellable] {
         get { (objc_getAssociatedObject(self, &XCTestCase.cancellablesAK) as? [AnyCancellable]) ?? [] }
@@ -98,7 +98,7 @@ extension XCTestCase {
         observations.append(observation)
     }
 
-    private static var observationsAK = "ImageViewController.AssociatedKey"
+    private static var observationsAK: UInt8 = 0
 
     private var observations: [NSKeyValueObservation] {
         get {
