@@ -2,10 +2,12 @@
 //
 // Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
-#if !os(macOS)
+#if canImport(UIKit)
 import UIKit
-#else
-import Cocoa
+#endif
+
+#if canImport(AppKit)
+import AppKit
 #endif
 
 import ImageIO

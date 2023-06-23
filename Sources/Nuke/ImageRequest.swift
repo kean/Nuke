@@ -6,6 +6,14 @@ import Foundation
 import Combine
 import CoreGraphics
 
+#if canImport(UIKit)
+import UIKit
+#endif
+
+#if canImport(AppKit)
+import AppKit
+#endif
+
 /// Represents an image request that specifies what images to download, how to
 /// process them, set the request priority, and more.
 ///
