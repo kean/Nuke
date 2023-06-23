@@ -1,5 +1,12 @@
 # Nuke 12
 
+## Nuke 12.1.1
+
+*Jun 22, 2023*
+
+- Fix #693: `ImageRequest` created with an async function now executes it lazily - #708 by @khlopko
+- Fix upcoming warnings in Xcode 15
+
 ## Nuke 12.1.0
 
 *Mar 25, 2023*
