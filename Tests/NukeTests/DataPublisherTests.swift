@@ -12,7 +12,9 @@ internal final class DataPublisherTests: XCTestCase {
 
     func testInitNotStartsExecutionRightAway() {
         let operation = MockOperation()
-        let publisher = DataPublisher(id: UUID().uuidString, { await operation.execute() })
+        let publisher = DataPublisher(id: UUID().uuidString) {
+            await operation.execute()
+        }
 
         XCTAssertEqual(0, operation.executeCalls)
 
