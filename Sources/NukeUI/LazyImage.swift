@@ -246,7 +246,9 @@ private struct LazyImageDemoView: View {
                     image.resizable().aspectRatio(contentMode: .fit)
                 }
             }
+#if !os(watchOS)
             .processors(isBlured ? [ImageProcessors.GaussianBlur()] : [])
+#endif
             .id(imageViewId) // Example of how to implement retry
 
             Spacer()
@@ -262,7 +264,9 @@ private struct LazyImageDemoView: View {
                 Toggle("Apply Blur", isOn: $isBlured)
             }
             .padding()
+#if !os(watchOS)
             .background(Material.ultraThick)
+#endif
         }
     }
 }
