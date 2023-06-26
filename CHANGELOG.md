@@ -1,10 +1,18 @@
 # Nuke 12
 
+## Nuke 12.1.2
+
+*Jun 25, 2023*
+
+- Fix https://github.com/kean/Nuke/issues/710: build failure on watchOS in debug mode – https://github.com/kean/Nuke/pull/711 by @FieryFlames
+
 ## Nuke 12.1.1
 
 *Jun 22, 2023*
 
-- Fix #693: `ImageRequest` created with an async function now executes it lazily - #708 by @khlopko
+- Fix https://github.com/kean/Nuke/issues/693: `ImageRequest` created with an async function now executes it lazily - https://github.com/kean/Nuke/pull/708 by @khlopko
+- Fix https://github.com/kean/Nuke/issues/695: `byCroppingToSquare()` always return square image – https://github.com/kean/Nuke/pull/696 by @zzmasoud
+- Update unit tests – https://github.com/kean/Nuke/pull/701 by @woxtu 
 - Fix upcoming warnings in Xcode 15
 
 ## Nuke 12.1.0
