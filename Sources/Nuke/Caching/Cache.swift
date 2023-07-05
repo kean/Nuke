@@ -20,8 +20,8 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
     }
 
     var conf: Configuration {
-        get { lock.sync { _conf } }
-        set { lock.sync { _conf = newValue } }
+        get { lock.withLock { _conf } }
+        set { lock.withLock { _conf = newValue } }
     }
 
     private var _conf: Configuration {
@@ -29,11 +29,11 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
     }
 
     var totalCost: Int {
-        lock.sync { _totalCost }
+        lock.withLock { _totalCost }
     }
 
     var totalCount: Int {
-        lock.sync { map.count }
+        lock.withLock { map.count }
     }
 
     private var _totalCost = 0
@@ -160,7 +160,7 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
     }
 
     func trim(toCost limit: Int) {
-        lock.sync { _trim(toCost: limit) }
+        lock.withLock { _trim(toCost: limit) }
     }
 
     private func _trim(toCost limit: Int) {
@@ -168,7 +168,7 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
     }
 
     func trim(toCount limit: Int) {
-        lock.sync { _trim(toCount: limit) }
+        lock.withLock { _trim(toCount: limit) }
     }
 
     private func _trim(toCount limit: Int) {
