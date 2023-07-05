@@ -27,14 +27,6 @@ extension String {
     }
 }
 
-extension NSLock {
-    func sync<T>(_ closure: () -> T) -> T {
-        lock()
-        defer { unlock() }
-        return closure()
-    }
-}
-
 extension URL {
     var isLocalResource: Bool {
         scheme == "file" || scheme == "data"

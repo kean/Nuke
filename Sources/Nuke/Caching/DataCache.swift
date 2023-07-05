@@ -251,9 +251,9 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// operations for the given key are finished.
     public func flush(for key: String) {
         queue.sync {
-            guard let change = lock.sync({ staging.changes[key] }) else { return }
+            guard let change = lock.withLock({ staging.changes[key] }) else { return }
             perform(change)
-            lock.sync { staging.flushed(change) }
+            lock.withLock { staging.flushed(change) }
         }
     }
 
