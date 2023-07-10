@@ -81,10 +81,6 @@ public final class FetchImage: ObservableObject, Identifiable {
     private var lastResponse: ImageResponse?
     private var cancellable: AnyCancellable?
 
-    // Used only as `LazyImage` optimization.
-    var isCacheLookupNeeded = true
-    var cachedResponse: ImageResponse?
-
     deinit {
         imageTask?.cancel()
     }
@@ -118,7 +114,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         }
 
         // Quick synchronous memory cache lookup
-        if let image = pipeline.cache[request], isCacheLookupNeeded {
+        if let image = pipeline.cache[request] {
             if image.isPreview {
                 imageContainer = image // Display progressive image
             } else {

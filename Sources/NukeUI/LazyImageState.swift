@@ -47,12 +47,3 @@ extension LazyImageState {
 }
 
 extension FetchImage: LazyImageState {}
-
-struct LazyImageStateCached: LazyImageState {
-    var response: ImageResponse
-
-    var result: Result<ImageResponse, Error>? { .success(response) }
-    var imageContainer: ImageContainer? { response.container }
-    var isLoading: Bool { false }
-    var progress: FetchImage.Progress { .init() }
-}
