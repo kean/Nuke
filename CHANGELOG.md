@@ -1,5 +1,11 @@
 # Nuke 12
 
+## Nuke 12.1.3
+
+*Jul 10, 2023*
+
+- Fix https://github.com/kean/Nuke/issues/709: `LazyImage` fails to perform memory cache lookup in some scenarios
+
 ## Nuke 12.1.2
 
 *Jun 25, 2023*
