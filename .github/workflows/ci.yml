@@ -10,46 +10,46 @@ on:
 
 jobs:
   ios-latest:
-    name: Unit Tests (iOS 16.1, Xcode 14.1)
-    runs-on: macOS-12
-    env: 
-      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
+    name: Unit Tests (iOS 16.4, Xcode 14.3.1)
+    runs-on: macOS-13
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "OS=16.1,name=iPhone 14 Pro"
-          Scripts/test.sh -s "NukeUI" -d "OS=16.1,name=iPhone 14 Pro"
-          Scripts/test.sh -s "NukeExtensions" -d "OS=16.1,name=iPhone 14 Pro"
+          Scripts/test.sh -s "Nuke" -d "OS=16.4,name=iPhone 14 Pro"
+          Scripts/test.sh -s "NukeUI" -d "OS=16.4,name=iPhone 14 Pro"
+          Scripts/test.sh -s "NukeExtensions" -d "OS=16.4,name=iPhone 14 Pro"
   macos-latest:
-    name: Unit Tests (macOS, Xcode 14.1)
-    runs-on: macOS-12
+    name: Unit Tests (macOS, Xcode 14.3.1)
+    runs-on: macOS-13
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "arch=x86_64"
-          Scripts/test.sh -s "NukeUI" -d "arch=x86_64"
-          Scripts/test.sh -s "NukeExtensions" -d "arch=x86_64"
+          Scripts/test.sh -s "Nuke" -d "platform=macOS"
+          Scripts/test.sh -s "NukeUI" -d "platform=macOS"
+          Scripts/test.sh -s "NukeExtensions" -d "platform=macOS"
   tvos-latest:
-    name: Unit Tests (tvOS 16.1, Xcode 14.1)
-    runs-on: macOS-12
+    name: Unit Tests (tvOS 16.4, Xcode 14.3.1)
+    runs-on: macOS-13
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "OS=16.1,name=Apple TV"
-          Scripts/test.sh -s "NukeUI" -d "OS=16.1,name=Apple TV"
-          Scripts/test.sh -s "NukeExtensions" -d "OS=16.1,name=Apple TV"
+          Scripts/test.sh -s "Nuke" -d "OS=16.4,name=Apple TV"
+          Scripts/test.sh -s "NukeUI" -d "OS=16.4,name=Apple TV"
+          Scripts/test.sh -s "NukeExtensions" -d "OS=16.4,name=Apple TV"
 # There is a problem with watchOS runners where they often fail to launch on CI
 #
 #  watchos-latest:
 #    name: Unit Tests (watchOS 9.1, Xcode 14.1)
-#    runs-on: macOS-12
+#    runs-on: macOS-13
 #    env:
 #      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
 #    steps:
@@ -59,42 +59,30 @@ jobs:
 #          Scripts/test.sh -s "Nuke" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
 #          Scripts/test.sh -s "NukeUI" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
 #          Scripts/test.sh -s "Nuke Extensions" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
-  ios-xcode-13:
-    name: Unit Tests (iOS 15.5, Xcode 13.4.1)
-    runs-on: macOS-12
+  ios-xcode-14-1:
+    name: Unit Tests (iOS 16.1, Xcode 14.1)
+    runs-on: macOS-13
     env:
-      DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "OS=15.5,name=iPhone 13 Pro"
-          Scripts/test.sh -s "NukeUI" -d "OS=15.5,name=iPhone 13 Pro"
-          Scripts/test.sh -s "NukeExtensions" -d "OS=15.5,name=iPhone 13 Pro"
-  ios-xcode-13-2:
-    name: Unit Tests (iOS 15.4, Xcode 13.3.1)
-    runs-on: macOS-12
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_13.3.1.app/Contents/Developer
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run Tests
-        run: |
-          Scripts/test.sh -s "Nuke" -d "OS=15.4,name=iPhone 13 Pro"
-          Scripts/test.sh -s "NukeUI" -d "OS=15.4,name=iPhone 13 Pro"
-          Scripts/test.sh -s "NukeExtensions" -d "OS=15.4,name=iPhone 13 Pro"
+          Scripts/test.sh -s "Nuke" -d "OS=16.1,name=iPhone 14 Pro"
+          Scripts/test.sh -s "NukeUI" -d "OS=16.1,name=iPhone 14 Pro"
+          Scripts/test.sh -s "NukeExtensions" -d "OS=16.1,name=iPhone 14 Pro"
   ios-thread-safety:
     name: Thread Safety Tests (TSan Enabled)
-    runs-on: macOS-12
+    runs-on: macOS-13
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=15.5,name=iPhone 13 Pro"
+        run: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=16.4,name=iPhone 14 Pro"
 #  ios-memory-management-tests:
 #    name: Memory Management Tests
-#    runs-on: macOS-12
+#    runs-on: macOS-13
 #    env:
 #      DEVELOPER_DIR: /Applications/Xcode_13.0.app/Contents/Developer
 #    steps:
@@ -103,27 +91,27 @@ jobs:
 #        run: Scripts/test.sh -s "Nuke Memory Management Tests" -d "OS=14.4,name=iPhone 12 Pro"
   ios-performance-tests:
     name: Performance Tests
-    runs-on: macOS-12
+    runs-on: macOS-13
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=15.5,name=iPhone 13 Pro"
+        run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=16.4,name=iPhone 14 Pro"
   swift-build:
     name: Swift Build (SPM)
-    runs-on: macOS-12
+    runs-on: macOS-13
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Build
         run: swift build
   discover-typos:
     name: Discover Typos
-    runs-on: macOS-12
+    runs-on: macOS-13
     env:
-      DEVELOPER_DIR: /Applications/Xcode_13.4.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Discover typos
