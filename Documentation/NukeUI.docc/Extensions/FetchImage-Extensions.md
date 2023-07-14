@@ -15,7 +15,7 @@ struct ImageView: View {
     var body: some View {
         ZStack {
             Rectangle().fill(Color.gray)
-            image.view?
+            image.image?
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .clipped()
