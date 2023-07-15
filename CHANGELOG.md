@@ -1,5 +1,11 @@
 # Nuke 12
 
+## Nuke 12.1.4
+
+*Upcoming*
+
+- Upgrade to [`CryptoKit`](https://developer.apple.com/documentation/cryptokit) from `CommonCrypto` and optimize how cryptographic hashes are converted to strings (used as filenames in `DataCache`)
+
 ## Nuke 12.1.3
 
 *Jul 10, 2023*

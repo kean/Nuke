@@ -113,7 +113,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// A `FilenameGenerator` implementation which uses SHA1 hash function to
     /// generate a filename from the given key.
     public static func filename(for key: String) -> String? {
-        key.sha1
+        key.isEmpty ? nil : key.sha1
     }
 
     private func didInit() throws {

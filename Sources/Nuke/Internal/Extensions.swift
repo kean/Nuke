@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import CryptoKit
 import CommonCrypto
 
 extension String {
@@ -13,17 +14,15 @@ extension String {
     /// // prints "50334ee0b51600df6397ce93ceed4728c37fee4e"
     /// ```
     var sha1: String? {
-        guard !isEmpty, let input = self.data(using: .utf8) else {
+        guard let input = self.data(using: .utf8) else {
             return nil
         }
-
-        let hash = input.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> [UInt8] in
-            var hash = [UInt8](repeating: 0, count: Int(CC_SHA1_DIGEST_LENGTH))
-            CC_SHA1(bytes.baseAddress, CC_LONG(input.count), &hash)
-            return hash
+        let digest = Insecure.SHA1.hash(data: input)
+        var output = ""
+        for byte in digest {
+            output.append(String(format: "%02x", byte))
         }
-
-        return hash.map({ String(format: "%02x", $0) }).joined()
+        return output
     }
 }
 
