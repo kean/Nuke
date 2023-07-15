@@ -19,6 +19,7 @@ extension ImageProcessors {
         private let crop: Bool
         private let upscale: Bool
 
+        // Deprecated in Nuke 12.0
         @available(*, deprecated, message: "Renamed to `ImageProcessingOptions.ContentMode")
         public typealias ContentMode = ImageProcessingOptions.ContentMode
 
