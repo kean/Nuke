@@ -47,19 +47,6 @@ class DataCachePeformanceTests: XCTestCase {
         }
     }
 
-    func testReadFlushedPerformanceWithCompression() {
-        cache.isCompressionEnabled = true
-        count = 100
-
-        populate()
-
-        measure {
-            for idx in 0..<count {
-                _ = self.cache["\(idx)"]
-            }
-        }
-    }
-
     func populate() {
         for idx in 0..<count {
             cache["\(idx)"] = generateRandomData()

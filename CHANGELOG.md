@@ -1,10 +1,11 @@
 # Nuke 12
 
-## Nuke 12.1.4
+## Nuke 12.2
 
 *Upcoming*
 
 - Upgrade to [`CryptoKit`](https://developer.apple.com/documentation/cryptokit) from `CommonCrypto` and optimize how cryptographic hashes are converted to strings (used as filenames in `DataCache`)
+- Deprecate `DataCache/isCompressionEnabled`. It was initially added as a general-purpose feature, but it's not recommended to be used with most image formats.
 
 ## Nuke 12.1.3
 
@@ -27,7 +28,7 @@
 - Update unit tests – https://github.com/kean/Nuke/pull/701 by @woxtu 
 - Fix upcoming warnings in Xcode 15
 
-## Nuke 12.1.0
+## Nuke 12.1
 
 *Mar 25, 2023*
 
@@ -36,7 +37,7 @@
 - Fix an issue with `.videoAssetKey` value missing from `ImageContainer`
 - Fix an issue with `.gif` being encoded as `.jpeg` when `.storeEncodedImages` policy is used 
 
-## Nuke 12.0.0
+## Nuke 12.0
 
 *Mar 4, 2023*
 

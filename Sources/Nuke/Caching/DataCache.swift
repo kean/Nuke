@@ -57,16 +57,13 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// other subsystems for the resources.
     private var initialSweepDelay: TimeInterval = 10
 
-    /// Enables compression. Disabled by default.
-    ///
-    /// Enabling compression significantly decreases disk usage allowing you
-    /// to store more images or reduce the cache size limit.
-    ///
-    /// - warning: There is a significant performance hit associated with compression.
-    ///
-    /// - note: If enabled, uses `lzfse` compression algorithm that offers
-    /// optimal performance on Apple platforms.
-    public var isCompressionEnabled = false
+    // Deprecated in Nuke 12.2
+    @available(*, deprecated, message: "It's not recommended to use compression with the popular image formats that already compress the data")
+    public var isCompressionEnabled: Bool {
+        get { _isCompressionEnabled }
+        set { _isCompressionEnabled = newValue }
+    }
+    var _isCompressionEnabled = false
 
     // Staging
 
@@ -333,14 +330,14 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     // MARK: Compression
 
     private func compressed(_ data: Data) throws -> Data {
-        guard isCompressionEnabled else {
+        guard _isCompressionEnabled else {
             return data
         }
         return try (data as NSData).compressed(using: .lzfse) as Data
     }
 
     private func decompressed(_ data: Data) throws -> Data {
-        guard isCompressionEnabled else {
+        guard _isCompressionEnabled else {
             return data
         }
         return try (data as NSData).decompressed(using: .lzfse) as Data

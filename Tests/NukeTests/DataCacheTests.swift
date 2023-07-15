@@ -333,23 +333,6 @@ class DataCacheTests: XCTestCase {
         XCTAssertEqual(data, blob)
     }
 
-    // MARK: Compression
-
-    func testCompression() throws {
-        // GIVEN
-        cache.isCompressionEnabled = true
-
-        // WHEN
-        cache["key"] = Test.data
-        XCTAssertEqual(cache["key"], Test.data)
-        cache.flush()
-        XCTAssertEqual(cache["key"], Test.data)
-
-        // THEN
-        let raw = try Data(contentsOf: XCTUnwrap(cache.url(for: "key")))
-        XCTAssertTrue(raw.count < Test.data.count)
-    }
-
     // MARK: Flush
 
     func testFlush() {
