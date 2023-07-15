@@ -230,9 +230,7 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     /// Returns `url` for the given cache key.
     public func url(for key: String) -> URL? {
-        guard let filename = self.filename(for: key) else {
-            return nil
-        }
+        guard let filename = self.filename(for: key) else { return nil }
         return self.path.appendingPathComponent(filename, isDirectory: false)
     }
 

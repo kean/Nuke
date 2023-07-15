@@ -22,6 +22,43 @@ class DataCachePeformanceTests: XCTestCase {
         try? FileManager.default.removeItem(at: cache.path)
     }
 
+    // MARK: - Write
+
+    func testWriteWithFlush() {
+        let data = Array(0..<count).map { _ in generateRandomData() }
+
+        measure {
+            for index in data.indices {
+                cache["\(index)"] = data[index]
+            }
+            cache.flush()
+        }
+    }
+
+    func testWriteWithFlushIndividual() {
+        let data = Array(0..<count).map { _ in generateRandomData() }
+
+        measure {
+            for index in data.indices {
+                let key = "\(index)"
+                cache[key] = data[index]
+                cache.flush(for: key)
+            }
+        }
+    }
+
+    func testWriteWithoutFlush() {
+        let data = Array(0..<count).map { _ in generateRandomData() }
+
+        measure {
+            for index in data.indices {
+                cache["\(index)"] = data[index]
+            }
+        }
+    }
+
+    // MARK: - Read
+
     func testReadFlushedPerformance() {
         populate()
 
@@ -46,6 +83,8 @@ class DataCachePeformanceTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - Helpers
 
     func populate() {
         for idx in 0..<count {
