@@ -8,7 +8,7 @@
 <img src="https://github.com/kean/Nuke/workflows/Nuke%20CI/badge.svg">
 </p>
 
-Nuke provides an efficient way to load and display images in your app and is easy to learn and use.
+With Nuke, you can load images from a variety of sources, including the web, local files, and in-memory data, and display them in your app using simple and flexible APIs. It also provides powerful image processing capabilities, such as resizing, cropping, and filtering, and it has a robust caching system that allows you to store and retrieve images quickly and efficiently. 
 
 The framework is lean and compiles in under 2 seconds[¹](#footnote-1). It has an automated test suite 2x the codebase size, ensuring excellent reliability. Nuke is optimized for [performance](https://kean-docs.github.io/nuke/documentation/nuke/performance-guide), and its advanced architecture enables virtually unlimited possibilities for customization.
 
