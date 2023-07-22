@@ -6,6 +6,7 @@
 
 - Upgrade to [`CryptoKit`](https://developer.apple.com/documentation/cryptokit) from `CommonCrypto` and slightly optimize how cryptographic hashes are converted to strings (used as filenames for `DataCache`)
 - Deprecate `DataCache/isCompressionEnabled`. It was initially added as a general-purpose feature, but it's not recommended to be used with most image formats.
+- `DataCache` now performs sweep less frequently
 
 ## Nuke 12.1.3
 

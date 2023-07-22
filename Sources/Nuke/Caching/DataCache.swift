@@ -45,17 +45,8 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     /// The path for the directory managed by the cache.
     public let path: URL
 
-    /// The number of seconds between each LRU sweep. 30 by default.
-    /// The first sweep is performed right after the cache is initialized.
-    ///
-    /// Sweeps are performed in a background and can be performed in parallel
-    /// with reading.
-    public var sweepInterval: TimeInterval = 30
-
-    /// The delay after which the initial sweep is performed. 10 by default.
-    /// The initial sweep is performed after a delay to avoid competing with
-    /// other subsystems for the resources.
-    private var initialSweepDelay: TimeInterval = 10
+    /// The time interval between cache sweeps. The default value is 1 hour.
+    public var sweepInterval: TimeInterval = 3600
 
     // Deprecated in Nuke 12.2
     @available(*, deprecated, message: "It's not recommended to use compression with the popular image formats that already compress the data")
@@ -115,8 +106,19 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     private func didInit() throws {
         try FileManager.default.createDirectory(at: path, withIntermediateDirectories: true, attributes: nil)
-        queue.asyncAfter(deadline: .now() + initialSweepDelay) { [weak self] in
-            self?.performAndScheduleSweep()
+        scheduleSweep()
+    }
+
+    private func scheduleSweep() {
+        let key = "com.github.kean.Nuke.DataCache.sweepDate-\(path)"
+        if let lastCleanupDate = UserDefaults.standard.value(forKey: key) as? Date,
+           Date().timeIntervalSince(lastCleanupDate) < sweepInterval {
+            return // Already completed recently
+        }
+        // Add a bit of a delay to free the resources during launch
+        queue.asyncAfter(deadline: .now() + 5.0, qos: .background) { [weak self] in
+            self?.performSweep()
+            UserDefaults.standard.set(Date(), forKey: key)
         }
     }
 
@@ -342,13 +344,6 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     }
 
     // MARK: Sweep
-
-    private func performAndScheduleSweep() {
-        performSweep()
-        queue.asyncAfter(deadline: .now() + sweepInterval) { [weak self] in
-            self?.performAndScheduleSweep()
-        }
-    }
 
     /// Synchronously performs a cache sweep and removes the least recently items
     /// which no longer fit in cache.
