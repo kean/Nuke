@@ -4,7 +4,6 @@
 
 import Foundation
 import CryptoKit
-import CommonCrypto
 
 extension String {
     /// Calculates SHA1 from the given string and returns its hex representation.
@@ -15,7 +14,7 @@ extension String {
     /// ```
     var sha1: String? {
         guard let input = self.data(using: .utf8) else {
-            return nil
+            return nil // The conversion to .utf8 should never fail
         }
         let digest = Insecure.SHA1.hash(data: input)
         var output = ""
