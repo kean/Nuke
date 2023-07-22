@@ -13,7 +13,7 @@ Nuke provides a set of global functions that simplify loading of images into ima
 Download and display an image in an image view with a single line of code:
 
 ```swift
-Nuke.loadImage(with: url, into: imageView)
+NukeExtensions.loadImage(with: url, into: imageView)
 ```
 
 If the image is stored in the memory cache, it is displayed immediately with no animations. If not, the image is first loaded using an image pipeline.
@@ -25,7 +25,7 @@ Before loading a new image, the view is prepared for reuse by canceling any outs
 ```swift
 func tableView(_ tableView: UITableView, cellForItemAt indexPath: IndexPaths) -> UITableViewCell {
     // ...
-    Nuke.loadImage(with: url, into: cell.imageView)
+NukeExtensions.loadImage(with: url, into: cell.imageView)
 }
 ```
 
@@ -42,7 +42,7 @@ let options = ImageLoadingOptions(
     placeholder: UIImage(named: "placeholder"),
     transition: .fadeIn(duration: 0.33)
 )
-Nuke.loadImage(with: url, options: options, into: imageView)
+NukeExtensions.loadImage(with: url, options: options, into: imageView)
 ```
 
 > Tip: The extensions have a limited set of options. If you need more, check out `LazyImageView` from **NukeUI**.
