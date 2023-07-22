@@ -29,13 +29,13 @@ Nuke is proudly sponsored by [Stream](https://getstream.io/chat/sdk/swiftui/?utm
 <table>
   <tr>
     <td valign="center">
-        <a href="https://www.namiml.com#gh-light-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/39ffc0e5-2fb4-4830-b565-7866c6472d6c#gh-light-mode-only" height="36px" alt="Nami Logo"></a><a href="https://www.namiml.com#gh-dark-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/951aaf7d-e47e-4e36-a159-e0d3e30f785d#gh-dark-mode-only" height="36px" alt="Nami Logo"></a>
-    </rd>
-    <td valign="center">
-        <a href="https://proxyman.io"><img src="https://github.com/kean/Nuke/assets/1567433/f7ed209a-363d-4ebd-9919-dbc796d21b07" height="44px" alt="Proxyman Logo"></a>
+        <a href="https://proxyman.io"><img src="https://github.com/kean/Nuke/assets/1567433/f7ed209a-363d-4ebd-9919-dbc796d21b07" height="40px" alt="Proxyman Logo"></a>
     </td>
     <td valign="center">
-        <a href="https://sentry.io#gh-light-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/e286b853-fd9b-4948-af3f-b10614982fa4#gh-light-mode-only" height="44px" alt="Nami Logo"></a><a href="https://sentry.io#gh-dark-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/40f99559-a5ff-41ae-b614-867e9cce1263#gh-dark-mode-only" height="44px" alt="Nami Logo"></a>
+        <a href="https://www.namiml.com#gh-light-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/39ffc0e5-2fb4-4830-b565-7866c6472d6c#gh-light-mode-only" height="28px" alt="Nami Logo"></a><a href="https://www.namiml.com#gh-dark-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/951aaf7d-e47e-4e36-a159-e0d3e30f785d#gh-dark-mode-only" height="28px" alt="Nami Logo"></a>
+    </rd>
+    <td valign="center">
+        <a href="https://sentry.io#gh-light-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/e286b853-fd9b-4948-af3f-b10614982fa4#gh-light-mode-only" height="40px" alt="Nami Logo"></a><a href="https://sentry.io#gh-dark-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/40f99559-a5ff-41ae-b614-867e9cce1263#gh-dark-mode-only" height="40px" alt="Nami Logo"></a>
     </td>
   </tr>
 </table>
