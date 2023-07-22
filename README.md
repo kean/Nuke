@@ -1,5 +1,4 @@
-![sentry-wordmark-light-400x119](https://github.com/kean/Nuke/assets/1567433/ac364b47-abcf-4e94-a467-9047dabd0efd)<br/>
-
+<br/>
 <img src="https://user-images.githubusercontent.com/1567433/114792417-57c1d080-9d56-11eb-8035-dc07cfd7557f.png" height="205">
 
 # Image Loading System
