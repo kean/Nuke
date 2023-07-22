@@ -11,7 +11,7 @@ import Foundation
 /// either *cost* or *count* limit is reached. The sweeps are performed periodically.
 ///
 /// DataCache always writes and removes data asynchronously. It also allows for
-/// reading and writing data in parallel. This is implemented using a "staging"
+/// reading and writing data in parallel. It is implemented using a staging
 /// area which stores changes until they are flushed to disk:
 ///
 /// ```swift

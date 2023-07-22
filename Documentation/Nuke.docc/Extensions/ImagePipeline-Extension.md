@@ -13,7 +13,7 @@ ImagePipeline {
 
 You can customize ``ImagePipeline`` by initializing it with ``ImagePipeline/Configuration-swift.struct`` and ``ImagePipelineDelegate``. You can provide custom caches, data loaders, add support for new image formats, and more.
 
-> Tip: The pipeline has two cache layers: memory cache and disk cache. By default, only memory cache is enabled. For caching data persistently, it relies on system [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache). There are advantages of enabling a custom disk cache. You can learn more in <doc:caching>.
+> Tip: The pipeline has two cache layers: memory cache and disk cache. By default, only the memory cache is enabled. For caching data persistently, it relies on system [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache). There are advantages to enabling a custom disk cache. You can learn more in <doc:caching>.
 
 ## Loading Images
 
@@ -59,7 +59,7 @@ ImagePipeline.shared = ImagePipeline(configuration: .withDataCache)
 
 ## Coalescing
 
-The pipeline avoids doing any duplicated work when loading images. Let's take two requests with the same URL, but different processors as an example:
+The pipeline avoids doing any duplicated work when loading images. Let's take two requests with the same URL but different processors as an example:
 
 ```swift
 let url = URL(string: "http://example.com/image")
@@ -73,7 +73,7 @@ async let second = pipeline.image(for: ImageRequest(url: url, processors: [
 let images = try await (first, second)
 ```
 
-The pipeline will load the data only once, resize the image once and blur it also only once. There is no duplicated work done. The work only gets canceled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
+The pipeline will load the data only once, resize the image once and blur it only once. There is no duplicated work done. The work only gets canceled when all the registered requests are, and the priority is based on the highest priority of the registered requests.
 
 Coalescing can be disabled using ``ImagePipeline/Configuration-swift.struct/isTaskCoalescingEnabled`` configuration option.
 

@@ -22,7 +22,7 @@ func loadImage() async throws {
 }
 ```
 
-> Tip: You can start by using a ``ImagePipeline/shared`` pipeline and create a custom one later if needed. To create a custom pipeline, use a convenience ``ImagePipeline/init(delegate:_:)`` initializer or one of the pre-defined configurations, such as ``ImagePipeline/Configuration-swift.struct/withDataCache``.
+> Tip: You can start by using a ``ImagePipeline/shared`` pipeline and create a custom one later. To create a custom pipeline, use a convenience ``ImagePipeline/init(delegate:_:)`` initializer or one of the pre-defined configurations, such as ``ImagePipeline/Configuration-swift.struct/withDataCache``.
 
 > The documentation uses Async/Await APIs in the examples, but ``ImagePipeline`` also has equivalent completion-based and Combine APIs.
 

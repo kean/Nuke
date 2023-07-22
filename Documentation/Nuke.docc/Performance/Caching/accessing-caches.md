@@ -34,7 +34,7 @@ let request = ImageRequest(url: url, options: [ .reloadIgnoringCachedData])
 let response = try await pipeline.imageTask(with: request).response
 ```
 
-``ImageRequest/Options-swift.struct`` provides even more granluar control if needed, e.g. ``ImageRequest/Options-swift.struct/disableMemoryCacheReads`` and other similar options.
+``ImageRequest/Options-swift.struct`` provides even more granular control if needed, e.g. ``ImageRequest/Options-swift.struct/disableMemoryCacheReads`` and other similar options.
 
 ## Direct Access
 
@@ -42,14 +42,14 @@ You can access any caching layer directly, but the pipeline also offers a conven
 
 ### Subscript
 
-You can access memory cache with a subscript.
+You can access the memory cache with a subscript.
 
 ```swift
 let image = pipeline.cache[URL(string: "https://example.com/image.jpeg")!]
 pipeline.cache[ImageRequest(url: url)] = nil
 ```
 
-> ``ImageContainer`` contains some metadata about the image, and in the case of animated images or other images that require non-trivial rendering also contains `data`. It also allows you to distinguish between progressive previews in case ``ImagePipeline/Configuration-swift.struct/isStoringPreviewsInMemoryCache`` option is enabled.
+> ``ImageContainer`` contains some metadata about the image, and in the case of animated images or other images that require non-trivial rendering, also contains `data`. It also allows you to distinguish between progressive previews in case ``ImagePipeline/Configuration-swift.struct/isStoringPreviewsInMemoryCache`` option is enabled.
 
 All ``ImagePipeline/Cache-swift.struct`` respect request cache control options.
 

@@ -8,13 +8,13 @@ Nuke has three cache layers:
 
 - ``ImageCache`` – LRU **memory** cache for processed images
 - ``DataCache`` – aggressive LRU **disk** cache
-- [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) – HTTP **disk** cache which is part of the native [URL loading system](https://developer.apple.com/documentation/foundation/url_loading_system)
+- [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) – HTTP **disk** cache, which is part of the native [URL loading system](https://developer.apple.com/documentation/foundation/url_loading_system)
 
 The default pipeline uses a combination of ``ImageCache`` and [`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) with an increased disk size. This configuration supports HTTP [`cache-control`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control). 
 
 ### Memory Cache
 
-``ImageCache`` is a **memory** cache with an [LRU cleanup](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU)) policy (least recently used are removed first). The pipeline uses it to store processed images that are decompressed and are ready to be displayed.
+``ImageCache`` is a **memory** cache with an [LRU cleanup](https://en.wikipedia.org/wiki/Cache_replacement_policies#Least_recently_used_(LRU)) policy (least recently used are removed first). The pipeline uses it to store processed images that are decompressed and ready to be displayed.
 
 ``ImageCache`` discards the least recently cached images if either *cost* or *count* limit is reached. The default cost limit represents a number of bytes and is calculated based on the amount of physical memory available on the device. The default count limit is `Int.max`.
 
@@ -39,7 +39,7 @@ ImageCache.shared.removeAll()
 
 ### HTTP Disk Cache
 
-[`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) is an HTTP **disk** cache that is part of the native [URL loading system](https://developer.apple.com/documentation/foundation/url_loading_system). It is used by the default image pipeline which is instantiated with a ``ImagePipeline/Configuration-swift.struct/withURLCache`` configuration.
+[`URLCache`](https://developer.apple.com/documentation/foundation/urlcache) is an HTTP **disk** cache that is part of the native [URL loading system](https://developer.apple.com/documentation/foundation/url_loading_system). It is used by the default image pipeline, which is instantiated with a ``ImagePipeline/Configuration-swift.struct/withURLCache`` configuration.
 
 ```swift
 // Configure cache
@@ -105,7 +105,7 @@ dataCache.removeData(for: "key")
 dataCache.removeAll()
 ```
 
-``DataCache`` is asynchronous which means ``DataCache/storeData(_:for:)`` method returns imediatelly and the disk I/O happens later. For a syncrhonous write, use ``DataCache/flush()``.
+``DataCache`` is asynchronous which means ``DataCache/storeData(_:for:)`` method returns imediatelly and the disk I/O happens later. For a synchronous write, use ``DataCache/flush()``.
 
 ```swift
 dataCache.storeData(data, for: "key")

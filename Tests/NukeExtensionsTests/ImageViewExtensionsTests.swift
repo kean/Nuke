@@ -219,7 +219,7 @@ class ImageViewExtensionsTests: XCTestCase {
             with: Test.request,
             into: imageView,
             completion: { result in
-                // Expect completion to be called syncrhonously on the main thread
+                // Expect completion to be called synchronously on the main thread
                 XCTAssertTrue(Thread.isMainThread)
                 XCTAssertTrue(result.isSuccess)
                 didCallCompletion = true

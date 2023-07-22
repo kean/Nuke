@@ -22,7 +22,7 @@ public protocol ImageDecoding {
 
 ```swift
 public struct ImageContainer {
-    // Either `UIImage` or `NSImage` depending on the platform.
+    // Either `UIImage` or `NSImage`, depending on the platform.
     public let image: UIImage
     public let data: Data?
     public let userInfo: [AnyHashable: Any]
@@ -83,8 +83,6 @@ You can find all of the built-in decoders in the ``ImageDecoders`` namespace.
 ### ImageDecoders.Default
 
 ``ImageDecoders/Default`` is used by default if no custom decoders are registered. It uses native `UIImage(data:)` (and `NSImage(data:)`) initializers to create images from data.
-
-> When working with `UIImage`, the decoder automatically sets the scale of the image to match the scale of the screen.
 
 The default ``ImageDecoders/Default`` also supports progressively decoding JPEG. It produces a new preview every time it encounters a new frame.
 

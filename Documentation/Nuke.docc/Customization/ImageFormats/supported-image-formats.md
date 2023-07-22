@@ -22,7 +22,7 @@ None.
 
 **Rendering**
 
-To render the progressive JPEG, you can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage`. The default image view loading extensions also supports displaying progressive scans. 
+To render the progressive JPEG, you can use the basic `UIImageView`/`NSImageView`/`WKInterfaceImage`. The default image view loading extensions also support displaying progressive scans. 
 
 
 
@@ -117,7 +117,7 @@ To see this code in action, check out the [demo project](https://github.com/kean
 
 **Decoding**
 
-There is currently no built-in support for SVG. Use ``ImageDecoders/Empty`` to pass the original image data to an SVG-enabled view and render is using an external mechanism.
+There is currently no built-in support for SVG. Use ``ImageDecoders/Empty`` to pass the original image data to an SVG-enabled view and render it using an external mechanism.
 
 **Encoding**
 
@@ -140,7 +140,7 @@ ImagePipeline.shared.loadImage(with: url) { [weak self] result in
     guard let self = self, let data = try? result.get().container.data else {
         return
     }
-    // You can render image using whatever size you want, vector!
+    // You can render an image using whatever size you want, vector!
     let targetBounds = CGRect(origin: .zero, size: CGSize(width: 300, height: 300))
     let svgView = UIView(SVGData: data) { layer in
         layer.fillColor = UIColor.orange.cgColor
