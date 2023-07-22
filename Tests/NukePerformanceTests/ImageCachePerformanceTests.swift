@@ -62,4 +62,16 @@ class ImageCachePerformanceTests: XCTestCase {
 
         print("misses: \(misses)")
     }
+
+    func testCacheReplacement() {
+        let cache = ImageCache()
+        let request = Test.request
+        let image = Test.container
+
+        measure {
+            for _ in 0..<100_000 {
+                cache[request] = image
+            }
+        }
+    }
 }

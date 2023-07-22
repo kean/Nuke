@@ -96,7 +96,7 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
         // Take care of overflow or cache size big enough to fit any
         // reasonable content (and also of costLimit = Int.max).
         let sanitizedEntryLimit = max(0, min(_conf.entryCostLimit, 1))
-        guard _conf.costLimit > 2147483647 || cost < Int(sanitizedEntryLimit * Double(_conf.costLimit)) else {
+        guard _conf.costLimit > 2_147_483_647 || cost < Int(sanitizedEntryLimit * Double(_conf.costLimit)) else {
             return
         }
 
@@ -121,7 +121,10 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
 
     private func _add(_ element: Entry) {
         if let existingNode = map[element.key] {
-            _remove(node: existingNode)
+            // This is slightly faster than calling _remove because of the
+            // skipped dictionary access
+            list.remove(existingNode)
+            _totalCost -= existingNode.value.cost
         }
         map[element.key] = list.append(element)
         _totalCost += element.cost
