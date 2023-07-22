@@ -1,12 +1,13 @@
 # Nuke 12
 
-## Nuke 12.2
+## Nuke 12.1.4
 
-*Upcoming*
+*Jul 22, 2023*
 
 - Upgrade to [`CryptoKit`](https://developer.apple.com/documentation/cryptokit) from `CommonCrypto` and slightly optimize how cryptographic hashes are converted to strings (used as filenames for `DataCache`)
 - Deprecate `DataCache/isCompressionEnabled`. It was initially added as a general-purpose feature, but it's not recommended to be used with most image formats.
-- `DataCache` now performs sweep less frequently
+- `DataCache` now performs sweeps less frequently
+- Improve documentation
 
 ## Nuke 12.1.3
 
