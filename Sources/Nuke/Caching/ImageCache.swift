@@ -65,8 +65,8 @@ public final class ImageCache: ImageCaching {
         impl = Cache(costLimit: costLimit, countLimit: countLimit)
     }
 
-    /// Returns a recommended cost limit which is computed based on the amount
-    /// of the physical memory available on the device.
+    /// Returns a cost limit computed based on the amount of the physical memory
+    /// available on the device. The limit is capped at 512 MB.
     public static func defaultCostLimit() -> Int {
         let physicalMemory = ProcessInfo.processInfo.physicalMemory
         let ratio = physicalMemory <= (536_870_912 /* 512 Mb */) ? 0.1 : 0.2
