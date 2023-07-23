@@ -1,14 +1,13 @@
 <br/>
-<img src="https://user-images.githubusercontent.com/1567433/114792417-57c1d080-9d56-11eb-8035-dc07cfd7557f.png" height="205">
+<img src="https://user-images.githubusercontent.com/1567433/114792417-57c1d080-9d56-11eb-8035-dc07cfd7557f.png" height="170px">
 
 # Image Loading System
 
 <p align="left">
-<img src="https://img.shields.io/badge/platforms-iOS%2C%20macOS%2C%20watchOS%2C%20tvOS-lightgrey.svg">
-<img src="https://github.com/kean/Nuke/workflows/Nuke%20CI/badge.svg">
+<img src="https://img.shields.io/badge/platforms-iOS%2C%20macOS%2C%20watchOS%2C%20tvOS%2C%20visionOS-lightgrey.svg">
 </p>
 
-With Nuke, you can load images from a variety of sources, including the web, local files, and in-memory data, and display them in your app using simple and flexible APIs. It also provides powerful image processing capabilities, such as resizing, cropping, and filtering, and it has a robust caching system that allows you to store and retrieve images quickly and efficiently. 
+Load images from different sources and display them in your app using simple and flexible APIs. Take advantage of the powerful image processing capabilities and a robust caching system.
 
 The framework is lean and compiles in under 2 seconds[¹](#footnote-1). It has an automated test suite 2x the codebase size, ensuring excellent reliability. Nuke is optimized for [performance](https://kean-docs.github.io/nuke/documentation/nuke/performance-guide), and its advanced architecture enables virtually unlimited possibilities for customization.
 
@@ -16,8 +15,8 @@ The framework is lean and compiles in under 2 seconds[¹](#footnote-1). It has a
 
 ## Sponsors
 
-<a target="_blank" rel="noopener noreferrer" href="https://getstream.io/chat/sdk/swiftui/?utm_source=Nuke&utm_medium=Github_Repo_Content_Ad&utm_content=Developer&utm_campaign=Nuke_July2022_SwiftUIChat_klmh22#gh-light-mode-only"><img src="https://user-images.githubusercontent.com/1567433/175186173-64eb53cb-b5d6-4ed4-aaca-87dbbb0834ab.png#gh-light-mode-only" width="300px" alt="Stream Logo" style="max-width: 100%;"></a>
-<a target="_blank" rel="noopener noreferrer" href="https://getstream.io/chat/sdk/swiftui/?utm_source=Nuke&utm_medium=Github_Repo_Content_Ad&utm_content=Developer&utm_campaign=Nuke_July2022_SwiftUIChat_klmh22#gh-dark-mode-only"><img src="https://user-images.githubusercontent.com/1567433/175562043-0ab82adc-e3c7-4c0b-8813-a7940ff41db8.png#gh-dark-mode-only" width="244px" alt="Stream Logo" style="max-width: 100%;"></a>
+<a target="_blank" rel="noopener noreferrer" href="https://getstream.io/chat/sdk/swiftui/?utm_source=Nuke&utm_medium=Github_Repo_Content_Ad&utm_content=Developer&utm_campaign=Nuke_July2022_SwiftUIChat_klmh22#gh-light-mode-only"><img src="https://kean.blog/images/logos/stream-light.png#gh-light-mode-only" width="507px" alt="Stream Logo" style="max-width: 100%;"></a>
+<a target="_blank" rel="noopener noreferrer" href="https://getstream.io/chat/sdk/swiftui/?utm_source=Nuke&utm_medium=Github_Repo_Content_Ad&utm_content=Developer&utm_campaign=Nuke_July2022_SwiftUIChat_klmh22#gh-dark-mode-only"><img src="https://kean.blog/images/logos/stream-dark.png#gh-dark-mode-only" width="507px" alt="Stream Logo" style="max-width: 100%;"></a>
 
 Nuke is proudly sponsored by [Stream](https://getstream.io/chat/sdk/swiftui/?utm_source=Nuke&utm_medium=Github_Repo_Content_Ad&utm_content=Developer&utm_campaign=Nuke_July2022_SwiftUIChat_klmh22), the leading provider in enterprise grade Feed & Chat APIs.
 
@@ -28,13 +27,13 @@ Nuke is proudly sponsored by [Stream](https://getstream.io/chat/sdk/swiftui/?utm
 <table>
   <tr>
     <td valign="center">
-        <a href="https://proxyman.io"><img src="https://github.com/kean/Nuke/assets/1567433/f7ed209a-363d-4ebd-9919-dbc796d21b07" height="40px" alt="Proxyman Logo"></a>
+        <a href="https://proxyman.io"><img src="https://kean.blog/images/logos/proxyman.png" height="60px" alt="Proxyman Logo"></a>
     </td>
     <td valign="center">
-        <a href="https://www.namiml.com#gh-light-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/39ffc0e5-2fb4-4830-b565-7866c6472d6c#gh-light-mode-only" height="28px" alt="Nami Logo"></a><a href="https://www.namiml.com#gh-dark-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/951aaf7d-e47e-4e36-a159-e0d3e30f785d#gh-dark-mode-only" height="28px" alt="Nami Logo"></a>
-    </rd>
+        <a href="https://www.namiml.com#gh-light-mode-only"><img src="https://kean.blog/images/logos/nami-light.png#gh-light-mode-only" height="60px" alt="Nami Logo"></a><a href="https://www.namiml.com#gh-dark-mode-only"><img src="https://kean.blog/images/logos/nami-dark.png#gh-dark-mode-only" height="60px" alt="Nami Logo"></a>
+    </td>
     <td valign="center">
-        <a href="https://sentry.io#gh-light-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/e286b853-fd9b-4948-af3f-b10614982fa4#gh-light-mode-only" height="40px" alt="Nami Logo"></a><a href="https://sentry.io#gh-dark-mode-only"><img src="https://github.com/kean/Nuke/assets/1567433/40f99559-a5ff-41ae-b614-867e9cce1263#gh-dark-mode-only" height="40px" alt="Nami Logo"></a>
+        <a href="https://sentry.io#gh-light-mode-only"><img src="https://kean.blog/images/logos/sentry-light.png#gh-light-mode-only" height="60px" alt="Nami Logo"></a><a href="https://sentry.io#gh-dark-mode-only"><img src="https://kean.blog/images/logos/sentry-dark.png#gh-dark-mode-only" height="60px" alt="Nami Logo"></a>
     </td>
   </tr>
 </table>
