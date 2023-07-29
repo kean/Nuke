@@ -65,6 +65,10 @@ public final class DataCache: DataCaching, @unchecked Sendable {
 
     var flushInterval: DispatchTimeInterval = .seconds(1)
 
+    private struct Metadata: Codable {
+        var lastSweepDate: Date?
+    }
+
     /// A queue which is used for disk I/O.
     public let queue = DispatchQueue(label: "com.github.kean.Nuke.DataCache.WriteQueue", qos: .utility)
 
@@ -111,15 +115,16 @@ public final class DataCache: DataCaching, @unchecked Sendable {
     }
 
     private func scheduleSweep() {
-        let key = "com.github.kean.Nuke.DataCache.sweepDate-\(path)"
-        if let lastCleanupDate = UserDefaults.standard.value(forKey: key) as? Date,
-           Date().timeIntervalSince(lastCleanupDate) < sweepInterval {
+        if let lastSweepDate = getMetadata().lastSweepDate,
+           Date().timeIntervalSince(lastSweepDate) < sweepInterval {
             return // Already completed recently
         }
         // Add a bit of a delay to free the resources during launch
         queue.asyncAfter(deadline: .now() + 5.0, qos: .background) { [weak self] in
             self?.performSweep()
-            UserDefaults.standard.set(Date(), forKey: key)
+            self?.updateMetadata {
+                $0.lastSweepDate = Date()
+            }
         }
     }
 
@@ -398,6 +403,27 @@ public final class DataCache: DataCaching, @unchecked Sendable {
             return Entry(url: $0, meta: meta)
         }
     }
+
+    // MARK: Metadata
+
+    private func getMetadata() -> Metadata {
+        if let data = try? Data(contentsOf: metadataFileURL),
+           let metadata = try? JSONDecoder().decode(Metadata.self, from: data) {
+            return metadata
+        }
+        return Metadata()
+    }
+
+    private func updateMetadata(_ closure: (inout Metadata) -> Void) {
+        var metadata = getMetadata()
+        closure(&metadata)
+        try? JSONEncoder().encode(metadata).write(to: metadataFileURL)
+    }
+
+    private var metadataFileURL: URL {
+        path.appendingPathComponent(".data-cache-info", isDirectory: false)
+    }
+
 
     // MARK: Inspection
 
