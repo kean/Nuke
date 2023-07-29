@@ -1,5 +1,11 @@
 # Nuke 12
 
+## Nuke 12.1.5
+
+*Jul 29, 2023*
+
+- Fix https://github.com/kean/Nuke/issues/717 by moving `DataCache` metadata to a hidden file - https://github.com/kean/Nuke/pull/718/files
+
 ## Nuke 12.1.4
 
 *Jul 22, 2023*
