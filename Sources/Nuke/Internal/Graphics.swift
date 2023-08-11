@@ -4,10 +4,6 @@
 
 import Foundation
 
-#if os(iOS) || os(tvOS) || os(watchOS)
-import UIKit
-#endif
-
 #if os(watchOS)
 import ImageIO
 import CoreGraphics
@@ -16,6 +12,14 @@ import WatchKit.WKInterfaceDevice
 
 #if os(macOS)
 import Cocoa
+#endif
+
+#if canImport(UIKit)
+import UIKit
+#endif
+
+#if canImport(AppKit)
+import AppKit
 #endif
 
 extension PlatformImage {
@@ -242,7 +246,7 @@ extension CGImagePropertyOrientation {
 }
 #endif
 
-#if os(iOS) || os(tvOS) || os(watchOS)
+#if canImport(UIKit)
 private extension CGSize {
     func rotatedForOrientation(_ imageOrientation: CGImagePropertyOrientation) -> CGSize {
         switch imageOrientation {
@@ -324,6 +328,8 @@ enum Screen {
     static let scale: CGFloat = WKInterfaceDevice.current().screenScale
 #elseif os(macOS)
     /// Always returns 1.
+    static let scale: CGFloat = 1
+#else
     static let scale: CGFloat = 1
 #endif
 }

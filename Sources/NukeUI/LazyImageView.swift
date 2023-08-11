@@ -427,7 +427,7 @@ public final class LazyImageView: _PlatformBaseView {
         }
     }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
 
     private func runFadeInTransition(duration: TimeInterval) {
         guard !imageView.isHidden else { return }

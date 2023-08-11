@@ -219,7 +219,7 @@ private struct LazyImageDemoView: View {
                     image.resizable().aspectRatio(contentMode: .fit)
                 }
             }
-#if !os(watchOS)
+#if !os(watchOS) && !os(visionOS)
             .processors(isBlured ? [ImageProcessors.GaussianBlur()] : [])
 #endif
             .id(imageViewId) // Example of how to implement retry
