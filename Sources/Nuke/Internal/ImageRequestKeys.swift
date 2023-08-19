@@ -37,24 +37,26 @@ extension ImageRequest {
 }
 
 /// Uniquely identifies a cache processed image.
-struct CacheKey: Hashable {
-    // Avoid ARC overhead by holding on to the request
-    let request: ImageRequest
+final class CacheKey: Hashable {
+    // Using a reference type turned out to be significantly faster
+    private let imageId: String?
+    private let thumbnail: ImageRequest.ThumbnailOptions?
+    private let processors: [any ImageProcessing]
 
     init(_ request: ImageRequest) {
-        self.request = request
+        self.imageId = request.preferredImageId
+        self.thumbnail = request.thumbnail
+        self.processors = request.processors
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(request.imageId)
-        hasher.combine(request.thumbnail)
-        hasher.combine(request.processors.count)
+        hasher.combine(imageId)
+        hasher.combine(thumbnail)
+        hasher.combine(processors.count)
     }
 
     static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
-        lhs.request.imageId == rhs.request.imageId
-        && lhs.request.thumbnail == rhs.request.thumbnail
-        && lhs.request.processors == rhs.request.processors
+        lhs.imageId == rhs.imageId && lhs.thumbnail == rhs.thumbnail && lhs.processors == rhs.processors
     }
 }
 
