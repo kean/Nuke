@@ -32,7 +32,7 @@ class ImageViewPerformanceTests: XCTestCase {
 
         measure {
             for url in urls {
-                loadImage(with: url, into: view)
+                NukeExtensions.loadImage(with: url, into: view)
             }
         }
     }
@@ -47,7 +47,7 @@ class ImageViewPerformanceTests: XCTestCase {
 
         measure {
             for request in requests {
-                loadImage(with: request, into: view)
+                NukeExtensions.loadImage(with: request, into: view)
             }
         }
     }
@@ -60,7 +60,7 @@ class ImageViewPerformanceTests: XCTestCase {
         measure {
             for url in urls {
                 let request = ImageRequest(url: url, processors: [ImageProcessors.Resize(size: CGSize(width: 1, height: 1))])
-                loadImage(with: request, into: view)
+                NukeExtensions.loadImage(with: request, into: view)
             }
         }
     }
@@ -73,7 +73,7 @@ class ImageViewPerformanceTests: XCTestCase {
         measure {
             for url in urls {
                 let request = ImageRequest(url: url, processors: [ImageProcessors.Resize(size: CGSize(width: 1, height: 1))])
-                loadImage(with: request, into: view)
+                NukeExtensions.loadImage(with: request, into: view)
             }
         }
     }

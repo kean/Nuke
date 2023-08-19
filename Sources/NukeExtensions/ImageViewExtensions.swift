@@ -224,7 +224,7 @@ private final class ImageViewController {
             return controller
         }
         let controller = ImageViewController(view: view)
-        objc_setAssociatedObject(view, &ImageViewController.controllerAK, controller, .OBJC_ASSOCIATION_RETAIN)
+        objc_setAssociatedObject(view, &ImageViewController.controllerAK, controller, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         return controller
     }
 

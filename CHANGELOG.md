@@ -1,5 +1,7 @@
 # Nuke 12
 
+- Minor performance improvements in `NukeExtensions` (~5%)
+
 ## Nuke 12.1.5
 
 *Jul 29, 2023*
