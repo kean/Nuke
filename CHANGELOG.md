@@ -4,8 +4,8 @@
 
 *Aug 19, 2023*
 
-- Performance improvements in `NukeExtensions` (5%)
-- Performance improvements in `ImageCache` (20%)
+- Improve `NukeExtensions` performance (5%)
+- Improve `ImageCache ` performance (5%)
 - Update the code to support future visionOS releases by switching to `canImport` where possible
 
 ## Nuke 12.1.5
