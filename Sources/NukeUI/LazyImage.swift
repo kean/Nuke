@@ -219,7 +219,7 @@ private struct LazyImageDemoView: View {
                     image.resizable().aspectRatio(contentMode: .fit)
                 }
             }
-#if !os(watchOS)
+#if os(iOS) || os(tvOS) || os(macOS)
             .processors(isBlured ? [ImageProcessors.GaussianBlur()] : [])
 #endif
             .id(imageViewId) // Example of how to implement retry
@@ -237,7 +237,7 @@ private struct LazyImageDemoView: View {
                 Toggle("Apply Blur", isOn: $isBlured)
             }
             .padding()
-#if !os(watchOS)
+#if os(iOS) || os(tvOS) || os(macOS)
             .background(Material.ultraThick)
 #endif
         }

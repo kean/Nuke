@@ -2,6 +2,7 @@
 
 - Performance improvements in `NukeExtensions` (5%)
 - Performance improvements in `ImageCache` (20%)
+- Update the code to support future visionOS releases by switching to `canImport` where possible
 
 ## Nuke 12.1.5
 

@@ -37,7 +37,7 @@ public enum ImageProcessingOptions: Sendable {
     public struct Border: Hashable, CustomStringConvertible, @unchecked Sendable {
         public let width: CGFloat
 
-#if os(iOS) || os(tvOS) || os(watchOS)
+#if canImport(UIKit)
         public let color: UIColor
 
         /// - parameters:
