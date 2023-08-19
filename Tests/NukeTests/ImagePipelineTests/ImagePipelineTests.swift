@@ -321,7 +321,7 @@ class ImagePipelineTests: XCTestCase {
     
 #endif
     
-    // MARK: - Thubmnail
+    // MARK: - Thumbnail
 
     func testThatThumbnailIsGenerated() {
         // GIVEN

@@ -463,7 +463,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         return imageId ?? ""
     }
 
-    var thubmnail: ThumbnailOptions? {
+    var thumbnail: ThumbnailOptions? {
         ref.userInfo?[.thumbnailKey] as? ThumbnailOptions
     }
 
