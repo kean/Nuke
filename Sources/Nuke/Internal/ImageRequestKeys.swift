@@ -37,7 +37,7 @@ extension ImageRequest {
 }
 
 /// Uniquely identifies a cache processed image.
-final class CacheKey: Hashable {
+final class CacheKey: Hashable, Sendable {
     // Using a reference type turned out to be significantly faster
     private let imageId: String?
     private let thumbnail: ImageRequest.ThumbnailOptions?
@@ -61,7 +61,7 @@ final class CacheKey: Hashable {
 }
 
 /// Uniquely identifies a task of retrieving the processed image.
-final class ImageLoadKey: Hashable {
+final class ImageLoadKey: Hashable, Sendable {
     let cacheKey: CacheKey
     let options: ImageRequest.Options
     let loadKey: DataLoadKey
