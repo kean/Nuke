@@ -39,7 +39,7 @@ The image pipeline is easy to customize and extend. Check out the following firs
 
 | Nuke | Date         | Swift | Xcode | Platforms                                     |
 |------|--------------|-------|-------|-----------------------------------------------|
-| 12.0 | Mar 4, 2023  | 5.6   | 13.3  | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
+| 12.0 | Mar 4, 2023  | 5.7   | 14.1  | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
 | 11.0 | Jul 20, 2022 | 5.6   | 13.3  | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
 | 10.0 | June 1, 2021 | 5.3   | 12.0  | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0 |
 | 9.0  | May 20, 2020 | 5.1   | 11.0  | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0 |
