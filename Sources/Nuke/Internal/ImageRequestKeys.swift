@@ -38,24 +38,23 @@ extension ImageRequest {
 
 /// Uniquely identifies a cache processed image.
 struct CacheKey: Hashable {
-    private let imageId: String?
-    private let thumbnail: ImageRequest.ThumbnailOptions?
-    private let processors: [any ImageProcessing]
+    // Avoid ARC overhead by holding on to the request
+    let request: ImageRequest
 
     init(_ request: ImageRequest) {
-        self.imageId = request.preferredImageId
-        self.thumbnail = request.thubmnail
-        self.processors = request.processors
+        self.request = request
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(imageId)
-        hasher.combine(thumbnail)
-        hasher.combine(processors.count)
+        hasher.combine(request.imageId)
+        hasher.combine(request.thubmnail)
+        hasher.combine(request.processors.count)
     }
 
     static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
-        lhs.imageId == rhs.imageId && lhs.thumbnail == rhs.thumbnail && lhs.processors == rhs.processors
+        lhs.request.imageId == rhs.request.imageId
+        && lhs.request.thubmnail == rhs.request.thubmnail
+        && lhs.request.processors == rhs.request.processors
     }
 }
 

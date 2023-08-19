@@ -1,7 +1,7 @@
 # Nuke 12
 
-- Minor performance improvements in `NukeExtensions`
-- Minor performance improvements in `ImageCache`
+- Performance improvements in `NukeExtensions` (5%)
+- Performance improvements in `ImageCache` (20%)
 
 ## Nuke 12.1.5
 
