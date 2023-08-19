@@ -424,7 +424,6 @@ public final class DataCache: DataCaching, @unchecked Sendable {
         path.appendingPathComponent(".data-cache-info", isDirectory: false)
     }
 
-
     // MARK: Inspection
 
     /// The total number of items in the cache.

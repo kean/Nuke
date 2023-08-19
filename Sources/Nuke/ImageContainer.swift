@@ -33,19 +33,19 @@ public struct ImageContainer: @unchecked Sendable {
         set { mutate { $0.image = newValue } }
     }
 #endif
-    
+
     /// An image type.
     public var type: AssetType? {
         get { ref.type }
         set { mutate { $0.type = newValue } }
     }
-    
+
     /// Returns `true` if the image in the container is a preview of the image.
     public var isPreview: Bool {
         get { ref.isPreview }
         set { mutate { $0.isPreview = newValue } }
     }
-    
+
     /// Contains the original image `data`, but only if the decoder decides to
     /// attach it to the image.
     ///
@@ -58,15 +58,15 @@ public struct ImageContainer: @unchecked Sendable {
         get { ref.data }
         set { mutate { $0.data = newValue } }
     }
-    
+
     /// An metadata provided by the user.
     public var userInfo: [UserInfoKey: Any] {
         get { ref.userInfo }
         set { mutate { $0.userInfo = newValue } }
     }
-    
+
     private var ref: Container
-    
+
     /// Initializes the container with the given image.
     public init(image: PlatformImage, type: AssetType? = nil, isPreview: Bool = false, data: Data? = nil, userInfo: [UserInfoKey: Any] = [:]) {
         self.ref = Container(image: image, type: type, isPreview: isPreview, data: data, userInfo: userInfo)
