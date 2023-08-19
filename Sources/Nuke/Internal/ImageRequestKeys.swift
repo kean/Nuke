@@ -61,17 +61,25 @@ final class CacheKey: Hashable {
 }
 
 /// Uniquely identifies a task of retrieving the processed image.
-struct ImageLoadKey: Hashable {
+final class ImageLoadKey: Hashable {
     let cacheKey: CacheKey
     let options: ImageRequest.Options
-    let thumbnail: ImageRequest.ThumbnailOptions?
     let loadKey: DataLoadKey
 
     init(_ request: ImageRequest) {
         self.cacheKey = CacheKey(request)
         self.options = request.options
-        self.thumbnail = request.thumbnail
         self.loadKey = DataLoadKey(request)
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(cacheKey.hashValue)
+        hasher.combine(options.hashValue)
+        hasher.combine(loadKey.hashValue)
+    }
+
+    static func == (lhs: ImageLoadKey, rhs: ImageLoadKey) -> Bool {
+        lhs.cacheKey == rhs.cacheKey && lhs.options == rhs.options && lhs.loadKey == rhs.loadKey
     }
 }
 
