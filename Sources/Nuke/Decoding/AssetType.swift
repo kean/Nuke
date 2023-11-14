@@ -75,7 +75,10 @@ extension AssetType {
         // https://en.wikipedia.org/wiki/List_of_file_signatures
         if _match([0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6F, 0x6D], offset: 4) { return .mp4 }
 
+        // https://www.garykessler.net/library/file_sigs.html
         if _match([0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32], offset: 4) { return .m4v }
+                
+        if _match([0x66, 0x74, 0x79, 0x70, 0x4D, 0x34, 0x56, 0x20], offset: 4) { return .m4v }
 
         // MOV magic numbers https://www.garykessler.net/library/file_sigs.html
         if _match([0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20], offset: 4) { return .mov }
