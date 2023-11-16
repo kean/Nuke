@@ -24,6 +24,7 @@ public struct LazyImage<Content: View>: View {
     private var makeContent: ((LazyImageState) -> Content)?
     private var transaction: Transaction
     private var pipeline: ImagePipeline = .shared
+    private var onStart: ((ImageTask) -> Void)?
     private var onDisappearBehavior: DisappearBehavior? = .cancel
     private var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
 
@@ -108,6 +109,11 @@ public struct LazyImage<Content: View>: View {
         case lowerPriority
     }
 
+    /// Gets called when the request is started.
+    public func onStart(_ closure: @escaping (ImageTask) -> Void) -> Self {
+        map { $0.viewModel.onStart = closure }
+    }
+
     /// Override the behavior on disappear. By default, the view is reset.
     public func onDisappear(_ behavior: DisappearBehavior?) -> Self {
         map { $0.onDisappearBehavior = behavior }
@@ -153,6 +159,7 @@ public struct LazyImage<Content: View>: View {
     private func onAppear() {
         viewModel.transaction = transaction
         viewModel.pipeline = pipeline
+        viewModel.onStart = onStart
         viewModel.onCompletion = onCompletion
         viewModel.load(context?.request)
     }
