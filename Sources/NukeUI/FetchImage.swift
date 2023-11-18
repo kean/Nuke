@@ -88,7 +88,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         imageTask?.cancel()
     }
 
-    /// Initialiazes the image. To load an image, use one of the `load()` methods.
+    /// Initializes the image. To load an image, use one of the `load()` methods.
     public init() {}
 
     // MARK: Loading Images
@@ -189,9 +189,6 @@ public final class FetchImage: ObservableObject, Identifiable {
             }
         }
 
-        if let task = imageTask {
-                onStart?(task)
-            }
         cancellable = AnyCancellable { task.cancel() }
     }
 
@@ -223,10 +220,6 @@ public final class FetchImage: ObservableObject, Identifiable {
             self.lastResponse = response
             self.imageContainer = response.container
         })
-
-        if let task = imageTask {
-                onStart?(task)
-            }
     }
 
     // MARK: Cancel

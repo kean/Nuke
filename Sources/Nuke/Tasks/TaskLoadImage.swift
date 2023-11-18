@@ -7,7 +7,7 @@ import Foundation
 /// Wrapper for tasks created by `loadImage` calls.
 ///
 /// Performs all the quick cache lookups and also manages image processing.
-/// The coalesing for image processing is implemented on demand (extends the
+/// The coalescing for image processing is implemented on demand (extends the
 /// scenarios in which coalescing can kick in).
 final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     override func start() {
