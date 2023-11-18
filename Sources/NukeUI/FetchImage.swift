@@ -74,6 +74,9 @@ public final class FetchImage: ObservableObject, Identifiable {
     /// request. `[]` by default.
     public var processors: [any ImageProcessing] = []
 
+    /// Gets called when the request is started.
+    public var onStart: ((ImageTask) -> Void)?
+
     /// Gets called when the current request is completed.
     public var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
 
@@ -85,7 +88,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         imageTask?.cancel()
     }
 
-    /// Initialiazes the image. To load an image, use one of the `load()` methods.
+    /// Initializes the image. To load an image, use one of the `load()` methods.
     public init() {}
 
     // MARK: Loading Images
@@ -147,6 +150,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             }
         )
         imageTask = task
+        onStart?(task)
     }
 
     private func handle(preview: ImageResponse) {
@@ -184,6 +188,7 @@ public final class FetchImage: ObservableObject, Identifiable {
                 handle(result: .failure(error))
             }
         }
+
         cancellable = AnyCancellable { task.cancel() }
     }
 

@@ -279,7 +279,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         /// Returns a raw value.
         public let rawValue: UInt16
 
-        /// Initialializes options with a given raw values.
+        /// Initializes options with a given raw values.
         public init(rawValue: UInt16) {
             self.rawValue = rawValue
         }
