@@ -1,5 +1,12 @@
 # Nuke 12
 
+## Nuke 12.2.0
+
+*Nov 23, 2023*
+
+- Add another file type signature for .m4v files by @leonid-shevtsov in https://github.com/kean/Nuke/pull/735
+- Added the onStart callback to SwiftUI.LazyImage by @urbaneewe in https://github.com/kean/Nuke/pull/736
+
 ## Nuke 12.1.6
 
 *Aug 19, 2023*
