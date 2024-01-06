@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2015-2023 Alexander Grebenyuk (github.com/kean).
 
-#if !os(watchOS)
+#if !os(watchOS) && !os(visionOS)
 
 import Foundation
 import AVKit
