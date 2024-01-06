@@ -1,5 +1,11 @@
 # Nuke 12
 
+## Nuke 13.2.0
+
+*Jan 6, 2024*
+
+- Add support for visionOS by @bobek-balinek in https://github.com/kean/Nuke/pull/743
+
 ## Nuke 12.2.0
 
 *Nov 23, 2023*
