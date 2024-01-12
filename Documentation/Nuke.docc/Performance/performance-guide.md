@@ -28,7 +28,7 @@ This response is cacheable, and will be *fresh* for 1 hour. When the response be
 
 > Tip: Make sure that the images served by the server have [Cache Control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) set correctly.
 
-> Important: By default, `URLCache` doesn't serve state images offline. To show a stale image, pass the `URLRequest` with cache policy set to [.returnCacheDataDontLoad](https://developer.apple.com/documentation/foundation/nsurlrequest/cachepolicy/returncachedatadontload) and then perform a second request to refresh the image.
+> Important: By default, `URLCache` doesn't serve stale images offline. To show a stale image, pass the `URLRequest` with cache policy set to [.returnCacheDataDontLoad](https://developer.apple.com/documentation/foundation/nsurlrequest/cachepolicy/returncachedatadontload) and then perform a second request to refresh the image.
 
 ### L3. Aggressive Disk Cache (Optional)
 
