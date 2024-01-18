@@ -134,7 +134,7 @@ extension PlatformImage {
         guard let cgImage = cgImage else {
             return nil
         }
-        guard let ctx = CGContext.make(cgImage, size: canvasSize) else {
+        guard let ctx = CGContext.make(cgImage, size: canvasSize, alphaInfo: cgImage.alphaInfo) else {
             return nil
         }
         ctx.draw(cgImage, in: drawRect ?? CGRect(origin: .zero, size: canvasSize))
