@@ -32,9 +32,6 @@ Nuke is proudly sponsored by [Stream](https://getstream.io/chat/sdk/swiftui/?utm
     <td valign="center">
         <a href="https://www.namiml.com#gh-light-mode-only"><img src="https://kean.blog/images/logos/nami-light.png#gh-light-mode-only" height="40px" alt="Nami Logo"></a><a href="https://www.namiml.com#gh-dark-mode-only"><img src="https://kean.blog/images/logos/nami-dark.png#gh-dark-mode-only" height="40px" alt="Nami Logo"></a>
     </td>
-    <td valign="center">
-        <a href="https://sentry.io#gh-light-mode-only"><img src="https://kean.blog/images/logos/sentry-light.png#gh-light-mode-only" height="40px" alt="Nami Logo"></a><a href="https://sentry.io#gh-dark-mode-only"><img src="https://kean.blog/images/logos/sentry-dark.png#gh-dark-mode-only" height="40px" alt="Nami Logo"></a>
-    </td>
   </tr>
 </table>
 
