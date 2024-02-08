@@ -36,7 +36,7 @@ class ImagePipelineFormatsTests: XCTestCase {
         let image = try XCTUnwrap(result?.value?.image)
         let cgImage = try XCTUnwrap(image.cgImage)
         let colorSpace = try XCTUnwrap(cgImage.colorSpace)
-#if os(iOS) || os(tvOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
         XCTAssertTrue(colorSpace.isWideGamutRGB)
 #elseif os(watchOS)
         XCTAssertFalse(colorSpace.isWideGamutRGB)

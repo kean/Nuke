@@ -6,7 +6,7 @@ import XCTest
 import Foundation
 @testable import Nuke
 
-#if os(iOS) || os(tvOS) || os(watchOS)
+#if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
 import UIKit
 #endif
 

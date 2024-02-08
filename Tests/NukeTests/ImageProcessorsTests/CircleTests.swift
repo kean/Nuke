@@ -9,7 +9,7 @@ import XCTest
     import UIKit
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
 class ImageProcessorsCircleTests: XCTestCase {
 
     func _testThatImageIsCroppedToSquareAutomatically() throws {

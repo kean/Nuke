@@ -9,7 +9,7 @@ import XCTest
     import UIKit
 #endif
 
-#if os(iOS) || os(tvOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
 class ImageProcessorsGaussianBlurTest: XCTestCase {
     func testApplyBlur() {

@@ -32,7 +32,7 @@ class ImageDecompressionTests: XCTestCase {
         // The original image doesn't have an alpha channel (kCGImageAlphaNone),
         // but this parameter combination (8 bbc and kCGImageAlphaNone) is not
         // supported by CGContext. Thus we are switching to a different format.
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
         if #available(iOS 15.0, tvOS 15.0, *) {
             XCTAssertEqual(output.cgImage?.bitsPerPixel, 8) // Yay, preparingForDisplay supports it
             XCTAssertEqual(output.cgImage?.bitsPerComponent, 8)

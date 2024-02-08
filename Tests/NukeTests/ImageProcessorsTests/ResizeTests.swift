@@ -109,7 +109,7 @@ class ImageProcessorsResizeTests: XCTestCase {
         // Then image is resized but isn't cropped
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 480, height: 320))
         let colorSpace = try XCTUnwrap(output.cgImage?.colorSpace)
-#if os(iOS) || os(tvOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
         XCTAssertTrue(colorSpace.isWideGamutRGB)
 #elseif os(watchOS)
         XCTAssertFalse(colorSpace.isWideGamutRGB)
@@ -138,7 +138,7 @@ class ImageProcessorsResizeTests: XCTestCase {
     }
 #endif
     
-#if os(iOS) || os(tvOS) || os(watchOS)
+#if os(iOS) || os(tvOS) || os(watchOS) || os(visionOS)
     func testResizeImageWithOrientationLeft() throws {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
@@ -181,7 +181,7 @@ class ImageProcessorsResizeTests: XCTestCase {
     
 #endif
     
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
     func testThatScalePreserved() throws {
         // Given
         let processor = ImageProcessors.Resize(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFill)

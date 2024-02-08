@@ -6,7 +6,7 @@ import XCTest
 @testable import Nuke
 @testable import NukeExtensions
 
-#if os(iOS) || os(tvOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 extension XCTestCase {
     @MainActor
     func expectToFinishLoadingImage(with request: ImageRequest,

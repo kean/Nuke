@@ -60,7 +60,7 @@ public final class VideoPlayerView: _PlatformBaseView {
 
     private var _playerLayer: AVPlayerLayer?
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
     override public func layoutSubviews() {
         super.layoutSubviews()
 
@@ -114,7 +114,7 @@ public final class VideoPlayerView: _PlatformBaseView {
             object: player?.currentItem
         )
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(applicationWillEnterForeground),
@@ -173,7 +173,7 @@ public final class VideoPlayerView: _PlatformBaseView {
         }
     }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
     override public func willMove(toWindow newWindow: UIWindow?) {
         if newWindow != nil && shouldResumeOnInterruption {
             player?.play()

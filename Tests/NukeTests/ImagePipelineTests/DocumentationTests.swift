@@ -5,7 +5,7 @@
 import Foundation
 import Nuke
 
-#if os(iOS)
+#if os(iOS) || os(visionOS)
 
 import UIKit
 

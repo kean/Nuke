@@ -23,7 +23,7 @@ public struct ImageLoadingOptions {
     /// Image to be displayed when the request fails. `nil` by default.
     public var failureImage: PlatformImage?
 
-#if os(iOS) || os(tvOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
     /// The image transition animation performed when displaying a loaded image.
     /// Only runs when the image was not found in memory cache. `nil` by default.
@@ -66,7 +66,7 @@ public struct ImageLoadingOptions {
     /// request. `[]` by default.
     public var processors: [any ImageProcessing] = []
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
 
     /// Content modes to be used for each image type (placeholder, success,
     /// failure). `nil`  by default (don't change content mode).
@@ -132,7 +132,7 @@ public struct ImageLoadingOptions {
 
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
 
     /// - parameters:
     ///   - placeholder: Placeholder to be displayed when the image is loading.
@@ -175,7 +175,7 @@ public struct ImageLoadingOptions {
     public struct Transition {
         var style: Style
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
         enum Style { // internal representation
             case fadeIn(parameters: Parameters)
             case custom((ImageDisplayingView, UIImage) -> Void)
