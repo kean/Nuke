@@ -1,12 +1,22 @@
 # Nuke 12
 
-## Nuke 13.2.0
+## Nuke 12.4
+
+*Feb 10, 2024*
+
+## What's Changed
+* Enable visionOS support for all APIs by @zachwaugh in https://github.com/kean/Nuke/pull/752
+* Update documentation by @tkersey in https://github.com/kean/Nuke/pull/747
+
+**Full Changelog**: https://github.com/kean/Nuke/compare/12.3.0...12.4.0
+
+## Nuke 12.3
 
 *Jan 6, 2024*
 
 - Add support for visionOS by @bobek-balinek in https://github.com/kean/Nuke/pull/743
 
-## Nuke 12.2.0
+## Nuke 12.2
 
 *Nov 23, 2023*
 
