@@ -12,7 +12,7 @@ import UIKit.UIColor
 import AppKit.NSImage
 #endif
 
-#if os(iOS) || os(tvOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
 /// Displays images. Add the conformance to this protocol to your views to make
 /// them compatible with Nuke image loading extensions.
@@ -45,7 +45,7 @@ extension Nuke_ImageDisplaying {
 }
 #endif
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
 import UIKit
 /// A `UIView` that implements `ImageDisplaying` protocol.
 public typealias ImageDisplayingView = UIView & Nuke_ImageDisplaying
@@ -198,7 +198,7 @@ private final class ImageViewController {
     private var task: ImageTask?
     private var options: ImageLoadingOptions
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
     // Image view used for cross-fade transition between images with different
     // content modes.
     private lazy var transitionImageView = UIImageView()
@@ -245,7 +245,7 @@ private final class ImageViewController {
         self.options = options
 
         if options.isPrepareForReuseEnabled { // enabled by default
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
             imageView.layer.removeAllAnimations()
 #elseif os(macOS)
             let layer = (imageView as? NSView)?.layer ?? imageView.layer
@@ -320,7 +320,7 @@ private final class ImageViewController {
         display(response.container, false, .success)
     }
 
-#if os(iOS) || os(tvOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
     private func display(_ image: ImageContainer, _ isFromMemory: Bool, _ response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {
@@ -329,7 +329,7 @@ private final class ImageViewController {
 
         var image = image
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
         if let tintColor = options.tintColor(for: response) {
             image.image = image.image.withRenderingMode(.alwaysTemplate)
             imageView.tintColor = tintColor
@@ -349,7 +349,7 @@ private final class ImageViewController {
             imageView.display(image)
         }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
         if let contentMode = options.contentMode(for: response) {
             imageView.contentMode = contentMode
         }
@@ -368,7 +368,7 @@ private final class ImageViewController {
 // MARK: - ImageViewController (Transitions)
 
 extension ImageViewController {
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
 
     private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, response: ImageLoadingOptions.ResponseType) {
         guard let imageView = imageView else {

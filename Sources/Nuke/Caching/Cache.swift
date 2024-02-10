@@ -4,7 +4,7 @@
 
 import Foundation
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
 import UIKit.UIApplication
 #endif
 
@@ -55,7 +55,7 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
         }
         self.memoryPressure.resume()
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
         registerForEnterBackground()
 #endif
     }
@@ -67,7 +67,7 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
         memoryPressure.cancel()
     }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
     private func registerForEnterBackground() {
         notificationObserver = NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { [weak self] _ in
             self?.clearCacheOnEnterBackground()

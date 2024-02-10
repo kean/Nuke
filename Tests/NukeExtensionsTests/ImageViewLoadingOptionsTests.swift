@@ -6,7 +6,7 @@ import XCTest
 @testable import Nuke
 @testable import NukeExtensions
 
-#if os(iOS) || os(tvOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
 @MainActor
 class ImageViewLoadingOptionsTests: XCTestCase {
@@ -198,7 +198,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     
 #endif
     
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
     
     // MARK: - Tint Colors
     
@@ -328,7 +328,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     
     // MARK: - Misc
     
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
     func testTransitionCrossDissolve() {
         // GIVEN
         var options = ImageLoadingOptions()

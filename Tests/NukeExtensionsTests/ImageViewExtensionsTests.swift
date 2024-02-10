@@ -9,7 +9,7 @@ import TVUIKit
 @testable import Nuke
 @testable import NukeExtensions
 
-#if os(iOS) || os(tvOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
 @MainActor
 class ImageViewExtensionsTests: XCTestCase {

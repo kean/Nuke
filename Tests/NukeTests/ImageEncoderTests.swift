@@ -61,7 +61,7 @@ final class ImageEncoderTests: XCTestCase {
         XCTAssertNil(AssetType(data)) // TODO: update when HEIF support is added
     }
     
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
     
     func testEncodeCoreImageBackedImage() throws {
         // Given

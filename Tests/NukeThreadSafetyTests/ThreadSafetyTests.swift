@@ -115,7 +115,7 @@ class ThreadSafetyTests: XCTestCase {
             { cache.removeAll() }
         ]
         
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
         ops.append {
             NotificationCenter.default.post(name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
         }

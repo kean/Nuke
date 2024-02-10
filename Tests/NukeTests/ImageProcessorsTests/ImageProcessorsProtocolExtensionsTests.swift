@@ -68,7 +68,7 @@ class ImageProcessorsProtocolExtensionsTests: XCTestCase {
         XCTAssertEqual(request.processors.first?.identifier, processor.identifier)
     }
     
-#if os(iOS) || os(tvOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
     func testPassingProcessorsUsingProtocolExtensionsCoreImageFilterWithNameOnly() throws {
         let name = "CISepiaTone"
         let processor = ImageProcessors.CoreImageFilter(name: name)

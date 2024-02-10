@@ -350,7 +350,7 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
     
-#if os(iOS)
+#if os(iOS) || os(visionOS)
     func testThumnbailIsntDecompressed() {
         pipeline.configuration.imageDecompressingQueue.isSuspended = true
         

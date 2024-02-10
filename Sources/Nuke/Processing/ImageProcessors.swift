@@ -86,7 +86,7 @@ extension ImageProcessing where Self == ImageProcessors.Anonymous {
     }
 }
 
-#if os(iOS) || os(tvOS) || os(macOS)
+#if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
 extension ImageProcessing where Self == ImageProcessors.CoreImageFilter {
     /// Applies Core Image filter – `CIFilter` – to the image.
