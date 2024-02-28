@@ -167,14 +167,15 @@ class ThreadSafetyTests: XCTestCase {
 
     func testDataCacheMultipleThreadAccess() {
         let aURL = URL(string: "https://example.com/image-01-small.jpeg")!
-        let imageData = Data(repeating: 1, count: 256 * 1024)
+        let imageData = Test.data(name: "fixture", extension: "jpeg")
 
         let expectSuccessFromCache = self.expectation(description: "one successful load, from cache")
         expectSuccessFromCache.expectedFulfillmentCount = 1
         expectSuccessFromCache.assertForOverFulfill = true
 
-        ImagePipeline.shared.cache.storeCachedData(imageData, for: ImageRequest.init(url: aURL))
-        ImagePipeline.shared.loadImage(with: aURL) { result in
+        let pipeline = ImagePipeline(configuration: .withDataCache)
+        pipeline.cache.storeCachedData(imageData, for: ImageRequest.init(url: aURL))
+        pipeline.loadImage(with: aURL) { result in
             switch result {
             case .success(let response):
                 if response.cacheType == .memory || response.cacheType == .disk {
