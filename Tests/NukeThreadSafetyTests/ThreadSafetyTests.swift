@@ -164,6 +164,32 @@ class ThreadSafetyTests: XCTestCase {
         }
         queue.waitUntilAllOperationsAreFinished()
     }
+
+    func testDataCacheMultipleThreadAccess() {
+        let aURL = URL(string: "https://example.com/image-01-small.jpeg")!
+        let imageData = Test.data(name: "fixture", extension: "jpeg")
+
+        let expectSuccessFromCache = self.expectation(description: "one successful load, from cache")
+        expectSuccessFromCache.expectedFulfillmentCount = 1
+        expectSuccessFromCache.assertForOverFulfill = true
+
+        let pipeline = ImagePipeline(configuration: .withDataCache)
+        pipeline.cache.storeCachedData(imageData, for: ImageRequest.init(url: aURL))
+        pipeline.loadImage(with: aURL) { result in
+            switch result {
+            case .success(let response):
+                if response.cacheType == .memory || response.cacheType == .disk {
+                    expectSuccessFromCache.fulfill()
+                } else {
+                    XCTFail("didn't load that just cached image data: \(response)")
+                }
+            case .failure:
+                XCTFail("didn't load that just cached image data")
+            }
+        }
+
+        wait(for: [expectSuccessFromCache], timeout: 2)
+    }
 }
 
 final class OperationThreadSafetyTests: XCTestCase {
