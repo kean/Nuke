@@ -165,7 +165,9 @@ class ThreadSafetyTests: XCTestCase {
         queue.waitUntilAllOperationsAreFinished()
     }
 
-    func testDataCacheMultipleThreadAccess() {
+    func testDataCacheMultipleThreadAccess() throws {
+        let cache = try DataCache(name: UUID().uuidString)
+
         let aURL = URL(string: "https://example.com/image-01-small.jpeg")!
         let imageData = Test.data(name: "fixture", extension: "jpeg")
 
@@ -173,8 +175,11 @@ class ThreadSafetyTests: XCTestCase {
         expectSuccessFromCache.expectedFulfillmentCount = 1
         expectSuccessFromCache.assertForOverFulfill = true
 
-        let pipeline = ImagePipeline(configuration: .withDataCache)
-        pipeline.cache.storeCachedData(imageData, for: ImageRequest.init(url: aURL))
+        let pipeline = ImagePipeline {
+            $0.dataCache = cache
+            $0.dataLoader = MockDataLoader()
+        }
+        pipeline.cache.storeCachedData(imageData, for: ImageRequest(url: aURL))
         pipeline.loadImage(with: aURL) { result in
             switch result {
             case .success(let response):
@@ -189,6 +194,8 @@ class ThreadSafetyTests: XCTestCase {
         }
 
         wait(for: [expectSuccessFromCache], timeout: 2)
+
+        try? FileManager.default.removeItem(at: cache.path)
     }
 }
 
