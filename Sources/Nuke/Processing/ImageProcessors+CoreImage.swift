@@ -49,7 +49,7 @@ extension ImageProcessors {
         }
 
         public func process(_ container: ImageContainer, context: ImageProcessingContext) throws -> ImageContainer {
-            try container.map(_process(_:))
+            try container.map(_process)
         }
 
         private func _process(_ image: PlatformImage) throws -> PlatformImage {
