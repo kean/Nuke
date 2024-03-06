@@ -201,7 +201,7 @@ extension ImagePipeline {
             config.dataLoader = dataLoader
 
             let dataCache = try? DataCache(name: name)
-            if let sizeLimit = sizeLimit {
+            if let sizeLimit {
                 dataCache?.sizeLimit = sizeLimit
             }
             config.dataCache = dataCache

@@ -112,7 +112,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         if !processors.isEmpty && request.processors.isEmpty {
             request.processors = processors
         }
-        if let priority = self.priority {
+        if let priority {
             request.priority = priority
         }
 
@@ -133,7 +133,7 @@ public final class FetchImage: ObservableObject, Identifiable {
             with: request,
             progress: { [weak self] response, completed, total in
                 guard let self = self else { return }
-                if let response = response {
+                if let response {
                     withTransaction(self.transaction) {
                         self.handle(preview: response)
                     }

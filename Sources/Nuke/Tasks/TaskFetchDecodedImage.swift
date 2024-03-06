@@ -74,7 +74,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
     // Lazily creates decoding for task
     private func getDecoder(for context: ImageDecodingContext) -> (any ImageDecoding)? {
         // Return the existing processor in case it has already been created.
-        if let decoder = self.decoder {
+        if let decoder {
             return decoder
         }
         let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline)

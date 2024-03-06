@@ -169,7 +169,7 @@ public final class ImagePipeline: @unchecked Sendable {
                         continuation.resume(throwing: CancellationError())
                     }
                     self.startImageTask(task, progress: { response, progress in
-                        if let response = response {
+                        if let response {
                             context?.previews?.yield(response)
                         } else {
                             context?.progress?.yield(progress)

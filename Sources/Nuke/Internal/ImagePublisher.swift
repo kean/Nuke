@@ -62,7 +62,7 @@ private final class ImageSubscription<S>: Subscription where S: Subscriber, S: S
              with: request,
              queue: nil,
              progress: { response, _, _ in
-                 if let response = response {
+                 if let response {
                     // Send progressively decoded image (if enabled and if any)
                      _ = subscriber.receive(response)
                  }

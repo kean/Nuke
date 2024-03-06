@@ -40,7 +40,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             pipeline.cache.cachedData(for: request)
         }
         pipeline.queue.async {
-            if let data = data {
+            if let data {
                 self.didReceiveCachedData(data)
             } else {
                 self.fetchImage()
@@ -77,7 +77,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     private func didDecodeCachedData(_ response: ImageResponse?) {
-        if let response = response {
+        if let response {
             decompressImage(response, isCompleted: true, isFromDiskCache: true)
         } else {
             fetchImage()

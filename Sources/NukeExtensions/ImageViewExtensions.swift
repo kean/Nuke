@@ -286,7 +286,7 @@ private final class ImageViewController {
         }
 
         task = pipeline.loadImage(with: request, queue: .main, progress: { [weak self] response, completedCount, totalCount in
-            if let response = response, options.isProgressiveRenderingEnabled {
+            if let response, options.isProgressiveRenderingEnabled {
                 self?.handle(partialImage: response)
             }
             progress?(response, completedCount, totalCount)

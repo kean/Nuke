@@ -107,7 +107,7 @@ struct ImageProcessingExtensions {
         ctx.clip()
         ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: cgImage.size))
 
-        if let border = border {
+        if let border {
             ctx.setStrokeColor(border.color.cgColor)
             ctx.addPath(path)
             ctx.setLineWidth(border.width)

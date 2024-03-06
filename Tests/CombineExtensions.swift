@@ -31,7 +31,7 @@ extension Subscriptions {
         }
 
         func start(_ closure: @escaping (AnySubscriber<Output, Failure>) -> Void) {
-            if let subscriber = subscriber {
+            if let subscriber {
                 closure(AnySubscriber(subscriber))
             }
         }

@@ -100,7 +100,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         // Check if this is the first response.
         if urlResponse == nil {
             // See if the server confirmed that the resumable data can be used
-            if let resumableData = resumableData, ResumableData.isResumedResponse(response) {
+            if let resumableData, ResumableData.isResumedResponse(response) {
                 data = resumableData.data
                 resumedDataCount = Int64(resumableData.data.count)
                 signpost(self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
@@ -128,7 +128,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
     }
 
     private func dataTaskDidFinish(error: Swift.Error?) {
-        if let error = error {
+        if let error {
             tryToSaveResumableData()
             send(error: .dataLoadingFailed(error: error))
             return
