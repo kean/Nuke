@@ -202,7 +202,7 @@ final class Cache<Key: Hashable, Value>: @unchecked Sendable {
         let cost: Int
         let expiration: Date?
         var isExpired: Bool {
-            guard let expiration = expiration else {
+            guard let expiration else {
                 return false
             }
             return expiration.timeIntervalSinceNow < 0

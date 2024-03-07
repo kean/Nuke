@@ -131,7 +131,7 @@ extension PlatformImage {
     ///
     /// - parameter drawRect: `nil` by default. If `nil` will use the canvas rect.
     func draw(inCanvasWithSize canvasSize: CGSize, drawRect: CGRect? = nil) -> PlatformImage? {
-        guard let cgImage = cgImage else {
+        guard let cgImage else {
             return nil
         }
         guard let ctx = CGContext.make(cgImage, size: canvasSize) else {
@@ -151,7 +151,7 @@ extension PlatformImage {
             return preparingForDisplay()
         }
 #endif
-        guard let cgImage = cgImage else {
+        guard let cgImage else {
             return nil
         }
         return draw(inCanvasWithSize: cgImage.size, drawRect: CGRect(origin: .zero, size: cgImage.size))

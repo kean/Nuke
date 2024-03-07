@@ -238,7 +238,7 @@ private final class ImageViewController {
     ) -> ImageTask? {
         cancelOutstandingTask()
 
-        guard let imageView = imageView else {
+        guard let imageView else {
             return nil
         }
 
@@ -254,7 +254,7 @@ private final class ImageViewController {
         }
 
         // Handle a scenario where request is `nil` (in the same way as a failure)
-        guard var request = request else {
+        guard var request else {
             if options.isPrepareForReuseEnabled {
                 imageView.nuke_display(image: nil, data: nil)
             }
@@ -323,7 +323,7 @@ private final class ImageViewController {
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
     private func display(_ image: ImageContainer, _ isFromMemory: Bool, _ response: ImageLoadingOptions.ResponseType) {
-        guard let imageView = imageView else {
+        guard let imageView else {
             return
         }
 
@@ -371,7 +371,7 @@ extension ImageViewController {
 #if os(iOS) || os(tvOS) || os(visionOS)
 
     private func runFadeInTransition(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters, response: ImageLoadingOptions.ResponseType) {
-        guard let imageView = imageView else {
+        guard let imageView else {
             return
         }
 
@@ -385,7 +385,7 @@ extension ImageViewController {
     }
 
     private func runSimpleFadeIn(image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters) {
-        guard let imageView = imageView else {
+        guard let imageView else {
             return
         }
 

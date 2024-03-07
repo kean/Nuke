@@ -130,7 +130,7 @@ public final class VideoPlayerView: _PlatformBaseView {
     }
 
     public func play() {
-        guard let asset = asset else {
+        guard let asset else {
             return
         }
 

@@ -53,7 +53,7 @@ extension AssetType {
                 return false
             }
             return zip(numbers.indices, numbers).allSatisfy { index, number in
-                guard let number = number else { return true }
+                guard let number else { return true }
                 guard (index + offset) < data.count else { return false }
                 return data[index + offset] == number
             }

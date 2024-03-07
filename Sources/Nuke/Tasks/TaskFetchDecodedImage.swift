@@ -50,7 +50,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
             didFinishDecoding(decoder: decoder, context: context, result: decode())
         } else {
             operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
-                guard let self = self else { return }
+                guard let self else { return }
 
                 let result = decode()
                 self.pipeline.queue.async {

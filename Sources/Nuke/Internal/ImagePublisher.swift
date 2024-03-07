@@ -47,7 +47,7 @@ private final class ImageSubscription<S>: Subscription where S: Subscriber, S: S
 
     func request(_ demand: Subscribers.Demand) {
         guard demand > 0 else { return }
-        guard let subscriber = subscriber else { return }
+        guard let subscriber else { return }
 
         if let image = pipeline.cache[request] {
             _ = subscriber.receive(ImageResponse(container: image, request: request, cacheType: .memory))
