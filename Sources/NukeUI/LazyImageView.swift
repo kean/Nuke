@@ -125,7 +125,7 @@ public final class LazyImageView: _PlatformBaseView {
     /// dynamically. `nil` by default.
     public var priority: ImageRequest.Priority? {
         didSet {
-            if let priority = self.priority {
+            if let priority {
                 imageTask?.priority = priority
             }
         }
@@ -261,15 +261,15 @@ public final class LazyImageView: _PlatformBaseView {
             isResetNeeded = true
         }
 
-        guard var request = request else {
+        guard var request else {
             handle(result: .failure(ImagePipeline.Error.imageRequestMissing), isSync: true)
             return
         }
 
-        if let processors = self.processors, !processors.isEmpty, request.processors.isEmpty {
+        if let processors, !processors.isEmpty, request.processors.isEmpty {
             request.processors = processors
         }
-        if let priority = self.priority {
+        if let priority {
             request.priority = priority
         }
 
@@ -290,9 +290,9 @@ public final class LazyImageView: _PlatformBaseView {
             with: request,
             queue: .main,
             progress: { [weak self] response, completed, total in
-                guard let self = self else { return }
+                guard let self else { return }
                 let progress = ImageTask.Progress(completed: completed, total: total)
-                if let response = response {
+                if let response {
                     self.handle(preview: response)
                     self.onPreview?(response)
                 } else {
@@ -358,7 +358,7 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private func setPlaceholderImage(_ placeholderImage: PlatformImage?) {
-        guard let placeholderImage = placeholderImage else {
+        guard let placeholderImage else {
             placeholderView = nil
             return
         }
@@ -366,10 +366,10 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private func setPlaceholderView(_ oldView: _PlatformBaseView?, _ newView: _PlatformBaseView?) {
-        if let oldView = oldView {
+        if let oldView {
             oldView.removeFromSuperview()
         }
-        if let newView = newView {
+        if let newView {
             newView.isHidden = !imageView.isHidden
             insertSubview(newView, at: 0)
             setNeedsUpdateConstraints()
@@ -393,7 +393,7 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private func setFailureImage(_ failureImage: PlatformImage?) {
-        guard let failureImage = failureImage else {
+        guard let failureImage else {
             failureView = nil
             return
         }
@@ -401,10 +401,10 @@ public final class LazyImageView: _PlatformBaseView {
     }
 
     private func setFailureView(_ oldView: _PlatformBaseView?, _ newView: _PlatformBaseView?) {
-        if let oldView = oldView {
+        if let oldView {
             oldView.removeFromSuperview()
         }
-        if let newView = newView {
+        if let newView {
             newView.isHidden = true
             insertSubview(newView, at: 0)
             setNeedsUpdateConstraints()

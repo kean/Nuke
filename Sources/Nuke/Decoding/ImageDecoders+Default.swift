@@ -51,7 +51,7 @@ extension ImageDecoders {
             defer { lock.unlock() }
 
             func makeImage() -> PlatformImage? {
-                if let thumbnail = self.thumbnail {
+                if let thumbnail {
                     return makeThumbnail(data: data, options: thumbnail)
                 }
                 return ImageDecoders.Default._decode(data, scale: scale)

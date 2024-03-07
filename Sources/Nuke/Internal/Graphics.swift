@@ -107,7 +107,7 @@ struct ImageProcessingExtensions {
         ctx.clip()
         ctx.draw(cgImage, in: CGRect(origin: CGPoint.zero, size: cgImage.size))
 
-        if let border = border {
+        if let border {
             ctx.setStrokeColor(border.color.cgColor)
             ctx.addPath(path)
             ctx.setLineWidth(border.width)
@@ -131,7 +131,7 @@ extension PlatformImage {
     ///
     /// - parameter drawRect: `nil` by default. If `nil` will use the canvas rect.
     func draw(inCanvasWithSize canvasSize: CGSize, drawRect: CGRect? = nil) -> PlatformImage? {
-        guard let cgImage = cgImage else {
+        guard let cgImage else {
             return nil
         }
         guard let ctx = CGContext.make(cgImage, size: canvasSize) else {
@@ -151,7 +151,7 @@ extension PlatformImage {
             return preparingForDisplay()
         }
 #endif
-        guard let cgImage = cgImage else {
+        guard let cgImage else {
             return nil
         }
         return draw(inCanvasWithSize: cgImage.size, drawRect: CGRect(origin: .zero, size: cgImage.size))

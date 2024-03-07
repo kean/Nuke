@@ -174,7 +174,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         }
 
         inlineSubscription?.closure(event)
-        if let subscriptions = subscriptions {
+        if let subscriptions {
             for subscription in subscriptions.values {
                 subscription.closure(event)
             }
@@ -203,7 +203,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     // MARK: - Priority
 
     private func updatePriority(suggestedPriority: TaskPriority?) {
-        if let suggestedPriority = suggestedPriority, suggestedPriority >= priority {
+        if let suggestedPriority, suggestedPriority >= priority {
             // No need to recompute, won't go higher than that
             priority = suggestedPriority
             return
@@ -212,7 +212,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         var newPriority = inlineSubscription?.priority
         // Same as subscriptions.map { $0?.priority }.max() but without allocating
         // any memory for redundant arrays
-        if let subscriptions = subscriptions {
+        if let subscriptions {
             for subscription in subscriptions.values {
                 if newPriority == nil {
                     newPriority = subscription.priority
@@ -243,7 +243,7 @@ extension AsyncTask {
         /// - notes: Returns `nil` if the task is already disposed.
         func subscribe<NewValue>(_ task: AsyncTask<NewValue, Error>, onValue: @escaping (Value, Bool) -> Void) -> TaskSubscription? {
             subscribe(subscriber: task) { [weak task] event in
-                guard let task = task else { return }
+                guard let task else { return }
                 switch event {
                 case let .value(value, isCompleted):
                     onValue(value, isCompleted)

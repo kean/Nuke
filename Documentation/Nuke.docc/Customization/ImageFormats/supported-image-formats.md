@@ -137,7 +137,7 @@ ImageDecoderRegistry.shared.register { context in
 
 let url = URL(string: "https://upload.wikimedia.org/wikipedia/commons/9/9d/Swift_logo.svg")
 ImagePipeline.shared.loadImage(with: url) { [weak self] result in
-    guard let self = self, let data = try? result.get().container.data else {
+    guard let self, let data = try? result.get().container.data else {
         return
     }
     // You can render an image using whatever size you want, vector!

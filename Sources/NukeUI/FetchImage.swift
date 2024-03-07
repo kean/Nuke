@@ -104,7 +104,7 @@ public final class FetchImage: ObservableObject, Identifiable {
 
         reset()
 
-        guard var request = request else {
+        guard var request else {
             handle(result: .failure(ImagePipeline.Error.imageRequestMissing))
             return
         }
@@ -112,7 +112,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         if !processors.isEmpty && request.processors.isEmpty {
             request.processors = processors
         }
-        if let priority = self.priority {
+        if let priority {
             request.priority = priority
         }
 
@@ -132,8 +132,8 @@ public final class FetchImage: ObservableObject, Identifiable {
         let task = pipeline.loadImage(
             with: request,
             progress: { [weak self] response, completed, total in
-                guard let self = self else { return }
-                if let response = response {
+                guard let self else { return }
+                if let response {
                     withTransaction(self.transaction) {
                         self.handle(preview: response)
                     }
@@ -143,7 +143,7 @@ public final class FetchImage: ObservableObject, Identifiable {
                 }
             },
             completion: { [weak self] result in
-                guard let self = self else { return }
+                guard let self else { return }
                 withTransaction(self.transaction) {
                     self.handle(result: result.mapError { $0 })
                 }
@@ -205,7 +205,7 @@ public final class FetchImage: ObservableObject, Identifiable {
         // Not using `first()` because it should support progressive decoding
         isLoading = true
         cancellable = publisher.sink(receiveCompletion: { [weak self] completion in
-            guard let self = self else { return }
+            guard let self else { return }
             self.isLoading = false
             switch completion {
             case .finished:
@@ -216,7 +216,7 @@ public final class FetchImage: ObservableObject, Identifiable {
                 self.result = .failure(error)
             }
         }, receiveValue: { [weak self] response in
-            guard let self = self else { return }
+            guard let self else { return }
             self.lastResponse = response
             self.imageContainer = response.container
         })

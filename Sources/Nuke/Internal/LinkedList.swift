@@ -30,7 +30,7 @@ final class LinkedList<Element> {
 
     /// Adds a node to the end of the list.
     func append(_ node: Node) {
-        if let last = last {
+        if let last {
             last.next = node
             node.previous = last
             self.last = node

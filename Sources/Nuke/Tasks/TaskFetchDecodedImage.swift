@@ -50,7 +50,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
             didFinishDecoding(decoder: decoder, context: context, result: decode())
         } else {
             operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
-                guard let self = self else { return }
+                guard let self else { return }
 
                 let result = decode()
                 self.pipeline.queue.async {
@@ -74,7 +74,7 @@ final class TaskFetchDecodedImage: ImagePipelineTask<ImageResponse> {
     // Lazily creates decoding for task
     private func getDecoder(for context: ImageDecodingContext) -> (any ImageDecoding)? {
         // Return the existing processor in case it has already been created.
-        if let decoder = self.decoder {
+        if let decoder {
             return decoder
         }
         let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline)

@@ -169,7 +169,7 @@ public final class ImagePipeline: @unchecked Sendable {
                         continuation.resume(throwing: CancellationError())
                     }
                     self.startImageTask(task, progress: { response, progress in
-                        if let response = response {
+                        if let response {
                             context?.previews?.yield(response)
                         } else {
                             context?.progress?.yield(progress)
@@ -308,7 +308,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
         tasks[task] = makeTaskLoadImage(for: task.request)
             .subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak self, weak task] event in
-                guard let self = self, let task = task else { return }
+                guard let self, let task else { return }
 
                 if event.isCompleted {
                     self.tasks[task] = nil
@@ -425,7 +425,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
         tasks[task] = makeTaskLoadData(for: task.request)
             .subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak self, weak task] event in
-                guard let self = self, let task = task else { return }
+                guard let self, let task else { return }
 
                 if event.isCompleted {
                     self.tasks[task] = nil

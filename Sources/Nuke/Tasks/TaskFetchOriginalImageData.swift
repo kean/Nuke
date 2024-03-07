@@ -23,7 +23,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
             // Rate limiter is synchronized on pipeline's queue. Delayed work is
             // executed asynchronously also on the same queue.
             rateLimiter.execute { [weak self] in
-                guard let self = self, !self.isDisposed else {
+                guard let self, !self.isDisposed else {
                     return false
                 }
                 self.loadData(urlRequest: urlRequest)
@@ -41,7 +41,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
             // Wrap data request in an operation to limit the maximum number of
             // concurrent data tasks.
             operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
-                guard let self = self else {
+                guard let self else {
                     return finish()
                 }
                 self.pipeline.queue.async {
@@ -72,13 +72,13 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
 
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
         let dataTask = dataLoader.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
-            guard let self = self else { return }
+            guard let self else { return }
             self.pipeline.queue.async {
                 self.dataTask(didReceiveData: data, response: response)
             }
         }, completion: { [weak self] error in
             finish() // Finish the operation!
-            guard let self = self else { return }
+            guard let self else { return }
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
             self.pipeline.queue.async {
                 self.dataTaskDidFinish(error: error)
@@ -86,7 +86,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         })
 
         onCancelled = { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
 
             signpost(self, "LoadImageData", .end, "Cancelled")
             dataTask.cancel()
@@ -100,7 +100,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
         // Check if this is the first response.
         if urlResponse == nil {
             // See if the server confirmed that the resumable data can be used
-            if let resumableData = resumableData, ResumableData.isResumedResponse(response) {
+            if let resumableData, ResumableData.isResumedResponse(response) {
                 data = resumableData.data
                 resumedDataCount = Int64(resumableData.data.count)
                 signpost(self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
@@ -128,7 +128,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
     }
 
     private func dataTaskDidFinish(error: Swift.Error?) {
-        if let error = error {
+        if let error {
             tryToSaveResumableData()
             send(error: .dataLoadingFailed(error: error))
             return

@@ -134,7 +134,7 @@ public struct LazyImage<Content: View>: View {
 
     public var body: some View {
         ZStack {
-            if let makeContent = makeContent {
+            if let makeContent {
                 makeContent(viewModel)
             } else {
                 makeDefaultContent(for: viewModel)

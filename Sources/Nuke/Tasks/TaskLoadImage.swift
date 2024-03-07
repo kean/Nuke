@@ -40,7 +40,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             pipeline.cache.cachedData(for: request)
         }
         pipeline.queue.async {
-            if let data = data {
+            if let data {
                 self.didReceiveCachedData(data)
             } else {
                 self.fetchImage()
@@ -67,7 +67,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             didDecodeCachedData(decode())
         } else {
             operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
-                guard let self = self else { return }
+                guard let self else { return }
                 let response = decode()
                 self.pipeline.queue.async {
                     self.didDecodeCachedData(response)
@@ -77,7 +77,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     private func didDecodeCachedData(_ response: ImageResponse?) {
-        if let response = response {
+        if let response {
             decompressImage(response, isCompleted: true, isFromDiskCache: true)
         } else {
             fetchImage()
@@ -161,7 +161,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
                 return response
             }
         }).subscribe(priority: priority) { [weak self] event in
-            guard let self = self else { return }
+            guard let self else { return }
             if event.isCompleted {
                 self.dependency2 = nil
             }
@@ -196,7 +196,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         guard !isDisposed else { return }
 
         operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
 
             let response = signpost("DecompressImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
                 self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
@@ -240,7 +240,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
         let key = pipeline.cache.makeDataCacheKey(for: request)
         pipeline.configuration.imageEncodingQueue.addOperation { [weak pipeline, request] in
-            guard let pipeline = pipeline else { return }
+            guard let pipeline else { return }
             let encodedData = signpost("EncodeImage") {
                 encoder.encode(response.container, context: context)
             }

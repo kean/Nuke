@@ -18,7 +18,7 @@ final class OperationTask<T: Sendable>: AsyncTask<T, Swift.Error> {
 
     override func start() {
         operation = queue.add { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             let result = Result(catching: { try self.process() })
             self.pipeline.queue.async {
                 switch result {

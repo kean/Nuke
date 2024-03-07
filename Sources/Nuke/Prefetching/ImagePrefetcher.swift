@@ -128,7 +128,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
         }
         let task = Task(request: request, key: key)
         task.operation = queue.add { [weak self] finish in
-            guard let self = self else { return finish() }
+            guard let self else { return finish() }
             self.loadImage(task: task, finish: finish)
         }
         tasks[key] = task

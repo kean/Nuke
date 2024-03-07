@@ -316,7 +316,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         // applies the remaining processors and delivers it
         let previewDelivered = self.expectation(description: "previewDelivered")
         pipeline.loadImage(with: request) { response, _, _ in
-            guard let response = response else {
+            guard let response else {
                 return XCTFail()
             }
             XCTAssertEqual(response.image.nk_test_processorIDs, ["2"])
@@ -339,7 +339,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         // applies the remaining processors and delivers it
         let previewDelivered = self.expectation(description: "previewDelivered")
         pipeline.loadImage(with: request) { response, _, _ in
-            guard let response = response else {
+            guard let response else {
                 return
             }
             XCTAssertTrue(response.container.isPreview)

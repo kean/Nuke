@@ -22,7 +22,7 @@ final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
             pipeline.cache.cachedData(for: request)
         }
         pipeline.queue.async {
-            if let data = data {
+            if let data {
                 self.send(value: (data, nil), isCompleted: true)
             } else {
                 self.loadData()
