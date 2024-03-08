@@ -77,7 +77,7 @@ extension AssetType {
 
         // https://www.garykessler.net/library/file_sigs.html
         if _match([0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32], offset: 4) { return .m4v }
-                
+
         if _match([0x66, 0x74, 0x79, 0x70, 0x4D, 0x34, 0x56, 0x20], offset: 4) { return .m4v }
 
         // MOV magic numbers https://www.garykessler.net/library/file_sigs.html
