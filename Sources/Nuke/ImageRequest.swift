@@ -367,7 +367,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         /// (``ImageProcessors/Resize``).
         ///
         /// - note: You must be using the default image decoder to make it work.
-        public static let thumbnailKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/thumbmnailKey"
+        public static let thumbnailKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/thumbnail"
     }
 
     /// Thumbnail options.
