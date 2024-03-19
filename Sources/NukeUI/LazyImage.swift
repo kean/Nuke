@@ -17,7 +17,7 @@ public typealias ImageRequest = Nuke.ImageRequest
 /// task coalescing, smart background decompression, request priorities, and more.
 @MainActor
 @available(iOS 14.0, tvOS 14.0, watchOS 7.0, macOS 10.16, *)
-public struct LazyImage<Content: View>: View {
+public struct LazyImage<Content: View, Placeholder: View>: View {
     @StateObject private var viewModel = FetchImage()
 
     private var context: LazyImageContext?
@@ -27,6 +27,7 @@ public struct LazyImage<Content: View>: View {
     private var onStart: ((ImageTask) -> Void)?
     private var onDisappearBehavior: DisappearBehavior? = .cancel
     private var onCompletion: ((Result<ImageResponse, Error>) -> Void)?
+    private let placeholder: () -> Placeholder
 
     // MARK: Initializers
 
@@ -34,17 +35,20 @@ public struct LazyImage<Content: View>: View {
     ///
     /// - Parameters:
     ///   - url: The image URL.
-    public init(url: URL?) where Content == Image {
-        self.init(request: url.map { ImageRequest(url: $0) })
+    ///   - placeholder: Optional placeholder, defaults to `Color(.secondarySystemBackground)`
+    public init(url: URL?, placeholder: @escaping () -> Placeholder = { Color(.secondarySystemBackground) }) where Content == Image {
+        self.init(request: url.map { ImageRequest(url: $0) }, placeholder: placeholder)
     }
 
     /// Loads and displays an image using `SwiftUI.Image`.
     ///
     /// - Parameters:
     ///   - request: The image request.
-    public init(request: ImageRequest?) where Content == Image {
+    ///   - placeholder: Optional placeholder, defaults to `Color(.secondarySystemBackground)`
+    public init(request: ImageRequest?, placeholder: @escaping () -> Placeholder = { Color(.secondarySystemBackground) }) where Content == Image {
         self.context = request.map(LazyImageContext.init)
         self.transaction = Transaction(animation: nil)
+        self.placeholder = placeholder
     }
 
     /// Loads an images and displays custom content for each state.
@@ -52,8 +56,12 @@ public struct LazyImage<Content: View>: View {
     /// See also ``init(request:transaction:content:)``
     public init(url: URL?,
                 transaction: Transaction = Transaction(animation: nil),
+                placeholder: @escaping () -> Placeholder = { Color(.secondarySystemBackground) },
                 @ViewBuilder content: @escaping (LazyImageState) -> Content) {
-        self.init(request: url.map { ImageRequest(url: $0) }, transaction: transaction, content: content)
+        self.init(request: url.map { ImageRequest(url: $0) }, 
+                  transaction: transaction,
+                  placeholder: placeholder,
+                  content: content)
     }
 
     /// Loads an images and displays custom content for each state.
@@ -75,9 +83,11 @@ public struct LazyImage<Content: View>: View {
     /// ```
     public init(request: ImageRequest?,
                 transaction: Transaction = Transaction(animation: nil),
+                placeholder: @escaping () -> Placeholder,
                 @ViewBuilder content: @escaping (LazyImageState) -> Content) {
         self.context = request.map { LazyImageContext(request: $0) }
         self.transaction = transaction
+        self.placeholder = placeholder
         self.makeContent = content
     }
 
@@ -152,7 +162,7 @@ public struct LazyImage<Content: View>: View {
         if let image = state.image {
             image
         } else {
-            Color(.secondarySystemBackground)
+            placeholder()
         }
     }
 
