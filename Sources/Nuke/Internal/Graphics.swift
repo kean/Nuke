@@ -314,7 +314,6 @@ extension CGSize {
     }
 }
 
-@MainActor
 enum Screen {
 #if os(iOS) || os(tvOS)
     /// Returns the current screen scale.
