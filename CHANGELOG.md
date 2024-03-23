@@ -4,12 +4,12 @@
 
 *Mar 23, 2024*
 
-* Fix Xcode 15.3 concurrency warnings when using `Screen.scale` by @jszumski in https://github.com/kean/Nuke/pull/766
+- Fix Xcode 15.3 concurrency warnings when using `Screen.scale` by @jszumski in https://github.com/kean/Nuke/pull/766
 - Add `showPlaceholderOnFailure` parameter to show placeholder in case of image loading failure by @mlight3 in https://github.com/kean/Nuke/pull/764
-* Fix image loading test on iOS 17 by @woxtu in https://github.com/kean/Nuke/pull/768
-* Update thumbnail key value for `ImageRequest`` by @woxtu in https://github.com/kean/Nuke/pull/769
-* Remove trailing whitespaces by @woxtu in https://github.com/kean/Nuke/pull/767
-* Apply `if let` shorthand syntax by @mlight3 in https://github.com/kean/Nuke/pull/762
+- Fix image loading test on iOS 17 by @woxtu in https://github.com/kean/Nuke/pull/768
+- Update thumbnail key value for `ImageRequest`` by @woxtu in https://github.com/kean/Nuke/pull/769
+- Remove trailing whitespaces by @woxtu in https://github.com/kean/Nuke/pull/767
+- Apply `if let` shorthand syntax by @mlight3 in https://github.com/kean/Nuke/pull/762
 
 ## Nuke 12.4
 
