@@ -29,12 +29,14 @@ typealias _PlatformColor = UIColor
 extension _PlatformBaseView {
     @discardableResult
     func pinToSuperview() -> [NSLayoutConstraint] {
+        guard let superview else { return [] }
+        
         translatesAutoresizingMaskIntoConstraints = false
         let constraints = [
-            topAnchor.constraint(equalTo: superview!.topAnchor),
-            bottomAnchor.constraint(equalTo: superview!.bottomAnchor),
-            leftAnchor.constraint(equalTo: superview!.leftAnchor),
-            rightAnchor.constraint(equalTo: superview!.rightAnchor)
+            topAnchor.constraint(equalTo: superview.topAnchor),
+            bottomAnchor.constraint(equalTo: superview.bottomAnchor),
+            leftAnchor.constraint(equalTo: superview.leftAnchor),
+            rightAnchor.constraint(equalTo: superview.rightAnchor)
         ]
         NSLayoutConstraint.activate(constraints)
         return constraints
@@ -42,10 +44,12 @@ extension _PlatformBaseView {
 
     @discardableResult
     func centerInSuperview() -> [NSLayoutConstraint] {
+        guard let superview else { return [] }
+        
         translatesAutoresizingMaskIntoConstraints = false
         let constraints = [
-            centerXAnchor.constraint(equalTo: superview!.centerXAnchor),
-            centerYAnchor.constraint(equalTo: superview!.centerYAnchor)
+            centerXAnchor.constraint(equalTo: superview.centerXAnchor),
+            centerYAnchor.constraint(equalTo: superview.centerYAnchor)
         ]
         NSLayoutConstraint.activate(constraints)
         return constraints
