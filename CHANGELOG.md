@@ -1,14 +1,22 @@
 # Nuke 12
 
+## Nuke 12.5
+
+*Mar 23, 2024*
+
+* Fix Xcode 15.3 concurrency warnings when using `Screen.scale` by @jszumski in https://github.com/kean/Nuke/pull/766
+- Add `showPlaceholderOnFailure` parameter to show placeholder in case of image loading failure by @mlight3 in https://github.com/kean/Nuke/pull/764
+* Fix image loading test on iOS 17 by @woxtu in https://github.com/kean/Nuke/pull/768
+* Update thumbnail key value for `ImageRequest`` by @woxtu in https://github.com/kean/Nuke/pull/769
+* Remove trailing whitespaces by @woxtu in https://github.com/kean/Nuke/pull/767
+* Apply `if let` shorthand syntax by @mlight3 in https://github.com/kean/Nuke/pull/762
+
 ## Nuke 12.4
 
 *Feb 10, 2024*
 
-## What's Changed
-* Enable visionOS support for all APIs by @zachwaugh in https://github.com/kean/Nuke/pull/752
-* Update documentation by @tkersey in https://github.com/kean/Nuke/pull/747
-
-**Full Changelog**: https://github.com/kean/Nuke/compare/12.3.0...12.4.0
+- Enable visionOS support for all APIs by @zachwaugh in https://github.com/kean/Nuke/pull/752
+- Update documentation by @tkersey in https://github.com/kean/Nuke/pull/747
 
 ## Nuke 12.3
 
