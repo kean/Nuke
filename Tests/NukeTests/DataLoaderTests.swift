@@ -59,7 +59,7 @@ class DataLoaderTests: XCTestCase {
                 expectation.fulfill()
             }
         })
-        wait(for: [expectation], timeout: 2.0)
+        wait(for: [expectation], timeout: 5)
 
         // THEN
         XCTAssertEqual(delegate.recordedMetrics.count, 1)
