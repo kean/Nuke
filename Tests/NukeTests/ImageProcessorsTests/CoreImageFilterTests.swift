@@ -102,6 +102,19 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
         // THEN
         XCTAssertEqual("\(processor)", "CoreImageFilter(name: CISepiaTone, parameters: [\"inputIntensity\": 0.5])")
     }
+
+    func testApplyCustomFilter() throws {
+        // GIVEN
+        let input = Test.image(named: "fixture-tiny.jpeg")
+        let filter = try XCTUnwrap(CIFilter(name: "CISepiaTone", parameters: nil))
+        let processor = ImageProcessors.CoreImageFilter(filter, identifier: "test")
+
+        // WHEN
+        let output = try XCTUnwrap(processor.process(input))
+
+        // THEN
+        XCTAssertNotNil(output)
+    }
 }
 
 #endif
