@@ -154,7 +154,6 @@
 		0C8D7BED1D9DC02B00D12EB7 /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C8D7BF51D9DC07E00D12EB7 /* DataCachePeformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D74201D9D6EEB0036349E /* DataCachePeformanceTests.swift */; };
 		0C8DC723209B842600084AA6 /* cat.gif in Resources */ = {isa = PBXBuildFile; fileRef = 0C8DC722209B842600084AA6 /* cat.gif */; };
-		0C9165E626431942006B1D4F /* OperationTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C9165E526431942006B1D4F /* OperationTask.swift */; };
 		0C91B0EC2438E287007F9100 /* ResizeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C91B0EB2438E287007F9100 /* ResizeTests.swift */; };
 		0C91B0EE2438E307007F9100 /* CircleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C91B0ED2438E307007F9100 /* CircleTests.swift */; };
 		0C91B0F02438E352007F9100 /* RoundedCornersTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C91B0EF2438E352007F9100 /* RoundedCornersTests.swift */; };
@@ -447,7 +446,6 @@
 		0C8D7BDE1D9DBF1600D12EB7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0C8D7BE81D9DC02B00D12EB7 /* Nuke Performance Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Nuke Performance Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C8DC722209B842600084AA6 /* cat.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = cat.gif; sourceTree = "<group>"; };
-		0C9165E526431942006B1D4F /* OperationTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationTask.swift; sourceTree = "<group>"; };
 		0C9174901BAE99EE004A7905 /* Nuke.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Nuke.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C91B0EB2438E287007F9100 /* ResizeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResizeTests.swift; sourceTree = "<group>"; };
 		0C91B0ED2438E307007F9100 /* CircleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircleTests.swift; sourceTree = "<group>"; };
@@ -974,7 +972,6 @@
 				0CB402DA25B656D200F5A241 /* TaskFetchDecodedImage.swift */,
 				0CB402D425B6569700F5A241 /* TaskFetchOriginalImageData.swift */,
 				0CE6202226543B6A00AAB8C3 /* TaskFetchWithPublisher.swift */,
-				0C9165E526431942006B1D4F /* OperationTask.swift */,
 			);
 			path = Tasks;
 			sourceTree = "<group>";
@@ -1731,7 +1728,6 @@
 				0CA4ECD026E68FC000BAC8E5 /* DataCaching.swift in Sources */,
 				0CA4ECCA26E6868300BAC8E5 /* ImageProcessingOptions.swift in Sources */,
 				0C53C8B1263C968200E62D03 /* ImagePipelineDelegate.swift in Sources */,
-				0C9165E626431942006B1D4F /* OperationTask.swift in Sources */,
 				0CA4ECBC26E6856300BAC8E5 /* ImageDecompression.swift in Sources */,
 				0CA4ECD326E68FDC00BAC8E5 /* ImageCaching.swift in Sources */,
 				0CA4ECC026E685C900BAC8E5 /* ImageProcessors+Anonymous.swift in Sources */,

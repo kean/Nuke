@@ -112,13 +112,3 @@ struct DataLoadKey: Hashable {
         }
     }
 }
-
-struct ImageProcessingKey: Equatable, Hashable {
-    let imageId: ObjectIdentifier
-    let processorId: AnyHashable
-
-    init(image: ImageResponse, processor: any ImageProcessing) {
-        self.imageId = ObjectIdentifier(image.image)
-        self.processorId = processor.hashableIdentifier
-    }
-}

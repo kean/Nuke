@@ -38,7 +38,6 @@ public final class ImagePipeline: @unchecked Sendable {
     private let tasksLoadImage: TaskPool<ImageLoadKey, ImageResponse, Error>
     private let tasksFetchDecodedImage: TaskPool<DecodedImageLoadKey, ImageResponse, Error>
     private let tasksFetchOriginalImageData: TaskPool<DataLoadKey, (Data, URLResponse?), Error>
-    private let tasksProcessImage: TaskPool<ImageProcessingKey, ImageResponse, Swift.Error>
 
     // The queue on which the entire subsystem is synchronized.
     let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", qos: .userInitiated)
@@ -79,7 +78,6 @@ public final class ImagePipeline: @unchecked Sendable {
         self.tasksLoadImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchDecodedImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalImageData = TaskPool(isCoalescingEnabled)
-        self.tasksProcessImage = TaskPool(isCoalescingEnabled)
 
         self.lock = .allocate(capacity: 1)
         self.lock.initialize(to: os_unfair_lock())
@@ -504,7 +502,6 @@ public final class ImagePipeline: @unchecked Sendable {
     // `loadImage()` call is represented by TaskLoadImage:
     //
     // TaskLoadImage -> TaskFetchDecodedImage -> TaskFetchOriginalImageData
-    //               -> TaskProcessImage
     //
     // `loadData()` call is represented by TaskLoadData:
     //
@@ -526,12 +523,6 @@ public final class ImagePipeline: @unchecked Sendable {
     func makeTaskLoadData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
         tasksLoadData.publisherForKey(request.makeImageLoadKey()) {
             TaskLoadData(self, request)
-        }
-    }
-
-    func makeTaskProcessImage(key: ImageProcessingKey, process: @escaping () throws -> ImageResponse) -> AsyncTask<ImageResponse, Swift.Error>.Publisher {
-        tasksProcessImage.publisherForKey(key) {
-            OperationTask(self, configuration.imageProcessingQueue, process)
         }
     }
 
