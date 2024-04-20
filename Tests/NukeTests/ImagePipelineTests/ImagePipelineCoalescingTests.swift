@@ -156,6 +156,34 @@ class ImagePipelineCoalescingTests: XCTestCase {
         }
     }
 
+    func testDeduplicationGivenSameURLButDifferentThumbnailOptionsReversed() {
+        dataLoader.queue.isSuspended = true
+
+        // GIVEN requests with the same URLs but one accesses thumbnail
+        // (in this test, order is reversed)
+        let request1 = ImageRequest(url: Test.url)
+        let request2 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
+
+        // WHEN loading images for those requests
+        expect(pipeline).toLoadImage(with: request1) { result in
+            // THEN
+            guard let image = result.value?.image else { return XCTFail() }
+            XCTAssertEqual(image.sizeInPixels, CGSize(width: 640.0, height: 480.0))
+        }
+        expect(pipeline).toLoadImage(with: request2) { result in
+            // THEN
+            guard let image = result.value?.image else { return XCTFail() }
+            XCTAssertEqual(image.sizeInPixels, CGSize(width: 400, height: 300))
+        }
+
+        dataLoader.queue.isSuspended = false
+
+        wait { _ in
+            // THEN the image data is fetched once
+            XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+        }
+    }
+
     // MARK: - Processing
 
     func testProcessorsAreDeduplicated() {

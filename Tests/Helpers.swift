@@ -33,7 +33,7 @@ enum Test {
         return try! ImageDecoders.Default().decode(data)
     }
 
-    static let url = URL(string: "http://test.com")!
+    static let url = URL(string: "http://test.com/example.jpeg")!
 
     static let data: Data = Test.data(name: "fixture", extension: "jpeg")
 

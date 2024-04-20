@@ -159,6 +159,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
 
 extension ImagePipelineTask where Value == (Data, URLResponse?) {
     func storeDataInCacheIfNeeded(_ data: Data) {
+        let request = makeSanitizedRequest()
         guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() else {
             return
         }
@@ -168,6 +169,15 @@ extension ImagePipelineTask where Value == (Data, URLResponse?) {
             // Important! Storing directly ignoring `ImageRequest.Options`.
             dataCache.storeData(data, for: key)
         }
+    }
+
+    /// Returns a request that doesn't contain any information non-related
+    /// to data loading.
+    private func makeSanitizedRequest() -> ImageRequest {
+        var request = request
+        request.processors = []
+        request.userInfo[.thumbnailKey] = nil
+        return request
     }
 
     private func shouldStoreDataInDiskCache() -> Bool {
