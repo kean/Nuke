@@ -11,52 +11,33 @@ import Foundation
 /// scenarios in which coalescing can kick in).
 final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     override func start() {
-        // Memory cache lookup
-        if let image = pipeline.cache[request] {
-            let response = ImageResponse(container: image, request: request, cacheType: .memory)
-            send(value: response, isCompleted: !image.isPreview)
-            if !image.isPreview {
-                return // Already got the result!
+        if let container = pipeline.cache[request] {
+            let response = ImageResponse(container: container, request: request, cacheType: .memory)
+            send(value: response, isCompleted: !container.isPreview)
+            if !container.isPreview {
+                return // The final image is loaded
             }
         }
-
-        // Disk cache lookup
         if let data = pipeline.cache.cachedData(for: request) {
-            didReceiveCachedData(data)
+            decodeCachedData(data)
         } else {
             fetchImage()
         }
     }
 
-    // MARK: Disk Cache Lookup
-
-    private func didReceiveCachedData(_ data: Data) {
+    private func decodeCachedData(_ data: Data) {
         let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil, cacheType: .disk)
         guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             // This shouldn't happen in practice unless encoder/decoder pair
             // for data cache is misconfigured.
             return fetchImage()
         }
-
-        @Sendable func decode() -> ImageResponse? {
-            signpost("DecodeCachedProcessedImageData") {
-                try? decoder.decode(context)
-            }
-        }
-        if !decoder.isAsynchronous {
-            didDecodeCachedData(decode())
-        } else {
-            operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
-                guard let self else { return }
-                let response = decode()
-                self.pipeline.queue.async {
-                    self.didDecodeCachedData(response)
-                }
-            }
+        self.decode(context, decoder: decoder) { [weak self] in
+            self?.didFinishDecoding(with: try? $0.get())
         }
     }
 
-    private func didDecodeCachedData(_ response: ImageResponse?) {
+    private func didFinishDecoding(with response: ImageResponse?) {
         if let response {
             didGenerateResponse(response, isCompleted: true, isFromDiskCache: true)
         } else {
