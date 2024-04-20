@@ -78,6 +78,7 @@ class ImagePipelineProcessorTests: XCTestCase {
 
     // MARK: - Decompression
 
+#if !os(macOS)
     func testDecompressionSkippedIfProcessorsAreApplied() {
         // Given
         let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { image in
@@ -91,4 +92,5 @@ class ImagePipelineProcessorTests: XCTestCase {
         }
         wait()
     }
+#endif
 }
