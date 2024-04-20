@@ -7,26 +7,10 @@ import Foundation
 /// Wrapper for tasks created by `loadData` calls.
 final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
     override func start() {
-        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline),
-              !request.options.contains(.disableDiskCacheReads) else {
-            loadData()
-            return
-        }
-        operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
-            self?.getCachedData(dataCache: dataCache)
-        }
-    }
-
-    private func getCachedData(dataCache: any DataCaching) {
-        let data = signpost("ReadCachedImageData") {
-            pipeline.cache.cachedData(for: request)
-        }
-        pipeline.queue.async {
-            if let data {
-                self.send(value: (data, nil), isCompleted: true)
-            } else {
-                self.loadData()
-            }
+        if let data = pipeline.cache.cachedData(for: request) {
+            self.send(value: (data, nil), isCompleted: true)
+        } else {
+            self.loadData()
         }
     }
 

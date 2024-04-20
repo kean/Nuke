@@ -21,36 +21,16 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
 
         // Disk cache lookup
-        if let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline),
-           !request.options.contains(.disableDiskCacheReads) {
-            operation = pipeline.configuration.dataCachingQueue.add { [weak self] in
-                self?.getCachedData(dataCache: dataCache)
-            }
-            return
+        if let data = pipeline.cache.cachedData(for: request) {
+            didReceiveCachedData(data)
+        } else {
+            fetchImage()
         }
-
-        // Fetch image
-        fetchImage()
     }
 
     // MARK: Disk Cache Lookup
 
-    private func getCachedData(dataCache: any DataCaching) {
-        let data = signpost("ReadCachedProcessedImageData") {
-            pipeline.cache.cachedData(for: request)
-        }
-        pipeline.queue.async {
-            if let data {
-                self.didReceiveCachedData(data)
-            } else {
-                self.fetchImage()
-            }
-        }
-    }
-
     private func didReceiveCachedData(_ data: Data) {
-        guard !isDisposed else { return }
-
         let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil, cacheType: .disk)
         guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             // This shouldn't happen in practice unless encoder/decoder pair

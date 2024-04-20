@@ -70,7 +70,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
     
     func testPriorityUpdated() {
         // Given
-        let queue = pipeline.configuration.dataCachingQueue
+        let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
         
         let request = Test.request
@@ -95,7 +95,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
     
     func testOperationCancelled() {
         // Given
-        let queue = pipeline.configuration.dataCachingQueue
+        let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
         let task = pipeline.loadImage(with: Test.request) { _ in }
