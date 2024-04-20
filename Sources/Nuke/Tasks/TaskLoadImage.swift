@@ -78,7 +78,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     private func didDecodeCachedData(_ response: ImageResponse?) {
         if let response {
-            decompressImageIfNeeded(response, isCompleted: true, isFromDiskCache: true)
+            didReceiveProcessedImage(response, isCompleted: true, isFromDiskCache: true)
         } else {
             fetchImage()
         }
@@ -90,7 +90,6 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         guard !request.options.contains(.returnCacheDataDontLoad) else {
             return send(error: .dataMissingInCache)
         }
-
         let processors = request.processors
         if let processor = processors.last {
             let request = request.withProcessors(processors.dropLast())
@@ -99,7 +98,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
         } else {
             dependency = pipeline.makeTaskFetchDecodedImage(for: request).subscribe(self) { [weak self] in
-                self?.decompressImageIfNeeded($0, isCompleted: $1)
+                self?.didReceiveProcessedImage($0, isCompleted: $1)
             }
         }
     }
@@ -140,7 +139,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         switch result {
         case .success(let response):
-            decompressImageIfNeeded(response, isCompleted: context.isCompleted, isFromDiskCache: false)
+            didReceiveProcessedImage(response, isCompleted: context.isCompleted, isFromDiskCache: false)
         case .failure(let error):
             if context.isCompleted {
                 self.send(error: .processingFailed(processor: processor, context: context, error: error))
@@ -150,8 +149,8 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     // MARK: Decompression
 
-    private func decompressImageIfNeeded(_ response: ImageResponse, isCompleted: Bool, isFromDiskCache: Bool = false) {
-        guard !isEphemeral && isDecompressionNeeded(for: response) else {
+    private func didReceiveProcessedImage(_ response: ImageResponse, isCompleted: Bool, isFromDiskCache: Bool = false) {
+        guard isDecompressionNeeded(for: response) else {
             storeImageInCaches(response, isFromDiskCache: isFromDiskCache)
             send(value: response, isCompleted: isCompleted)
             return
@@ -180,6 +179,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     private func isDecompressionNeeded(for response: ImageResponse) -> Bool {
+        !isEphemeral &&
         (ImageDecompression.isDecompressionNeeded(for: response.image) ?? false) &&
         !request.options.contains(.skipDecompression) &&
         pipeline.delegate.shouldDecompress(response: response, for: request, pipeline: pipeline)
