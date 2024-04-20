@@ -75,4 +75,20 @@ class ImagePipelineProcessorTests: XCTestCase {
         }
         wait()
     }
+
+    // MARK: - Decompression
+
+    func testDecompressionSkippedIfProcessorsAreApplied() {
+        // Given
+        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { image in
+            XCTAssertTrue(ImageDecompression.isDecompressionNeeded(for: image) == true)
+            return image
+        })])
+
+        // When
+        expect(pipeline).toLoadImage(with: request) { result in
+            // Then
+        }
+        wait()
+    }
 }

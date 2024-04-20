@@ -140,8 +140,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         switch result {
         case .success(let response):
-            storeImageInCaches(response, isFromDiskCache: false)
-            send(value: response, isCompleted: context.isCompleted)
+            decompressImageIfNeeded(response, isCompleted: context.isCompleted, isFromDiskCache: false)
         case .failure(let error):
             if context.isCompleted {
                 self.send(error: .processingFailed(processor: processor, context: context, error: error))
@@ -152,7 +151,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     // MARK: Decompression
 
     private func decompressImageIfNeeded(_ response: ImageResponse, isCompleted: Bool, isFromDiskCache: Bool = false) {
-        guard isDecompressionNeeded(for: response) else {
+        guard !isEphemeral && isDecompressionNeeded(for: response) else {
             storeImageInCaches(response, isFromDiskCache: isFromDiskCache)
             send(value: response, isCompleted: isCompleted)
             return
