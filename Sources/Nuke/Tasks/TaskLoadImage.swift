@@ -150,17 +150,16 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     private func storeImageInCaches(_ response: ImageResponse) {
         guard !isEphemeral else {
-            return // Only store for direct requests
+            return // Only store for directly requested images
         }
         pipeline.cache[request] = response.container
-        storeImageInDataCache(response)
+        if shouldStoreResponseInDataCache(response) {
+            storeImageInDataCache(response)
+        }
     }
 
     private func storeImageInDataCache(_ response: ImageResponse) {
-        guard !response.container.isPreview,
-              response.cacheType != .disk,
-              let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline),
-              shouldStoreImageInDataCache() else {
+        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline) else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
@@ -183,8 +182,10 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
     }
 
-    private func shouldStoreImageInDataCache() -> Bool {
-        guard !(request.url?.isLocalResource ?? false) else {
+    private func shouldStoreResponseInDataCache(_ response: ImageResponse) -> Bool {
+        guard !response.container.isPreview,
+              !(response.cacheType == .disk),
+              !(request.url?.isLocalResource ?? false) else {
             return false
         }
         let isProcessed = !request.processors.isEmpty
@@ -194,7 +195,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         case .storeOriginalData:
             return false
         case .storeEncodedImages:
-            return isProcessed || imageTasks.contains { $0.request.processors.isEmpty }
+            return true
         case .storeAll:
             return isProcessed
         }
