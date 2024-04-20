@@ -50,7 +50,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
             guard oldValue != priority else { return }
             operation?.queuePriority = priority.queuePriority
             dependency?.setPriority(priority)
-            dependency2?.setPriority(priority)
         }
     }
 
@@ -61,14 +60,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     var dependency: TaskSubscription? {
         didSet {
             dependency?.setPriority(priority)
-        }
-    }
-
-    // The tasks only ever need up to 2 dependencies and this code is much faster
-    // than creating an array.
-    var dependency2: TaskSubscription? {
-        didSet {
-            dependency2?.setPriority(priority)
         }
     }
 
@@ -194,7 +185,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         if reason == .cancelled {
             operation?.cancel()
             dependency?.unsubscribe()
-            dependency2?.unsubscribe()
             onCancelled?()
         }
         onDisposed?()
