@@ -142,14 +142,14 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     private func isDecompressionNeeded(for response: ImageResponse) -> Bool {
         ImageDecompression.isDecompressionNeeded(for: response) &&
         !request.options.contains(.skipDecompression) &&
-        !isEphemeral &&
+        isCreatedForImageTask &&
         pipeline.delegate.shouldDecompress(response: response, for: request, pipeline: pipeline)
     }
 
     // MARK: Caching
 
     private func storeImageInCaches(_ response: ImageResponse) {
-        guard !isEphemeral else {
+        guard isCreatedForImageTask else {
             return // Only store for directly requested images
         }
         pipeline.cache[request] = response.container
@@ -201,7 +201,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
     }
 
-    private var isEphemeral: Bool {
-        !subscribers.contains { $0 is ImageTask }
+    private var isCreatedForImageTask: Bool {
+        subscribers.contains { $0 is ImageTask }
     }
 }

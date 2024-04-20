@@ -466,6 +466,6 @@ private final class SimpleTask<T, E>: AsyncTask<T, E> {
 
 extension AsyncTask {
     func subscribe(priority: TaskPriority = .normal, _ observer: @escaping (Event) -> Void) -> TaskSubscription? {
-        publisher.subscribe(priority: priority, observer)
+        publisher.subscribe(priority: priority, subscriber: "" as AnyObject, observer)
     }
 }
