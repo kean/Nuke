@@ -39,7 +39,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     private func didFinishDecoding(with response: ImageResponse?) {
         if let response {
-            didGenerateResponse(response, isCompleted: true, isFromDiskCache: true)
+            didReceiveResponse(response, isCompleted: true)
         } else {
             fetchImage()
         }
@@ -59,7 +59,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
         } else {
             dependency = pipeline.makeTaskFetchDecodedImage(for: request).subscribe(self) { [weak self] in
-                self?.didGenerateResponse($0, isCompleted: $1)
+                self?.didReceiveResponse($0, isCompleted: $1)
             }
         }
     }
@@ -100,7 +100,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
         switch result {
         case .success(let response):
-            didGenerateResponse(response, isCompleted: context.isCompleted, isFromDiskCache: false)
+            didReceiveResponse(response, isCompleted: context.isCompleted)
         case .failure(let error):
             if context.isCompleted {
                 self.send(error: .processingFailed(processor: processor, context: context, error: error))
@@ -110,9 +110,9 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     // MARK: Decompression
 
-    private func didGenerateResponse(_ response: ImageResponse, isCompleted: Bool, isFromDiskCache: Bool = false) {
+    private func didReceiveResponse(_ response: ImageResponse, isCompleted: Bool) {
         guard isDecompressionNeeded(for: response) else {
-            storeImageInCaches(response, isFromDiskCache: isFromDiskCache)
+            storeImageInCaches(response)
             send(value: response, isCompleted: isCompleted)
             return
         }
@@ -133,7 +133,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
 
             self.pipeline.queue.async {
-                self.storeImageInCaches(response, isFromDiskCache: isFromDiskCache)
+                self.storeImageInCaches(response)
                 self.send(value: response, isCompleted: isCompleted)
             }
         }
@@ -148,23 +148,21 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
 
     // MARK: Caching
 
-    private func storeImageInCaches(_ response: ImageResponse, isFromDiskCache: Bool) {
+    private func storeImageInCaches(_ response: ImageResponse) {
         guard !isEphemeral else {
             return // Only store for direct requests
         }
         // Memory cache (ImageCaching)
         pipeline.cache[request] = response.container
         // Disk cache (DataCaching)
-        if !isFromDiskCache {
-            storeImageInDataCache(response)
-        }
+        storeImageInDataCache(response)
     }
 
     private func storeImageInDataCache(_ response: ImageResponse) {
-        guard !response.container.isPreview else {
-            return
-        }
-        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreImageInDiskCache() else {
+        guard !response.container.isPreview,
+              response.cacheType != .disk,
+              let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline),
+              shouldStoreImageInDataCache() else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
@@ -187,7 +185,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
     }
 
-    private func shouldStoreImageInDiskCache() -> Bool {
+    private func shouldStoreImageInDataCache() -> Bool {
         guard !(request.url?.isLocalResource ?? false) else {
             return false
         }
