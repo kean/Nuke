@@ -127,6 +127,34 @@ class ImagePipelineCoalescingTests: XCTestCase {
         }
     }
 
+    // MARK: - Scale
+
+    func testOverridingImageScale() throws {
+        dataLoader.queue.isSuspended = true
+
+        // GIVEN requests with the same URLs but one accesses thumbnail
+        let request1 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 2])
+        let request2 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 3])
+
+        // WHEN loading images for those requests
+        expect(pipeline).toLoadImage(with: request1) { result in
+            // THEN
+            guard let image = result.value?.image else { return XCTFail() }
+            XCTAssertEqual(image.scale, 2)
+        }
+        expect(pipeline).toLoadImage(with: request2) { result in
+            // THEN
+            guard let image = result.value?.image else { return XCTFail() }
+            XCTAssertEqual(image.scale, 3)
+        }
+
+        dataLoader.queue.isSuspended = false
+
+        wait()
+
+        XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+    }
+
     // MARK: - Thumbnail
 
     func testDeduplicationGivenSameURLButDifferentThumbnailOptions() {

@@ -40,23 +40,26 @@ extension ImageRequest {
 final class CacheKey: Hashable, Sendable {
     // Using a reference type turned out to be significantly faster
     private let imageId: String?
+    private let scale: Float
     private let thumbnail: ImageRequest.ThumbnailOptions?
     private let processors: [any ImageProcessing]
 
     init(_ request: ImageRequest) {
         self.imageId = request.preferredImageId
+        self.scale = request.scale ?? 1
         self.thumbnail = request.thumbnail
         self.processors = request.processors
     }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(imageId)
+        hasher.combine(scale)
         hasher.combine(thumbnail)
         hasher.combine(processors.count)
     }
 
     static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
-        lhs.imageId == rhs.imageId && lhs.thumbnail == rhs.thumbnail && lhs.processors == rhs.processors
+        lhs.imageId == rhs.imageId && lhs.scale == rhs.scale && lhs.thumbnail == rhs.thumbnail && lhs.processors == rhs.processors
     }
 }
 
@@ -86,10 +89,12 @@ final class ImageLoadKey: Hashable, Sendable {
 /// Uniquely identifies a task of retrieving the decoded image.
 struct DecodedImageLoadKey: Hashable {
     let dataLoadKey: DataLoadKey
+    let scale: Float
     let thumbnail: ImageRequest.ThumbnailOptions?
 
     init(_ request: ImageRequest) {
         self.dataLoadKey = DataLoadKey(request)
+        self.scale = request.scale ?? 1
         self.thumbnail = request.thumbnail
     }
 }
