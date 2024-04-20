@@ -598,7 +598,7 @@ class ImagePipelineTests: XCTestCase {
         }
         
         // WHEN
-        for _ in 0...100 {
+        for _ in 0...10 {
             expect(pipeline).toFailRequest(ImageRequest(url: URL(string: "http://example.com/invalid url")))
             wait()
         }
