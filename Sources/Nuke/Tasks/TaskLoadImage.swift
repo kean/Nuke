@@ -188,16 +188,15 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
               !(request.url?.isLocalResource ?? false) else {
             return false
         }
-        let isProcessed = !request.processors.isEmpty
         switch pipeline.configuration.dataCachePolicy {
         case .automatic:
-            return isProcessed
+            return !request.processors.isEmpty
         case .storeOriginalData:
             return false
         case .storeEncodedImages:
             return true
         case .storeAll:
-            return isProcessed
+            return !request.processors.isEmpty
         }
     }
 

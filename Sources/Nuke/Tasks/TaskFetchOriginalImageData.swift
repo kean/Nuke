@@ -171,6 +171,7 @@ extension ImagePipelineTask where Value == (Data, URLResponse?) {
     }
 
     private func shouldStoreDataInDiskCache() -> Bool {
+        let imageTasks = imageTasks
         guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
             return false
         }
