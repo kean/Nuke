@@ -68,9 +68,9 @@ extension ImageProcessors {
         private func _process(_ image: PlatformImage) throws -> PlatformImage {
             switch filter {
             case let .named(name, parameters):
-                try CoreImageFilter.applyFilter(named: name, parameters: parameters, to: image)
+                return try CoreImageFilter.applyFilter(named: name, parameters: parameters, to: image)
             case .custom(let filter):
-                try CoreImageFilter.apply(filter: filter, to: image)
+                return try CoreImageFilter.apply(filter: filter, to: image)
             }
         }
 
