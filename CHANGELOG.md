@@ -1,5 +1,20 @@
 # Nuke 12
 
+## Nuke 12.6
+
+*Apr 22, 2024*
+
+- Fix an issue with an optimization that is supposed to skip decompression if one or more processors are applied
+- Fix a `[Decompressor] Error -17102 decompressing image -- possibly corrupt` console error message when using `ImagePipeline.Configuration.isUsingPrepareForDisplay` (disabled by default). The pipeline will now skip decompression for `.png`.  
+- Fix https://github.com/kean/Nuke/issues/705 with integration between thumbnail options (link) and original data caching: the original data is now stored without a thumbnail key
+- Fix an issue where `.storeAll` and `.automatic` cache policies would not store the thumbnail data
+- Fix https://github.com/kean/Nuke/issues/746 an issue with `ImageRequest.UserInfoKey.scaleKey` not interacting correctly with coalescing 
+- Fix https://github.com/kean/Nuke/issues/763 SwiftUI Warning: Accessing StateObject's object without being installed on a View when using `onStart`
+- Fix https://github.com/kean/Nuke/issues/758 by adding support for initializing `ImageProcessors.CoreImageFilter` with `CIFilter` instances
+- Add support for disk cache lookup for intermediate processed images (as opposed to only final and original as before)
+- Deprecate `ImagePipeline.Configuration.dataCachingQueue` and perform data cache lookups on the pipeline's queue, reducing the amount of context switching
+- Update the infrastructure for coalescing image-processing tasks to use the task-dependency used for other operations
+
 ## Nuke 12.5
 
 *Mar 23, 2024*
