@@ -39,11 +39,11 @@ final class TaskFetchOriginalImage: ImagePipelineTask<ImageResponse> {
         }
 
         decode(context, decoder: decoder) { [weak self] in
-            self?.didFinishDecoding(decoder: decoder, context: context, result: $0)
+            self?.didFinishDecoding(context: context, result: $0)
         }
     }
 
-    private func didFinishDecoding(decoder: any ImageDecoding, context: ImageDecodingContext, result: Result<ImageResponse, ImagePipeline.Error>) {
+    private func didFinishDecoding(context: ImageDecodingContext, result: Result<ImageResponse, ImagePipeline.Error>) {
         operation = nil
 
         switch result {
