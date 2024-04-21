@@ -47,17 +47,17 @@ extension ImageEncoders {
         }
 
         public func encode(_ image: PlatformImage) -> Data? {
-            let data = NSMutableData()
+            guard let source = image.cgImage,
+                let data = CFDataCreateMutable(nil, 0),
+                  let destination = CGImageDestinationCreateWithData(data, type.rawValue as CFString, 1, nil) else {
+                return nil
+            }
             var options: [CFString: Any] = [
                 kCGImageDestinationLossyCompressionQuality: compressionRatio
             ]
 #if canImport(UIKit)
             options[kCGImagePropertyOrientation] = CGImagePropertyOrientation(image.imageOrientation).rawValue
 #endif
-            guard let source = image.cgImage,
-                let destination = CGImageDestinationCreateWithData(data as CFMutableData, type.rawValue as CFString, 1, nil) else {
-                    return nil
-            }
             CGImageDestinationAddImage(destination, source, options as CFDictionary)
             guard CGImageDestinationFinalize(destination) else {
                 return nil
