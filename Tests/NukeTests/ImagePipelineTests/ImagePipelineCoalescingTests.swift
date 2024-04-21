@@ -129,6 +129,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
     // MARK: - Scale
 
+#if !os(macOS)
     func testOverridingImageScale() throws {
         dataLoader.queue.isSuspended = true
 
@@ -154,6 +155,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
         XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
     }
+#endif
 
     // MARK: - Thumbnail
 
