@@ -77,7 +77,7 @@ class FetchImageTests: XCTestCase {
     }
 
     func testPriorityUpdated() {
-        let queue = pipeline.configuration.dataCachingQueue
+        let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 
@@ -92,7 +92,7 @@ class FetchImageTests: XCTestCase {
     }
 
     func testPriorityUpdatedDynamically() {
-        let queue = pipeline.configuration.dataCachingQueue
+        let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
         let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
 

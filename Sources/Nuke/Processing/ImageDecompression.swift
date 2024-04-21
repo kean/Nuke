@@ -5,6 +5,18 @@
 import Foundation
 
 enum ImageDecompression {
+    static func isDecompressionNeeded(for response: ImageResponse) -> Bool {
+        guard response.container.type != .png else {
+            // Attempting to decompress a `.png` image using
+            // `prepareForReuse` results in the following error:
+            //
+            // [Decompressor] Error -17102 decompressing image -- possibly corrupt
+            //
+            // It's also, in general, inefficient and unnecessary.
+            return false
+        }
+        return isDecompressionNeeded(for: response.image) ?? false
+    }
 
     static func decompress(image: PlatformImage, isUsingPrepareForDisplay: Bool = false) -> PlatformImage {
         image.decompressed(isUsingPrepareForDisplay: isUsingPrepareForDisplay) ?? image

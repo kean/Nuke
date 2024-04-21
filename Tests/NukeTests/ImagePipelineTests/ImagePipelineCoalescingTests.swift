@@ -127,6 +127,36 @@ class ImagePipelineCoalescingTests: XCTestCase {
         }
     }
 
+    // MARK: - Scale
+
+#if !os(macOS)
+    func testOverridingImageScale() throws {
+        dataLoader.queue.isSuspended = true
+
+        // GIVEN requests with the same URLs but one accesses thumbnail
+        let request1 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 2])
+        let request2 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 3])
+
+        // WHEN loading images for those requests
+        expect(pipeline).toLoadImage(with: request1) { result in
+            // THEN
+            guard let image = result.value?.image else { return XCTFail() }
+            XCTAssertEqual(image.scale, 2)
+        }
+        expect(pipeline).toLoadImage(with: request2) { result in
+            // THEN
+            guard let image = result.value?.image else { return XCTFail() }
+            XCTAssertEqual(image.scale, 3)
+        }
+
+        dataLoader.queue.isSuspended = false
+
+        wait()
+
+        XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+    }
+#endif
+
     // MARK: - Thumbnail
 
     func testDeduplicationGivenSameURLButDifferentThumbnailOptions() {
@@ -146,6 +176,34 @@ class ImagePipelineCoalescingTests: XCTestCase {
             // THEN
             guard let image = result.value?.image else { return XCTFail() }
             XCTAssertEqual(image.sizeInPixels, CGSize(width: 640.0, height: 480.0))
+        }
+
+        dataLoader.queue.isSuspended = false
+
+        wait { _ in
+            // THEN the image data is fetched once
+            XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+        }
+    }
+
+    func testDeduplicationGivenSameURLButDifferentThumbnailOptionsReversed() {
+        dataLoader.queue.isSuspended = true
+
+        // GIVEN requests with the same URLs but one accesses thumbnail
+        // (in this test, order is reversed)
+        let request1 = ImageRequest(url: Test.url)
+        let request2 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
+
+        // WHEN loading images for those requests
+        expect(pipeline).toLoadImage(with: request1) { result in
+            // THEN
+            guard let image = result.value?.image else { return XCTFail() }
+            XCTAssertEqual(image.sizeInPixels, CGSize(width: 640.0, height: 480.0))
+        }
+        expect(pipeline).toLoadImage(with: request2) { result in
+            // THEN
+            guard let image = result.value?.image else { return XCTFail() }
+            XCTAssertEqual(image.sizeInPixels, CGSize(width: 400, height: 300))
         }
 
         dataLoader.queue.isSuspended = false
@@ -539,7 +597,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         }
     }
 
-    func testWhenApplingMultipleImageProcessorsIntermediateDataCacheResultsAreNotUsed() {
+    func testWhenApplingMultipleImageProcessorsIntermediateDataCacheResultsAreUsed() {
         // Given
         let dataCache = MockDataCache()
         dataCache.store[Test.url.absoluteString + "12"] = Test.data
@@ -555,13 +613,12 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
             guard let image = result.value?.image else {
                 return XCTFail("Expected image to be loaded successfully")
             }
-            XCTAssertEqual(image.nk_test_processorIDs, ["1", "2", "3"], "Expected only the last processor to be applied")
+            XCTAssertEqual(image.nk_test_processorIDs, ["3"], "Expected only the last processor to be applied")
         }
 
-        // Then we don't expect any intermediate results to be stored in data cache
         wait { _ in
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 1, "Expected no data task to be performed")
-            XCTAssertEqual(factory.numberOfProcessorsApplied, 3, "Expected only one processor to be applied")
+            XCTAssertEqual(self.dataLoader.createdTaskCount, 0, "Expected no data task to be performed")
+            XCTAssertEqual(factory.numberOfProcessorsApplied, 1, "Expected only one processor to be applied")
         }
     }
 

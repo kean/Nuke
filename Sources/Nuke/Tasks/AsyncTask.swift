@@ -50,7 +50,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
             guard oldValue != priority else { return }
             operation?.queuePriority = priority.queuePriority
             dependency?.setPriority(priority)
-            dependency2?.setPriority(priority)
         }
     }
 
@@ -61,14 +60,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     var dependency: TaskSubscription? {
         didSet {
             dependency?.setPriority(priority)
-        }
-    }
-
-    // The tasks only ever need up to 2 dependencies and this code is much faster
-    // than creating an array.
-    var dependency2: TaskSubscription? {
-        didSet {
-            dependency2?.setPriority(priority)
         }
     }
 
@@ -88,7 +79,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     // MARK: - Managing Observers
 
     /// - notes: Returns `nil` if the task was disposed.
-    private func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject? = nil, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
+    private func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
         guard !isDisposed else { return nil }
 
         let subscriptionKey = nextSubscriptionKey
@@ -111,7 +102,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
         // The task may have been completed synchronously by `starter`.
         guard !isDisposed else { return nil }
-
         return subscription
     }
 
@@ -194,7 +184,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         if reason == .cancelled {
             operation?.cancel()
             dependency?.unsubscribe()
-            dependency2?.unsubscribe()
             onCancelled?()
         }
         onDisposed?()
@@ -234,7 +223,7 @@ extension AsyncTask {
 
         /// Attaches the subscriber to the task.
         /// - notes: Returns `nil` if the task is already disposed.
-        func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject? = nil, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
+        func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
             task.subscribe(priority: priority, subscriber: subscriber, closure)
         }
 

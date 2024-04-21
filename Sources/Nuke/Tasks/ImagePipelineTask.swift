@@ -36,3 +36,26 @@ extension ImagePipelineTask: ImageTaskSubscribers {
         }
     }
 }
+
+extension ImagePipelineTask {
+    /// Decodes the data on the dedicated queue and calls the completion
+    /// on the pipeline's internal queue.
+    func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
+        @Sendable func decode() -> Result<ImageResponse, ImagePipeline.Error> {
+            signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
+                Result { try decoder.decode(context) }
+                    .mapError { .decodingFailed(decoder: decoder, context: context, error: $0) }
+            }
+        }
+        guard decoder.isAsynchronous else {
+            return completion(decode())
+        }
+        operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
+            guard let self else { return }
+            let response = decode()
+            self.pipeline.queue.async {
+                completion(response)
+            }
+        }
+    }
+}

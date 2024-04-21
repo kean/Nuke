@@ -111,7 +111,7 @@ public struct LazyImage<Content: View>: View {
 
     /// Gets called when the request is started.
     public func onStart(_ closure: @escaping (ImageTask) -> Void) -> Self {
-        map { $0.viewModel.onStart = closure }
+        map { $0.onStart = closure }
     }
 
     /// Override the behavior on disappear. By default, the view is reset.

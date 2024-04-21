@@ -24,7 +24,7 @@ public struct ImageCacheKey: Hashable, Sendable {
     // This is faster than using AnyHashable (and it shows in performance tests).
     enum Inner: Hashable, Sendable {
         case custom(String)
-        case `default`(CacheKey)
+        case `default`(MemoryCacheKey)
     }
 
     public init(key: String) {
@@ -32,6 +32,6 @@ public struct ImageCacheKey: Hashable, Sendable {
     }
 
     public init(request: ImageRequest) {
-        self.key = .default(request.makeImageCacheKey())
+        self.key = .default(MemoryCacheKey(request))
     }
 }

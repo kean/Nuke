@@ -200,7 +200,7 @@ extension ImagePipeline.Cache {
         if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
             return customKey
         }
-        return request.makeDataCacheKey() // Use the default key
+        return "\(request.preferredImageId)\(request.thumbnail?.identifier ?? "")\(ImageProcessors.Composition(request.processors).identifier)"
     }
 
     // MARK: Misc

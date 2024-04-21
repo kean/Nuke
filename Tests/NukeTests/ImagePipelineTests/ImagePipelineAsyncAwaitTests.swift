@@ -124,11 +124,12 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
     func testCancelAsyncImageTask() async throws {
         dataLoader.queue.isSuspended = true
 
+        pipeline.queue.suspend()
         let task = pipeline.imageTask(with: Test.url)
-
         observer = NotificationCenter.default.addObserver(forName: MockDataLoader.DidStartTask, object: dataLoader, queue: OperationQueue()) { _ in
             task.cancel()
         }
+        pipeline.queue.resume()
 
         var caughtError: Error?
         do {

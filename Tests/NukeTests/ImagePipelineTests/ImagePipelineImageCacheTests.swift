@@ -304,7 +304,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         XCTAssertEqual(imageCache.writeCount, 2) // Processed + original
         XCTAssertNotNil(imageCache[originalRequest])
         XCTAssertNotNil(imageCache[request])
-        XCTAssertEqual(dataCache.readCount, 1) // Processed
+        XCTAssertEqual(dataCache.readCount, 2) // "1", "2"
         XCTAssertEqual(dataCache.writeCount, 1) // Initial
         XCTAssertEqual(dataLoader.createdTaskCount, 0)
     }
@@ -323,7 +323,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         XCTAssertEqual(imageCache.readCount, 3) // Processed + intermediate + original
         XCTAssertEqual(imageCache.writeCount, 1) // Processed
         XCTAssertNotNil(imageCache[request])
-        XCTAssertEqual(dataCache.readCount, 2) // Processed + original
+        XCTAssertEqual(dataCache.readCount, 3) // "1" + "2" + original
         XCTAssertEqual(dataCache.writeCount, 1) // Initial
         XCTAssertEqual(dataLoader.createdTaskCount, 0)
     }
@@ -387,7 +387,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         XCTAssertEqual(imageCache.readCount, 3) // Processed + intermediate + original
         XCTAssertEqual(imageCache.writeCount, 1) // Processed
         XCTAssertNotNil(imageCache[request])
-        XCTAssertEqual(dataCache.readCount, 2) // Processed + original
+        XCTAssertEqual(dataCache.readCount, 3) // "1" + "2" + original
         XCTAssertEqual(dataCache.writeCount, 0)
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
     }

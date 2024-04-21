@@ -30,7 +30,7 @@ extension _PlatformBaseView {
     @discardableResult
     func pinToSuperview() -> [NSLayoutConstraint] {
         guard let superview else { return [] }
-        
+
         translatesAutoresizingMaskIntoConstraints = false
         let constraints = [
             topAnchor.constraint(equalTo: superview.topAnchor),
@@ -45,7 +45,7 @@ extension _PlatformBaseView {
     @discardableResult
     func centerInSuperview() -> [NSLayoutConstraint] {
         guard let superview else { return [] }
-        
+
         translatesAutoresizingMaskIntoConstraints = false
         let constraints = [
             centerXAnchor.constraint(equalTo: superview.centerXAnchor),

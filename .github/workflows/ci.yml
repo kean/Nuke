@@ -10,22 +10,22 @@ on:
 
 jobs:
   ios-latest:
-    name: Unit Tests (iOS 16.4, Xcode 14.3.1)
-    runs-on: macOS-13
+    name: Unit Tests (iOS 17.4, Xcode 15.3)
+    runs-on: macOS-14
     env:
-      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "OS=16.4,name=iPhone 14 Pro"
-          Scripts/test.sh -s "NukeUI" -d "OS=16.4,name=iPhone 14 Pro"
-          Scripts/test.sh -s "NukeExtensions" -d "OS=16.4,name=iPhone 14 Pro"
+          Scripts/test.sh -s "Nuke" -d "OS=17.4,name=iPhone 15 Pro"
+          Scripts/test.sh -s "NukeUI" -d "OS=17.4,name=iPhone 15 Pro"
+          Scripts/test.sh -s "NukeExtensions" -d "OS=17.4,name=iPhone 15 Pro"
   macos-latest:
-    name: Unit Tests (macOS, Xcode 14.3.1)
-    runs-on: macOS-13
-    env: 
-      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
+    name: Unit Tests (macOS, Xcode 15.3)
+    runs-on: macOS-14
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
@@ -34,17 +34,17 @@ jobs:
           Scripts/test.sh -s "NukeUI" -d "platform=macOS"
           Scripts/test.sh -s "NukeExtensions" -d "platform=macOS"
   tvos-latest:
-    name: Unit Tests (tvOS 16.4, Xcode 14.3.1)
-    runs-on: macOS-13
-    env: 
-      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
+    name: Unit Tests (tvOS 17.4, Xcode 15.3)
+    runs-on: macOS-14
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "OS=16.4,name=Apple TV"
-          Scripts/test.sh -s "NukeUI" -d "OS=16.4,name=Apple TV"
-          Scripts/test.sh -s "NukeExtensions" -d "OS=16.4,name=Apple TV"
+          Scripts/test.sh -s "Nuke" -d "OS=17.4,name=Apple TV"
+          Scripts/test.sh -s "NukeUI" -d "OS=17.4,name=Apple TV"
+          Scripts/test.sh -s "NukeExtensions" -d "OS=17.4,name=Apple TV"
 # There is a problem with watchOS runners where they often fail to launch on CI
 #
 #  watchos-latest:
@@ -59,27 +59,27 @@ jobs:
 #          Scripts/test.sh -s "Nuke" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
 #          Scripts/test.sh -s "NukeUI" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
 #          Scripts/test.sh -s "Nuke Extensions" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
-  ios-xcode-14-1:
-    name: Unit Tests (iOS 16.1, Xcode 14.1)
+  ios-xcode-14-3-1:
+    name: Unit Tests (iOS 16.4, Xcode 14.3.1)
     runs-on: macOS-13
     env:
-      DEVELOPER_DIR: /Applications/Xcode_14.1.app/Contents/Developer
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run Tests
-        run: |
-          Scripts/test.sh -s "Nuke" -d "OS=16.1,name=iPhone 14 Pro"
-          Scripts/test.sh -s "NukeUI" -d "OS=16.1,name=iPhone 14 Pro"
-          Scripts/test.sh -s "NukeExtensions" -d "OS=16.1,name=iPhone 14 Pro"
-  ios-thread-safety:
-    name: Thread Safety Tests (TSan Enabled)
-    runs-on: macOS-13
-    env: 
       DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=16.4,name=iPhone 14 Pro"
+        run: |
+          Scripts/test.sh -s "Nuke" -d "OS=16.4,name=iPhone 14 Pro"
+          Scripts/test.sh -s "NukeUI" -d "OS=16.4,name=iPhone 14 Pro"
+          Scripts/test.sh -s "NukeExtensions" -d "OS=16.4,name=iPhone 14 Pro"
+  ios-thread-safety:
+    name: Thread Safety Tests (TSan Enabled)
+    runs-on: macOS-14
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run Tests
+        run: Scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=17.4,name=iPhone 15 Pro"
 #  ios-memory-management-tests:
 #    name: Memory Management Tests
 #    runs-on: macOS-13

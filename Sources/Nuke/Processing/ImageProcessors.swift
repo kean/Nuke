@@ -101,6 +101,10 @@ extension ImageProcessing where Self == ImageProcessors.CoreImageFilter {
     public static func coreImageFilter(name: String) -> ImageProcessors.CoreImageFilter {
         ImageProcessors.CoreImageFilter(name: name)
     }
+
+    public static func coreImageFilter(_ filter: CIFilter, identifier: String) -> ImageProcessors.CoreImageFilter {
+        ImageProcessors.CoreImageFilter(filter, identifier: identifier)
+    }
 }
 
 extension ImageProcessing where Self == ImageProcessors.GaussianBlur {

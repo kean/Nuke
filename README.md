@@ -34,9 +34,9 @@ Nuke supports [Swift Package Manager](https://www.swift.org/package-manager/), w
 
 ## Documentation
 
-Nuke is easy to learn and use thanks to an extensive documentation. The best place to start is the [**Getting Started**](https://kean-docs.github.io/nuke/documentation/nuke/getting-started/) guide.
+Nuke is easy to learn and use, thanks to its extensive documentation. The [**Getting Started**](https://kean-docs.github.io/nuke/documentation/nuke/getting-started/) guide is the best place to start learning how to use it.
 
-Nuke package ships with four modules that you can install depending on your needs:
+The package ships with four modules that you can install depending on your needs:
 
 |Module|Description|
 |--|--|
@@ -45,7 +45,7 @@ Nuke package ships with four modules that you can install depending on your need
 |[**NukeExtensions**](https://kean-docs.github.io/nukeextensions/documentation/nukeextensions/)|The extensions for `UIImageView` (UIKit, AppKit)|
 |[**NukeVideo**](https://kean-docs.github.io/nukevideo/documentation/nukevideo/)|The components for decoding and playing short videos|
 
-To see more usage examples, check out [**Nuke Demo**](https://github.com/kean/NukeDemo).
+Check out [**Nuke Demo**](https://github.com/kean/NukeDemo) for more usage examples.
 
 > Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Migrations).
 

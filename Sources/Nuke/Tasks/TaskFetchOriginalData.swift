@@ -6,7 +6,7 @@ import Foundation
 
 /// Fetches original image from the data loader (`DataLoading`) and stores it
 /// in the disk cache (`DataCaching`).
-final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> {
+final class TaskFetchOriginalData: ImagePipelineTask<(Data, URLResponse?)> {
     private var urlResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
@@ -159,6 +159,7 @@ final class TaskFetchOriginalImageData: ImagePipelineTask<(Data, URLResponse?)> 
 
 extension ImagePipelineTask where Value == (Data, URLResponse?) {
     func storeDataInCacheIfNeeded(_ data: Data) {
+        let request = makeSanitizedRequest()
         guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() else {
             return
         }
@@ -170,7 +171,17 @@ extension ImagePipelineTask where Value == (Data, URLResponse?) {
         }
     }
 
+    /// Returns a request that doesn't contain any information non-related
+    /// to data loading.
+    private func makeSanitizedRequest() -> ImageRequest {
+        var request = request
+        request.processors = []
+        request.userInfo[.thumbnailKey] = nil
+        return request
+    }
+
     private func shouldStoreDataInDiskCache() -> Bool {
+        let imageTasks = imageTasks
         guard imageTasks.contains(where: { !$0.request.options.contains(.disableDiskCacheWrites) }) else {
             return false
         }

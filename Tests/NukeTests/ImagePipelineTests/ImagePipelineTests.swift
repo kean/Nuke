@@ -368,25 +368,25 @@ class ImagePipelineTests: XCTestCase {
     
     func testCacheKeyForRequest() {
         let request = Test.request
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com")
+        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com/example.jpeg")
     }
     
     func testCacheKeyForRequestWithProcessors() {
         var request = Test.request
         request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com1")
+        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com/example.jpeg1")
     }
     
     func testCacheKeyForRequestWithThumbnail() {
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.comcom.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetrue")
+        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetrue")
     }
 
     func testCacheKeyForRequestWithThumbnailFlexibleSize() {
         let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.comcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue")
+        XCTAssertEqual(pipeline.cache.makeDataCacheKey(for: request), "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue")
     }
     
     // MARK: - Invalidate
@@ -598,8 +598,8 @@ class ImagePipelineTests: XCTestCase {
         }
         
         // WHEN
-        for _ in 0...100 {
-            expect(pipeline).toFailRequest(ImageRequest(url: URL(string: "http://example.com/invalid url")))
+        for _ in 0...10 {
+            expect(pipeline).toFailRequest(ImageRequest(url: URL(string: "")))
             wait()
         }
     }

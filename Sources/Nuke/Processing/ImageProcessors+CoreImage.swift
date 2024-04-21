@@ -27,21 +27,34 @@ extension ImageProcessors {
     /// - [Core Image Programming Guide](https://developer.apple.com/library/ios/documentation/GraphicsImaging/Conceptual/CoreImaging/ci_intro/ci_intro.html)
     /// - [Core Image Filter Reference](https://developer.apple.com/library/prerelease/ios/documentation/GraphicsImaging/Reference/CoreImageFilterReference/index.html)
     public struct CoreImageFilter: ImageProcessing, CustomStringConvertible, @unchecked Sendable {
-        public let name: String
-        public let parameters: [String: Any]
+        let filter: Filter
         public let identifier: String
 
+        enum Filter {
+            case named(String, parameters: [String: Any])
+            case custom(CIFilter)
+        }
+
+        /// Initializes the processor with a name of the `CIFilter` and its parameters.
+        ///
         /// - parameter identifier: Uniquely identifies the processor.
         public init(name: String, parameters: [String: Any], identifier: String) {
-            self.name = name
-            self.parameters = parameters
+            self.filter = .named(name, parameters: parameters)
             self.identifier = identifier
         }
 
+        /// Initializes the processor with a name of the `CIFilter`.
         public init(name: String) {
-            self.name = name
-            self.parameters = [:]
+            self.filter = .named(name, parameters: [:])
             self.identifier = "com.github.kean/nuke/core_image?name=\(name))"
+        }
+
+        /// Initialize the processor with the given `CIFilter`.
+        ///
+        /// - parameter identifier: Uniquely identifies the processor.
+        public init(_ filter: CIFilter, identifier: String) {
+            self.filter = .custom(filter)
+            self.identifier = identifier
         }
 
         public func process(_ image: PlatformImage) -> PlatformImage? {
@@ -53,7 +66,12 @@ extension ImageProcessors {
         }
 
         private func _process(_ image: PlatformImage) throws -> PlatformImage {
-            try CoreImageFilter.applyFilter(named: name, parameters: parameters, to: image)
+            switch filter {
+            case let .named(name, parameters):
+                return try CoreImageFilter.applyFilter(named: name, parameters: parameters, to: image)
+            case .custom(let filter):
+                return try CoreImageFilter.apply(filter: filter, to: image)
+            }
         }
 
         // MARK: - Apply Filter
@@ -91,7 +109,12 @@ extension ImageProcessors {
         }
 
         public var description: String {
-            "CoreImageFilter(name: \(name), parameters: \(parameters))"
+            switch filter {
+            case let .named(name, parameters):
+                return "CoreImageFilter(name: \(name), parameters: \(parameters))"
+            case .custom(let filter):
+                return "CoreImageFilter(filter: \(filter))"
+            }
         }
 
         public enum Error: Swift.Error, CustomStringConvertible {
