@@ -36,8 +36,8 @@ public final class ImagePipeline: @unchecked Sendable {
 
     private let tasksLoadData: TaskPool<TaskLoadImageKey, (Data, URLResponse?), Error>
     private let tasksLoadImage: TaskPool<TaskLoadImageKey, ImageResponse, Error>
-    private let tasksFetchDecodedImage: TaskPool<TaskFetchOriginalImageKey, ImageResponse, Error>
-    private let tasksFetchOriginalImageData: TaskPool<TaskFetchOriginalDataKey, (Data, URLResponse?), Error>
+    private let tasksFetchOriginalImage: TaskPool<TaskFetchOriginalImageKey, ImageResponse, Error>
+    private let tasksFetchOriginalData: TaskPool<TaskFetchOriginalDataKey, (Data, URLResponse?), Error>
 
     // The queue on which the entire subsystem is synchronized.
     let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", qos: .userInitiated)
@@ -76,8 +76,8 @@ public final class ImagePipeline: @unchecked Sendable {
         let isCoalescingEnabled = configuration.isTaskCoalescingEnabled
         self.tasksLoadData = TaskPool(isCoalescingEnabled)
         self.tasksLoadImage = TaskPool(isCoalescingEnabled)
-        self.tasksFetchDecodedImage = TaskPool(isCoalescingEnabled)
-        self.tasksFetchOriginalImageData = TaskPool(isCoalescingEnabled)
+        self.tasksFetchOriginalImage = TaskPool(isCoalescingEnabled)
+        self.tasksFetchOriginalData = TaskPool(isCoalescingEnabled)
 
         self.lock = .allocate(capacity: 1)
         self.lock.initialize(to: os_unfair_lock())
@@ -527,13 +527,13 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     func makeTaskFetchOriginalImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
-        tasksFetchDecodedImage.publisherForKey(TaskFetchOriginalImageKey(request)) {
+        tasksFetchOriginalImage.publisherForKey(TaskFetchOriginalImageKey(request)) {
             TaskFetchOriginalImage(self, request)
         }
     }
 
     func makeTaskFetchOriginalData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
-        tasksFetchOriginalImageData.publisherForKey(TaskFetchOriginalDataKey(request)) {
+        tasksFetchOriginalData.publisherForKey(TaskFetchOriginalDataKey(request)) {
             request.publisher == nil ?
                 TaskFetchOriginalData(self, request) :
                 TaskFetchWithPublisher(self, request)
