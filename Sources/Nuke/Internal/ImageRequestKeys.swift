@@ -4,40 +4,8 @@
 
 import Foundation
 
-extension ImageRequest {
-
-    // MARK: - Cache Keys
-
-    /// A key for processed image in memory cache.
-    func makeImageCacheKey() -> CacheKey {
-        CacheKey(self)
-    }
-
-    /// A key for processed image data in disk cache.
-    func makeDataCacheKey() -> String {
-        "\(preferredImageId)\(thumbnail?.identifier ?? "")\(ImageProcessors.Composition(processors).identifier)"
-    }
-
-    // MARK: - Load Keys
-
-    /// A key for deduplicating operations for fetching the processed image.
-    func makeImageLoadKey() -> ImageLoadKey {
-        ImageLoadKey(self)
-    }
-
-    /// A key for deduplicating operations for fetching the decoded image.
-    func makeDecodedImageLoadKey() -> DecodedImageLoadKey {
-        DecodedImageLoadKey(self)
-    }
-
-    /// A key for deduplicating operations for fetching the original image.
-    func makeDataLoadKey() -> DataLoadKey {
-        DataLoadKey(self)
-    }
-}
-
 /// Uniquely identifies a cache processed image.
-final class CacheKey: Hashable, Sendable {
+final class MemoryCacheKey: Hashable, Sendable {
     // Using a reference type turned out to be significantly faster
     private let imageId: String?
     private let scale: Float
@@ -58,21 +26,23 @@ final class CacheKey: Hashable, Sendable {
         hasher.combine(processors.count)
     }
 
-    static func == (lhs: CacheKey, rhs: CacheKey) -> Bool {
+    static func == (lhs: MemoryCacheKey, rhs: MemoryCacheKey) -> Bool {
         lhs.imageId == rhs.imageId && lhs.scale == rhs.scale && lhs.thumbnail == rhs.thumbnail && lhs.processors == rhs.processors
     }
 }
 
+// MARK: - Identifying Tasks
+
 /// Uniquely identifies a task of retrieving the processed image.
-final class ImageLoadKey: Hashable, Sendable {
-    let cacheKey: CacheKey
+final class TaskLoadImageKey: Hashable, Sendable {
+    let cacheKey: MemoryCacheKey
     let options: ImageRequest.Options
-    let loadKey: DataLoadKey
+    let loadKey: TaskFetchOriginalDataKey
 
     init(_ request: ImageRequest) {
-        self.cacheKey = CacheKey(request)
+        self.cacheKey = MemoryCacheKey(request)
         self.options = request.options
-        self.loadKey = DataLoadKey(request)
+        self.loadKey = TaskFetchOriginalDataKey(request)
     }
 
     func hash(into hasher: inout Hasher) {
@@ -81,26 +51,26 @@ final class ImageLoadKey: Hashable, Sendable {
         hasher.combine(loadKey.hashValue)
     }
 
-    static func == (lhs: ImageLoadKey, rhs: ImageLoadKey) -> Bool {
+    static func == (lhs: TaskLoadImageKey, rhs: TaskLoadImageKey) -> Bool {
         lhs.cacheKey == rhs.cacheKey && lhs.options == rhs.options && lhs.loadKey == rhs.loadKey
     }
 }
 
-/// Uniquely identifies a task of retrieving the decoded image.
-struct DecodedImageLoadKey: Hashable {
-    let dataLoadKey: DataLoadKey
+/// Uniquely identifies a task of retrieving the original image.
+struct TaskFetchOriginalImageKey: Hashable {
+    let dataLoadKey: TaskFetchOriginalDataKey
     let scale: Float
     let thumbnail: ImageRequest.ThumbnailOptions?
 
     init(_ request: ImageRequest) {
-        self.dataLoadKey = DataLoadKey(request)
+        self.dataLoadKey = TaskFetchOriginalDataKey(request)
         self.scale = request.scale ?? 1
         self.thumbnail = request.thumbnail
     }
 }
 
-/// Uniquely identifies a task of retrieving the original image dataa.
-struct DataLoadKey: Hashable {
+/// Uniquely identifies a task of retrieving the original image data.
+struct TaskFetchOriginalDataKey: Hashable {
     private let imageId: String?
     private let cachePolicy: URLRequest.CachePolicy
     private let allowsCellularAccess: Bool

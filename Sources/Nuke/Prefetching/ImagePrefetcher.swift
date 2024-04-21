@@ -53,7 +53,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     public var didComplete: (() -> Void)?
 
     private let pipeline: ImagePipeline
-    private var tasks = [ImageLoadKey: Task]()
+    private var tasks = [TaskLoadImageKey: Task]()
     private let destination: Destination
     private var _priority: ImageRequest.Priority = .low
     let queue = OperationQueue() // internal for testing
@@ -122,7 +122,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
         guard pipeline.cache[request] == nil else {
             return
         }
-        let key = request.makeImageLoadKey()
+        let key = TaskLoadImageKey(request)
         guard tasks[key] == nil else {
             return
         }
@@ -189,7 +189,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     }
 
     private func _stopPrefetching(with request: ImageRequest) {
-        if let task = tasks.removeValue(forKey: request.makeImageLoadKey()) {
+        if let task = tasks.removeValue(forKey: TaskLoadImageKey(request)) {
             task.cancel()
         }
     }
@@ -211,13 +211,13 @@ public final class ImagePrefetcher: @unchecked Sendable {
     }
 
     private final class Task: @unchecked Sendable {
-        let key: ImageLoadKey
+        let key: TaskLoadImageKey
         let request: ImageRequest
         weak var imageTask: ImageTask?
         weak var operation: Operation?
         var onCancelled: (() -> Void)?
 
-        init(request: ImageRequest, key: ImageLoadKey) {
+        init(request: ImageRequest, key: TaskLoadImageKey) {
             self.request = request
             self.key = key
         }

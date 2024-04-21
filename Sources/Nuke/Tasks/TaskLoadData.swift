@@ -20,7 +20,7 @@ final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
         }
 
         let request = self.request.withProcessors([])
-        dependency = pipeline.makeTaskFetchOriginalImageData(for: request).subscribe(self) { [weak self] in
+        dependency = pipeline.makeTaskFetchOriginalData(for: request).subscribe(self) { [weak self] in
             self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
         }
     }

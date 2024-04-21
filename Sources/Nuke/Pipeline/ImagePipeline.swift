@@ -34,10 +34,10 @@ public final class ImagePipeline: @unchecked Sendable {
 
     private var tasks = [ImageTask: TaskSubscription]()
 
-    private let tasksLoadData: TaskPool<ImageLoadKey, (Data, URLResponse?), Error>
-    private let tasksLoadImage: TaskPool<ImageLoadKey, ImageResponse, Error>
-    private let tasksFetchDecodedImage: TaskPool<DecodedImageLoadKey, ImageResponse, Error>
-    private let tasksFetchOriginalImageData: TaskPool<DataLoadKey, (Data, URLResponse?), Error>
+    private let tasksLoadData: TaskPool<TaskLoadImageKey, (Data, URLResponse?), Error>
+    private let tasksLoadImage: TaskPool<TaskLoadImageKey, ImageResponse, Error>
+    private let tasksFetchDecodedImage: TaskPool<TaskFetchOriginalImageKey, ImageResponse, Error>
+    private let tasksFetchOriginalImageData: TaskPool<TaskFetchOriginalDataKey, (Data, URLResponse?), Error>
 
     // The queue on which the entire subsystem is synchronized.
     let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", qos: .userInitiated)
@@ -501,11 +501,11 @@ public final class ImagePipeline: @unchecked Sendable {
     //
     // `loadImage()` call is represented by TaskLoadImage:
     //
-    // TaskLoadImage -> TaskFetchDecodedImage -> TaskFetchOriginalImageData
+    // TaskLoadImage -> TaskFetchOriginalImage -> TaskFetchOriginalData
     //
     // `loadData()` call is represented by TaskLoadData:
     //
-    // TaskLoadData -> TaskFetchOriginalImageData
+    // TaskLoadData -> TaskFetchOriginalData
     //
     //
     // Each task represents a resource or a piece of work required to produce the
@@ -515,27 +515,27 @@ public final class ImagePipeline: @unchecked Sendable {
     // is created. The work is split between tasks to minimize any duplicated work.
 
     func makeTaskLoadImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
-        tasksLoadImage.publisherForKey(request.makeImageLoadKey()) {
+        tasksLoadImage.publisherForKey(TaskLoadImageKey(request)) {
             TaskLoadImage(self, request)
         }
     }
 
     func makeTaskLoadData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
-        tasksLoadData.publisherForKey(request.makeImageLoadKey()) {
+        tasksLoadData.publisherForKey(TaskLoadImageKey(request)) {
             TaskLoadData(self, request)
         }
     }
 
-    func makeTaskFetchDecodedImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
-        tasksFetchDecodedImage.publisherForKey(request.makeDecodedImageLoadKey()) {
-            TaskFetchDecodedImage(self, request)
+    func makeTaskFetchOriginalImage(for request: ImageRequest) -> AsyncTask<ImageResponse, Error>.Publisher {
+        tasksFetchDecodedImage.publisherForKey(TaskFetchOriginalImageKey(request)) {
+            TaskFetchOriginalImage(self, request)
         }
     }
 
-    func makeTaskFetchOriginalImageData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
-        tasksFetchOriginalImageData.publisherForKey(request.makeDataLoadKey()) {
+    func makeTaskFetchOriginalData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
+        tasksFetchOriginalImageData.publisherForKey(TaskFetchOriginalDataKey(request)) {
             request.publisher == nil ?
-                TaskFetchOriginalImageData(self, request) :
+                TaskFetchOriginalData(self, request) :
                 TaskFetchWithPublisher(self, request)
         }
     }

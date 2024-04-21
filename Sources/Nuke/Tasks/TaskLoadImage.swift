@@ -57,7 +57,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
                 self?.process($0, isCompleted: $1, processor: processor)
             }
         } else {
-            dependency = pipeline.makeTaskFetchDecodedImage(for: request).subscribe(self) { [weak self] in
+            dependency = pipeline.makeTaskFetchOriginalImage(for: request).subscribe(self) { [weak self] in
                 self?.didReceiveResponse($0, isCompleted: $1)
             }
         }
