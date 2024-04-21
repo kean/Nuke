@@ -35,32 +35,32 @@ final class MemoryCacheKey: Hashable, Sendable {
 
 /// Uniquely identifies a task of retrieving the processed image.
 final class TaskLoadImageKey: Hashable, Sendable {
-    let cacheKey: MemoryCacheKey
-    let options: ImageRequest.Options
-    let loadKey: TaskFetchOriginalDataKey
+    private let loadKey: TaskFetchOriginalImageKey
+    private let options: ImageRequest.Options
+    private let processors: [any ImageProcessing]
 
     init(_ request: ImageRequest) {
-        self.cacheKey = MemoryCacheKey(request)
+        self.loadKey = TaskFetchOriginalImageKey(request)
         self.options = request.options
-        self.loadKey = TaskFetchOriginalDataKey(request)
+        self.processors = request.processors
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(cacheKey.hashValue)
-        hasher.combine(options.hashValue)
         hasher.combine(loadKey.hashValue)
+        hasher.combine(options.hashValue)
+        hasher.combine(processors.count)
     }
 
     static func == (lhs: TaskLoadImageKey, rhs: TaskLoadImageKey) -> Bool {
-        lhs.cacheKey == rhs.cacheKey && lhs.options == rhs.options && lhs.loadKey == rhs.loadKey
+        lhs.loadKey == rhs.loadKey && lhs.options == rhs.options && lhs.processors == rhs.processors
     }
 }
 
 /// Uniquely identifies a task of retrieving the original image.
 struct TaskFetchOriginalImageKey: Hashable {
-    let dataLoadKey: TaskFetchOriginalDataKey
-    let scale: Float
-    let thumbnail: ImageRequest.ThumbnailOptions?
+    private let dataLoadKey: TaskFetchOriginalDataKey
+    private let scale: Float
+    private let thumbnail: ImageRequest.ThumbnailOptions?
 
     init(_ request: ImageRequest) {
         self.dataLoadKey = TaskFetchOriginalDataKey(request)
