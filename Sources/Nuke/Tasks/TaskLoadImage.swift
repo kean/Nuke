@@ -74,7 +74,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
         operation = pipeline.configuration.imageProcessingQueue.add { [weak self] in
             guard let self else { return }
-            let result = signpost("ProcessImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
+            let result = signpost(isCompleted ? "ProcessImage" : "ProcessProgressiveImage") {
                 Result {
                     var response = response
                     response.container = try processor.process(response.container, context: context)
@@ -118,7 +118,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
             guard let self else { return }
 
-            let response = signpost("DecompressImage", isCompleted ? "FinalImage" : "ProgressiveImage") {
+            let response = signpost(isCompleted ? "DecompressImage" : "DecompressProgressiveImage") {
                 self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
             }
 
