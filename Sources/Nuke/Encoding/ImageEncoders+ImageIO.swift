@@ -59,7 +59,9 @@ extension ImageEncoders {
                     return nil
             }
             CGImageDestinationAddImage(destination, source, options as CFDictionary)
-            CGImageDestinationFinalize(destination)
+            guard CGImageDestinationFinalize(destination) else {
+                return nil
+            }
             return data as Data
         }
     }

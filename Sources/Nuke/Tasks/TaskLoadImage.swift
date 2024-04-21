@@ -162,7 +162,7 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
             }
             guard let data = encodedData else { return }
             pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
-                guard let data = $0 else { return }
+                guard let data = $0, !data.isEmpty else { return }
                 // Important! Storing directly ignoring `ImageRequest.Options`.
                 dataCache.storeData(data, for: key) // This is instant, writes are async
             }
