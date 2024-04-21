@@ -102,8 +102,8 @@ extension ImageProcessing where Self == ImageProcessors.CoreImageFilter {
         ImageProcessors.CoreImageFilter(name: name)
     }
 
-    public static func coreImageFilter(_ filter: CIFilter, idenifier: String) -> ImageProcessors.CoreImageFilter {
-        ImageProcessors.CoreImageFilter(filter, identifier: idenifier)
+    public static func coreImageFilter(_ filter: CIFilter, identifier: String) -> ImageProcessors.CoreImageFilter {
+        ImageProcessors.CoreImageFilter(filter, identifier: identifier)
     }
 }
 
