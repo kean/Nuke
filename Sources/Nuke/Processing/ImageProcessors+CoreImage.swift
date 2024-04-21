@@ -111,9 +111,9 @@ extension ImageProcessors {
         public var description: String {
             switch filter {
             case let .named(name, parameters):
-                "CoreImageFilter(name: \(name), parameters: \(parameters))"
+                return "CoreImageFilter(name: \(name), parameters: \(parameters))"
             case .custom(let filter):
-                "CoreImageFilter(filter: \(filter))"
+                return "CoreImageFilter(filter: \(filter))"
             }
         }
 
