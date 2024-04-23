@@ -191,6 +191,9 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
         }
     }
 
+    /// Returns `true` if the task has at least one image task that was directly
+    /// subscribed to it, which means that the request was initiated by the
+    /// user and not the framework.
     private var hasDirectSubscribers: Bool {
         subscribers.contains { $0 is ImageTask }
     }
