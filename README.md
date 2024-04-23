@@ -14,7 +14,7 @@ Load images from different sources and display them in your app using simple and
 
 The framework is lean and compiles in under 2 seconds[¹](#footnote-1). It has an automated test suite 2x the codebase size, ensuring excellent reliability. Nuke is optimized for [performance](https://kean-docs.github.io/nuke/documentation/nuke/performance-guide), and its advanced architecture enables virtually unlimited possibilities for customization.
 
-> **LRU memory and disk cache** · **Image Processing & Decompression** · **Request Coalescing & Priority** · **Prefetching** · **Resumable Downloads** · **Progressive JPEG** · **HEIF, WebP, SVG, GIF** · **Alamofire** · **Combine** · **SwiftUI** · **Async/Await**
+> **Memory and Disk Cache** · **Image Processing & Decompression** · **Request Coalescing & Priority** · **Prefetching** · **Resumable Downloads** · **Progressive JPEG** · **HEIF, WebP, SVG, GIF** · **SwiftUI** · **Async/Await**
 
 ## Sponsors
 
