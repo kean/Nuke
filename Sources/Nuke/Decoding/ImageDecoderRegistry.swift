@@ -62,7 +62,7 @@ public struct ImageDecodingContext: @unchecked Sendable {
     public var urlResponse: URLResponse?
     public var cacheType: ImageResponse.CacheType?
 
-    public init(request: ImageRequest, data: Data, isCompleted: Bool, urlResponse: URLResponse?, cacheType: ImageResponse.CacheType?) {
+    public init(request: ImageRequest, data: Data, isCompleted: Bool = true, urlResponse: URLResponse? = nil, cacheType: ImageResponse.CacheType? = nil) {
         self.request = request
         self.data = data
         self.isCompleted = isCompleted

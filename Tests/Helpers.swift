@@ -82,7 +82,7 @@ extension ImageDecodingContext {
     }
 
     static func mock(data: Data) -> ImageDecodingContext {
-        ImageDecodingContext(request: Test.request, data: data, isCompleted: true, urlResponse: nil, cacheType: nil)
+        ImageDecodingContext(request: Test.request, data: data)
     }
 }
 

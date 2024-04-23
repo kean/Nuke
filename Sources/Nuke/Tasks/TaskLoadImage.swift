@@ -26,11 +26,9 @@ final class TaskLoadImage: ImagePipelineTask<ImageResponse> {
     }
 
     private func decodeCachedData(_ data: Data) {
-        let context = ImageDecodingContext(request: request, data: data, isCompleted: true, urlResponse: nil, cacheType: .disk)
+        let context = ImageDecodingContext(request: request, data: data, cacheType: .disk)
         guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
-            // This shouldn't happen in practice unless encoder/decoder pair
-            // for data cache is misconfigured.
-            return fetchImage()
+            return didFinishDecoding(with: nil)
         }
         decode(context, decoder: decoder) { [weak self] in
             self?.didFinishDecoding(with: try? $0.get())
