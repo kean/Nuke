@@ -5,13 +5,16 @@
 
 <p align="left">
 <img src="https://img.shields.io/badge/platforms-iOS%2C%20macOS%2C%20watchOS%2C%20tvOS%2C%20visionOS-lightgrey.svg">
+<img src="https://img.shields.io/badge/Licence-MIT-green">
 </p>
+
+> *Serving Images Since 2015*
 
 Load images from different sources and display them in your app using simple and flexible APIs. Take advantage of the powerful image processing capabilities and a robust caching system.
 
 The framework is lean and compiles in under 2 seconds[¹](#footnote-1). It has an automated test suite 2x the codebase size, ensuring excellent reliability. Nuke is optimized for [performance](https://kean-docs.github.io/nuke/documentation/nuke/performance-guide), and its advanced architecture enables virtually unlimited possibilities for customization.
 
-> **Fast LRU memory and disk cache** · **SwiftUI** · **Smart background decompression** · **Image processing** · **Resumable downloads** · **Intelligent deduplication** · **Request prioritization** · **Prefetching** · **Rate limiting** · **Progressive JPEG, HEIF, WebP, SVG, GIF** · **Alamofire** · **Combine** · **Async/Await**
+> **LRU memory and disk cache** · **Background Decompression** · **Image Processing** · **Request Coalescing & Priority** · **Prefetching** · **Resumable Downloads** · **Progressive JPEG** · **HEIF, WebP, SVG, GIF** · **Alamofire** · **Combine** · **SwiftUI** · **Async/Await**
 
 ## Sponsors
 
@@ -32,10 +35,6 @@ The framework is lean and compiles in under 2 seconds[¹](#footnote-1). It has a
 
 Nuke supports [Swift Package Manager](https://www.swift.org/package-manager/), which is the recommended option. If that doesn't work for you, you can use binary frameworks attached to the [releases](https://github.com/kean/Nuke/releases).
 
-## Documentation
-
-Nuke is easy to learn and use, thanks to its extensive documentation. The [**Getting Started**](https://kean-docs.github.io/nuke/documentation/nuke/getting-started/) guide is the best place to start learning how to use it.
-
 The package ships with four modules that you can install depending on your needs:
 
 |Module|Description|
@@ -45,9 +44,33 @@ The package ships with four modules that you can install depending on your needs
 |[**NukeExtensions**](https://kean-docs.github.io/nukeextensions/documentation/nukeextensions/)|The extensions for `UIImageView` (UIKit, AppKit)|
 |[**NukeVideo**](https://kean-docs.github.io/nukevideo/documentation/nukevideo/)|The components for decoding and playing short videos|
 
-Check out [**Nuke Demo**](https://github.com/kean/NukeDemo) for more usage examples.
+## Documentation
 
-> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Migrations).
+Nuke is easy to learn and use, thanks to its extensive documentation and a modern API. 
+
+You can load images using `ImagePipeline` from the lean core [**Nuke**](https://kean-docs.github.io/nuke/documentation/nuke) module:
+
+```swift
+func loadImage() async throws {
+    let imageTask = ImagePipeline.shared.imageTask(with: url)
+    for await progress in imageTask.progress {
+        // Update progress
+    }
+    imageView.image = try await imageTask.image
+}
+```
+
+Or you can use the built-in UI components from the [**NukeUI**](https://kean-docs.github.io/nukeui/documentation/nukeui/) module:
+
+```swift
+struct ContentView: View {
+    var body: some View {
+        LazyImage(url: URL(string: "https://example.com/image.jpeg"))
+    }
+}
+```
+
+The [**Getting Started**](https://kean-docs.github.io/nuke/documentation/nuke/getting-started/) guide is the best place to start learning about these and many other APIs provided by the framework. Check out [**Nuke Demo**](https://github.com/kean/NukeDemo) for more usage examples.
 
 <a href="https://kean-docs.github.io/nuke/documentation/nuke/getting-started">
 <img width="690" alt="Nuke Docs" src="https://user-images.githubusercontent.com/1567433/175793167-b7e0c557-b887-444f-b18a-57d6f5ecf01a.png">
@@ -68,6 +91,8 @@ The image pipeline is easy to customize and extend. Check out the following firs
 > Looking for a way to log your network requests, including image requests? Check out [**Pulse**](https://github.com/kean/Pulse).
 
 ## Minimum Requirements
+
+> Upgrading from the previous version? Use a [**Migration Guide**](https://github.com/kean/Nuke/tree/master/Documentation/Migrations).
 
 | Nuke       | Date         | Swift       | Xcode      | Platforms                                     |
 |------------|--------------|-------------|------------|-----------------------------------------------|
