@@ -114,6 +114,10 @@ extension ImagePipeline {
         /// `Last-Modified`). Resumable downloads are enabled by default.
         public var isResumableDataEnabled = true
 
+        /// If enabled, the pipeline will load the local resources (`file` and
+        /// `data` schemes) inline without using the data loader. By default, `true`.
+        public var isLocalResourcesSupportEnabled = true
+
         /// A queue on which all callbacks, like `progress` and `completion`
         /// callbacks are called. `.main` by default.
         public var callbackQueue = DispatchQueue.main

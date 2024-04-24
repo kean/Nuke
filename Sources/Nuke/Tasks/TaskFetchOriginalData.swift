@@ -13,9 +13,19 @@ final class TaskFetchOriginalData: ImagePipelineTask<(Data, URLResponse?)> {
     private var data = Data()
 
     override func start() {
-        guard let urlRequest = request.urlRequest else {
+        guard let urlRequest = request.urlRequest, let url = urlRequest.url else {
             // A malformed URL prevented a URL request from being initiated.
             send(error: .dataLoadingFailed(error: URLError(.badURL)))
+            return
+        }
+
+        if url.isLocalResource {
+            do {
+                let data = try Data(contentsOf: url)
+                send(value: (data, nil), isCompleted: true)
+            } catch {
+                send(error: .dataLoadingFailed(error: error))
+            }
             return
         }
 

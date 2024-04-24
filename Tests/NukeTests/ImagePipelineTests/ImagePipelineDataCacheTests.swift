@@ -624,8 +624,8 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         XCTAssertEqual(dataCache.store.count, 2)
     }
     
-    // MARK: Local Storage
-    
+    // MARK: Local Resources
+
     func testImagesFromLocalStorageNotCached() {
         // GIVEN
         pipeline = pipeline.reconfigured {
@@ -633,8 +633,8 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
         
         // GIVEN request without a processor
-        let request = ImageRequest(url: URL(string: "file://example/image.jpeg"))
-        
+        let request = ImageRequest(url: Test.url(forResource: "fixture", extension: "jpeg"))
+
         // WHEN
         expect(pipeline).toLoadImage(with: request)
         wait()
@@ -652,8 +652,8 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
         
         // GIVEN request with a processor
-        let request = ImageRequest(url: URL(string: "file://example/image.jpeg") ,processors: [.resize(width: 100)])
-        
+        let request = ImageRequest(url: Test.url(forResource: "fixture", extension: "jpeg") ,processors: [.resize(width: 100)])
+
         // WHEN
         expect(pipeline).toLoadImage(with: request)
         wait()
@@ -671,8 +671,8 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         }
         
         // GIVEN request without a processor
-        let request = ImageRequest(url: URL(string: "data://example/image.jpeg"))
-        
+        let request = ImageRequest(url: Test.url(forResource: "fixture", extension: "jpeg"))
+
         // WHEN
         expect(pipeline).toLoadImage(with: request)
         wait()
@@ -682,7 +682,28 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         XCTAssertEqual(dataCache.writeCount, 0)
         XCTAssertEqual(dataCache.store.count, 0)
     }
-    
+
+    func testImagesFromData() {
+        // GIVEN
+        pipeline = pipeline.reconfigured {
+            $0.dataCachePolicy = .automatic
+        }
+
+        // GIVEN request without a processor
+        let data = Test.data(name: "fixture", extension: "jpeg")
+        let url = URL(string: "data:image/jpeg;base64,\(data.base64EncodedString())")
+        let request = ImageRequest(url: url)
+
+        // WHEN
+        expect(pipeline).toLoadImage(with: request)
+        wait()
+
+        // THEN original image data is stored in disk cache
+        XCTAssertEqual(encoder.encodeCount, 0)
+        XCTAssertEqual(dataCache.writeCount, 0)
+        XCTAssertEqual(dataCache.store.count, 0)
+    }
+
     // MARK: Misc
     
     func testSetCustomImageEncoder() {
