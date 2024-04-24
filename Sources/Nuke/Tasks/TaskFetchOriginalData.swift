@@ -19,7 +19,7 @@ final class TaskFetchOriginalData: ImagePipelineTask<(Data, URLResponse?)> {
             return
         }
 
-        if url.isLocalResource {
+        if url.isLocalResource && pipeline.configuration.isLocalResourcesSupportEnabled {
             do {
                 let data = try Data(contentsOf: url)
                 send(value: (data, nil), isCompleted: true)
