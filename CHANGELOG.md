@@ -2,7 +2,7 @@
 
 ## Nuke 12.6
 
-*Apr 22, 2024*
+*Apr 23, 2024*
 
 - Fix an issue with an optimization that is supposed to skip decompression if one or more processors are applied
 - Fix a `[Decompressor] Error -17102 decompressing image -- possibly corrupt` console error message when using `ImagePipeline.Configuration.isUsingPrepareForDisplay` (disabled by default). The pipeline will now skip decompression for `.png`.  
