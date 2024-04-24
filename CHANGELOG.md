@@ -12,6 +12,7 @@
 - Fix https://github.com/kean/Nuke/issues/763 SwiftUI Warning: Accessing StateObject's object without being installed on a View when using `onStart`
 - Fix https://github.com/kean/Nuke/issues/758 by adding support for initializing `ImageProcessors.CoreImageFilter` with `CIFilter` instances
 - Add support for disk cache lookup for intermediate processed images (as opposed to only final and original as before)
+- Add an optimization that loads local resources with `file` and `data` schemes quickly without using `DataLoader` and `URLSession`. If you rely on the existing behavior, this optimization can be turned off using the `isLocalResourcesSupportEnabled` configuration option. https://github.com/kean/Nuke/pull/779
 - Deprecate `ImagePipeline.Configuration.dataCachingQueue` and perform data cache lookups on the pipeline's queue, reducing the amount of context switching
 - Update the infrastructure for coalescing image-processing tasks to use the task-dependency used for other operations
 
