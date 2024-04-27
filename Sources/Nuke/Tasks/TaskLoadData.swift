@@ -5,10 +5,12 @@
 import Foundation
 
 /// Wrapper for tasks created by `loadData` calls.
-final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
+final class TaskLoadData: ImagePipelineTask<ImageResponse> {
     override func start() {
         if let data = pipeline.cache.cachedData(for: request) {
-            self.send(value: (data, nil), isCompleted: true)
+            let container = ImageContainer(image: .init(), data: data)
+            let response = ImageResponse(container: container, request: request)
+            self.send(value: response, isCompleted: true)
         } else {
             self.loadData()
         }
@@ -26,6 +28,8 @@ final class TaskLoadData: ImagePipelineTask<(Data, URLResponse?)> {
     }
 
     private func didReceiveData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool) {
-        send(value: (data, urlResponse), isCompleted: isCompleted)
+        let container = ImageContainer(image: .init(), data: data)
+        let response = ImageResponse(container: container, request: request, urlResponse: urlResponse)
+        send(value: response, isCompleted: isCompleted)
     }
 }
