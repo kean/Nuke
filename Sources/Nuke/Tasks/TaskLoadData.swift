@@ -30,6 +30,8 @@ final class TaskLoadData: ImagePipelineTask<ImageResponse> {
     private func didReceiveData(_ data: Data, urlResponse: URLResponse?, isCompleted: Bool) {
         let container = ImageContainer(image: .init(), data: data)
         let response = ImageResponse(container: container, request: request, urlResponse: urlResponse)
-        send(value: response, isCompleted: isCompleted)
+        if isCompleted {
+            send(value: response, isCompleted: isCompleted)
+        }
     }
 }

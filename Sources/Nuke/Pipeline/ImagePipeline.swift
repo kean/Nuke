@@ -278,11 +278,12 @@ public final class ImagePipeline: @unchecked Sendable {
     func loadImage(
         with request: ImageRequest,
         isConfined: Bool,
+        isDataTask: Bool = false,
         queue callbackQueue: DispatchQueue?,
         progress: ((ImageResponse?, ImageTask.Progress) -> Void)?,
         completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        let task = makeImageTask(request: request, queue: callbackQueue)
+        let task = makeImageTask(request: request, queue: callbackQueue, isDataTask: isDataTask)
         @Sendable func start() {
             loadImage(task, progress: progress, completion: completion)
         }
@@ -415,58 +416,17 @@ public final class ImagePipeline: @unchecked Sendable {
     @discardableResult public func loadData(
         with request: ImageRequest,
         queue: DispatchQueue? = nil,
-        progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
-    ) -> ImageTask {
-        loadData(with: request, isConfined: false, queue: queue, progress: progress, completion: completion)
-    }
-
-    func loadData(
-        with request: ImageRequest,
-        isConfined: Bool,
-        queue: DispatchQueue?,
-        progress: ((_ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
-    ) -> ImageTask {
-        let task = makeImageTask(request: request, queue: queue, isDataTask: true)
-        @Sendable func start() {
-            startDataTask(task, progress: progress, completion: completion)
-        }
-        if isConfined {
-            start()
-        } else {
-            self.queue.async { start() }
-        }
-        return task
-    }
-
-    private func startDataTask(
-        _ task: ImageTask,
         progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
-    ) {
-        startImageTask(task) { event, task, pipeline in
-            pipeline.dispatchCallback(to: task.callbackQueue) {
-                guard task.state != .cancelled else {
-                    // The callback-based API guarantees that after cancellation no
-                    // event are called on the callback queue.
-                    return
-                }
-                switch event {
-                case .progress(let progress):
-                    progressHandler?(progress.completed, progress.total)
-                case .preview:
-                    break // Should not be used for data
-                case .cancelled:
-                    break // The legacy APIs do not send cancellation events
-                case .finished(let result):
-                    let result = result.map { response in
-                        // Data should never be empty
-                        (data: response.container.data ?? Data(), response: response.urlResponse)
-                    }
-                    completion(result)
-                }
+    ) -> ImageTask {
+        loadImage(with: request, isConfined: false, isDataTask: true, queue: queue) { _, progress in
+            progressHandler?(progress.completed, progress.total)
+        } completion: { result in
+            let result = result.map { response in
+                // Data should never be empty
+                (data: response.container.data ?? Data(), response: response.urlResponse)
             }
+            completion(result)
         }
     }
 
