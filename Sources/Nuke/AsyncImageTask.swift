@@ -49,14 +49,19 @@ public final class AsyncImageTask: Sendable {
     /// is started and the expected size of the resource is known.
     public let progress: AsyncStream<ImageTask.Progress>
 
+    /// The events sent by the pipeline during the task execution.
+    public let events: AsyncStream<ImageTask.Event>
+
     init(imageTask: ImageTask,
          task: Task<ImageResponse, Error>,
          progress: AsyncStream<ImageTask.Progress>,
-         previews: AsyncStream<ImageResponse>) {
+         previews: AsyncStream<ImageResponse>,
+         events: AsyncStream<ImageTask.Event>) {
         self.imageTask = imageTask
         self.task = task
         self.progress = progress
         self.previews = previews
+        self.events = events
     }
 
     /// Marks task as being cancelled.
@@ -73,4 +78,5 @@ public final class AsyncImageTask: Sendable {
 final class AsyncTaskContext: @unchecked Sendable {
     var progress: AsyncStream<ImageTask.Progress>.Continuation?
     var previews: AsyncStream<ImageResponse>.Continuation?
+    var events: AsyncStream<ImageTask.Event>.Continuation?
 }

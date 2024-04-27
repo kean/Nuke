@@ -75,7 +75,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     /// An event produced during the runetime of the task.
-    public enum Event {
+    public enum Event: Sendable {
         /// The download progress was updated.
         case progress(Progress)
         /// The pipleine generated a progressive scan of the image.

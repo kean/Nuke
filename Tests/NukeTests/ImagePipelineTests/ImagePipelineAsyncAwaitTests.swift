@@ -9,6 +9,8 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
 
+    private var recordedEvents: [ImageTask.Event] = []
+    private var recordedResult: Result<ImageResponse, ImagePipeline.Error>?
     private var recordedProgress: [ImageTask.Progress] = []
     private var recordedPreviews: [ImageResponse] = []
     private var pipelineDelegate = ImagePipelineObserver()
@@ -61,6 +63,44 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
 
         // THEN
         XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
+    }
+
+    func testAsyncImageTaskEvents() async throws {
+        // GIVEN
+        let dataLoader = MockProgressiveDataLoader()
+        pipeline = pipeline.reconfigured {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+        }
+
+        // WHEN
+        let task = pipeline.imageTask(with: Test.url)
+        for await event in task.events {
+            switch event {
+            case .preview(let response):
+                recordedPreviews.append(response)
+                dataLoader.resume()
+            case .finished(let result):
+                recordedResult = result
+            default:
+                break
+            }
+            recordedEvents.append(event)
+        }
+
+        // THEN
+        guard recordedPreviews.count == 2 else {
+            return XCTFail("Unexpected number of previews")
+        }
+
+        XCTAssertEqual(recordedEvents, [
+            .progress(.init(completed: 13152, total: 39456)),
+            .preview(recordedPreviews[0]),
+            .progress(.init(completed: 26304, total: 39456)),
+            .preview(recordedPreviews[1]),
+            .progress(.init(completed: 39456, total: 39456)),
+            .finished(try XCTUnwrap(recordedResult))
+        ])
     }
 
     private var observer: AnyObject?
@@ -196,7 +236,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
             }
             _ = try await task.image
         } catch {
-            // Expect decoding to failed because of bogus data
+            // Do nothing
         }
 
         // THEN
@@ -215,18 +255,14 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         }
 
         // WHEN
-        do {
-            let task = pipeline.imageTask(with: Test.url)
-            Task {
-                for await preview in task.previews {
-                    recordedPreviews.append(preview)
-                    dataLoader.resume()
-                }
+        let task = pipeline.imageTask(with: Test.url)
+        Task {
+            for await preview in task.previews {
+                recordedPreviews.append(preview)
+                dataLoader.resume()
             }
-            _ = try await task.image
-        } catch {
-            // Expect decoding to failed because of bogus data
         }
+        _ = try await task.image
 
         // THEN
         XCTAssertEqual(recordedPreviews.count, 2)
@@ -344,5 +380,22 @@ private struct URLError: Swift.Error {
         case cellular
         case expensive
         case constrained
+    }
+}
+
+extension ImageTask.Event: Equatable {
+    public static func == (lhs: ImageTask.Event, rhs: ImageTask.Event) -> Bool {
+        switch (lhs, rhs) {
+        case let (.progress(lhs), .progress(rhs)):
+            return lhs == rhs
+        case let (.preview(lhs), .preview(rhs)):
+            return lhs == rhs
+        case (.cancelled, .cancelled):
+            return true
+        case let (.finished(lhs), .finished(rhs)):
+            return lhs == rhs
+        default:
+            return false
+        }
     }
 }

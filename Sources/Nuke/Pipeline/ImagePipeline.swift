@@ -132,7 +132,8 @@ public final class ImagePipeline: @unchecked Sendable {
         }
         let progress = AsyncStream<ImageTask.Progress> { context.progress = $0 }
         let previews = AsyncStream<ImageResponse> { context.previews = $0 }
-        return AsyncImageTask(imageTask: imageTask, task: task, progress: progress, previews: previews)
+        let events = AsyncStream<ImageTask.Event> { context.events = $0 }
+        return AsyncImageTask(imageTask: imageTask, task: task, progress: progress, previews: previews, events: events)
     }
 
     /// Returns an image for the given URL.
@@ -164,17 +165,23 @@ public final class ImagePipeline: @unchecked Sendable {
                     task.onCancel = {
                         context?.progress?.finish()
                         context?.previews?.finish()
+                        context?.events?.yield(.cancelled)
+                        context?.events?.finish()
                         continuation.resume(throwing: CancellationError())
                     }
                     self.startImageTask(task, progress: { response, progress in
                         if let response {
                             context?.previews?.yield(response)
+                            context?.events?.yield(.preview(response))
                         } else {
                             context?.progress?.yield(progress)
+                            context?.events?.yield(.progress(progress))
                         }
                     }, completion: { result in
                         context?.progress?.finish()
                         context?.previews?.finish()
+                        context?.events?.yield(.finished(result))
+                        context?.events?.finish()
                         continuation.resume(with: result)
                     })
                 }
