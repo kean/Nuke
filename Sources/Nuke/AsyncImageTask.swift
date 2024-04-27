@@ -42,7 +42,7 @@ public final class AsyncImageTask: Sendable {
         }
     }
 
-    /// Returns all images responses including the previews for progressive images.
+    /// Returns progressive image previews if the publisher produces any.
     public let previews: AsyncStream<ImageResponse>
 
     /// Returns the current download progress. Returns zeros before the download
