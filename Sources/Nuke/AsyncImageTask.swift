@@ -45,8 +45,11 @@ public final class AsyncImageTask: Sendable {
     /// The events sent by the pipeline during the task execution.
     public let events: AsyncStream<ImageTask.Event>
 
-    /// Returns progressive image previews if the publisher produces any.
-    public var previews: AsyncStream<ImageResponse> {
+    // Deprecated in Nuke 12.7
+    @available(*, deprecated, message: "Please use `events` instead")
+    public var previews: AsyncStream<ImageResponse> { _previews }
+
+    var _previews: AsyncStream<ImageResponse> {
         AsyncStream { continuation in
             Task {
                 for await event in events {
