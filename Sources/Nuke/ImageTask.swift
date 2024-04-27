@@ -89,7 +89,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 
-    #warning("remove onCancel")
+    // TODO: Remove onCancel
     var onCancel: (() -> Void)?
 
     var onEvent: ((ImageTask.Event, ImageTask, ImagePipeline) -> Void)?

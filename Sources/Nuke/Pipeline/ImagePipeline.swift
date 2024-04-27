@@ -157,30 +157,28 @@ public final class ImagePipeline: @unchecked Sendable {
         try await withTaskCancellationHandler(operation: {
             try await withUnsafeThrowingContinuation { continuation in
                 self.queue.async {
-                    guard task.state != .cancelled else {
-                        return continuation.resume(throwing: CancellationError())
-                    }
-                    task.onCancel = {
-                        context?.events?.yield(.cancelled)
-                        context?.events?.finish()
-                        continuation.resume(throwing: CancellationError())
-                    }
-                    self.startImageTask(task, progress: { response, progress in
-                        if let response {
-                            context?.events?.yield(.preview(response))
-                        } else {
-                            context?.events?.yield(.progress(progress))
-                        }
-                    }, completion: { result in
-                        context?.events?.yield(.finished(result))
-                        context?.events?.finish()
-                        continuation.resume(with: result)
-                    })
+                    self.loadImage(for: task, context: context, continuation: continuation)
                 }
             }
         }, onCancel: {
             task.cancel()
         })
+    }
+
+    private func loadImage(for task: ImageTask, context: AsyncTaskContext?, continuation: UnsafeContinuation<ImageResponse, any Swift.Error>) {
+        startImageTask(task) { event, _, _ in
+            context?.events?.yield(event)
+            switch event {
+            case .cancelled:
+                context?.events?.finish()
+                continuation.resume(throwing: CancellationError())
+            case .finished(let result):
+                context?.events?.finish()
+                continuation.resume(with: result)
+            default:
+                break
+            }
+        }
     }
 
     // MARK: - Loading Data (Async/Await)
@@ -277,7 +275,7 @@ public final class ImagePipeline: @unchecked Sendable {
         let task = makeImageTask(request: request, queue: callbackQueue)
         delegate.imageTaskCreated(task, pipeline: self)
         @Sendable func start() {
-            startImageTask(task, progress: progress, completion: completion)
+            loadImage(task, progress: progress, completion: completion)
         }
         if isConfined {
             start()
@@ -287,7 +285,7 @@ public final class ImagePipeline: @unchecked Sendable {
         return task
     }
 
-    private func startImageTask(
+    private func loadImage(
         _ task: ImageTask,
         progress progressHandler: ((ImageResponse?, ImageTask.Progress) -> Void)?,
         completion: @escaping (Result<ImageResponse, Error>) -> Void
@@ -327,6 +325,9 @@ public final class ImagePipeline: @unchecked Sendable {
         task.onEvent = onEvent
         guard !isInvalidated else {
             return send(.finished(.failure(.pipelineInvalidated)), task)
+        }
+        guard task.state != .cancelled else {
+            return send(.cancelled, task)
         }
         delegate.imageTaskDidStart(task, pipeline: self)
         tasks[task] = makeTaskLoadImage(for: task.request).subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak self, weak task] in
@@ -485,12 +486,8 @@ public final class ImagePipeline: @unchecked Sendable {
 
     private func cancel(_ task: ImageTask) {
         guard let subscription = tasks.removeValue(forKey: task) else { return }
-        dispatchCallback(to: task.callbackQueue) {
-            if !task.isDataTask {
-                self.delegate.imageTaskDidCancel(task, pipeline: self)
-            }
-            task.onCancel?() // Order is important
-        }
+        send(.cancelled, task)
+        task.onCancel?() // Order is important
         subscription.unsubscribe()
     }
 
@@ -511,6 +508,7 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Logging
 
     private func logEvent(_ event: ImageTask.Event, for task: ImageTask) {
+        guard !task.isDataTask else { return }
         switch event {
         case .progress(let progress):
             delegate.imageTask(task, didUpdateProgress: progress, pipeline: self)

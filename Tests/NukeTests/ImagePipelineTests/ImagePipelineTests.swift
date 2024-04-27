@@ -69,7 +69,7 @@ class ImagePipelineTests: XCTestCase {
         // When
         let expectedProgress = expectProgress([(10, 20), (20, 20)])
         
-        task = pipeline.loadImage(
+        pipeline.loadImage(
             with: request,
             progress: { _, completed, total in
                 // Then
