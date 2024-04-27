@@ -292,48 +292,24 @@ public final class ImagePipeline: @unchecked Sendable {
         progress progressHandler: ((ImageResponse?, ImageTask.Progress) -> Void)?,
         completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) {
-        guard !isInvalidated else {
-            dispatchCallback(to: task.callbackQueue) {
-                let error = Error.pipelineInvalidated
-                self.delegate.imageTask(task, didCompleteWithResult: .failure(error), pipeline: self)
-                completion(.failure(error))
+        startImageTask(task) { event, task, pipeline in
+            pipeline.dispatchCallback(to: task.callbackQueue) {
+                guard task.state != .cancelled else {
+                    // The callback-based API guarantees that after cancellation no
+                    // event are called on the callback queue.
+                    return
+                }
+                switch event {
+                case .progress(let progress):
+                    progressHandler?(nil, progress)
+                case .preview(let response):
+                    progressHandler?(response, task.progress)
+                case .cancelled:
+                    break // The legacy APIs do not send cancellation events
+                case .finished(let result):
+                    completion(result)
+                }
             }
-            return
-        }
-
-        delegate.imageTaskDidStart(task, pipeline: self)
-
-        tasks[task] = makeTaskLoadImage(for: task.request)
-            .subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak self, weak task] event in
-                guard let self, let task else { return }
-
-                if event.isCompleted {
-                    self.tasks[task] = nil
-                }
-
-                self.dispatchCallback(to: task.callbackQueue) {
-                    guard task.state != .cancelled else { return }
-                    if event.isCompleted {
-                        task.didComplete() // Important: called on callback queue and in this order
-                    }
-                    switch event {
-                    case let .value(response, isCompleted):
-                        if isCompleted {
-                            self.delegate.imageTask(task, didCompleteWithResult: .success(response), pipeline: self)
-                            completion(.success(response))
-                        } else {
-                            self.delegate.imageTask(task, didReceivePreview: response, pipeline: self)
-                            progressHandler?(response, task.progress)
-                        }
-                    case let .progress(progress):
-                        self.delegate.imageTask(task, didUpdateProgress: progress, pipeline: self)
-                        task.progress = progress
-                        progressHandler?(nil, progress)
-                    case let .error(error):
-                        self.delegate.imageTask(task, didCompleteWithResult: .failure(error), pipeline: self)
-                        completion(.failure(error))
-                    }
-                }
         }
     }
 
@@ -343,6 +319,45 @@ public final class ImagePipeline: @unchecked Sendable {
         task.callbackQueue = queue
         task.isDataTask = isDataTask
         return task
+    }
+
+    // An internal implementation used by other wrappers.
+    private func startImageTask(_ task: ImageTask, _ onEvent: @escaping (ImageTask.Event, ImageTask, ImagePipeline) -> Void) {
+        assert(task.onEvent == nil)
+        task.onEvent = onEvent
+        guard !isInvalidated else {
+            return send(.finished(.failure(.pipelineInvalidated)), task)
+        }
+        delegate.imageTaskDidStart(task, pipeline: self)
+        tasks[task] = makeTaskLoadImage(for: task.request).subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak self, weak task] in
+            guard let self, let task else { return }
+            imageTask(task, didReceiveEvent: $0)
+        }
+    }
+
+    private func imageTask(_ task: ImageTask, didReceiveEvent event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
+        if event.isCompleted {
+            tasks[task] = nil
+            task.didComplete()
+        }
+        switch event {
+        case let .value(response, isCompleted):
+            if isCompleted {
+                send(.finished(.success(response)), task)
+            } else {
+                send(.preview(response), task)
+            }
+        case let .progress(progress):
+            task.progress = progress
+            send(.progress(progress), task)
+        case let .error(error):
+            send(.finished(.failure(error)), task)
+        }
+    }
+
+    private func send(_ event: ImageTask.Event, _ task: ImageTask) {
+        task.onEvent?(event, task, self)
+        logEvent(event, for: task)
     }
 
     // MARK: - Loading Data (Closures)
@@ -490,6 +505,21 @@ public final class ImagePipeline: @unchecked Sendable {
             closure()
         } else {
             (callbackQueue ?? self.configuration.callbackQueue).async(execute: closure)
+        }
+    }
+
+    // MARK: - Logging
+
+    private func logEvent(_ event: ImageTask.Event, for task: ImageTask) {
+        switch event {
+        case .progress(let progress):
+            delegate.imageTask(task, didUpdateProgress: progress, pipeline: self)
+        case .preview(let response):
+            delegate.imageTask(task, didReceivePreview: response, pipeline: self)
+        case .cancelled:
+            delegate.imageTaskDidCancel(task, pipeline: self)
+        case .finished(let result):
+            delegate.imageTask(task, didCompleteWithResult: result, pipeline: self)
         }
     }
 
