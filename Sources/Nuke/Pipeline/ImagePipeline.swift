@@ -496,7 +496,6 @@ public final class ImagePipeline: @unchecked Sendable {
     private func cancel(_ task: ImageTask) {
         guard let subscription = tasks.removeValue(forKey: task) else { return }
         send(.cancelled, task)
-        task.onCancel?() // Order is important
         subscription.unsubscribe()
     }
 

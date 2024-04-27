@@ -89,13 +89,9 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 
-    // TODO: Remove onCancel
-    var onCancel: (() -> Void)?
-
     var onEvent: ((ImageTask.Event, ImageTask, ImagePipeline) -> Void)?
     weak var pipeline: ImagePipeline?
     var callbackQueue: DispatchQueue?
-    // TODO: Make it data task?
     var isDataTask = false
 
     /// Using it without a wrapper to reduce the number of allocations.
