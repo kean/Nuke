@@ -74,6 +74,21 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case completed
     }
 
+    /// An event produced during the runetime of the task.
+    public enum Event {
+        /// The download progress was updated.
+        case progress(Progress)
+        /// The pipleine generated a progressive scan of the image.
+        case preview(ImageResponse)
+        /// The task was cancelled.
+        ///
+        /// - note: You are guaranteed to receive either `.cancelled` or
+        /// `.finished`, but never both.
+        case cancelled
+        /// The task finish with the given response.
+        case finished(Result<ImageResponse, ImagePipeline.Error>)
+    }
+
     var onCancel: (() -> Void)?
 
     weak var pipeline: ImagePipeline?
