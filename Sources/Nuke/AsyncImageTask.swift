@@ -42,25 +42,43 @@ public final class AsyncImageTask: Sendable {
         }
     }
 
-    /// Returns progressive image previews if the publisher produces any.
-    public let previews: AsyncStream<ImageResponse>
-
-    /// Returns the current download progress. Returns zeros before the download
-    /// is started and the expected size of the resource is known.
-    public let progress: AsyncStream<ImageTask.Progress>
-
     /// The events sent by the pipeline during the task execution.
     public let events: AsyncStream<ImageTask.Event>
 
+    /// Returns progressive image previews if the publisher produces any.
+    public var previews: AsyncStream<ImageResponse> {
+        AsyncStream { continuation in
+            Task {
+                for await event in events {
+                    if case .preview(let preview) = event {
+                        continuation.yield(preview)
+                    }
+                }
+                continuation.finish()
+            }
+        }
+    }
+
+    /// Returns the current download progress. Returns zeros before the download
+    /// is started and the expected size of the resource is known.
+    public var progress: AsyncStream<ImageTask.Progress> {
+        AsyncStream { continuation in
+            Task {
+                for await event in events {
+                    if case .progress(let progress) = event {
+                        continuation.yield(progress)
+                    }
+                }
+                continuation.finish()
+            }
+        }
+    }
+
     init(imageTask: ImageTask,
          task: Task<ImageResponse, Error>,
-         progress: AsyncStream<ImageTask.Progress>,
-         previews: AsyncStream<ImageResponse>,
          events: AsyncStream<ImageTask.Event>) {
         self.imageTask = imageTask
         self.task = task
-        self.progress = progress
-        self.previews = previews
         self.events = events
     }
 
@@ -76,7 +94,5 @@ public final class AsyncImageTask: Sendable {
 // Making it Sendable because the closures are set once right after initialization
 // and are never mutated afterward.
 final class AsyncTaskContext: @unchecked Sendable {
-    var progress: AsyncStream<ImageTask.Progress>.Continuation?
-    var previews: AsyncStream<ImageResponse>.Continuation?
     var events: AsyncStream<ImageTask.Event>.Continuation?
 }
