@@ -91,7 +91,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     var onEvent: ((ImageTask.Event, ImageTask, ImagePipeline) -> Void)?
     weak var pipeline: ImagePipeline?
-    var callbackQueue: DispatchQueue?
     var isDataTask = false
 
     /// Using it without a wrapper to reduce the number of allocations.
