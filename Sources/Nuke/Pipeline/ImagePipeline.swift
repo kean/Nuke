@@ -125,8 +125,6 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Creates a task with the given request.
     public func imageTask(with request: ImageRequest) -> AsyncImageTask {
         let imageTask = makeImageTask(request: request, queue: queue)
-        // TODO: reuse this call
-        delegate.imageTaskCreated(imageTask, pipeline: self)
         let context = AsyncTaskContext()
         let task = Task<ImageResponse, Swift.Error> {
             try await self.image(for: imageTask, context: context)
@@ -150,7 +148,6 @@ public final class ImagePipeline: @unchecked Sendable {
     public func image(for request: ImageRequest) async throws -> PlatformImage {
         // Optimization: fetch image directly without creating an associated task
         let task = makeImageTask(request: request, queue: queue)
-        delegate.imageTaskCreated(task, pipeline: self)
         return try await image(for: task).image
     }
 
@@ -286,7 +283,6 @@ public final class ImagePipeline: @unchecked Sendable {
         completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         let task = makeImageTask(request: request, queue: callbackQueue)
-        delegate.imageTaskCreated(task, pipeline: self)
         @Sendable func start() {
             loadImage(task, progress: progress, completion: completion)
         }
@@ -331,6 +327,7 @@ public final class ImagePipeline: @unchecked Sendable {
         task.pipeline = self
         task.callbackQueue = queue
         task.isDataTask = isDataTask
+        delegate.imageTaskCreated(task, pipeline: self)
         return task
     }
 
