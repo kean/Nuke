@@ -3,7 +3,14 @@
 // Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+
+#if canImport(UIKit)
 import UIKit
+#endif
+
+#if canImport(AppKit)
+import AppKit
+#endif
 
 /// A task performed by the ``ImagePipeline``.
 ///
