@@ -174,14 +174,6 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - Loading Data (Async/Await)
 
-    /// Returns image data for the given URL.
-    ///
-    /// - parameter request: An image request.
-    @discardableResult
-    public func data(for url: URL) async throws -> (Data, URLResponse?) {
-        try await data(for: ImageRequest(url: url))
-    }
-
     /// Returns image data for the given request.
     ///
     /// - parameter request: An image request.
@@ -278,19 +270,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Loads image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
-    @discardableResult public func loadData(
-        with url: URL,
-        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
-    ) -> ImageTask {
-        loadData(with: ImageRequest(url: url), queue: nil, progress: nil, completion: completion)
-    }
-
-    /// Loads image data for the given request. The data doesn't get decoded
-    /// or processed in any other way.
-    @discardableResult public func loadData(
-        with request: ImageRequest,
-        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
-    ) -> ImageTask {
+    @discardableResult public func loadData(with request: ImageRequest, completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
         loadData(with: request, queue: nil, progress: nil, completion: completion)
     }
 
