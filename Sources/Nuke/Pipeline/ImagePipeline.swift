@@ -337,7 +337,7 @@ public final class ImagePipeline: @unchecked Sendable {
     private func imageTask(_ task: ImageTask, didReceiveEvent event: AsyncTask<ImageResponse, Error>.Event) {
         if event.isCompleted {
             tasks[task] = nil
-            task.didComplete()
+            task.setState(.completed)
         }
         switch event {
         case let .value(response, isCompleted):

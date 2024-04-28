@@ -115,23 +115,21 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The pipeline will immediately cancel any work associated with a task
     /// unless there is an equivalent outstanding task running.
     public func cancel() {
-        os_unfair_lock_lock(lock)
-        guard _state == .running else {
-            return os_unfair_lock_unlock(lock)
+        if setState(.cancelled) {
+            pipeline?.imageTaskCancelCalled(self)
         }
-        _state = .cancelled
-        os_unfair_lock_unlock(lock)
-
-        pipeline?.imageTaskCancelCalled(self)
     }
 
-    func didComplete() {
+    @discardableResult func setState(_ state: ImageTask.State) -> Bool {
+        assert(state == .cancelled || state == .completed)
         os_unfair_lock_lock(lock)
         guard _state == .running else {
-            return os_unfair_lock_unlock(lock)
+            os_unfair_lock_unlock(lock)
+            return false
         }
-        _state = .completed
+        _state = state
         os_unfair_lock_unlock(lock)
+        return true
     }
 
     private func sync<T>(_ closure: () -> T) -> T {
