@@ -118,18 +118,13 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Loading Images (Async/Await)
 
     /// Creates a task with the given URL.
-    public func imageTask(with url: URL) -> AsyncImageTask {
-        imageTask(with: ImageRequest(url: url))
+    public func imageTask(with url: URL) -> ImageTask {
+        makeImageTask(request: ImageRequest(url: url))
     }
 
     /// Creates a task with the given request.
-    public func imageTask(with request: ImageRequest) -> AsyncImageTask {
-        let imageTask = makeImageTask(request: request)
-        let (events, continuation) = AsyncStream.makeStream(of: ImageTask.Event.self)
-        let task = ConcurrencyTask<ImageResponse, Swift.Error> {
-            try await response(for: imageTask, stream: continuation)
-        }
-        return AsyncImageTask(imageTask: imageTask, task: task, events: events)
+    public func imageTask(with request: ImageRequest) -> ImageTask {
+        makeImageTask(request: request)
     }
 
     /// Returns an image for the given URL.
@@ -140,29 +135,6 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Returns an image for the given request.
     public func image(for request: ImageRequest) async throws -> PlatformImage {
         try await makeImageTask(request: request).response.image
-    }
-
-    // TODO: remove
-    private func response(for task: ImageTask, stream: AsyncStream<ImageTask.Event>.Continuation? = nil) async throws -> ImageResponse {
-        try await withTaskCancellationHandler {
-            try await withUnsafeThrowingContinuation { continuation in
-                startImageTask(task, isConfined: false) { event in
-                    stream?.yield(event)
-                    switch event {
-                    case .cancelled:
-                        stream?.finish()
-                        continuation.resume(throwing: CancellationError())
-                    case .finished(let result):
-                        stream?.finish()
-                        continuation.resume(with: result)
-                    default:
-                        break
-                    }
-                }
-            }
-        } onCancel: {
-            task.cancel()
-        }
     }
 
     func response(for task: ImageTask) async throws -> ImageResponse {

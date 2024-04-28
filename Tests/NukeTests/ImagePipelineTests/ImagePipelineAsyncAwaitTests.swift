@@ -278,7 +278,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         // WHEN
         let task = pipeline.imageTask(with: Test.url)
         Task {
-            for await preview in task._previews {
+            for try await preview in task.stream {
                 recordedPreviews.append(preview)
                 dataLoader.resume()
             }

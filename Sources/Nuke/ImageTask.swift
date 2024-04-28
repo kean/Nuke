@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import UIKit
 
 /// A task performed by the ``ImagePipeline``.
 ///
@@ -96,6 +97,15 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// Using it without a wrapper to reduce the number of allocations.
     private let lock: os_unfair_lock_t
 
+    /// Returns the response image.
+    public var image: PlatformImage {
+        get async throws {
+            try await response.image
+        }
+    }
+
+    // TODO: should it start task lazily or eagerly?
+
     /// The image response.
     public var response: ImageResponse {
         get async throws {
@@ -126,9 +136,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     public var events: AsyncStream<Event> {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
-        if _context.events == nil {
-            _context.events = AsyncStream.makeStream(of: Event.self)
-        }
+        if _context.events == nil { _context.events = AsyncStream.makeStream() }
         return _context.events!.0
     }
 
@@ -136,10 +144,20 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     public var progress: AsyncStream<Progress> {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
-        if _context.progress == nil {
-            _context.progress = AsyncStream.makeStream(of: Progress.self)
-        }
+        if _context.progress == nil { _context.progress = AsyncStream.makeStream() }
         return _context.progress!.0
+    }
+
+    /// The stream of responses. 
+    ///
+    /// If the progressive decoding is enabled (see ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled``),
+    /// the stream contains all of the progressive scans loaded by the pipeline
+    /// and finished with the full image.
+    public var stream: AsyncThrowingStream<ImageResponse, Swift.Error> {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        if _context.progress == nil { _context.stream = AsyncThrowingStream.makeStream() }
+        return _context.stream!.0
     }
 
     private var _context = AsyncContext()
@@ -176,10 +194,16 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         switch event {
         case .progress(let progress):
             context.progress?.1.yield(progress)
-        case .cancelled, .finished:
-            context.progress?.1.finish()
+        case .preview(let response):
+            context.stream?.1.yield(response)
+        case .cancelled:
             context.events?.1.finish()
-        default: break
+            context.progress?.1.finish()
+            context.stream?.1.finish(throwing: CancellationError())
+        case .finished(let result):
+            context.events?.1.finish()
+            context.progress?.1.finish()
+            context.stream?.1.yield(with: result.mapError { $0 })
         }
     }
 
@@ -202,7 +226,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     private struct AsyncContext {
+        typealias Stream = AsyncThrowingStream<ImageResponse, Swift.Error>
+
         var task: ConcurrencyTask<ImageResponse, Swift.Error>?
+        var stream: (Stream, Stream.Continuation)?
         var events: (AsyncStream<Event>, AsyncStream<Event>.Continuation)?
         var progress: (AsyncStream<Progress>, AsyncStream<Progress>.Continuation)?
     }
@@ -223,3 +250,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         "ImageTask(id: \(taskId), priority: \(_priority), progress: \(currentProgress.completed) / \(currentProgress.total), state: \(state))"
     }
 }
+
+@available(*, deprecated, renamed: "ImageTask", message: "Async/Await support was addedd directly to the existing `ImageTask` type")
+public typealias AsyncImageTask = ImageTask
