@@ -109,7 +109,11 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The image response.
     public var response: ImageResponse {
         get async throws {
-            try await withTaskCancellationHandler {
+            guard let task else {
+                // TODO: add error? start lazily?
+                throw ImagePipeline.Error.dataIsEmpty
+            }
+            return try await withTaskCancellationHandler {
                 try await task.value
             } onCancel: {
                 self.cancel()
@@ -117,20 +121,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         }
     }
 
-    private var task: ConcurrencyTask<ImageResponse, Swift.Error> {
-        guard let pipeline else {
-            fatalError() // TODO: what should happen
-        }
-        os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
-        // TODO: is this a retain cycle?
-        if _context.task == nil {
-            _context.task = ConcurrencyTask {
-                try await pipeline.response(for: self)
-            }
-        }
-        return _context.task!
-    }
+    var task: Task<ImageResponse, Swift.Error>?
 
     /// The events sent by the pipeline during the task execution.
     public var events: AsyncStream<Event> {
@@ -228,7 +219,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     private struct AsyncContext {
         typealias Stream = AsyncThrowingStream<ImageResponse, Swift.Error>
 
-        var task: ConcurrencyTask<ImageResponse, Swift.Error>?
         var stream: (Stream, Stream.Continuation)?
         var events: (AsyncStream<Event>, AsyncStream<Event>.Continuation)?
         var progress: (AsyncStream<Progress>, AsyncStream<Progress>.Continuation)?

@@ -119,12 +119,14 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Creates a task with the given URL.
     public func imageTask(with url: URL) -> ImageTask {
-        makeImageTask(request: ImageRequest(url: url))
+        imageTask(with: ImageRequest(url: url))
     }
 
     /// Creates a task with the given request.
     public func imageTask(with request: ImageRequest) -> ImageTask {
-        makeImageTask(request: request)
+        let task = makeImageTask(request: request)
+        task.task = Task { try await response(for: task) }
+        return task
     }
 
     /// Returns an image for the given URL.
@@ -134,10 +136,10 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Returns an image for the given request.
     public func image(for request: ImageRequest) async throws -> PlatformImage {
-        try await makeImageTask(request: request).response.image
+        try await imageTask(with: request).image
     }
 
-    func response(for task: ImageTask) async throws -> ImageResponse {
+    private func response(for task: ImageTask) async throws -> ImageResponse {
         try await withUnsafeThrowingContinuation { continuation in
             startImageTask(task, isConfined: false) { event in
                 switch event {
@@ -443,5 +445,3 @@ public final class ImagePipeline: @unchecked Sendable {
         try await data(for: ImageRequest(url: url))
     }
 }
-
-typealias ConcurrencyTask = Task
