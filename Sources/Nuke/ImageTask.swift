@@ -76,6 +76,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     let isDataTask: Bool
+    var task: Task<ImageResponse, Swift.Error>?
+    var continuation: UnsafeContinuation<ImageResponse, Error>?
     var onEvent: ((Event, ImageTask) -> Void)?
     weak var pipeline: ImagePipeline?
 
@@ -103,9 +105,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
             }
         }
     }
-
-    var task: Task<ImageResponse, Swift.Error>?
-    var continuation: UnsafeContinuation<ImageResponse, Error>?
 
     /// The events sent by the pipeline during the task execution.
     public var events: AsyncStream<Event> {
@@ -207,11 +206,25 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     // MARK: Events
 
     func process(_ event: Event) {
-        let context = sync { _context }
-        context.events?.1.yield(event)
         switch event {
         case .progress(let progress):
             currentProgress = progress
+        case .finished:
+            // TODO: do we need to check state?
+            _ = setState(.completed)
+        default:
+            break
+        }
+
+        process(event, in: sync { _context })
+        onEvent?(event, self)
+        pipeline?.imageTask(self, didProcessEvent: event)
+    }
+
+    private func process(_ event: Event, in context: AsyncContext) {
+        context.events?.1.yield(event)
+        switch event {
+        case .progress(let progress):
             context.progress?.1.yield(progress)
         case .preview(let response):
             context.stream?.1.yield(response)
@@ -221,16 +234,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
             context.stream?.1.finish(throwing: CancellationError())
             continuation?.resume(throwing: CancellationError())
         case .finished(let result):
-            _ = setState(.completed)
             let result = result.mapError { $0 as Error }
             context.events?.1.finish()
             context.progress?.1.finish()
             context.stream?.1.yield(with: result)
             continuation?.resume(with: result)
         }
-
-        onEvent?(event, self)
-        pipeline?.imageTask(self, didProcessEvent: event)
     }
 
     /// An event produced during the runetime of the task.

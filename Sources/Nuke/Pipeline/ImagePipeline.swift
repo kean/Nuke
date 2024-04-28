@@ -28,7 +28,7 @@ public final class ImagePipeline: @unchecked Sendable {
     public let configuration: Configuration
 
     /// Provides access to the underlying caching subsystems.
-    public var cache: ImagePipeline.Cache { ImagePipeline.Cache(pipeline: self) }
+    public var cache: ImagePipeline.Cache { .init(pipeline: self) }
 
     let delegate: any ImagePipelineDelegate
 
@@ -111,7 +111,7 @@ public final class ImagePipeline: @unchecked Sendable {
         queue.async {
             guard !self.isInvalidated else { return }
             self.isInvalidated = true
-            self.tasks.keys.forEach { self.cancel($0) }
+            self.tasks.keys.forEach(self.cancel)
         }
     }
 
@@ -288,6 +288,7 @@ public final class ImagePipeline: @unchecked Sendable {
     private func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask)
         task.pipeline = self
+        // TODO: we've added a dealy to startImageTask and that can be a problem
         task.task = Task {
             try await withUnsafeThrowingContinuation { continuation in
                 queue.async {
@@ -305,6 +306,10 @@ public final class ImagePipeline: @unchecked Sendable {
             return task.process(.finished(.failure(.pipelineInvalidated)))
         }
         // TODO: Check this and other .cancelled callbacks
+        // The problem is that if cancelled is called before that
+        // `startImageTask` is called, then the tasks[task] is empty
+        // in `ImageTask` callback and cancelation logic fails to run
+        // This can happen if the task is cancelled from `imageTaskCreated`
         guard task.state != .cancelled else {
             return task.process(.cancelled)
         }
