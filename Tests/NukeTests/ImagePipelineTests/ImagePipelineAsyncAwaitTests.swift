@@ -198,7 +198,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         dataLoader.queue.isSuspended = true
 
         let task = Task {
-            try await pipeline.data(for: Test.url)
+            try await pipeline.data(for: Test.request)
         }
         task.cancel()
 

@@ -177,7 +177,6 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Returns image data for the given request.
     ///
     /// - parameter request: An image request.
-    @discardableResult
     public func data(for request: ImageRequest) async throws -> (Data, URLResponse?) {
         // Optimization: fetch image directly without creating an associated task
         let task = makeImageTask(request: request, isDataTask: true)
@@ -455,5 +454,19 @@ public final class ImagePipeline: @unchecked Sendable {
         tasksFetchOriginalData.publisherForKey(TaskFetchOriginalDataKey(request)) {
             request.publisher == nil ? TaskFetchOriginalData(self, request) : TaskFetchWithPublisher(self, request)
         }
+    }
+
+    // MARK: - Deprecated
+
+    // Deprecated in Nuke 12.7
+    @available(*, deprecated, message: "Plesae the variant variant that accepts `ImageRequest` as a parameter")
+    @discardableResult public func loadData(with url: URL, completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
+        loadData(with: ImageRequest(url: url), queue: nil, progress: nil, completion: completion)
+    }
+
+    // Deprecated in Nuke 12.7
+    @available(*, deprecated, message: "Plesae the variant that accepts `ImageRequest` as a parameter")
+    @discardableResult public func data(for url: URL) async throws -> (Data, URLResponse?) {
+        try await data(for: ImageRequest(url: url))
     }
 }
