@@ -61,13 +61,3 @@ final class AnonymousCancellable: Cancellable {
         onCancel()
     }
 }
-
-extension AsyncStream {
-    static func pipe() -> (Self, Self.Continuation?) {
-        var continuation: Self.Continuation?  // Should not be nil
-        let stream = Self {
-            continuation = $0
-        }
-        return (stream, continuation)
-    }
-}

@@ -125,7 +125,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Creates a task with the given request.
     public func imageTask(with request: ImageRequest) -> AsyncImageTask {
         let imageTask = makeImageTask(request: request)
-        let (events, continuation) = AsyncStream<ImageTask.Event>.pipe()
+        let (events, continuation) = AsyncStream.makeStream(of: ImageTask.Event.self)
         let task = Task<ImageResponse, Swift.Error> {
             try await response(for: imageTask, stream: continuation)
         }

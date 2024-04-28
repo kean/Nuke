@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import Combine
 
 #if canImport(UIKit)
 import UIKit
