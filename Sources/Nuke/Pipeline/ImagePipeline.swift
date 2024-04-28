@@ -133,21 +133,14 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     /// Returns an image for the given URL.
-    ///
-    /// - parameters:
-    ///   - request: An image URL.
     public func image(for url: URL) async throws -> PlatformImage {
         try await image(for: ImageRequest(url: url))
     }
 
     /// Returns an image for the given request.
-    ///
-    /// - parameters:
-    ///   - request: An image request.
     public func image(for request: ImageRequest) async throws -> PlatformImage {
         // Optimization: fetch image directly without creating an associated `AsyncImageTask`
-        let task = makeImageTask(request: request)
-        return try await response(for: task).image
+        try await response(for: makeImageTask(request: request)).image
     }
 
     private func response(for task: ImageTask, stream: AsyncStream<ImageTask.Event>.Continuation? = nil) async throws -> ImageResponse {
@@ -341,7 +334,7 @@ public final class ImagePipeline: @unchecked Sendable {
         }
     }
 
-    private func imageTask(_ task: ImageTask, didReceiveEvent event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
+    private func imageTask(_ task: ImageTask, didReceiveEvent event: AsyncTask<ImageResponse, Error>.Event) {
         if event.isCompleted {
             tasks[task] = nil
             task.didComplete()
