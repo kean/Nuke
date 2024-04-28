@@ -151,6 +151,22 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         return _context.stream!.0
     }
 
+    /// Deprecated in Nuke 12.7.
+    @available(*, deprecated, renamed: "stream", message: "Please the new `stream` API instead that is now a throwing stream that also contains the full image as the last value")
+    public var previews: AsyncStream<ImageResponse> { _previews }
+
+    var _previews: AsyncStream<ImageResponse> {
+        AsyncStream { continuation in
+            Task {
+                for await event in events {
+                    if case .preview(let response) = event {
+                        continuation.yield(response)
+                    }
+                }
+            }
+        }
+    }
+
     private var _context = AsyncContext()
 
     deinit {

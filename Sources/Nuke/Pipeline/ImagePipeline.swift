@@ -118,11 +118,15 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Loading Images (Async/Await)
 
     /// Creates a task with the given URL.
+    ///
+    /// The task starts executing the moment it is created.
     public func imageTask(with url: URL) -> ImageTask {
         imageTask(with: ImageRequest(url: url))
     }
 
     /// Creates a task with the given request.
+    ///
+    /// The task starts executing the moment it is created.
     public func imageTask(with request: ImageRequest) -> ImageTask {
         let task = makeImageTask(request: request)
         task.task = Task { try await response(for: task) }
@@ -161,6 +165,8 @@ public final class ImagePipeline: @unchecked Sendable {
     /// - parameter request: An image request.
     public func data(for request: ImageRequest) async throws -> (Data, URLResponse?) {
         let task = makeImageTask(request: request, isDataTask: true)
+        // TODO: cleanup
+        task.task = Task { try await self.response(for: task) }
         let response = try await task.response
         return (response.container.data ?? Data(), response.urlResponse)
     }
