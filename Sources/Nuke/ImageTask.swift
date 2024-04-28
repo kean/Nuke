@@ -90,8 +90,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 
-    var isDataTask = false
-    var onEvent: ((Event) -> Void)?
+    let isDataTask: Bool
+    var onEvent: ((Event, ImageTask) -> Void)?
     weak var pipeline: ImagePipeline?
 
     /// Using it without a wrapper to reduce the number of allocations.
@@ -122,6 +122,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     var task: Task<ImageResponse, Swift.Error>?
+    var continuation: UnsafeContinuation<ImageResponse, Error>?
 
     /// The events sent by the pipeline during the task execution.
     public var events: AsyncStream<Event> {
@@ -174,10 +175,11 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         lock.deallocate()
     }
 
-    init(taskId: Int64, request: ImageRequest) {
+    init(taskId: Int64, request: ImageRequest, isDataTask: Bool) {
         self.taskId = taskId
         self.request = request
         self._priority = request.priority
+        self.isDataTask = isDataTask
 
         lock = .allocate(capacity: 1)
         lock.initialize(to: os_unfair_lock())
@@ -194,7 +196,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     func process(_ event: Event) {
-        onEvent?(event)
+        onEvent?(event, self)
 
         let context = sync { _context }
         context.events?.1.yield(event)
@@ -207,10 +209,13 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
             context.events?.1.finish()
             context.progress?.1.finish()
             context.stream?.1.finish(throwing: CancellationError())
+            continuation?.resume(throwing: CancellationError())
         case .finished(let result):
+            let result = result.mapError { $0 as Error }
             context.events?.1.finish()
             context.progress?.1.finish()
-            context.stream?.1.yield(with: result.mapError { $0 })
+            context.stream?.1.yield(with: result)
+            continuation?.resume(with: result)
         }
     }
 

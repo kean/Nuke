@@ -128,9 +128,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///
     /// The task starts executing the moment it is created.
     public func imageTask(with request: ImageRequest) -> ImageTask {
-        let task = makeImageTask(request: request)
-        task.task = Task { try await response(for: task) }
-        return task
+        makeStartedImageTask(with: request)
     }
 
     /// Returns an image for the given URL.
@@ -143,30 +141,13 @@ public final class ImagePipeline: @unchecked Sendable {
         try await imageTask(with: request).image
     }
 
-    private func response(for task: ImageTask) async throws -> ImageResponse {
-        try await withUnsafeThrowingContinuation { continuation in
-            startImageTask(task, isConfined: false) { event in
-                switch event {
-                case .cancelled:
-                    continuation.resume(throwing: CancellationError())
-                case .finished(let result):
-                    continuation.resume(with: result)
-                default:
-                    break
-                }
-            }
-        }
-    }
-
     // MARK: - Loading Data (Async/Await)
 
     /// Returns image data for the given request.
     ///
     /// - parameter request: An image request.
     public func data(for request: ImageRequest) async throws -> (Data, URLResponse?) {
-        let task = makeImageTask(request: request, isDataTask: true)
-        // TODO: cleanup
-        task.task = Task { try await self.response(for: task) }
+        let task = makeStartedImageTask(with: request, isDataTask: true)
         let response = try await task.response
         return (response.container.data ?? Data(), response.urlResponse)
     }
@@ -228,10 +209,9 @@ public final class ImagePipeline: @unchecked Sendable {
         progress: ((ImageResponse?, ImageTask.Progress) -> Void)?,
         completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        let task = makeImageTask(request: request, isDataTask: isDataTask)
-        startImageTask(task, isConfined: isConfined) { [weak self, weak task] event in
-            guard let self, let task else { return }
-            self.dispatchCallback(to: callbackQueue) {
+        let task = makeStartedImageTask(with: request, isDataTask: isDataTask)
+        task.onEvent = { [weak self] event, task in
+            self?.dispatchCallback(to: callbackQueue) {
                 // The callback-based API guarantees that after cancellation no
                 // event are called on the callback queue.
                 guard task.state != .cancelled else { return }
@@ -298,27 +278,27 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - ImageTask (Internal)
 
-    private func makeImageTask(request: ImageRequest, isDataTask: Bool = false) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId, request: request)
+    private func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false) -> ImageTask {
+        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask)
         task.pipeline = self
-        task.isDataTask = isDataTask
+        task.task = Task {
+            try await withUnsafeThrowingContinuation { continuation in
+                queue.async {
+                    task.continuation = continuation
+                    self.startImageTask(task)
+                }
+            }
+        }
         delegate.imageTaskCreated(task, pipeline: self)
         return task
     }
 
-    private func startImageTask(_ task: ImageTask, isConfined: Bool, _ onEvent: @escaping (ImageTask.Event) -> Void) {
-        guard isConfined else {
-            return queue.async {
-                self.startImageTask(task, isConfined: true, onEvent)
-            }
-        }
-        assert(task.onEvent == nil)
-        task.onEvent = onEvent
+    private func startImageTask(_ task: ImageTask) {
         guard !isInvalidated else {
-            return send(.finished(.failure(.pipelineInvalidated)), task)
+            return process(.finished(.failure(.pipelineInvalidated)), task)
         }
         guard task.state != .cancelled else {
-            return send(.cancelled, task)
+            return process(.cancelled, task)
         }
         delegate.imageTaskDidStart(task, pipeline: self)
         let worker = task.isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
@@ -329,6 +309,7 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     private func imageTask(_ task: ImageTask, didReceiveEvent event: AsyncTask<ImageResponse, Error>.Event) {
+        // TODO: move to ImageTask?
         if event.isCompleted {
             tasks[task] = nil
             task.setState(.completed)
@@ -336,19 +317,19 @@ public final class ImagePipeline: @unchecked Sendable {
         switch event {
         case let .value(response, isCompleted):
             if isCompleted {
-                send(.finished(.success(response)), task)
+                process(.finished(.success(response)), task)
             } else {
-                send(.preview(response), task)
+                process(.preview(response), task)
             }
         case let .progress(progress):
             task.currentProgress = progress
-            send(.progress(progress), task)
+            process(.progress(progress), task)
         case let .error(error):
-            send(.finished(.failure(error)), task)
+            process(.finished(.failure(error)), task)
         }
     }
 
-    private func send(_ event: ImageTask.Event, _ task: ImageTask) {
+    private func process(_ event: ImageTask.Event, _ task: ImageTask) {
         task.process(event)
 
         if !task.isDataTask {
@@ -375,7 +356,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
     private func cancel(_ task: ImageTask) {
         guard let subscription = tasks.removeValue(forKey: task) else { return }
-        send(.cancelled, task)
+        process(.cancelled, task)
         subscription.unsubscribe()
     }
 
