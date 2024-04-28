@@ -126,7 +126,7 @@ public final class ImagePipeline: @unchecked Sendable {
     public func imageTask(with request: ImageRequest) -> AsyncImageTask {
         let imageTask = makeImageTask(request: request)
         let (events, continuation) = AsyncStream.makeStream(of: ImageTask.Event.self)
-        let task = Task<ImageResponse, Swift.Error> {
+        let task = ConcurrencyTask<ImageResponse, Swift.Error> {
             try await response(for: imageTask, stream: continuation)
         }
         return AsyncImageTask(imageTask: imageTask, task: task, events: events)
@@ -462,3 +462,5 @@ public final class ImagePipeline: @unchecked Sendable {
         try await data(for: ImageRequest(url: url))
     }
 }
+
+typealias ConcurrencyTask = Task

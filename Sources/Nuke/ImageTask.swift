@@ -97,7 +97,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     private let lock: os_unfair_lock_t
 
     /// The events sent by the pipeline during the task execution.
-    public var events: AsyncStream<Event> {
+    var events: AsyncStream<Event> {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
         if let events = _events {
