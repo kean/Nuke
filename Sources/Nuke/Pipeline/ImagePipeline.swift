@@ -245,20 +245,14 @@ public final class ImagePipeline: @unchecked Sendable {
         startImageTask(task, isConfined: isConfined) { [weak self, weak task] event in
             guard let self, let task else { return }
             self.dispatchCallback(to: callbackQueue) {
-                guard task.state != .cancelled else {
-                    // The callback-based API guarantees that after cancellation no
-                    // event are called on the callback queue.
-                    return
-                }
+                // The callback-based API guarantees that after cancellation no
+                // event are called on the callback queue.
+                guard task.state != .cancelled else { return }
                 switch event {
-                case .progress(let value):
-                    progress?(nil, value)
-                case .preview(let response):
-                    progress?(response, task.progress)
-                case .cancelled:
-                    break // The legacy APIs do not send cancellation events
-                case .finished(let result):
-                    completion(result)
+                case .progress(let value): progress?(nil, value)
+                case .preview(let response): progress?(response, task.progress)
+                case .cancelled: break // The legacy APIs do not send cancellation events
+                case .finished(let result): completion(result)
                 }
             }
         }
