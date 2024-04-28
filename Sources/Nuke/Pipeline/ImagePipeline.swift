@@ -304,6 +304,7 @@ public final class ImagePipeline: @unchecked Sendable {
         guard !isInvalidated else {
             return task.process(.finished(.failure(.pipelineInvalidated)))
         }
+        // TODO: Check this and other .cancelled callbacks
         guard task.state != .cancelled else {
             return task.process(.cancelled)
         }
