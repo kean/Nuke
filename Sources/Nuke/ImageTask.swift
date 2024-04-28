@@ -75,21 +75,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case completed
     }
 
-    /// An event produced during the runetime of the task.
-    public enum Event: Sendable {
-        /// The download progress was updated.
-        case progress(Progress)
-        /// The pipleine generated a progressive scan of the image.
-        case preview(ImageResponse)
-        /// The task was cancelled.
-        ///
-        /// - note: You are guaranteed to receive either `.cancelled` or
-        /// `.finished`, but never both.
-        case cancelled
-        /// The task finish with the given response.
-        case finished(Result<ImageResponse, ImagePipeline.Error>)
-    }
-
     let isDataTask: Bool
     var onEvent: ((Event, ImageTask) -> Void)?
     weak var pipeline: ImagePipeline?
@@ -104,14 +89,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         }
     }
 
-    // TODO: should it start task lazily or eagerly?
-
     /// The image response.
     public var response: ImageResponse {
         get async throws {
             guard let task else {
-                // TODO: add error? start lazily?
-                throw ImagePipeline.Error.dataIsEmpty
+                assertionFailure("This should never happen")
+                throw ImagePipeline.Error.pipelineInvalidated
             }
             return try await withTaskCancellationHandler {
                 try await task.value
@@ -195,31 +178,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         }
     }
 
-    func process(_ event: Event) {
-        onEvent?(event, self)
-
-        let context = sync { _context }
-        context.events?.1.yield(event)
-        switch event {
-        case .progress(let progress):
-            context.progress?.1.yield(progress)
-        case .preview(let response):
-            context.stream?.1.yield(response)
-        case .cancelled:
-            context.events?.1.finish()
-            context.progress?.1.finish()
-            context.stream?.1.finish(throwing: CancellationError())
-            continuation?.resume(throwing: CancellationError())
-        case .finished(let result):
-            let result = result.mapError { $0 as Error }
-            context.events?.1.finish()
-            context.progress?.1.finish()
-            context.stream?.1.yield(with: result)
-            continuation?.resume(with: result)
-        }
-    }
-
-    @discardableResult func setState(_ state: ImageTask.State) -> Bool {
+    private func setState(_ state: ImageTask.State) -> Bool {
         assert(state == .cancelled || state == .completed)
         os_unfair_lock_lock(lock)
         guard _state == .running else {
@@ -243,6 +202,65 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         var stream: (Stream, Stream.Continuation)?
         var events: (AsyncStream<Event>, AsyncStream<Event>.Continuation)?
         var progress: (AsyncStream<Progress>, AsyncStream<Progress>.Continuation)?
+    }
+
+    // MARK: Events
+
+    func process(_ event: Event) {
+        let context = sync { _context }
+        context.events?.1.yield(event)
+        switch event {
+        case .progress(let progress):
+            currentProgress = progress
+            context.progress?.1.yield(progress)
+        case .preview(let response):
+            context.stream?.1.yield(response)
+        case .cancelled:
+            context.events?.1.finish()
+            context.progress?.1.finish()
+            context.stream?.1.finish(throwing: CancellationError())
+            continuation?.resume(throwing: CancellationError())
+        case .finished(let result):
+            _ = setState(.completed)
+            let result = result.mapError { $0 as Error }
+            context.events?.1.finish()
+            context.progress?.1.finish()
+            context.stream?.1.yield(with: result)
+            continuation?.resume(with: result)
+        }
+
+        onEvent?(event, self)
+        pipeline?.imageTask(self, didProcessEvent: event)
+    }
+
+    /// An event produced during the runetime of the task.
+    public enum Event: Sendable {
+        /// The download progress was updated.
+        case progress(Progress)
+        /// The pipleine generated a progressive scan of the image.
+        case preview(ImageResponse)
+        /// The task was cancelled.
+        ///
+        /// - note: You are guaranteed to receive either `.cancelled` or
+        /// `.finished`, but never both.
+        case cancelled
+        /// The task finish with the given response.
+        case finished(Result<ImageResponse, ImagePipeline.Error>)
+
+        init(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
+            switch event {
+            case let .value(response, isCompleted):
+                if isCompleted {
+                    self = .finished(.success(response))
+                } else {
+                    self = .preview(response)
+                }
+            case let .progress(value):
+                self = .progress(value)
+            case let .error(error):
+                self = .finished(.failure(error))
+            }
+        }
     }
 
     // MARK: Hashable

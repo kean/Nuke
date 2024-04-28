@@ -272,14 +272,6 @@ extension AsyncTask {
         case value(Value, isCompleted: Bool)
         case progress(TaskProgress)
         case error(Error)
-
-        var isCompleted: Bool {
-            switch self {
-            case let .value(_, isCompleted): return isCompleted
-            case .progress: return false
-            case .error: return true
-            }
-        }
     }
 }
 
