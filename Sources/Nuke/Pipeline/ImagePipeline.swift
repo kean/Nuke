@@ -288,7 +288,6 @@ public final class ImagePipeline: @unchecked Sendable {
     private func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask)
         task.pipeline = self
-        // TODO: we've added a dealy to startImageTask and that can be a problem
         task.task = Task {
             try await withUnsafeThrowingContinuation { continuation in
                 queue.async {
@@ -305,12 +304,10 @@ public final class ImagePipeline: @unchecked Sendable {
         guard !isInvalidated else {
             return task.process(.finished(.failure(.pipelineInvalidated)))
         }
-        // TODO: Check this and other .cancelled callbacks
-        // The problem is that if cancelled is called before that
-        // `startImageTask` is called, then the tasks[task] is empty
-        // in `ImageTask` callback and cancelation logic fails to run
-        // This can happen if the task is cancelled from `imageTaskCreated`
         guard task.state != .cancelled else {
+            // The task gets started asyncronously in a `Task` and cancellation
+            // can happen before the pipeline reached `startImageTask`. In that
+            // case, the `cancel` method do no send the task event.
             return task.process(.cancelled)
         }
         let worker = task.isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
