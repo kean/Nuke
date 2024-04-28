@@ -161,6 +161,26 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         XCTAssertTrue(caughtError is CancellationError)
     }
 
+    func testCancelFromEvents() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = Task {
+            let task = pipeline.imageTask(with: Test.url)
+            for await event in task.events {
+                recordedEvents.append(event)
+            }
+        }
+        task.cancel()
+
+        var caughtError: Error?
+        do {
+            _ = try await task.value
+        } catch {
+            caughtError = error
+        }
+        XCTAssertTrue(caughtError is CancellationError)
+    }
+
     func testCancelAsyncImageTask() async throws {
         dataLoader.queue.isSuspended = true
 
@@ -368,6 +388,46 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         }
 
         _ = try await loadImage()
+    }
+
+    // MARK: - ImageTask Integration
+
+    func testImageTaskEvents() async {
+        // GIVEN
+        let dataLoader = MockProgressiveDataLoader()
+        pipeline = pipeline.reconfigured {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+        }
+
+        // WHEN
+        let task = pipeline.loadImage(with: Test.request) { _ in }
+        for await event in task.events {
+            switch event {
+            case .preview(let response):
+                recordedPreviews.append(response)
+                dataLoader.resume()
+            case .finished(let result):
+                recordedResult = result
+            default:
+                break
+            }
+            recordedEvents.append(event)
+        }
+
+        // THEN
+        guard recordedPreviews.count == 2 else {
+            return XCTFail("Unexpected number of previews")
+        }
+
+        XCTAssertEqual(recordedEvents, [
+            .progress(.init(completed: 13152, total: 39456)),
+            .preview(recordedPreviews[0]),
+            .progress(.init(completed: 26304, total: 39456)),
+            .preview(recordedPreviews[1]),
+            .progress(.init(completed: 39456, total: 39456)),
+            .finished(try XCTUnwrap(recordedResult))
+        ])
     }
 }
 

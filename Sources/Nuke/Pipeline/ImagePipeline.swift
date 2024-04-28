@@ -356,7 +356,12 @@ public final class ImagePipeline: @unchecked Sendable {
 
     private func send(_ event: ImageTask.Event, _ task: ImageTask) {
         task.onEvent?(event)
-
+        task.continuation?.yield(event)
+        switch event {
+        case .cancelled, .finished:
+            task.continuation?.finish()
+        default: break
+        }
         if !task.isDataTask {
             switch event {
             case .progress(let progress):

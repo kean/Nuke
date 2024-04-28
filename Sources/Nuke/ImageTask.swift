@@ -96,6 +96,22 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// Using it without a wrapper to reduce the number of allocations.
     private let lock: os_unfair_lock_t
 
+    /// The events sent by the pipeline during the task execution.
+    public var events: AsyncStream<Event> {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        if let events = _events {
+            return events.0
+        }
+        let events = AsyncStream.makeStream(of: ImageTask.Event.self)
+        _events = events
+        return events.stream
+    }
+    var continuation: AsyncStream<Event>.Continuation? {
+        sync { _events?.1 }
+    }
+    private var _events: (AsyncStream<Event>, AsyncStream<Event>.Continuation)?
+
     deinit {
         lock.deinitialize(count: 1)
         lock.deallocate()
