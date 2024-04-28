@@ -89,9 +89,9 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 
-    var onEvent: ((ImageTask.Event, ImageTask, ImagePipeline) -> Void)?
-    weak var pipeline: ImagePipeline?
     var isDataTask = false
+    var onEvent: ((ImageTask.Event) -> Void)?
+    weak var pipeline: ImagePipeline?
 
     /// Using it without a wrapper to reduce the number of allocations.
     private let lock: os_unfair_lock_t

@@ -20,8 +20,7 @@ final class TaskLoadData: ImagePipelineTask<ImageResponse> {
         guard !request.options.contains(.returnCacheDataDontLoad) else {
             return send(error: .dataMissingInCache)
         }
-
-        let request = self.request.withProcessors([])
+        let request = request.withProcessors([])
         dependency = pipeline.makeTaskFetchOriginalData(for: request).subscribe(self) { [weak self] in
             self?.didReceiveData($0.0, urlResponse: $0.1, isCompleted: $1)
         }
