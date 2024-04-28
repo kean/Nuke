@@ -196,14 +196,13 @@ public final class ImagePipeline: @unchecked Sendable {
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        loadImage(with: request, isConfined: false, queue: queue, progress: {
+        loadImage(with: request, queue: queue, progress: {
             progress?($0, $1.completed, $1.total)
         }, completion: completion)
     }
 
     func loadImage(
         with request: ImageRequest,
-        isConfined: Bool,
         isDataTask: Bool = false,
         queue callbackQueue: DispatchQueue?,
         progress: ((ImageResponse?, ImageTask.Progress) -> Void)?,
@@ -253,7 +252,7 @@ public final class ImagePipeline: @unchecked Sendable {
         progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
-        loadImage(with: request, isConfined: false, isDataTask: true, queue: queue) { _, progress in
+        loadImage(with: request, isDataTask: true, queue: queue) { _, progress in
             progressHandler?(progress.completed, progress.total)
         } completion: { result in
             let result = result.map { response in
