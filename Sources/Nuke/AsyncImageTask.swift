@@ -93,9 +93,3 @@ public final class AsyncImageTask: Sendable {
         imageTask.cancel()
     }
 }
-
-// Making it Sendable because the closures are set once right after initialization
-// and are never mutated afterward.
-final class AsyncTaskContext: @unchecked Sendable {
-    var events: AsyncStream<ImageTask.Event>.Continuation?
-}

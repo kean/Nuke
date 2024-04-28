@@ -125,11 +125,10 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Creates a task with the given request.
     public func imageTask(with request: ImageRequest) -> AsyncImageTask {
         let imageTask = makeImageTask(request: request)
-        let context = AsyncTaskContext()
+        let (events, continuation) = AsyncStream<ImageTask.Event>.pipe()
         let task = Task<ImageResponse, Swift.Error> {
-            try await self.response(for: imageTask, context: context)
+            try await response(for: imageTask, stream: continuation)
         }
-        let events = AsyncStream<ImageTask.Event> { context.events = $0 }
         return AsyncImageTask(imageTask: imageTask, task: task, events: events)
     }
 
@@ -151,18 +150,18 @@ public final class ImagePipeline: @unchecked Sendable {
         return try await response(for: task).image
     }
 
-    private func response(for task: ImageTask, context: AsyncTaskContext? = nil) async throws -> ImageResponse {
-        try await withTaskCancellationHandler(operation: {
+    private func response(for task: ImageTask, stream: AsyncStream<ImageTask.Event>.Continuation? = nil) async throws -> ImageResponse {
+        try await withTaskCancellationHandler {
             try await withUnsafeThrowingContinuation { continuation in
                 self.queue.async {
                     self.startImageTask(task) { event, _, _ in
-                        context?.events?.yield(event)
+                        stream?.yield(event)
                         switch event {
                         case .cancelled:
-                            context?.events?.finish()
+                            stream?.finish()
                             continuation.resume(throwing: CancellationError())
                         case .finished(let result):
-                            context?.events?.finish()
+                            stream?.finish()
                             continuation.resume(with: result)
                         default:
                             break
@@ -170,9 +169,9 @@ public final class ImagePipeline: @unchecked Sendable {
                     }
                 }
             }
-        }, onCancel: {
+        } onCancel: {
             task.cancel()
-        })
+        }
     }
 
     // MARK: - Loading Data (Async/Await)
