@@ -139,10 +139,10 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Returns an image for the given request.
     public func image(for request: ImageRequest) async throws -> PlatformImage {
-        // Optimization: fetch image directly without creating an associated `AsyncImageTask`
-        try await response(for: makeImageTask(request: request)).image
+        try await makeImageTask(request: request).response.image
     }
 
+    // TODO: remove
     private func response(for task: ImageTask, stream: AsyncStream<ImageTask.Event>.Continuation? = nil) async throws -> ImageResponse {
         try await withTaskCancellationHandler {
             try await withUnsafeThrowingContinuation { continuation in
@@ -165,15 +165,29 @@ public final class ImagePipeline: @unchecked Sendable {
         }
     }
 
+    func response(for task: ImageTask) async throws -> ImageResponse {
+        try await withUnsafeThrowingContinuation { continuation in
+            startImageTask(task, isConfined: false) { event in
+                switch event {
+                case .cancelled:
+                    continuation.resume(throwing: CancellationError())
+                case .finished(let result):
+                    continuation.resume(with: result)
+                default:
+                    break
+                }
+            }
+        }
+    }
+
     // MARK: - Loading Data (Async/Await)
 
     /// Returns image data for the given request.
     ///
     /// - parameter request: An image request.
     public func data(for request: ImageRequest) async throws -> (Data, URLResponse?) {
-        // Optimization: fetch image directly without creating an associated task
         let task = makeImageTask(request: request, isDataTask: true)
-        let response = try await response(for: task)
+        let response = try await task.response
         return (response.container.data ?? Data(), response.urlResponse)
     }
 
@@ -243,7 +257,7 @@ public final class ImagePipeline: @unchecked Sendable {
                 guard task.state != .cancelled else { return }
                 switch event {
                 case .progress(let value): progress?(nil, value)
-                case .preview(let response): progress?(response, task.progress)
+                case .preview(let response): progress?(response, task.currentProgress)
                 case .cancelled: break // The legacy APIs do not send cancellation events
                 case .finished(let result): completion(result)
                 }
@@ -347,7 +361,7 @@ public final class ImagePipeline: @unchecked Sendable {
                 send(.preview(response), task)
             }
         case let .progress(progress):
-            task.progress = progress
+            task.currentProgress = progress
             send(.progress(progress), task)
         case let .error(error):
             send(.finished(.failure(error)), task)
@@ -355,13 +369,8 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     private func send(_ event: ImageTask.Event, _ task: ImageTask) {
-        task.onEvent?(event)
-        task.continuation?.yield(event)
-        switch event {
-        case .cancelled, .finished:
-            task.continuation?.finish()
-        default: break
-        }
+        task.process(event)
+
         if !task.isDataTask {
             switch event {
             case .progress(let progress):

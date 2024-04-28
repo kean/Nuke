@@ -34,7 +34,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
     /// Returns the current download progress. Returns zeros before the download
     /// is started and the expected size of the resource is known.
-    public internal(set) var progress: Progress {
+    public internal(set) var currentProgress: Progress {
         get { sync { _progress } }
         set { sync { _progress = newValue } }
     }
@@ -90,27 +90,59 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     var isDataTask = false
-    var onEvent: ((ImageTask.Event) -> Void)?
+    var onEvent: ((Event) -> Void)?
     weak var pipeline: ImagePipeline?
 
     /// Using it without a wrapper to reduce the number of allocations.
     private let lock: os_unfair_lock_t
 
-    /// The events sent by the pipeline during the task execution.
-    var events: AsyncStream<Event> {
+    /// The image response.
+    public var response: ImageResponse {
+        get async throws {
+            try await withTaskCancellationHandler {
+                try await task.value
+            } onCancel: {
+                self.cancel()
+            }
+        }
+    }
+
+    private var task: ConcurrencyTask<ImageResponse, Swift.Error> {
+        guard let pipeline else {
+            fatalError() // TODO: what should happen
+        }
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
-        if let events = _events {
-            return events.0
+        // TODO: is this a retain cycle?
+        if _context.task == nil {
+            _context.task = ConcurrencyTask {
+                try await pipeline.response(for: self)
+            }
         }
-        let events = AsyncStream.makeStream(of: ImageTask.Event.self)
-        _events = events
-        return events.stream
+        return _context.task!
     }
-    var continuation: AsyncStream<Event>.Continuation? {
-        sync { _events?.1 }
+
+    /// The events sent by the pipeline during the task execution.
+    public var events: AsyncStream<Event> {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        if _context.events == nil {
+            _context.events = AsyncStream.makeStream(of: Event.self)
+        }
+        return _context.events!.0
     }
-    private var _events: (AsyncStream<Event>, AsyncStream<Event>.Continuation)?
+
+    /// The stream of progress updates.
+    public var progress: AsyncStream<Progress> {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        if _context.progress == nil {
+            _context.progress = AsyncStream.makeStream(of: Progress.self)
+        }
+        return _context.progress!.0
+    }
+
+    private var _context = AsyncContext()
 
     deinit {
         lock.deinitialize(count: 1)
@@ -136,6 +168,21 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         }
     }
 
+    func process(_ event: Event) {
+        onEvent?(event)
+
+        let context = sync { _context }
+        context.events?.1.yield(event)
+        switch event {
+        case .progress(let progress):
+            context.progress?.1.yield(progress)
+        case .cancelled, .finished:
+            context.progress?.1.finish()
+            context.events?.1.finish()
+        default: break
+        }
+    }
+
     @discardableResult func setState(_ state: ImageTask.State) -> Bool {
         assert(state == .cancelled || state == .completed)
         os_unfair_lock_lock(lock)
@@ -154,6 +201,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         return closure()
     }
 
+    private struct AsyncContext {
+        var task: ConcurrencyTask<ImageResponse, Swift.Error>?
+        var events: (AsyncStream<Event>, AsyncStream<Event>.Continuation)?
+        var progress: (AsyncStream<Progress>, AsyncStream<Progress>.Continuation)?
+    }
+
     // MARK: Hashable
 
     public func hash(into hasher: inout Hasher) {
@@ -167,6 +220,6 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     // MARK: CustomStringConvertible
 
     public var description: String {
-        "ImageTask(id: \(taskId), priority: \(_priority), progress: \(progress.completed) / \(progress.total), state: \(state))"
+        "ImageTask(id: \(taskId), priority: \(_priority), progress: \(currentProgress.completed) / \(currentProgress.total), state: \(state))"
     }
 }
