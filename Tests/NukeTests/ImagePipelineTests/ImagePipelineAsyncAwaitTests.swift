@@ -161,8 +161,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         XCTAssertTrue(caughtError is CancellationError)
     }
 
-    // TODO: implement
-    func _testCancelFromEvents() async throws {
+    func testCancelFromEvents() async throws {
         dataLoader.queue.isSuspended = true
 
         let task = Task {
@@ -171,15 +170,46 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
                 recordedEvents.append(event)
             }
         }
+
         task.cancel()
 
+        _ = await task.value
+
+        // THEN nothing is recorded because the task is cancelled and
+        // stop observing the events
+        XCTAssertEqual(recordedEvents, [])
+    }
+
+    func testObserveEventsAndCancelFromOtherTask() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = pipeline.imageTask(with: Test.url)
+
+        let task1 = Task {
+            for await event in task.events {
+                recordedEvents.append(event)
+            }
+        }
+        
+        let task2 = Task {
+            try await task.response
+        }
+
+        task2.cancel()
+
+        async let result1: () = task1.value
+        async let result2 = task2.value
+
+        // THEN you are able to observe `event` update because
+        // this task does no get cancelled
         var caughtError: Error?
         do {
-            _ = try await task.value
+            _ = try await (result1, result2)
         } catch {
             caughtError = error
         }
         XCTAssertTrue(caughtError is CancellationError)
+        XCTAssertEqual(recordedEvents, [.cancelled])
     }
 
     func testCancelAsyncImageTask() async throws {

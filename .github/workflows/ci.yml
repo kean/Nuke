@@ -91,18 +91,18 @@ jobs:
 #        run: Scripts/test.sh -s "Nuke Memory Management Tests" -d "OS=14.4,name=iPhone 12 Pro"
   ios-performance-tests:
     name: Performance Tests
-    runs-on: macOS-13
-    env: 
-      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
+    runs-on: macOS-14
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=16.4,name=iPhone 14 Pro"
+        run: Scripts/test.sh -s "Nuke Performance Tests" -d "OS=17.4,name=iPhone 15 Pro"
   swift-build:
     name: Swift Build (SPM)
-    runs-on: macOS-13
-    env: 
-      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
+    runs-on: macOS-14
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Build

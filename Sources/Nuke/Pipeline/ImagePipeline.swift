@@ -208,8 +208,7 @@ public final class ImagePipeline: @unchecked Sendable {
         progress: ((ImageResponse?, ImageTask.Progress) -> Void)?,
         completion: @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        let task = makeStartedImageTask(with: request, isDataTask: isDataTask)
-        task.onEvent = { [weak self] event, task in
+        makeStartedImageTask(with: request, isDataTask: isDataTask) { [weak self] event, task in
             self?.dispatchCallback(to: callbackQueue) {
                 // The callback-based API guarantees that after cancellation no
                 // event are called on the callback queue.
@@ -222,7 +221,6 @@ public final class ImagePipeline: @unchecked Sendable {
                 }
             }
         }
-        return task
     }
 
     private func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
@@ -285,19 +283,16 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // MARK: - ImageTask (Internal)
 
-    private func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask)
-        task.pipeline = self
-        task.task = Task {
-            try await withUnsafeThrowingContinuation { continuation in
-                queue.async {
-                    task.continuation = continuation
-                    self.startImageTask(task)
-                }
-            }
-        }
+    private func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
+        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
         delegate.imageTaskCreated(task, pipeline: self)
         return task
+    }
+
+    private func cancel(_ task: ImageTask) {
+        guard let subscription = tasks.removeValue(forKey: task) else { return }
+        task.process(.cancelled)
+        subscription.unsubscribe()
     }
 
     private func startImageTask(_ task: ImageTask) {
@@ -305,7 +300,7 @@ public final class ImagePipeline: @unchecked Sendable {
             return task.process(.finished(.failure(.pipelineInvalidated)))
         }
         guard task.state != .cancelled else {
-            // The task gets started asyncronously in a `Task` and cancellation
+            // The task gets started asynchronously in a `Task` and cancellation
             // can happen before the pipeline reached `startImageTask`. In that
             // case, the `cancel` method do no send the task event.
             return task.process(.cancelled)
@@ -315,6 +310,22 @@ public final class ImagePipeline: @unchecked Sendable {
             task?.process(.init($0))
         }
         delegate.imageTaskDidStart(task, pipeline: self)
+    }
+
+    // MARK: - Image Task Events
+
+    func imageTaskCancelCalled(_ task: ImageTask) {
+        queue.async { self.cancel(task) }
+    }
+
+    func imageTaskStartCalled(_ task: ImageTask) {
+        queue.async { self.startImageTask(task) }
+    }
+
+    func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
+        queue.async {
+            self.tasks[task]?.setPriority(priority.taskPriority)
+        }
     }
 
     func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event) {
@@ -335,26 +346,6 @@ public final class ImagePipeline: @unchecked Sendable {
             case .finished(let result):
                 delegate.imageTask(task, didCompleteWithResult: result, pipeline: self)
             }
-        }
-    }
-
-    // MARK: - Image Task Events
-
-    func imageTaskCancelCalled(_ task: ImageTask) {
-        queue.async {
-            self.cancel(task)
-        }
-    }
-
-    private func cancel(_ task: ImageTask) {
-        guard let subscription = tasks.removeValue(forKey: task) else { return }
-        task.process(.cancelled)
-        subscription.unsubscribe()
-    }
-
-    func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
-        queue.async {
-            self.tasks[task]?.setPriority(priority.taskPriority)
         }
     }
 
@@ -405,13 +396,13 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Deprecated
 
     // Deprecated in Nuke 12.7
-    @available(*, deprecated, message: "Plesae the variant variant that accepts `ImageRequest` as a parameter")
+    @available(*, deprecated, message: "Please the variant variant that accepts `ImageRequest` as a parameter")
     @discardableResult public func loadData(with url: URL, completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
         loadData(with: ImageRequest(url: url), queue: nil, progress: nil, completion: completion)
     }
 
     // Deprecated in Nuke 12.7
-    @available(*, deprecated, message: "Plesae the variant that accepts `ImageRequest` as a parameter")
+    @available(*, deprecated, message: "Please the variant that accepts `ImageRequest` as a parameter")
     @discardableResult public func data(for url: URL) async throws -> (Data, URLResponse?) {
         try await data(for: ImageRequest(url: url))
     }
