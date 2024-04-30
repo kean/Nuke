@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import Combine
 
 #if canImport(UIKit)
 import UIKit
@@ -104,8 +105,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// - seealso: ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled``
     public var previews: AsyncStream<ImageResponse> { _previews }
 
+    // MARK: - Events
+
     /// The events sent by the pipeline during the task execution.
-    public var events: AsyncStream<Event> { _events }
+    public var events: AnyPublisher<Event, Never> {
+        _events.eraseToAnyPublisher()
+    }
 
     /// An event produced during the runetime of the task.
     public enum Event: Sendable {
@@ -218,19 +223,19 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     private func process(_ event: Event, in context: AsyncContext) {
-        context.events?.1.yield(event)
+        context.events?.send(event)
         switch event {
         case .progress(let progress):
             context.progress?.1.yield(progress)
         case .preview(let response):
             context.previews?.1.yield(response)
         case .cancelled:
-            context.events?.1.finish()
+            context.events?.send(completion: .finished)
             context.progress?.1.finish()
             continuation?.resume(throwing: CancellationError())
         case .finished(let result):
             let result = result.mapError { $0 as Error }
-            context.events?.1.finish()
+            context.events?.send(completion: .finished)
             context.progress?.1.finish()
             continuation?.resume(with: result)
         }
@@ -291,21 +296,18 @@ extension ImageTask {
     }
 
     /// The events sent by the pipeline during the task execution.
-    private var _events: AsyncStream<Event> {
+    private var _events: PassthroughSubject<Event, Never> {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
         if context.events == nil {
-            context.events = AsyncStream.makeStream()
-            context.events!.1.onTermination = { [weak self] in
-                if case .cancelled = $0 { self?.cancel() }
-            }
+            context.events = PassthroughSubject()
         }
-        return context.events!.0
+        return context.events!
     }
 
     private struct AsyncContext {
         var previews: (AsyncStream<ImageResponse>, AsyncStream<ImageResponse>.Continuation)?
-        var events: (AsyncStream<Event>, AsyncStream<Event>.Continuation)?
         var progress: (AsyncStream<Progress>, AsyncStream<Progress>.Continuation)?
+        var events: PassthroughSubject<Event, Never>?
     }
 }
