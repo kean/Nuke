@@ -98,15 +98,10 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     /// The stream of progress updates.
     public var progress: AsyncStream<Progress> { _progress }
 
-    /// The stream of responses. 
+    /// The stream of image previews generated for images that support
+    /// progressive decoding.
     ///
-    /// If the progressive decoding is enabled (see ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled``),
-    /// and the requested image supports it, the stream contains all of the
-    /// progressive scans loaded by the pipeline and finishes with the full image.
-    public var stream: AsyncThrowingStream<ImageResponse, Error> { _stream }
-
-    // Deprecated in Nuke 12.7.
-    @available(*, deprecated, message: "Please use `stream` instead")
+    /// - seealso: ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled``
     public var previews: AsyncStream<ImageResponse> { _previews }
 
     /// The events sent by the pipeline during the task execution.
@@ -228,18 +223,15 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         case .progress(let progress):
             context.progress?.1.yield(progress)
         case .preview(let response):
-            context.stream?.1.yield(response)
             context.previews?.1.yield(response)
         case .cancelled:
             context.events?.1.finish()
             context.progress?.1.finish()
-            context.stream?.1.finish(throwing: CancellationError())
             continuation?.resume(throwing: CancellationError())
         case .finished(let result):
             let result = result.mapError { $0 as Error }
             context.events?.1.finish()
             context.progress?.1.finish()
-            context.stream?.1.yield(with: result)
             continuation?.resume(with: result)
         }
     }
@@ -274,18 +266,6 @@ extension ImageTask.Event {
 // MARK: - ImageTask (Async)
 
 extension ImageTask {
-    private var _stream: AsyncThrowingStream<ImageResponse, Error> {
-        os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
-        if context.stream == nil {
-            context.stream = AsyncThrowingStream.makeStream()
-            context.stream!.1.onTermination = { [weak self] in
-                if case .cancelled = $0 { self?.cancel() }
-            }
-        }
-        return context.stream!.0
-    }
-
     private var _progress: AsyncStream<Progress> {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
@@ -298,7 +278,7 @@ extension ImageTask {
         return context.progress!.0
     }
 
-    var _previews: AsyncStream<ImageResponse> {
+    private var _previews: AsyncStream<ImageResponse> {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
         if context.previews == nil {
@@ -324,7 +304,6 @@ extension ImageTask {
     }
 
     private struct AsyncContext {
-        var stream: (AsyncThrowingStream<ImageResponse, Error>, AsyncThrowingStream<ImageResponse, Error>.Continuation)?
         var previews: (AsyncStream<ImageResponse>, AsyncStream<ImageResponse>.Continuation)?
         var events: (AsyncStream<Event>, AsyncStream<Event>.Continuation)?
         var progress: (AsyncStream<Progress>, AsyncStream<Progress>.Continuation)?
