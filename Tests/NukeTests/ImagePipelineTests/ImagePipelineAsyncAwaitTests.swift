@@ -65,6 +65,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
     }
 
+    @available(macOS 12, iOS 15, tvOS 15, watchOS 9, *)
     func testAsyncImageTaskEvents() async throws {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
@@ -75,7 +76,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
 
         // WHEN
         let task = pipeline.imageTask(with: Test.url)
-        for await event in task.events {
+        for await event in task.events.values {
             switch event {
             case .preview(let response):
                 recordedPreviews.append(response)
@@ -161,13 +162,13 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         XCTAssertTrue(caughtError is CancellationError)
     }
 
-    func testCancelFromEvents() async throws {
+    func testCancelFromProgress() async throws {
         dataLoader.queue.isSuspended = true
 
         let task = Task {
             let task = pipeline.imageTask(with: Test.url)
-            for await event in task.events {
-                recordedEvents.append(event)
+            for await value in task.progress {
+                recordedProgress.append(value)
             }
         }
 
@@ -177,17 +178,17 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
 
         // THEN nothing is recorded because the task is cancelled and
         // stop observing the events
-        XCTAssertEqual(recordedEvents, [])
+        XCTAssertEqual(recordedProgress, [])
     }
 
-    func testObserveEventsAndCancelFromOtherTask() async throws {
+    func testObserveProgressAndCancelFromOtherTask() async throws {
         dataLoader.queue.isSuspended = true
 
         let task = pipeline.imageTask(with: Test.url)
 
         let task1 = Task {
-            for await event in task.events {
-                recordedEvents.append(event)
+            for await event in task.progress {
+                recordedProgress.append(event)
             }
         }
         
@@ -209,7 +210,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
             caughtError = error
         }
         XCTAssertTrue(caughtError is CancellationError)
-        XCTAssertEqual(recordedEvents, [.cancelled])
+        XCTAssertEqual(recordedProgress, [])
     }
 
     func testCancelAsyncImageTask() async throws {
@@ -423,6 +424,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
 
     // MARK: - ImageTask Integration
 
+    @available(macOS 12, iOS 15, tvOS 15, watchOS 9, *)
     func testImageTaskEvents() async {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
@@ -433,7 +435,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
 
         // WHEN
         let task = pipeline.loadImage(with: Test.request) { _ in }
-        for await event in task.events {
+        for await event in task.events.values {
             switch event {
             case .preview(let response):
                 recordedPreviews.append(response)

@@ -97,19 +97,29 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     /// The stream of progress updates.
-    public var progress: AsyncStream<Progress> { _progress }
+    public var progress: AsyncStream<Progress> {
+        makeStream {
+            if case .progress(let value) = $0 { return value }
+            return nil
+        }
+    }
 
     /// The stream of image previews generated for images that support
     /// progressive decoding.
     ///
     /// - seealso: ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled``
-    public var previews: AsyncStream<ImageResponse> { _previews }
+    public var previews: AsyncStream<ImageResponse> {
+        makeStream {
+            if case .preview(let value) = $0 { return value }
+            return nil
+        }
+    }
 
     // MARK: - Events
 
     /// The events sent by the pipeline during the task execution.
     public var events: AnyPublisher<Event, Never> {
-        _events.eraseToAnyPublisher()
+        sync { _events.eraseToAnyPublisher() }
     }
 
     /// An event produced during the runetime of the task.
@@ -131,12 +141,9 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     weak var pipeline: ImagePipeline?
 
     private var task: Task<ImageResponse, Error>!
-    private var continuation: UnsafeContinuation<ImageResponse, Error>?
+    private var context = AsyncExecutionContext()
     private let onEvent: ((Event, ImageTask) -> Void)?
-
-    /// Using it without a wrapper to reduce the number of allocations.
     private let lock: os_unfair_lock_t
-    private var context = AsyncContext()
 
     deinit {
         lock.deinitialize(count: 1)
@@ -156,7 +163,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
 
         task = Task {
             try await withUnsafeThrowingContinuation { continuation in
-                self.continuation = continuation
+                self.sync { self.context.continuation = continuation }
                 pipeline.imageTaskStartCalled(self)
             }
         }
@@ -200,11 +207,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     private func setState(_ state: ImageTask.State) -> Bool {
-        sync {
-            guard _state == .running else { return false }
-            _state = state
-            return true
-        }
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+
+        guard _state == .running else { return false }
+        _state = state
+        return true
     }
 
     func process(_ event: Event) {
@@ -216,28 +224,23 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         default:
             break
         }
-
         process(event, in: sync { context })
         onEvent?(event, self)
         pipeline?.imageTask(self, didProcessEvent: event)
     }
 
-    private func process(_ event: Event, in context: AsyncContext) {
+    private func process(_ event: Event, in context: AsyncExecutionContext) {
         context.events?.send(event)
         switch event {
-        case .progress(let progress):
-            context.progress?.1.yield(progress)
-        case .preview(let response):
-            context.previews?.1.yield(response)
         case .cancelled:
             context.events?.send(completion: .finished)
-            context.progress?.1.finish()
-            continuation?.resume(throwing: CancellationError())
+            context.continuation?.resume(throwing: CancellationError())
         case .finished(let result):
             let result = result.mapError { $0 as Error }
             context.events?.send(completion: .finished)
-            context.progress?.1.finish()
-            continuation?.resume(with: result)
+            context.continuation?.resume(with: result)
+        default:
+            break
         }
     }
 
@@ -271,43 +274,46 @@ extension ImageTask.Event {
 // MARK: - ImageTask (Async)
 
 extension ImageTask {
-    private var _progress: AsyncStream<Progress> {
-        os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
-        if context.progress == nil {
-            context.progress = AsyncStream.makeStream()
-            context.progress!.1.onTermination = { [weak self] in
-                if case .cancelled = $0 { self?.cancel() }
+    private func makeStream<T>(of closure: @escaping (Event) -> T?) -> AsyncStream<T> {
+        AsyncStream { continuation in
+            guard let events = _eventIfNotCompleted else {
+                return continuation.finish()
+            }
+            let cancellable = events.sink { _ in
+                continuation.finish()
+            } receiveValue: { event in
+                if let value = closure(event) {
+                    continuation.yield(value)
+                }
+                switch event {
+                case .cancelled, .finished:
+                    continuation.finish()
+                default:
+                    break
+                }
+            }
+            continuation.onTermination = { _ in
+                cancellable.cancel()
             }
         }
-        return context.progress!.0
     }
 
-    private var _previews: AsyncStream<ImageResponse> {
+    private var _eventIfNotCompleted: PassthroughSubject<Event, Never>? {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
-        if context.previews == nil {
-            context.previews = AsyncStream.makeStream()
-            context.previews!.1.onTermination = { [weak self] in
-                if case .cancelled = $0 { self?.cancel() }
-            }
-        }
-        return context.previews!.0
+        guard _state == .running else { return nil }
+        return _events
     }
 
-    /// The events sent by the pipeline during the task execution.
     private var _events: PassthroughSubject<Event, Never> {
-        os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
         if context.events == nil {
             context.events = PassthroughSubject()
         }
         return context.events!
     }
 
-    private struct AsyncContext {
-        var previews: (AsyncStream<ImageResponse>, AsyncStream<ImageResponse>.Continuation)?
-        var progress: (AsyncStream<Progress>, AsyncStream<Progress>.Continuation)?
+    private struct AsyncExecutionContext {
+        var continuation: UnsafeContinuation<ImageResponse, Error>?
         var events: PassthroughSubject<Event, Never>?
     }
 }
