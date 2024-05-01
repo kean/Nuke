@@ -53,12 +53,10 @@ class DataLoaderTests: XCTestCase {
         sut.delegate = delegate
 
         // WHEN
-        let expectation = self.expectation(description: "DataLoaded")
-        _ = sut.loadData(with: URLRequest(url: url), didReceiveData: { _, _ in }, completion: { _ in
-            DispatchQueue.main.async {
-                expectation.fulfill()
-            }
-        })
+        let expectation = self.expectation(description: "MetricsCollected")
+        delegate.onCollectedMetrics = { _ in expectation.fulfill() }
+
+        _ = sut.loadData(with: URLRequest(url: url), didReceiveData: { _, _ in }, completion: { _ in })
         wait(for: [expectation], timeout: 5)
 
         // THEN
@@ -68,9 +66,11 @@ class DataLoaderTests: XCTestCase {
 
 private final class MockSessionDelegate: NSObject, URLSessionTaskDelegate {
     var recordedMetrics: [URLSessionTaskMetrics] = []
+    var onCollectedMetrics: ((URLSessionTaskMetrics) -> Void)?
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
         recordedMetrics.append(metrics)
+        onCollectedMetrics?(metrics)
     }
 }
 
