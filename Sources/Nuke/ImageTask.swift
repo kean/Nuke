@@ -135,8 +135,8 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     let isDataTask: Bool
-    weak var pipeline: ImagePipeline?
 
+    private weak var pipeline: ImagePipeline?
     private var task: Task<ImageResponse, Error>!
     private var mutableState: MutableState
     private let onEvent: ((Event, ImageTask) -> Void)?
