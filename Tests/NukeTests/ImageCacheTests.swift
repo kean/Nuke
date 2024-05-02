@@ -24,11 +24,13 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
     
     // MARK: - Basics
     
+    @MainActor
     func testCacheCreation() {
         XCTAssertEqual(cache.totalCount, 0)
         XCTAssertNil(cache[Test.request])
     }
     
+    @MainActor
     func testThatImageIsStored() {
         // When
         cache[Test.request] = Test.container
@@ -40,6 +42,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
     
     // MARK: - Subscript
     
+    @MainActor
     func testThatImageIsStoredUsingSubscript() {
         // When
         cache[Test.request] = Test.container
@@ -50,6 +53,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
     
     // MARK: - Count
     
+    @MainActor
     func testThatTotalCountChanges() {
         XCTAssertEqual(cache.totalCount, 0)
         
@@ -66,6 +70,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(cache.totalCount, 0)
     }
     
+    @MainActor
     func testThatCountLimitChanges() {
         // When
         cache.countLimit = 1
@@ -74,6 +79,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(cache.countLimit, 1)
     }
     
+    @MainActor
     func testThatTTLChanges() {
         //when
         cache.ttl = 1
@@ -82,6 +88,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(cache.ttl, 1)
     }
     
+    @MainActor
     func testThatItemsAreRemoveImmediatelyWhenCountLimitIsReached() {
         // Given
         cache.countLimit = 1
@@ -95,6 +102,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertNotNil(cache[request2])
     }
     
+    @MainActor
     func testTrimToCount() {
         // Given
         cache[request1] = Test.container
@@ -108,6 +116,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertNotNil(cache[request2])
     }
     
+    @MainActor
     func testThatImagesAreRemovedOnCountLimitChange() {
         // Given
         cache.countLimit = 2
@@ -127,10 +136,12 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
     
 #if !os(macOS)
     
+    @MainActor
     func testDefaultImageCost() {
         XCTAssertEqual(cache.cost(for: ImageContainer(image: Test.image)), 1228800)
     }
     
+    @MainActor
     func testThatTotalCostChanges() {
         let imageCost = cache.cost(for: ImageContainer(image: Test.image))
         XCTAssertEqual(cache.totalCost, 0)
@@ -148,6 +159,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(cache.totalCost, 0)
     }
     
+    @MainActor
     func testThatCostLimitChanged() {
         // Given
         let cost = cache.cost(for: ImageContainer(image: Test.image))
@@ -159,6 +171,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(cache.costLimit, Int(Double(cost) * 1.5))
     }
     
+    @MainActor
     func testThatItemsAreRemoveImmediatelyWhenCostLimitIsReached() {
         // Given
         let cost = cache.cost(for: ImageContainer(image: Test.image))
@@ -173,6 +186,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertNotNil(cache[request2])
     }
     
+    @MainActor
     func testEntryCostLimitEntryStored() {
         // Given
         let container = ImageContainer(image: Test.image)
@@ -188,6 +202,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(cache.totalCount, 1)
     }
     
+    @MainActor
     func testEntryCostLimitEntryNotStored() {
         // Given
         let container = ImageContainer(image: Test.image)
@@ -203,6 +218,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(cache.totalCount, 0)
     }
     
+    @MainActor
     func testTrimToCost() {
         // Given
         cache.costLimit = Int.max
@@ -219,6 +235,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertNotNil(cache[request2])
     }
     
+    @MainActor
     func testThatImagesAreRemovedOnCostLimitChange() {
         // Given
         let cost = cache.cost(for: ImageContainer(image: Test.image))
@@ -235,6 +252,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertNotNil(cache[request2])
     }
     
+    @MainActor
     func testImageContainerWithoutAssociatedDataCost() {
         // Given
         let data = Test.data(name: "cat", extension: "gif")
@@ -245,6 +263,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(cache.cost(for: container), 558000)
     }
     
+    @MainActor
     func testImageContainerWithAssociatedDataCost() {
         // Given
         let data = Test.data(name: "cat", extension: "gif")
@@ -259,6 +278,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
     
     // MARK: LRU
     
+    @MainActor
     func testThatLeastRecentItemsAreRemoved() {
         // Given
         let cost = cache.cost(for: ImageContainer(image: Test.image))
@@ -274,6 +294,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         XCTAssertNotNil(cache[request3])
     }
     
+    @MainActor
     func testThatItemsAreTouched() {
         // Given
         let cost = cache.cost(for: ImageContainer(image: Test.image))
@@ -294,6 +315,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
     
     // MARK: Misc
     
+    @MainActor
     func testRemoveAll() {
         // GIVEN
         cache[request1] = Test.container
@@ -308,6 +330,8 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
     }
     
 #if os(iOS) || os(tvOS) || os(visionOS)
+    @MainActor
+    @MainActor
     func testThatSomeImagesAreRemovedOnDidEnterBackground() async {
         // GIVEN
         cache.costLimit = Int.max
@@ -328,6 +352,7 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
         await task.value
     }
     
+    @MainActor
     func testThatSomeImagesAreRemovedBasedOnCostOnDidEnterBackground() async {
         // GIVEN
         let cost = cache.cost(for: ImageContainer(image: Test.image))
@@ -357,6 +382,7 @@ class InternalCacheTTLTests: XCTestCase {
     
     // MARK: TTL
     
+    @MainActor
     func testTTL() {
         // Given
         cache.set(1, forKey: 1, cost: 1, ttl: 0.05)  // 50 ms
@@ -369,6 +395,7 @@ class InternalCacheTTLTests: XCTestCase {
         XCTAssertNil(cache.value(forKey: 1))
     }
     
+    @MainActor
     func testDefaultTTLIsUsed() {
         // Given
         cache.conf.ttl = 0.05// 50 ms
@@ -382,6 +409,7 @@ class InternalCacheTTLTests: XCTestCase {
         XCTAssertNil(cache.value(forKey: 1))
     }
     
+    @MainActor
     func testDefaultToNonExpiringEntries() {
         // Given
         cache.set(1, forKey: 1, cost: 1)

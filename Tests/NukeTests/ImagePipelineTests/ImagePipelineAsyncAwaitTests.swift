@@ -65,6 +65,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
     }
 
+    @MainActor
     @available(macOS 12, iOS 15, tvOS 15, watchOS 9, *)
     func testAsyncImageTaskEvents() async throws {
         // GIVEN
@@ -72,6 +73,10 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         pipeline = pipeline.reconfigured {
             $0.dataLoader = dataLoader
             $0.isProgressiveDecodingEnabled = true
+        }
+        pipeline.queue.suspend()
+        DispatchQueue.main.async {
+            self.pipeline.queue.resume() // Make sure we subscribe after a delay
         }
 
         // WHEN
@@ -90,10 +95,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         }
 
         // THEN
-        guard recordedPreviews.count == 2 else {
-            return XCTFail("Unexpected number of previews")
-        }
-
         XCTAssertEqual(recordedEvents, [
             .progress(.init(completed: 13152, total: 39456)),
             .preview(recordedPreviews[0]),

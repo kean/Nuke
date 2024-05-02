@@ -980,8 +980,8 @@
 				0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */,
 				0CF1754B22913F9800A8946E /* ImagePipeline+Configuration.swift */,
 				0C53C8B0263C968200E62D03 /* ImagePipeline+Delegate.swift */,
-				0CBA07852852DA8B00CE29F4 /* ImagePipeline+Error.swift */,
 				0C78A2A6263F4E680051E0FF /* ImagePipeline+Cache.swift */,
+				0CBA07852852DA8B00CE29F4 /* ImagePipeline+Error.swift */,
 			);
 			path = Pipeline;
 			sourceTree = "<group>";

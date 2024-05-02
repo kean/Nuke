@@ -34,13 +34,16 @@ extension XCTestCase {
 }
 
 extension ImageLoadingOptions {
+    @MainActor
     private static var stack = [ImageLoadingOptions]()
 
+    @MainActor
     static func pushShared(_ shared: ImageLoadingOptions) {
         stack.append(ImageLoadingOptions.shared)
         ImageLoadingOptions.shared = shared
     }
 
+    @MainActor
     static func popShared() {
         ImageLoadingOptions.shared = stack.removeLast()
     }

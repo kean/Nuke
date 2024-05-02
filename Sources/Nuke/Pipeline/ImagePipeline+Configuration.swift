@@ -129,7 +129,12 @@ extension ImagePipeline {
         /// metrics in `os_signpost` Instrument. For more information see
         /// https://developer.apple.com/documentation/os/logging and
         /// https://developer.apple.com/videos/play/wwdc2018/405/.
-        public static var isSignpostLoggingEnabled = false
+        public static var isSignpostLoggingEnabled: Bool {
+            get { _isSignpostLoggingEnabled.value }
+            set { _isSignpostLoggingEnabled.value = newValue }
+        }
+
+        private static let _isSignpostLoggingEnabled = Atomic(value: false)
 
         private var isCustomImageCacheProvided = false
 

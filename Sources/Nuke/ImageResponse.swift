@@ -11,6 +11,7 @@ import UIKit
 #if canImport(AppKit)
 import AppKit
 #endif
+
 /// An image response that contains a fetched image and some metadata.
 public struct ImageResponse: @unchecked Sendable {
     /// An image container with an image and associated metadata.

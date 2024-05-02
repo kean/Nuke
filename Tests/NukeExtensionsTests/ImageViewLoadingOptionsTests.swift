@@ -8,7 +8,6 @@ import XCTest
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-@MainActor
 class ImageViewLoadingOptionsTests: XCTestCase {
     var mockCache: MockImageCache!
     var dataLoader: MockDataLoader!
@@ -38,6 +37,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     
     // MARK: - Transition
     
+    @MainActor
     func testCustomTransitionPerformed() {
         // Given
         var options = ImageLoadingOptions()
@@ -58,6 +58,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     }
     
     // Tests https://github.com/kean/Nuke/issues/206
+    @MainActor
     func testImageIsDisplayedFadeInTransition() {
         // Given options with .fadeIn transition
         let options = ImageLoadingOptions(transition: .fadeIn(duration: 10))
@@ -72,6 +73,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     
     // MARK: - Placeholder
     
+    @MainActor
     func testPlaceholderDisplayed() {
         // Given
         var options = ImageLoadingOptions()
@@ -87,6 +89,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     
     // MARK: - Failure Image
     
+    @MainActor
     func testFailureImageDisplayed() {
         // Given
         dataLoader.results[Test.url] = .failure(
@@ -104,7 +107,8 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         // Then
         XCTAssertEqual(imageView.image, failureImage)
     }
-    
+
+    @MainActor
     func testFailureImageTransitionRun() {
         // Given
         dataLoader.results[Test.url] = .failure(
@@ -137,6 +141,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     
     // MARK: - Content Modes
     
+    @MainActor
     func testPlaceholderAndSuccessContentModesApplied() {
         // Given
         var options = ImageLoadingOptions()
@@ -156,6 +161,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         XCTAssertEqual(imageView.contentMode, .scaleAspectFill)
     }
     
+    @MainActor
     func testSuccessContentModeAppliedWhenFromMemoryCache() {
         // Given
         var options = ImageLoadingOptions()
@@ -174,6 +180,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         XCTAssertEqual(imageView.contentMode, .scaleAspectFill)
     }
     
+    @MainActor
     func testFailureContentModeApplied() {
         // Given
         var options = ImageLoadingOptions()
@@ -202,6 +209,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     
     // MARK: - Tint Colors
     
+    @MainActor
     func testPlaceholderAndSuccessTintColorApplied() {
         // Given
         var options = ImageLoadingOptions()
@@ -221,7 +229,8 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         XCTAssertEqual(imageView.tintColor, .blue)
         XCTAssertEqual(imageView.image?.renderingMode, .alwaysTemplate)
     }
-    
+
+    @MainActor
     func testSuccessTintColorAppliedWhenFromMemoryCache() {
         // Given
         var options = ImageLoadingOptions()
@@ -241,6 +250,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         XCTAssertEqual(imageView.image?.renderingMode, .alwaysTemplate)
     }
     
+    @MainActor
     func testFailureTintColorApplied() {
         // Given
         var options = ImageLoadingOptions()
@@ -268,6 +278,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     
     // MARK: - Pipeline
     
+    @MainActor
     func testCustomPipelineUsed() {
         // Given
         let dataLoader = MockDataLoader()
@@ -292,6 +303,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     
     // MARK: - Shared Options
     
+    @MainActor
     func testSharedOptionsUsed() {
         // Given
         var options = ImageLoadingOptions.shared
@@ -311,6 +323,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     
     // MARK: - Cache Policy
     
+    @MainActor
     func testReloadIgnoringCachedData() {
         // When the requested image is stored in memory cache
         var request = Test.request
@@ -329,6 +342,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     // MARK: - Misc
     
 #if os(iOS) || os(tvOS) || os(visionOS)
+    @MainActor
     func testTransitionCrossDissolve() {
         // GIVEN
         var options = ImageLoadingOptions()
@@ -352,6 +366,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
     }
 #endif
     
+    @MainActor
     func testSettingDefaultProcessor() {
         // GIVEN
         var options = ImageLoadingOptions()
