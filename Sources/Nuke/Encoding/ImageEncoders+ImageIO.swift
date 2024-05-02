@@ -30,19 +30,19 @@ extension ImageEncoders {
             self.compressionRatio = compressionRatio
         }
 
-        @Atomic private static var availability = [AssetType: Bool]()
+        private static let availability = Atomic<[AssetType: Bool]>(value: [:])
 
         /// Returns `true` if the encoding is available for the given format on
         /// the current hardware. Some of the most recent formats might not be
         /// available so its best to check before using them.
         public static func isSupported(type: AssetType) -> Bool {
-            if let isAvailable = availability[type] {
+            if let isAvailable = availability.value[type] {
                 return isAvailable
             }
             let isAvailable = CGImageDestinationCreateWithData(
                 NSMutableData() as CFMutableData, type.rawValue as CFString, 1, nil
             ) != nil
-            availability[type] = isAvailable
+            availability.withLock { $0[type] = isAvailable }
             return isAvailable
         }
 

@@ -17,12 +17,11 @@ import AppKit
 public final class ImagePipeline: @unchecked Sendable {
     /// Returns the shared image pipeline.
     public static var shared: ImagePipeline {
-        get { _shared }
-        set { _shared = newValue }
+        get { _shared.value}
+        set { _shared.value = newValue }
     }
 
-    @Atomic
-    private static var _shared = ImagePipeline(configuration: .withURLCache)
+    private static let _shared = Atomic(value: ImagePipeline(configuration: .withURLCache))
 
     /// The pipeline configuration.
     public let configuration: Configuration
