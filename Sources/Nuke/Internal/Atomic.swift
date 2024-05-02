@@ -4,7 +4,7 @@
 
 import Foundation
 
-final class Atomic<T: Sendable>: @unchecked Sendable {
+final class Atomic<T>: @unchecked Sendable {
     private var _value: T
     private let lock: os_unfair_lock_t
 

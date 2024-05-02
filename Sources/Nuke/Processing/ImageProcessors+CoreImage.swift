@@ -78,7 +78,12 @@ extension ImageProcessors {
 
         /// A default context shared between all Core Image filters. The context
         /// has `.priorityRequestLow` option set to `true`.
-        public static var context = CIContext(options: [.priorityRequestLow: true])
+        public static var context: CIContext {
+            get { _context.value }
+            set { _context.value = newValue }
+        }
+
+        private static let _context = Atomic(value: CIContext(options: [.priorityRequestLow: true]))
 
         static func applyFilter(named name: String, parameters: [String: Any] = [:], to image: PlatformImage) throws -> PlatformImage {
             guard let filter = CIFilter(name: name, parameters: parameters) else {
