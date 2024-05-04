@@ -75,7 +75,8 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
             $0.isProgressiveDecodingEnabled = true
         }
         pipeline.queue.suspend()
-        DispatchQueue.main.async {
+        // TODO: Find a more reliable way to subscribe to events
+        DispatchQueue.global.asyncAfter(deadline: .now() + .milliseconds(64)) {
             self.pipeline.queue.resume() // Make sure we subscribe after a delay
         }
 
