@@ -53,6 +53,7 @@ public final class ImagePipeline: @unchecked Sendable {
 
     let rateLimiter: RateLimiter?
     let id = UUID()
+    var onTaskStarted: ((ImageTask) -> Void)? // Debug purposes
 
     deinit {
         lock.deinitialize(count: 1)
@@ -309,6 +310,7 @@ public final class ImagePipeline: @unchecked Sendable {
             task?.process(.init($0))
         }
         delegate.imageTaskDidStart(task, pipeline: self)
+        onTaskStarted?(task)
     }
 
     // MARK: - Image Task Events

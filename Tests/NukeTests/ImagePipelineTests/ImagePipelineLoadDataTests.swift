@@ -211,7 +211,7 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        pipeline.registerMultipleRequests {
+        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
         }
@@ -275,7 +275,7 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        pipeline.registerMultipleRequests {
+        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
         }
@@ -401,7 +401,7 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        pipeline.registerMultipleRequests {
+        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
         }
@@ -417,11 +417,17 @@ extension ImagePipelineLoadDataTests {
     }
 }
 
-extension ImagePipeline {
-    func registerMultipleRequests(_ closure: () -> Void) {
-        configuration.dataLoadingQueue.isSuspended = true
+extension XCTestCase {
+    func suspendDataLoading(for pipeline: ImagePipeline, expectedRequestCount count: Int, _ closure: () -> Void) {
+        let dataLoader = pipeline.configuration.dataLoader as! MockDataLoader
+        dataLoader.isSuspended = true
+        let expectation = self.expectation(description: "registered")
+        expectation.expectedFulfillmentCount = count
+        pipeline.onTaskStarted = { _ in
+            expectation.fulfill()
+        }
         closure()
-        queue.sync {} // Important!
-        configuration.dataLoadingQueue.isSuspended = false
+        wait(for: [expectation], timeout: 5)
+        dataLoader.isSuspended = false
     }
 }
