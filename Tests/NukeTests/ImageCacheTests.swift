@@ -331,7 +331,6 @@ class ImageCacheTests: XCTestCase, @unchecked Sendable {
     
 #if os(iOS) || os(tvOS) || os(visionOS)
     @MainActor
-    @MainActor
     func testThatSomeImagesAreRemovedOnDidEnterBackground() async {
         // GIVEN
         cache.costLimit = Int.max
