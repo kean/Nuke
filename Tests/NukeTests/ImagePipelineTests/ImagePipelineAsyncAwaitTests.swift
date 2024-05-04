@@ -385,9 +385,8 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
 
     // MARK: - ImageTask Integration
 
-    // TODO: - Re-enable 
     @available(macOS 12, iOS 15, tvOS 15, watchOS 9, *)
-    func _testImageTaskEvents() async {
+    func testImageTaskEvents() async {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
         pipeline = pipeline.reconfigured {
@@ -397,7 +396,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
 
         // WHEN
         let task = pipeline.loadImage(with: Test.request) { _ in }
-        for await event in task.events.values {
+        for await event in task.events {
             switch event {
             case .preview(let response):
                 recordedPreviews.append(response)

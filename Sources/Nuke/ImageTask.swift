@@ -115,9 +115,7 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     // MARK: - Events
 
     /// The events sent by the pipeline during the task execution.
-    public var events: AnyPublisher<Event, Never> {
-        withState { $0.makeEvents().eraseToAnyPublisher() }
-    }
+    public var events: AsyncStream<Event> { makeStream { $0 } }
 
     /// An event produced during the runetime of the task.
     public enum Event: Sendable {
@@ -266,7 +264,11 @@ extension ImageTask.Event {
 extension ImageTask {
     private func makeStream<T>(of closure: @escaping (Event) -> T?) -> AsyncStream<T> {
         AsyncStream { continuation in
-            guard let events = _eventIfNotCompleted else {
+            let events: PassthroughSubject<Event, Never>? = withState {
+                guard $0.taskState == .running else { return nil }
+                return $0.makeEvents()
+            }
+            guard let events else {
                 return continuation.finish()
             }
             let cancellable = events.sink { _ in
@@ -285,13 +287,6 @@ extension ImageTask {
             continuation.onTermination = { _ in
                 cancellable.cancel()
             }
-        }
-    }
-
-    private var _eventIfNotCompleted: PassthroughSubject<Event, Never>? {
-        withState {
-            guard $0.taskState == .running else { return nil }
-            return $0.makeEvents()
         }
     }
 
