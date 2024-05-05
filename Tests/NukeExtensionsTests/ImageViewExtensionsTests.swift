@@ -11,7 +11,6 @@ import TVUIKit
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-@MainActor
 class ImageViewExtensionsTests: XCTestCase {
     var imageView: _ImageView!
     var observer: ImagePipelineObserver!
@@ -44,7 +43,8 @@ class ImageViewExtensionsTests: XCTestCase {
     }
     
     // MARK: - Loading
-    
+
+    @MainActor
     func testImageLoaded() {
         // When requesting an image with request
         expectToLoadImage(with: Test.request, into: imageView)
@@ -55,6 +55,7 @@ class ImageViewExtensionsTests: XCTestCase {
     }
     
 #if os(tvOS)
+    @MainActor
     func testImageLoadedToTVPosterView() {
         // Use local instance for this tvOS specific test for simplicity
         let posterView = TVPosterView()
@@ -68,6 +69,7 @@ class ImageViewExtensionsTests: XCTestCase {
     }
 #endif
     
+    @MainActor
     func testImageLoadedWithURL() {
         // When requesting an image with URL
         let expectation = self.expectation(description: "Image loaded")
@@ -80,6 +82,7 @@ class ImageViewExtensionsTests: XCTestCase {
         XCTAssertNotNil(imageView.image)
     }
     
+    @MainActor
     func testLoadImageWithNilRequest() {
         // WHEN
         imageView.image = Test.image
@@ -96,6 +99,7 @@ class ImageViewExtensionsTests: XCTestCase {
         XCTAssertNil(imageView.image)
     }
     
+    @MainActor
     func testLoadImageWithNilRequestAndPlaceholder() {
         // GIVEN
         let failureImage = Test.image
@@ -111,6 +115,7 @@ class ImageViewExtensionsTests: XCTestCase {
     
     // MARK: - Managing Tasks
     
+    @MainActor
     func testTaskReturned() {
         // When requesting an image
         let task = NukeExtensions.loadImage(with: Test.request, into: imageView)
@@ -122,6 +127,7 @@ class ImageViewExtensionsTests: XCTestCase {
         XCTAssertEqual(task?.request.urlRequest, Test.request.urlRequest)
     }
     
+    @MainActor
     func testTaskIsNilWhenImageInMemoryCache() {
         // When the requested image is stored in memory cache
         let request = Test.request
@@ -136,6 +142,7 @@ class ImageViewExtensionsTests: XCTestCase {
     
     // MARK: - Prepare For Reuse
     
+    @MainActor
     func testViewPreparedForReuse() {
         // Given an image view displaying an image
         imageView.image = Test.image
@@ -147,6 +154,7 @@ class ImageViewExtensionsTests: XCTestCase {
         XCTAssertNil(imageView.image)
     }
     
+    @MainActor
     func testViewPreparedForReuseDisabled() {
         // Given an image view displaying an image
         let image = Test.image
@@ -163,6 +171,7 @@ class ImageViewExtensionsTests: XCTestCase {
     
     // MARK: - Memory Cache
     
+    @MainActor
     func testMemoryCacheUsed() {
         // Given the requested image stored in memory cache
         let image = Test.image
@@ -175,6 +184,7 @@ class ImageViewExtensionsTests: XCTestCase {
         XCTAssertEqual(imageView.image, image)
     }
     
+    @MainActor
     func testMemoryCacheDisabled() {
         // Given the requested image stored in memory cache
         imageCache[Test.request] = Test.container
@@ -190,6 +200,7 @@ class ImageViewExtensionsTests: XCTestCase {
     
     // MARK: - Completion and Progress Closures
     
+    @MainActor
     func testCompletionCalled() {
         var didCallCompletion = false
         let expectation = self.expectation(description: "Image loaded")
@@ -210,6 +221,7 @@ class ImageViewExtensionsTests: XCTestCase {
         wait()
     }
     
+    @MainActor
     func testCompletionCalledImageFromCache() {
         // GIVEN the requested image stored in memory cache
         imageCache[Test.request] = Test.container
@@ -228,6 +240,7 @@ class ImageViewExtensionsTests: XCTestCase {
         XCTAssertTrue(didCallCompletion)
     }
     
+    @MainActor
     func testProgressHandlerCalled() {
         // GIVEN
         dataLoader.results[Test.url] = .success(
@@ -252,6 +265,7 @@ class ImageViewExtensionsTests: XCTestCase {
     
     // MARK: - Cancellation
     
+    @MainActor
     func testRequestCancelled() {
         dataLoader.isSuspended = true
         
@@ -268,6 +282,7 @@ class ImageViewExtensionsTests: XCTestCase {
         wait()
     }
     
+    @MainActor
     func testRequestCancelledWhenNewRequestStarted() {
         dataLoader.isSuspended = true
         
@@ -283,6 +298,7 @@ class ImageViewExtensionsTests: XCTestCase {
         wait()
     }
     
+    @MainActor
     func testRequestCancelledWhenTargetGetsDeallocated() {
         dataLoader.isSuspended = true
         

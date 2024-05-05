@@ -9,6 +9,8 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
 
+    private var recordedEvents: [ImageTask.Event] = []
+    private var recordedResult: Result<ImageResponse, ImagePipeline.Error>?
     private var recordedProgress: [ImageTask.Progress] = []
     private var recordedPreviews: [ImageResponse] = []
     private var pipelineDelegate = ImagePipelineObserver()
@@ -121,6 +123,57 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         XCTAssertTrue(caughtError is CancellationError)
     }
 
+    func testCancelFromProgress() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = Task {
+            let task = pipeline.imageTask(with: Test.url)
+            for await value in task.progress {
+                recordedProgress.append(value)
+            }
+        }
+
+        task.cancel()
+
+        _ = await task.value
+
+        // THEN nothing is recorded because the task is cancelled and
+        // stop observing the events
+        XCTAssertEqual(recordedProgress, [])
+    }
+
+    func testObserveProgressAndCancelFromOtherTask() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task = pipeline.imageTask(with: Test.url)
+
+        let task1 = Task {
+            for await event in task.progress {
+                recordedProgress.append(event)
+            }
+        }
+        
+        let task2 = Task {
+            try await task.response
+        }
+
+        task2.cancel()
+
+        async let result1: () = task1.value
+        async let result2 = task2.value
+
+        // THEN you are able to observe `event` update because
+        // this task does no get cancelled
+        var caughtError: Error?
+        do {
+            _ = try await (result1, result2)
+        } catch {
+            caughtError = error
+        }
+        XCTAssertTrue(caughtError is CancellationError)
+        XCTAssertEqual(recordedProgress, [])
+    }
+
     func testCancelAsyncImageTask() async throws {
         dataLoader.queue.isSuspended = true
 
@@ -158,7 +211,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         dataLoader.queue.isSuspended = true
 
         let task = Task {
-            try await pipeline.data(for: Test.url)
+            try await pipeline.data(for: Test.request)
         }
         task.cancel()
 
@@ -196,7 +249,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
             }
             _ = try await task.image
         } catch {
-            // Expect decoding to failed because of bogus data
+            // Do nothing
         }
 
         // THEN
@@ -215,18 +268,14 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         }
 
         // WHEN
-        do {
-            let task = pipeline.imageTask(with: Test.url)
-            Task {
-                for await preview in task.previews {
-                    recordedPreviews.append(preview)
-                    dataLoader.resume()
-                }
+        let task = pipeline.imageTask(with: Test.url)
+        Task {
+            for try await preview in task.previews {
+                recordedPreviews.append(preview)
+                dataLoader.resume()
             }
-            _ = try await task.image
-        } catch {
-            // Expect decoding to failed because of bogus data
         }
+        _ = try await task.image
 
         // THEN
         XCTAssertEqual(recordedPreviews.count, 2)
@@ -333,6 +382,49 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
 
         _ = try await loadImage()
     }
+
+    // MARK: - ImageTask Integration
+
+    @available(macOS 12, iOS 15, tvOS 15, watchOS 9, *)
+    func testImageTaskEvents() async {
+        // GIVEN
+        let dataLoader = MockProgressiveDataLoader()
+        pipeline = pipeline.reconfigured {
+            $0.dataLoader = dataLoader
+            $0.isProgressiveDecodingEnabled = true
+        }
+
+        // WHEN
+        let task = pipeline.loadImage(with: Test.request) { _ in }
+        for await event in task.events {
+            switch event {
+            case .preview(let response):
+                recordedPreviews.append(response)
+                dataLoader.resume()
+            case .finished(let result):
+                recordedResult = result
+            default:
+                break
+            }
+            recordedEvents.append(event)
+        }
+
+        // THEN
+        guard recordedPreviews.count == 2 else {
+            return XCTFail("Unexpected number of previews")
+        }
+
+        XCTAssertEqual(recordedEvents.filter {
+            if case .progress = $0 {
+                return false // There is guarantee if all will arrive
+            }
+            return true
+        }, [
+            .preview(recordedPreviews[0]),
+            .preview(recordedPreviews[1]),
+            .finished(try XCTUnwrap(recordedResult))
+        ])
+    }
 }
 
 /// We have to mock it because there is no way to construct native `URLError`
@@ -344,5 +436,22 @@ private struct URLError: Swift.Error {
         case cellular
         case expensive
         case constrained
+    }
+}
+
+extension ImageTask.Event: Equatable {
+    public static func == (lhs: ImageTask.Event, rhs: ImageTask.Event) -> Bool {
+        switch (lhs, rhs) {
+        case let (.progress(lhs), .progress(rhs)):
+            return lhs == rhs
+        case let (.preview(lhs), .preview(rhs)):
+            return lhs == rhs
+        case (.cancelled, .cancelled):
+            return true
+        case let (.finished(lhs), .finished(rhs)):
+            return lhs == rhs
+        default:
+            return false
+        }
     }
 }

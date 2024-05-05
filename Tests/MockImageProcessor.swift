@@ -8,16 +8,16 @@ import Nuke
 extension PlatformImage {
     var nk_test_processorIDs: [String] {
         get {
-            return (objc_getAssociatedObject(self, &AssociatedKeys.ProcessorIDs) as? [String]) ?? [String]()
+            return (objc_getAssociatedObject(self, AssociatedKeys.processorId) as? [String]) ?? [String]()
         }
         set {
-            objc_setAssociatedObject(self, &AssociatedKeys.ProcessorIDs, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(self, AssociatedKeys.processorId, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 }
 
 private enum AssociatedKeys {
-    static var ProcessorIDs: UInt8 = 0
+    static let processorId = malloc(1)!
 }
 
 // MARK: - MockImageProcessor

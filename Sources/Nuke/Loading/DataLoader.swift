@@ -218,7 +218,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
 
     // MARK: Internal
 
-    private final class _Handler {
+    private final class _Handler: @unchecked Sendable {
         let didReceiveData: (Data, URLResponse) -> Void
         let completion: (Error?) -> Void
 

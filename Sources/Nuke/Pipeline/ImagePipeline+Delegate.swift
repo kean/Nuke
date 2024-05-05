@@ -60,29 +60,28 @@ public protocol ImagePipelineDelegate: AnyObject, Sendable {
 
     func decompress(response: ImageResponse, request: ImageRequest, pipeline: ImagePipeline) -> ImageResponse
 
-    // MARK: ImageTaskDelegate
+    // MARK: ImageTask
 
     /// Gets called when the task is created. Unlike other methods, it is called
     /// immediately on the caller's queue.
     func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline)
 
-    /// Gets called when the task is started. The caller can save the instance
-    /// of the class to update the task later.
+    /// Gets called when the task receives an event.
+    func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline)
+
+    /// - warning: Soft-deprecated in Nuke 12.7.
     func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline)
 
-    /// Gets called when the progress is updated.
+    /// - warning: Soft-deprecated in Nuke 12.7.
     func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress, pipeline: ImagePipeline)
 
-    /// Gets called when a new progressive image is produced.
+    /// - warning: Soft-deprecated in Nuke 12.7.
     func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse, pipeline: ImagePipeline)
 
-    /// Gets called when the task is cancelled.
-    ///
-    /// - important: This doesn't get called immediately.
+    /// - warning: Soft-deprecated in Nuke 12.7.
     func imageTaskDidCancel(_ task: ImageTask, pipeline: ImagePipeline)
 
-    /// If you cancel the task from the same queue as the callback queue, this
-    /// callback is guaranteed not to be called.
+    /// - warning: Soft-deprecated in Nuke 12.7.
     func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>, pipeline: ImagePipeline)
 }
 
@@ -126,6 +125,8 @@ extension ImagePipelineDelegate {
     }
 
     public func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {}
+
+    public func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {}
 
     public func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {}
 

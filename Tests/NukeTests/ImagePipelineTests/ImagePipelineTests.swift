@@ -69,13 +69,12 @@ class ImagePipelineTests: XCTestCase {
         // When
         let expectedProgress = expectProgress([(10, 20), (20, 20)])
         
-        var task: ImageTask!
-        task = pipeline.loadImage(
+        pipeline.loadImage(
             with: request,
             progress: { _, completed, total in
                 // Then
                 XCTAssertTrue(Thread.isMainThread)
-                expectedProgress.received((task.progress.completed, task.progress.total))
+                expectedProgress.received((completed, total))
             },
             completion: { _ in }
         )

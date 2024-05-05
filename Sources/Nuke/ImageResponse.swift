@@ -4,10 +4,12 @@
 
 import Foundation
 
-#if !os(macOS)
-import UIKit.UIImage
-#else
-import AppKit.NSImage
+#if canImport(UIKit)
+import UIKit
+#endif
+
+#if canImport(AppKit)
+import AppKit
 #endif
 
 /// An image response that contains a fetched image and some metadata.

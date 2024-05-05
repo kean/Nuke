@@ -8,7 +8,6 @@ import XCTest
 
 #if os(iOS) || os(tvOS) || os(macOS) || os(visionOS)
 
-@MainActor
 class ImageViewIntegrationTests: XCTestCase {
     var imageView: _ImageView!
     var pipeline: ImagePipeline!
@@ -44,6 +43,7 @@ class ImageViewIntegrationTests: XCTestCase {
     
     // MARK: - Loading
     
+    @MainActor
     func testImageLoaded() {
         // When
         expectToLoadImage(with: request, into: imageView)
@@ -52,7 +52,8 @@ class ImageViewIntegrationTests: XCTestCase {
         // Then
         XCTAssertNotNil(imageView.image)
     }
-    
+
+    @MainActor
     func testImageLoadedWithURL() {
         // When
         let expectation = self.expectation(description: "Image loaded")
@@ -67,6 +68,7 @@ class ImageViewIntegrationTests: XCTestCase {
     
     // MARK: - Loading with Invalid URL
     
+    @MainActor
     func testLoadImageWithInvalidURLString() {
         // WHEN
         let expectation = self.expectation(description: "Image loaded")
@@ -80,6 +82,7 @@ class ImageViewIntegrationTests: XCTestCase {
         XCTAssertNil(imageView.image)
     }
     
+    @MainActor
     func testLoadingWithNilURL() {
         // GIVEN
         var urlRequest = URLRequest(url: Test.url)
@@ -123,6 +126,7 @@ class ImageViewIntegrationTests: XCTestCase {
         var recordedData = [Data?]()
     }
     
+    @MainActor
     func _testThatAttachedDataIsPassed() throws {
         // GIVEN
         pipeline = pipeline.reconfigured {

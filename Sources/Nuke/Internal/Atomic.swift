@@ -4,12 +4,12 @@
 
 import Foundation
 
-@propertyWrapper final class Atomic<T> {
-    private var value: T
+final class Atomic<T>: @unchecked Sendable {
+    private var _value: T
     private let lock: os_unfair_lock_t
 
-    init(wrappedValue value: T) {
-        self.value = value
+    init(value: T) {
+        self._value = value
         self.lock = .allocate(capacity: 1)
         self.lock.initialize(to: os_unfair_lock())
     }
@@ -19,20 +19,22 @@ import Foundation
         lock.deallocate()
     }
 
-    var wrappedValue: T {
-        get { getValue() }
-        set { setValue(newValue) }
+    var value: T {
+        get {
+            os_unfair_lock_lock(lock)
+            defer { os_unfair_lock_unlock(lock) }
+            return _value
+        }
+        set {
+            os_unfair_lock_lock(lock)
+            defer { os_unfair_lock_unlock(lock) }
+            _value = newValue
+        }
     }
 
-     private func getValue() -> T {
+    func withLock<U>(_ closure: (inout T) -> U) -> U {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
-        return value
-    }
-
-    private func setValue(_ newValue: T) {
-        os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
-        value = newValue
+        return closure(&_value)
     }
 }

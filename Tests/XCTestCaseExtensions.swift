@@ -34,11 +34,11 @@ extension XCTestCase {
         return record
     }
 
-    private static var cancellablesAK: UInt8 = 0
+    private static let cancellablesAK = malloc(1)!
 
     fileprivate var cancellables: [AnyCancellable] {
-        get { (objc_getAssociatedObject(self, &XCTestCase.cancellablesAK) as? [AnyCancellable]) ?? [] }
-        set { objc_setAssociatedObject(self, &XCTestCase.cancellablesAK, newValue, .OBJC_ASSOCIATION_RETAIN) }
+        get { (objc_getAssociatedObject(self, XCTestCase.cancellablesAK) as? [AnyCancellable]) ?? [] }
+        set { objc_setAssociatedObject(self, XCTestCase.cancellablesAK, newValue, .OBJC_ASSOCIATION_RETAIN) }
     }
 }
 
@@ -98,14 +98,14 @@ extension XCTestCase {
         observations.append(observation)
     }
 
-    private static var observationsAK: UInt8 = 0
+    private static let observationsAK = malloc(1)!
 
     private var observations: [NSKeyValueObservation] {
         get {
-            return (objc_getAssociatedObject(self, &XCTestCase.observationsAK) as? [NSKeyValueObservation]) ?? []
+            return (objc_getAssociatedObject(self, XCTestCase.observationsAK) as? [NSKeyValueObservation]) ?? []
         }
         set {
-            objc_setAssociatedObject(self, &XCTestCase.observationsAK, newValue, .OBJC_ASSOCIATION_RETAIN)
+            objc_setAssociatedObject(self, XCTestCase.observationsAK, newValue, .OBJC_ASSOCIATION_RETAIN)
         }
     }
 }

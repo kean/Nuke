@@ -6,7 +6,7 @@ import Foundation
 
 // Each task holds a strong reference to the pipeline. This is by design. The
 // user does not need to hold a strong reference to the pipeline.
-class ImagePipelineTask<Value>: AsyncTask<Value, ImagePipeline.Error> {
+class AsyncPipelineTask<Value>: AsyncTask<Value, ImagePipeline.Error> {
     let pipeline: ImagePipeline
     // A canonical request representing the unit work performed by the task.
     let request: ImageRequest
@@ -29,7 +29,7 @@ extension ImageTask: ImageTaskSubscribers {
     }
 }
 
-extension ImagePipelineTask: ImageTaskSubscribers {
+extension AsyncPipelineTask: ImageTaskSubscribers {
     var imageTasks: [ImageTask] {
         subscribers.flatMap { subscribers -> [ImageTask] in
             (subscribers as? ImageTaskSubscribers)?.imageTasks ?? []
@@ -37,7 +37,7 @@ extension ImagePipelineTask: ImageTaskSubscribers {
     }
 }
 
-extension ImagePipelineTask {
+extension AsyncPipelineTask {
     /// Decodes the data on the dedicated queue and calls the completion
     /// on the pipeline's internal queue.
     func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
