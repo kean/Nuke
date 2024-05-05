@@ -111,7 +111,7 @@ public final class ImagePipeline: @unchecked Sendable {
         queue.async {
             guard !self.isInvalidated else { return }
             self.isInvalidated = true
-            self.tasks.keys.forEach(self.cancel)
+            self.tasks.keys.forEach(self.cancelImageTask)
         }
     }
 
@@ -284,41 +284,50 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - ImageTask (Internal)
 
     private func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
-        ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
-    }
-
-    private func cancel(_ task: ImageTask) {
-        guard let subscription = tasks.removeValue(forKey: task) else { return }
-        task.process(.cancelled)
-        subscription.unsubscribe()
-    }
-
-    private func startImageTask(_ task: ImageTask) {
-        guard !isInvalidated else {
-            return task.process(.finished(.failure(.pipelineInvalidated)))
+        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
+        // Important to call it before `imageTaskStartCalled`
+        if !isDataTask {
+            delegate.imageTaskCreated(task, pipeline: self)
         }
-        guard task.state != .cancelled else {
+        task._task = Task {
+            try await withUnsafeThrowingContinuation { continuation in
+                self.queue.async {
+                    task._continuation = continuation
+                    self.startImageTask(task, isDataTask: isDataTask)
+                }
+            }
+        }
+        return task
+    }
+
+    // By this time, the task has `continuation` set and is fully wired.
+    private func startImageTask(_ task: ImageTask, isDataTask: Bool) {
+        guard task._state != .cancelled else {
             // The task gets started asynchronously in a `Task` and cancellation
             // can happen before the pipeline reached `startImageTask`. In that
             // case, the `cancel` method do no send the task event.
-            return task.process(.cancelled)
+            return task._dispatch(.cancelled)
         }
-        let worker = task.isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
+        guard !isInvalidated else {
+            return task._process(.error(.pipelineInvalidated))
+        }
+        let worker = isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
         tasks[task] = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
-            task?.process(.init($0))
+            task?._process($0)
         }
         delegate.imageTaskDidStart(task, pipeline: self)
         onTaskStarted?(task)
     }
 
+    private func cancelImageTask(_ task: ImageTask) {
+        tasks.removeValue(forKey: task)?.unsubscribe()
+        task._cancel()
+    }
+
     // MARK: - Image Task Events
 
     func imageTaskCancelCalled(_ task: ImageTask) {
-        queue.async { self.cancel(task) }
-    }
-
-    func imageTaskStartCalled(_ task: ImageTask) {
-        queue.async { self.startImageTask(task) }
+        queue.async { self.cancelImageTask(task) }
     }
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
@@ -327,14 +336,14 @@ public final class ImagePipeline: @unchecked Sendable {
         }
     }
 
-    func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event) {
+    func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event, isDataTask: Bool) {
         switch event {
         case .cancelled, .finished:
             tasks[task] = nil
         default: break
         }
 
-        if !task.isDataTask {
+        if !isDataTask {
             delegate.imageTask(task, didReceiveEvent: event, pipeline: self)
             switch event {
             case .progress(let progress):
