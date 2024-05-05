@@ -284,9 +284,7 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - ImageTask (Internal)
 
     private func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
-        delegate.imageTaskCreated(task, pipeline: self)
-        return task
+        ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
     }
 
     private func cancel(_ task: ImageTask) {
