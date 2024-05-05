@@ -444,24 +444,24 @@ class ImagePipelineCoalescingTests: XCTestCase {
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
-        dataLoader.queue.isSuspended = true
 
         // When/Then
-        for _ in 0..<3 {
-            let request = Test.request
-
-            let expectedProgress = expectProgress([(10, 20), (20, 20)])
-
-            pipeline.loadImage(
-                with: request,
-                progress: { _, completed, total in
-                    XCTAssertTrue(Thread.isMainThread)
-                    expectedProgress.received((completed, total))
-                },
-                completion: { _ in }
-            )
+        suspendDataLoading(for: pipeline, expectedRequestCount: 3) {
+            for _ in 0..<3 {
+                let request = Test.request
+                
+                let expectedProgress = expectProgress([(10, 20), (20, 20)])
+                
+                pipeline.loadImage(
+                    with: request,
+                    progress: { _, completed, total in
+                        XCTAssertTrue(Thread.isMainThread)
+                        expectedProgress.received((completed, total))
+                    },
+                    completion: { _ in }
+                )
+            }
         }
-        dataLoader.queue.isSuspended = false
 
         wait()
     }
