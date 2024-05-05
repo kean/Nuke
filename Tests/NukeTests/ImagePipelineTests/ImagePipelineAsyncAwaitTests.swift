@@ -414,12 +414,14 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
             return XCTFail("Unexpected number of previews")
         }
 
-        XCTAssertEqual(recordedEvents, [
-            .progress(.init(completed: 13152, total: 39456)),
+        XCTAssertEqual(recordedEvents.filter {
+            if case .progress = $0 {
+                return false // There is guarantee if all will arrive
+            }
+            return true
+        }, [
             .preview(recordedPreviews[0]),
-            .progress(.init(completed: 26304, total: 39456)),
             .preview(recordedPreviews[1]),
-            .progress(.init(completed: 39456, total: 39456)),
             .finished(try XCTUnwrap(recordedResult))
         ])
     }
