@@ -213,15 +213,21 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     func process(_ event: Event) {
-        switch event {
-        case .progress(let progress):
-            withState { $0.progress = progress }
-        case .finished:
-            guard setState(.completed) else { return }
-        default:
-            break
+        let state: MutableState? = withState {
+            switch event {
+            case .progress(let progress):
+                $0.progress = progress
+            case .finished:
+                guard $0.taskState == .running else { return nil }
+                $0.taskState = .completed
+            default:
+                break
+            }
+            return $0
         }
-        process(event, in: withState { $0 })
+        guard let state else { return }
+
+        process(event, in: state)
         onEvent?(event, self)
         pipeline?.imageTask(self, didProcessEvent: event)
     }
