@@ -157,7 +157,9 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
         lock.initialize(to: os_unfair_lock())
 
         // Important to call it before `imageTaskStartCalled`
-        pipeline.delegate.imageTaskCreated(self, pipeline: pipeline)
+        if !isDataTask {
+            pipeline.delegate.imageTaskCreated(self, pipeline: pipeline)
+        }
 
         task = Task {
             try await withUnsafeThrowingContinuation { continuation in

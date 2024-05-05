@@ -335,6 +335,7 @@ public final class ImagePipeline: @unchecked Sendable {
         }
 
         if !task.isDataTask {
+            delegate.imageTask(task, didReceiveEvent: event, pipeline: self)
             switch event {
             case .progress(let progress):
                 delegate.imageTask(task, didUpdateProgress: progress, pipeline: self)
