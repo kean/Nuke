@@ -17,7 +17,7 @@ import AppKit
 public final class ImagePipeline: @unchecked Sendable {
     /// Returns the shared image pipeline.
     public static var shared: ImagePipeline {
-        get { _shared.value}
+        get { _shared.value }
         set { _shared.value = newValue }
     }
 
