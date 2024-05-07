@@ -224,10 +224,12 @@ public final class ImageTask: Hashable, CustomStringConvertible, @unchecked Send
     }
 
     /// Synchronized on `pipeline.queue`.
-    private func _setState(_ state: State) -> Bool {
+    func _setState(_ state: State) -> Bool {
         guard _state == .running else { return false }
         _state = state
-        withLock { $0.state = state }
+        if onEvent == nil {
+            withLock { $0.state = state }
+        }
         return true
     }
 

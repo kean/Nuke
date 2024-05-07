@@ -217,7 +217,9 @@ public final class ImagePipeline: @unchecked Sendable {
                 case .progress(let value): progress?(nil, value)
                 case .preview(let response): progress?(response, task.currentProgress)
                 case .cancelled: break // The legacy APIs do not send cancellation events
-                case .finished(let result): completion(result)
+                case .finished(let result):
+                    _ = task._setState(.completed) // Important to do it on the callback queue
+                    completion(result)
                 }
             }
         }
