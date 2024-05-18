@@ -198,7 +198,7 @@ private extension CGContext {
         if image.bitsPerPixel == 8 {
             return .none // The only pixel format supported for grayscale CS
         }
-        return .premultipliedLast
+        return .noneSkipLast
     }
 }
 
