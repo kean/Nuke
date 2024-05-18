@@ -6,7 +6,7 @@
 
 This release contains major improvements to the Structured Concurrency support and `ImagePipeline` internals.
 
-- Add `previews: AsyncStream<ImageResponse>`, `progress: AsyncStream<Progress>`, `image: PlatformImage async` and `reponse: ImageResponse async` directly to `ImageTask` and deprecate `AsyncImageTask`. These APIs have zero cost unless you use them.
+- Add `previews: AsyncStream<ImageResponse>`, `progress: AsyncStream<Progress>`, `image: PlatformImage async` and `response: ImageResponse async` directly to `ImageTask` and deprecate `AsyncImageTask`. These APIs have zero cost unless you use them.
 - Add `ImageTask.Event` and add `events: AsyncStream<Event>` to `ImageTask` for observing _all_ events associated with the image loading.
 - Improve the support for `AsyncStream`: a new stream is created every time you access the respective property to make it easier to have multiple consumers. 
 - Add `ImagePipelineDelegate/imageTask(:didReceiveEvent:pipeline:)` and deprecate the previous methods it replaced (context: these methods were introduced in [Nuke 11.0](https://github.com/kean/Nuke/releases/tag/11.0.0) as the initial and misguided attempt at Structured Concurrency support that tried to borrow from the `URLSession` API design)
