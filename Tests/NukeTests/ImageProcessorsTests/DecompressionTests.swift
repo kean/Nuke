@@ -37,11 +37,11 @@ class ImageDecompressionTests: XCTestCase {
             XCTAssertEqual(output.cgImage?.bitsPerPixel, 8) // Yay, preparingForDisplay supports it
             XCTAssertEqual(output.cgImage?.bitsPerComponent, 8)
         } else {
-            XCTAssertEqual(output.cgImage?.bitsPerPixel, 16)
+            XCTAssertEqual(output.cgImage?.bitsPerPixel, 8)
             XCTAssertEqual(output.cgImage?.bitsPerComponent, 8)
         }
 #else
-        XCTAssertEqual(output.cgImage?.bitsPerPixel, 16)
+        XCTAssertEqual(output.cgImage?.bitsPerPixel, 8)
         XCTAssertEqual(output.cgImage?.bitsPerComponent, 8)
 #endif
     }
