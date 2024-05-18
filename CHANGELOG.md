@@ -4,7 +4,7 @@
 
 *May 18, 2024*
 
-This release contains some major improvements to the Structured Concurrency support and introduced a re-engineered `ImagePipeline`.
+This release contains major improvements to the Structured Concurrency support and `ImagePipeline` internals.
 
 - Add `previews: AsyncStream<ImageResponse>`, `progress: AsyncStream<Progress>`, `image: PlatformImage async` and `reponse: ImageResponse async` directly to `ImageTask` and deprecate `AsyncImageTask`. These APIs have zero cost unless you use them.
 - Add `ImageTask.Event` and add `events: AsyncStream<Event>` to `ImageTask` for observing _all_ events associated with the image loading.
