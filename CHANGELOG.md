@@ -1,5 +1,23 @@
 # Nuke 12
 
+## Nuke 12.7
+
+*May 18, 2024*
+
+This release contains some major improvements to the Structured Concurrency support and introduced a re-engineered `ImagePipeline`.
+
+- Add `previews: AsyncStream<ImageResponse>`, `progress: AsyncStream<Progress>`, `image: PlatformImage async` and `reponse: ImageResponse async` directly to `ImageTask` and deprecate `AsyncImageTask`. These APIs have zero cost unless you use them.
+- Add `ImageTask.Event` and add `events: AsyncStream<Event>` to `ImageTask` for observing _all_ events associated with the image loading.
+- Improve the support for `AsyncStream`: a new stream is created every time you access the respective property to make it easier to have multiple consumers. 
+- Add `ImagePipelineDelegate/imageTask(:didReceiveEvent:pipeline:)` and deprecate the previous methods it replaced (context: these methods were introduced in [Nuke 11.0](https://github.com/kean/Nuke/releases/tag/11.0.0) as the initial and misguided attempt at Structured Concurrency support that tried to borrow from the `URLSession` API design)
+- (Internal) Rework `ImagePipeline` that accumulated a lot of cruft after the introduction of data tasks, Combine, Async/Await, and AsyncStream support in the previous releases.
+- Deprecate `ImagePipeline/loadData(with:)` and `ImagePipeline/data(with:)` methods that accept `URL` as parameters – use the `ImageRequest` variants instead (these are rarely used and low-level APIs that don't require convenience variants)
+- Remove `@discardableResult` from `ImagePipeline/data(with:) async throws` – it was never meant to be there 
+- Rename `ImageTask/progress` to `ImageTask/currentProgress` (warning: this is a small breaking change in the API)
+- Fix some of the Strict Concurrency Checking & Swift 6 warnings preparing for the upcoming Swift releases
+- Fix documentation for `AsyncImageTask/previews` that was previously specifying that it was delivering the previews _and_ the final image – it's only the previews.
+- Fix [#782], an issue with grayscale images (8 bpp) not being rendered correctly when `Resize` processor is used
+
 ## Nuke 12.6
 
 *Apr 23, 2024*
@@ -15,7 +33,6 @@
 - Add an optimization that loads local resources with `file` and `data` schemes quickly without using `DataLoader` and `URLSession`. If you rely on the existing behavior, this optimization can be turned off using the `isLocalResourcesSupportEnabled` configuration option. https://github.com/kean/Nuke/pull/779
 - Deprecate `ImagePipeline.Configuration.dataCachingQueue` and perform data cache lookups on the pipeline's queue, reducing the amount of context switching
 - Update the infrastructure for coalescing image-processing tasks to use the task-dependency used for other operations
-- Fix [#782], an issue with grayscale images (8 bpp) not being rendered correctly when `Resize` processor is used
 
 ## Nuke 12.5
 
