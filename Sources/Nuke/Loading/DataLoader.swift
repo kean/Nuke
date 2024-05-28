@@ -97,7 +97,7 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
         if #available(iOS 14.5, tvOS 14.5, watchOS 7.4, macOS 11.3, *) {
             task.prefersIncrementalDelivery = prefersIncrementalDelivery
         }
-        return impl.loadData(with: task, request: request, session: session, didReceiveData: didReceiveData, completion: completion)
+        return impl.loadData(with: task, session: session, didReceiveData: didReceiveData, completion: completion)
     }
 
     /// Errors produced by ``DataLoader``.
@@ -124,7 +124,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
 
     /// Loads data with the given request.
     func loadData(with task: URLSessionDataTask,
-                  request: URLRequest,
                   session: URLSession,
                   didReceiveData: @escaping (Data, URLResponse) -> Void,
                   completion: @escaping (Error?) -> Void) -> any Cancellable {
@@ -132,7 +131,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
-        task.taskDescription = "Nuke Load Data \(request)"
         task.resume()
         return AnonymousCancellable { task.cancel() }
     }
