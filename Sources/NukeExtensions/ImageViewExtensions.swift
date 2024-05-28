@@ -400,7 +400,7 @@ extension ImageViewController {
         )
     }
 
-    /// Performs cross-dissolve animation alonside transition to a new content
+    /// Performs cross-dissolve animation alongside transition to a new content
     /// mode. This isn't natively supported feature and it requires a second
     /// image view. There might be better ways to implement it.
     private func runCrossDissolveWithContentMode(imageView: UIImageView, image: ImageContainer, params: ImageLoadingOptions.Transition.Parameters) {
@@ -410,8 +410,12 @@ extension ImageViewController {
         // Create a transition view which mimics current view's contents.
         transitionView.image = imageView.image
         transitionView.contentMode = imageView.contentMode
-        imageView.addSubview(transitionView)
-        transitionView.frame = imageView.bounds
+        imageView.superview?.insertSubview(transitionView, aboveSubview: imageView)
+        transitionView.frame = imageView.frame
+        transitionView.clipsToBounds = imageView.clipsToBounds
+        transitionView.layer.cornerRadius = imageView.layer.cornerRadius
+        transitionView.layer.cornerCurve = imageView.layer.cornerCurve
+        transitionView.layer.maskedCorners = imageView.layer.maskedCorners
 
         // "Manual" cross-fade.
         transitionView.alpha = 1
