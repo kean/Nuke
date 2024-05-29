@@ -413,7 +413,9 @@ extension ImageViewController {
         transitionView.frame = imageView.frame
         transitionView.tintColor = imageView.tintColor
         transitionView.tintAdjustmentMode = imageView.tintAdjustmentMode
+        #if swift(>=5.9) // preferredImageDynamicRange was back-ported to all iOS/tvOS versions, but only available when using the iOS/tvOS 17+ SDKs
         transitionView.preferredImageDynamicRange = imageView.preferredImageDynamicRange
+        #endif
         transitionView.preferredSymbolConfiguration = imageView.preferredSymbolConfiguration
         transitionView.isHidden = imageView.isHidden
         transitionView.clipsToBounds = imageView.clipsToBounds
