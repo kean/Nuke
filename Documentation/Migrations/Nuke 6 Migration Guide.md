@@ -12,4 +12,4 @@ This guide is provided in order to ease the transition of existing applications 
 
 Nuke 6 has a relatively small number of changes in the public API, chances are most of them are not going to affect your projects. Most of the deprecated APIs are kept in the project to ease the transition, however, they are going to be removed fairly soon.
 
-There were a lot of implementation details leaking into the public API in Nuke 5 (e.g. `Deduplicator` class, scheduling infrastracture) which were all made private in Nuke 6. If you were using any of those APIs you can always ping me with your questions on [Twitter](https://twitter.com/a_grebenyuk).
+There were a lot of implementation details leaking into the public API in Nuke 5 (e.g. `Deduplicator` class, scheduling infrastructure) which were all made private in Nuke 6. If you were using any of those APIs you can always ping me with your questions on [Twitter](https://twitter.com/a_grebenyuk).
