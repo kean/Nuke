@@ -435,9 +435,10 @@ extension ImageViewController {
                 transitionView.alpha = 0
                 imageView.alpha = 1
             },
-            completion: { isCompleted in
-                if isCompleted {
+            completion: { [weak transitionView] isCompleted in
+                if isCompleted, let transitionView {
                     transitionView.removeFromSuperview()
+                    transitionView.image = nil
                 }
             }
         )
