@@ -131,7 +131,6 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
         session.delegateQueue.addOperation { // `URLSession` is configured to use this same queue
             self.handlers[task] = handler
         }
-        task.taskDescription = "Nuke Load Data"
         task.resume()
         return AnonymousCancellable { task.cancel() }
     }
