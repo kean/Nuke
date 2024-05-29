@@ -410,12 +410,17 @@ extension ImageViewController {
         // Create a transition view which mimics current view's contents.
         transitionView.image = imageView.image
         transitionView.contentMode = imageView.contentMode
-        imageView.superview?.insertSubview(transitionView, aboveSubview: imageView)
         transitionView.frame = imageView.frame
+        transitionView.tintColor = imageView.tintColor
+        transitionView.tintAdjustmentMode = imageView.tintAdjustmentMode
+        transitionView.preferredImageDynamicRange = imageView.preferredImageDynamicRange
+        transitionView.preferredSymbolConfiguration = imageView.preferredSymbolConfiguration
+        transitionView.isHidden = imageView.isHidden
         transitionView.clipsToBounds = imageView.clipsToBounds
         transitionView.layer.cornerRadius = imageView.layer.cornerRadius
         transitionView.layer.cornerCurve = imageView.layer.cornerCurve
         transitionView.layer.maskedCorners = imageView.layer.maskedCorners
+        imageView.superview?.insertSubview(transitionView, aboveSubview: imageView)
 
         // "Manual" cross-fade.
         transitionView.alpha = 1
