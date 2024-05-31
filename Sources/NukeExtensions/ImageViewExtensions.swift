@@ -410,12 +410,19 @@ extension ImageViewController {
         // Create a transition view which mimics current view's contents.
         transitionView.image = imageView.image
         transitionView.contentMode = imageView.contentMode
-        imageView.superview?.insertSubview(transitionView, aboveSubview: imageView)
         transitionView.frame = imageView.frame
+        transitionView.tintColor = imageView.tintColor
+        transitionView.tintAdjustmentMode = imageView.tintAdjustmentMode
+        #if swift(>=5.9) // preferredImageDynamicRange was back-ported to all iOS/tvOS versions, but only available when using the iOS/tvOS 17+ SDKs
+        transitionView.preferredImageDynamicRange = imageView.preferredImageDynamicRange
+        #endif
+        transitionView.preferredSymbolConfiguration = imageView.preferredSymbolConfiguration
+        transitionView.isHidden = imageView.isHidden
         transitionView.clipsToBounds = imageView.clipsToBounds
         transitionView.layer.cornerRadius = imageView.layer.cornerRadius
         transitionView.layer.cornerCurve = imageView.layer.cornerCurve
         transitionView.layer.maskedCorners = imageView.layer.maskedCorners
+        imageView.superview?.insertSubview(transitionView, aboveSubview: imageView)
 
         // "Manual" cross-fade.
         transitionView.alpha = 1
@@ -430,9 +437,10 @@ extension ImageViewController {
                 transitionView.alpha = 0
                 imageView.alpha = 1
             },
-            completion: { isCompleted in
-                if isCompleted {
+            completion: { [weak transitionView] isCompleted in
+                if isCompleted, let transitionView {
                     transitionView.removeFromSuperview()
+                    transitionView.image = nil
                 }
             }
         )
