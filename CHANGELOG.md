@@ -1,5 +1,13 @@
 # Nuke 12
 
+## Nuke 12.7.1
+
+*May 30, 2024*
+
+- Fix fade transition in some scenarios by @ejensen in https://github.com/kean/Nuke/pull/786
+- Remove `taskDescription` from network tasks by @ejensen in https://github.com/kean/Nuke/pull/785
+- Temporarily revert the change introduced in v12.6 that would skip decompression for some image types – more info in https://github.com/kean/Nuke/issues/788
+
 ## Nuke 12.7
 
 *May 18, 2024*
