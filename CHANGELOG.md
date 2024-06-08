@@ -1,5 +1,11 @@
 # Nuke 12
 
+## Nuke 12.7.2
+
+*Jun 8, 2024*
+
+- Fix https://github.com/kean/Nuke/issues/789, an issue with `ImageProcessors.Resize` failing to resize images with packed pixel formats 
+
 ## Nuke 12.7.1
 
 *May 30, 2024*
