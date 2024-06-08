@@ -160,42 +160,35 @@ extension PlatformImage {
 
 private extension CGContext {
     static func make(_ image: CGImage, size: CGSize, alphaInfo: CGImageAlphaInfo? = nil) -> CGContext? {
-        let alphaInfo: CGImageAlphaInfo = alphaInfo ?? preferredAlphaInfo(for: image)
-
-        // Create the context which matches the input image.
-        if let ctx = CGContext(
-            data: nil,
-            width: Int(size.width),
-            height: Int(size.height),
-            bitsPerComponent: 8,
-            bytesPerRow: 0,
-            space: image.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: alphaInfo.rawValue
-        ) {
+        if let ctx = CGContext.make(image, size: size, alphaInfo: alphaInfo, colorSpace: image.colorSpace ?? CGColorSpaceCreateDeviceRGB()) {
             return ctx
         }
-
         // In case the combination of parameters (color space, bits per component, etc)
         // is nit supported by Core Graphics, switch to default context.
         // - Quartz 2D Programming Guide
         // - https://github.com/kean/Nuke/issues/35
         // - https://github.com/kean/Nuke/issues/57
-        return CGContext(
+        return CGContext.make(image, size: size, alphaInfo: alphaInfo, colorSpace: CGColorSpaceCreateDeviceRGB())
+    }
+
+    static func make(_ image: CGImage, size: CGSize, alphaInfo: CGImageAlphaInfo?, colorSpace: CGColorSpace) -> CGContext? {
+        CGContext(
             data: nil,
-            width: Int(size.width), height: Int(size.height),
+            width: Int(size.width),
+            height: Int(size.height),
             bitsPerComponent: 8,
             bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: alphaInfo.rawValue
+            space: colorSpace,
+            bitmapInfo: (alphaInfo ?? preferredAlphaInfo(for: image, colorSpace: colorSpace)).rawValue
         )
     }
 
     /// - See https://developer.apple.com/library/archive/documentation/GraphicsImaging/Conceptual/drawingwithquartz2d/dq_context/dq_context.html#//apple_ref/doc/uid/TP30001066-CH203-BCIBHHBB
-    private static func preferredAlphaInfo(for image: CGImage) -> CGImageAlphaInfo {
+    private static func preferredAlphaInfo(for image: CGImage, colorSpace: CGColorSpace) -> CGImageAlphaInfo {
         guard image.isOpaque else {
             return .premultipliedLast
         }
-        if image.bitsPerPixel == 8 {
+        if colorSpace.numberOfComponents == 1 && image.bitsPerPixel == 8 {
             return .none // The only pixel format supported for grayscale CS
         }
         return .noneSkipLast
