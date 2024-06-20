@@ -1,5 +1,11 @@
 # Nuke 12
 
+## Nuke 12.7.3
+
+*Jun 19, 2024*
+
+- Fix “unrecognized selector sent to instance” crash in NukeExtensions in a cross-dissolve transition on iOS < 17 by @ejensen in https://github.com/kean/Nuke/pull/792
+
 ## Nuke 12.7.2
 
 *Jun 8, 2024*
