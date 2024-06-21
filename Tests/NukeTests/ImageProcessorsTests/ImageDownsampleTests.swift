@@ -79,11 +79,12 @@ class ImageThumbnailTest: XCTestCase {
         let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 320, height: 1000), unit: .pixels, contentMode: .aspectFit)
         let output = try XCTUnwrap(options.makeThumbnail(with: input))
 
-        // Then the output thumbnail is rotated
+        // Then the output has orientation of the original image
+        XCTAssertEqual(output.imageOrientation, .right)
+        
+        //verify size of the image in points and pixels (using scale)
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 320, height: 240))
-        XCTAssertEqual(output.imageOrientation, .up)
-        // Then the image is resized according to orientation
-        XCTAssertEqual(output.size, CGSize(width: 320, height: 240))
+        XCTAssertEqual(output.size, CGSize(width: 120, height: 160))
     }
 #endif
 }
