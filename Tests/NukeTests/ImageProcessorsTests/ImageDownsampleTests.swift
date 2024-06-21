@@ -86,5 +86,20 @@ class ImageThumbnailTest: XCTestCase {
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 320, height: 240))
         XCTAssertEqual(output.size, CGSize(width: 120, height: 160))
     }
+    
+    func testResizeImageWithOrientationUp() throws {
+        let input = try XCTUnwrap(Test.data(name: "baseline", extension: "jpeg"))
+        XCTAssertEqual(PlatformImage(data: input)?.imageOrientation, .up)
+
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 300)
+        let output = try XCTUnwrap(options.makeThumbnail(with: input))
+
+        // Then the output has orientation of the original image
+        XCTAssertEqual(output.imageOrientation, .up)
+        
+        //verify size of the image in points and pixels (using scale)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 300, height: 200))
+        XCTAssertEqual(output.size, CGSize(width: 150, height: 100))
+    }
 #endif
 }
