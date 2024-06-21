@@ -27,7 +27,7 @@ extension ImageDecoders {
         private var scanner = ProgressiveJPEGScanner()
 
         private var isPreviewForGIFGenerated = false
-        private var scale: CGFloat?
+        private var scale: CGFloat = 1.0
         private var thumbnail: ImageRequest.ThumbnailOptions?
         private let lock = NSLock()
 
@@ -38,7 +38,7 @@ extension ImageDecoders {
         /// Returns `nil` if progressive decoding is not allowed for the given
         /// content.
         public init?(context: ImageDecodingContext) {
-            self.scale = context.request.scale.map { CGFloat($0) }
+            self.scale = context.request.scale.map { CGFloat($0) } ?? self.scale
             self.thumbnail = context.request.thumbnail
 
             if !context.isCompleted && !isProgressiveDecodingAllowed(for: context.data) {
@@ -52,7 +52,9 @@ extension ImageDecoders {
 
             func makeImage() -> PlatformImage? {
                 if let thumbnail {
-                    return makeThumbnail(data: data, options: thumbnail)
+                    return makeThumbnail(data: data,
+                                         options: thumbnail,
+                                         scale: scale)
                 }
                 return ImageDecoders.Default._decode(data, scale: scale)
             }
@@ -162,11 +164,11 @@ private struct ProgressiveJPEGScanner: Sendable {
 }
 
 extension ImageDecoders.Default {
-    private static func _decode(_ data: Data, scale: CGFloat?) -> PlatformImage? {
+    private static func _decode(_ data: Data, scale: CGFloat) -> PlatformImage? {
 #if os(macOS)
         return NSImage(data: data)
 #else
-        return UIImage(data: data, scale: scale ?? 1)
+        return UIImage(data: data, scale: scale)
 #endif
     }
 }
