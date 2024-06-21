@@ -71,7 +71,7 @@ class ImageThumbnailTest: XCTestCase {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
         // data, on the other hand, is 480x640px.
-        let input = try XCTUnwrap(Test.data(name: "left-orientation", extension: "jpeg"))
+        let input = try XCTUnwrap(Test.data(name: "right-orientation", extension: "jpeg"))
         XCTAssertEqual(PlatformImage(data: input)?.imageOrientation, .right)
 
         // When we resize the image to fit 320x480px frame, we expect the processor
