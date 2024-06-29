@@ -244,6 +244,20 @@ extension CGImagePropertyOrientation {
         }
     }
 }
+extension UIImage.Orientation {
+    init(_ cgOrientation: CGImagePropertyOrientation) {
+        switch cgOrientation {
+            case .up: self = .up
+            case .upMirrored: self = .upMirrored
+            case .down: self = .down
+            case .downMirrored: self = .downMirrored
+            case .left: self = .left
+            case .leftMirrored: self = .leftMirrored
+            case .right: self = .right
+            case .rightMirrored: self = .rightMirrored
+        }
+    }
+}
 #endif
 
 #if canImport(UIKit)
@@ -366,7 +380,22 @@ func makeThumbnail(data: Data, options: ImageRequest.ThumbnailOptions) -> Platfo
     guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
         return nil
     }
+    
+#if canImport(UIKit)
+    let orientation: UIImage.Orientation
+    if let imageProperties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [AnyHashable: Any],
+       let orientationValue = imageProperties[kCGImagePropertyOrientation as String] as? UInt32,
+       let cgOrientation = CGImagePropertyOrientation(rawValue: orientationValue) {
+        orientation = UIImage.Orientation(cgOrientation)
+    } else {
+        orientation = .up
+    }
+    return PlatformImage(cgImage: image, 
+                         scale: UIScreen.main.scale,
+                         orientation: orientation)
+#else
     return PlatformImage(cgImage: image)
+#endif
 }
 
 private func getMaxPixelSize(for source: CGImageSource, options thumbnailOptions: ImageRequest.ThumbnailOptions) -> CGFloat {

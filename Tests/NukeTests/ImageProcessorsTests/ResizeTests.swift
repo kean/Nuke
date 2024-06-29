@@ -123,7 +123,7 @@ class ImageProcessorsResizeTests: XCTestCase {
         // the image a landscape image with s size 640x480px. The raw pixel
         // data, on the other hand, is 480x640px. macOS, however, automatically
         // changes image orientaiton to `up` so that you don't have to worry about it
-        let input = try XCTUnwrap(Test.image(named: "left-orientation.jpeg"))
+        let input = try XCTUnwrap(Test.image(named: "right-orientation.jpeg"))
         
         // When we resize the image to fit 320x480px frame, we expect the processor
         // to take image orientation into the account and produce a 320x240px.
@@ -143,7 +143,7 @@ class ImageProcessorsResizeTests: XCTestCase {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
         // data, on the other hand, is 480x640px.
-        let input = try XCTUnwrap(Test.image(named: "left-orientation.jpeg"))
+        let input = try XCTUnwrap(Test.image(named: "right-orientation.jpeg"))
         XCTAssertEqual(input.imageOrientation, .right)
         
         // When we resize the image to fit 320x480px frame, we expect the processor
@@ -162,7 +162,7 @@ class ImageProcessorsResizeTests: XCTestCase {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
         // data, on the other hand, is 480x640px.
-        let input = try XCTUnwrap(Test.image(named: "left-orientation.jpeg"))
+        let input = try XCTUnwrap(Test.image(named: "right-orientation.jpeg"))
         XCTAssertEqual(input.imageOrientation, .right)
         
         // When
