@@ -60,7 +60,6 @@ private final class ImageSubscription<S>: Subscription where S: Subscriber, S: S
 
         task = pipeline.loadImage(
              with: request,
-             queue: nil,
              progress: { response, _, _ in
                  if let response {
                     // Send progressively decoded image (if enabled and if any)
