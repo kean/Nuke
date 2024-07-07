@@ -34,7 +34,8 @@ extension XCTestCase {
         return record
     }
 
-    private static let cancellablesAK = malloc(1)!
+    // Safe because it's never mutated.
+    nonisolated(unsafe) private static let cancellablesAK = malloc(1)!
 
     fileprivate var cancellables: [AnyCancellable] {
         get { (objc_getAssociatedObject(self, XCTestCase.cancellablesAK) as? [AnyCancellable]) ?? [] }
@@ -98,7 +99,8 @@ extension XCTestCase {
         observations.append(observation)
     }
 
-    private static let observationsAK = malloc(1)!
+    // Safe because it's never mutated.
+    nonisolated(unsafe) private static let observationsAK = malloc(1)!
 
     private var observations: [NSKeyValueObservation] {
         get {

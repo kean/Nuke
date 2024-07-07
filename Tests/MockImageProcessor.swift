@@ -17,7 +17,8 @@ extension PlatformImage {
 }
 
 private enum AssociatedKeys {
-    static let processorId = malloc(1)!
+    // Safe because it's never mutated.
+    nonisolated(unsafe) static let processorId = malloc(1)!
 }
 
 // MARK: - MockImageProcessor

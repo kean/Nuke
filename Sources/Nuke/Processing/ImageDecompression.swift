@@ -15,7 +15,8 @@ enum ImageDecompression {
 
     // MARK: Managing Decompression State
 
-    static let isDecompressionNeededAK = malloc(1)!
+    // Safe because it's never mutated.
+    nonisolated(unsafe) static let isDecompressionNeededAK = malloc(1)!
 
     static func setDecompressionNeeded(_ isDecompressionNeeded: Bool, for image: PlatformImage) {
         objc_setAssociatedObject(image, isDecompressionNeededAK, isDecompressionNeeded, .OBJC_ASSOCIATION_RETAIN)
