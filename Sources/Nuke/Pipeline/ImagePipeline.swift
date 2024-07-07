@@ -190,10 +190,11 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   is finished.
     @discardableResult public func loadImage(
         with request: ImageRequest,
+        queue: DispatchQueue? = nil,
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        _loadImage(with: request, queue: nil, progress: {
+        _loadImage(with: request, queue: queue, progress: {
             progress?($0, $1.completed, $1.total)
         }, completion: completion)
     }
@@ -274,10 +275,11 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - completion: A closure to be called on the main thread when the request is finished.
     @discardableResult public func loadData(
         with request: ImageRequest,
+        queue: DispatchQueue? = nil,
         progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
         completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
-        _loadImage(with: request, isDataTask: true, queue: nil) { _, progress in
+        _loadImage(with: request, isDataTask: true, queue: queue) { _, progress in
             progressHandler?(progress.completed, progress.total)
         } completion: { result in
             let result = result.map { response in
@@ -433,29 +435,5 @@ public final class ImagePipeline: @unchecked Sendable {
     @available(*, deprecated, message: "Please the variant that accepts `ImageRequest` as a parameter")
     @discardableResult public func data(for url: URL) async throws -> (Data, URLResponse?) {
         try await data(for: ImageRequest(url: url))
-    }
-
-    // Deprecated in Nuke 12.8
-    @available(*, deprecated, message: "`ImagePipeline` no longer supports changing the callback queue")
-    @discardableResult public func loadImage(
-        with request: ImageRequest,
-        queue: DispatchQueue?,
-        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
-    ) -> ImageTask {
-        _loadImage(with: request, queue: queue, progress: {
-            progress?($0, $1.completed, $1.total)
-        }, completion: completion)
-    }
-
-    // Deprecated in Nuke 12.8
-    @available(*, deprecated, message: "`ImagePipeline` no longer supports changing the callback queue")
-    @discardableResult public func loadData(
-        with request: ImageRequest,
-        queue: DispatchQueue?,
-        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
-    ) -> ImageTask {
-        _loadData(with: request, queue: queue, progress: progressHandler, completion: completion)
     }
 }
