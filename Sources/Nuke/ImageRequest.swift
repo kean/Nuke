@@ -357,8 +357,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         /// ```
         public static let imageIdKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/imageId"
 
-        /// The image scale to be used. By default, the scale matches the scale
-        /// of the current display.
+        /// The image scale to be used. By default, the scale is `1`.
         public static let scaleKey: ImageRequest.UserInfoKey = "github.com/kean/nuke/scale"
 
         /// Specifies whether the pipeline should retrieve or generate a thumbnail
