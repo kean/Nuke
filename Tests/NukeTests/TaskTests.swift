@@ -447,7 +447,7 @@ private struct MyError: Equatable {
     let raw: String
 }
 
-private final class SimpleTask<T, E>: AsyncTask<T, E> {
+private final class SimpleTask<T, E>: AsyncTask<T, E>, @unchecked Sendable {
     private var starter: ((SimpleTask) -> Void)?
 
     /// Initializes the task with the `starter`.

@@ -42,7 +42,7 @@ class ImagePipelineConfigurationTests: XCTestCase {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
 
-            $0.callbackQueue = queue
+            $0._callbackQueue = queue
         }
 
         // When/Then
@@ -67,7 +67,7 @@ class ImagePipelineConfigurationTests: XCTestCase {
             $0.dataLoader = dataLoader
             $0.imageCache = nil
 
-            $0.callbackQueue = queue
+            $0._callbackQueue = queue
         }
 
         // When/Then

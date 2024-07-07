@@ -252,13 +252,14 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         
         dataCache = MockDataCache()
         dataLoader = MockDataLoader()
-        encoder = MockImageEncoder(result: Test.data(name: "fixture-tiny", extension: "jpeg"))
-        
+        let encoder = MockImageEncoder(result: Test.data(name: "fixture-tiny", extension: "jpeg"))
+        self.encoder = encoder
+
         pipeline = ImagePipeline {
             $0.dataLoader = dataLoader
             $0.dataCache = dataCache
             $0.imageCache = nil
-            $0.makeImageEncoder = { [unowned self] _ in self.encoder }
+            $0.makeImageEncoder = { _ in encoder }
             $0.debugIsSyncImageEncoding = true
         }
         
