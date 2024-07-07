@@ -226,7 +226,7 @@ public final class ImagePipeline: @unchecked Sendable {
         if callbackQueue === self.queue {
             closure()
         } else {
-            (callbackQueue ?? self.configuration.callbackQueue).async(execute: closure)
+            (callbackQueue ?? self.configuration._callbackQueue).async(execute: closure)
         }
     }
 
