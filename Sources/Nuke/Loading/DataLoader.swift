@@ -117,7 +117,7 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 // Actual data loader implementation. Hide NSObject inheritance, hide
 // URLSessionDataDelegate conformance, and break retain cycle between URLSession
 // and URLSessionDataDelegate.
-private final class _DataLoader: NSObject, URLSessionDataDelegate {
+private final class _DataLoader: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     let validate: @Sendable (URLResponse) -> Swift.Error?
     private var handlers = [URLSessionTask: _Handler]()
     var delegate: URLSessionDelegate?
@@ -184,8 +184,7 @@ private final class _DataLoader: NSObject, URLSessionDataDelegate {
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
-        (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, willPerformHTTPRedirection: response, newRequest: request, completionHandler: completionHandler) ??
-        completionHandler(request)
+        (delegate as? URLSessionTaskDelegate)?.urlSession?(session, task: task, willPerformHTTPRedirection: response, newRequest: request, completionHandler: completionHandler) ?? completionHandler(request)
     }
 
     func urlSession(_ session: URLSession, taskIsWaitingForConnectivity task: URLSessionTask) {
