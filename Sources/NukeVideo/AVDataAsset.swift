@@ -27,7 +27,7 @@ private extension AssetType {
 }
 
 // This class keeps strong pointer to DataAssetResourceLoader
-final class AVDataAsset: AVURLAsset {
+final class AVDataAsset: AVURLAsset, @unchecked Sendable {
     private let resourceLoaderDelegate: DataAssetResourceLoader
 
     init(data: Data, type: AssetType?) {
