@@ -96,7 +96,7 @@ The image pipeline is easy to customize and extend. Check out the following firs
 
 | Nuke       | Date         | Swift       | Xcode      | Platforms                                     |
 |------------|--------------|-------------|------------|-----------------------------------------------|
-| Nuke 12.0  | Mar 4, 2023  | Swift 5.7   | Xcode 14.1 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
+| Nuke 12.0  | Mar 4, 2023  | Swift 5.7   | Xcode 15.0 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
 | Nuke 11.0  | Jul 20, 2022 | Swift 5.6   | Xcode 13.3 | iOS 13.0, watchOS 6.0, macOS 10.15, tvOS 13.0 |
 | Nuke 10.0  | Jun 1, 2021  | Swift 5.3   | Xcode 12.0 | iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0 |
 

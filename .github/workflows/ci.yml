@@ -60,17 +60,17 @@ jobs:
 #          Scripts/test.sh -s "NukeUI" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
 #          Scripts/test.sh -s "Nuke Extensions" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
   ios-xcode-14-3-1:
-    name: Unit Tests (iOS 16.4, Xcode 14.3.1)
+    name: Unit Tests (iOS 17.0, Xcode 15.0)
     runs-on: macOS-13
     env:
-      DEVELOPER_DIR: /Applications/Xcode_14.3.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_15.0.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          Scripts/test.sh -s "Nuke" -d "OS=16.4,name=iPhone 14 Pro"
-          Scripts/test.sh -s "NukeUI" -d "OS=16.4,name=iPhone 14 Pro"
-          Scripts/test.sh -s "NukeExtensions" -d "OS=16.4,name=iPhone 14 Pro"
+          Scripts/test.sh -s "Nuke" -d "OS=17.0,name=iPhone 15 Pro"
+          Scripts/test.sh -s "NukeUI" -d "OS=17.0,name=iPhone 15 Pro"
+          Scripts/test.sh -s "NukeExtensions" -d "OS=17.0,name=iPhone 15 Pro"
   ios-thread-safety:
     name: Thread Safety Tests (TSan Enabled)
     runs-on: macOS-14
