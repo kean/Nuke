@@ -283,7 +283,7 @@ public typealias AsyncImageTask = ImageTask
 // MARK: - ImageTask (Private)
 
 extension ImageTask {
-    private func makeStream<T>(of closure: @escaping (Event) -> T?) -> AsyncStream<T> {
+    private func makeStream<T>(of closure: @Sendable @escaping (Event) -> T?) -> AsyncStream<T> {
         AsyncStream { continuation in
             self.queue.async {
                 guard let events = self._makeEventsSubject() else {
