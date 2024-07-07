@@ -50,7 +50,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     /// regardless of whether the requests succeed or some fail.
     ///
     /// - note: The closure is called on the main queue.
-    public var didComplete: (() -> Void)?
+    public var didComplete: (@MainActor @Sendable () -> Void)?
 
     private let pipeline: ImagePipeline
     private var tasks = [TaskLoadImageKey: Task]()
