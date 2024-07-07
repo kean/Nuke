@@ -17,8 +17,12 @@ extension PlatformImage {
 }
 
 private enum AssociatedKeys {
+#if swift(>=5.10)
     // Safe because it's never mutated.
     nonisolated(unsafe) static let processorId = malloc(1)!
+#else
+    static let processorId = malloc(1)!
+#endif
 }
 
 // MARK: - MockImageProcessor

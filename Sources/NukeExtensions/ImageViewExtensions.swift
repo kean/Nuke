@@ -216,8 +216,12 @@ private final class ImageViewController {
 
     // MARK: - Associating Controller
 
+#if swift(>=5.10)
     // Safe because it's never mutated.
     nonisolated(unsafe) static let controllerAK = malloc(1)!
+#else
+    static let controllerAK = malloc(1)!
+#endif
 
     // Lazily create a controller for a given view and associate it with a view.
     static func controller(for view: ImageDisplayingView) -> ImageViewController {
