@@ -7,7 +7,7 @@ import Foundation
 /// Provides basic networking using `URLSession`.
 public final class DataLoader: DataLoading, @unchecked Sendable {
     public let session: URLSession
-    private let impl = _DataLoader()
+    private let impl: _DataLoader
 
     /// Determines whether to deliver a partial response body in increments. By
     /// default, `false`.
@@ -41,12 +41,12 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
     ///   - validate: Validates the response. By default, check if the status
     ///   code is in the acceptable range (`200..<300`).
     public init(configuration: URLSessionConfiguration = DataLoader.defaultConfiguration,
-                validate: @escaping (URLResponse) -> Swift.Error? = DataLoader.validate) {
+                validate: @Sendable @escaping (URLResponse) -> Swift.Error? = DataLoader.validate) {
+        self.impl = _DataLoader(validate: validate)
         let queue = OperationQueue()
         queue.maxConcurrentOperationCount = 1
         self.session = URLSession(configuration: configuration, delegate: impl, delegateQueue: queue)
         self.session.sessionDescription = "Nuke URLSession"
-        self.impl.validate = validate
     }
 
     /// Returns a default configuration which has a `sharedUrlCache` set
@@ -59,7 +59,7 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 
     /// Validates `HTTP` responses by checking that the status code is 2xx. If
     /// it's not returns ``DataLoader/Error/statusCodeUnacceptable(_:)``.
-    public static func validate(response: URLResponse) -> Swift.Error? {
+    @Sendable public static func validate(response: URLResponse) -> Swift.Error? {
         guard let response = response as? HTTPURLResponse else {
             return nil
         }
@@ -118,9 +118,13 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
 // URLSessionDataDelegate conformance, and break retain cycle between URLSession
 // and URLSessionDataDelegate.
 private final class _DataLoader: NSObject, URLSessionDataDelegate {
-    var validate: (URLResponse) -> Swift.Error? = DataLoader.validate
+    let validate: @Sendable (URLResponse) -> Swift.Error?
     private var handlers = [URLSessionTask: _Handler]()
     var delegate: URLSessionDelegate?
+
+    init(validate: @Sendable @escaping (URLResponse) -> Swift.Error?) {
+        self.validate = validate
+    }
 
     /// Loads data with the given request.
     func loadData(with task: URLSessionDataTask,
