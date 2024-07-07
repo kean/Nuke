@@ -292,7 +292,6 @@ public final class LazyImageView: _PlatformBaseView {
 
         let task = pipeline.loadImage(
             with: request,
-            queue: .main,
             progress: { [weak self] response, completed, total in
                 guard let self else { return }
                 let progress = ImageTask.Progress(completed: completed, total: total)

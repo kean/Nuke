@@ -136,7 +136,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     }
 
     private func loadImage(task: Task, finish: @escaping () -> Void) {
-        task.imageTask = pipeline._loadImage(with: task.request, isDataTask: destination == .diskCache, queue: pipeline.queue, progress: nil) { [weak self] _ in
+        task.imageTask = pipeline._deprecatedLoadImage(with: task.request, isDataTask: destination == .diskCache, queue: pipeline.queue, progress: nil) { [weak self] _ in
             self?._remove(task)
             finish()
         }
