@@ -40,7 +40,7 @@ extension AsyncPipelineTask: ImageTaskSubscribers {
 extension AsyncPipelineTask {
     /// Decodes the data on the dedicated queue and calls the completion
     /// on the pipeline's internal queue.
-    func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @escaping (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
+    func decode(_ context: ImageDecodingContext, decoder: any ImageDecoding, _ completion: @Sendable @escaping (Result<ImageResponse, ImagePipeline.Error>) -> Void) {
         @Sendable func decode() -> Result<ImageResponse, ImagePipeline.Error> {
             signpost(context.isCompleted ? "DecodeImageData" : "DecodeProgressiveImageData") {
                 Result { try decoder.decode(context) }
