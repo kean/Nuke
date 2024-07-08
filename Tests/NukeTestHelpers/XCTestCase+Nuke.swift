@@ -15,22 +15,22 @@ import Cocoa
 #endif
 
 extension XCTestCase {
-    func expect(_ pipeline: ImagePipeline) -> TestExpectationImagePipeline {
+    public func expect(_ pipeline: ImagePipeline) -> TestExpectationImagePipeline {
         return TestExpectationImagePipeline(test: self, pipeline: pipeline)
     }
 }
 
-struct TestExpectationImagePipeline {
-    let test: XCTestCase
-    let pipeline: ImagePipeline
+public struct TestExpectationImagePipeline {
+    public let test: XCTestCase
+    public let pipeline: ImagePipeline
 
     @discardableResult
-    func toLoadImage(with request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> TestRecordedImageRequest {
+    public func toLoadImage(with request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> TestRecordedImageRequest {
         toLoadImage(with: request, progress: nil, completion: completion)
     }
 
     @discardableResult
-    func toLoadImage(with request: ImageRequest,
+    public func toLoadImage(with request: ImageRequest,
                      progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
                      completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> TestRecordedImageRequest {
         let record = TestRecordedImageRequest()
@@ -46,12 +46,12 @@ struct TestExpectationImagePipeline {
     }
 
     @discardableResult
-    func toFailRequest(_ request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> ImageTask {
+    public func toFailRequest(_ request: ImageRequest, completion: @escaping ((Result<ImageResponse, ImagePipeline.Error>) -> Void)) -> ImageTask {
         toFailRequest(request, progress: nil, completion: completion)
     }
 
     @discardableResult
-    func toFailRequest(_ request: ImageRequest,
+    public func toFailRequest(_ request: ImageRequest,
                        progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
                        completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> ImageTask {
         let expectation = test.expectation(description: "Image request failed \(request)")
@@ -63,14 +63,14 @@ struct TestExpectationImagePipeline {
         }
     }
 
-    func toFailRequest(_ request: ImageRequest, with expectedError: ImagePipeline.Error, file: StaticString = #file, line: UInt = #line) {
+    public func toFailRequest(_ request: ImageRequest, with expectedError: ImagePipeline.Error, file: StaticString = #file, line: UInt = #line) {
         toFailRequest(request) { result in
             XCTAssertEqual(result.error, expectedError, file: file, line: line)
         }
     }
 
     @discardableResult
-    func toLoadData(with request: ImageRequest) -> TestRecorededDataTask {
+    public func toLoadData(with request: ImageRequest) -> TestRecorededDataTask {
         let record = TestRecorededDataTask()
         let request = request
         let expectation = test.expectation(description: "Data loaded for \(request)")
@@ -83,32 +83,32 @@ struct TestExpectationImagePipeline {
     }
 }
 
-final class TestRecordedImageRequest {
-    var task: ImageTask {
+public final class TestRecordedImageRequest {
+    public var task: ImageTask {
         _task
     }
     fileprivate var _task: ImageTask!
 
-    var result: Result<ImageResponse, ImagePipeline.Error>?
+    public var result: Result<ImageResponse, ImagePipeline.Error>?
 
-    var response: ImageResponse? {
+    public var response: ImageResponse? {
         result?.value
     }
 
-    var image: PlatformImage? {
+    public var image: PlatformImage? {
         response?.image
     }
 }
 
-final class TestRecorededDataTask {
-    var task: ImageTask {
+public final class TestRecorededDataTask {
+    public var task: ImageTask {
         _task
     }
     fileprivate var _task: ImageTask!
 
-    var result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>?
+    public var result: Result<(data: Data, response: URLResponse?), ImagePipeline.Error>?
 
-    var data: Data? {
+    public var data: Data? {
         guard case .success(let response)? = result else {
             return nil
         }
@@ -117,18 +117,18 @@ final class TestRecorededDataTask {
 }
 
 extension XCTestCase {
-    func expect(_ pipeline: ImagePipeline, _ dataLoader: MockProgressiveDataLoader) -> TestExpectationProgressivePipeline {
+    public func expect(_ pipeline: ImagePipeline, _ dataLoader: MockProgressiveDataLoader) -> TestExpectationProgressivePipeline {
         return TestExpectationProgressivePipeline(test: self, pipeline: pipeline, dataLoader: dataLoader)
     }
 }
 
-struct TestExpectationProgressivePipeline {
+public struct TestExpectationProgressivePipeline {
     let test: XCTestCase
     let pipeline: ImagePipeline
     let dataLoader: MockProgressiveDataLoader
 
     // We expect two partial images (at 5 scans, and 9 scans marks).
-    func toProducePartialImages(for request: ImageRequest = Test.request,
+    public func toProducePartialImages(for request: ImageRequest = Test.request,
                                 withCount count: Int = 2,
                                 progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
                                 completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
@@ -159,7 +159,7 @@ struct TestExpectationProgressivePipeline {
 
 // MARK: - UIImage
 
-func XCTAssertEqualImages(_ lhs: PlatformImage, _ rhs: PlatformImage, file: StaticString = #file, line: UInt = #line) {
+public func XCTAssertEqualImages(_ lhs: PlatformImage, _ rhs: PlatformImage, file: StaticString = #file, line: UInt = #line) {
     XCTAssertTrue(isEqual(lhs, rhs), "Expected images to be equal", file: file, line: line)
 }
 

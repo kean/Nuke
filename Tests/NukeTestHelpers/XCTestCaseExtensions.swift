@@ -8,11 +8,11 @@ import Combine
 
 extension XCTestCase {
     @discardableResult
-    func expectNotification(_ name: Notification.Name, object: AnyObject? = nil, handler: XCTNSNotificationExpectation.Handler? = nil) -> XCTestExpectation {
+    public func expectNotification(_ name: Notification.Name, object: AnyObject? = nil, handler: XCTNSNotificationExpectation.Handler? = nil) -> XCTestExpectation {
         return self.expectation(forNotification: name, object: object, handler: handler)
     }
 
-    func wait(_ timeout: TimeInterval = 5, handler: XCWaitCompletionHandler? = nil) {
+    public func wait(_ timeout: TimeInterval = 5, handler: XCWaitCompletionHandler? = nil) {
         self.waitForExpectations(timeout: timeout, handler: handler)
     }
 }
@@ -122,12 +122,12 @@ extension XCTestCase {
 
 // MARK: - XCTestExpectationFactory
 
-struct TestExpectationOperationQueue {
+public struct TestExpectationOperationQueue {
     let test: XCTestCase
     let queue: OperationQueue
 
     @discardableResult
-    func toEnqueueOperationsWithCount(_ count: Int) -> OperationQueueObserver {
+    public func toEnqueueOperationsWithCount(_ count: Int) -> OperationQueueObserver {
         let expectation = test.expectation(description: "Expect queue to enqueue \(count) operations")
         let observer = OperationQueueObserver(queue: queue)
         observer.didAddOperation = { _ in
@@ -144,7 +144,7 @@ struct TestExpectationOperationQueue {
     ///
     /// Automatically resumes a queue as soon as `n` operations are enqueued.
     @discardableResult
-    func toFinishWithEnqueuedOperationCount(_ count: Int) -> OperationQueueObserver {
+    public func toFinishWithEnqueuedOperationCount(_ count: Int) -> OperationQueueObserver {
         precondition(queue.isSuspended, "Queue must be suspended in order to reliably track when all expected operations are enqueued.")
 
         let expectation = test.expectation(description: "Expect queue to finish with \(count) operations")
@@ -169,17 +169,17 @@ struct TestExpectationOperationQueue {
 }
 
 extension XCTestCase {
-    func expect(_ queue: OperationQueue) -> TestExpectationOperationQueue {
+    public func expect(_ queue: OperationQueue) -> TestExpectationOperationQueue {
         return TestExpectationOperationQueue(test: self, queue: queue)
     }
 }
 
-struct TestExpectationOperation {
+public struct TestExpectationOperation {
     let test: XCTestCase
     let operation: Operation
 
     // This is useful because KVO on Foundation.Operation is super flaky in Swift
-    func toCancel(with expectation: XCTestExpectation? = nil) {
+    public func toCancel(with expectation: XCTestExpectation? = nil) {
         let expectation = expectation ?? self.test.expectation(description: "Cancelled")
         let operation = self.operation
 
@@ -196,7 +196,7 @@ struct TestExpectationOperation {
         check()
     }
 
-    func toUpdatePriority(from: Operation.QueuePriority = .normal, to: Operation.QueuePriority = .high) {
+    public func toUpdatePriority(from: Operation.QueuePriority = .normal, to: Operation.QueuePriority = .high) {
         XCTAssertEqual(operation.queuePriority, from)
         test.keyValueObservingExpectation(for: operation, keyPath: "queuePriority") { [weak operation] (_, _)  in
             XCTAssertEqual(operation?.queuePriority, to)
@@ -206,7 +206,7 @@ struct TestExpectationOperation {
 }
 
 extension XCTestCase {
-    func expect(_ operation: Operation) -> TestExpectationOperation {
+    public func expect(_ operation: Operation) -> TestExpectationOperation {
         return TestExpectationOperation(test: self, operation: operation)
     }
 }
@@ -214,7 +214,7 @@ extension XCTestCase {
 // MARK: - ValuesExpectation
 
 extension XCTestCase {
-    class ValuesExpectation<Value> {
+    public class ValuesExpectation<Value> {
         private let expectation: XCTestExpectation
         private let expected: [Value]
         private let isEqual: (Value, Value) -> Bool
@@ -228,7 +228,7 @@ extension XCTestCase {
             self.expectation = expectation
         }
 
-        func received(_ newValue: Value) {
+        public func received(_ newValue: Value) {
             _recorded.append(newValue)
             guard let value = _expected.popLast() else {
                 XCTFail("Received unexpected value. Recorded: \(_recorded), Expected: \(expected)")
@@ -249,25 +249,25 @@ extension XCTestCase {
         return ValuesExpectation(expected: values, isEqual: isEqual, expectation: self.expectation(description: "Expecting values: \(values)"))
     }
 
-    func expectProgress(_ values: [(Int64, Int64)]) -> ValuesExpectation<(Int64, Int64)> {
+    public func expectProgress(_ values: [(Int64, Int64)]) -> ValuesExpectation<(Int64, Int64)> {
         return expect(values: values, isEqual: ==)
     }
 }
 
 // MARK: - OperationQueueObserver
 
-final class OperationQueueObserver {
+public final class OperationQueueObserver {
     private let queue: OperationQueue
     // All recorded operations.
-    private(set) var operations = [Foundation.Operation]()
+    public private(set) var operations = [Foundation.Operation]()
     private var _ops = Set<Foundation.Operation>()
     private var _observers = [NSKeyValueObservation]()
     private let _lock = NSLock()
 
-    var didAddOperation: ((Foundation.Operation) -> Void)?
-    var didFinishAllOperations: (() -> Void)?
+    public var didAddOperation: ((Foundation.Operation) -> Void)?
+    public var didFinishAllOperations: (() -> Void)?
 
-    init(queue: OperationQueue) {
+    public init(queue: OperationQueue) {
         self.queue = queue
 
         _startObservingOperations()

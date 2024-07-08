@@ -3,8 +3,10 @@
 // Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-@testable import Nuke
 import Combine
+import NukeTestHelpers
+
+@testable import Nuke
 
 class ImagePublisherTests: XCTestCase {
     var dataLoader: MockDataLoader!

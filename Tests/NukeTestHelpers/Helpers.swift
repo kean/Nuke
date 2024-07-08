@@ -5,67 +5,64 @@
 import Nuke
 import XCTest
 
-private final class BundleToken {}
-
 // Test data.
-enum Test {
-    static func url(forResource name: String, extension ext: String) -> URL {
-        let bundle = Bundle(for: BundleToken.self)
-        return bundle.url(forResource: name, withExtension: ext)!
+public enum Test {
+    public static func url(forResource name: String, extension ext: String) -> URL {
+        Bundle.module.url(forResource: name, withExtension: ext)!
     }
 
-    static func data(name: String, extension ext: String) -> Data {
+    public static func data(name: String, extension ext: String) -> Data {
         let url = self.url(forResource: name, extension: ext)
         return try! Data(contentsOf: url)
     }
 
-    static func image(named name: String) -> PlatformImage {
+    public static func image(named name: String) -> PlatformImage {
         let components = name.split(separator: ".")
         return self.image(named: String(components[0]), extension: String(components[1]))
     }
 
-    static func image(named name: String, extension ext: String) -> PlatformImage {
+    public static func image(named name: String, extension ext: String) -> PlatformImage {
         Test.container(named: name, extension: ext).image
     }
 
-    static func container(named name: String, extension ext: String) -> ImageContainer {
+    public static func container(named name: String, extension ext: String) -> ImageContainer {
         let data = Test.data(name: name, extension: ext)
         return try! ImageDecoders.Default().decode(data)
     }
 
-    static let url = URL(string: "http://test.com/example.jpeg")!
+    public static let url = URL(string: "http://test.com/example.jpeg")!
 
-    static let data: Data = Test.data(name: "fixture", extension: "jpeg")
+    public static let data: Data = Test.data(name: "fixture", extension: "jpeg")
 
     // Test.image size is 640 x 480 pixels
-    static var image: PlatformImage {
+    public static var image: PlatformImage {
         Test.image(named: "fixture", extension: "jpeg")
     }
 
     // Test.image size is 640 x 480 pixels
-    static var container: ImageContainer {
+    public static var container: ImageContainer {
         ImageContainer(image: image)
     }
 
-    static var request: ImageRequest {
+    public static var request: ImageRequest {
         ImageRequest(url: Test.url)
     }
 
-    static let urlResponse = HTTPURLResponse(
+    public static let urlResponse = HTTPURLResponse(
         url: Test.url,
         mimeType: "jpeg",
         expectedContentLength: 22_789,
         textEncodingName: nil
     )
 
-    static let response = ImageResponse(
+    public static let response = ImageResponse(
         container: .init(image: Test.image),
         request: Test.request,
         urlResponse: urlResponse,
         cacheType: nil
     )
 
-    static func save(_ image: PlatformImage) {
+    public static func save(_ image: PlatformImage) {
         let url = try! FileManager.default
             .url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             .appendingPathComponent(UUID().uuidString)
@@ -77,17 +74,17 @@ enum Test {
 }
 
 extension ImageDecodingContext {
-    static var mock: ImageDecodingContext {
+    public static var mock: ImageDecodingContext {
         mock(data: Test.data)
     }
 
-    static func mock(data: Data) -> ImageDecodingContext {
+    public static func mock(data: Data) -> ImageDecodingContext {
         ImageDecodingContext(request: Test.request, data: data)
     }
 }
 
 extension ImageProcessingContext {
-    static var mock: ImageProcessingContext {
+    public static var mock: ImageProcessingContext {
         ImageProcessingContext(request: Test.request, response: Test.response, isCompleted: true)
     }
 }
@@ -101,18 +98,18 @@ extension NSImage {
 #endif
 
 extension CGImage {
-    var size: CGSize {
+    public var size: CGSize {
         CGSize(width: width, height: height)
     }
 }
 
 extension PlatformImage {
-    var sizeInPixels: CGSize {
+    public var sizeInPixels: CGSize {
         cgImage!.size
     }
 }
 
-func _groups(regex: String, in text: String) -> [String] {
+public func _groups(regex: String, in text: String) -> [String] {
     do {
         let regex = try NSRegularExpression(pattern: regex)
         let results = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
@@ -126,7 +123,7 @@ func _groups(regex: String, in text: String) -> [String] {
 }
 
 // Supports subranges as well.
-func _createChunks(for data: Data, size: Int) -> [Data] {
+public func _createChunks(for data: Data, size: Int) -> [Data] {
     var chunks = [Data]()
     let endIndex = data.endIndex
     var offset = data.startIndex
@@ -142,15 +139,15 @@ func _createChunks(for data: Data, size: Int) -> [Data] {
 // MARK: - Result extension
 
 extension Result {
-    var isSuccess: Bool {
+    public var isSuccess: Bool {
         return value != nil
     }
 
-    var isFailure: Bool {
+    public var isFailure: Bool {
         return error != nil
     }
 
-    var value: Success? {
+    public var value: Success? {
         switch self {
         case let .success(value):
             return value
@@ -159,7 +156,7 @@ extension Result {
         }
     }
 
-    var error: Failure? {
+    public var error: Failure? {
         switch self {
         case .success:
             return nil

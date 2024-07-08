@@ -29,7 +29,7 @@ extension ImageResponse: Equatable {
 }
 
 extension ImagePipeline {
-    func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
+    public func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
         var configuration = self.configuration
         configure(&configuration)
         return ImagePipeline(configuration: configuration)
@@ -51,14 +51,14 @@ extension ImagePipeline {
 
 extension ImageProcessing {
     /// A throwing version of a regular method.
-    func processThrowing(_ image: PlatformImage) throws -> PlatformImage {
+    public func processThrowing(_ image: PlatformImage) throws -> PlatformImage {
         let context = ImageProcessingContext(request: Test.request, response: Test.response, isCompleted: true)
         return (try process(ImageContainer(image: image), context: context)).image
     }
 }
 
 extension ImageCaching {
-    subscript(request: ImageRequest) -> ImageContainer? {
+    public subscript(request: ImageRequest) -> ImageContainer? {
         get { self[ImageCacheKey(request: request)] }
         set { self[ImageCacheKey(request: request)] = newValue }
     }

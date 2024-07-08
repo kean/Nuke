@@ -4,6 +4,7 @@
 
 import Foundation
 import Nuke
+import NukeTestHelpers
 
 #if os(iOS) || os(visionOS)
 

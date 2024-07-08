@@ -14,19 +14,23 @@ private final class MockDataTask: Cancellable, @unchecked Sendable {
     }
 }
 
-class MockDataLoader: DataLoading, @unchecked Sendable {
-    static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
-    static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
+public final class MockDataLoader: DataLoading, @unchecked Sendable {
+    public static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
+    public static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
 
-    @Atomic var createdTaskCount = 0
-    var results = [URL: Result<(Data, URLResponse), NSError>]()
-    let queue = OperationQueue()
-    var isSuspended: Bool {
+    @Atomic public var createdTaskCount = 0
+
+    public var results = [URL: Result<(Data, URLResponse), NSError>]()
+    public let queue = OperationQueue()
+    
+    public var isSuspended: Bool {
         get { queue.isSuspended }
         set { queue.isSuspended = newValue }
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    public init() {}
+
+    public func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
         let task = MockDataTask()
 
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)

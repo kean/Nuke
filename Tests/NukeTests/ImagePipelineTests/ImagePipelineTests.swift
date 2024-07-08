@@ -4,6 +4,8 @@
 
 import XCTest
 import Combine
+import NukeTestHelpers
+
 @testable import Nuke
 
 class ImagePipelineTests: XCTestCase {

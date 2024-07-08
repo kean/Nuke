@@ -5,21 +5,21 @@
 import Foundation
 @testable import Nuke
 
-class MockImageCache: ImageCaching, @unchecked Sendable {
-    let queue = DispatchQueue(label: "com.github.Nuke.MockCache")
-    var enabled = true
-    var images = [AnyHashable: ImageContainer]()
-    var readCount = 0
-    var writeCount = 0
+public final class MockImageCache: ImageCaching, @unchecked Sendable {
+    public let queue = DispatchQueue(label: "com.github.Nuke.MockCache")
+    public var enabled = true
+    public var images = [AnyHashable: ImageContainer]()
+    public var readCount = 0
+    public var writeCount = 0
 
-    init() {}
+    public init() {}
 
-    func resetCounters() {
+    public func resetCounters() {
         readCount = 0
         writeCount = 0
     }
 
-    subscript(key: ImageCacheKey) -> ImageContainer? {
+    public subscript(key: ImageCacheKey) -> ImageContainer? {
         get {
             queue.sync {
                 readCount += 1
@@ -38,7 +38,7 @@ class MockImageCache: ImageCaching, @unchecked Sendable {
         }
     }
 
-    func removeAll() {
+    public func removeAll() {
         images.removeAll()
     }
 }

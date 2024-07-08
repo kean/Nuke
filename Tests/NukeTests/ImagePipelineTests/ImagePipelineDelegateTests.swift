@@ -3,6 +3,8 @@
 // Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
+import NukeTestHelpers
+
 @testable import Nuke
 
 class ImagePipelineDelegateTests: XCTestCase {
