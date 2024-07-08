@@ -21,11 +21,31 @@ let package = Package(
         .target(name: "NukeUI", dependencies: ["Nuke"]),
         .target(name: "NukeVideo", dependencies: ["Nuke"]),
         .target(name: "NukeExtensions", dependencies: ["Nuke"]),
-        .target(name: "NukeTestHelpers", dependencies: ["Nuke"], path: "Tests/NukeTestHelpers", resources: [.process("Fixtures")]),
-        .testTarget(name: "NukeTests", dependencies: ["Nuke", "NukeTestHelpers"]),
-        .testTarget(name: "NukeThreadSafetyTests", dependencies: ["Nuke", "NukeTestHelpers"]),
-        .testTarget(name: "NukeUITests", dependencies: ["NukeUI", "NukeTestHelpers"]),
-        .testTarget(name: "NukeExtensionsTests", dependencies: ["NukeExtensions", "NukeTestHelpers"]),
-        .testTarget(name: "NukePerformanceTests", dependencies: ["Nuke", "NukeUI", "NukeExtensions", "NukeTestHelpers"]),
-    ]
+    ] + Package.testTargets
 )
+
+extension Package {
+    static let testTargets: [Target] = [
+        .testTarget(name: "NukeTests", dependencies: [
+            "Nuke", "NukeTestHelpers"
+        ]),
+        .testTarget(name: "NukeThreadSafetyTests", dependencies: [
+            "Nuke", "NukeTestHelpers"
+        ]),
+        .testTarget(name: "NukeUITests", dependencies: [
+            "NukeUI", "NukeTestHelpers"
+        ]),
+        .testTarget(name: "NukeExtensionsTests", dependencies: [
+            "NukeExtensions", "NukeTestHelpers"
+        ]),
+        .testTarget(name: "NukePerformanceTests", dependencies: [
+            "Nuke", "NukeUI", "NukeExtensions", "NukeTestHelpers"
+        ]),
+        .target(
+            name: "NukeTestHelpers",
+            dependencies: ["Nuke"],
+            path: "Tests/NukeTestHelpers",
+            resources: [.process("Fixtures")]
+        ),
+    ]
+}
