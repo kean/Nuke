@@ -25,5 +25,6 @@ let package = Package(
         .testTarget(name: "NukeTests", dependencies: ["Nuke", "NukeTestHelpers"]),
         .testTarget(name: "NukeThreadSafetyTests", dependencies: ["Nuke", "NukeTestHelpers"]),
         .testTarget(name: "NukeUITests", dependencies: ["NukeUI", "NukeTestHelpers"]),
+        .testTarget(name: "NukeExtensionsTests", dependencies: ["NukeExtensions", "NukeTestHelpers"]),
     ]
 )
