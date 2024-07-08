@@ -20,11 +20,11 @@ extension XCTestCase {
 // MARK: - Publishers
 
 extension XCTestCase {
-    func expect<P: Publisher>(_ publisher: P) -> TestExpectationPublisher<P> {
+    public func expect<P: Publisher>(_ publisher: P) -> TestExpectationPublisher<P> {
         TestExpectationPublisher(test: self, publisher: publisher)
     }
 
-    func record<P: Publisher>(_ publisher: P) -> TestRecordedPublisher<P> {
+    public func record<P: Publisher>(_ publisher: P) -> TestRecordedPublisher<P> {
         let record = TestRecordedPublisher<P>()
         publisher.sink(receiveCompletion: {
             record.completion = $0
@@ -47,12 +47,12 @@ extension XCTestCase {
     }
 }
 
-struct TestExpectationPublisher<P: Publisher> {
+public struct TestExpectationPublisher<P: Publisher> {
     let test: XCTestCase
     let publisher: P
 
     @discardableResult
-    func toPublishSingleValue() -> TestRecordedPublisher<P> {
+    public func toPublishSingleValue() -> TestRecordedPublisher<P> {
         let record = TestRecordedPublisher<P>()
         let expectation = test.expectation(description: "ValueEmitted")
         publisher.sink(receiveCompletion: { _ in
@@ -68,11 +68,11 @@ struct TestExpectationPublisher<P: Publisher> {
     }
 }
 
-final class TestRecordedPublisher<P: Publisher> {
-    fileprivate(set) var values = [P.Output]()
-    fileprivate(set) var completion: Subscribers.Completion<P.Failure>?
+public final class TestRecordedPublisher<P: Publisher> {
+    public fileprivate(set) var values = [P.Output]()
+    public fileprivate(set) var completion: Subscribers.Completion<P.Failure>?
 
-    var last: P.Output? {
+    public var last: P.Output? {
         values.last
     }
 }

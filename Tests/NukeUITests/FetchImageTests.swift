@@ -3,10 +3,11 @@
 // Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
+import NukeTestHelpers
+
 @testable import Nuke
 @testable import NukeUI
 
-@MainActor
 class FetchImageTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var imageCache: MockImageCache!
@@ -34,6 +35,7 @@ class FetchImageTests: XCTestCase {
         image.pipeline = pipeline
     }
 
+    @MainActor
     func testImageLoaded() throws {
         // RECORD
         let record = expect(image.$result.dropFirst()).toPublishSingleValue()
@@ -48,6 +50,7 @@ class FetchImageTests: XCTestCase {
         XCTAssertNotNil(image.image)
     }
 
+    @MainActor
     func testIsLoadingUpdated() {
         // RECORD
         expect(image.$result.dropFirst()).toPublishSingleValue()
@@ -61,6 +64,7 @@ class FetchImageTests: XCTestCase {
         XCTAssertEqual(isLoading.values, [false, true, false])
     }
 
+    @MainActor
     func testMemoryCacheLookup() throws {
         // GIVEN
         pipeline.cache[Test.request] = Test.container
@@ -76,6 +80,7 @@ class FetchImageTests: XCTestCase {
         XCTAssertNotNil(image.image)
     }
 
+    @MainActor
     func testPriorityUpdated() {
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
@@ -91,6 +96,7 @@ class FetchImageTests: XCTestCase {
         XCTAssertEqual(operation.queuePriority, .high)
     }
 
+    @MainActor
     func testPriorityUpdatedDynamically() {
         let queue = pipeline.configuration.dataLoadingQueue
         queue.isSuspended = true
@@ -107,6 +113,7 @@ class FetchImageTests: XCTestCase {
         wait()
     }
 
+    @MainActor
     func testPublisherImageLoaded() throws {
         // RECORD
         let record = expect(image.$result.dropFirst()).toPublishSingleValue()
@@ -121,6 +128,7 @@ class FetchImageTests: XCTestCase {
         XCTAssertNotNil(image.image)
     }
 
+    @MainActor
     func testPublisherIsLoadingUpdated() {
         // RECORD
         expect(image.$result.dropFirst()).toPublishSingleValue()
@@ -134,6 +142,7 @@ class FetchImageTests: XCTestCase {
         XCTAssertEqual(isLoading.values, [false, true, false])
     }
 
+    @MainActor
     func testPublisherMemoryCacheLookup() throws {
         // GIVEN
         pipeline.cache[Test.request] = Test.container
@@ -149,6 +158,7 @@ class FetchImageTests: XCTestCase {
         XCTAssertNotNil(image.image)
     }
 
+    @MainActor
     func testRequestCancelledWhenTargetGetsDeallocated() {
         dataLoader.isSuspended = true
 
