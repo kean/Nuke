@@ -23,6 +23,7 @@ let package = Package(
         .target(name: "NukeExtensions", dependencies: ["Nuke"]),
         .target(name: "NukeTestHelpers", dependencies: ["Nuke"], path: "Tests/NukeTestHelpers", resources: [.process("Fixtures")]),
         .testTarget(name: "NukeTests", dependencies: ["Nuke", "NukeTestHelpers"]),
+        .testTarget(name: "NukeThreadSafetyTests", dependencies: ["Nuke", "NukeTestHelpers"]),
         .testTarget(name: "NukeUITests", dependencies: ["NukeUI", "NukeTestHelpers"]),
     ]
 )

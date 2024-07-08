@@ -295,25 +295,3 @@ public final class OperationQueueObserver {
         _lock.unlock()
     }
 }
-
-// MARK: - Misc
-
-func rnd() -> Int {
-    return Int.random(in: 0 ..< .max)
-}
-
-func rnd(_ uniform: Int) -> Int {
-    return Int.random(in: 0 ..< uniform)
-}
-
-extension DispatchQueue {
-    func after(ticks: Int, _ closure: @escaping () -> Void) {
-        if ticks == 0 {
-            closure()
-        } else {
-            async {
-                self.after(ticks: ticks - 1, closure)
-            }
-        }
-    }
-}
