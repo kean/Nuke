@@ -39,12 +39,12 @@ extension ImagePipeline {
 extension ImagePipeline {
     private static var stack = [ImagePipeline]()
 
-    static func pushShared(_ shared: ImagePipeline) {
+    public static func pushShared(_ shared: ImagePipeline) {
         stack.append(ImagePipeline.shared)
         ImagePipeline.shared = shared
     }
 
-    static func popShared() {
+    public static func popShared() {
         ImagePipeline.shared = stack.removeLast()
     }
 }
