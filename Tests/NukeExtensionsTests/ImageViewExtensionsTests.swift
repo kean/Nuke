@@ -6,6 +6,8 @@ import XCTest
 #if os(tvOS)
 import TVUIKit
 #endif
+import NukeTestHelpers
+
 @testable import Nuke
 @testable import NukeExtensions
 

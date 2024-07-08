@@ -7,7 +7,7 @@ import Nuke
 
 class ImageRequestPerformanceTests: XCTestCase {
     func testStoringRequestInCollections() {
-        let urls = (0..<200_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
+        let urls = (0..<200_000).map { _ in return URL(string: "http://test.com/\(Int.random(in: 0..<200))")! }
         let requests = urls.map { ImageRequest(url: $0) }
 
         measure {

@@ -4,6 +4,7 @@
 
 import XCTest
 import Nuke
+import NukeTestHelpers
 
 class ImagePipelinePerfomanceTests: XCTestCase {
     /// A very broad test that establishes how long in general it takes to load

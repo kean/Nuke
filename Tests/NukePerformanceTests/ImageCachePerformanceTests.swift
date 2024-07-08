@@ -4,13 +4,14 @@
 
 import XCTest
 import Nuke
+import NukeTestHelpers
 
 class ImageCachePerformanceTests: XCTestCase {
     func testCacheWrite() {
         let cache = ImageCache()
         let image = ImageContainer(image: PlatformImage())
 
-        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(rnd(500))")! }
+        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(Int.random(in: 0..<500))")! }
         let requests = urls.map { ImageRequest(url: $0) }
 
         measure {
@@ -30,7 +31,7 @@ class ImageCachePerformanceTests: XCTestCase {
 
         var hits = 0
 
-        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(rnd(2000))")! }
+        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(Int.random(in: 0..<2000))")! }
         let requests = urls.map { ImageRequest(url: $0) }
 
         measure {
@@ -49,7 +50,7 @@ class ImageCachePerformanceTests: XCTestCase {
 
         var misses = 0
 
-        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(rnd(200))")! }
+        let urls = (0..<100_000).map { _ in return URL(string: "http://test.com/\(Int.random(in: 0..<200))")! }
         let requests = urls.map { ImageRequest(url: $0) }
 
         measure {

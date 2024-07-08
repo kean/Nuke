@@ -4,6 +4,7 @@
 
 import XCTest
 import Nuke
+import NukeTestHelpers
 
 class ImageProcessingPerformanceTests: XCTestCase {
     func testCreatingProcessorIdentifiers() {

@@ -63,11 +63,3 @@ extension ImageCaching {
         set { self[ImageCacheKey(request: request)] = newValue }
     }
 }
-
-#if os(macOS)
-import Cocoa
-typealias _ImageView = NSImageView
-#elseif os(iOS) || os(tvOS) || os(visionOS)
-import UIKit
-typealias _ImageView = UIImageView
-#endif

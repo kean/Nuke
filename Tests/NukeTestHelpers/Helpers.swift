@@ -198,3 +198,11 @@ extension Result {
         value = newValue
     }
 }
+
+#if os(macOS)
+import Cocoa
+public typealias _ImageView = NSImageView
+#elseif os(iOS) || os(tvOS) || os(visionOS)
+import UIKit
+public typealias _ImageView = UIImageView
+#endif
