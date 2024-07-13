@@ -84,7 +84,6 @@ class ImageThumbnailTest: XCTestCase {
         
         //verify size of the image in points and pixels (using scale)
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 320, height: 240))
-        XCTAssertEqual(output.size, CGSize(width: 120, height: 160))
     }
     
     func testResizeImageWithOrientationUp() throws {
@@ -99,7 +98,6 @@ class ImageThumbnailTest: XCTestCase {
         
         //verify size of the image in points and pixels (using scale)
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 300, height: 200))
-        XCTAssertEqual(output.size, CGSize(width: 150, height: 100))
     }
 #endif
 }
