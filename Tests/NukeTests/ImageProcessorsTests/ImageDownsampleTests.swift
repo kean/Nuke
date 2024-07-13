@@ -71,7 +71,7 @@ class ImageThumbnailTest: XCTestCase {
         // Given an image with `right` orientation. From the user perspective,
         // the image a landscape image with s size 640x480px. The raw pixel
         // data, on the other hand, is 480x640px.
-        let input = try XCTUnwrap(Test.data(name: "left-orientation", extension: "jpeg"))
+        let input = try XCTUnwrap(Test.data(name: "right-orientation", extension: "jpeg"))
         XCTAssertEqual(PlatformImage(data: input)?.imageOrientation, .right)
 
         // When we resize the image to fit 320x480px frame, we expect the processor
@@ -79,11 +79,27 @@ class ImageThumbnailTest: XCTestCase {
         let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 320, height: 1000), unit: .pixels, contentMode: .aspectFit)
         let output = try XCTUnwrap(options.makeThumbnail(with: input))
 
-        // Then the output thumbnail is rotated
+        // Then the output has orientation of the original image
+        XCTAssertEqual(output.imageOrientation, .right)
+        
+        //verify size of the image in points and pixels (using scale)
         XCTAssertEqual(output.sizeInPixels, CGSize(width: 320, height: 240))
+        XCTAssertEqual(output.size, CGSize(width: 120, height: 160))
+    }
+    
+    func testResizeImageWithOrientationUp() throws {
+        let input = try XCTUnwrap(Test.data(name: "baseline", extension: "jpeg"))
+        XCTAssertEqual(PlatformImage(data: input)?.imageOrientation, .up)
+
+        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 300)
+        let output = try XCTUnwrap(options.makeThumbnail(with: input))
+
+        // Then the output has orientation of the original image
         XCTAssertEqual(output.imageOrientation, .up)
-        // Then the image is resized according to orientation
-        XCTAssertEqual(output.size, CGSize(width: 320, height: 240))
+        
+        //verify size of the image in points and pixels (using scale)
+        XCTAssertEqual(output.sizeInPixels, CGSize(width: 300, height: 200))
+        XCTAssertEqual(output.size, CGSize(width: 150, height: 100))
     }
 #endif
 }

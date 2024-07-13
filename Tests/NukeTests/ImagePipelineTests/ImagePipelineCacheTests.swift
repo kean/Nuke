@@ -461,7 +461,7 @@ class ImagePipelineCacheTests: XCTestCase {
 #if canImport(UIKit)
     func testThatImageOrientationIsPreserved() throws {
         // GIVEN opaque jpeg with orientation
-        let image = Test.image(named: "left-orientation", extension: "jpeg")
+        let image = Test.image(named: "right-orientation", extension: "jpeg")
         XCTAssertTrue(image.cgImage!.isOpaque)
         XCTAssertEqual(image.imageOrientation, .right)
         
@@ -477,7 +477,7 @@ class ImagePipelineCacheTests: XCTestCase {
     
     func testThatImageOrientationIsPreservedForProcessedImages() throws {
         // GIVEN opaque jpeg with orientation
-        let image = Test.image(named: "left-orientation", extension: "jpeg")
+        let image = Test.image(named: "right-orientation", extension: "jpeg")
         XCTAssertTrue(image.cgImage!.isOpaque)
         XCTAssertEqual(image.imageOrientation, .right)
         
