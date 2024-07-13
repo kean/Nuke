@@ -36,12 +36,13 @@ final class DataPublisher {
 private func publisher(from closure: @Sendable @escaping () async throws -> Data) -> AnyPublisher<Data, Error> {
     Deferred {
         Future { promise in
+            let promise = UncheckedSendableBox(value: promise)
             Task {
                 do {
                     let data = try await closure()
-                    promise(.success(data))
+                    promise.value(.success(data))
                 } catch {
-                    promise(.failure(error))
+                    promise.value(.failure(error))
                 }
             }
         }
@@ -51,4 +52,9 @@ private func publisher(from closure: @Sendable @escaping () async throws -> Data
 enum PublisherCompletion {
     case finished
     case failure(Error)
+}
+
+/// - warning: Avoid using it!
+struct UncheckedSendableBox<Value>: @unchecked Sendable {
+    let value: Value
 }

@@ -4,7 +4,7 @@
 
 import Foundation
 
-final class Operation: Foundation.Operation {
+final class Operation: Foundation.Operation, @unchecked Sendable {
     override var isExecuting: Bool {
         get {
             os_unfair_lock_lock(lock)

@@ -45,8 +45,8 @@ final class ImagePrefetcherTests: XCTestCase {
         wait()
 
         expect(pipeline).toLoadImage(with: Test.request)
-        pipeline.queue.async {
-            self.dataLoader.isSuspended = false
+        pipeline.queue.async { [dataLoader] in
+            dataLoader?.isSuspended = false
         }
         wait()
 
@@ -78,8 +78,8 @@ final class ImagePrefetcherTests: XCTestCase {
         prefetcher.startPrefetching(with: [Test.url])
         prefetcher.startPrefetching(with: [Test.url])
 
-        pipeline.queue.async {
-            self.dataLoader.isSuspended = false
+        pipeline.queue.async { [dataLoader] in
+            dataLoader?.isSuspended = false
         }
         wait()
 
@@ -246,7 +246,9 @@ final class ImagePrefetcherTests: XCTestCase {
 
     func testDidCompleteIsCalled() {
         let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete = expectation.fulfill
+        prefetcher.didComplete = { @MainActor @Sendable in
+            expectation.fulfill()
+        }
 
         prefetcher.startPrefetching(with: [Test.url])
         wait()
@@ -254,7 +256,9 @@ final class ImagePrefetcherTests: XCTestCase {
 
     func testDidCompleteIsCalledWhenImageCached() {
         let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete = expectation.fulfill
+        prefetcher.didComplete = { @MainActor @Sendable in
+            expectation.fulfill()
+        }
 
         imageCache[Test.request] = Test.container
 
@@ -281,7 +285,7 @@ final class ImagePrefetcherTests: XCTestCase {
 
     func expectPrefetcherToComplete() {
         let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete = {
+        prefetcher.didComplete = { @MainActor @Sendable in
             expectation.fulfill()
         }
     }

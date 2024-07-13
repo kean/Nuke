@@ -13,7 +13,7 @@ private let pipeline = ImagePipeline.shared
 private let url = URL(string: "https://example.com/image.jpeg")!
 private let image = Test.image
 private let data = Test.data
-private let imageView = UIImageView()
+@MainActor private let imageView = UIImageView()
 
 // MARK: - Getting Started
 

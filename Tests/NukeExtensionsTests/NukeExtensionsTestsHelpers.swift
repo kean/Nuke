@@ -10,7 +10,7 @@ import XCTest
 extension XCTestCase {
     @MainActor
     func expectToFinishLoadingImage(with request: ImageRequest,
-                                    options: ImageLoadingOptions = ImageLoadingOptions.shared,
+                                    options: ImageLoadingOptions? = nil,
                                     into imageView: ImageDisplayingView,
                                     completion: ((_ result: Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) {
         let expectation = self.expectation(description: "Image loaded for \(request)")
@@ -26,7 +26,7 @@ extension XCTestCase {
     }
 
     @MainActor
-    func expectToLoadImage(with request: ImageRequest, options: ImageLoadingOptions = ImageLoadingOptions.shared, into imageView: ImageDisplayingView) {
+    func expectToLoadImage(with request: ImageRequest, options: ImageLoadingOptions? = nil, into imageView: ImageDisplayingView) {
         expectToFinishLoadingImage(with: request, options: options, into: imageView) { result in
             XCTAssertTrue(result.isSuccess)
         }

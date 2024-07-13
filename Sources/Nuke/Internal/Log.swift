@@ -26,14 +26,12 @@ func signpost<T>(_ name: StaticString, _ work: () throws -> T) rethrows -> T {
 
 private let log = Atomic(value: OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading"))
 
-private let byteFormatter = ByteCountFormatter()
-
 enum Formatter {
     static func bytes(_ count: Int) -> String {
         bytes(Int64(count))
     }
 
     static func bytes(_ count: Int64) -> String {
-        byteFormatter.string(fromByteCount: count)
+        ByteCountFormatter().string(fromByteCount: count)
     }
 }

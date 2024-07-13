@@ -15,7 +15,7 @@ import AppKit.NSImage
 /// A set of options that control how the image is loaded and displayed.
 public struct ImageLoadingOptions {
     /// Shared options.
-    public static var shared = ImageLoadingOptions()
+    @MainActor public static var shared = ImageLoadingOptions()
 
     /// Placeholder to be displayed when the image is loading. `nil` by default.
     public var placeholder: PlatformImage?

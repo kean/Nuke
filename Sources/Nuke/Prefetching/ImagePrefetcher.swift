@@ -50,7 +50,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     /// regardless of whether the requests succeed or some fail.
     ///
     /// - note: The closure is called on the main queue.
-    public var didComplete: (() -> Void)?
+    public var didComplete: (@MainActor @Sendable () -> Void)?
 
     private let pipeline: ImagePipeline
     private var tasks = [TaskLoadImageKey: Task]()
@@ -136,7 +136,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     }
 
     private func loadImage(task: Task, finish: @escaping () -> Void) {
-        task.imageTask = pipeline.loadImage(with: task.request, isDataTask: destination == .diskCache, queue: pipeline.queue, progress: nil) { [weak self] _ in
+        task.imageTask = pipeline._loadImage(with: task.request, isDataTask: destination == .diskCache, queue: pipeline.queue, progress: nil) { [weak self] _ in
             self?._remove(task)
             finish()
         }

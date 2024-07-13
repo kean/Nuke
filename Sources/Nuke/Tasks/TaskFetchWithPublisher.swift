@@ -6,7 +6,7 @@ import Foundation
 
 /// Fetches data using the publisher provided with the request.
 /// Unlike `TaskFetchOriginalImageData`, there is no resumable data involved.
-final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)> {
+final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)>, @unchecked Sendable {
     private lazy var data = Data()
 
     override func start() {

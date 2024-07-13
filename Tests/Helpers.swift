@@ -112,8 +112,6 @@ extension PlatformImage {
     }
 }
 
-extension String: Error {}
-
 func _groups(regex: String, in text: String) -> [String] {
     do {
         let regex = try NSRegularExpression(pattern: regex)
