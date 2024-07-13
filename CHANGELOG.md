@@ -1,5 +1,16 @@
 # Nuke 12
 
+## Nuke 12.8.0
+
+*Jul 13, 2024*
+
+- Add full Strict Concurrency Checking and Swift 6 support 
+- Add `@MainActor` annotation to `ImageLoadingOptions.shared`
+- Fix image scale and orientation issue in thumbnail creation by @prabhuamol in https://github.com/kean/Nuke/pull/793
+- Deprecate `ImagePipeline.Configuration.callbackQueue` – this feature will be removed in Nuke 13
+- `ImagePrefetcher.didComplete` closure is now annotated with `@MainActor @Sendable`
+- Drop Xcode 14 support
+
 ## Nuke 12.7.3
 
 *Jun 19, 2024*
