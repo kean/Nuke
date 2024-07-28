@@ -141,10 +141,6 @@ extension ImagePipeline {
         /// Data loading queue. Default maximum concurrent task count is 6.
         public var dataLoadingQueue = OperationQueue(maxConcurrentCount: 6)
 
-        // Deprecated in Nuke 12.6
-        @available(*, deprecated, message: "The pipeline now performs cache lookup on the internal queue, reducing the amount of context switching")
-        public var dataCachingQueue = OperationQueue(maxConcurrentCount: 2)
-
         /// Image decoding queue. Default maximum concurrent task count is 1.
         public var imageDecodingQueue = OperationQueue(maxConcurrentCount: 1)
 
