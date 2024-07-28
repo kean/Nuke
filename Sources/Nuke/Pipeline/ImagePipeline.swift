@@ -201,10 +201,7 @@ public final class ImagePipeline {
                 case .progress(let value): progress?(nil, value)
                 case .preview(let response): progress?(response, task.currentProgress)
                 case .cancelled: break // The legacy APIs do not send cancellation events
-                case .finished(let result):
-                    #warning("it should be isolated")
-                    // _ = task._setState(.completed) // Important to do it on the callback queue
-                    completion(result)
+                case .finished(let result): completion(result)
                 }
             }
         }
@@ -212,17 +209,10 @@ public final class ImagePipeline {
 
     // nuke-13: requires callbacks to be @MainActor @Sendable or deprecate this entire API
     private nonisolated func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
-        #warning("remove this")
-        closure()
-
-//        let box = UncheckedSendableBox(value: closure)
-//        if callbackQueue === self.queue {
-//            closure()
-//        } else {
-//            (callbackQueue ?? self.configuration._callbackQueue).async {
-//                box.value()
-//            }
-//        }
+        let box = UncheckedSendableBox(value: closure)
+        (callbackQueue ?? .main).async {
+            box.value()
+        }
     }
 
     // MARK: - Loading Data (Closures)
@@ -289,9 +279,7 @@ public final class ImagePipeline {
 
     /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
     public nonisolated func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, Error> {
-        #warning("TODO: reimplement")
-        fatalError()
-//        ImagePublisher(request: request, pipeline: self).eraseToAnyPublisher()
+        ImagePublisher(request: request, pipeline: self).eraseToAnyPublisher()
     }
 
     // MARK: - ImageTask (Internal)

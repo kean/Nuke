@@ -190,16 +190,12 @@ public final class ImageTask: Hashable {
 
     /// Gets called when the task is cancelled either by the user or by an
     /// external event such as session invalidation.
-    ///
-    /// synchronized on `pipeline.queue`.
     func _cancel() {
         guard _setState(.cancelled) else { return }
         _dispatch(.cancelled)
     }
 
     /// Gets called when the associated task sends a new event.
-    ///
-    /// synchronized on `pipeline.queue`.
     func _process(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
         switch event {
         case let .value(response, isCompleted):
@@ -216,13 +212,11 @@ public final class ImageTask: Hashable {
         }
     }
 
-    /// Synchronized on `pipeline.queue`.
     private func _finish(_ result: Result<ImageResponse, ImagePipeline.Error>) {
         guard _setState(.completed) else { return }
         _dispatch(.finished(result))
     }
 
-    /// Synchronized on `pipeline.queue`.
     func _setState(_ state: State) -> Bool {
         guard _state == .running else { return false }
         _state = state
@@ -236,8 +230,6 @@ public final class ImageTask: Hashable {
     ///
     /// - warning: The task needs to be fully wired (`_continuation` present)
     /// before it can start sending the events.
-    ///
-    /// synchronized on `pipeline.queue`.
     func _dispatch(_ event: Event) {
         guard _continuation != nil else {
             return // Task isn't fully wired yet
