@@ -133,7 +133,7 @@ public final class ImageTask: Hashable {
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 
-    private nonisolated let nonisolatedState: ImageTaskNonisolatedState
+    private nonisolated let nonisolatedState: Atomic<ImageTaskNonisolatedState>
     private let isDataTask: Bool
     private let onEvent: ((Event, ImageTask) -> Void)?
     private weak var pipeline: ImagePipeline?
@@ -146,7 +146,7 @@ public final class ImageTask: Hashable {
     nonisolated init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?) {
         self.taskId = taskId
         self.request = request
-        self.nonisolatedState = ImageTaskNonisolatedState(priority: request.priority)
+        self.nonisolatedState = Atomic(value: ImageTaskNonisolatedState(priority: request.priority))
         self.isDataTask = isDataTask
         self.pipeline = pipeline
         self.onEvent = onEvent
@@ -302,31 +302,8 @@ extension ImageTask {
     }
 }
 
-/// Contains the state synchronized using the internal lock.
-///
-/// - warning: Must be accessed using `withLock`.
-private final class ImageTaskNonisolatedState: @unchecked(Sendable) {
+private struct ImageTaskNonisolatedState {
     var state: ImageTask.State = .running
     var priority: ImageRequest.Priority
     var progress = ImageTask.Progress(completed: 0, total: 0)
-
-    private let lock: os_unfair_lock_t
-
-    deinit {
-        lock.deinitialize(count: 1)
-        lock.deallocate()
-    }
-
-    init(priority: ImageRequest.Priority) {
-        self.priority = priority
-
-        lock = .allocate(capacity: 1)
-        lock.initialize(to: os_unfair_lock())
-    }
-
-    func withLock<T>(_ closure: (ImageTaskNonisolatedState) -> T) -> T {
-        os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
-        return closure(self)
-    }
 }
