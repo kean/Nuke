@@ -229,6 +229,7 @@
 		0CB644CA2856807F00916267 /* swift.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C64F73E243838BF001983C6 /* swift.png */; };
 		0CBA07862852DA8B00CE29F4 /* ImagePipeline+Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBA07852852DA8B00CE29F4 /* ImagePipeline+Error.swift */; };
 		0CC04B0A2C5698D500F1164D /* ImagePipelineActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC04B092C5698D500F1164D /* ImagePipelineActor.swift */; };
+		0CC04B1C2C56AEF000F1164D /* ImagePipelineLoadDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD37C9925BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift */; };
 		0CC36A1925B8BC2500811018 /* RateLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A1825B8BC2500811018 /* RateLimiter.swift */; };
 		0CC36A2525B8BC4900811018 /* Operation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A2425B8BC4900811018 /* Operation.swift */; };
 		0CC36A2C25B8BC6300811018 /* LinkedList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A2B25B8BC6300811018 /* LinkedList.swift */; };
@@ -241,7 +242,6 @@
 		0CC6279E25C100E300466F04 /* ImageCachePerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC6279D25C100E300466F04 /* ImageCachePerformanceTests.swift */; };
 		0CC627A525C100FA00466F04 /* ImageProcessingPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC627A425C100FA00466F04 /* ImageProcessingPerformanceTests.swift */; };
 		0CCBB534217D0B980026F552 /* MockProgressiveDataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CCBB533217D0B980026F552 /* MockProgressiveDataLoader.swift */; };
-		0CD37C9A25BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD37C9925BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift */; };
 		0CE2D9BA2084FDDD00934B28 /* ImageDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE2D9B92084FDDD00934B28 /* ImageDecoding.swift */; };
 		0CE334DB2724563D0017BB8D /* ImageProcessorsProtocolExtensionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE334DA2724563D0017BB8D /* ImageProcessorsProtocolExtensionsTests.swift */; };
 		0CE3992D1D4697CE00A87D47 /* ImagePipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE3992C1D4697CE00A87D47 /* ImagePipelineTests.swift */; };
@@ -1615,7 +1615,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4480674C2A448C9F00DE7CF8 /* DataPublisherTests.swift in Sources */,
-				0CD37C9A25BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift in Sources */,
+				0CC04B1C2C56AEF000F1164D /* ImagePipelineLoadDataTests.swift in Sources */,
 				0C75279F1D473AEF00EC6222 /* MockImageProcessor.swift in Sources */,
 				0CB26807208F25C2004C83F4 /* DataCacheTests.swift in Sources */,
 				0C880532242E7B1500F8C5B3 /* ImagePipelineDecodingTests.swift in Sources */,
