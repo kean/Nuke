@@ -13,11 +13,13 @@ import Foundation
 /// even from the main thread during scrolling.
 @ImagePipelineActor
 public final class ImagePrefetcher {
+    #warning("make these non-isolated")
+
     /// Pauses the prefetching.
     ///
     /// - note: When you pause, the prefetcher will finish outstanding tasks
     /// (by default, there are only 2 at a time), and pause the rest.
-    public var isPaused: Bool = false {
+    public  var isPaused: Bool = false {
         didSet { queue.isSuspended = isPaused }
     }
 
