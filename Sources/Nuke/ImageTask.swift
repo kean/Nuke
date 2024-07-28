@@ -270,9 +270,6 @@ public final class ImageTask: Hashable {
     }
 }
 
-@available(*, deprecated, renamed: "ImageTask", message: "Async/Await support was added directly to the existing `ImageTask` type")
-public typealias AsyncImageTask = ImageTask
-
 // MARK: - ImageTask (Private)
 
 extension ImageTask {
