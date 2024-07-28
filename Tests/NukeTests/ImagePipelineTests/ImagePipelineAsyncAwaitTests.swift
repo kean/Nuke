@@ -84,23 +84,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         XCTAssertTrue(caughtError is CancellationError)
     }
 
-    func testCancelFromTaskCreated() async throws {
-        dataLoader.queue.isSuspended = true
-        pipelineDelegate.onTaskCreated = { $0.cancel() }
-
-        let task = Task {
-            try await pipeline.image(for: Test.url)
-        }
-
-        var caughtError: Error?
-        do {
-            _ = try await task.value
-        } catch {
-            caughtError = error
-        }
-        XCTAssertTrue(caughtError is CancellationError)
-    }
-
     func testCancelImmediately() async throws {
         dataLoader.queue.isSuspended = true
 
@@ -218,17 +201,6 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
             caughtError = error
         }
         XCTAssertTrue(caughtError is CancellationError)
-    }
-
-    func testImageTaskReturnedImmediately() async throws {
-        // GIVEN
-        pipelineDelegate.onTaskCreated = { [unowned self] in imageTask = $0 }
-
-        // WHEN
-        _ = try await pipeline.image(for: Test.request)
-
-        // THEN
-        XCTAssertNotNil(imageTask)
     }
 
     func testProgressUpdated() async throws {
