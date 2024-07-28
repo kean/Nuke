@@ -29,11 +29,6 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
         lock.unlock()
     }
 
-    func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {
-        onTaskCreated?(task)
-        append(.created)
-    }
-
     func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {
         startedTaskCount += 1
         NotificationCenter.default.post(name: ImagePipelineObserver.didStartTask, object: self, userInfo: [ImagePipelineObserver.taskKey: task])

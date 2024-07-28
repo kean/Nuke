@@ -30,8 +30,12 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
         guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             return didFinishDecoding(with: nil)
         }
-        decode(context, decoder: decoder) { [weak self] in
-            self?.didFinishDecoding(with: try? $0.get())
+        #warning("implement using async/awiat")
+        decode(context, decoder: decoder) { [weak self] result in
+            guard let self else { return }
+            Task {
+                await self.didFinishDecoding(with: try? result.get())
+            }
         }
     }
 
@@ -82,7 +86,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
                     ImagePipeline.Error.processingFailed(processor: processor, context: context, error: error)
                 }
             }
-            self.pipeline.queue.async {
+            Task { @ImagePipelineActor in
                 self.operation = nil
                 self.didFinishProcessing(result: result, isCompleted: isCompleted)
             }
@@ -117,7 +121,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable
             let response = signpost(isCompleted ? "DecompressImage" : "DecompressProgressiveImage") {
                 self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
             }
-            self.pipeline.queue.async {
+            Task { @ImagePipelineActor in
                 self.operation = nil
                 self.didReceiveDecompressedImage(response, isCompleted: isCompleted)
             }

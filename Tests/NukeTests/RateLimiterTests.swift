@@ -19,7 +19,7 @@ class RateLimiterTests: XCTestCase {
         queue.setSpecific(key: queueKey, value: ())
 
         // Note: we set very short rate to avoid bucket form being refilled too quickly
-        rateLimiter = RateLimiter(queue: queue, rate: 10, burst: 2)
+        rateLimiter = RateLimiter(rate: 10, burst: 2)
     }
 
     func testThatBurstIsExecutedimmediately() {

@@ -12,7 +12,6 @@
 		0C09B1661FE9A65700E8FE3B /* fixture.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C09B1651FE9A65600E8FE3B /* fixture.jpeg */; };
 		0C09B1691FE9A65700E8FE3B /* fixture.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C09B1651FE9A65600E8FE3B /* fixture.jpeg */; };
 		0C09B16F1FE9A6D800E8FE3B /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068D1BCA888800089D7F /* Helpers.swift */; };
-		0C0F7BF12287F6EE0034E656 /* TaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0F7BF02287F6EE0034E656 /* TaskTests.swift */; };
 		0C0FD5E01CA47FE1002A78FB /* DataLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D01CA47FE1002A78FB /* DataLoader.swift */; };
 		0C0FD5EC1CA47FE1002A78FB /* ImagePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */; };
 		0C0FD5FC1CA47FE1002A78FB /* ImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D71CA47FE1002A78FB /* ImageCache.swift */; };
@@ -108,7 +107,6 @@
 		0C64F73D2438371A001983C6 /* img_751.heic in Resources */ = {isa = PBXBuildFile; fileRef = 0C64F73C243836B5001983C6 /* img_751.heic */; };
 		0C64F73F243838BF001983C6 /* swift.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C64F73E243838BF001983C6 /* swift.png */; };
 		0C68F609208A1F40007DC696 /* ImageDecoderRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C68F608208A1F40007DC696 /* ImageDecoderRegistryTests.swift */; };
-		0C69FA4E1D4E222D00DA9982 /* ImagePrefetcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD195291D4348AC00E011BB /* ImagePrefetcherTests.swift */; };
 		0C6B5BDB257010B400D763F2 /* image-p3.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 0C6B5BDA257010B400D763F2 /* image-p3.jpg */; };
 		0C6B5BE1257010D300D763F2 /* ImagePipelineFormatsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6B5BE0257010D300D763F2 /* ImagePipelineFormatsTests.swift */; };
 		0C6CF0CD1DAF789C007B8C0E /* XCTestCaseExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C068E1BCA888800089D7F /* XCTestCaseExtensions.swift */; };
@@ -231,6 +229,7 @@
 		0CB644C92856807F00916267 /* fixture.jpeg in Resources */ = {isa = PBXBuildFile; fileRef = 0C09B1651FE9A65600E8FE3B /* fixture.jpeg */; };
 		0CB644CA2856807F00916267 /* swift.png in Resources */ = {isa = PBXBuildFile; fileRef = 0C64F73E243838BF001983C6 /* swift.png */; };
 		0CBA07862852DA8B00CE29F4 /* ImagePipeline+Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBA07852852DA8B00CE29F4 /* ImagePipeline+Error.swift */; };
+		0CC04B0A2C5698D500F1164D /* ImagePipelineActor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC04B092C5698D500F1164D /* ImagePipelineActor.swift */; };
 		0CC36A1925B8BC2500811018 /* RateLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A1825B8BC2500811018 /* RateLimiter.swift */; };
 		0CC36A2525B8BC4900811018 /* Operation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A2425B8BC4900811018 /* Operation.swift */; };
 		0CC36A2C25B8BC6300811018 /* LinkedList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC36A2B25B8BC6300811018 /* LinkedList.swift */; };
@@ -492,6 +491,7 @@
 		0CB6449B28567E5400916267 /* ImageViewLoadingOptionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewLoadingOptionsTests.swift; sourceTree = "<group>"; };
 		0CB644AA28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewExtensionsProgressiveDecodingTests.swift; sourceTree = "<group>"; };
 		0CBA07852852DA8B00CE29F4 /* ImagePipeline+Error.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImagePipeline+Error.swift"; sourceTree = "<group>"; };
+		0CC04B092C5698D500F1164D /* ImagePipelineActor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineActor.swift; sourceTree = "<group>"; };
 		0CC36A1825B8BC2500811018 /* RateLimiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimiter.swift; sourceTree = "<group>"; };
 		0CC36A2425B8BC4900811018 /* Operation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Operation.swift; sourceTree = "<group>"; };
 		0CC36A2B25B8BC6300811018 /* LinkedList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedList.swift; sourceTree = "<group>"; };
@@ -959,6 +959,7 @@
 			isa = PBXGroup;
 			children = (
 				0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */,
+				0CC04B092C5698D500F1164D /* ImagePipelineActor.swift */,
 				0CF1754B22913F9800A8946E /* ImagePipeline+Configuration.swift */,
 				0C53C8B0263C968200E62D03 /* ImagePipeline+Delegate.swift */,
 				0C78A2A6263F4E680051E0FF /* ImagePipeline+Cache.swift */,
@@ -1619,7 +1620,6 @@
 				4480674C2A448C9F00DE7CF8 /* DataPublisherTests.swift in Sources */,
 				0CD37C9A25BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift in Sources */,
 				0C75279F1D473AEF00EC6222 /* MockImageProcessor.swift in Sources */,
-				0C69FA4E1D4E222D00DA9982 /* ImagePrefetcherTests.swift in Sources */,
 				0CB26807208F25C2004C83F4 /* DataCacheTests.swift in Sources */,
 				0C880532242E7B1500F8C5B3 /* ImagePipelineDecodingTests.swift in Sources */,
 				0C91B0F02438E352007F9100 /* RoundedCornersTests.swift in Sources */,
@@ -1668,7 +1668,6 @@
 				0C68F609208A1F40007DC696 /* ImageDecoderRegistryTests.swift in Sources */,
 				0CE6202526543EC700AAB8C3 /* ImagePipelinePublisherTests.swift in Sources */,
 				0C91B0EE2438E307007F9100 /* CircleTests.swift in Sources */,
-				0C0F7BF12287F6EE0034E656 /* TaskTests.swift in Sources */,
 				0CC6271525BDF7A100466F04 /* ImagePipelineImageCacheTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1725,6 +1724,7 @@
 				0C78A2A7263F4E680051E0FF /* ImagePipeline+Cache.swift in Sources */,
 				0CA4ECD026E68FC000BAC8E5 /* DataCaching.swift in Sources */,
 				0CA4ECCA26E6868300BAC8E5 /* ImageProcessingOptions.swift in Sources */,
+				0CC04B0A2C5698D500F1164D /* ImagePipelineActor.swift in Sources */,
 				0C53C8B1263C968200E62D03 /* ImagePipeline+Delegate.swift in Sources */,
 				0CA4ECBC26E6856300BAC8E5 /* ImageDecompression.swift in Sources */,
 				0CA4ECD326E68FDC00BAC8E5 /* ImageCaching.swift in Sources */,

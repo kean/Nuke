@@ -425,9 +425,11 @@ extension XCTestCase {
         dataLoader.isSuspended = true
         let expectation = self.expectation(description: "registered")
         expectation.expectedFulfillmentCount = count
-        pipeline.onTaskStarted = { _ in
-            expectation.fulfill()
-        }
+
+#warning("reimplement")
+//        pipeline.onTaskStarted = { _ in
+//            expectation.fulfill()
+//        }
         closure()
         wait(for: [expectation], timeout: 5)
         dataLoader.isSuspended = false

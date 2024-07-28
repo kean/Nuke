@@ -14,8 +14,8 @@ import Foundation
 /// automatically cancels them, updates the priority, etc. Most steps in the
 /// image pipeline are represented using Operation to take advantage of these features.
 ///
-/// - warning: Must be thread-confined!
-class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate, @unchecked Sendable {
+@ImagePipelineActor
+class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate {
 
     private struct Subscription {
         let closure: (Event) -> Void
@@ -218,6 +218,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
 extension AsyncTask {
     /// Publishes the results of the task.
+    @ImagePipelineActor
     struct Publisher {
         fileprivate let task: AsyncTask
 
@@ -281,7 +282,8 @@ extension AsyncTask.Event: Equatable where Value: Equatable, Error: Equatable {}
 
 /// Represents a subscription to a task. The observer must retain a strong
 /// reference to a subscription.
-struct TaskSubscription: Sendable {
+@ImagePipelineActor
+struct TaskSubscription {
     private let task: any AsyncTaskSubscriptionDelegate
     private let key: TaskSubscriptionKey
 
@@ -311,7 +313,8 @@ struct TaskSubscription: Sendable {
     }
 }
 
-private protocol AsyncTaskSubscriptionDelegate: AnyObject, Sendable {
+@ImagePipelineActor
+private protocol AsyncTaskSubscriptionDelegate: AnyObject {
     func unsubsribe(key: TaskSubscriptionKey)
     func setPriority(_ priority: TaskPriority, for observer: TaskSubscriptionKey)
 }
@@ -320,12 +323,12 @@ private typealias TaskSubscriptionKey = Int
 
 // MARK: - TaskPool
 
-/// Contains the tasks which haven't completed yet.
+@ImagePipelineActor
 final class TaskPool<Key: Hashable, Value: Sendable, Error: Sendable> {
     private let isCoalescingEnabled: Bool
     private var map = [Key: AsyncTask<Value, Error>]()
 
-    init(_ isCoalescingEnabled: Bool) {
+    nonisolated init(_ isCoalescingEnabled: Bool) {
         self.isCoalescingEnabled = isCoalescingEnabled
     }
 

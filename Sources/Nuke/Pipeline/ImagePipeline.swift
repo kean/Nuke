@@ -13,21 +13,22 @@ import UIKit
 import AppKit
 #endif
 
-/// The pipeline downloads and caches images, and prepares them for display. 
-public final class ImagePipeline: @unchecked Sendable {
+/// The pipeline downloads and caches images, and prepares them for display.
+@ImagePipelineActor
+public final class ImagePipeline {
     /// Returns the shared image pipeline.
-    public static var shared: ImagePipeline {
+    public nonisolated static var shared: ImagePipeline {
         get { _shared.value }
         set { _shared.value = newValue }
     }
 
-    private static let _shared = Atomic(value: ImagePipeline(configuration: .withURLCache))
+    private nonisolated static let _shared = Atomic(value: ImagePipeline(configuration: .withURLCache))
 
     /// The pipeline configuration.
-    public let configuration: Configuration
+    public nonisolated let configuration: Configuration
 
     /// Provides access to the underlying caching subsystems.
-    public var cache: ImagePipeline.Cache { .init(pipeline: self) }
+    public nonisolated var cache: ImagePipeline.Cache { .init(pipeline: self) }
 
     let delegate: any ImagePipelineDelegate
 
@@ -38,27 +39,15 @@ public final class ImagePipeline: @unchecked Sendable {
     private let tasksFetchOriginalImage: TaskPool<TaskFetchOriginalImageKey, ImageResponse, Error>
     private let tasksFetchOriginalData: TaskPool<TaskFetchOriginalDataKey, (Data, URLResponse?), Error>
 
-    // The queue on which the entire subsystem is synchronized.
-    let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", qos: .userInitiated)
     private var isInvalidated = false
 
-    private var nextTaskId: Int64 {
-        os_unfair_lock_lock(lock)
-        defer { os_unfair_lock_unlock(lock) }
-        _nextTaskId += 1
-        return _nextTaskId
-    }
-    private var _nextTaskId: Int64 = 0
-    private let lock: os_unfair_lock_t
+    private nonisolated let nextTaskId = Atomic<Int64>(value: 0)
 
     let rateLimiter: RateLimiter?
     let id = UUID()
     var onTaskStarted: ((ImageTask) -> Void)? // Debug purposes
 
     deinit {
-        lock.deinitialize(count: 1)
-        lock.deallocate()
-
         ResumableDataStorage.shared.unregister(self)
     }
 
@@ -67,9 +56,9 @@ public final class ImagePipeline: @unchecked Sendable {
     /// - parameters:
     ///   - configuration: The pipeline configuration.
     ///   - delegate: Provides more ways to customize the pipeline behavior on per-request basis.
-    public init(configuration: Configuration = Configuration(), delegate: (any ImagePipelineDelegate)? = nil) {
+    public nonisolated init(configuration: Configuration = Configuration(), delegate: (any ImagePipelineDelegate)? = nil) {
         self.configuration = configuration
-        self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter(queue: queue) : nil
+        self.rateLimiter = configuration.isRateLimiterEnabled ? RateLimiter() : nil
         self.delegate = delegate ?? ImagePipelineDefaultDelegate()
         (configuration.dataLoader as? DataLoader)?.prefersIncrementalDelivery = configuration.isProgressiveDecodingEnabled
 
@@ -78,9 +67,6 @@ public final class ImagePipeline: @unchecked Sendable {
         self.tasksLoadImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalData = TaskPool(isCoalescingEnabled)
-
-        self.lock = .allocate(capacity: 1)
-        self.lock.initialize(to: os_unfair_lock())
 
         ResumableDataStorage.shared.register(self)
     }
@@ -99,7 +85,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// - parameters:
     ///   - configuration: The pipeline configuration.
     ///   - delegate: Provides more ways to customize the pipeline behavior on per-request basis.
-    public convenience init(delegate: (any ImagePipelineDelegate)? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
+    public nonisolated convenience init(delegate: (any ImagePipelineDelegate)? = nil, _ configure: (inout ImagePipeline.Configuration) -> Void) {
         var configuration = ImagePipeline.Configuration()
         configure(&configuration)
         self.init(configuration: configuration, delegate: delegate)
@@ -107,8 +93,8 @@ public final class ImagePipeline: @unchecked Sendable {
 
     /// Invalidates the pipeline and cancels all outstanding tasks. Any new
     /// requests will immediately fail with ``ImagePipeline/Error/pipelineInvalidated`` error.
-    public func invalidate() {
-        queue.async {
+    public nonisolated func invalidate() {
+        Task { @ImagePipelineActor in
             guard !self.isInvalidated else { return }
             self.isInvalidated = true
             self.tasks.keys.forEach(self.cancelImageTask)
@@ -120,14 +106,14 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Creates a task with the given URL.
     ///
     /// The task starts executing the moment it is created.
-    public func imageTask(with url: URL) -> ImageTask {
+    public nonisolated func imageTask(with url: URL) -> ImageTask {
         imageTask(with: ImageRequest(url: url))
     }
 
     /// Creates a task with the given request.
     ///
     /// The task starts executing the moment it is created.
-    public func imageTask(with request: ImageRequest) -> ImageTask {
+    public nonisolated func imageTask(with request: ImageRequest) -> ImageTask {
         makeStartedImageTask(with: request)
     }
 
@@ -160,7 +146,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - request: An image request.
     ///   - completion: A closure to be called on the main thread when the request
     ///   is finished.
-    @discardableResult public func loadImage(
+    @discardableResult public nonisolated func loadImage(
         with url: URL,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
@@ -173,7 +159,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   - request: An image request.
     ///   - completion: A closure to be called on the main thread when the request
     ///   is finished.
-    @discardableResult public func loadImage(
+    @discardableResult public nonisolated func loadImage(
         with request: ImageRequest,
         completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
@@ -188,7 +174,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   the progress is updated.
     ///   - completion: A closure to be called on the main thread when the request
     ///   is finished.
-    @discardableResult public func loadImage(
+    @discardableResult public nonisolated func loadImage(
         with request: ImageRequest,
         queue: DispatchQueue? = nil,
         progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
@@ -199,7 +185,7 @@ public final class ImagePipeline: @unchecked Sendable {
         }, completion: completion)
     }
 
-    func _loadImage(
+    nonisolated func _loadImage(
         with request: ImageRequest,
         isDataTask: Bool = false,
         queue callbackQueue: DispatchQueue? = nil,
@@ -216,7 +202,8 @@ public final class ImagePipeline: @unchecked Sendable {
                 case .preview(let response): progress?(response, task.currentProgress)
                 case .cancelled: break // The legacy APIs do not send cancellation events
                 case .finished(let result):
-                    _ = task._setState(.completed) // Important to do it on the callback queue
+                    #warning("it should be isolated")
+                    // _ = task._setState(.completed) // Important to do it on the callback queue
                     completion(result)
                 }
             }
@@ -224,26 +211,29 @@ public final class ImagePipeline: @unchecked Sendable {
     }
 
     // nuke-13: requires callbacks to be @MainActor @Sendable or deprecate this entire API
-    private func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
-        let box = UncheckedSendableBox(value: closure)
-        if callbackQueue === self.queue {
-            closure()
-        } else {
-            (callbackQueue ?? self.configuration._callbackQueue).async {
-                box.value()
-            }
-        }
+    private nonisolated func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
+        #warning("remove this")
+        closure()
+
+//        let box = UncheckedSendableBox(value: closure)
+//        if callbackQueue === self.queue {
+//            closure()
+//        } else {
+//            (callbackQueue ?? self.configuration._callbackQueue).async {
+//                box.value()
+//            }
+//        }
     }
 
     // MARK: - Loading Data (Closures)
 
     /// Loads image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
-    @discardableResult public func loadData(with request: ImageRequest, completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
+    @discardableResult public nonisolated func loadData(with request: ImageRequest, completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
         _loadData(with: request, queue: nil, progress: nil, completion: completion)
     }
 
-    private func _loadData(
+    private nonisolated func _loadData(
         with request: ImageRequest,
         queue: DispatchQueue?,
         progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
@@ -273,7 +263,7 @@ public final class ImagePipeline: @unchecked Sendable {
     ///   callbacks. By default, the pipeline uses `.main` queue.
     ///   - progress: A closure to be called periodically on the main thread when the progress is updated.
     ///   - completion: A closure to be called on the main thread when the request is finished.
-    @discardableResult public func loadData(
+    @discardableResult public nonisolated func loadData(
         with request: ImageRequest,
         queue: DispatchQueue? = nil,
         progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
@@ -293,36 +283,25 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Loading Images (Combine)
 
     /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
-    public func imagePublisher(with url: URL) -> AnyPublisher<ImageResponse, Error> {
+    public nonisolated func imagePublisher(with url: URL) -> AnyPublisher<ImageResponse, Error> {
         imagePublisher(with: ImageRequest(url: url))
     }
 
     /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
-    public func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, Error> {
-        ImagePublisher(request: request, pipeline: self).eraseToAnyPublisher()
+    public nonisolated func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, Error> {
+        #warning("TODO: reimplement")
+        fatalError()
+//        ImagePublisher(request: request, pipeline: self).eraseToAnyPublisher()
     }
 
     // MARK: - ImageTask (Internal)
 
-    private func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
-        let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
-        // Important to call it before `imageTaskStartCalled`
-        if !isDataTask {
-            delegate.imageTaskCreated(task, pipeline: self)
-        }
-        task._task = Task {
-            try await withUnsafeThrowingContinuation { continuation in
-                self.queue.async {
-                    task._continuation = continuation
-                    self.startImageTask(task, isDataTask: isDataTask)
-                }
-            }
-        }
-        return task
+    private nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
+        ImageTask(taskId: nextTaskId.incremented(), request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
     }
 
     // By this time, the task has `continuation` set and is fully wired.
-    private func startImageTask(_ task: ImageTask, isDataTask: Bool) {
+    func startImageTask(_ task: ImageTask, isDataTask: Bool) {
         guard task._state != .cancelled else {
             // The task gets started asynchronously in a `Task` and cancellation
             // can happen before the pipeline reached `startImageTask`. In that
@@ -348,13 +327,11 @@ public final class ImagePipeline: @unchecked Sendable {
     // MARK: - Image Task Events
 
     func imageTaskCancelCalled(_ task: ImageTask) {
-        queue.async { self.cancelImageTask(task) }
+        self.cancelImageTask(task)
     }
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
-        queue.async {
-            self.tasks[task]?.setPriority(priority.taskPriority)
-        }
+        self.tasks[task]?.setPriority(priority.taskPriority)
     }
 
     func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event, isDataTask: Bool) {

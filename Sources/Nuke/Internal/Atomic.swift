@@ -38,3 +38,13 @@ final class Atomic<T>: @unchecked Sendable {
         return closure(&_value)
     }
 }
+
+extension Atomic where T: BinaryInteger {
+    func incremented() -> T {
+        withLock {
+            let value = $0
+            $0 += 1
+            return value
+        }
+    }
+}
