@@ -118,16 +118,6 @@ extension ImagePipeline {
         /// `data` schemes) inline without using the data loader. By default, `true`.
         public var isLocalResourcesSupportEnabled = true
 
-        /// A queue on which all callbacks, like `progress` and `completion`
-        /// callbacks are called. `.main` by default.
-        @available(*, deprecated, message: "`ImagePipeline` no longer supports changing the callback queue")
-        public var callbackQueue: DispatchQueue {
-            get { _callbackQueue }
-            set { _callbackQueue = newValue }
-        }
-
-        var _callbackQueue = DispatchQueue.main
-
         // MARK: - Options (Shared)
 
         /// `false` by default. If `true`, enables `os_signpost` logging for
