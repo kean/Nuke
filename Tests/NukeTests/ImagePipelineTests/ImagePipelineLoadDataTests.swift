@@ -31,7 +31,9 @@ class ImagePipelineLoadDataTests: XCTestCase {
     func testLoadDataDataLoaded() {
         let expectation = self.expectation(description: "Image data Loaded")
         pipeline.loadData(with: Test.request) { result in
-            let response = try! XCTUnwrap(result.value)
+            guard let response = result.value else {
+                return XCTFail()
+            }
             XCTAssertEqual(response.data.count, 22789)
             XCTAssertTrue(Thread.isMainThread)
             expectation.fulfill()
