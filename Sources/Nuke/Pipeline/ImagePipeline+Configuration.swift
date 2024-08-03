@@ -130,7 +130,7 @@ extension ImagePipeline {
             set { _isSignpostLoggingEnabled.value = newValue }
         }
 
-        private static let _isSignpostLoggingEnabled = Atomic(value: false)
+        private static let _isSignpostLoggingEnabled = Mutex(false)
 
         private var isCustomImageCacheProvided = false
 

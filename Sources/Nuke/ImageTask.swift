@@ -133,7 +133,7 @@ public final class ImageTask: Hashable {
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 
-    private nonisolated let nonisolatedState: Atomic<ImageTaskNonisolatedState>
+    private nonisolated let nonisolatedState: Mutex<ImageTaskNonisolatedState>
     private let isDataTask: Bool
     private let onEvent: ((Event, ImageTask) -> Void)?
     private weak var pipeline: ImagePipeline?
@@ -146,7 +146,7 @@ public final class ImageTask: Hashable {
     nonisolated init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?) {
         self.taskId = taskId
         self.request = request
-        self.nonisolatedState = Atomic(value: ImageTaskNonisolatedState(priority: request.priority))
+        self.nonisolatedState = Mutex(ImageTaskNonisolatedState(priority: request.priority))
         self.isDataTask = isDataTask
         self.pipeline = pipeline
         self.onEvent = onEvent

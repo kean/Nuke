@@ -22,7 +22,7 @@ public final class ImagePipeline {
         set { _shared.value = newValue }
     }
 
-    private nonisolated static let _shared = Atomic(value: ImagePipeline(configuration: .withURLCache))
+    private nonisolated static let _shared = Mutex(ImagePipeline(configuration: .withURLCache))
 
     /// The pipeline configuration.
     public nonisolated let configuration: Configuration
@@ -41,7 +41,7 @@ public final class ImagePipeline {
 
     private var isInvalidated = false
 
-    private nonisolated let nextTaskId = Atomic<Int64>(value: 0)
+    private nonisolated let nextTaskId = Mutex<Int64>(0)
 
     let rateLimiter: RateLimiter?
     let id = UUID()
