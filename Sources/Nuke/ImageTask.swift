@@ -139,7 +139,7 @@ public final class ImageTask: Hashable {
     private weak var pipeline: ImagePipeline?
 
     private var _task: Task<ImageResponse, Error>!
-    var _continuation: UnsafeContinuation<ImageResponse, Error>?
+    private var _continuation: UnsafeContinuation<ImageResponse, Error>?
     var _state: State = .running
     private var _events: PassthroughSubject<Event, Never>?
 
