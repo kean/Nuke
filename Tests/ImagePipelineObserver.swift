@@ -19,19 +19,12 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
 
     var events = [ImageTaskEvent]()
 
-    var onTaskCreated: ((ImageTask) -> Void)?
-
     private let lock = NSLock()
 
     private func append(_ event: ImageTaskEvent) {
         lock.lock()
         events.append(event)
         lock.unlock()
-    }
-
-    func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {
-        onTaskCreated?(task)
-        append(.created)
     }
 
     func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {

@@ -4,11 +4,11 @@
 
 import Foundation
 
-final class Atomic<T>: @unchecked Sendable {
+final class Mutex<T>: @unchecked Sendable {
     private var _value: T
     private let lock: os_unfair_lock_t
 
-    init(value: T) {
+    init(_ value: T) {
         self._value = value
         self.lock = .allocate(capacity: 1)
         self.lock.initialize(to: os_unfair_lock())
@@ -36,5 +36,15 @@ final class Atomic<T>: @unchecked Sendable {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
         return closure(&_value)
+    }
+}
+
+extension Mutex where T: BinaryInteger {
+    func incremented() -> T {
+        withLock {
+            let value = $0
+            $0 += 1
+            return value
+        }
     }
 }

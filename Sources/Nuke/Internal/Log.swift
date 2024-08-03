@@ -24,7 +24,7 @@ func signpost<T>(_ name: StaticString, _ work: () throws -> T) rethrows -> T {
     return result
 }
 
-private let log = Atomic(value: OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading"))
+private let log = Mutex(OSLog(subsystem: "com.github.kean.Nuke.ImagePipeline", category: "Image Loading"))
 
 enum Formatter {
     static func bytes(_ count: Int) -> String {

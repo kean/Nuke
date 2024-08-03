@@ -19,6 +19,7 @@ class AsyncPipelineTask<Value: Sendable>: AsyncTask<Value, ImagePipeline.Error>,
 
 // Returns all image tasks subscribed to the current pipeline task.
 // A suboptimal approach just to make the new DiskCachPolicy.automatic work.
+@ImagePipelineActor
 protocol ImageTaskSubscribers {
     var imageTasks: [ImageTask] { get }
 }
@@ -50,12 +51,9 @@ extension AsyncPipelineTask {
         guard decoder.isAsynchronous else {
             return completion(decode())
         }
-        operation = pipeline.configuration.imageDecodingQueue.add { [weak self] in
-            guard let self else { return }
+        operation = pipeline.configuration.imageDecodingQueue.add {
             let response = decode()
-            self.pipeline.queue.async {
-                completion(response)
-            }
+            completion(response)
         }
     }
 }

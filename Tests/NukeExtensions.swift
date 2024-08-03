@@ -29,7 +29,7 @@ extension ImageResponse: Equatable {
 }
 
 extension ImagePipeline {
-    func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
+    nonisolated func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
         var configuration = self.configuration
         configure(&configuration)
         return ImagePipeline(configuration: configuration)

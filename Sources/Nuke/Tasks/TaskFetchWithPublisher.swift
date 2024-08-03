@@ -6,7 +6,7 @@ import Foundation
 
 /// Fetches data using the publisher provided with the request.
 /// Unlike `TaskFetchOriginalImageData`, there is no resumable data involved.
-final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)>, @unchecked Sendable {
+final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)> {
     private lazy var data = Data()
 
     override func start() {
@@ -19,7 +19,7 @@ final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)>, @un
                 guard let self else {
                     return finish()
                 }
-                self.pipeline.queue.async {
+                Task { @ImagePipelineActor in
                     self.loadData { finish() }
                 }
             }
@@ -40,12 +40,12 @@ final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)>, @un
         let cancellable = publisher.sink(receiveCompletion: { [weak self] result in
             finish() // Finish the operation!
             guard let self else { return }
-            self.pipeline.queue.async {
+            Task { @ImagePipelineActor in
                 self.dataTaskDidFinish(result)
             }
         }, receiveValue: { [weak self] data in
             guard let self else { return }
-            self.pipeline.queue.async {
+            Task { @ImagePipelineActor in
                 self.data.append(data)
             }
         })

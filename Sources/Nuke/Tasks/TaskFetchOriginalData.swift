@@ -6,7 +6,7 @@ import Foundation
 
 /// Fetches original image from the data loader (`DataLoading`) and stores it
 /// in the disk cache (`DataCaching`).
-final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unchecked Sendable {
+final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private var urlResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
@@ -54,7 +54,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
                 guard let self else {
                     return finish()
                 }
-                self.pipeline.queue.async {
+                Task { @ImagePipelineActor in
                     self.loadData(urlRequest: urlRequest, finish: finish)
                 }
             }
@@ -83,14 +83,14 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
         let dataTask = dataLoader.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
             guard let self else { return }
-            self.pipeline.queue.async {
+            Task {
                 self.dataTask(didReceiveData: data, response: response)
             }
         }, completion: { [weak self] error in
             finish() // Finish the operation!
             guard let self else { return }
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
-            self.pipeline.queue.async {
+            Task {
                 self.dataTaskDidFinish(error: error)
             }
         })

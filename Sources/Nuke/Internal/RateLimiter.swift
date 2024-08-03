@@ -13,12 +13,12 @@ import Foundation
 /// The implementation supports quick bursts of requests which can be executed
 /// without any delays when "the bucket is full". This is important to prevent
 /// rate limiter from affecting "normal" requests flow.
-final class RateLimiter: @unchecked Sendable {
+@ImagePipelineActor
+final class RateLimiter {
     // This type isn't really Sendable and requires the caller to use the same
     // queue as it does for synchronization.
 
     private let bucket: TokenBucket
-    private let queue: DispatchQueue
     private var pending = LinkedList<Work>() // fast append, fast remove first
     private var isExecutingPendingTasks = false
 
@@ -30,8 +30,7 @@ final class RateLimiter: @unchecked Sendable {
     ///   - rate: Maximum number of requests per second. 80 by default.
     ///   - burst: Maximum number of requests which can be executed without any
     ///   delays when "bucket is full". 25 by default.
-    init(queue: DispatchQueue, rate: Int = 80, burst: Int = 25) {
-        self.queue = queue
+    nonisolated init(rate: Int = 80, burst: Int = 25) {
         self.bucket = TokenBucket(rate: Double(rate), burst: Double(burst))
     }
 
@@ -56,7 +55,11 @@ final class RateLimiter: @unchecked Sendable {
         let bucketRate = 1000.0 / bucket.rate
         let delay = Int(2.1 * bucketRate) // 14 ms for rate 80 (default)
         let bounds = min(100, max(15, delay))
-        queue.asyncAfter(deadline: .now() + .milliseconds(bounds)) { self.executePendingTasks() }
+#warning("correct?")
+        Task {
+            try? await Task.sleep(nanoseconds: UInt64(bounds) * 1_000_000)
+            self.executePendingTasks()
+        }
     }
 
     private func executePendingTasks() {
