@@ -65,7 +65,7 @@ public final class ImageTask: Hashable {
     }
 
     /// The state of the image task.
-    public enum State {
+    public enum State: Sendable {
         /// The task is currently running.
         case running
         /// The task has received a cancel message.
