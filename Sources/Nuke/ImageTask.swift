@@ -22,10 +22,10 @@ import AppKit
 public final class ImageTask: Hashable {
     /// An identifier that uniquely identifies the task within a given pipeline.
     /// Unique only within that pipeline.
-    public let taskId: Int64
+    public nonisolated let taskId: Int64
 
     /// The original request that the task was created with.
-    public let request: ImageRequest
+    public nonisolated let request: ImageRequest
 
     /// The priority of the task. The priority can be updated dynamically even
     /// for a task that is already running.
