@@ -29,7 +29,7 @@ public final class ImagePipeline: @unchecked Sendable {
     /// Provides access to the underlying caching subsystems.
     public var cache: ImagePipeline.Cache { .init(pipeline: self) }
 
-    weak var delegate: (any ImagePipelineDelegate)?
+    let delegate: any ImagePipelineDelegate
 
     private var tasks = [ImageTask: TaskSubscription]()
 
@@ -289,7 +289,7 @@ public final class ImagePipeline: @unchecked Sendable {
         let task = ImageTask(taskId: nextTaskId, request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
         // Important to call it before `imageTaskStartCalled`
         if !isDataTask {
-            delegate?.imageTaskCreated(task, pipeline: self)
+            delegate.imageTaskCreated(task, pipeline: self)
         }
         task._task = Task {
             try await withUnsafeThrowingContinuation { continuation in
@@ -317,7 +317,7 @@ public final class ImagePipeline: @unchecked Sendable {
         tasks[task] = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
             task?._process($0)
         }
-        delegate?.imageTaskDidStart(task, pipeline: self)
+        delegate.imageTaskDidStart(task, pipeline: self)
         onTaskStarted?(task)
     }
 
@@ -346,16 +346,16 @@ public final class ImagePipeline: @unchecked Sendable {
         }
 
         if !isDataTask {
-            delegate?.imageTask(task, didReceiveEvent: event, pipeline: self)
+            delegate.imageTask(task, didReceiveEvent: event, pipeline: self)
             switch event {
             case .progress(let progress):
-                delegate?.imageTask(task, didUpdateProgress: progress, pipeline: self)
+                delegate.imageTask(task, didUpdateProgress: progress, pipeline: self)
             case .preview(let response):
-                delegate?.imageTask(task, didReceivePreview: response, pipeline: self)
+                delegate.imageTask(task, didReceivePreview: response, pipeline: self)
             case .cancelled:
-                delegate?.imageTaskDidCancel(task, pipeline: self)
+                delegate.imageTaskDidCancel(task, pipeline: self)
             case .finished(let result):
-                delegate?.imageTask(task, didCompleteWithResult: result, pipeline: self)
+                delegate.imageTask(task, didCompleteWithResult: result, pipeline: self)
             }
         }
     }

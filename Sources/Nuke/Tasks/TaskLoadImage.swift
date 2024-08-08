@@ -27,7 +27,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
 
     private func decodeCachedData(_ data: Data) {
         let context = ImageDecodingContext(request: request, data: data, cacheType: .disk)
-        guard let decoder = pipeline.delegate?.imageDecoder(for: context, pipeline: pipeline) else {
+        guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             return didFinishDecoding(with: nil)
         }
         decode(context, decoder: decoder) { [weak self] in
@@ -116,10 +116,9 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
             guard let self else { return }
             let response = signpost(isCompleted ? "DecompressImage" : "DecompressProgressiveImage") {
-                self.pipeline.delegate?.decompress(response: response, request: self.request, pipeline: self.pipeline)
+                self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
             }
             
-            guard let response else { return }
             self.pipeline.queue.async { [weak self] in
                 guard let self else { return }
                 self.operation = nil
@@ -132,7 +131,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         ImageDecompression.isDecompressionNeeded(for: response) &&
         !request.options.contains(.skipDecompression) &&
         hasDirectSubscribers &&
-        pipeline.delegate?.shouldDecompress(response: response, for: request, pipeline: pipeline) ?? false
+        pipeline.delegate.shouldDecompress(response: response, for: request, pipeline: pipeline)
     }
 
     private func didReceiveDecompressedImage(_ response: ImageResponse, isCompleted: Bool) {
@@ -153,19 +152,19 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
     }
 
     private func storeImageInDataCache(_ response: ImageResponse) {
-        guard let dataCache = pipeline.delegate?.dataCache(for: request, pipeline: pipeline) else {
+        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline) else {
             return
         }
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
-        let encoder = pipeline.delegate?.imageEncoder(for: context, pipeline: pipeline)
+        let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
         let key = pipeline.cache.makeDataCacheKey(for: request)
         pipeline.configuration.imageEncodingQueue.addOperation { [weak pipeline, request] in
             guard let pipeline else { return }
             let encodedData = signpost("EncodeImage") {
-                encoder?.encode(response.container, context: context)
+                encoder.encode(response.container, context: context)
             }
             guard let data = encodedData, !data.isEmpty else { return }
-            pipeline.delegate?.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
+            pipeline.delegate.willCache(data: data, image: response.container, for: request, pipeline: pipeline) {
                 guard let data = $0, !data.isEmpty else { return }
                 // Important! Storing directly ignoring `ImageRequest.Options`.
                 dataCache.storeData(data, for: key) // This is instant, writes are async
