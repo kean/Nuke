@@ -80,8 +80,8 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
 
         signpost(self, "LoadImageData", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
 
-        let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
-        let dataTask = dataLoader.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
+        let dataLoader = pipeline.delegate?.dataLoader(for: request, pipeline: pipeline)
+        let dataTask = dataLoader?.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
             guard let self else { return }
             self.pipeline.queue.async {
                 self.dataTask(didReceiveData: data, response: response)
@@ -99,7 +99,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             guard let self else { return }
 
             signpost(self, "LoadImageData", .end, "Cancelled")
-            dataTask.cancel()
+            dataTask?.cancel()
             finish() // Finish the operation!
 
             self.tryToSaveResumableData()
@@ -170,11 +170,11 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
 extension AsyncPipelineTask where Value == (Data, URLResponse?) {
     func storeDataInCacheIfNeeded(_ data: Data) {
         let request = makeSanitizedRequest()
-        guard let dataCache = pipeline.delegate.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() else {
+        guard let dataCache = pipeline.delegate?.dataCache(for: request, pipeline: pipeline), shouldStoreDataInDiskCache() else {
             return
         }
         let key = pipeline.cache.makeDataCacheKey(for: request)
-        pipeline.delegate.willCache(data: data, image: nil, for: request, pipeline: pipeline) {
+        pipeline.delegate?.willCache(data: data, image: nil, for: request, pipeline: pipeline) {
             guard let data = $0 else { return }
             // Important! Storing directly ignoring `ImageRequest.Options`.
             dataCache.storeData(data, for: key)

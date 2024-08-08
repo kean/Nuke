@@ -62,7 +62,7 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
         if let decoder {
             return decoder
         }
-        let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline)
+        let decoder = pipeline.delegate?.imageDecoder(for: context, pipeline: pipeline)
         self.decoder = decoder
         return decoder
     }
