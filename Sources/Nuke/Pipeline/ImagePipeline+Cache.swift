@@ -189,7 +189,7 @@ extension ImagePipeline.Cache {
 
     /// Returns image cache (memory cache) key for the given request.
     public func makeImageCacheKey(for request: ImageRequest) -> ImageCacheKey {
-        if let customKey = pipeline.delegate?.cacheKey(for: request, pipeline: pipeline) {
+        if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
             return ImageCacheKey(key: customKey)
         }
         return ImageCacheKey(request: request) // Use the default key
@@ -197,7 +197,7 @@ extension ImagePipeline.Cache {
 
     /// Returns data cache (disk cache) key for the given request.
     public func makeDataCacheKey(for request: ImageRequest) -> String {
-        if let customKey = pipeline.delegate?.cacheKey(for: request, pipeline: pipeline) {
+        if let customKey = pipeline.delegate.cacheKey(for: request, pipeline: pipeline) {
             return customKey
         }
         return "\(request.preferredImageId)\(request.thumbnail?.identifier ?? "")\(ImageProcessors.Composition(request.processors).identifier)"
@@ -223,7 +223,7 @@ extension ImagePipeline.Cache {
 
     private func decodeImageData(_ data: Data, for request: ImageRequest) -> ImageContainer? {
         let context = ImageDecodingContext(request: request, data: data, cacheType: .disk)
-        guard let decoder = pipeline.delegate?.imageDecoder(for: context, pipeline: pipeline) else {
+        guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             return nil
         }
         return (try? decoder.decode(context))?.container
@@ -231,16 +231,16 @@ extension ImagePipeline.Cache {
 
     private func encodeImage(_ image: ImageContainer, for request: ImageRequest) -> Data? {
         let context = ImageEncodingContext(request: request, image: image.image, urlResponse: nil)
-        let encoder = pipeline.delegate?.imageEncoder(for: context, pipeline: pipeline)
-        return encoder?.encode(image, context: context)
+        let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
+        return encoder.encode(image, context: context)
     }
 
     private func imageCache(for request: ImageRequest) -> (any ImageCaching)? {
-        pipeline.delegate?.imageCache(for: request, pipeline: pipeline)
+        pipeline.delegate.imageCache(for: request, pipeline: pipeline)
     }
 
     private func dataCache(for request: ImageRequest) -> (any DataCaching)? {
-        pipeline.delegate?.dataCache(for: request, pipeline: pipeline)
+        pipeline.delegate.dataCache(for: request, pipeline: pipeline)
     }
 
     // MARK: Options
