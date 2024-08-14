@@ -5,6 +5,7 @@
 import XCTest
 @testable import Nuke
 
+@MainActor
 class ImagePipelineLoadDataTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var dataCache: MockDataCache!

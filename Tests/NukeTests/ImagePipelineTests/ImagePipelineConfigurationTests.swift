@@ -5,6 +5,7 @@
 import XCTest
 @testable import Nuke
 
+@MainActor
 class ImagePipelineConfigurationTests: XCTestCase {
 
     func testImageIsLoadedWithRateLimiterDisabled() {

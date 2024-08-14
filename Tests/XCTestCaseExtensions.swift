@@ -12,7 +12,8 @@ extension XCTestCase {
         return self.expectation(forNotification: name, object: object, handler: handler)
     }
 
-    func wait(_ timeout: TimeInterval = 5, handler: XCWaitCompletionHandler? = nil) {
+    @MainActor
+    func wait(_ timeout: TimeInterval = 5, handler: (@Sendable ((any Error)?) -> Void)? = nil) {
         self.waitForExpectations(timeout: timeout, handler: handler)
     }
 }
@@ -84,7 +85,7 @@ extension XCTestCase {
     /// - warning: Keep in mind that `changeHandler` will continue to get called
     /// even after expectation is fulfilled. The method itself can't reliably stop
     /// observing KVO in case its multithreaded.
-    func expectation<Object: NSObject, Value>(description: String = "", for object: Object, keyPath: KeyPath<Object, Value>, options: NSKeyValueObservingOptions = .new, _ changeHandler: @escaping (Object, NSKeyValueObservedChange<Value>, XCTestExpectation) -> Void) {
+    func expectation<Object: NSObject, Value>(description: String = "", for object: Object, keyPath: KeyPath<Object, Value>, options: NSKeyValueObservingOptions = .new, _ changeHandler: @escaping @Sendable (Object, NSKeyValueObservedChange<Value>, XCTestExpectation) -> Void) {
         let expectation = self.expectation(description: description)
         let observation = object.observe(keyPath, options: options) { (object, change) in
             changeHandler(object, change, expectation)
@@ -92,7 +93,7 @@ extension XCTestCase {
         observations.append(observation)
     }
 
-    func expect<Object: NSObject, Value: Equatable>(values: [Value], for object: Object, keyPath: KeyPath<Object, Value>, changeHandler: ((Object, NSKeyValueObservedChange<Value>) -> Void)? = nil) {
+    func expect<Object: NSObject, Value: Equatable & Sendable>(values: [Value], for object: Object, keyPath: KeyPath<Object, Value>, changeHandler: (@Sendable (Object, NSKeyValueObservedChange<Value>) -> Void)? = nil) {
         let valuesExpectation = self.expect(values: values)
         let observation = object.observe(keyPath, options: [.new]) { (object, change) in
             changeHandler?(object, change)
@@ -214,7 +215,7 @@ extension XCTestCase {
 // MARK: - ValuesExpectation
 
 extension XCTestCase {
-    class ValuesExpectation<Value> {
+    class ValuesExpectation<Value>: @unchecked Sendable {
         private let expectation: XCTestExpectation
         private let expected: [Value]
         private let isEqual: (Value, Value) -> Bool
@@ -256,7 +257,7 @@ extension XCTestCase {
 
 // MARK: - OperationQueueObserver
 
-final class OperationQueueObserver {
+final class OperationQueueObserver: @unchecked Sendable {
     private let queue: OperationQueue
     // All recorded operations.
     private(set) var operations = [Foundation.Operation]()
@@ -307,7 +308,7 @@ func rnd(_ uniform: Int) -> Int {
 }
 
 extension DispatchQueue {
-    func after(ticks: Int, _ closure: @escaping () -> Void) {
+    func after(ticks: Int, _ closure: @escaping @Sendable () -> Void) {
         if ticks == 0 {
             closure()
         } else {

@@ -5,6 +5,7 @@
 import XCTest
 @testable import Nuke
 
+@MainActor
 class RateLimiterTests: XCTestCase {
     var queue: DispatchQueue!
     var queueKey: DispatchSpecificKey<Void>!

@@ -6,6 +6,7 @@ import XCTest
 @testable import Nuke
 import Combine
 
+@MainActor
 class ImagePublisherTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!

@@ -9,6 +9,7 @@ import XCTest
 import UIKit
 #endif
 
+@MainActor
 class ImagePipelineProcessorTests: XCTestCase {
     var mockDataLoader: MockDataLoader!
     var pipeline: ImagePipeline!

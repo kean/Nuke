@@ -5,7 +5,8 @@
 import XCTest
 @testable import Nuke
 
-class ImagePipelineDataCachingTests: XCTestCase {
+@MainActor
+class ImagePipelineDataCachingTests: XCTestCase, @unchecked Sendable {
     var dataLoader: MockDataLoader!
     var dataCache: MockDataCache!
     var pipeline: ImagePipeline!
@@ -42,7 +43,9 @@ class ImagePipelineDataCachingTests: XCTestCase {
         
         // Then
         wait { _ in
-            XCTAssertFalse(self.dataCache.store.isEmpty)
+            MainActor.assumeIsolated {
+                XCTAssertFalse(self.dataCache.store.isEmpty)
+            }
         }
     }
     
@@ -239,7 +242,8 @@ class ImagePipelineDataCachingTests: XCTestCase {
     }
 }
 
-class ImagePipelineDataCachePolicyTests: XCTestCase {
+@MainActor
+class ImagePipelineDataCachePolicyTests: XCTestCase, @unchecked Sendable {
     var dataLoader: MockDataLoader!
     var dataCache: MockDataCache!
     var pipeline: ImagePipeline!
@@ -735,8 +739,10 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
         
         // Then
         wait { _ in
-            XCTAssertTrue(isCustomEncoderCalled)
-            XCTAssertNil(self.dataCache.cachedData(for: Test.url.absoluteString + "1"), "Expected processed image data to not be stored")
+            MainActor.assumeIsolated {
+                XCTAssertTrue(isCustomEncoderCalled)
+                XCTAssertNil(self.dataCache.cachedData(for: Test.url.absoluteString + "1"), "Expected processed image data to not be stored")
+            }
         }
     }
 

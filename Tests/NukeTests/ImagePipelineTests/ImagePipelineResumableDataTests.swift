@@ -5,6 +5,7 @@
 import XCTest
 @testable import Nuke
 
+@MainActor
 class ImagePipelineResumableDataTests: XCTestCase {
     private var dataLoader: _MockResumableDataLoader!
     private var pipeline: ImagePipeline!

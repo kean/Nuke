@@ -62,7 +62,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
     }
 
     // This methods gets called inside data loading operation (Operation).
-    private func loadData(urlRequest: URLRequest, finish: @escaping () -> Void) {
+    private func loadData(urlRequest: URLRequest, finish: @escaping @Sendable () -> Void) {
         guard !isDisposed else {
             return finish()
         }

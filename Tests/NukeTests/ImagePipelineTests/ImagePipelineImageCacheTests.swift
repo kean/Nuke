@@ -6,7 +6,8 @@ import XCTest
 @testable import Nuke
 
 /// Test how well image pipeline interacts with memory cache.
-class ImagePipelineImageCacheTests: XCTestCase {
+@MainActor
+class ImagePipelineImageCacheTests: XCTestCase, @unchecked Sendable {
     var dataLoader: MockDataLoader!
     var cache: MockImageCache!
     var pipeline: ImagePipeline!
@@ -105,19 +106,22 @@ class ImagePipelineImageCacheTests: XCTestCase {
 
         // Then
         wait { _ in
-            guard let container = self.pipeline.cache[request] else {
-                return XCTFail()
+            MainActor.assumeIsolated {
+                guard let container = self.pipeline.cache[request] else {
+                    return XCTFail()
+                }
+                XCTAssertEqual(container.image.sizeInPixels, CGSize(width: 400, height: 300))
+                
+                XCTAssertNil(self.pipeline.cache[ImageRequest(url: Test.url)])
             }
-            XCTAssertEqual(container.image.sizeInPixels, CGSize(width: 400, height: 300))
-
-            XCTAssertNil(self.pipeline.cache[ImageRequest(url: Test.url)])
         }
     }
 }
 
 /// Make sure that cache layers are checked in the correct order and the
 /// minimum necessary number of cache lookups are performed.
-class ImagePipelineCacheLayerPriorityTests: XCTestCase {
+@MainActor
+class ImagePipelineCacheLayerPriorityTests: XCTestCase, @unchecked Sendable {
     var pipeline: ImagePipeline!
     var dataLoader: MockDataLoader!
     var imageCache: MockImageCache!

@@ -6,7 +6,8 @@ import XCTest
 import Combine
 @testable import Nuke
 
-class ImagePipelinePublisherTests: XCTestCase {
+@MainActor
+class ImagePipelinePublisherTests: XCTestCase, @unchecked Sendable {
     var dataLoader: MockDataLoader!
     var imageCache: MockImageCache!
     var dataCache: MockDataCache!
@@ -86,7 +87,9 @@ class ImagePipelinePublisherTests: XCTestCase {
 
         // THEN
         wait { _ in
-            XCTAssertFalse(self.dataCache.store.isEmpty)
+            MainActor.assumeIsolated {
+                XCTAssertFalse(self.dataCache.store.isEmpty)
+            }
         }
     }
 
@@ -99,7 +102,8 @@ class ImagePipelinePublisherTests: XCTestCase {
     }
 }
 
-class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
+@MainActor
+class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase, @unchecked Sendable {
     private var dataLoader: MockProgressiveDataLoader!
     private var imageCache: MockImageCache!
     private var pipeline: ImagePipeline!

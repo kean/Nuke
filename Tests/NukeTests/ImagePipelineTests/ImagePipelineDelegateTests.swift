@@ -5,7 +5,8 @@
 import XCTest
 @testable import Nuke
 
-class ImagePipelineDelegateTests: XCTestCase {
+@MainActor
+class ImagePipelineDelegateTests: XCTestCase, @unchecked Sendable {
     private var dataLoader: MockDataLoader!
     private var dataCache: MockDataCache!
     private var pipeline: ImagePipeline!
@@ -73,7 +74,9 @@ class ImagePipelineDelegateTests: XCTestCase {
 
         // THEN
         wait { _ in
-            XCTAssertFalse(self.dataCache.store.isEmpty)
+            MainActor.assumeIsolated {
+                XCTAssertFalse(self.dataCache.store.isEmpty)
+            }
         }
     }
 
@@ -84,7 +87,9 @@ class ImagePipelineDelegateTests: XCTestCase {
 
         // THEN
         wait { _ in
-            XCTAssertTrue(self.dataCache.store.isEmpty)
+            MainActor.assumeIsolated {
+                XCTAssertTrue(self.dataCache.store.isEmpty)
+            }
         }
     }
 }

@@ -5,6 +5,7 @@
 import XCTest
 @testable import Nuke
 
+@MainActor
 class ImagePipelineProgressiveDecodingTests: XCTestCase {
     private var dataLoader: MockProgressiveDataLoader!
     private var pipeline: ImagePipeline!

@@ -5,7 +5,8 @@
 import XCTest
 @testable import Nuke
 
-class ImagePipelineCoalescingTests: XCTestCase {
+@MainActor
+class ImagePipelineCoalescingTests: XCTestCase, @unchecked Sendable {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
     var observations = [NSKeyValueObservation]()
@@ -45,8 +46,10 @@ class ImagePipelineCoalescingTests: XCTestCase {
         wait { _ in
             // Then the original image is loaded once, and the image is processed
             // also only once
-            XCTAssertEqual(processors.numberOfProcessorsApplied, 1)
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+            MainActor.assumeIsolated {
+                XCTAssertEqual(processors.numberOfProcessorsApplied, 1)
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+            }
         }
     }
 
@@ -71,8 +74,10 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
         wait { _ in
             // Then the original image is loaded once, but both processors are applied
-            XCTAssertEqual(processors.numberOfProcessorsApplied, 2)
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+            MainActor.assumeIsolated {
+                XCTAssertEqual(processors.numberOfProcessorsApplied, 2)
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+            }
         }
     }
 
@@ -101,8 +106,10 @@ class ImagePipelineCoalescingTests: XCTestCase {
         wait { _ in
             // Then
             // The original image is loaded once, the first processor is applied
-            XCTAssertEqual(processors.numberOfProcessorsApplied, 1)
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+            MainActor.assumeIsolated {
+                XCTAssertEqual(processors.numberOfProcessorsApplied, 1)
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+            }
         }
     }
 
@@ -117,7 +124,9 @@ class ImagePipelineCoalescingTests: XCTestCase {
         }
 
         wait { _ in
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 2)
+            MainActor.assumeIsolated {
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 2)
+            }
         }
     }
 
@@ -174,7 +183,9 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
         wait { _ in
             // THEN the image data is fetched once
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+            MainActor.assumeIsolated {
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+            }
         }
     }
 
@@ -200,7 +211,9 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
         wait { _ in
             // THEN the image data is fetched once
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+            MainActor.assumeIsolated {
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+            }
         }
     }
 
@@ -222,8 +235,10 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
         // When/Then
         wait { _ in
-            XCTAssertEqual(queueObserver.operations.count, 2)
-            XCTAssertEqual(processors.numberOfProcessorsApplied, 2)
+            MainActor.assumeIsolated {
+                XCTAssertEqual(queueObserver.operations.count, 2)
+                XCTAssertEqual(processors.numberOfProcessorsApplied, 2)
+            }
         }
     }
 
@@ -262,9 +277,11 @@ class ImagePipelineCoalescingTests: XCTestCase {
         wait { _ in
             // Then the original image is loaded only once, but processors are
             // applied twice
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
-            XCTAssertEqual(processors.numberOfProcessorsApplied, 1)
-            XCTAssertEqual(queueObserver.operations.count, 1)
+            MainActor.assumeIsolated {
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
+                XCTAssertEqual(processors.numberOfProcessorsApplied, 1)
+                XCTAssertEqual(queueObserver.operations.count, 1)
+            }
         }
     }
 
@@ -480,12 +497,15 @@ class ImagePipelineCoalescingTests: XCTestCase {
             expect(pipeline).toLoadImage(with: Test.request)
         }
         wait { _ in
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 2)
+            MainActor.assumeIsolated {
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 2)
+            }
         }
     }
 }
 
-class ImagePipelineProcessingDeduplicationTests: XCTestCase {
+@MainActor
+class ImagePipelineProcessingDeduplicationTests: XCTestCase, @unchecked Sendable {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
     var observations = [NSKeyValueObservation]()
@@ -520,7 +540,9 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
 
         // Then the processor "1" is only applied once
         wait { _ in
-            XCTAssertEqual(processors.numberOfProcessorsApplied, 2)
+            MainActor.assumeIsolated {
+                XCTAssertEqual(processors.numberOfProcessorsApplied, 2)
+            }
         }
     }
 
@@ -571,8 +593,10 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
 
         // Then
         wait { _ in
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 0, "Expected no data task to be performed")
-            XCTAssertEqual(factory.numberOfProcessorsApplied, 1, "Expected only one processor to be applied")
+            MainActor.assumeIsolated {
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 0, "Expected no data task to be performed")
+                XCTAssertEqual(factory.numberOfProcessorsApplied, 1, "Expected only one processor to be applied")
+            }
         }
     }
 
@@ -596,8 +620,10 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         }
 
         wait { _ in
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 0, "Expected no data task to be performed")
-            XCTAssertEqual(factory.numberOfProcessorsApplied, 1, "Expected only one processor to be applied")
+            MainActor.assumeIsolated {
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 0, "Expected no data task to be performed")
+                XCTAssertEqual(factory.numberOfProcessorsApplied, 1, "Expected only one processor to be applied")
+            }
         }
     }
 
@@ -626,7 +652,9 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
 
         // Then the processor "1" is applied twice
         wait { _ in
-            XCTAssertEqual(processors.numberOfProcessorsApplied, 3)
+            MainActor.assumeIsolated {
+                XCTAssertEqual(processors.numberOfProcessorsApplied, 3)
+            }
         }
     }
 
@@ -649,7 +677,9 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
 
         // Then
         wait { _ in
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 1, "Expected only one data task to be performed")
+            MainActor.assumeIsolated {
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 1, "Expected only one data task to be performed")
+            }
         }
     }
 
@@ -673,7 +703,9 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
 
         // Then
         wait { _ in
-            XCTAssertEqual(self.dataLoader.createdTaskCount, 1, "Expected only one data task to be performed")
+            MainActor.assumeIsolated {
+                XCTAssertEqual(self.dataLoader.createdTaskCount, 1, "Expected only one data task to be performed")
+            }
         }
     }
 }

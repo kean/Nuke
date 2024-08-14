@@ -87,7 +87,7 @@ final class MockEmptyImageProcessor: ImageProcessing {
 // MARK: - MockProcessorFactory
 
 /// Counts number of applied processors
-final class MockProcessorFactory {
+final class MockProcessorFactory: @unchecked Sendable {
     var numberOfProcessorsApplied: Int = 0
     let lock = NSLock()
 

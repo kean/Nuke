@@ -5,6 +5,7 @@
 import XCTest
 @testable import Nuke
 
+@MainActor
 class TaskTests: XCTestCase {
     // MARK: - Starter
 
