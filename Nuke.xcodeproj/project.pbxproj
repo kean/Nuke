@@ -19,10 +19,13 @@
 		0C0FD6041CA47FE1002A78FB /* ImageRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */; };
 		0C1453A02657EFA7005E24B3 /* ImagePipelineObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C14539F2657EFA7005E24B3 /* ImagePipelineObserver.swift */; };
 		0C1453A12657EFA7005E24B3 /* ImagePipelineObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C14539F2657EFA7005E24B3 /* ImagePipelineObserver.swift */; };
+		0C16C85F2C7150C800B2A560 /* ImagePublisherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C88C578263DAF1E0061A008 /* ImagePublisherTests.swift */; };
 		0C179C7B2283597F008AB488 /* ImageEncoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C179C7A2283597F008AB488 /* ImageEncoding.swift */; };
 		0C1B9880294E28D800C09310 /* Nuke.docc in Sources */ = {isa = PBXBuildFile; fileRef = 0C1B987F294E28D800C09310 /* Nuke.docc */; };
 		0C1C201D29ABBF19004B38FD /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
 		0C1C201E29ABBF19004B38FD /* Nuke.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		0C1D2D5E2C714FF900BB81B3 /* ImagePipeline+Combine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1D2D5D2C714FF900BB81B3 /* ImagePipeline+Combine.swift */; };
+		0C1D2D5F2C71505900BB81B3 /* ImagePipelinePublisherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE6202426543EC700AAB8C3 /* ImagePipelinePublisherTests.swift */; };
 		0C1E620B1D6F817700AD5CF5 /* ImageRequestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E620A1D6F817700AD5CF5 /* ImageRequestTests.swift */; };
 		0C1ECA421D526461009063A9 /* ImageCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C7C06871BCA888800089D7F /* ImageCacheTests.swift */; };
 		0C222DE3294E2DEA00012288 /* NukeUI.docc in Sources */ = {isa = PBXBuildFile; fileRef = 0C222DE2294E2DEA00012288 /* NukeUI.docc */; };
@@ -142,7 +145,6 @@
 		0C8684FF20BDD578009FF7CC /* ImagePipelineProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CFA20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift */; };
 		0C86AB6A228B3B5100A81BA1 /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C86AB69228B3B5100A81BA1 /* ImageTask.swift */; };
 		0C880532242E7B1500F8C5B3 /* ImagePipelineDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C880531242E7B1500F8C5B3 /* ImagePipelineDecodingTests.swift */; };
-		0C88C579263DAF1E0061A008 /* ImagePublisherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C88C578263DAF1E0061A008 /* ImagePublisherTests.swift */; };
 		0C8D7BD31D9DBF1600D12EB7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD21D9DBF1600D12EB7 /* AppDelegate.swift */; };
 		0C8D7BD51D9DBF1600D12EB7 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD41D9DBF1600D12EB7 /* ViewController.swift */; };
 		0C8D7BD81D9DBF1600D12EB7 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD61D9DBF1600D12EB7 /* Main.storyboard */; };
@@ -186,7 +188,6 @@
 		0CA4ECCD26E68FA100BAC8E5 /* DataLoading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECCC26E68FA100BAC8E5 /* DataLoading.swift */; };
 		0CA4ECD026E68FC000BAC8E5 /* DataCaching.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECCF26E68FC000BAC8E5 /* DataCaching.swift */; };
 		0CA4ECD326E68FDC00BAC8E5 /* ImageCaching.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA4ECD226E68FDC00BAC8E5 /* ImageCaching.swift */; };
-		0CA5D954263CCEA500E08E17 /* ImagePublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */; };
 		0CA8D8ED2958DA3700EDAA2C /* Mutex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CA8D8EC2958DA3700EDAA2C /* Mutex.swift */; };
 		0CAAB0101E45D6DA00924450 /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
 		0CAAB0131E45D6DA00924450 /* NukeExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */; };
@@ -248,7 +249,6 @@
 		0CE5F6832156386B0046609F /* ResumableDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE5F681215638300046609F /* ResumableDataTests.swift */; };
 		0CE6202126542F7200AAB8C3 /* DataPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE6202026542F7200AAB8C3 /* DataPublisher.swift */; };
 		0CE6202326543B6A00AAB8C3 /* TaskFetchWithPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE6202226543B6A00AAB8C3 /* TaskFetchWithPublisher.swift */; };
-		0CE6202526543EC700AAB8C3 /* ImagePipelinePublisherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE6202426543EC700AAB8C3 /* ImagePipelinePublisherTests.swift */; };
 		0CE6202726546FD100AAB8C3 /* CombineExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE6202626546FD100AAB8C3 /* CombineExtensions.swift */; };
 		0CE745751D4767B900123F65 /* MockImageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CE745741D4767B900123F65 /* MockImageDecoder.swift */; };
 		0CF1754C22913F9800A8946E /* ImagePipeline+Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF1754B22913F9800A8946E /* ImagePipeline+Configuration.swift */; };
@@ -355,6 +355,7 @@
 		0C179C772282AC50008AB488 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text; path = .swiftlint.yml; sourceTree = "<group>"; };
 		0C179C7A2283597F008AB488 /* ImageEncoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEncoding.swift; sourceTree = "<group>"; };
 		0C1B987F294E28D800C09310 /* Nuke.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = Nuke.docc; sourceTree = "<group>"; };
+		0C1D2D5D2C714FF900BB81B3 /* ImagePipeline+Combine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImagePipeline+Combine.swift"; sourceTree = "<group>"; };
 		0C1E620A1D6F817700AD5CF5 /* ImageRequestTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequestTests.swift; sourceTree = "<group>"; };
 		0C222DE2294E2DEA00012288 /* NukeUI.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = NukeUI.docc; sourceTree = "<group>"; };
 		0C222DE4294E2E0200012288 /* NukeExtensions.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = NukeExtensions.docc; sourceTree = "<group>"; };
@@ -475,7 +476,6 @@
 		0CA4ECCC26E68FA100BAC8E5 /* DataLoading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataLoading.swift; sourceTree = "<group>"; };
 		0CA4ECCF26E68FC000BAC8E5 /* DataCaching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataCaching.swift; sourceTree = "<group>"; };
 		0CA4ECD226E68FDC00BAC8E5 /* ImageCaching.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCaching.swift; sourceTree = "<group>"; };
-		0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePublisher.swift; sourceTree = "<group>"; };
 		0CA8D8EC2958DA3700EDAA2C /* Mutex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mutex.swift; sourceTree = "<group>"; };
 		0CAAB00F1E45D6DA00924450 /* NukeExtensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NukeExtensions.swift; sourceTree = "<group>"; };
 		0CB047992856D9AC00DF9B6D /* Cache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cache.swift; sourceTree = "<group>"; };
@@ -680,6 +680,7 @@
 			children = (
 				0C55FD1B28567926000FD2C9 /* ImageLoadingOptions.swift */,
 				0C55FD1C28567926000FD2C9 /* ImageViewExtensions.swift */,
+				0C1D2D5D2C714FF900BB81B3 /* ImagePipeline+Combine.swift */,
 			);
 			path = NukeExtensions;
 			sourceTree = "<group>";
@@ -699,7 +700,6 @@
 				0C4AF1E91FE8551D002F86CB /* LinkedListTest.swift */,
 				0CB2EFD52110F52C00F7C63F /* RateLimiterTests.swift */,
 				0C0F7BF02287F6EE0034E656 /* TaskTests.swift */,
-				0C88C578263DAF1E0061A008 /* ImagePublisherTests.swift */,
 				0C472F802654AA46007FC0F0 /* DeprecationTests.swift */,
 				0C91B0E82438E245007F9100 /* ImagePipelineTests */,
 				0C91B0EA2438E269007F9100 /* ImageProcessorsTests */,
@@ -712,6 +712,8 @@
 			children = (
 				0CCBB52F217D0B6A0026F552 /* ImageViewIntegrationTests.swift */,
 				0C94466D1D47EC0E006DB314 /* ImageViewExtensionsTests.swift */,
+				0CE6202426543EC700AAB8C3 /* ImagePipelinePublisherTests.swift */,
+				0C88C578263DAF1E0061A008 /* ImagePublisherTests.swift */,
 				0CB6449B28567E5400916267 /* ImageViewLoadingOptionsTests.swift */,
 				0CB6449928567DE000916267 /* NukeExtensionsTestsHelpers.swift */,
 				0CB644AA28567EEA00916267 /* ImageViewExtensionsProgressiveDecodingTests.swift */,
@@ -830,7 +832,6 @@
 				0CD37C9925BA36D5006C2C36 /* ImagePipelineLoadDataTests.swift */,
 				0C53C8AE263C7B1700E62D03 /* ImagePipelineDelegateTests.swift */,
 				0CA3BA62285C11EA0079A444 /* ImagePipelineTaskDelegateTests.swift */,
-				0CE6202426543EC700AAB8C3 /* ImagePipelinePublisherTests.swift */,
 				0C5D5A9C2724773A0056B95B /* ImagePipelineAsyncAwaitTests.swift */,
 				0C78A2A8263F560A0051E0FF /* ImagePipelineCacheTests.swift */,
 				0C967EB228688B3F0050E083 /* DocumentationTests.swift */,
@@ -997,7 +998,6 @@
 				0C7150081FC9724C00B880AC /* Extensions.swift */,
 				0CA8D8EC2958DA3700EDAA2C /* Mutex.swift */,
 				0CE6202026542F7200AAB8C3 /* DataPublisher.swift */,
-				0CA5D953263CCEA500E08E17 /* ImagePublisher.swift */,
 				0C472F822654AD69007FC0F0 /* ImageRequestKeys.swift */,
 			);
 			path = Internal;
@@ -1571,6 +1571,7 @@
 				0C55FD1F28567926000FD2C9 /* ImageViewExtensions.swift in Sources */,
 				0C222DE5294E2E0300012288 /* NukeExtensions.docc in Sources */,
 				0C55FD1E28567926000FD2C9 /* ImageLoadingOptions.swift in Sources */,
+				0C1D2D5E2C714FF900BB81B3 /* ImagePipeline+Combine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1578,6 +1579,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C16C85F2C7150C800B2A560 /* ImagePublisherTests.swift in Sources */,
 				0CB6449828567DCA00916267 /* CombineExtensions.swift in Sources */,
 				0CB6449728567DCA00916267 /* NukeExtensions.swift in Sources */,
 				0C55FD2728567C12000FD2C9 /* ImageViewExtensionsTests.swift in Sources */,
@@ -1596,6 +1598,7 @@
 				0CB6448C28567DC300916267 /* MockDataCache.swift in Sources */,
 				0CB6449628567DCA00916267 /* XCTestCaseExtensions.swift in Sources */,
 				0CB6448F28567DC300916267 /* MockImageEncoder.swift in Sources */,
+				0C1D2D5F2C71505900BB81B3 /* ImagePipelinePublisherTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1625,7 +1628,6 @@
 				0CAAB0101E45D6DA00924450 /* NukeExtensions.swift in Sources */,
 				0CE745751D4767B900123F65 /* MockImageDecoder.swift in Sources */,
 				0C70D9782089017500A49DAC /* ImageDecoderTests.swift in Sources */,
-				0C88C579263DAF1E0061A008 /* ImagePublisherTests.swift in Sources */,
 				0C7082612640521900C62638 /* MockImageEncoder.swift in Sources */,
 				0CE6202726546FD100AAB8C3 /* CombineExtensions.swift in Sources */,
 				0C6B5BE1257010D300D763F2 /* ImagePipelineFormatsTests.swift in Sources */,
@@ -1662,7 +1664,6 @@
 				0CA3BA63285C11EA0079A444 /* ImagePipelineTaskDelegateTests.swift in Sources */,
 				0C6D0A8C20E57C810037B68F /* ImagePipelineDataCacheTests.swift in Sources */,
 				0C68F609208A1F40007DC696 /* ImageDecoderRegistryTests.swift in Sources */,
-				0CE6202526543EC700AAB8C3 /* ImagePipelinePublisherTests.swift in Sources */,
 				0C91B0EE2438E307007F9100 /* CircleTests.swift in Sources */,
 				0CC6271525BDF7A100466F04 /* ImagePipelineImageCacheTests.swift in Sources */,
 			);
@@ -1712,7 +1713,6 @@
 				0CC36A2C25B8BC6300811018 /* LinkedList.swift in Sources */,
 				0C179C7B2283597F008AB488 /* ImageEncoding.swift in Sources */,
 				0CB4030125B6639200F5A241 /* TaskLoadImage.swift in Sources */,
-				0CA5D954263CCEA500E08E17 /* ImagePublisher.swift in Sources */,
 				0CA4ECCD26E68FA100BAC8E5 /* DataLoading.swift in Sources */,
 				0CA4ECAF26E683FD00BAC8E5 /* ImageEncoders+Default.swift in Sources */,
 				0CC36A2525B8BC4900811018 /* Operation.swift in Sources */,

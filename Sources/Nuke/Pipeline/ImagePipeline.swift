@@ -3,7 +3,6 @@
 // Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
-import Combine
 
 #if canImport(UIKit)
 import UIKit
@@ -269,18 +268,6 @@ public final class ImagePipeline {
             }
             completion(result)
         }
-    }
-
-    // MARK: - Loading Images (Combine)
-
-    /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
-    public nonisolated func imagePublisher(with url: URL) -> AnyPublisher<ImageResponse, Error> {
-        imagePublisher(with: ImageRequest(url: url))
-    }
-
-    /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
-    public nonisolated func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, Error> {
-        ImagePublisher(request: request, pipeline: self).eraseToAnyPublisher()
     }
 
     // MARK: - ImageTask (Internal)
