@@ -59,9 +59,8 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     }
 
     /// The current state of the task.
-    public var state: State {
-        nonisolatedState.withLock { $0.state }
-    }
+    @ImagePipelineActor
+    public var state: State { context.state }
 
     /// The state of the image task.
     public enum State: Sendable {
@@ -71,6 +70,11 @@ public final class ImageTask: Hashable, @unchecked Sendable {
         case cancelled
         /// The task has completed (without being canceled).
         case completed
+    }
+
+    /// Returns `true` if the task cancellation is initiated.
+    public var isCancelling: Bool {
+        nonisolatedState.withLock { $0.isCancelling }
     }
 
     // MARK: - Async/Await
@@ -173,8 +177,8 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     /// unless there is an equivalent outstanding task running.
     public func cancel() {
         let didChange: Bool = nonisolatedState.withLock {
-            guard $0.state == .running else { return false }
-            $0.state = .cancelled
+            guard !$0.isCancelling else { return false }
+            $0.isCancelling = true
             return true
         }
         guard didChange else { return } // Make sure it gets called once (expensive)
@@ -187,7 +191,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
         let didChange: Bool = nonisolatedState.withLock {
             guard $0.priority != newValue else { return false }
             $0.priority = newValue
-            return $0.state == .running
+            return !$0.isCancelling
         }
         guard didChange else { return }
         Task { @ImagePipelineActor in
@@ -201,17 +205,20 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     /// external event such as session invalidation.
     @ImagePipelineActor
     func _cancel() {
-        guard _setState(.cancelled) else { return }
+        guard context.state == .running else { return }
+        context.state = .cancelled
         _dispatch(.cancelled)
     }
 
     /// Gets called when the associated task sends a new event.
     @ImagePipelineActor
     func _process(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
+        guard context.state == .running else { return }
         switch event {
         case let .value(response, isCompleted):
             if isCompleted {
-                _finish(.success(response))
+                context.state = .completed
+                _dispatch(.finished(.success(response)))
             } else {
                 _dispatch(.preview(response))
             }
@@ -219,24 +226,9 @@ public final class ImageTask: Hashable, @unchecked Sendable {
             nonisolatedState.withLock { $0.progress = value }
             _dispatch(.progress(value))
         case let .error(error):
-            _finish(.failure(error))
+            context.state = .completed
+            _dispatch(.finished(.failure(error)))
         }
-    }
-
-    @ImagePipelineActor
-    private func _finish(_ result: Result<ImageResponse, ImagePipeline.Error>) {
-        guard _setState(.completed) else { return }
-        _dispatch(.finished(result))
-    }
-
-    @ImagePipelineActor
-    private func _setState(_ state: State) -> Bool {
-        guard context.state == .running else { return false }
-        context.state = state
-        if onEvent == nil {
-            nonisolatedState.withLock { $0.state = state }
-        }
-        return true
     }
 
     /// Dispatches the given event to the observers.
@@ -307,8 +299,7 @@ extension ImageTask {
 }
 
 private struct ImageTaskState {
-#warning("should we just remove it?")
-    var state: ImageTask.State = .running
+    var isCancelling = false
     var priority: ImageRequest.Priority
     var progress = ImageTask.Progress(completed: 0, total: 0)
 }

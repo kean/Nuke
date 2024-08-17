@@ -197,7 +197,7 @@ public final class ImagePipeline {
             self?.dispatchCallback(to: callbackQueue) {
                 // The callback-based API guarantees that after cancellation no
                 // event are called on the callback queue.
-                guard task.state != .cancelled else { return }
+                guard !task.isCancelling else { return }
                 switch event {
                 case .progress(let value): progress?(nil, value)
                 case .preview(let response): progress?(response, task.currentProgress)
