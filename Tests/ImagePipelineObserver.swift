@@ -56,6 +56,7 @@ final class ImagePipelineObserver: ImagePipelineDelegate, @unchecked Sendable {
     }
 }
 
+#warning("replace with ImageTask.Event")
 enum ImageTaskEvent: Equatable {
     case created
     case started

@@ -291,12 +291,6 @@ public final class ImagePipeline {
 
     // By this time, the task has `continuation` set and is fully wired.
     func startImageTask(_ task: ImageTask, isDataTask: Bool) {
-        guard task._state != .cancelled else {
-            // The task gets started asynchronously in a `Task` and cancellation
-            // can happen before the pipeline reached `startImageTask`. In that
-            // case, the `cancel` method do no send the task event.
-            return task._dispatch(.cancelled)
-        }
         guard !isInvalidated else {
             return task._process(.error(.pipelineInvalidated))
         }
@@ -308,15 +302,9 @@ public final class ImagePipeline {
         onTaskStarted?(task)
     }
 
-    private func cancelImageTask(_ task: ImageTask) {
+    func cancelImageTask(_ task: ImageTask) {
         tasks.removeValue(forKey: task)?.unsubscribe()
         task._cancel()
-    }
-
-    // MARK: - Image Task Events
-
-    func imageTaskCancelCalled(_ task: ImageTask) {
-        self.cancelImageTask(task)
     }
 
     func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {

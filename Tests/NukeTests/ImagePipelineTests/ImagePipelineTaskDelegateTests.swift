@@ -22,6 +22,7 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
         }
     }
 
+    #warning("remove ImageTaskEvent.created")
     func testStartAndCompletedEvents() throws {
         var result: Result<ImageResponse, ImagePipeline.Error>?
         expect(pipeline).toLoadImage(with: Test.request) { result = $0 }
