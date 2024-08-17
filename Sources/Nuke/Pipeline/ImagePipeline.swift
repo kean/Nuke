@@ -48,7 +48,7 @@ public final class ImagePipeline {
     nonisolated(unsafe) var onTaskStarted: ((ImageTask) -> Void)? // Debug purposes
 
     deinit {
-        ResumableDataStorage.shared.unregister(self)
+        ResumableDataStorage.shared.unregister(id)
     }
 
     /// Initializes the instance with the given configuration.
@@ -68,7 +68,7 @@ public final class ImagePipeline {
         self.tasksFetchOriginalImage = TaskPool(isCoalescingEnabled)
         self.tasksFetchOriginalData = TaskPool(isCoalescingEnabled)
 
-        ResumableDataStorage.shared.register(self)
+        ResumableDataStorage.shared.register(id)
     }
 
     /// A convenience way to initialize the pipeline with a closure.

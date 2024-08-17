@@ -70,7 +70,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         // back in the cache if the request fails to complete again).
         var urlRequest = urlRequest
         if pipeline.configuration.isResumableDataEnabled,
-           let resumableData = ResumableDataStorage.shared.removeResumableData(for: request, pipeline: pipeline) {
+           let resumableData = ResumableDataStorage.shared.removeResumableData(for: request, namespace: pipeline.id) {
             // Update headers to add "Range" and "If-Range" headers
             resumableData.resume(request: &urlRequest)
             // Save resumable data to be used later (before using it, the pipeline
@@ -177,7 +177,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
         if pipeline.configuration.isResumableDataEnabled,
            let response = urlResponse, !data.isEmpty,
            let resumableData = ResumableData(response: response, data: data) {
-            ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
+            ResumableDataStorage.shared.storeResumableData(resumableData, for: request, namespace: pipeline.id)
         }
     }
 }

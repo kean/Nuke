@@ -67,29 +67,29 @@ final class ResumableDataStorage: @unchecked Sendable {
     static let shared = ResumableDataStorage()
 
     private let lock = NSLock()
-    private var registeredPipelines = Set<UUID>()
+    private var namespaces = Set<UUID>()
 
     private var cache: Cache<Key, ResumableData>?
 
     // MARK: Registration
 
-    func register(_ pipeline: ImagePipeline) {
+    func register(_ namespace: UUID) {
         lock.lock()
         defer { lock.unlock() }
 
-        if registeredPipelines.isEmpty {
+        if namespaces.isEmpty {
             // 32 MB
             cache = Cache(costLimit: 32000000, countLimit: 100)
         }
-        registeredPipelines.insert(pipeline.id)
+        namespaces.insert(namespace)
     }
 
-    func unregister(_ pipeline: ImagePipeline) {
+    func unregister(_ namespace: UUID) {
         lock.lock()
         defer { lock.unlock() }
 
-        registeredPipelines.remove(pipeline.id)
-        if registeredPipelines.isEmpty {
+        namespaces.remove(namespace)
+        if namespaces.isEmpty {
             cache = nil // Deallocate storage
         }
     }
@@ -103,31 +103,31 @@ final class ResumableDataStorage: @unchecked Sendable {
 
     // MARK: Storage
 
-    func removeResumableData(for request: ImageRequest, pipeline: ImagePipeline) -> ResumableData? {
+    func removeResumableData(for request: ImageRequest, namespace: UUID) -> ResumableData? {
         lock.lock()
         defer { lock.unlock() }
 
-        guard let key = Key(request: request, pipeline: pipeline) else { return nil }
+        guard let key = Key(request: request, namespace: namespace) else { return nil }
         return cache?.removeValue(forKey: key)
     }
 
-    func storeResumableData(_ data: ResumableData, for request: ImageRequest, pipeline: ImagePipeline) {
+    func storeResumableData(_ data: ResumableData, for request: ImageRequest, namespace: UUID) {
         lock.lock()
         defer { lock.unlock() }
 
-        guard let key = Key(request: request, pipeline: pipeline) else { return }
+        guard let key = Key(request: request, namespace: namespace) else { return }
         cache?.set(data, forKey: key, cost: data.data.count)
     }
 
     private struct Key: Hashable {
-        let pipelineId: UUID
+        let namespace: UUID
         let imageId: String
 
-        init?(request: ImageRequest, pipeline: ImagePipeline) {
+        init?(request: ImageRequest, namespace: UUID) {
             guard let imageId = request.imageId else {
                 return nil
             }
-            self.pipelineId = pipeline.id
+            self.namespace = namespace
             self.imageId = imageId
         }
     }
