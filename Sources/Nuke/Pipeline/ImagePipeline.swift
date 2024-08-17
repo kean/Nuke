@@ -292,11 +292,11 @@ public final class ImagePipeline {
     // By this time, the task has `continuation` set and is fully wired.
     func startImageTask(_ task: ImageTask, isDataTask: Bool) {
         guard !isInvalidated else {
-            return task._process(.error(.pipelineInvalidated))
+            return task.process(.error(.pipelineInvalidated))
         }
         let worker = isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
         tasks[task] = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
-            task?._process($0)
+            task?.process($0)
         }
         delegate.imageTaskDidStart(task, pipeline: self)
         onTaskStarted?(task)

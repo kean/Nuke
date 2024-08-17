@@ -168,7 +168,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
             // can happen before the pipeline reaches `startImageTask`. In that
             // case, the `cancel` method do no send the task event.
             guard state != .cancelled else {
-                return _dispatch(.cancelled) // Important to set after continuation
+                return dispatch(.cancelled) // Important to set after continuation
             }
             pipeline?.startImageTask(self, isDataTask: isDataTask)
         }
@@ -179,24 +179,22 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     /// The pipeline will immediately cancel any work associated with a task
     /// unless there is an equivalent outstanding task running.
     public func cancel() {
-        let didChange: Bool = nonisolatedState.withLock {
+        guard nonisolatedState.withLock({
             guard !$0.isCancelling else { return false }
             $0.isCancelling = true
             return true
-        }
-        guard didChange else { return } // Make sure it gets called once (expensive)
+        }) else { return }
         Task { @ImagePipelineActor in
             pipeline?.cancelImageTask(self)
         }
     }
 
     private func setPriority(_ newValue: ImageRequest.Priority) {
-        let didChange: Bool = nonisolatedState.withLock {
+        guard nonisolatedState.withLock({
             guard $0.priority != newValue else { return false }
             $0.priority = newValue
             return !$0.isCancelling
-        }
-        guard didChange else { return }
+        }) else { return }
         Task { @ImagePipelineActor in
             pipeline?.imageTaskUpdatePriorityCalled(self, priority: newValue)
         }
@@ -210,27 +208,27 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     func _cancel() {
         guard state == .running else { return }
         state = .cancelled
-        _dispatch(.cancelled)
+        dispatch(.cancelled)
     }
 
     /// Gets called when the associated task sends a new event.
     @ImagePipelineActor
-    func _process(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
+    func process(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
         guard state == .running else { return }
         switch event {
         case let .value(response, isCompleted):
             if isCompleted {
                 state = .completed
-                _dispatch(.finished(.success(response)))
+                dispatch(.finished(.success(response)))
             } else {
-                _dispatch(.preview(response))
+                dispatch(.preview(response))
             }
         case let .progress(value):
             nonisolatedState.withLock { $0.progress = value }
-            _dispatch(.progress(value))
+            dispatch(.progress(value))
         case let .error(error):
             state = .completed
-            _dispatch(.finished(.failure(error)))
+            dispatch(.finished(.failure(error)))
         }
     }
 
@@ -239,7 +237,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     /// - warning: The task needs to be fully wired (`_continuation` present)
     /// before it can start sending the events.
     @ImagePipelineActor
-    private func _dispatch(_ event: Event) {
+    private func dispatch(_ event: Event) {
         guard continuation != nil else {
             return // Task isn't fully wired yet
         }
