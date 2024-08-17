@@ -68,12 +68,9 @@ protocol MockDataLoading: DataLoading {
 }
 
 extension MockDataLoading where Self: DataLoading {
-    func loadData(for request: ImageRequest) -> AsyncThrowingStream<(Data, URLResponse), any Error> {
+    func loadData(for request: URLRequest) -> AsyncThrowingStream<(Data, URLResponse), any Error> {
         AsyncThrowingStream { continuation in
-            guard let urlRequest = request.urlRequest else {
-                return continuation.finish(throwing: URLError(.badURL))
-            }
-            let task = loadData(with: urlRequest) { data, response in
+            let task = loadData(with: request) { data, response in
                 continuation.yield((data, response))
             } completion: { error in
                 continuation.finish(throwing: error)

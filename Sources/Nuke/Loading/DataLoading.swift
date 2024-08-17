@@ -10,5 +10,5 @@ public protocol DataLoading: Sendable {
     ///
     /// - returns: Sequence that can be called more than once if streaming
     /// is supported.
-    func loadData(for request: ImageRequest) -> AsyncThrowingStream<(Data, URLResponse), Swift.Error>
+    func loadData(for request: URLRequest) -> AsyncThrowingStream<(Data, URLResponse), Swift.Error>
 }

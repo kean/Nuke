@@ -84,7 +84,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
 
         let task = Task { @ImagePipelineActor in
             do {
-                for try await (data, response) in dataLoader.loadData(for: request) {
+                for try await (data, response) in dataLoader.loadData(for: urlRequest) {
                     dataTask(didReceiveData: data, response: response)
                 }
                 dataTaskDidFinish(error: nil)
@@ -94,19 +94,6 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
             finish() // Finish the operation!
         }
-
-//        let dataTask = dataLoader.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
-//            guard let self else { return }
-//            Task {
-//                self.dataTask(didReceiveData: data, response: response)
-//            }
-//        }, completion: { [weak self] error in
-//
-////            signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
-////            Task {
-////                self.dataTaskDidFinish(error: error)
-////            }
-//        })
 
         onCancelled = { [weak self] in
             guard let self else { return }
@@ -120,18 +107,16 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     }
 
     private func dataTask(didReceiveData chunk: Data, response: URLResponse) {
-        // TODO: (nuke13) reimplement resumable data in DataLoader
-
         // Check if this is the first response.
-//        if urlResponse == nil {
-//            // See if the server confirmed that the resumable data can be used
-//            if let resumableData, ResumableData.isResumedResponse(response) {
-//                data = resumableData.data
-//                resumedDataCount = Int64(resumableData.data.count)
-//                signpost(self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
-//            }
-//            resumableData = nil // Get rid of resumable data
-//        }
+        if urlResponse == nil {
+            // See if the server confirmed that the resumable data can be used
+            if let resumableData, ResumableData.isResumedResponse(response) {
+                data = resumableData.data
+                resumedDataCount = Int64(resumableData.data.count)
+                signpost(self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
+            }
+            resumableData = nil // Get rid of resumable data
+        }
 
         // Append data and save response
         if data.isEmpty {
