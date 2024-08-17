@@ -156,7 +156,7 @@ class FetchImageTests: XCTestCase {
         // gets deallocated immediately.
         autoreleasepool {
             // Given an image view with an associated image task
-            expectNotification(ImagePipelineObserver.didStartTask, object: observer)
+            expectNotification(ImagePipelineObserver.didCreateTask, object: observer)
             image.load(pipeline.imagePublisher(with: Test.request))
             wait()
 

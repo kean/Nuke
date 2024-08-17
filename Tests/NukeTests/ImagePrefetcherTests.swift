@@ -53,7 +53,7 @@ final class ImagePrefetcherTests: XCTestCase {
 
         // THEN
         XCTAssertEqual(dataLoader.createdTaskCount, 1)
-        XCTAssertEqual(observer.startedTaskCount, 2)
+        XCTAssertEqual(observer.createdTaskCount, 2)
     }
 
     // MARK: Start Prefetching
@@ -85,7 +85,7 @@ final class ImagePrefetcherTests: XCTestCase {
         wait()
 
         // THEN only one task is started
-        XCTAssertEqual(observer.startedTaskCount, 1)
+        XCTAssertEqual(observer.createdTaskCount, 1)
     }
 
     func testWhenImageIsInMemoryCacheNoTaskStarted() {
@@ -99,7 +99,7 @@ final class ImagePrefetcherTests: XCTestCase {
         pipeline.queue.sync {}
 
         // THEN
-        XCTAssertEqual(observer.startedTaskCount, 0)
+        XCTAssertEqual(observer.createdTaskCount, 0)
     }
 
     // MARK: Stop Prefetching
@@ -109,7 +109,7 @@ final class ImagePrefetcherTests: XCTestCase {
 
         // WHEN
         let url = Test.url
-        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
+        expectNotification(ImagePipelineObserver.didCreateTask, object: observer)
         prefetcher.startPrefetching(with: [url])
         wait()
 
@@ -156,7 +156,7 @@ final class ImagePrefetcherTests: XCTestCase {
         wait()
 
         // THEN
-        XCTAssertEqual(observer.startedTaskCount, 0)
+        XCTAssertEqual(observer.createdTaskCount, 0)
     }
 
     // MARK: Priority
@@ -273,7 +273,7 @@ final class ImagePrefetcherTests: XCTestCase {
         pipeline.configuration.dataLoadingQueue.isSuspended = true
 
         let request = Test.request
-        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
+        expectNotification(ImagePipelineObserver.didCreateTask, object: observer)
         prefetcher.startPrefetching(with: [request])
         wait()
 

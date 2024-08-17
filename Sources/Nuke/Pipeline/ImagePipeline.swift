@@ -300,7 +300,6 @@ public final class ImagePipeline {
         tasks[task] = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
             task?.process($0)
         }
-        delegate.imageTaskDidStart(task, pipeline: self)
         onTaskStarted?(task)
     }
 
@@ -319,19 +318,8 @@ public final class ImagePipeline {
             tasks[task] = nil
         default: break
         }
-
         if !isDataTask {
             delegate.imageTask(task, didReceiveEvent: event, pipeline: self)
-            switch event {
-            case .progress(let progress):
-                delegate.imageTask(task, didUpdateProgress: progress, pipeline: self)
-            case .preview(let response):
-                delegate.imageTask(task, didReceivePreview: response, pipeline: self)
-            case .cancelled:
-                delegate.imageTaskDidCancel(task, pipeline: self)
-            case .finished(let result):
-                delegate.imageTask(task, didCompleteWithResult: result, pipeline: self)
-            }
         }
     }
 

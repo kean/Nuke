@@ -406,39 +406,3 @@ private struct URLError: Swift.Error {
         case constrained
     }
 }
-
-#if swift(>=6.0)
-extension ImageTask.Event: @retroactive Equatable {
-    public static func == (lhs: ImageTask.Event, rhs: ImageTask.Event) -> Bool {
-        switch (lhs, rhs) {
-        case let (.progress(lhs), .progress(rhs)):
-            return lhs == rhs
-        case let (.preview(lhs), .preview(rhs)):
-            return lhs == rhs
-        case (.cancelled, .cancelled):
-            return true
-        case let (.finished(lhs), .finished(rhs)):
-            return lhs == rhs
-        default:
-            return false
-        }
-    }
-}
-#else
-extension ImageTask.Event: Equatable {
-    public static func == (lhs: ImageTask.Event, rhs: ImageTask.Event) -> Bool {
-        switch (lhs, rhs) {
-        case let (.progress(lhs), .progress(rhs)):
-            return lhs == rhs
-        case let (.preview(lhs), .preview(rhs)):
-            return lhs == rhs
-        case (.cancelled, .cancelled):
-            return true
-        case let (.finished(lhs), .finished(rhs)):
-            return lhs == rhs
-        default:
-            return false
-        }
-    }
-}
-#endif

@@ -68,21 +68,6 @@ public protocol ImagePipelineDelegate: AnyObject, Sendable {
 
     /// Gets called when the task receives an event.
     func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline)
-
-    /// - warning: Soft-deprecated in Nuke 12.7.
-    func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline)
-
-    /// - warning: Soft-deprecated in Nuke 12.7.
-    func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress, pipeline: ImagePipeline)
-
-    /// - warning: Soft-deprecated in Nuke 12.7.
-    func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse, pipeline: ImagePipeline)
-
-    /// - warning: Soft-deprecated in Nuke 12.7.
-    func imageTaskDidCancel(_ task: ImageTask, pipeline: ImagePipeline)
-
-    /// - warning: Soft-deprecated in Nuke 12.7.
-    func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>, pipeline: ImagePipeline)
 }
 
 extension ImagePipelineDelegate {
@@ -127,16 +112,6 @@ extension ImagePipelineDelegate {
     public func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {}
 
     public func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {}
-
-    public func imageTaskDidStart(_ task: ImageTask, pipeline: ImagePipeline) {}
-
-    public func imageTask(_ task: ImageTask, didUpdateProgress progress: ImageTask.Progress, pipeline: ImagePipeline) {}
-
-    public func imageTask(_ task: ImageTask, didReceivePreview response: ImageResponse, pipeline: ImagePipeline) {}
-
-    public func imageTaskDidCancel(_ task: ImageTask, pipeline: ImagePipeline) {}
-
-    public func imageTask(_ task: ImageTask, didCompleteWithResult result: Result<ImageResponse, ImagePipeline.Error>, pipeline: ImagePipeline) {}
 }
 
 final class ImagePipelineDefaultDelegate: ImagePipelineDelegate {}

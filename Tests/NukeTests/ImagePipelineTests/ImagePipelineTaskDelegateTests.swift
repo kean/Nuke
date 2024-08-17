@@ -22,7 +22,6 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
         }
     }
 
-    #warning("remove ImageTaskEvent.created")
     func testStartAndCompletedEvents() throws {
         var result: Result<ImageResponse, ImagePipeline.Error>?
         expect(pipeline).toLoadImage(with: Test.request) { result = $0 }
@@ -30,10 +29,8 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
 
         // Then
         XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.created,
-            .started,
-            .progressUpdated(completedUnitCount: 22789, totalUnitCount: 22789),
-            .completed(result: try XCTUnwrap(result))
+            .progress(.init(completed: 22789, total: 22789)),
+            .finished(try XCTUnwrap(result))
         ])
     }
 
@@ -49,11 +46,9 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
 
         // Then
         XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.created,
-            .started,
-            .progressUpdated(completedUnitCount: 10, totalUnitCount: 20),
-            .progressUpdated(completedUnitCount: 20, totalUnitCount: 20),
-            .completed(result: try XCTUnwrap(result))
+            .progress(.init(completed: 10, total: 20)),
+            .progress(.init(completed: 20, total: 20)),
+            .finished(try XCTUnwrap(result))
         ])
     }
 
@@ -72,8 +67,6 @@ class ImagePipelineTaskDelegateTests: XCTestCase {
 
         // Then
         XCTAssertEqual(delegate.events, [
-            ImageTaskEvent.created,
-            .started,
             .cancelled
         ])
     }
