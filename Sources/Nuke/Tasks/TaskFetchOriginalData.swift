@@ -78,28 +78,41 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
             self.resumableData = resumableData
         }
 
-        signpost(self, "LoadImageData", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
+        signpost(self, "LoadImageData", .begin, "URL: \(String(describing: urlRequest.url))")
 
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
-        let dataTask = dataLoader.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
-            guard let self else { return }
-            Task {
-                self.dataTask(didReceiveData: data, response: response)
+
+        let task = Task { @ImagePipelineActor in
+            do {
+                for try await (data, response) in dataLoader.loadData(for: request) {
+                    dataTask(didReceiveData: data, response: response)
+                }
+                dataTaskDidFinish(error: nil)
+            } catch {
+                dataTaskDidFinish(error: error)
             }
-        }, completion: { [weak self] error in
-            finish() // Finish the operation!
-            guard let self else { return }
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
-            Task {
-                self.dataTaskDidFinish(error: error)
-            }
-        })
+            finish() // Finish the operation!
+        }
+
+//        let dataTask = dataLoader.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
+//            guard let self else { return }
+//            Task {
+//                self.dataTask(didReceiveData: data, response: response)
+//            }
+//        }, completion: { [weak self] error in
+//
+////            signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
+////            Task {
+////                self.dataTaskDidFinish(error: error)
+////            }
+//        })
 
         onCancelled = { [weak self] in
             guard let self else { return }
 
             signpost(self, "LoadImageData", .end, "Cancelled")
-            dataTask.cancel()
+            task.cancel()
             finish() // Finish the operation!
 
             self.tryToSaveResumableData()
@@ -107,16 +120,18 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     }
 
     private func dataTask(didReceiveData chunk: Data, response: URLResponse) {
+        // TODO: (nuke13) reimplement resumable data in DataLoader
+
         // Check if this is the first response.
-        if urlResponse == nil {
-            // See if the server confirmed that the resumable data can be used
-            if let resumableData, ResumableData.isResumedResponse(response) {
-                data = resumableData.data
-                resumedDataCount = Int64(resumableData.data.count)
-                signpost(self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
-            }
-            resumableData = nil // Get rid of resumable data
-        }
+//        if urlResponse == nil {
+//            // See if the server confirmed that the resumable data can be used
+//            if let resumableData, ResumableData.isResumedResponse(response) {
+//                data = resumableData.data
+//                resumedDataCount = Int64(resumableData.data.count)
+//                signpost(self, "LoadImageData", .event, "Resumed with data \(Formatter.bytes(resumedDataCount))")
+//            }
+//            resumableData = nil // Get rid of resumable data
+//        }
 
         // Append data and save response
         if data.isEmpty {

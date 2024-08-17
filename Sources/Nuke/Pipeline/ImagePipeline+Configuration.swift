@@ -108,6 +108,7 @@ extension ImagePipeline {
         /// previews have ``ImageContainer/isPreview`` flag set to `true`.
         public var isStoringPreviewsInMemoryCache = true
 
+        // TODO: document that it was moved to `DataLoader`
         /// If the data task is terminated (either because of a failure or a
         /// cancellation) and the image was partially loaded, the next load will
         /// resume where it left off. Supports both validators (`ETag`,

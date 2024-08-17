@@ -48,13 +48,32 @@ class ImagePipelineResumableDataTests: XCTestCase {
     }
 }
 
-private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
+private class _MockResumableDataLoader: MockDataLoading, DataLoading, @unchecked Sendable {
     private let queue = DispatchQueue(label: "_MockResumableDataLoader")
 
     let data: Data = Test.data(name: "fixture", extension: "jpeg")
     let eTag: String = "img_01"
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    func loadData(for request: ImageRequest) -> AsyncThrowingStream<(Data, URLResponse), any Error> {
+        AsyncThrowingStream { continuation in
+            guard let urlRequest = request.urlRequest else {
+                return continuation.finish(throwing: URLError(.badURL))
+            }
+            let task = loadData(with: urlRequest) { data, response in
+                continuation.yield((data, response))
+            } completion: { error in
+                continuation.finish(throwing: error)
+            }
+            continuation.onTermination = { reason in
+                switch reason {
+                case .cancelled: task.cancel()
+                default: break
+                }
+            }
+        }
+    }
+
+    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> MockDataTaskProtocol {
         let headers = request.allHTTPHeaderFields
 
         let completion = UncheckedSendableBox(value: completion)
@@ -118,7 +137,7 @@ private class _MockResumableDataLoader: DataLoading, @unchecked Sendable {
         return _Task()
     }
 
-    private class _Task: Cancellable, @unchecked Sendable {
+    private class _Task: MockDataTaskProtocol, @unchecked Sendable {
         func cancel() { }
     }
 }
