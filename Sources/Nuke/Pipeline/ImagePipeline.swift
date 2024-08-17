@@ -207,7 +207,7 @@ public final class ImagePipeline {
         }
     }
 
-    // nuke-13: requires callbacks to be @MainActor @Sendable or deprecate this entire API
+    // TODO: (nuke13): requires callbacks to be @MainActor @Sendable or deprecate this entire API
     private nonisolated func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
         let box = UncheckedSendableBox(value: closure)
         (callbackQueue ?? .main).async {
@@ -350,7 +350,7 @@ public final class ImagePipeline {
 
     func makeTaskFetchOriginalData(for request: ImageRequest) -> AsyncTask<(Data, URLResponse?), Error>.Publisher {
         tasksFetchOriginalData.publisherForKey(TaskFetchOriginalDataKey(request)) {
-            request.publisher == nil ? TaskFetchOriginalData(self, request) : TaskFetchWithPublisher(self, request)
+            request.closure == nil ? TaskFetchOriginalData(self, request) : TaskFetchWithClosure(self, request)
         }
     }
 }

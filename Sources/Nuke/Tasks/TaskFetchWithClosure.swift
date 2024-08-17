@@ -6,7 +6,7 @@ import Foundation
 
 /// Fetches data using the publisher provided with the request.
 /// Unlike `TaskFetchOriginalImageData`, there is no resumable data involved.
-final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)> {
+final class TaskFetchWithClosure: AsyncPipelineTask<(Data, URLResponse?)> {
     private lazy var data = Data()
 
     override func start() {
@@ -32,41 +32,43 @@ final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)> {
             return finish()
         }
 
-        guard let publisher = request.publisher else {
+        guard let closure = request.closure else {
             send(error: .dataLoadingFailed(error: URLError(.unknown))) // This is just a placeholder error, never thrown
             return assertionFailure("This should never happen")
         }
 
-        let cancellable = publisher.sink(receiveCompletion: { [weak self] result in
-            finish() // Finish the operation!
-            guard let self else { return }
-            Task { @ImagePipelineActor in
-                self.dataTaskDidFinish(result)
-            }
-        }, receiveValue: { [weak self] data in
-            guard let self else { return }
-            Task { @ImagePipelineActor in
-                self.data.append(data)
-            }
-        })
+        // TODO: (nuke13) reimplement
 
-        onCancelled = {
-            finish()
-            cancellable.cancel()
-        }
+//        let cancellable = closure.sink(receiveCompletion: { [weak self] result in
+//            finish() // Finish the operation!
+//            guard let self else { return }
+//            Task { @ImagePipelineActor in
+//                self.dataTaskDidFinish(result)
+//            }
+//        }, receiveValue: { [weak self] data in
+//            guard let self else { return }
+//            Task { @ImagePipelineActor in
+//                self.data.append(data)
+//            }
+//        })
+//
+//        onCancelled = {
+//            finish()
+//            cancellable.cancel()
+//        }
     }
-
-    private func dataTaskDidFinish(_ result: PublisherCompletion) {
-        switch result {
-        case .finished:
-            guard !data.isEmpty else {
-                send(error: .dataIsEmpty)
-                return
-            }
-            storeDataInCacheIfNeeded(data)
-            send(value: (data, nil), isCompleted: true)
-        case .failure(let error):
-            send(error: .dataLoadingFailed(error: error))
-        }
-    }
+//
+//    private func dataTaskDidFinish(_ result: PublisherCompletion) {
+//        switch result {
+//        case .finished:
+//            guard !data.isEmpty else {
+//                send(error: .dataIsEmpty)
+//                return
+//            }
+//            storeDataInCacheIfNeeded(data)
+//            send(value: (data, nil), isCompleted: true)
+//        case .failure(let error):
+//            send(error: .dataLoadingFailed(error: error))
+//        }
+//    }
 }

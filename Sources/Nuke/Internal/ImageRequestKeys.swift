@@ -78,7 +78,7 @@ struct TaskFetchOriginalDataKey: Hashable {
     init(_ request: ImageRequest) {
         self.imageId = request.imageId
         switch request.resource {
-        case .url, .publisher:
+        case .url, .closure:
             self.cachePolicy = .useProtocolCachePolicy
             self.allowsCellularAccess = true
         case let .urlRequest(urlRequest):

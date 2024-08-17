@@ -569,20 +569,6 @@ class ImagePipelineTests: XCTestCase {
         wait()
     }
     
-    func testSkipDataLoadingQueuePerRequestWithPublisher() throws {
-        // Given
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-        
-        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data), options: [
-            .skipDataLoadingQueue
-        ])
-        
-        // Then image is still loaded
-        expect(pipeline).toLoadImage(with: request)
-        wait()
-    }
-    
     // MARK: Misc
     
     func testLoadWithStringLiteral() async throws {

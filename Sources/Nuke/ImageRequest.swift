@@ -69,7 +69,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         switch ref.resource {
         case .url(let url): return url.map { URLRequest(url: $0) } // create lazily
         case .urlRequest(let urlRequest): return urlRequest
-        case .publisher: return nil
+        case .closure: return nil
         }
     }
 
@@ -80,7 +80,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         switch ref.resource {
         case .url(let url): return url
         case .urlRequest(let request): return request.url
-        case .publisher: return nil
+        case .closure: return nil
         }
     }
 
@@ -202,51 +202,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         // pipeline by using a custom DataLoader and passing an async function in
         // the request userInfo. g
         self.ref = Container(
-            resource: .publisher(DataPublisher(id: id, data)),
-            processors: processors,
-            priority: priority,
-            options: options,
-            userInfo: userInfo
-        )
-    }
-
-    /// Initializes a request with the given data publisher.
-    ///
-    /// For example, here is how you can use it with the Photos framework (the
-    /// `imageDataPublisher` API is a custom convenience extension not included
-    /// in the framework).
-    ///
-    /// ```swift
-    /// let request = ImageRequest(
-    ///     id: asset.localIdentifier,
-    ///     dataPublisher: PHAssetManager.imageDataPublisher(for: asset)
-    /// )
-    /// ```
-    ///
-    /// - important: If you are using a pipeline with a custom configuration that
-    /// enables aggressive disk cache, fetched data will be stored in this cache.
-    /// You can use ``Options-swift.struct/disableDiskCache`` to disable it.
-    ///
-    /// - parameters:
-    ///   - id: Uniquely identifies the fetched image.
-    ///   - data: A data publisher to be used for fetching image data.
-    ///   - processors: Processors to be apply to the image. See <doc:image-processing> to learn more.
-    ///   - priority: The priority of the request, ``Priority-swift.enum/normal`` by default.
-    ///   - options: Image loading options.
-    ///   - userInfo: Custom info passed alongside the request.
-    public init<P>(
-        id: String,
-        dataPublisher: P,
-        processors: [any ImageProcessing] = [],
-        priority: Priority = .normal,
-        options: Options = [],
-        userInfo: [UserInfoKey: Any]? = nil
-    ) where P: Publisher, P.Output == Data {
-        // It could technically be implemented without any special change to the
-        // pipeline by using a custom DataLoader and passing a publisher in the
-        // request userInfo.
-        self.ref = Container(
-            resource: .publisher(DataPublisher(id: id, dataPublisher)),
+            resource: .closure(data, id: id),
             processors: processors,
             priority: priority,
             options: options,
@@ -470,8 +426,8 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
         (ref.userInfo?[.scaleKey] as? NSNumber)?.floatValue
     }
 
-    var publisher: DataPublisher? {
-        if case .publisher(let publisher) = ref.resource { return publisher }
+    var closure: (@Sendable () async throws -> Data)? {
+        if case .closure(let closure, _) = ref.resource { return closure }
         return nil
     }
 }
@@ -519,13 +475,13 @@ extension ImageRequest {
     enum Resource: CustomStringConvertible {
         case url(URL?)
         case urlRequest(URLRequest)
-        case publisher(DataPublisher)
+        case closure(@Sendable () async throws -> Data, id: String)
 
         var description: String {
             switch self {
             case .url(let url): return "\(url?.absoluteString ?? "nil")"
             case .urlRequest(let urlRequest): return "\(urlRequest)"
-            case .publisher(let data): return "\(data)"
+            case .closure(_, let id): return id
             }
         }
 
@@ -533,8 +489,14 @@ extension ImageRequest {
             switch self {
             case .url(let url): return url?.absoluteString
             case .urlRequest(let urlRequest): return urlRequest.url?.absoluteString
-            case .publisher(let publisher): return publisher.id
+            case .closure(_, let id): return id
             }
         }
     }
+}
+
+// TODO: (nuke13) remove
+/// - warning: Avoid using it!
+struct UncheckedSendableBox<Value>: @unchecked Sendable {
+    let value: Value
 }
