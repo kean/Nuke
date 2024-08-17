@@ -286,7 +286,9 @@ public final class ImagePipeline {
     // MARK: - ImageTask (Internal)
 
     private nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
-        ImageTask(taskId: nextTaskId.incremented(), request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
+        let task = ImageTask(taskId: nextTaskId.incremented(), request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
+        delegate.imageTaskCreated(task, pipeline: self)
+        return task
     }
 
     // By this time, the task has `continuation` set and is fully wired.

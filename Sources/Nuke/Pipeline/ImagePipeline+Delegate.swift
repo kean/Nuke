@@ -62,6 +62,10 @@ public protocol ImagePipelineDelegate: AnyObject, Sendable {
 
     // MARK: ImageTask
 
+    /// Gets called when the task is created. Unlike other methods, it is called
+    /// immediately on the caller's queue.
+    func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline)
+
     /// Gets called when the task receives an event.
     func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline)
 
@@ -86,7 +90,7 @@ extension ImagePipelineDelegate {
         pipeline.configuration.imageCache
     }
 
-    public func dataLoader(for request: ImageRequest, pipeline: ImagePipeline) -> any DataLoading {
+    public func dataLoader(for request: ImageRequest,it st pipeline: ImagePipeline) -> any DataLoading {
         pipeline.configuration.dataLoader
     }
 
@@ -119,6 +123,8 @@ extension ImagePipelineDelegate {
         response.container.image = ImageDecompression.decompress(image: response.image, isUsingPrepareForDisplay: pipeline.configuration.isUsingPrepareForDisplay)
         return response
     }
+
+    public func imageTaskCreated(_ task: ImageTask, pipeline: ImagePipeline) {}
 
     public func imageTask(_ task: ImageTask, didReceiveEvent event: ImageTask.Event, pipeline: ImagePipeline) {}
 
