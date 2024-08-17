@@ -143,7 +143,7 @@ public final class ImagePrefetcher {
         return
     }
 
-    #warning("use async/await")
+    // TODO: use async/await
     private func loadImage(task: PrefetchTask, finish: @escaping () -> Void) {
         task.imageTask = pipeline._loadImage(with: task.request, isDataTask: destination == .diskCache, progress: nil) { [weak self] _ in
             self?._remove(task)

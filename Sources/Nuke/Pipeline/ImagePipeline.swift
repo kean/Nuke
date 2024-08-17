@@ -44,7 +44,7 @@ public final class ImagePipeline {
 
     let rateLimiter: RateLimiter?
     let id = UUID()
-#warning("TODO: remove")
+// TODO: remove
     nonisolated(unsafe) var onTaskStarted: ((ImageTask) -> Void)? // Debug purposes
 
     deinit {
