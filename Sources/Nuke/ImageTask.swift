@@ -60,7 +60,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
 
     /// The current state of the task.
     @ImagePipelineActor
-    public var state: State { context.state }
+    public var state: State = .running
 
     /// The state of the image task.
     public enum State: Sendable {
@@ -143,7 +143,10 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     private weak var pipeline: ImagePipeline?
 
     @ImagePipelineActor
-    private var context = ImageTaskExecutionContext()
+    var continuation: UnsafeContinuation<ImageResponse, Error>?
+
+    @ImagePipelineActor
+    var _events: PassthroughSubject<ImageTask.Event, Never>?
 
     init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?) {
         self.taskId = taskId
@@ -159,12 +162,12 @@ public final class ImageTask: Hashable, @unchecked Sendable {
 
     @ImagePipelineActor
     private func perform() async throws -> ImageResponse {
-        try await withUnsafeThrowingContinuation { continuation in
-            context.continuation = continuation
+        try await withUnsafeThrowingContinuation {
+            continuation = $0
             // The task gets started asynchronously in a `Task` and cancellation
             // can happen before the pipeline reaches `startImageTask`. In that
             // case, the `cancel` method do no send the task event.
-            guard context.state != .cancelled else {
+            guard state != .cancelled else {
                 return _dispatch(.cancelled) // Important to set after continuation
             }
             pipeline?.startImageTask(self, isDataTask: isDataTask)
@@ -205,19 +208,19 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     /// external event such as session invalidation.
     @ImagePipelineActor
     func _cancel() {
-        guard context.state == .running else { return }
-        context.state = .cancelled
+        guard state == .running else { return }
+        state = .cancelled
         _dispatch(.cancelled)
     }
 
     /// Gets called when the associated task sends a new event.
     @ImagePipelineActor
     func _process(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
-        guard context.state == .running else { return }
+        guard state == .running else { return }
         switch event {
         case let .value(response, isCompleted):
             if isCompleted {
-                context.state = .completed
+                state = .completed
                 _dispatch(.finished(.success(response)))
             } else {
                 _dispatch(.preview(response))
@@ -226,7 +229,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
             nonisolatedState.withLock { $0.progress = value }
             _dispatch(.progress(value))
         case let .error(error):
-            context.state = .completed
+            state = .completed
             _dispatch(.finished(.failure(error)))
         }
     }
@@ -237,18 +240,18 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     /// before it can start sending the events.
     @ImagePipelineActor
     private func _dispatch(_ event: Event) {
-        guard context.continuation != nil else {
+        guard continuation != nil else {
             return // Task isn't fully wired yet
         }
-        context.events?.send(event)
+        _events?.send(event)
         switch event {
         case .cancelled:
-            context.events?.send(completion: .finished)
-            context.continuation?.resume(throwing: CancellationError())
+            _events?.send(completion: .finished)
+            continuation?.resume(throwing: CancellationError())
         case .finished(let result):
             let result = result.mapError { $0 as Error }
-            context.events?.send(completion: .finished)
-            context.continuation?.resume(with: result)
+            _events?.send(completion: .finished)
+            continuation?.resume(with: result)
         default:
             break
         }
@@ -274,10 +277,10 @@ extension ImageTask {
     private func makeStream<T>(of closure: @Sendable @escaping (Event) -> T?) -> AsyncStream<T> {
         AsyncStream { continuation in
             Task { @ImagePipelineActor in
-                guard let events = self.context.getEvents() else {
+                guard state == .running else {
                     return continuation.finish()
                 }
-                let cancellable = events.sink { _ in
+                let cancellable = makeEvents().sink { _ in
                     continuation.finish()
                 } receiveValue: { event in
                     if let value = closure(event) {
@@ -296,26 +299,18 @@ extension ImageTask {
             }
         }
     }
+
+    @ImagePipelineActor
+    private func makeEvents() -> PassthroughSubject<ImageTask.Event, Never> {
+        if _events == nil {
+            _events = PassthroughSubject()
+        }
+        return _events!
+    }
 }
 
 private struct ImageTaskState {
     var isCancelling = false
     var priority: ImageRequest.Priority
     var progress = ImageTask.Progress(completed: 0, total: 0)
-}
-
-private struct ImageTaskExecutionContext {
-    var state: ImageTask.State = .running
-    var continuation: UnsafeContinuation<ImageResponse, Error>?
-    var events: PassthroughSubject<ImageTask.Event, Never>?
-
-    mutating func getEvents() -> PassthroughSubject<ImageTask.Event, Never>? {
-        guard state == .running else {
-            return nil
-        }
-        if events == nil {
-            events = PassthroughSubject()
-        }
-        return events!
-    }
 }
