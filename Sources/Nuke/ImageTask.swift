@@ -196,7 +196,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
             return !$0.isCancelling
         }) else { return }
         Task { @ImagePipelineActor in
-            pipeline?.imageTaskUpdatePriorityCalled(self, priority: newValue)
+            pipeline?.imageTask(self, didChangePriority: newValue)
         }
     }
 

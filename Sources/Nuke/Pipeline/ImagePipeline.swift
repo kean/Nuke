@@ -259,7 +259,7 @@ public final class ImagePipeline {
         task._cancel()
     }
 
-    func imageTaskUpdatePriorityCalled(_ task: ImageTask, priority: ImageRequest.Priority) {
+    func imageTask(_ task: ImageTask, didChangePriority priority: ImageRequest.Priority) {
         self.tasks[task]?.setPriority(priority.taskPriority)
     }
 
