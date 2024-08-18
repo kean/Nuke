@@ -114,7 +114,7 @@ public final class ImagePipeline {
     ///
     /// The task starts executing the moment it is created.
     public nonisolated func imageTask(with request: ImageRequest) -> ImageTask {
-        makeStartedImageTask(with: request)
+        makeImageTask(with: request)
     }
 
     /// Returns an image for the given URL.
@@ -133,7 +133,7 @@ public final class ImagePipeline {
     ///
     /// - parameter request: An image request.
     public func data(for request: ImageRequest) async throws -> (Data, URLResponse?) {
-        let task = makeStartedImageTask(with: request, isDataTask: true)
+        let task = makeImageTask(with: request, isDataTask: true)
         let response = try await task.response
         return (response.container.data ?? Data(), response.urlResponse)
     }
@@ -190,7 +190,7 @@ public final class ImagePipeline {
         progress: (@MainActor @Sendable (ImageResponse?, ImageTask.Progress) -> Void)?,
         completion: @MainActor @Sendable @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        makeStartedImageTask(with: request, isDataTask: isDataTask) { event, task in
+        makeImageTask(with: request, isDataTask: isDataTask) { event, task in
             DispatchQueue.main.async {
                 // The callback-based API guarantees that after cancellation no
                 // event are called on the callback queue.
@@ -236,7 +236,7 @@ public final class ImagePipeline {
 
     // MARK: - ImageTask (Internal)
 
-    nonisolated func makeStartedImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
+    nonisolated func makeImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId.incremented(), request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
         delegate.imageTaskCreated(task, pipeline: self)
         return task

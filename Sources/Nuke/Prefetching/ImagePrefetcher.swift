@@ -145,7 +145,7 @@ public final class ImagePrefetcher {
 
     // TODO: (nuke13) verify that this works
     private func loadImage(task: PrefetchTask, finish: @escaping () -> Void) {
-        let imageTask = pipeline.makeStartedImageTask(with: task.request, isDataTask: destination == .diskCache)
+        let imageTask = pipeline.makeImageTask(with: task.request, isDataTask: destination == .diskCache)
         task.imageTask = imageTask
         Task { [weak self] in
             _ = try? await imageTask.response
