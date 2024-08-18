@@ -55,7 +55,6 @@ final class RateLimiter {
         let bucketRate = 1000.0 / bucket.rate
         let delay = Int(2.1 * bucketRate) // 14 ms for rate 80 (default)
         let bounds = min(100, max(15, delay))
-// TODO: make sure this is correct
         Task {
             try? await Task.sleep(nanoseconds: UInt64(bounds) * 1_000_000)
             self.executePendingTasks()

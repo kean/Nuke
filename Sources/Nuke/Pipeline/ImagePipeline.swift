@@ -184,7 +184,7 @@ public final class ImagePipeline {
         }, completion: completion)
     }
 
-    nonisolated func _loadImage(
+    private nonisolated func _loadImage(
         with request: ImageRequest,
         isDataTask: Bool = false,
         progress: (@MainActor @Sendable (ImageResponse?, ImageTask.Progress) -> Void)?,
