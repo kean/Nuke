@@ -91,25 +91,6 @@ class ImagePipelineLoadDataTests: XCTestCase {
         wait()
     }
 
-    // MARK: - Callback Queues
-
-    func testChangingCallbackQueueLoadData() {
-        // GIVEN
-        let queue = DispatchQueue(label: "testChangingCallbackQueue")
-        let queueKey = DispatchSpecificKey<Void>()
-        queue.setSpecific(key: queueKey, value: ())
-
-        // WHEN/THEN
-        let expectation = self.expectation(description: "Image data Loaded")
-        pipeline.loadData(with: Test.request, queue: queue, progress: { _, _ in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
-        }, completion: { _ in
-            XCTAssertNotNil(DispatchQueue.getSpecific(key: queueKey))
-            expectation.fulfill()
-        })
-        wait()
-    }
-
     // MARK: - Errors
 
     func testLoadWithInvalidURL() throws {

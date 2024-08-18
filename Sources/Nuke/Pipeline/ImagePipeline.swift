@@ -148,7 +148,7 @@ public final class ImagePipeline {
     ///   is finished.
     @discardableResult public nonisolated func loadImage(
         with url: URL,
-        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
+        completion: @MainActor @Sendable @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         _loadImage(with: ImageRequest(url: url), progress: nil, completion: completion)
     }
@@ -161,7 +161,7 @@ public final class ImagePipeline {
     ///   is finished.
     @discardableResult public nonisolated func loadImage(
         with request: ImageRequest,
-        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
+        completion: @MainActor @Sendable @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
         _loadImage(with: request, progress: nil, completion: completion)
     }
@@ -176,11 +176,10 @@ public final class ImagePipeline {
     ///   is finished.
     @discardableResult public nonisolated func loadImage(
         with request: ImageRequest,
-        queue: DispatchQueue? = nil,
-        progress: ((_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (_ result: Result<ImageResponse, Error>) -> Void
+        progress: (@MainActor @Sendable (_ response: ImageResponse?, _ completed: Int64, _ total: Int64) -> Void)?,
+        completion: @MainActor @Sendable @escaping (_ result: Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        _loadImage(with: request, queue: queue, progress: {
+        _loadImage(with: request, progress: {
             progress?($0, $1.completed, $1.total)
         }, completion: completion)
     }
@@ -188,12 +187,11 @@ public final class ImagePipeline {
     nonisolated func _loadImage(
         with request: ImageRequest,
         isDataTask: Bool = false,
-        queue callbackQueue: DispatchQueue? = nil,
-        progress: ((ImageResponse?, ImageTask.Progress) -> Void)?,
-        completion: @escaping (Result<ImageResponse, Error>) -> Void
+        progress: (@MainActor @Sendable (ImageResponse?, ImageTask.Progress) -> Void)?,
+        completion: @MainActor @Sendable @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        makeStartedImageTask(with: request, isDataTask: isDataTask) { [weak self] event, task in
-            self?.dispatchCallback(to: callbackQueue) {
+        makeStartedImageTask(with: request, isDataTask: isDataTask) { event, task in
+            DispatchQueue.main.async {
                 // The callback-based API guarantees that after cancellation no
                 // event are called on the callback queue.
                 guard !task.isCancelling else { return }
@@ -207,29 +205,20 @@ public final class ImagePipeline {
         }
     }
 
-    // TODO: (nuke13): requires callbacks to be @MainActor @Sendable or deprecate this entire API
-    private nonisolated func dispatchCallback(to callbackQueue: DispatchQueue?, _ closure: @escaping () -> Void) {
-        let box = UncheckedSendableBox(value: closure)
-        (callbackQueue ?? .main).async {
-            box.value()
-        }
-    }
-
     // MARK: - Loading Data (Closures)
 
     /// Loads image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
-    @discardableResult public nonisolated func loadData(with request: ImageRequest, completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
-        _loadData(with: request, queue: nil, progress: nil, completion: completion)
+    @discardableResult public nonisolated func loadData(with request: ImageRequest, completion: @MainActor @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
+        _loadData(with: request, progress: nil, completion: completion)
     }
 
     private nonisolated func _loadData(
         with request: ImageRequest,
-        queue: DispatchQueue?,
-        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+        progress progressHandler: (@MainActor @Sendable (_ completed: Int64, _ total: Int64) -> Void)?,
+        completion: @MainActor @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
-        _loadImage(with: request, isDataTask: true, queue: queue) { _, progress in
+        _loadImage(with: request, isDataTask: true) { _, progress in
             progressHandler?(progress.completed, progress.total)
         } completion: { result in
             let result = result.map { response in
@@ -249,17 +238,14 @@ public final class ImagePipeline {
     ///
     /// - parameters:
     ///   - request: An image request.
-    ///   - queue: A queue on which to execute `progress` and `completion`
-    ///   callbacks. By default, the pipeline uses `.main` queue.
     ///   - progress: A closure to be called periodically on the main thread when the progress is updated.
     ///   - completion: A closure to be called on the main thread when the request is finished.
     @discardableResult public nonisolated func loadData(
         with request: ImageRequest,
-        queue: DispatchQueue? = nil,
-        progress progressHandler: ((_ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
+        progress progressHandler: (@MainActor @Sendable (_ completed: Int64, _ total: Int64) -> Void)?,
+        completion: @MainActor @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
-        _loadImage(with: request, isDataTask: true, queue: queue) { _, progress in
+        _loadImage(with: request, isDataTask: true) { _, progress in
             progressHandler?(progress.completed, progress.total)
         } completion: { result in
             let result = result.map { response in

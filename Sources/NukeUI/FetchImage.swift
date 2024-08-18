@@ -194,6 +194,8 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     // MARK: Load (Combine)
 
+    // TODO: (nuke13) deprecate these
+
     /// Loads an image with the given publisher.
     ///
     /// - important: Some `FetchImage` features, such as progress reporting and
