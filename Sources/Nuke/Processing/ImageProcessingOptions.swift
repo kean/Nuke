@@ -34,7 +34,7 @@ public enum ImageProcessingOptions: Sendable {
     /// views in which they get displayed. If you can't guarantee that, pleasee
     /// consider adding border to a view layer. This should be your primary
     /// option regardless.
-    public struct Border: Hashable, CustomStringConvertible, @unchecked Sendable {
+    public struct Border: Hashable, CustomStringConvertible, Sendable {
         public let width: CGFloat
 
 #if canImport(UIKit)
