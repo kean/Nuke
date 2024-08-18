@@ -16,7 +16,6 @@ import Foundation
 ///
 @ImagePipelineActor
 class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate {
-
     private struct Subscription {
         let closure: (Event) -> Void
         weak var subscriber: AnyObject?

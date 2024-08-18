@@ -4,8 +4,6 @@
 
 import Foundation
 
-// TODO: (nuke13) stop inhereting from AsyncPipelineTask
-
 /// Fetches data using the publisher provided with the request.
 /// Unlike `TaskFetchOriginalImageData`, there is no resumable data involved.
 final class TaskFetchWithClosure: AsyncPipelineTask<(Data, URLResponse?)> {
@@ -27,8 +25,6 @@ final class TaskFetchWithClosure: AsyncPipelineTask<(Data, URLResponse?)> {
             }
         }
     }
-
-    // TODO: (nuke13) implement in TaskFetchOriginalData using the same protocol
 
     // This methods gets called inside data loading operation (Operation).
     private func loadData(finish: @escaping () -> Void) {
