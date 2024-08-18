@@ -20,6 +20,7 @@
 		0C1453A02657EFA7005E24B3 /* ImagePipelineObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C14539F2657EFA7005E24B3 /* ImagePipelineObserver.swift */; };
 		0C1453A12657EFA7005E24B3 /* ImagePipelineObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C14539F2657EFA7005E24B3 /* ImagePipelineObserver.swift */; };
 		0C16C85F2C7150C800B2A560 /* ImagePublisherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C88C578263DAF1E0061A008 /* ImagePublisherTests.swift */; };
+		0C16C8632C726B1B00B2A560 /* ImagePipeline+Closures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C16C8622C726B1B00B2A560 /* ImagePipeline+Closures.swift */; };
 		0C179C7B2283597F008AB488 /* ImageEncoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C179C7A2283597F008AB488 /* ImageEncoding.swift */; };
 		0C1B9880294E28D800C09310 /* Nuke.docc in Sources */ = {isa = PBXBuildFile; fileRef = 0C1B987F294E28D800C09310 /* Nuke.docc */; };
 		0C1C201D29ABBF19004B38FD /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C9174901BAE99EE004A7905 /* Nuke.framework */; };
@@ -350,6 +351,7 @@
 		0C0FD5D81CA47FE1002A78FB /* ImageProcessing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageProcessing.swift; sourceTree = "<group>"; };
 		0C0FD5D91CA47FE1002A78FB /* ImageRequest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageRequest.swift; sourceTree = "<group>"; };
 		0C14539F2657EFA7005E24B3 /* ImagePipelineObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePipelineObserver.swift; sourceTree = "<group>"; };
+		0C16C8622C726B1B00B2A560 /* ImagePipeline+Closures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImagePipeline+Closures.swift"; sourceTree = "<group>"; };
 		0C179C772282AC50008AB488 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text; path = .swiftlint.yml; sourceTree = "<group>"; };
 		0C179C7A2283597F008AB488 /* ImageEncoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEncoding.swift; sourceTree = "<group>"; };
 		0C1B987F294E28D800C09310 /* Nuke.docc */ = {isa = PBXFileReference; lastKnownFileType = folder.documentationcatalog; path = Nuke.docc; sourceTree = "<group>"; };
@@ -952,11 +954,12 @@
 			isa = PBXGroup;
 			children = (
 				0C0FD5D31CA47FE1002A78FB /* ImagePipeline.swift */,
-				0CC04B092C5698D500F1164D /* ImagePipelineActor.swift */,
 				0CF1754B22913F9800A8946E /* ImagePipeline+Configuration.swift */,
 				0C53C8B0263C968200E62D03 /* ImagePipeline+Delegate.swift */,
 				0C78A2A6263F4E680051E0FF /* ImagePipeline+Cache.swift */,
 				0CBA07852852DA8B00CE29F4 /* ImagePipeline+Error.swift */,
+				0C16C8622C726B1B00B2A560 /* ImagePipeline+Closures.swift */,
+				0CC04B092C5698D500F1164D /* ImagePipelineActor.swift */,
 			);
 			path = Pipeline;
 			sourceTree = "<group>";
@@ -1729,6 +1732,7 @@
 				0CA4ECC426E685F500BAC8E5 /* ImageProcessors+GaussianBlur.swift in Sources */,
 				0CA4EC9B26E67D3000BAC8E5 /* ImageDecoders+Empty.swift in Sources */,
 				0CB26802208F2565004C83F4 /* DataCache.swift in Sources */,
+				0C16C8632C726B1B00B2A560 /* ImagePipeline+Closures.swift in Sources */,
 				0CA4EC9F26E67D6200BAC8E5 /* ImageDecoderRegistry.swift in Sources */,
 				0CA4ECBA26E6850B00BAC8E5 /* Graphics.swift in Sources */,
 				0CA4ECB426E6844B00BAC8E5 /* ImageProcessors.swift in Sources */,
