@@ -18,7 +18,7 @@ final class RateLimiter {
     // This type isn't really Sendable and requires the caller to use the same
     // queue as it does for synchronization.
 
-    private let bucket: TokenBucket
+    private var bucket: TokenBucket
     private var pending = LinkedList<Work>() // fast append, fast remove first
     private var isExecutingPendingTasks = false
 
@@ -55,7 +55,7 @@ final class RateLimiter {
         let bucketRate = 1000.0 / bucket.rate
         let delay = Int(2.1 * bucketRate) // 14 ms for rate 80 (default)
         let bounds = min(100, max(15, delay))
-#warning("correct?")
+// TODO: make sure this is correct
         Task {
             try? await Task.sleep(nanoseconds: UInt64(bounds) * 1_000_000)
             self.executePendingTasks()
@@ -73,7 +73,7 @@ final class RateLimiter {
     }
 }
 
-private final class TokenBucket {
+private struct TokenBucket {
     let rate: Double
     private let burst: Double // maximum bucket size
     private var bucket: Double
@@ -89,7 +89,7 @@ private final class TokenBucket {
     }
 
     /// Returns `true` if the closure was executed, `false` if dropped.
-    func execute(_ work: () -> Bool) -> Bool {
+    mutating func execute(_ work: () -> Bool) -> Bool {
         refill()
         guard bucket >= 1.0 else {
             return false // bucket is empty
@@ -100,7 +100,7 @@ private final class TokenBucket {
         return true
     }
 
-    private func refill() {
+    private mutating func refill() {
         let now = CFAbsoluteTimeGetCurrent()
         bucket += rate * max(0, now - timestamp) // rate * (time delta)
         timestamp = now
