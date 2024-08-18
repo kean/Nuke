@@ -19,7 +19,7 @@ public final class ImagePrefetcher {
     ///
     /// - note: When you pause, the prefetcher will finish outstanding tasks
     /// (by default, there are only 2 at a time), and pause the rest.
-    public  var isPaused: Bool = false {
+    public var isPaused: Bool = false {
         didSet { queue.isSuspended = isPaused }
     }
 
@@ -143,9 +143,12 @@ public final class ImagePrefetcher {
         return
     }
 
-    // TODO: use async/await
+    // TODO: (nuke13) verify that this works
     private func loadImage(task: PrefetchTask, finish: @escaping () -> Void) {
-        task.imageTask = pipeline._loadImage(with: task.request, isDataTask: destination == .diskCache, progress: nil) { [weak self] _ in
+        let imageTask = pipeline.makeStartedImageTask(with: task.request, isDataTask: destination == .diskCache)
+        task.imageTask = imageTask
+        Task { [weak self] in
+            _ = try? await imageTask.response
             self?._remove(task)
             finish()
         }

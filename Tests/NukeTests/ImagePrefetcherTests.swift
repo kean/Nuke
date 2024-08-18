@@ -5,7 +5,7 @@
 import XCTest
 @testable import Nuke
 
-#warning("reimplement (remove from target")
+// TODO: (nuke13) reimplement (needs to be added to the target)
 final class ImagePrefetcherTests: XCTestCase {
     private var pipeline: ImagePipeline!
     private var dataLoader: MockDataLoader!
