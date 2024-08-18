@@ -210,23 +210,7 @@ public final class ImagePipeline {
     /// Loads image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
     @discardableResult public nonisolated func loadData(with request: ImageRequest, completion: @MainActor @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
-        _loadData(with: request, progress: nil, completion: completion)
-    }
-
-    private nonisolated func _loadData(
-        with request: ImageRequest,
-        progress progressHandler: (@MainActor @Sendable (_ completed: Int64, _ total: Int64) -> Void)?,
-        completion: @MainActor @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
-    ) -> ImageTask {
-        _loadImage(with: request, isDataTask: true) { _, progress in
-            progressHandler?(progress.completed, progress.total)
-        } completion: { result in
-            let result = result.map { response in
-                // Data should never be empty
-                (data: response.container.data ?? Data(), response: response.urlResponse)
-            }
-            completion(result)
-        }
+        loadData(with: request, progress: nil, completion: completion)
     }
 
     /// Loads the image data for the given request. The data doesn't get decoded
