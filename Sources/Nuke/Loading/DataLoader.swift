@@ -13,12 +13,6 @@ public final class DataLoader: DataLoading, @unchecked Sendable {
     /// default, `false`.
     public var prefersIncrementalDelivery = false
 
-    /// If the data task is terminated (either because of a failure or a
-    /// cancellation) and the image was partially loaded, the next load will
-    /// resume where it left off. Supports both validators (`ETag`,
-    /// `Last-Modified`). Resumable downloads are enabled by default.
-    public var isResumableDataEnabled = true
-
     /// The delegate that gets called for the callbacks handled by the data loader.
     /// You can use it for observing the session events and modifying some of the
     /// task behavior, e.g. handling authentication challenges.
