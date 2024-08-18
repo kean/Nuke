@@ -207,12 +207,6 @@ public final class ImagePipeline {
 
     // MARK: - Loading Data (Closures)
 
-    /// Loads image data for the given request. The data doesn't get decoded
-    /// or processed in any other way.
-    @discardableResult public nonisolated func loadData(with request: ImageRequest, completion: @MainActor @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void) -> ImageTask {
-        loadData(with: request, progress: nil, completion: completion)
-    }
-
     /// Loads the image data for the given request. The data doesn't get decoded
     /// or processed in any other way.
     ///
@@ -226,7 +220,7 @@ public final class ImagePipeline {
     ///   - completion: A closure to be called on the main thread when the request is finished.
     @discardableResult public nonisolated func loadData(
         with request: ImageRequest,
-        progress progressHandler: (@MainActor @Sendable (_ completed: Int64, _ total: Int64) -> Void)?,
+        progress progressHandler: (@MainActor @Sendable (_ completed: Int64, _ total: Int64) -> Void)? = nil,
         completion: @MainActor @Sendable @escaping (Result<(data: Data, response: URLResponse?), Error>) -> Void
     ) -> ImageTask {
         _loadImage(with: request, isDataTask: true) { _, progress in
