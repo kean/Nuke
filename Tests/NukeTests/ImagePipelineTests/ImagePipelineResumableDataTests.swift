@@ -76,8 +76,8 @@ private class _MockResumableDataLoader: MockDataLoading, DataLoading, @unchecked
     func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> MockDataTaskProtocol {
         let headers = request.allHTTPHeaderFields
 
-        let completion = UncheckedSendableBox(value: completion)
-        let didReceiveData = UncheckedSendableBox(value: didReceiveData)
+        let completion = completion
+        let didReceiveData = didReceiveData
 
         func sendChunks(_ chunks: [Data], of data: Data, statusCode: Int) {
             @Sendable func sendChunk(_ chunk: Data) {
@@ -93,7 +93,7 @@ private class _MockResumableDataLoader: MockDataLoading, DataLoading, @unchecked
                     ]
                 )!
 
-                didReceiveData.value(chunk, response)
+                didReceiveData(chunk, response)
             }
 
             var chunks = chunks
@@ -121,7 +121,7 @@ private class _MockResumableDataLoader: MockDataLoading, DataLoading, @unchecked
 
             sendChunks(chunks, of: remainingData, statusCode: 206)
             queue.async {
-                completion.value(nil)
+                completion(nil)
             }
         } else {
             // Send half of chunks.
@@ -130,7 +130,7 @@ private class _MockResumableDataLoader: MockDataLoading, DataLoading, @unchecked
 
             sendChunks(chunks, of: data, statusCode: 200)
             queue.async {
-                completion.value(NSError(domain: NSURLErrorDomain, code: URLError.networkConnectionLost.rawValue, userInfo: [:]))
+                completion(NSError(domain: NSURLErrorDomain, code: URLError.networkConnectionLost.rawValue, userInfo: [:]))
             }
         }
 

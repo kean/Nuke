@@ -494,9 +494,3 @@ extension ImageRequest {
         }
     }
 }
-
-// TODO: (nuke13) remove
-/// - warning: Avoid using it!
-struct UncheckedSendableBox<Value>: @unchecked Sendable {
-    let value: Value
-}
