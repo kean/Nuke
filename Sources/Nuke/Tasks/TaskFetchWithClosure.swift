@@ -4,6 +4,8 @@
 
 import Foundation
 
+// TODO: (nuke13) stop inhereting from AsyncPipelineTask
+
 /// Fetches data using the publisher provided with the request.
 /// Unlike `TaskFetchOriginalImageData`, there is no resumable data involved.
 final class TaskFetchWithClosure: AsyncPipelineTask<(Data, URLResponse?)> {
@@ -26,6 +28,8 @@ final class TaskFetchWithClosure: AsyncPipelineTask<(Data, URLResponse?)> {
         }
     }
 
+    // TODO: (nuke13) implement in TaskFetchOriginalData using the same protocol
+
     // This methods gets called inside data loading operation (Operation).
     private func loadData(finish: @escaping () -> Void) {
         guard !isDisposed else {
@@ -37,38 +41,22 @@ final class TaskFetchWithClosure: AsyncPipelineTask<(Data, URLResponse?)> {
             return assertionFailure("This should never happen")
         }
 
-        // TODO: (nuke13) reimplement
-
-//        let cancellable = closure.sink(receiveCompletion: { [weak self] result in
-//            finish() // Finish the operation!
-//            guard let self else { return }
-//            Task { @ImagePipelineActor in
-//                self.dataTaskDidFinish(result)
-//            }
-//        }, receiveValue: { [weak self] data in
-//            guard let self else { return }
-//            Task { @ImagePipelineActor in
-//                self.data.append(data)
-//            }
-//        })
-//
-//        onCancelled = {
-//            finish()
-//            cancellable.cancel()
-//        }
+        let task = Task { @ImagePipelineActor in
+            do {
+                let data = try await closure()
+                guard !data.isEmpty else {
+                    throw ImagePipeline.Error.dataIsEmpty
+                }
+                storeDataInCacheIfNeeded(data)
+                send(value: (data, nil), isCompleted: true)
+            } catch {
+                send(error: .dataLoadingFailed(error: error))
+            }
+            finish() // Finish the operation!
+        }
+        onCancelled = {
+            finish()
+            task.cancel()
+        }
     }
-//
-//    private func dataTaskDidFinish(_ result: PublisherCompletion) {
-//        switch result {
-//        case .finished:
-//            guard !data.isEmpty else {
-//                send(error: .dataIsEmpty)
-//                return
-//            }
-//            storeDataInCacheIfNeeded(data)
-//            send(value: (data, nil), isCompleted: true)
-//        case .failure(let error):
-//            send(error: .dataLoadingFailed(error: error))
-//        }
-//    }
 }

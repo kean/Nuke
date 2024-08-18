@@ -279,8 +279,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
 
     // MARK: - ImageRequest with Async/Await
 
-    // TODO: (nuke13) reimplemnet
-    func _testImageRequestWithAsyncAwaitSuccess() async throws {
+    func testImageRequestWithAsyncAwaitSuccess() async throws {
         if #available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *) {
             // GIVEN
             let localURL = Test.url(forResource: "fixture", extension: "jpeg")
@@ -298,8 +297,7 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
         }
     }
 
-    // TODO: (nuke13) reimplemnet
-    func _testImageRequestWithAsyncAwaitFailure() async throws {
+    func testImageRequestWithAsyncAwaitFailure() async throws {
         if #available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *) {
             // WHEN
             let request = ImageRequest(id: "test", data: {
