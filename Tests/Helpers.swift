@@ -169,7 +169,7 @@ extension Result {
     }
 }
 
-@propertyWrapper final class Atomic<T> {
+@propertyWrapper final class Mutex<T> {
     private var value: T
     private let lock: os_unfair_lock_t
 

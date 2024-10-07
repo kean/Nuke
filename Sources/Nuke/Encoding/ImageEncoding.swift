@@ -33,7 +33,7 @@ extension ImageEncoding {
 }
 
 /// Image encoding context used when selecting which encoder to use.
-public struct ImageEncodingContext: @unchecked Sendable {
+public struct ImageEncodingContext: Sendable {
     public let request: ImageRequest
     public let image: PlatformImage
     public let urlResponse: URLResponse?

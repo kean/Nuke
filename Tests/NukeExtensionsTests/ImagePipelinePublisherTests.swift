@@ -27,43 +27,6 @@ class ImagePipelinePublisherTests: XCTestCase {
         }
     }
 
-    func testLoadWithPublisher() throws {
-        // GIVEN
-        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
-
-        // WHEN
-        let record = expect(pipeline).toLoadImage(with: request)
-        wait()
-
-        // THEN
-        let image = try XCTUnwrap(record.image)
-        XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
-    }
-
-    func testLoadWithPublisherAndApplyProcessor() throws {
-        // GIVEN
-        var request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
-        request.processors = [MockImageProcessor(id: "1")]
-
-        // WHEN
-        let record = expect(pipeline).toLoadImage(with: request)
-        wait()
-
-        // THEN
-        let image = try XCTUnwrap(record.image)
-        XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
-        XCTAssertEqual(image.nk_test_processorIDs, ["1"])
-    }
-
-    func testImageRequestWithPublisher() {
-        // GIVEN
-        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
-
-        // THEN
-        XCTAssertNil(request.urlRequest)
-        XCTAssertNil(request.url)
-    }
-
     func testCancellation() {
         // GIVEN
         dataLoader.isSuspended = true
@@ -75,19 +38,6 @@ class ImagePipelinePublisherTests: XCTestCase {
         expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
         cancellable.cancel()
         wait()
-    }
-
-    func testDataIsStoredInDataCache() {
-        // GIVEN
-        let request = ImageRequest(id: "a", dataPublisher: Just(Test.data))
-
-        // WHEN
-        expect(pipeline).toLoadImage(with: request)
-
-        // THEN
-        wait { _ in
-            XCTAssertFalse(self.dataCache.store.isEmpty)
-        }
     }
 
     func testInitWithURL() {

@@ -29,7 +29,7 @@ extension ImageResponse: Equatable {
 }
 
 extension ImagePipeline {
-    func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
+    nonisolated func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
         var configuration = self.configuration
         configure(&configuration)
         return ImagePipeline(configuration: configuration)
@@ -37,13 +37,16 @@ extension ImagePipeline {
 }
 
 extension ImagePipeline {
+    @MainActor
     private static var stack = [ImagePipeline]()
 
+    @MainActor
     static func pushShared(_ shared: ImagePipeline) {
         stack.append(ImagePipeline.shared)
         ImagePipeline.shared = shared
     }
 
+    @MainActor
     static func popShared() {
         ImagePipeline.shared = stack.removeLast()
     }

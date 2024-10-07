@@ -35,7 +35,8 @@ class ImageViewExtensionsTests: XCTestCase {
         
         imageView = _ImageView()
     }
-    
+
+    @MainActor
     override func tearDown() {
         super.tearDown()
         
@@ -270,7 +271,7 @@ class ImageViewExtensionsTests: XCTestCase {
         dataLoader.isSuspended = true
         
         // Given an image view with an associated image task
-        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
+        expectNotification(ImagePipelineObserver.didCreateTask, object: observer)
         NukeExtensions.loadImage(with: Test.url, into: imageView)
         wait()
         
@@ -287,7 +288,7 @@ class ImageViewExtensionsTests: XCTestCase {
         dataLoader.isSuspended = true
         
         // Given an image view with an associated image task
-        expectNotification(ImagePipelineObserver.didStartTask, object: observer)
+        expectNotification(ImagePipelineObserver.didCreateTask, object: observer)
         NukeExtensions.loadImage(with: Test.url, into: imageView)
         wait()
         
@@ -307,7 +308,7 @@ class ImageViewExtensionsTests: XCTestCase {
         autoreleasepool {
             // Given an image view with an associated image task
             var imageView: _ImageView! = _ImageView()
-            expectNotification(ImagePipelineObserver.didStartTask, object: observer)
+            expectNotification(ImagePipelineObserver.didCreateTask, object: observer)
             NukeExtensions.loadImage(with: Test.url, into: imageView)
             wait()
             

@@ -1,9 +1,22 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2020-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
 
-import Foundation
 import Combine
+import Foundation
+import Nuke
+
+extension ImagePipeline {
+    /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
+    public nonisolated func imagePublisher(with url: URL) -> AnyPublisher<ImageResponse, Error> {
+        imagePublisher(with: ImageRequest(url: url))
+    }
+
+    /// Returns a publisher which starts a new ``ImageTask`` when a subscriber is added.
+    public nonisolated func imagePublisher(with request: ImageRequest) -> AnyPublisher<ImageResponse, Error> {
+        ImagePublisher(request: request, pipeline: self).eraseToAnyPublisher()
+    }
+}
 
 /// A publisher that starts a new `ImageTask` when a subscriber is added.
 ///
