@@ -28,13 +28,13 @@ Nuke is also supported by:
   <tr>
     <td valign="center" align="center">
         <a href="https://proxyman.io">
-          <img src="https://kean.blog/images/logos/proxyman.png" height="60px" alt="Proxyman Logo">
+          <img src="https://kean.blog/images/logos/proxyman.png" height="50px" alt="Proxyman Logo">
           <p>Proxyman</p>
         </a>
     </td>
     <td valign="center" align="center">
       <a href="https://backspace.travel">
-        <img src="https://avatars.githubusercontent.com/u/175125884?s=200&v=4" height="60px", alt="Backspace Travel"/>
+        <img src="https://avatars.githubusercontent.com/u/175125884?s=200&v=4" height="50px", alt="Backspace Travel"/>
         <p>Backspace Travel</p>
       </a>
     </td>
