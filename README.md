@@ -20,18 +20,22 @@ The framework is lean and compiles in under 2 seconds[¹](#footnote-1). It has a
 
 [**Lapse**](https://www.lapse.com): friends *not followers*.
 
-<a href="https://www.lapse.com"><img src="https://github.com/user-attachments/assets/28bb4f4b-affc-4580-879d-5aeef633b80c" height="130px" alt="Lapse Logo"></a>
+<a href="https://www.lapse.com"><img src="https://github.com/user-attachments/assets/28bb4f4b-affc-4580-879d-5aeef633b80c" height="140px" alt="Lapse Logo"></a>
 
 Nuke is also supported by:
 
 <table>
   <tr>
-    <td valign="center">
-        <a href="https://proxyman.io"><img src="https://kean.blog/images/logos/proxyman.png" height="60px" alt="Proxyman Logo"></a>
+    <td valign="center" align="center">
+        <a href="https://proxyman.io">
+          <img src="https://kean.blog/images/logos/proxyman.png" height="60px" alt="Proxyman Logo">
+          <p>Proxyman</p>
+        </a>
     </td>
-    <td valign="center">
+    <td valign="center" align="center">
       <a href="https://backspace.travel">
         <img src="https://avatars.githubusercontent.com/u/175125884?s=200&v=4" height="60px", alt="Backspace Travel"/>
+        <p>Backspace Travel</p>
       </a>
     </td>
   </tr>
