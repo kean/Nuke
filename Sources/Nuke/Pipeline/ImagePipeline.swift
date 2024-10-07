@@ -40,6 +40,10 @@ public final class ImagePipeline: @unchecked Sendable {
 
     // The queue on which the entire subsystem is synchronized.
     let queue = DispatchQueue(label: "com.github.kean.Nuke.ImagePipeline", qos: .userInitiated)
+        
+    /// The creator that creates the image Task
+    private let imageTaskCreator: AsyncTaskCreator<ImageResponse>
+    
     private var isInvalidated = false
 
     private var nextTaskId: Int64 {
@@ -81,7 +85,21 @@ public final class ImagePipeline: @unchecked Sendable {
 
         self.lock = .allocate(capacity: 1)
         self.lock.initialize(to: os_unfair_lock())
-
+        
+        if #available(iOSApplicationExtension 18.0, *) {
+            // we have to hold on to the executor
+            let taskExecuter = OnQueueTaskExecuter(queue: self.queue)
+            self.imageTaskCreator = AsyncTaskCreator { operation in
+                Task(executorPreference: taskExecuter) {
+                    try await operation()
+                }
+            }
+        } else {
+            self.imageTaskCreator = AsyncTaskCreator { operation in
+                Task { try await operation() }
+            }
+        }
+        
         ResumableDataStorage.shared.register(self)
     }
 
@@ -310,7 +328,7 @@ public final class ImagePipeline: @unchecked Sendable {
         if !isDataTask {
             delegate.imageTaskCreated(task, pipeline: self)
         }
-        task._task = Task {
+        task._task = imageTaskCreator.createTask {
             try await withUnsafeThrowingContinuation { continuation in
                 self.queue.async {
                     task._continuation = continuation
