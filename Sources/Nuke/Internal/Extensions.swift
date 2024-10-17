@@ -12,11 +12,11 @@ extension String {
     /// print("http://test.com".sha1)
     /// // prints "50334ee0b51600df6397ce93ceed4728c37fee4e"
     /// ```
-    var sha1: String? {
+    var sha256: String? {
         guard let input = self.data(using: .utf8) else {
             return nil // The conversion to .utf8 should never fail
         }
-        let digest = Insecure.SHA1.hash(data: input)
+        let digest = CryptoKit.SHA256.hash(data: input)
         var output = ""
         for byte in digest {
             output.append(String(format: "%02x", byte))
