@@ -6,11 +6,11 @@ import Foundation
 import CryptoKit
 
 extension String {
-    /// Calculates SHA1 from the given string and returns its hex representation.
+    /// Calculates SHA256 from the given string and returns its hex representation.
     ///
     /// ```swift
-    /// print("http://test.com".sha1)
-    /// // prints "50334ee0b51600df6397ce93ceed4728c37fee4e"
+    /// print("http://test.com".256)
+    /// // prints "8b408a0c7163fdfff06ced3e80d7d2b3acd9db900905c4783c28295b8c996165"
     /// ```
     var sha256: String? {
         guard let input = self.data(using: .utf8) else {
