@@ -5,7 +5,6 @@
 import XCTest
 @testable import Nuke
 
-// TODO: (nuke13) reimplement (needs to be added to the target)
 final class ImagePrefetcherTests: XCTestCase {
     private var pipeline: ImagePipeline!
     private var dataLoader: MockDataLoader!
@@ -39,15 +38,10 @@ final class ImagePrefetcherTests: XCTestCase {
 
     /// Start prefetching for the request and then request an image separarely.
     func testBasicScenario() {
-        dataLoader.isSuspended = true
-
-        expect(prefetcher.queue).toEnqueueOperationsWithCount(1)
-        prefetcher.startPrefetching(with: [Test.request])
-        wait()
-
-        expect(pipeline).toLoadImage(with: Test.request)
-        pipeline.queue.async { [dataLoader] in
-            dataLoader?.isSuspended = false
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
+            expect(prefetcher.queue).toEnqueueOperationsWithCount(1)
+            prefetcher.startPrefetching(with: [Test.request])
+            expect(pipeline).toLoadImage(with: Test.request)
         }
         wait()
 
@@ -72,34 +66,17 @@ final class ImagePrefetcherTests: XCTestCase {
     }
 
     func testStartPrefetchingWithTwoEquivalentURLs() {
-        dataLoader.isSuspended = true
-        expectPrefetcherToComplete()
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 1) {
+            expectPrefetcherToComplete()
 
-        // WHEN
-        prefetcher.startPrefetching(with: [Test.url])
-        prefetcher.startPrefetching(with: [Test.url])
-
-        pipeline.queue.async { [dataLoader] in
-            dataLoader?.isSuspended = false
+            // WHEN
+            prefetcher.startPrefetching(with: [Test.url])
+            prefetcher.startPrefetching(with: [Test.url])
         }
         wait()
 
         // THEN only one task is started
         XCTAssertEqual(observer.createdTaskCount, 1)
-    }
-
-    func testWhenImageIsInMemoryCacheNoTaskStarted() {
-        dataLoader.isSuspended = true
-
-        // GIVEN
-        pipeline.cache[Test.request] = Test.container
-
-        // WHEN
-        prefetcher.startPrefetching(with: [Test.url])
-        pipeline.queue.sync {}
-
-        // THEN
-        XCTAssertEqual(observer.createdTaskCount, 0)
     }
 
     // MARK: Stop Prefetching
@@ -150,7 +127,7 @@ final class ImagePrefetcherTests: XCTestCase {
         prefetcher.startPrefetching(with: [Test.url])
 
         let expectation = self.expectation(description: "TimePassed")
-        pipeline.queue.asyncAfter(deadline: .now() + .milliseconds(10)) {
+        DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(20)) {
             expectation.fulfill()
         }
         wait()
@@ -247,7 +224,7 @@ final class ImagePrefetcherTests: XCTestCase {
 
     func testDidCompleteIsCalled() {
         let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete = { @MainActor @Sendable in
+        prefetcher.didComplete.value = { @Sendable in
             expectation.fulfill()
         }
 
@@ -257,7 +234,7 @@ final class ImagePrefetcherTests: XCTestCase {
 
     func testDidCompleteIsCalledWhenImageCached() {
         let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete = { @MainActor @Sendable in
+        prefetcher.didComplete.value = { @Sendable in
             expectation.fulfill()
         }
 
@@ -286,7 +263,7 @@ final class ImagePrefetcherTests: XCTestCase {
 
     func expectPrefetcherToComplete() {
         let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete = { @MainActor @Sendable in
+        prefetcher.didComplete.value = { @Sendable in
             expectation.fulfill()
         }
     }

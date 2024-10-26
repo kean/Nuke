@@ -146,6 +146,7 @@
 		0C8684FF20BDD578009FF7CC /* ImagePipelineProgressiveDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2A8CFA20970D8D0013FD65 /* ImagePipelineProgressiveDecodingTests.swift */; };
 		0C86AB6A228B3B5100A81BA1 /* ImageTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C86AB69228B3B5100A81BA1 /* ImageTask.swift */; };
 		0C880532242E7B1500F8C5B3 /* ImagePipelineDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C880531242E7B1500F8C5B3 /* ImagePipelineDecodingTests.swift */; };
+		0C8C614D2CCD760C00532008 /* ImagePrefetcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CD195291D4348AC00E011BB /* ImagePrefetcherTests.swift */; };
 		0C8D7BD31D9DBF1600D12EB7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD21D9DBF1600D12EB7 /* AppDelegate.swift */; };
 		0C8D7BD51D9DBF1600D12EB7 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD41D9DBF1600D12EB7 /* ViewController.swift */; };
 		0C8D7BD81D9DBF1600D12EB7 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 0C8D7BD61D9DBF1600D12EB7 /* Main.storyboard */; };
@@ -1633,6 +1634,7 @@
 				0C75279E1D473AEF00EC6222 /* MockImageCache.swift in Sources */,
 				0CCBB534217D0B980026F552 /* MockProgressiveDataLoader.swift in Sources */,
 				0C7CE28F24393ACC0018C8C3 /* CoreImageFilterTests.swift in Sources */,
+				0C8C614D2CCD760C00532008 /* ImagePrefetcherTests.swift in Sources */,
 				0C53C8AF263C7B1700E62D03 /* ImagePipelineDelegateTests.swift in Sources */,
 				0C1453A02657EFA7005E24B3 /* ImagePipelineObserver.swift in Sources */,
 				0C1E620B1D6F817700AD5CF5 /* ImageRequestTests.swift in Sources */,

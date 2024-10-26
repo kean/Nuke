@@ -31,7 +31,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
         // When loading images for those requests
         // Then the correct proessors are applied.
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: request1) { result in
                 let image = result.value?.image
                 XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
@@ -58,7 +58,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
         // When loading images for those requests
         // Then the correct proessors are applied.
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: request1) { result in
                 let image = result.value?.image
                 XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
@@ -87,7 +87,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
         // When loading images for those requests
         // Then the correct proessors are applied.
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: request1) { result in
                 let image = result.value?.image
                 XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
@@ -111,7 +111,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         let request1 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
         let request2 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
 
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: request1)
             expect(pipeline).toLoadImage(with: request2)
         }
@@ -130,7 +130,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         let request2 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 3])
 
         // WHEN loading images for those requests
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: request1) { result in
                 // THEN
                 guard let image = result.value?.image else { return XCTFail() }
@@ -156,7 +156,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         let request1 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
         let request2 = ImageRequest(url: Test.url)
 
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
 
             // WHEN loading images for those requests
             expect(pipeline).toLoadImage(with: request1) { result in
@@ -184,7 +184,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         let request1 = ImageRequest(url: Test.url)
         let request2 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
 
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             // WHEN loading images for those requests
             expect(pipeline).toLoadImage(with: request1) { result in
                 // THEN
@@ -214,7 +214,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         let queueObserver = OperationQueueObserver(queue: pipeline.configuration.imageProcessingQueue)
 
         // When
-        suspendDataLoading(for: pipeline, expectedRequestCount: 3) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 3) {
             expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [processors.make(id: "1")]))
             expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [processors.make(id: "2")]))
             expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [processors.make(id: "1")]))
@@ -428,7 +428,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
     // MARK: - Loading Data
 
     func testThatLoadsDataOnceWhenLoadingDataAndLoadingImage() {
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: Test.request)
             expect(pipeline).toLoadData(with: Test.request)
         }
@@ -446,7 +446,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         )
 
         // When/Then
-        suspendDataLoading(for: pipeline, expectedRequestCount: 3) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 3) {
             for _ in 0..<3 {
                 let request = Test.request
                 
@@ -475,7 +475,7 @@ class ImagePipelineCoalescingTests: XCTestCase {
         }
 
         // When/Then
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: Test.request)
             expect(pipeline).toLoadImage(with: Test.request)
         }
@@ -507,7 +507,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2")])
 
         // When
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: request1) { result in
                 let image = result.value?.image
                 XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
@@ -536,7 +536,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2"), processors.make(id: "3")])
 
         // When
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: request1)
             expect(pipeline).toLoadImage(with: request2)
         }
@@ -613,7 +613,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1"), processors.make(id: "2")])
 
         // When
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: request1) { result in
                 let image = result.value?.image
                 XCTAssertEqual(image?.nk_test_processorIDs ?? [], ["1"])
@@ -642,7 +642,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         func makeRequest(options: ImageRequest.Options) -> ImageRequest {
             ImageRequest(urlRequest: URLRequest(url: Test.url), options: options)
         }
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: makeRequest(options: []))
             expect(pipeline).toLoadImage(with: makeRequest(options: [.reloadIgnoringCachedData]))
         }
@@ -666,7 +666,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
             ImageRequest(urlRequest: URLRequest(url: Test.url), options: options)
         }
 
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: makeRequest(options: []))
             expect(pipeline).toLoadImage(with: makeRequest(options: [.reloadIgnoringCachedData]))
         }

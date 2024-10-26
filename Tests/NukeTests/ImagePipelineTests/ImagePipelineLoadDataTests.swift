@@ -196,7 +196,7 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
         }
@@ -260,7 +260,7 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
         }
@@ -386,7 +386,7 @@ extension ImagePipelineLoadDataTests {
         }
 
         // WHEN
-        suspendDataLoading(for: pipeline, expectedRequestCount: 2) {
+        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "p1")]))
             expect(pipeline).toLoadData(with: ImageRequest(url: Test.url))
         }
@@ -403,7 +403,7 @@ extension ImagePipelineLoadDataTests {
 }
 
 extension XCTestCase {
-    func suspendDataLoading(for pipeline: ImagePipeline, expectedRequestCount count: Int, _ closure: () -> Void) {
+    func withSuspendedDataLoader(for pipeline: ImagePipeline, expectedRequestCount count: Int, _ closure: () -> Void) {
         let dataLoader = pipeline.configuration.dataLoader as! MockDataLoader
         dataLoader.isSuspended = true
         let expectation = self.expectation(description: "registered")
