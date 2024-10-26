@@ -194,13 +194,8 @@ public final class FetchImage: ObservableObject, Identifiable {
 
     // MARK: Load (Combine)
 
-    // TODO: (nuke13) deprecate these
-
-    /// Loads an image with the given publisher.
-    ///
-    /// - important: Some `FetchImage` features, such as progress reporting and
-    /// dynamically changing the request priority, are not available when
-    /// working with a publisher.
+    // Deprecated in Nuke 13.0
+    @available(*, deprecated, message: "Please use Async/Await instead")
     public func load<P: Publisher>(_ publisher: P) where P.Output == ImageResponse {
         reset()
 
