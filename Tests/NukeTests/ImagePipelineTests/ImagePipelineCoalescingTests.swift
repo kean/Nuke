@@ -630,8 +630,7 @@ class ImagePipelineProcessingDeduplicationTests: XCTestCase {
         }
     }
 
-    // TODO: pipeline.queue.sync {} is no longer enough
-    func _testThatDataOnlyLoadedOnceWithDifferentCachePolicy() {
+    func testThatDataOnlyLoadedOnceWithDifferentCachePolicy() {
         // Given
         let dataCache = MockDataCache()
         pipeline = pipeline.reconfigured {
