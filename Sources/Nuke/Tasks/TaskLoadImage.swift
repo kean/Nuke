@@ -30,7 +30,6 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         guard let decoder = pipeline.delegate.imageDecoder(for: context, pipeline: pipeline) else {
             return didFinishDecoding(with: nil)
         }
-        #warning("implement using async/awiat")
         decode(context, decoder: decoder) { [weak self] result in
             guard let self else { return }
             Task {

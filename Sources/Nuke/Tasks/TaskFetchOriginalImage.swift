@@ -37,8 +37,6 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
             }
             return
         }
-
-        #warning("implement using async/await")
         decode(context, decoder: decoder) { [weak self] result in
             guard let self else { return }
             Task {

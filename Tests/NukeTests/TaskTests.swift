@@ -5,8 +5,7 @@
 import XCTest
 @testable import Nuke
 
-#warning("reimplement")
-
+@ImagePipelineActor
 class TaskTests: XCTestCase {
     // MARK: - Starter
 

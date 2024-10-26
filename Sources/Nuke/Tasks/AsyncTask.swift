@@ -75,6 +75,8 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     /// Override this to start image task. Only gets called once.
     func start() {}
 
+    init() {}
+
     // MARK: - Managing Observers
 
     /// - notes: Returns `nil` if the task was disposed.
