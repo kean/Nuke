@@ -224,7 +224,7 @@ final class ImagePrefetcherTests: XCTestCase {
 
     func testDidCompleteIsCalled() {
         let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete.value = { @Sendable in
+        prefetcher.didComplete = { @Sendable in
             expectation.fulfill()
         }
 
@@ -234,7 +234,7 @@ final class ImagePrefetcherTests: XCTestCase {
 
     func testDidCompleteIsCalledWhenImageCached() {
         let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete.value = { @Sendable in
+        prefetcher.didComplete = { @Sendable in
             expectation.fulfill()
         }
 
@@ -263,7 +263,7 @@ final class ImagePrefetcherTests: XCTestCase {
 
     func expectPrefetcherToComplete() {
         let expectation = self.expectation(description: "PrefecherDidComplete")
-        prefetcher.didComplete.value = { @Sendable in
+        prefetcher.didComplete = { @Sendable in
             expectation.fulfill()
         }
     }

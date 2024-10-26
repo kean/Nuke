@@ -63,8 +63,8 @@ public final class ImagePrefetcher {
     private var tasks = [TaskLoadImageKey: PrefetchTask]()
     private let _priority = Mutex(ImageRequest.Priority.low)
 
-    // internal for testing
-    nonisolated let didComplete = Mutex<(@Sendable () -> Void)?>(nil)
+    // For testing purposes
+    nonisolated(unsafe) var didComplete: (@Sendable () -> Void)?
     nonisolated let queue = OperationQueue()
 
     /// Initializes the ``ImagePrefetcher`` instance.
@@ -166,7 +166,7 @@ public final class ImagePrefetcher {
     }
 
     private func sendCompletionIfNeeded() {
-        if tasks.isEmpty { didComplete.value?() }
+        if tasks.isEmpty { didComplete?() }
     }
 
     /// Stops prefetching images for the given URLs and cancels outstanding

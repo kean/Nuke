@@ -44,8 +44,9 @@ public final class ImagePipeline {
 
     let rateLimiter: RateLimiter?
     let id = UUID()
-// TODO: remove
-    nonisolated(unsafe) var onTaskStarted: ((ImageTask) -> Void)? // Debug purposes
+
+    // For testing purposes
+    nonisolated(unsafe) var onTaskStarted: ((ImageTask) -> Void)?
 
     deinit {
         ResumableDataStorage.shared.unregister(id)
