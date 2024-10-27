@@ -73,7 +73,7 @@ private class _MockResumableDataLoader: MockDataLoading, DataLoading, @unchecked
         }
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> MockDataTaskProtocol {
+    func loadData(with request: URLRequest, didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void, completion: @Sendable @escaping (Error?) -> Void) -> MockDataTaskProtocol {
         let headers = request.allHTTPHeaderFields
 
         let completion = completion

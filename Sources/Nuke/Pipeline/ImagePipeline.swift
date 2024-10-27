@@ -98,7 +98,7 @@ public final class ImagePipeline {
         Task { @ImagePipelineActor in
             guard !self.isInvalidated else { return }
             self.isInvalidated = true
-            self.tasks.keys.forEach(self.cancelImageTask)
+            self.tasks.keys.forEach { cancelImageTask($0) }
         }
     }
 
@@ -141,7 +141,7 @@ public final class ImagePipeline {
 
     // MARK: - ImageTask (Internal)
 
-    nonisolated func makeImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: ((ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
+    nonisolated func makeImageTask(with request: ImageRequest, isDataTask: Bool = false, onEvent: (@Sendable (ImageTask.Event, ImageTask) -> Void)? = nil) -> ImageTask {
         let task = ImageTask(taskId: nextTaskId.incremented(), request: request, isDataTask: isDataTask, pipeline: self, onEvent: onEvent)
         delegate.imageTaskCreated(task, pipeline: self)
         return task

@@ -26,7 +26,7 @@ class MockDataLoader: MockDataLoading, DataLoading, @unchecked Sendable {
         set { queue.isSuspended = newValue }
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> MockDataTaskProtocol {
+    func loadData(with request: URLRequest, didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void, completion: @Sendable @escaping (Error?) -> Void) -> MockDataTaskProtocol {
         let task = MockDataTask()
 
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
@@ -64,7 +64,7 @@ class MockDataLoader: MockDataLoading, DataLoading, @unchecked Sendable {
 
 // Remove these and update to implement the actual protocol.
 protocol MockDataLoading: DataLoading {
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> MockDataTaskProtocol
+    func loadData(with request: URLRequest, didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void, completion: @Sendable @escaping (Error?) -> Void) -> MockDataTaskProtocol
 }
 
 extension MockDataLoading where Self: DataLoading {
@@ -85,7 +85,7 @@ extension MockDataLoading where Self: DataLoading {
     }
 }
 
-protocol MockDataTaskProtocol {
+protocol MockDataTaskProtocol: Sendable {
     func cancel()
 }
 

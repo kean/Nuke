@@ -26,7 +26,7 @@ final class MockProgressiveDataLoader: MockDataLoading, DataLoading, @unchecked 
         self.chunks = Array(_createChunks(for: data, size: data.count / 3))
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> MockDataTaskProtocol {
+    func loadData(with request: URLRequest, didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void, completion: @Sendable @escaping (Error?) -> Void) -> MockDataTaskProtocol {
         self.didReceiveData = didReceiveData
         self.completion = completion
         self.resume()

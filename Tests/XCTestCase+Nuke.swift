@@ -31,8 +31,8 @@ struct TestExpectationImagePipeline {
 
     @discardableResult
     func toLoadImage(with request: ImageRequest,
-                     progress: ((_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
-                     completion: ((Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> TestRecordedImageRequest {
+                     progress: (@Sendable (_ intermediateResponse: ImageResponse?, _ completedUnitCount: Int64, _ totalUnitCount: Int64) -> Void)? = nil,
+                     completion: (@Sendable (Result<ImageResponse, ImagePipeline.Error>) -> Void)? = nil) -> TestRecordedImageRequest {
         let record = TestRecordedImageRequest()
         let expectation = test.expectation(description: "Image loaded for \(request)")
         record._task = pipeline.loadImage(with: request, progress: progress) { result in

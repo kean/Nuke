@@ -13,32 +13,30 @@ import UIKit
 import AppKit
 #endif
 
-// TODO: try to make another internal instance that is isolated
-// - possible make `ImageTask` a struct? then no questions about retaining it
-
 /// A task performed by the ``ImagePipeline``.
 ///
 /// The pipeline maintains a strong reference to the task until the request
 /// finishes or fails; you do not need to maintain a reference to the task unless
 /// it is useful for your app.
-public final class ImageTask: Hashable, @unchecked Sendable {
+@ImagePipelineActor
+public final class ImageTask: Hashable {
     /// An identifier that uniquely identifies the task within a given pipeline.
     /// Unique only within that pipeline.
-    public let taskId: Int64
+    public nonisolated let taskId: Int64
 
     /// The original request that the task was created with.
-    public let request: ImageRequest
+    public nonisolated let request: ImageRequest
 
     /// The priority of the task. The priority can be updated dynamically even
     /// for a task that is already running.
-    public var priority: ImageRequest.Priority {
+    public nonisolated var priority: ImageRequest.Priority {
         get { nonisolatedState.withLock { $0.priority } }
         set { setPriority(newValue) }
     }
 
     /// Returns the current download progress. Returns zeros before the download
     /// is started and the expected size of the resource is known.
-    public var currentProgress: Progress {
+    public nonisolated var currentProgress: Progress {
         nonisolatedState.withLock { $0.progress }
     }
 
@@ -62,7 +60,6 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     }
 
     /// The current state of the task.
-    @ImagePipelineActor
     public private(set) var state: State = .running
 
     /// The state of the image task.
@@ -76,7 +73,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     }
 
     /// Returns `true` if the task cancellation is initiated.
-    public var isCancelling: Bool {
+    public nonisolated var isCancelling: Bool {
         nonisolatedState.withLock { $0.isCancelling }
     }
 
@@ -101,7 +98,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     }
 
     /// The stream of progress updates.
-    public var progress: AsyncStream<Progress> {
+    public nonisolated var progress: AsyncStream<Progress> {
         makeStream {
             if case .progress(let value) = $0 { return value }
             return nil
@@ -112,7 +109,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     /// progressive decoding.
     ///
     /// - seealso: ``ImagePipeline/Configuration-swift.struct/isProgressiveDecodingEnabled``
-    public var previews: AsyncStream<ImageResponse> {
+    public nonisolated var previews: AsyncStream<ImageResponse> {
         makeStream {
             if case .preview(let value) = $0 { return value }
             return nil
@@ -122,7 +119,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     // MARK: - Events
 
     /// The events sent by the pipeline during the task execution.
-    public var events: AsyncStream<Event> { makeStream { $0 } }
+    public nonisolated var events: AsyncStream<Event> { makeStream { $0 } }
 
     /// An event produced during the runetime of the task.
     public enum Event: Sendable {
@@ -141,29 +138,25 @@ public final class ImageTask: Hashable, @unchecked Sendable {
 
     private let nonisolatedState: Mutex<ImageTaskState>
     private let isDataTask: Bool
-    private let onEvent: ((Event, ImageTask) -> Void)?
-    private var task: Task<ImageResponse, Error>!
+    private let onEvent: (@Sendable (Event, ImageTask) -> Void)?
+    private nonisolated(unsafe) var task: Task<ImageResponse, Error>!
     private weak var pipeline: ImagePipeline?
 
-    @ImagePipelineActor
-    var continuation: UnsafeContinuation<ImageResponse, Error>?
+    private var continuation: UnsafeContinuation<ImageResponse, Error>?
+    private var _events: PassthroughSubject<ImageTask.Event, Never>?
 
-    @ImagePipelineActor
-    var _events: PassthroughSubject<ImageTask.Event, Never>?
-
-    init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: ((Event, ImageTask) -> Void)?) {
+    nonisolated init(taskId: Int64, request: ImageRequest, isDataTask: Bool, pipeline: ImagePipeline, onEvent: (@Sendable (Event, ImageTask) -> Void)?) {
         self.taskId = taskId
         self.request = request
         self.nonisolatedState = Mutex(ImageTaskState(priority: request.priority))
         self.isDataTask = isDataTask
         self.pipeline = pipeline
         self.onEvent = onEvent
-        self.task = Task {
+        self.task = Task { @ImagePipelineActor in
             try await perform()
         }
     }
 
-    @ImagePipelineActor
     private func perform() async throws -> ImageResponse {
         try await withUnsafeThrowingContinuation {
             continuation = $0
@@ -181,7 +174,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     ///
     /// The pipeline will immediately cancel any work associated with a task
     /// unless there is an equivalent outstanding task running.
-    public func cancel() {
+    public nonisolated func cancel() {
         guard nonisolatedState.withLock({
             guard !$0.isCancelling else { return false }
             $0.isCancelling = true
@@ -192,7 +185,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
         }
     }
 
-    private func setPriority(_ newValue: ImageRequest.Priority) {
+    private nonisolated func setPriority(_ newValue: ImageRequest.Priority) {
         guard nonisolatedState.withLock({
             guard $0.priority != newValue else { return false }
             $0.priority = newValue
@@ -207,7 +200,6 @@ public final class ImageTask: Hashable, @unchecked Sendable {
 
     /// Gets called when the task is cancelled either by the user or by an
     /// external event such as session invalidation.
-    @ImagePipelineActor
     func _cancel() {
         guard state == .running else { return }
         state = .cancelled
@@ -215,7 +207,6 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     }
 
     /// Gets called when the associated task sends a new event.
-    @ImagePipelineActor
     func process(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
         guard state == .running else { return }
         switch event {
@@ -239,7 +230,6 @@ public final class ImageTask: Hashable, @unchecked Sendable {
     ///
     /// - warning: The task needs to be fully wired (`_continuation` present)
     /// before it can start sending the events.
-    @ImagePipelineActor
     private func dispatch(_ event: Event) {
         guard continuation != nil else {
             return // Task isn't fully wired yet
@@ -263,11 +253,11 @@ public final class ImageTask: Hashable, @unchecked Sendable {
 
     // MARK: Hashable
 
-    public func hash(into hasher: inout Hasher) {
+    public nonisolated func hash(into hasher: inout Hasher) {
         hasher.combine(ObjectIdentifier(self).hashValue)
     }
 
-    public static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
+    public nonisolated static func == (lhs: ImageTask, rhs: ImageTask) -> Bool {
         ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
     }
 }
@@ -275,7 +265,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
 // MARK: - ImageTask (Private)
 
 extension ImageTask {
-    private func makeStream<T>(of closure: @Sendable @escaping (Event) -> T?) -> AsyncStream<T> {
+    private nonisolated func makeStream<T>(of closure: @Sendable @escaping (Event) -> T?) -> AsyncStream<T> {
         AsyncStream { continuation in
             Task { @ImagePipelineActor in
                 guard state == .running else {
@@ -301,7 +291,6 @@ extension ImageTask {
         }
     }
 
-    @ImagePipelineActor
     private func makeEvents() -> PassthroughSubject<ImageTask.Event, Never> {
         if _events == nil {
             _events = PassthroughSubject()
