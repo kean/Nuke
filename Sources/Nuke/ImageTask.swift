@@ -13,6 +13,9 @@ import UIKit
 import AppKit
 #endif
 
+// TODO: try to make another internal instance that is isolated
+// - possible make `ImageTask` a struct? then no questions about retaining it
+
 /// A task performed by the ``ImagePipeline``.
 ///
 /// The pipeline maintains a strong reference to the task until the request
@@ -60,7 +63,7 @@ public final class ImageTask: Hashable, @unchecked Sendable {
 
     /// The current state of the task.
     @ImagePipelineActor
-    public var state: State = .running
+    public private(set) var state: State = .running
 
     /// The state of the image task.
     public enum State: Sendable {
