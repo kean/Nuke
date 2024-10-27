@@ -18,7 +18,7 @@ class ImagePipelinePerfomanceTests: XCTestCase {
             var finished: Int = 0
             let semaphore = DispatchSemaphore(value: 0)
             for request in requests {
-                pipeline.loadImage(with: request, queue: callbackQueue, progress: nil) { _ in
+                pipeline.loadImage(with: request, progress: nil) { _ in
                     finished += 1
                     if finished == requests.count {
                         semaphore.signal()
