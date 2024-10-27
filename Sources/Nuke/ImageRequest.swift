@@ -28,7 +28,7 @@ import AppKit
 /// )
 /// let image = try await pipeline.image(for: request)
 /// ```
-public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStringLiteral {
+public struct ImageRequest: CustomStringConvertible, @unchecked Sendable, ExpressibleByStringLiteral {
     // MARK: Options
 
     /// The relative priority of the request. The priority affects the order in
@@ -437,7 +437,7 @@ public struct ImageRequest: CustomStringConvertible, Sendable, ExpressibleByStri
 extension ImageRequest {
     /// Just like many Swift built-in types, ``ImageRequest`` uses CoW approach to
     /// avoid memberwise retain/releases when ``ImageRequest`` is passed around.
-    private final class Container: @unchecked Sendable {
+    private final class Container {
         // It's beneficial to put resource before priority and options because
         // of the resource size/stride of 9/16. Priority (1 byte) and Options
         // (2 bytes) slot just right in the remaining space.
