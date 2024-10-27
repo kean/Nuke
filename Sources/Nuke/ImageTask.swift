@@ -30,14 +30,14 @@ public final class ImageTask: Hashable {
     /// The priority of the task. The priority can be updated dynamically even
     /// for a task that is already running.
     public nonisolated var priority: ImageRequest.Priority {
-        get { nonisolatedState.withLock { $0.priority } }
+        get { nonisolatedState.withLock(\.priority) }
         set { setPriority(newValue) }
     }
 
     /// Returns the current download progress. Returns zeros before the download
     /// is started and the expected size of the resource is known.
     public nonisolated var currentProgress: Progress {
-        nonisolatedState.withLock { $0.progress }
+        nonisolatedState.withLock(\.progress)
     }
 
     /// The download progress.
@@ -74,7 +74,7 @@ public final class ImageTask: Hashable {
 
     /// Returns `true` if the task cancellation is initiated.
     public nonisolated var isCancelling: Bool {
-        nonisolatedState.withLock { $0.isCancelling }
+        nonisolatedState.withLock(\.isCancelling)
     }
 
     // MARK: - Async/Await
