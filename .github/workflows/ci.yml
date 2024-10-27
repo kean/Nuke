@@ -10,22 +10,22 @@ on:
 
 jobs:
   ios-latest:
-    name: Unit Tests (iOS 17.4, Xcode 15.3)
-    runs-on: macOS-14
+    name: Unit Tests (iOS 18.0, Xcode 16.0)
+    runs-on: macOS-15
     env:
-      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          .scripts/test.sh -s "Nuke" -d "OS=17.4,name=iPhone 15 Pro"
-          .scripts/test.sh -s "NukeUI" -d "OS=17.4,name=iPhone 15 Pro"
-          .scripts/test.sh -s "NukeExtensions" -d "OS=17.4,name=iPhone 15 Pro"
+          .scripts/test.sh -s "Nuke" -d "OS=18.0,name=iPhone 16 Pro"
+          .scripts/test.sh -s "NukeUI" -d "OS=18.0,name=iPhone 16 Pro"
+          .scripts/test.sh -s "NukeExtensions" -d "OS=18.0,name=iPhone 16 Pro"
   macos-latest:
-    name: Unit Tests (macOS, Xcode 15.3)
-    runs-on: macOS-14
+    name: Unit Tests (macOS, Xcode 16.0)
+    runs-on: macOS-15
     env:
-      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
@@ -34,17 +34,17 @@ jobs:
           .scripts/test.sh -s "NukeUI" -d "platform=macOS"
           .scripts/test.sh -s "NukeExtensions" -d "platform=macOS"
   tvos-latest:
-    name: Unit Tests (tvOS 17.4, Xcode 15.3)
-    runs-on: macOS-14
+    name: Unit Tests (tvOS 18.0, Xcode 16.0)
+    runs-on: macOS-15
     env:
-      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
         run: |
-          .scripts/test.sh -s "Nuke" -d "OS=17.4,name=Apple TV"
-          .scripts/test.sh -s "NukeUI" -d "OS=17.4,name=Apple TV"
-          .scripts/test.sh -s "NukeExtensions" -d "OS=17.4,name=Apple TV"
+          .scripts/test.sh -s "Nuke" -d "OS=18.0,name=Apple TV"
+          .scripts/test.sh -s "NukeUI" -d "OS=18.0,name=Apple TV"
+          .scripts/test.sh -s "NukeExtensions" -d "OS=18.0,name=Apple TV"
 # There is a problem with watchOS runners where they often fail to launch on CI
 #
 #  watchos-latest:
@@ -59,27 +59,30 @@ jobs:
 #          .scripts/test.sh -s "Nuke" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
 #          .scripts/test.sh -s "NukeUI" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
 #          .scripts/test.sh -s "Nuke Extensions" -d "OS=9.1,name=Apple Watch Series 8 (45mm)"
-  ios-xcode-14-3-1:
-    name: Unit Tests (iOS 17.0, Xcode 15.0)
-    runs-on: macOS-13
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_15.0.app/Contents/Developer
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run Tests
-        run: |
-          .scripts/test.sh -s "Nuke" -d "OS=17.0,name=iPhone 15 Pro"
-          .scripts/test.sh -s "NukeUI" -d "OS=17.0,name=iPhone 15 Pro"
-          .scripts/test.sh -s "NukeExtensions" -d "OS=17.0,name=iPhone 15 Pro"
+
+#  Nuke 13.0 supports only the latest version of Xcode (16).
+#
+#  ios-xcode-14-3-1:
+#    name: Unit Tests (iOS 17.0, Xcode 15.0)
+#    runs-on: macOS-13
+#    env:
+#      DEVELOPER_DIR: /Applications/Xcode_15.0.app/Contents/Developer
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Run Tests
+#        run: |
+#          .scripts/test.sh -s "Nuke" -d "OS=17.0,name=iPhone 15 Pro"
+#          .scripts/test.sh -s "NukeUI" -d "OS=17.0,name=iPhone 15 Pro"
+#          .scripts/test.sh -s "NukeExtensions" -d "OS=17.0,name=iPhone 15 Pro"
   ios-thread-safety:
     name: Thread Safety Tests (TSan Enabled)
-    runs-on: macOS-14
+    runs-on: macOS-15
     env:
-      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: .scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=17.4,name=iPhone 15 Pro"
+        run: .scripts/test.sh -s "Nuke Thread Safety Tests" -d "OS=18.0,name=iPhone 16 Pro"
 #  ios-memory-management-tests:
 #    name: Memory Management Tests
 #    runs-on: macOS-13
@@ -91,18 +94,18 @@ jobs:
 #        run: .scripts/test.sh -s "Nuke Memory Management Tests" -d "OS=14.4,name=iPhone 12 Pro"
   ios-performance-tests:
     name: Performance Tests
-    runs-on: macOS-14
+    runs-on: macOS-15
     env:
-      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Run Tests
-        run: .scripts/test.sh -s "Nuke Performance Tests" -d "OS=17.4,name=iPhone 15 Pro"
+        run: .scripts/test.sh -s "Nuke Performance Tests" -d "OS=18.0,name=iPhone 16 Pro"
   swift-build:
     name: Swift Build (SPM)
-    runs-on: macOS-14
+    runs-on: macOS-15
     env:
-      DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_16.0.app/Contents/Developer
     steps:
       - uses: actions/checkout@v2
       - name: Build
