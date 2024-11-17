@@ -1837,7 +1837,6 @@
 				OTHER_SWIFT_FLAGS = "-D DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nukeui;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Debug;
 		};
@@ -1857,7 +1856,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nukeui;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Release;
 		};
@@ -1946,7 +1944,6 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.nuke-extensions";
 				PRODUCT_NAME = NukeExtensions;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Debug;
 		};
@@ -1966,7 +1963,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.nuke-extensions";
 				PRODUCT_NAME = NukeExtensions;
-				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Release;
 		};
@@ -2030,7 +2026,6 @@
 				OTHER_SWIFT_FLAGS = "-D DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nukevideo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Debug;
 		};
@@ -2050,7 +2045,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nukevideo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Release;
 		};
@@ -2067,6 +2061,7 @@
 				OTHER_SWIFT_FLAGS = "-D DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -2083,6 +2078,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.github.kean.Nuke-Tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -2315,7 +2311,6 @@
 				OTHER_SWIFT_FLAGS = "-D DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nuke;
 				PRODUCT_NAME = Nuke;
-				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Debug;
 		};
@@ -2335,7 +2330,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.github.kean.nuke;
 				PRODUCT_NAME = Nuke;
-				SWIFT_STRICT_CONCURRENCY = complete;
 			};
 			name = Release;
 		};
