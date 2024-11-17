@@ -2,8 +2,8 @@
 //
 // Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
 
-@testable import Nuke
 import Testing
+@testable import Nuke
 
 @Suite @ImagePipelineActor struct RateLimiterTests {
     let rateLimiter = RateLimiter(rate: 10, burst: 2)
