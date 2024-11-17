@@ -8,7 +8,7 @@ import Testing
 @Suite @ImagePipelineActor struct RateLimiterTests {
     let rateLimiter = RateLimiter(rate: 10, burst: 2)
 
-    @Test func burstIsExecutedImmediately() throws {
+    @Test func burstIsExecutedImmediately() {
         var isExecuted = Array(repeating: false, count: 4)
         for i in isExecuted.indices {
             rateLimiter.execute {
@@ -16,10 +16,10 @@ import Testing
                 return true
             }
         }
-        try #require(isExecuted == [true, true, false, false], "Expect first 2 items to be executed immediately")
+        #expect(isExecuted == [true, true, false, false], "Expect first 2 items to be executed immediately")
     }
 
-    @Test func NotExecutedItemDoesNotExtractFromBucket() throws {
+    @Test func posponedItemsDoNotExtractFromBucket() {
         var isExecuted = Array(repeating: false, count: 4)
         for i in isExecuted.indices {
             rateLimiter.execute {
@@ -27,10 +27,10 @@ import Testing
                 return i != 1 // important!
             }
         }
-        try #require(isExecuted == [true, true, true, false], "Expect first 2 items to be executed immediately")
+        #expect(isExecuted == [true, true, true, false], "Expect first 2 items to be executed immediately")
     }
 
-    @Test func overflow() async throws {
+    @Test func overflow() async {
         let count = 3
         await confirmation(expectedCount: count) { done in
             for _ in 0..<count {
