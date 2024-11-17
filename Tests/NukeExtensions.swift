@@ -5,7 +5,7 @@
 import Foundation
 import Nuke
 
-extension ImagePipeline.Error: Equatable {
+extension ImagePipeline.Error: @retroactive Equatable {
     public static func == (lhs: ImagePipeline.Error, rhs: ImagePipeline.Error) -> Bool {
         switch (lhs, rhs) {
         case (.dataMissingInCache, .dataMissingInCache): return true
@@ -22,7 +22,7 @@ extension ImagePipeline.Error: Equatable {
     }
 }
 
-extension ImageResponse: Equatable {
+extension ImageResponse: @retroactive Equatable {
     public static func == (lhs: ImageResponse, rhs: ImageResponse) -> Bool {
         return lhs.image === rhs.image
     }
