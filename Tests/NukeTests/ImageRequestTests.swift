@@ -2,12 +2,13 @@
 //
 // Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 @testable import Nuke
 
-class ImageRequestTests: XCTestCase {
+@Suite struct ImageRequestTests {
     // The compiler picks up the new version
-    func testInit() {
+    @Test func testInit() {
         _ = ImageRequest(url: Test.url)
         _ = ImageRequest(url: Test.url, processors: [])
         _ = ImageRequest(url: Test.url, processors: [])
@@ -15,13 +16,13 @@ class ImageRequestTests: XCTestCase {
         _ = ImageRequest(url: Test.url, options: [.reloadIgnoringCachedData])
     }
 
-    func testExpressibleByStringLiteral() {
+    @Test func expressibleByStringLiteral() {
         let _: ImageRequest = "https://example.com/image.jpeg"
     }
 
     // MARK: - CoW
 
-    func testCopyOnWrite() {
+    @Test func copyOnWrite() {
         // GIVEN
         var request = ImageRequest(url: URL(string: "http://test.com/1.png"))
         request.options.insert(.disableMemoryCacheReads)
@@ -35,165 +36,165 @@ class ImageRequestTests: XCTestCase {
         copy.priority = .low
 
         // THEN
-        XCTAssertEqual(copy.options.contains(.disableMemoryCacheReads), true)
-        XCTAssertEqual(copy.userInfo["key"] as? String, "3")
-        XCTAssertEqual((copy.processors.first as? MockImageProcessor)?.identifier, "4")
-        XCTAssertEqual(request.priority, .high) // Original request no updated
-        XCTAssertEqual(copy.priority, .low)
+        #expect(copy.options.contains(.disableMemoryCacheReads) == true)
+        #expect(copy.userInfo["key"] as? String == "3")
+        #expect((copy.processors.first as? MockImageProcessor)?.identifier == "4")
+        #expect(request.priority == .high) // Original request no updated // Original request no updated
+        #expect(copy.priority == .low)
     }
 
     // MARK: - Misc
 
     // Just to make sure that comparison works as expected.
-    func testPriorityComparison() {
+    @Test func priorityComparison() {
         typealias Priority = ImageRequest.Priority
-        XCTAssertTrue(Priority.veryLow < Priority.veryHigh)
-        XCTAssertTrue(Priority.low < Priority.normal)
-        XCTAssertTrue(Priority.normal == Priority.normal)
+        #expect(Priority.veryLow < Priority.veryHigh)
+        #expect(Priority.low < Priority.normal)
+        #expect(Priority.normal == Priority.normal)
     }
 
-    func testUserInfoKey() {
+    @Test func userInfoKey() {
         // WHEN
         let request = ImageRequest(url: Test.url, userInfo: [.init("a"): 1])
 
         // THEN
-        XCTAssertNotNil(request.userInfo["a"])
+        #expect(request.userInfo["a"] != nil)
     }
 }
 
-class ImageRequestCacheKeyTests: XCTestCase {
-    func testDefaults() {
+@Suite struct ImageRequestCacheKeyTests {
+    @Test func defaults() {
         let request = Test.request
-        AssertHashableEqual(MemoryCacheKey(request), MemoryCacheKey(request)) // equal to itself
+        expectHashableMatch(MemoryCacheKey(request), MemoryCacheKey(request)) // equal to itself
     }
 
-    func testRequestsWithTheSameURLsAreEquivalent() {
+    @Test func requestsWithTheSameURLsAreEquivalent() {
         let lhs = ImageRequest(url: Test.url)
         let rhs = ImageRequest(url: Test.url)
-        AssertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
+        expectHashableMatch(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
     }
 
-    func testRequestsWithDefaultURLRequestAndURLAreEquivalent() {
+    @Test func requestsWithDefaultURLRequestAndURLAreEquivalent() {
         let lhs = ImageRequest(url: Test.url)
         let rhs = ImageRequest(urlRequest: URLRequest(url: Test.url))
-        AssertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
+        expectHashableMatch(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
     }
 
-    func testRequestsWithDifferentURLsAreNotEquivalent() {
+    @Test func requestsWithDifferentURLsAreNotEquivalent() {
         let lhs = ImageRequest(url: URL(string: "http://test.com/1.png"))
         let rhs = ImageRequest(url: URL(string: "http://test.com/2.png"))
-        XCTAssertNotEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
+        #expect(MemoryCacheKey(lhs) != MemoryCacheKey(rhs))
     }
 
-    func testRequestsWithTheSameProcessorsAreEquivalent() {
+    @Test func requestsWithTheSameProcessorsAreEquivalent() {
         let lhs = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
         let rhs = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
-        AssertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
+        expectHashableMatch(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
     }
 
-    func testRequestsWithDifferentProcessorsAreNotEquivalent() {
+    @Test func requestsWithDifferentProcessorsAreNotEquivalent() {
         let lhs = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
         let rhs = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "2")])
-        XCTAssertNotEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
+        #expect(MemoryCacheKey(lhs) != MemoryCacheKey(rhs))
     }
 
-    func testURLRequestParametersAreIgnored() {
+    @Test func uRLRequestParametersAreIgnored() {
         let lhs = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 50))
         let rhs = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
-        AssertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
+        expectHashableMatch(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
     }
 
-    func testSettingDefaultProcessorManually() {
+    @Test func settingDefaultProcessorManually() {
         let lhs = ImageRequest(url: Test.url)
         let rhs = ImageRequest(url: Test.url, processors: lhs.processors)
-        AssertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
+        expectHashableMatch(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
     }
 }
 
-class ImageRequestLoadKeyTests: XCTestCase {
-    func testDefaults() {
+@Suite struct ImageRequestLoadKeyTests {
+    @Test func defaults() {
         let request = ImageRequest(url: Test.url)
-        AssertHashableEqual(TaskFetchOriginalDataKey(request), TaskFetchOriginalDataKey(request))
+        expectHashableMatch(TaskFetchOriginalDataKey(request), TaskFetchOriginalDataKey(request))
     }
 
-    func testRequestsWithTheSameURLsAreEquivalent() {
+    @Test func requestsWithTheSameURLsAreEquivalent() {
         let lhs = ImageRequest(url: Test.url)
         let rhs = ImageRequest(url: Test.url)
-        AssertHashableEqual(TaskFetchOriginalDataKey(lhs), TaskFetchOriginalDataKey(rhs))
+        expectHashableMatch(TaskFetchOriginalDataKey(lhs), TaskFetchOriginalDataKey(rhs))
     }
 
-    func testRequestsWithDifferentURLsAreNotEquivalent() {
+    @Test func requestsWithDifferentURLsAreNotEquivalent() {
         let lhs = ImageRequest(url: URL(string: "http://test.com/1.png"))
         let rhs = ImageRequest(url: URL(string: "http://test.com/2.png"))
-        XCTAssertNotEqual(TaskFetchOriginalDataKey(lhs), TaskFetchOriginalDataKey(rhs))
+        #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
     }
 
-    func testRequestsWithTheSameProcessorsAreEquivalent() {
+    @Test func requestsWithTheSameProcessorsAreEquivalent() {
         let lhs = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
         let rhs = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
-        AssertHashableEqual(TaskFetchOriginalDataKey(lhs), TaskFetchOriginalDataKey(rhs))
+        expectHashableMatch(TaskFetchOriginalDataKey(lhs), TaskFetchOriginalDataKey(rhs))
     }
 
-    func testRequestsWithDifferentProcessorsAreEquivalent() {
+    @Test func requestsWithDifferentProcessorsAreEquivalent() {
         let lhs = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")])
         let rhs = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "2")])
-        AssertHashableEqual(TaskFetchOriginalDataKey(lhs), TaskFetchOriginalDataKey(rhs))
+        expectHashableMatch(TaskFetchOriginalDataKey(lhs), TaskFetchOriginalDataKey(rhs))
     }
 
-    func testRequestWithDifferentURLRequestParametersAreNotEquivalent() {
+    @Test func requestWithDifferentURLRequestParametersAreNotEquivalent() {
         let lhs = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .reloadRevalidatingCacheData, timeoutInterval: 50))
         let rhs = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
-        XCTAssertNotEqual(TaskFetchOriginalDataKey(lhs), TaskFetchOriginalDataKey(rhs))
+        #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
     }
 
-    func testMockImageProcessorCorrectlyImplementsIdentifiers() {
-        XCTAssertEqual(MockImageProcessor(id: "1").identifier, MockImageProcessor(id: "1").identifier)
-        XCTAssertEqual(MockImageProcessor(id: "1").hashableIdentifier, MockImageProcessor(id: "1").hashableIdentifier)
+    @Test func mockImageProcessorCorrectlyImplementsIdentifiers() {
+        #expect(MockImageProcessor(id: "1").identifier == MockImageProcessor(id: "1").identifier)
+        #expect(MockImageProcessor(id: "1").hashableIdentifier == MockImageProcessor(id: "1").hashableIdentifier)
 
-        XCTAssertNotEqual(MockImageProcessor(id: "1").identifier, MockImageProcessor(id: "2").identifier)
-        XCTAssertNotEqual(MockImageProcessor(id: "1").hashableIdentifier, MockImageProcessor(id: "2").hashableIdentifier)
-    }
-}
-
-class ImageRequestImageIdTests: XCTestCase {
-    func testThatCacheKeyUsesAbsoluteURLByDefault() {
-        let lhs = ImageRequest(url: Test.url)
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"))
-        XCTAssertNotEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
-    }
-
-    func testThatCacheKeyUsesFilteredURLWhenSet() {
-        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
-        AssertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
-    }
-
-    func testThatCacheKeyForProcessedImageDataUsesAbsoluteURLByDefault() {
-        let lhs = ImageRequest(url: Test.url)
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"))
-        XCTAssertNotEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
-    }
-
-    func testThatCacheKeyForProcessedImageDataUsesFilteredURLWhenSet() {
-        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
-        AssertHashableEqual(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
-    }
-
-    func testThatLoadKeyForProcessedImageDoesntUseFilteredURL() {
-        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
-        XCTAssertNotEqual(TaskLoadImageKey(lhs), TaskLoadImageKey(rhs))
-    }
-
-    func testThatLoadKeyForOriginalImageDoesntUseFilteredURL() {
-        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
-        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
-        XCTAssertNotEqual(TaskFetchOriginalDataKey(lhs), TaskFetchOriginalDataKey(rhs))
+        #expect(MockImageProcessor(id: "1").identifier != MockImageProcessor(id: "2").identifier)
+        #expect(MockImageProcessor(id: "1").hashableIdentifier != MockImageProcessor(id: "2").hashableIdentifier)
     }
 }
 
-private func AssertHashableEqual<T: Hashable>(_ lhs: T, _ rhs: T, file: StaticString = #file, line: UInt = #line) {
-    XCTAssertEqual(lhs.hashValue, rhs.hashValue, file: file, line: line)
-    XCTAssertEqual(lhs, rhs, file: file, line: line)
+@Suite struct ImageRequestImageIdTests {
+    @Test func thatCacheKeyUsesAbsoluteURLByDefault() {
+        let lhs = ImageRequest(url: Test.url)
+        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"))
+        #expect(MemoryCacheKey(lhs) != MemoryCacheKey(rhs))
+    }
+
+    @Test func thatCacheKeyUsesFilteredURLWhenSet() {
+        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
+        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
+        expectHashableMatch(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
+    }
+
+    @Test func thatCacheKeyForProcessedImageDataUsesAbsoluteURLByDefault() {
+        let lhs = ImageRequest(url: Test.url)
+        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"))
+        #expect(MemoryCacheKey(lhs) != MemoryCacheKey(rhs))
+    }
+
+    @Test func thatCacheKeyForProcessedImageDataUsesFilteredURLWhenSet() {
+        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
+        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
+        expectHashableMatch(MemoryCacheKey(lhs), MemoryCacheKey(rhs))
+    }
+
+    @Test func thatLoadKeyForProcessedImageDoesntUseFilteredURL() {
+        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
+        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
+        #expect(TaskLoadImageKey(lhs) != TaskLoadImageKey(rhs))
+    }
+
+    @Test func thatLoadKeyForOriginalImageDoesntUseFilteredURL() {
+        let lhs = ImageRequest(url: Test.url, userInfo: [.imageIdKey: Test.url.absoluteString])
+        let rhs = ImageRequest(url: Test.url.appendingPathComponent("?token=1"), userInfo: [.imageIdKey: Test.url.absoluteString])
+        #expect(TaskFetchOriginalDataKey(lhs) != TaskFetchOriginalDataKey(rhs))
+    }
+}
+
+private func expectHashableMatch<T: Hashable>(_ lhs: T, _ rhs: T) {
+    #expect(lhs.hashValue == rhs.hashValue)
+    #expect(lhs == rhs)
 }
