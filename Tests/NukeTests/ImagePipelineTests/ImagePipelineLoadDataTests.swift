@@ -416,3 +416,7 @@ extension XCTestCase {
         dataLoader.isSuspended = false
     }
 }
+
+final class TestExpectation {
+
+}
