@@ -32,11 +32,13 @@ final class TaskQueue {
     }
 
     func enqueue(_ work: @ImagePipelineActor @escaping () async -> Void) {
-        // TODO: skip performPendingTasks when possible
-
-        let task = ScheduledTask(work: work)
-        pendingTasks.normal.append(task)
-        performPendingTasks()
+        if activeTaskCount < maxConcurrentTaskCount {
+            perform(work)
+        } else {
+            let task = ScheduledTask(work: work)
+            pendingTasks.normal.append(task)
+            performPendingTasks()
+        }
     }
 
     /// A handle that can be used to change the priority of the pending work.
@@ -61,14 +63,16 @@ final class TaskQueue {
 
     private func performPendingTasks() {
         while activeTaskCount < maxConcurrentTaskCount, let task = dequeueNextTask() {
-            activeTaskCount += 1
-            Task { @ImagePipelineActor in
-                await task.work()
-                self.activeTaskCount -= 1
-                self.performPendingTasks()
-            }
+            perform(task.work)
         }
-        // Do we need a separate list for each priority? Can we simply sort based
-        // on priotiy instead?
+    }
+
+    private func perform(_ work: @ImagePipelineActor @escaping () async -> Void) {
+        activeTaskCount += 1
+        Task { @ImagePipelineActor in
+            await work()
+            self.activeTaskCount -= 1
+            self.performPendingTasks()
+        }
     }
 }
