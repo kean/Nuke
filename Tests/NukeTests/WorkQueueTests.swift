@@ -6,8 +6,8 @@ import Testing
 import Foundation
 @testable import Nuke
 
-@Suite @ImagePipelineActor struct TaskQueueTests {
-    let sut = TaskQueue(maxConcurrentTaskCount: 2)
+@Suite @ImagePipelineActor struct WorkQueueTests {
+    let sut = WorkQueue(maxConcurrentTaskCount: 2)
 
     // MARK: Basics
 
@@ -19,11 +19,11 @@ import Foundation
                 for _ in Array(0..<4) {
                     group.addTask { @Sendable @ImagePipelineActor in
                         await withUnsafeContinuation { continuation in
-                            sut.enqueue {
+                            sut.enqueue(.init {
                                 try? await Task.sleep(nanoseconds: 100)
                                 confirmation()
                                 continuation.resume()
-                            }
+                            })
                         }
                     }
                 }
@@ -34,23 +34,24 @@ import Foundation
     // MARK: Cancellation
 
     @Test func cancelPendingWork() async {
-        let sut = TaskQueue(maxConcurrentTaskCount: 1)
+        let sut = WorkQueue(maxConcurrentTaskCount: 1)
         sut.isSuspended = true
 
         var isFirstTaskExecuted = false
-        let task = sut.enqueue {
+        let task = WorkQueue.WorkItem {
             isFirstTaskExecuted = true
         }
+        sut.enqueue(task)
         task.cancel()
 
         sut.isSuspended = false
 
         await confirmation { confirmation in
             await withUnsafeContinuation { continuation in
-                sut.enqueue {
+                sut.enqueue(.init {
                     confirmation()
                     continuation.resume()
-                }
+                })
             }
         }
 
@@ -60,16 +61,16 @@ import Foundation
     @Test func cancelInFlightWork() async {
         @ImagePipelineActor final class Context {
             var continuation: UnsafeContinuation<Void, Never>?
-            var task: TaskQueue.EnqueuedTask?
+            var item: WorkQueue.WorkItem?
         }
         let context = Context()
-        context.task = sut.enqueue {
+        let item = WorkQueue.WorkItem {
             await withTaskCancellationHandler {
                 await withUnsafeContinuation {
                     context.continuation = $0
                     Task { @ImagePipelineActor in
-                        #expect(context.task != nil)
-                        context.task?.cancel()
+                        #expect(context.item != nil)
+                        context.item?.cancel()
                     }
                 }
             } onCancel: {
@@ -78,5 +79,7 @@ import Foundation
                 }
             }
         }
+        context.item = item
+        sut.enqueue(item)
     }
 }

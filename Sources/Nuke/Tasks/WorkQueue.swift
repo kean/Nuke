@@ -1,4 +1,3 @@
-
 // The MIT License (MIT)
 //
 // Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
@@ -7,18 +6,18 @@ import Foundation
 
 // TODO: task priority
 @ImagePipelineActor
-final class TaskQueue {
-    private struct ScheduledTasks {
-        let veryLow = LinkedList<EnqueuedTask>()
-        let low = LinkedList<EnqueuedTask>()
-        let normal = LinkedList<EnqueuedTask>()
-        let high = LinkedList<EnqueuedTask>()
-        let veryHigh = LinkedList<EnqueuedTask>()
+final class WorkQueue {
+    private struct ScheduledWork {
+        let veryLow = LinkedList<WorkItem>()
+        let low = LinkedList<WorkItem>()
+        let normal = LinkedList<WorkItem>()
+        let high = LinkedList<WorkItem>()
+        let veryHigh = LinkedList<WorkItem>()
 
         lazy var all = [veryHigh, high, normal, low, veryLow]
     }
 
-    private var pendingTasks = ScheduledTasks()
+    private var scheduledWork = ScheduledWork()
     private var activeTaskCount = 0
     private let maxConcurrentTaskCount: Int
 
@@ -27,7 +26,7 @@ final class TaskQueue {
     var isSuspended = false {
         didSet {
             guard oldValue != isSuspended, !isSuspended else { return }
-            performPendingTasks()
+            performSchduledWork()
         }
     }
 
@@ -35,20 +34,18 @@ final class TaskQueue {
         self.maxConcurrentTaskCount = maxConcurrentTaskCount
     }
 
-    @discardableResult func enqueue(_ work: @ImagePipelineActor @escaping () async -> Void) -> EnqueuedTask {
-        let task = EnqueuedTask(work: work)
+    func enqueue(_ item: WorkItem) {
         if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
-            perform(task)
+            perform(item)
         } else {
-            pendingTasks.normal.append(task)
-            performPendingTasks()
+            scheduledWork.normal.append(item)
+            performSchduledWork()
         }
-        return task
     }
 
     /// Returns a pending task with a highest priority.
-    private func dequeueNextTask() -> EnqueuedTask? {
-        for list in pendingTasks.all {
+    private func dequeueNextItem() -> WorkItem? {
+        for list in scheduledWork.all {
             if let node = list.popLast(), !node.value.isCancelled {
                 return node.value
             }
@@ -56,31 +53,33 @@ final class TaskQueue {
         return nil
     }
 
-    private func performPendingTasks() {
-        while !isSuspended, activeTaskCount < maxConcurrentTaskCount, let task = dequeueNextTask() {
-            perform(task)
+    private func performSchduledWork() {
+        while !isSuspended, activeTaskCount < maxConcurrentTaskCount, let item = dequeueNextItem() {
+            perform(item)
         }
     }
 
     // TODO: test memory managemnet
-    private func perform(_ task: EnqueuedTask) {
+    private func perform(_ item: WorkItem) {
         activeTaskCount += 1
-        let work = task.work
-        task.task = Task { @ImagePipelineActor in
+        let work = item.work
+        item.task = Task { @ImagePipelineActor in
             await work()
             self.activeTaskCount -= 1
-            self.performPendingTasks()
+            self.performSchduledWork()
         }
     }
 
     /// A handle that can be used to change the priority of the pending work.
     @ImagePipelineActor
-    final class EnqueuedTask {
+    final class WorkItem {
         let work: @ImagePipelineActor () async -> Void
         var isCancelled = false
+        var priority: TaskPriority
         var task: Task<Void, Never>?
 
-        init(work: @ImagePipelineActor @escaping () async -> Void) {
+        init(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) {
+            self.priority = priority
             self.work = work
         }
 
