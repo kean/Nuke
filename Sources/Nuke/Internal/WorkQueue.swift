@@ -14,12 +14,23 @@ final class WorkQueue {
         let high = LinkedList<WorkItem>()
         let veryHigh = LinkedList<WorkItem>()
 
+        func list(forPriority priority: TaskPriority) -> LinkedList<WorkItem> {
+            switch priority {
+            case .veryLow: veryLow
+            case .low: low
+            case .normal: normal
+            case .high: high
+            case .veryHigh: veryHigh
+            }
+        }
+
         lazy var all = [veryHigh, high, normal, low, veryLow]
     }
 
-    private var scheduledWork = ScheduledWork()
+    private var schedule = ScheduledWork()
     private var activeTaskCount = 0
     private let maxConcurrentTaskCount: Int
+    private var completion: UnsafeContinuation<Void, Never>?
 
     /// Setting this property to true prevents the queue from starting any queued
     /// tasks, but already executing tasks continue to execute.
@@ -38,14 +49,14 @@ final class WorkQueue {
         if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
             perform(item)
         } else {
-            scheduledWork.normal.append(item)
+            schedule.list(forPriority: item.priority).append(item)
             performSchduledWork()
         }
     }
 
     /// Returns a pending task with a highest priority.
     private func dequeueNextItem() -> WorkItem? {
-        for list in scheduledWork.all {
+        for list in schedule.all {
             if let node = list.popLast(), !node.value.isCancelled {
                 return node.value
             }
@@ -56,6 +67,10 @@ final class WorkQueue {
     private func performSchduledWork() {
         while !isSuspended, activeTaskCount < maxConcurrentTaskCount, let item = dequeueNextItem() {
             perform(item)
+        }
+        if activeTaskCount == 0 {
+            completion?.resume()
+            completion = nil
         }
     }
 
@@ -87,5 +102,11 @@ final class WorkQueue {
             isCancelled = true
             task?.cancel()
         }
+    }
+
+    /// - warning: For testing purposes onlu.
+    func wait() async {
+        if activeTaskCount == 0 { return }
+        await withUnsafeContinuation { completion = $0 }
     }
 }

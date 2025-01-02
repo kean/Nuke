@@ -7,7 +7,7 @@ import Foundation
 @testable import Nuke
 
 @Suite @ImagePipelineActor struct WorkQueueTests {
-    let sut = WorkQueue(maxConcurrentTaskCount: 2)
+    let sut = WorkQueue(maxConcurrentTaskCount: 1)
 
     // MARK: Basics
 
@@ -34,7 +34,6 @@ import Foundation
     // MARK: Cancellation
 
     @Test func cancelPendingWork() async {
-        let sut = WorkQueue(maxConcurrentTaskCount: 1)
         sut.isSuspended = true
 
         var isFirstTaskExecuted = false
@@ -81,5 +80,29 @@ import Foundation
         }
         context.item = item
         sut.enqueue(item)
+    }
+
+    // MARK: Priority
+
+    @Test func executionBasedOnPriority() async {
+        sut.isSuspended = true
+
+        var completed: [Int] = []
+
+        sut.enqueue(.init(priority: .low) {
+            completed.append(1)
+        })
+        sut.enqueue(.init(priority: .high) {
+            completed.append(2)
+        })
+        sut.enqueue(.init(priority: .normal) {
+            completed.append(3)
+        })
+
+        sut.isSuspended = false
+
+        await sut.wait()
+
+        #expect(completed == [2, 3, 1])
     }
 }
