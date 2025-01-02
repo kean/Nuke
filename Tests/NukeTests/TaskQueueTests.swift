@@ -28,4 +28,31 @@ import Foundation
             }
         }
     }
+
+    @Test func cancelPendingWork() async {
+
+    }
+
+    @Test func cancelInFlightWork() async {
+        @ImagePipelineActor final class Context {
+            var continuation: UnsafeContinuation<Void, Never>?
+            var task: TaskQueue.EnqueuedTask?
+        }
+        let context = Context()
+        context.task = sut.enqueue {
+            await withTaskCancellationHandler {
+                await withUnsafeContinuation {
+                    context.continuation = $0
+                    Task { @ImagePipelineActor in
+                        #expect(context.task != nil)
+                        context.task?.cancel()
+                    }
+                }
+            } onCancel: {
+                Task { @ImagePipelineActor in
+                    context.continuation?.resume()
+                }
+            }
+        }
+    }
 }

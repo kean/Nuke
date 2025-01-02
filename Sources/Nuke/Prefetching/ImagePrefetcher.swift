@@ -137,6 +137,7 @@ public final class ImagePrefetcher {
         guard tasks[key] == nil else {
             return
         }
+
         let task = PrefetchTask(request: request, key: key)
         task.operation = queue.add { [weak self] finish in
             guard let self else { return finish() }

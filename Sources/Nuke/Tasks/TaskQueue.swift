@@ -12,11 +12,11 @@ import Foundation
 final class TaskQueue {
 
     private struct ScheduledTasks {
-        let veryLow = LinkedList<ScheduledTask>()
-        let low = LinkedList<ScheduledTask>()
-        let normal = LinkedList<ScheduledTask>()
-        let high = LinkedList<ScheduledTask>()
-        let veryHigh = LinkedList<ScheduledTask>()
+        let veryLow = LinkedList<EnqueuedTask>()
+        let low = LinkedList<EnqueuedTask>()
+        let normal = LinkedList<EnqueuedTask>()
+        let high = LinkedList<EnqueuedTask>()
+        let veryHigh = LinkedList<EnqueuedTask>()
 
         lazy var all = [veryHigh, high, normal, low, veryLow]
     }
@@ -31,18 +31,20 @@ final class TaskQueue {
         self.maxConcurrentTaskCount = maxConcurrentTaskCount
     }
 
-    func enqueue(_ work: @ImagePipelineActor @escaping () async -> Void) {
+    // TODO: should you be able to cancel the underlying task from here?
+    @discardableResult func enqueue(_ work: @ImagePipelineActor @escaping () async -> Void) -> EnqueuedTask {
+        let task = EnqueuedTask(work: work)
         if activeTaskCount < maxConcurrentTaskCount {
-            perform(work)
+            perform(task)
         } else {
-            let task = ScheduledTask(work: work)
             pendingTasks.normal.append(task)
             performPendingTasks()
         }
+        return task
     }
 
     /// Returns a pending task with a highest priority.
-    private func dequeueNextTask() -> ScheduledTask? {
+    private func dequeueNextTask() -> EnqueuedTask? {
         for list in pendingTasks.all {
             if let node = list.popLast() {
                 return node.value
@@ -53,13 +55,15 @@ final class TaskQueue {
 
     private func performPendingTasks() {
         while activeTaskCount < maxConcurrentTaskCount, let task = dequeueNextTask() {
-            perform(task.work)
+            perform(task)
         }
     }
 
-    private func perform(_ work: @ImagePipelineActor @escaping () async -> Void) {
+    // TODO: there are no retain cycles, are there?
+    private func perform(_ task: EnqueuedTask) {
         activeTaskCount += 1
-        Task { @ImagePipelineActor in
+        let work = task.work
+        task.task = Task { @ImagePipelineActor in
             await work()
             self.activeTaskCount -= 1
             self.performPendingTasks()
@@ -68,11 +72,17 @@ final class TaskQueue {
 
     /// A handle that can be used to change the priority of the pending work.
     @ImagePipelineActor
-    private final class ScheduledTask {
+    final class EnqueuedTask {
         let work: @ImagePipelineActor () async -> Void
+        var task: Task<Void, Never>?
 
         init(work: @ImagePipelineActor @escaping () async -> Void) {
             self.work = work
+        }
+
+        // TODO: cancel pending tasks too
+        func cancel() {
+            task?.cancel()
         }
     }
 }
