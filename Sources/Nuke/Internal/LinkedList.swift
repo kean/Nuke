@@ -40,6 +40,14 @@ final class LinkedList<Element> {
         }
     }
 
+    func popLast() -> Node? {
+        guard let last else {
+            return nil
+        }
+        remove(last)
+        return last
+    }
+
     func remove(_ node: Node) {
         node.next?.previous = node.previous // node.previous is nil if node=first
         node.previous?.next = node.next // node.next is nil if node=last
@@ -67,8 +75,8 @@ final class LinkedList<Element> {
 
     final class Node {
         let value: Element
-        fileprivate var next: Node?
-        fileprivate var previous: Node?
+        fileprivate(set) var next: Node?
+        fileprivate(set) var previous: Node?
 
         init(value: Element) {
             self.value = value
