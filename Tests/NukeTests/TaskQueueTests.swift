@@ -9,6 +9,8 @@ import Foundation
 @Suite @ImagePipelineActor struct TaskQueueTests {
     let sut = TaskQueue(maxConcurrentTaskCount: 2)
 
+    // MARK: Basics
+
     // Make sure that you submit N tasks where N is greater than `maxConcurrentTaskCount`,
     // all tasks get executed.
     @Test func basics() async {
@@ -29,8 +31,30 @@ import Foundation
         }
     }
 
-    @Test func cancelPendingWork() async {
+    // MARK: Cancellation
 
+    @Test func cancelPendingWork() async {
+        let sut = TaskQueue(maxConcurrentTaskCount: 1)
+        sut.isSuspended = true
+
+        var isFirstTaskExecuted = false
+        let task = sut.enqueue {
+            isFirstTaskExecuted = true
+        }
+        task.cancel()
+
+        sut.isSuspended = false
+
+        await confirmation { confirmation in
+            await withUnsafeContinuation { continuation in
+                sut.enqueue {
+                    confirmation()
+                    continuation.resume()
+                }
+            }
+        }
+
+        #expect(!isFirstTaskExecuted)
     }
 
     @Test func cancelInFlightWork() async {

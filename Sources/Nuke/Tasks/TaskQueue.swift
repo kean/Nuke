@@ -5,12 +5,9 @@
 
 import Foundation
 
-// TODO: max concurrenct task count
 // TODO: task priority
-// TODO: cancellation (does it need instanct cancellation? does operation have it?)
 @ImagePipelineActor
 final class TaskQueue {
-
     private struct ScheduledTasks {
         let veryLow = LinkedList<EnqueuedTask>()
         let low = LinkedList<EnqueuedTask>()
@@ -25,16 +22,22 @@ final class TaskQueue {
     private var activeTaskCount = 0
     private let maxConcurrentTaskCount: Int
 
-    // TODO: add isSuspended support for testing
+    /// Setting this property to true prevents the queue from starting any queued
+    /// tasks, but already executing tasks continue to execute.
+    var isSuspended = false {
+        didSet {
+            guard oldValue != isSuspended, !isSuspended else { return }
+            performPendingTasks()
+        }
+    }
 
     init(maxConcurrentTaskCount: Int) {
         self.maxConcurrentTaskCount = maxConcurrentTaskCount
     }
 
-    // TODO: should you be able to cancel the underlying task from here?
     @discardableResult func enqueue(_ work: @ImagePipelineActor @escaping () async -> Void) -> EnqueuedTask {
         let task = EnqueuedTask(work: work)
-        if activeTaskCount < maxConcurrentTaskCount {
+        if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
             perform(task)
         } else {
             pendingTasks.normal.append(task)
@@ -46,7 +49,7 @@ final class TaskQueue {
     /// Returns a pending task with a highest priority.
     private func dequeueNextTask() -> EnqueuedTask? {
         for list in pendingTasks.all {
-            if let node = list.popLast() {
+            if let node = list.popLast(), !node.value.isCancelled {
                 return node.value
             }
         }
@@ -54,12 +57,12 @@ final class TaskQueue {
     }
 
     private func performPendingTasks() {
-        while activeTaskCount < maxConcurrentTaskCount, let task = dequeueNextTask() {
+        while !isSuspended, activeTaskCount < maxConcurrentTaskCount, let task = dequeueNextTask() {
             perform(task)
         }
     }
 
-    // TODO: there are no retain cycles, are there?
+    // TODO: test memory managemnet
     private func perform(_ task: EnqueuedTask) {
         activeTaskCount += 1
         let work = task.work
@@ -74,14 +77,15 @@ final class TaskQueue {
     @ImagePipelineActor
     final class EnqueuedTask {
         let work: @ImagePipelineActor () async -> Void
+        var isCancelled = false
         var task: Task<Void, Never>?
 
         init(work: @ImagePipelineActor @escaping () async -> Void) {
             self.work = work
         }
 
-        // TODO: cancel pending tasks too
         func cancel() {
+            isCancelled = true
             task?.cancel()
         }
     }
