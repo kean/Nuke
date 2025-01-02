@@ -11,12 +11,12 @@ import Foundation
 @ImagePipelineActor
 final class TaskQueue {
 
-    struct ScheduledTasks {
-        var veryLow = LinkedList<ScheduledTask>()
-        var low = LinkedList<ScheduledTask>()
-        var normal = LinkedList<ScheduledTask>()
-        var high = LinkedList<ScheduledTask>()
-        var veryHigh = LinkedList<ScheduledTask>()
+    private struct ScheduledTasks {
+        let veryLow = LinkedList<ScheduledTask>()
+        let low = LinkedList<ScheduledTask>()
+        let normal = LinkedList<ScheduledTask>()
+        let high = LinkedList<ScheduledTask>()
+        let veryHigh = LinkedList<ScheduledTask>()
 
         lazy var all = [veryHigh, high, normal, low, veryLow]
     }
@@ -38,16 +38,6 @@ final class TaskQueue {
             let task = ScheduledTask(work: work)
             pendingTasks.normal.append(task)
             performPendingTasks()
-        }
-    }
-
-    /// A handle that can be used to change the priority of the pending work.
-    @ImagePipelineActor
-    final class ScheduledTask {
-        let work: @ImagePipelineActor () async -> Void
-
-        init(work: @ImagePipelineActor @escaping () async -> Void) {
-            self.work = work
         }
     }
 
@@ -73,6 +63,16 @@ final class TaskQueue {
             await work()
             self.activeTaskCount -= 1
             self.performPendingTasks()
+        }
+    }
+
+    /// A handle that can be used to change the priority of the pending work.
+    @ImagePipelineActor
+    private final class ScheduledTask {
+        let work: @ImagePipelineActor () async -> Void
+
+        init(work: @ImagePipelineActor @escaping () async -> Void) {
+            self.work = work
         }
     }
 }
