@@ -27,13 +27,6 @@ final class WorkQueue {
     @discardableResult
     func add(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> WorkItem {
         let item = WorkItem(priority: priority, work: work)
-        add(item)
-        return item
-    }
-
-    func add(_ item: WorkItem) {
-        assert(item.queue == nil)
-
         item.queue = self
         if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
             perform(item)
@@ -42,6 +35,7 @@ final class WorkQueue {
             item.node = node
             schedule.list(for: item.priority).prepend(node)
         }
+        return item
     }
 
     // MARK: - Managing Scheduled Items
@@ -109,16 +103,12 @@ final class WorkQueue {
     @ImagePipelineActor
     final class WorkItem {
         fileprivate let work: @ImagePipelineActor () async -> Void
-
         fileprivate(set) var priority: TaskPriority
-
         fileprivate weak var node: LinkedList<WorkItem>.Node?
-
         fileprivate var task: Task<Void, Never>?
-
         fileprivate weak var queue: WorkQueue?
 
-        init(priority: TaskPriority, work: @ImagePipelineActor @escaping () async -> Void) {
+        fileprivate init(priority: TaskPriority, work: @ImagePipelineActor @escaping () async -> Void) {
             self.priority = priority
             self.work = work
         }
