@@ -5,7 +5,9 @@
 import Testing
 @testable import Nuke
 
-@Suite @ImagePipelineActor struct ImagePrefetcherTests {
+/// - note: It's important that this test is no isolated to `ImagePipelineActor`
+/// as it relies on the order of `prefetcher.wait` and other calls.
+@Suite struct ImagePrefetcherTests {
     private var prefetcher: ImagePrefetcher!
     private var pipeline: ImagePipeline!
 
@@ -40,7 +42,7 @@ import Testing
     @Test func startPrefetching() async {
         // WHEN
         prefetcher.startPrefetching(with: [Test.url])
-        await prefetcher.waitForCompletion()
+        await prefetcher.wait()
 
         // THEN image saved in both caches
         #expect(pipeline.cache[Test.request] != nil)
@@ -51,7 +53,7 @@ import Testing
         // WHEN
         prefetcher.startPrefetching(with: [Test.url])
         prefetcher.startPrefetching(with: [Test.url])
-        await prefetcher.waitForCompletion()
+        await prefetcher.wait()
 
         // THEN only one task is started
         #expect(observer.createdTaskCount == 1)
@@ -245,17 +247,4 @@ import Testing
 //            expectation.fulfill()
 //        }
 //    }
-}
-
-private extension ImagePrefetcher {
-    func waitForCompletion() async {
-        await confirmation { confirmation in
-            await withUnsafeContinuation { continuation in
-                didComplete = {
-                    continuation.resume()
-                    confirmation()
-                }
-            }
-        }
-    }
 }

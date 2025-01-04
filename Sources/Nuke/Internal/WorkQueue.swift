@@ -20,18 +20,18 @@ final class WorkQueue {
         }
     }
 
-    init(maxConcurrentTaskCount: Int) {
+    nonisolated init(maxConcurrentTaskCount: Int) {
         self.maxConcurrentTaskCount = maxConcurrentTaskCount
     }
 
     @discardableResult
-    func enqueue(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> WorkItem {
+    func add(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> WorkItem {
         let item = WorkItem(priority: priority, work: work)
-        enqueue(item)
+        add(item)
         return item
     }
 
-    func enqueue(_ item: WorkItem) {
+    func add(_ item: WorkItem) {
         assert(item.queue == nil)
 
         item.queue = self

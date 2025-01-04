@@ -19,7 +19,7 @@ import Foundation
                 for _ in Array(0..<4) {
                     group.addTask { @Sendable @ImagePipelineActor in
                         await withUnsafeContinuation { continuation in
-                            sut.enqueue {
+                            sut.add {
                                 try? await Task.sleep(nanoseconds: 100)
                                 confirmation()
                                 continuation.resume()
@@ -37,9 +37,9 @@ import Foundation
 
         var completed: [Int] = []
 
-        sut.enqueue { completed.append(1) }
-        sut.enqueue { completed.append(2) }
-        sut.enqueue { completed.append(3) }
+        sut.add { completed.append(1) }
+        sut.add { completed.append(2) }
+        sut.add { completed.append(3) }
 
         sut.isSuspended = false
 
@@ -54,7 +54,7 @@ import Foundation
         sut.isSuspended = true
 
         var isFirstTaskExecuted = false
-        let task = sut.enqueue {
+        let task = sut.add {
             isFirstTaskExecuted = true
         }
         task.cancel()
@@ -63,7 +63,7 @@ import Foundation
 
         await confirmation { confirmation in
             await withUnsafeContinuation { continuation in
-                sut.enqueue {
+                sut.add {
                     confirmation()
                     continuation.resume()
                 }
@@ -95,7 +95,7 @@ import Foundation
             }
         }
         context.item = item
-        sut.enqueue(item)
+        sut.add(item)
     }
 
     // MARK: Priority
@@ -105,13 +105,13 @@ import Foundation
 
         var completed: [Int] = []
 
-        sut.enqueue(priority: .low) {
+        sut.add(priority: .low) {
             completed.append(1)
         }
-        sut.enqueue(priority: .high) {
+        sut.add(priority: .high) {
             completed.append(2)
         }
-        sut.enqueue(priority: .normal) {
+        sut.add(priority: .normal) {
             completed.append(3)
         }
 
@@ -128,13 +128,13 @@ import Foundation
 
         var completed: [Int] = []
 
-        let item = sut.enqueue(priority: .low) {
+        let item = sut.add(priority: .low) {
             completed.append(1)
         }
-        sut.enqueue(priority: .high) {
+        sut.add(priority: .high) {
             completed.append(2)
         }
-        sut.enqueue(priority: .normal) {
+        sut.add(priority: .normal) {
             completed.append(3)
         }
 

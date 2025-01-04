@@ -18,8 +18,12 @@ public final class ImagePrefetcher {
     /// - note: When you pause, the prefetcher will finish outstanding tasks
     /// (by default, there are only 2 at a time), and pause the rest.
     public nonisolated var isPaused: Bool {
-        get { queue.isSuspended }
-        set { queue.isSuspended = newValue }
+        get { false }
+        set { }
+
+        // TODO: reimplement
+//        get { queue.isSuspended }
+//        set { queue.isSuspended = newValue }
     }
 
     /// The priority of the requests. By default, ``ImageRequest/Priority-swift.enum/low``.
@@ -63,9 +67,7 @@ public final class ImagePrefetcher {
     private var tasks = [TaskLoadImageKey: PrefetchTask]()
     private let _priority = Mutex(ImageRequest.Priority.low)
 
-    // For testing purposes
-    nonisolated(unsafe) var didComplete: (@Sendable () -> Void)?
-    nonisolated let queue = OperationQueue()
+    nonisolated let queue: WorkQueue
 
     /// Initializes the ``ImagePrefetcher`` instance.
     ///
@@ -80,7 +82,7 @@ public final class ImagePrefetcher {
     ) {
         self.pipeline = pipeline
         self.destination = destination
-        self.queue.maxConcurrentOperationCount = maxConcurrentRequestCount
+        self.queue = WorkQueue(maxConcurrentTaskCount: maxConcurrentRequestCount)
     }
 
     deinit {
@@ -126,7 +128,6 @@ public final class ImagePrefetcher {
             }
             _startPrefetching(with: request)
         }
-        sendCompletionIfNeeded()
     }
 
     private func _startPrefetching(with request: ImageRequest) {
@@ -139,35 +140,23 @@ public final class ImagePrefetcher {
         }
 
         let task = PrefetchTask(request: request, key: key)
-        task.operation = queue.add { [weak self] finish in
-            guard let self else { return finish() }
-            Task { @ImagePipelineActor in
-                self.loadImage(task: task, finish: finish)
-            }
+        task.workItem = queue.add { [weak self] in
+            await self?.loadImage(task: task)
         }
         tasks[key] = task
         return
     }
 
-    private func loadImage(task: PrefetchTask, finish: @escaping () -> Void) {
-        let imageTask = pipeline.makeImageTask(with: task.request, isDataTask: destination == .diskCache)
+    private func loadImage(task: PrefetchTask) async {
+        let imageTask = pipeline.makeImageTask( with: task.request, isDataTask: destination == .diskCache)
         task.imageTask = imageTask
-        Task { [weak self] in
-            _ = try? await imageTask.response
-            self?._remove(task)
-            finish()
-        }
-        task.onCancelled = finish
+        _ = try? await imageTask.response
+        _remove(task)
     }
 
     private func _remove(_ task: PrefetchTask) {
         guard tasks[task.key] === task else { return } // Should never happen
         tasks[task.key] = nil
-        sendCompletionIfNeeded()
-    }
-
-    private func sendCompletionIfNeeded() {
-        if tasks.isEmpty { didComplete?() }
     }
 
     /// Stops prefetching images for the given URLs and cancels outstanding
@@ -214,12 +203,17 @@ public final class ImagePrefetcher {
         }
     }
 
-    private final class PrefetchTask: @unchecked Sendable {
+    /// - warning: For testing purposes only.
+    func wait() async {
+        await queue.wait()
+    }
+
+    @ImagePipelineActor
+    private final class PrefetchTask {
         let key: TaskLoadImageKey
         let request: ImageRequest
         weak var imageTask: ImageTask?
-        weak var operation: Operation?
-        var onCancelled: (() -> Void)?
+        weak var workItem: WorkQueue.WorkItem?
 
         init(request: ImageRequest, key: TaskLoadImageKey) {
             self.request = request
@@ -229,9 +223,9 @@ public final class ImagePrefetcher {
         // When task is cancelled, it is removed from the prefetcher and can
         // never get cancelled twice.
         func cancel() {
-            operation?.cancel()
-            imageTask?.cancel()
-            onCancelled?()
+            workItem?.cancel()
+            // TODO: verify that we no longer need this
+//            imageTask?.cancel()
         }
     }
 }
