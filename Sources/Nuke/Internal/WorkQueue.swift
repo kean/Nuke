@@ -45,9 +45,16 @@ final class WorkQueue {
         self.maxConcurrentTaskCount = maxConcurrentTaskCount
     }
 
-    func enqueue(_ item: WorkItem) {
-        item.queue = self
+    @discardableResult
+    func enqueue(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> WorkItem {
+        let item = WorkItem(priority: priority, work: work)
+        enqueue(item)
+        return item
+    }
 
+    func enqueue(_ item: WorkItem) {
+        assert(item.queue == nil)
+        item.queue = self
         if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
             perform(item)
         } else {
@@ -113,7 +120,7 @@ final class WorkQueue {
 
         fileprivate weak var queue: WorkQueue?
 
-        init(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) {
+        init(priority: TaskPriority, work: @ImagePipelineActor @escaping () async -> Void) {
             self.priority = priority
             self.work = work
         }

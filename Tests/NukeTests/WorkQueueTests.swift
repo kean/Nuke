@@ -19,11 +19,11 @@ import Foundation
                 for _ in Array(0..<4) {
                     group.addTask { @Sendable @ImagePipelineActor in
                         await withUnsafeContinuation { continuation in
-                            sut.enqueue(.init {
+                            sut.enqueue {
                                 try? await Task.sleep(nanoseconds: 100)
                                 confirmation()
                                 continuation.resume()
-                            })
+                            }
                         }
                     }
                 }
@@ -37,9 +37,9 @@ import Foundation
 
         var completed: [Int] = []
 
-        sut.enqueue(.init { completed.append(1) })
-        sut.enqueue(.init { completed.append(2) })
-        sut.enqueue(.init { completed.append(3) })
+        sut.enqueue { completed.append(1) }
+        sut.enqueue { completed.append(2) }
+        sut.enqueue { completed.append(3) }
 
         sut.isSuspended = false
 
@@ -54,20 +54,19 @@ import Foundation
         sut.isSuspended = true
 
         var isFirstTaskExecuted = false
-        let task = WorkQueue.WorkItem {
+        let task = sut.enqueue {
             isFirstTaskExecuted = true
         }
-        sut.enqueue(task)
         task.cancel()
 
         sut.isSuspended = false
 
         await confirmation { confirmation in
             await withUnsafeContinuation { continuation in
-                sut.enqueue(.init {
+                sut.enqueue {
                     confirmation()
                     continuation.resume()
-                })
+                }
             }
         }
 
@@ -80,7 +79,7 @@ import Foundation
             var item: WorkQueue.WorkItem?
         }
         let context = Context()
-        let item = WorkQueue.WorkItem {
+        let item = WorkQueue.WorkItem(priority: .normal) {
             await withTaskCancellationHandler {
                 await withUnsafeContinuation {
                     context.continuation = $0
@@ -129,17 +128,15 @@ import Foundation
 
         var completed: [Int] = []
 
-        let item = WorkQueue.WorkItem(priority: .low) {
+        let item = sut.enqueue(priority: .low) {
             completed.append(1)
         }
-        sut.enqueue(item)
-
-        sut.enqueue(.init(priority: .high) {
+        sut.enqueue(priority: .high) {
             completed.append(2)
-        })
-        sut.enqueue(.init(priority: .normal) {
+        }
+        sut.enqueue(priority: .normal) {
             completed.append(3)
-        })
+        }
 
         // WHEN item with .low priorit (1) changes priority to .high
         item.setPriority(.high)
