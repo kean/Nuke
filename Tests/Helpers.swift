@@ -200,4 +200,10 @@ extension Result {
         defer { os_unfair_lock_unlock(lock) }
         value = newValue
     }
+
+    func withLock<U>(_ closure: (inout T) -> U) -> U {
+        os_unfair_lock_lock(lock)
+        defer { os_unfair_lock_unlock(lock) }
+        return closure(&value)
+    }
 }
