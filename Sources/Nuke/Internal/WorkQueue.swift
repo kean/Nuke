@@ -25,23 +25,23 @@ final class WorkQueue {
     }
 
     @discardableResult
-    func add(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> WorkItem {
-        let item = WorkItem(priority: priority, work: work)
+    func add(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> Item {
+        let item = _Item(priority: priority, work: work)
         item.queue = self
         if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
             perform(item)
         } else {
-            let node = LinkedList<WorkItem>.Node(item)
+            let node = LinkedList<_Item>.Node(item)
             item.node = node
             schedule.list(for: item.priority).prepend(node)
         }
-        return item
+        return Item(item: item)
     }
 
     // MARK: - Managing Scheduled Items
 
-    fileprivate func setPriority(_ newPriority: TaskPriority, for item: WorkItem) {
-        guard let node = item.node else {
+    fileprivate func setPriority(_ newPriority: TaskPriority, for item: _Item) {
+        guard let node = item.node, item.priority != newPriority else {
             return /* Already executing */
         }
         // Moving nodes between queues does not require new allocations
@@ -50,7 +50,7 @@ final class WorkQueue {
         schedule.list(for: newPriority).prepend(node)
     }
 
-    fileprivate func cancel(_ item: WorkItem) {
+    fileprivate func cancel(_ item: _Item) {
         if let node = item.node {
             schedule.list(for: item.priority).remove(node)
         }
@@ -63,7 +63,7 @@ final class WorkQueue {
     // MARK: - Performing Scheduled Work
 
     /// Returns a pending task with a highest priority.
-    private func dequeueNextItem() -> WorkItem? {
+    private func dequeueNextItem() -> _Item? {
         for list in schedule.all {
             if let node = list.popLast() {
                 node.value.node = nil
@@ -83,11 +83,11 @@ final class WorkQueue {
         }
     }
 
-    private func perform(_ item: WorkItem) {
+    private func perform(_ item: _Item) {
         activeTaskCount += 1
         item.task = Task { @ImagePipelineActor in
             await item.work()
-            item.task = nil
+            item.task = nil // just in case
             self.activeTaskCount -= 1
             self.performSchduledWork()
         }
@@ -99,38 +99,43 @@ final class WorkQueue {
         await withUnsafeContinuation { completion = $0 }
     }
 
-    /// A handle that can be used to change the priority of the pending work.
-    @ImagePipelineActor
-    final class WorkItem {
-        fileprivate let work: @ImagePipelineActor () async -> Void
-        fileprivate(set) var priority: TaskPriority
-        fileprivate weak var node: LinkedList<WorkItem>.Node?
-        fileprivate var task: Task<Void, Never>?
-        fileprivate weak var queue: WorkQueue?
+    /// - note: You don't need to hold to it. This indirection exists purely to
+    /// ensure that it never leads to retain cycles.
+    @ImagePipelineActor struct Item {
+        fileprivate weak var item: _Item?
 
-        fileprivate init(priority: TaskPriority, work: @ImagePipelineActor @escaping () async -> Void) {
-            self.priority = priority
-            self.work = work
-        }
-
-        func setPriority(_ newPriority: TaskPriority) {
-            guard priority != newPriority else { return }
-            queue?.setPriority(newPriority, for: self)
+        func setPriority(_ priority: TaskPriority) {
+            item.map { $0.queue?.setPriority(priority, for: $0) }
         }
 
         func cancel() {
-            queue?.cancel(self)
+            item.map { $0.queue?.cancel($0) }
+        }
+    }
+
+    /// A handle that can be used to change the priority of the pending work.
+    @ImagePipelineActor
+    fileprivate final class _Item {
+        let work: @ImagePipelineActor () async -> Void
+        var priority: TaskPriority
+        weak var node: LinkedList<_Item>.Node?
+        var task: Task<Void, Never>?
+        weak var queue: WorkQueue?
+
+        init(priority: TaskPriority, work: @ImagePipelineActor @escaping () async -> Void) {
+            self.priority = priority
+            self.work = work
         }
     }
 
     private struct ScheduledWork {
-        let veryLow = LinkedList<WorkItem>()
-        let low = LinkedList<WorkItem>()
-        let normal = LinkedList<WorkItem>()
-        let high = LinkedList<WorkItem>()
-        let veryHigh = LinkedList<WorkItem>()
+        let veryLow = LinkedList<_Item>()
+        let low = LinkedList<_Item>()
+        let normal = LinkedList<_Item>()
+        let high = LinkedList<_Item>()
+        let veryHigh = LinkedList<_Item>()
 
-        func list(for priority: TaskPriority) -> LinkedList<WorkItem> {
+        func list(for priority: TaskPriority) -> LinkedList<_Item> {
             switch priority {
             case .veryLow: veryLow
             case .low: low

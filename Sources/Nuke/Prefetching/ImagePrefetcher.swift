@@ -213,7 +213,7 @@ public final class ImagePrefetcher {
         let key: TaskLoadImageKey
         let request: ImageRequest
         weak var imageTask: ImageTask?
-        weak var workItem: WorkQueue.WorkItem?
+        var workItem: WorkQueue.Item?
 
         init(request: ImageRequest, key: TaskLoadImageKey) {
             self.request = request

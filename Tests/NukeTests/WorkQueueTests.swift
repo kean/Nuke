@@ -76,7 +76,7 @@ import Foundation
     @Test func cancelInFlightWork() async {
         @ImagePipelineActor final class Context {
             var continuation: UnsafeContinuation<Void, Never>?
-            var item: WorkQueue.WorkItem?
+            var item: WorkQueue.Item?
         }
         let context = Context()
         context.item = queue.add(priority: .normal) {
