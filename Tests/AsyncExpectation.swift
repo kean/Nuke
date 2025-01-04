@@ -14,7 +14,7 @@ final class AsyncExpectation: @unchecked Sendable {
     init(notification: Notification.Name, object: AnyObject) {
         NotificationCenter.default
             .publisher(for: notification, object: object)
-            .sink { _ in self.fulfill() }
+            .sink { [weak self] _ in self?.fulfill() }
             .store(in: &cancellables)
     }
 

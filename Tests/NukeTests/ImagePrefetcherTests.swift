@@ -64,18 +64,13 @@ import Testing
     @Test func stopPrefetching() async {
         dataLoader.isSuspended = true
 
-        let url = Test.url
+        let created = AsyncExpectation(notification: ImagePipelineObserver.didCreateTask, object: observer)
+        prefetcher.startPrefetching(with: [Test.url])
+        await created.wait()
 
-        // TODO: improve the API
-        let expectation = AsyncExpectation(notification: ImagePipelineObserver.didCreateTask, object: observer)
-        prefetcher.startPrefetching(with: [url])
-        await expectation.wait()
-
-        // TODO: fix didCancelTask not being called
-        let expectation2 = AsyncExpectation(notification: ImagePipelineObserver.didCancelTask, object: observer)
-//        expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
-        prefetcher.stopPrefetching(with: [url])
-        await expectation2.wait()
+        let started = AsyncExpectation(notification: ImagePipelineObserver.didCancelTask, object: observer)
+        prefetcher.stopPrefetching(with: [Test.url])
+        await started.wait()
     }
 //
 //    // MARK: Destination

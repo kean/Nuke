@@ -91,9 +91,9 @@ final class WorkQueue {
 
     private func perform(_ item: WorkItem) {
         activeTaskCount += 1
-        let work = item.work
         item.task = Task { @ImagePipelineActor in
-            await work()
+            await item.work()
+            item.task = nil
             self.activeTaskCount -= 1
             self.performSchduledWork()
         }
