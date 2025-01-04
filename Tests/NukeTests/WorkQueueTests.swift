@@ -105,15 +105,15 @@ import Foundation
 
         var completed: [Int] = []
 
-        sut.enqueue(.init(priority: .low) {
+        sut.enqueue(priority: .low) {
             completed.append(1)
-        })
-        sut.enqueue(.init(priority: .high) {
+        }
+        sut.enqueue(priority: .high) {
             completed.append(2)
-        })
-        sut.enqueue(.init(priority: .normal) {
+        }
+        sut.enqueue(priority: .normal) {
             completed.append(3)
-        })
+        }
 
         sut.isSuspended = false
 

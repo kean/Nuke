@@ -4,29 +4,8 @@
 
 import Foundation
 
-// TODO: task priority
 @ImagePipelineActor
 final class WorkQueue {
-    private struct ScheduledWork {
-        let veryLow = LinkedList<WorkItem>()
-        let low = LinkedList<WorkItem>()
-        let normal = LinkedList<WorkItem>()
-        let high = LinkedList<WorkItem>()
-        let veryHigh = LinkedList<WorkItem>()
-
-        func list(for priority: TaskPriority) -> LinkedList<WorkItem> {
-            switch priority {
-            case .veryLow: veryLow
-            case .low: low
-            case .normal: normal
-            case .high: high
-            case .veryHigh: veryHigh
-            }
-        }
-
-        lazy var all = [veryHigh, high, normal, low, veryLow]
-    }
-
     private var schedule = ScheduledWork()
     private var activeTaskCount = 0
     private let maxConcurrentTaskCount: Int
@@ -54,6 +33,7 @@ final class WorkQueue {
 
     func enqueue(_ item: WorkItem) {
         assert(item.queue == nil)
+
         item.queue = self
         if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
             perform(item)
@@ -64,7 +44,9 @@ final class WorkQueue {
         }
     }
 
-    func setPriority(_ newPriority: TaskPriority, for item: WorkItem) {
+    // MARK: - Managing Scheduled Items
+
+    fileprivate func setPriority(_ newPriority: TaskPriority, for item: WorkItem) {
         guard let node = item.node else {
             return /* Already executing */
         }
@@ -74,10 +56,23 @@ final class WorkQueue {
         schedule.list(for: newPriority).prepend(node)
     }
 
+    fileprivate func cancel(_ item: WorkItem) {
+        if let node = item.node {
+            schedule.list(for: item.priority).remove(node)
+        }
+        item.task?.cancel()
+        item.node = nil
+        item.task = nil
+        item.queue = nil
+    }
+
+    // MARK: - Performing Scheduled Work
+
     /// Returns a pending task with a highest priority.
     private func dequeueNextItem() -> WorkItem? {
         for list in schedule.all {
-            if let node = list.popLast(), !node.value.isCancelled {
+            if let node = list.popLast() {
+                node.value.node = nil
                 return node.value
             }
         }
@@ -94,7 +89,6 @@ final class WorkQueue {
         }
     }
 
-    // TODO: test memory managemnet
     private func perform(_ item: WorkItem) {
         activeTaskCount += 1
         let work = item.work
@@ -105,12 +99,16 @@ final class WorkQueue {
         }
     }
 
+    /// - warning: For testing purposes only.
+    func wait() async {
+        if activeTaskCount == 0 { return }
+        await withUnsafeContinuation { completion = $0 }
+    }
+
     /// A handle that can be used to change the priority of the pending work.
     @ImagePipelineActor
     final class WorkItem {
         fileprivate let work: @ImagePipelineActor () async -> Void
-
-        fileprivate(set) var isCancelled = false
 
         fileprivate(set) var priority: TaskPriority
 
@@ -130,16 +128,28 @@ final class WorkQueue {
             queue?.setPriority(newPriority, for: self)
         }
 
-        // TODO: move cancellation to WorkQueue
         func cancel() {
-            isCancelled = true
-            task?.cancel()
+            queue?.cancel(self)
         }
     }
 
-    /// - warning: For testing purposes onlu.
-    func wait() async {
-        if activeTaskCount == 0 { return }
-        await withUnsafeContinuation { completion = $0 }
+    private struct ScheduledWork {
+        let veryLow = LinkedList<WorkItem>()
+        let low = LinkedList<WorkItem>()
+        let normal = LinkedList<WorkItem>()
+        let high = LinkedList<WorkItem>()
+        let veryHigh = LinkedList<WorkItem>()
+
+        func list(for priority: TaskPriority) -> LinkedList<WorkItem> {
+            switch priority {
+            case .veryLow: veryLow
+            case .low: low
+            case .normal: normal
+            case .high: high
+            case .veryHigh: veryHigh
+            }
+        }
+
+        lazy var all = [veryHigh, high, normal, low, veryLow]
     }
 }
