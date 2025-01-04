@@ -7,7 +7,7 @@ import Foundation
 @testable import Nuke
 
 @Suite @ImagePipelineActor struct WorkQueueTests {
-    let sut = WorkQueue(maxConcurrentTaskCount: 1)
+    let queue = WorkQueue(maxConcurrentTaskCount: 1)
 
     // MARK: Basics
 
@@ -19,7 +19,7 @@ import Foundation
                 for _ in Array(0..<4) {
                     group.addTask { @Sendable @ImagePipelineActor in
                         await withUnsafeContinuation { continuation in
-                            sut.add {
+                            queue.add {
                                 try? await Task.sleep(nanoseconds: 100)
                                 confirmation()
                                 continuation.resume()
@@ -33,37 +33,37 @@ import Foundation
 
     @Test func executionOrder() async {
         // WHEN
-        sut.isSuspended = true
+        queue.isSuspended = true
 
         var completed: [Int] = []
 
-        sut.add { completed.append(1) }
-        sut.add { completed.append(2) }
-        sut.add { completed.append(3) }
+        queue.add { completed.append(1) }
+        queue.add { completed.append(2) }
+        queue.add { completed.append(3) }
 
-        sut.isSuspended = false
+        queue.isSuspended = false
 
         // THEN items are executed in the order they were added (FIFO)
-        await sut.wait()
+        await queue.wait()
         #expect(completed == [1, 2, 3])
     }
 
     // MARK: Cancellation
 
     @Test func cancelPendingWork() async {
-        sut.isSuspended = true
+        queue.isSuspended = true
 
         var isFirstTaskExecuted = false
-        let task = sut.add {
+        let task = queue.add {
             isFirstTaskExecuted = true
         }
         task.cancel()
 
-        sut.isSuspended = false
+        queue.isSuspended = false
 
         await confirmation { confirmation in
             await withUnsafeContinuation { continuation in
-                sut.add {
+                queue.add {
                     confirmation()
                     continuation.resume()
                 }
@@ -79,7 +79,7 @@ import Foundation
             var item: WorkQueue.WorkItem?
         }
         let context = Context()
-        let item = WorkQueue.WorkItem(priority: .normal) {
+        context.item = queue.add(priority: .normal) {
             await withTaskCancellationHandler {
                 await withUnsafeContinuation {
                     context.continuation = $0
@@ -94,47 +94,45 @@ import Foundation
                 }
             }
         }
-        context.item = item
-        sut.add(item)
     }
 
     // MARK: Priority
 
     @Test func executionBasedOnPriority() async {
-        sut.isSuspended = true
+        queue.isSuspended = true
 
         var completed: [Int] = []
 
-        sut.add(priority: .low) {
+        queue.add(priority: .low) {
             completed.append(1)
         }
-        sut.add(priority: .high) {
+        queue.add(priority: .high) {
             completed.append(2)
         }
-        sut.add(priority: .normal) {
+        queue.add(priority: .normal) {
             completed.append(3)
         }
 
-        sut.isSuspended = false
+        queue.isSuspended = false
 
-        await sut.wait()
+        await queue.wait()
 
         #expect(completed == [2, 3, 1])
     }
 
     @Test func changePriorityOfScheduldItem() async {
         // GIVEN a queue with priorities [2, 3, 1]
-        sut.isSuspended = true
+        queue.isSuspended = true
 
         var completed: [Int] = []
 
-        let item = sut.add(priority: .low) {
+        let item = queue.add(priority: .low) {
             completed.append(1)
         }
-        sut.add(priority: .high) {
+        queue.add(priority: .high) {
             completed.append(2)
         }
-        sut.add(priority: .normal) {
+        queue.add(priority: .normal) {
             completed.append(3)
         }
 
@@ -142,8 +140,8 @@ import Foundation
         item.setPriority(.high)
 
         // THEN
-        sut.isSuspended = false
-        await sut.wait()
+        queue.isSuspended = false
+        await queue.wait()
         #expect(completed == [2, 1, 3])
     }
 }
