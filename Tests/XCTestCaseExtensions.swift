@@ -6,6 +6,7 @@ import XCTest
 import Foundation
 import Combine
 
+// TODO: remove these
 extension XCTestCase {
     @discardableResult
     func expectNotification(_ name: Notification.Name, object: AnyObject? = nil, handler: XCTNSNotificationExpectation.Handler? = nil) -> XCTestExpectation {

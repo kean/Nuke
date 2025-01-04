@@ -189,7 +189,7 @@ extension Result {
         set { setValue(newValue) }
     }
 
-     private func getValue() -> T {
+    private func getValue() -> T {
         os_unfair_lock_lock(lock)
         defer { os_unfair_lock_unlock(lock) }
         return value
