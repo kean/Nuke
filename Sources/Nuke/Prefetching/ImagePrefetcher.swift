@@ -18,13 +18,14 @@ public final class ImagePrefetcher {
     /// - note: When you pause, the prefetcher will finish outstanding tasks
     /// (by default, there are only 2 at a time), and pause the rest.
     public nonisolated var isPaused: Bool {
-        get { false }
-        set { }
-
-        // TODO: reimplement
-//        get { queue.isSuspended }
-//        set { queue.isSuspended = newValue }
+        get { _isPaused.value }
+        set {
+            _isPaused.value = newValue
+            Task { @ImagePipelineActor in queue.isSuspended = newValue }
+        }
     }
+
+    private let _isPaused = Mutex(false)
 
     /// The priority of the requests. By default, ``ImageRequest/Priority-swift.enum/low``.
     ///
@@ -43,6 +44,8 @@ public final class ImagePrefetcher {
             }
         }
     }
+
+    private let _priority = Mutex(ImageRequest.Priority.low)
 
     /// Prefetching destination.
     public enum Destination: Sendable {
@@ -65,7 +68,6 @@ public final class ImagePrefetcher {
     private let pipeline: ImagePipeline
     private let destination: Destination
     private var tasks = [TaskLoadImageKey: PrefetchTask]()
-    private let _priority = Mutex(ImageRequest.Priority.low)
 
     nonisolated let queue: WorkQueue
 

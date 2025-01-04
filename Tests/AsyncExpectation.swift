@@ -18,6 +18,13 @@ final class AsyncExpectation: @unchecked Sendable {
             .store(in: &cancellables)
     }
 
+    init(_ closure: @Sendable @escaping () async -> Void) {
+        Task { [weak self] in
+            await closure()
+            self?.fulfill()
+        }
+    }
+
     func wait() async {
         await withUnsafeContinuation { continuation in
             let isFinished = state.withLock {

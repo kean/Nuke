@@ -72,47 +72,43 @@ import Testing
         prefetcher.stopPrefetching(with: [Test.url])
         await started.wait()
     }
-//
-//    // MARK: Destination
-//
-//    @Test func startPrefetchingDestinationDisk() {
-//        // GIVEN
-//        pipeline = pipeline.reconfigured {
-//            $0.makeImageDecoder = { _ in
-//                Issue.record("Expect image not to be decoded")
-//                return nil
-//            }
-//        }
-//        prefetcher = ImagePrefetcher(pipeline: pipeline, destination: .diskCache)
-//
-//        expectPrefetcherToComplete()
-//
-//        // WHEN
-//        prefetcher.startPrefetching(with: [Test.url])
-//
-//        wait()
-//
-//        // THEN image saved in both caches
-//        #expect(pipeline.cache[Test.request] == nil)
-//        #expect(pipeline.cache.cachedData(for: Test.request) != nil)
-//    }
-//
-//    // MARK: Pause
-//
-//    @Test func pausingPrefetcher() {
-//        // WHEN
-//        prefetcher.isPaused = true
-//        prefetcher.startPrefetching(with: [Test.url])
-//
-//        let expectation = self.expectation(description: "TimePassed")
-//        DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(20)) {
-//            expectation.fulfill()
-//        }
-//        wait()
-//
-//        // THEN
-//        #expect(observer.createdTaskCount == 0)
-//    }
+
+    // MARK: Destination
+
+    @Test func startPrefetchingDestinationDisk() async {
+        // GIVEN
+        let pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in
+                Issue.record("Expect image not to be decoded")
+                return nil
+            }
+        }
+        let prefetcher = ImagePrefetcher(pipeline: pipeline, destination: .diskCache)
+
+        // WHEN
+        prefetcher.startPrefetching(with: [Test.url])
+        await prefetcher.wait()
+
+        // THEN image saved in both caches
+        #expect(pipeline.cache[Test.request] == nil)
+        #expect(pipeline.cache.cachedData(for: Test.request) != nil)
+    }
+
+    // MARK: Pause
+
+    @Test func pausingPrefetcher() async {
+        // WHEN
+        prefetcher.isPaused = true
+        prefetcher.startPrefetching(with: [Test.url])
+
+        let timeout = AsyncExpectation {
+            try? await Task.sleep(nanoseconds: 3 * 1_000_000)
+        }
+        await timeout.wait()
+
+        // THEN
+        #expect(observer.createdTaskCount == 0)
+    }
 //
 //    // MARK: Priority
 //
