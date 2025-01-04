@@ -31,6 +31,23 @@ import Foundation
         }
     }
 
+    @Test func executionOrder() async {
+        // WHEN
+        sut.isSuspended = true
+
+        var completed: [Int] = []
+
+        sut.enqueue(.init { completed.append(1) })
+        sut.enqueue(.init { completed.append(2) })
+        sut.enqueue(.init { completed.append(3) })
+
+        sut.isSuspended = false
+
+        // THEN items are executed in the order they were added (FIFO)
+        await sut.wait()
+        #expect(completed == [1, 2, 3])
+    }
+
     // MARK: Cancellation
 
     @Test func cancelPendingWork() async {
@@ -104,5 +121,32 @@ import Foundation
         await sut.wait()
 
         #expect(completed == [2, 3, 1])
+    }
+
+    @Test func changePriorityOfScheduldItem() async {
+        // GIVEN a queue with priorities [2, 3, 1]
+        sut.isSuspended = true
+
+        var completed: [Int] = []
+
+        let item = WorkQueue.WorkItem(priority: .low) {
+            completed.append(1)
+        }
+        sut.enqueue(item)
+
+        sut.enqueue(.init(priority: .high) {
+            completed.append(2)
+        })
+        sut.enqueue(.init(priority: .normal) {
+            completed.append(3)
+        })
+
+        // WHEN item with .low priorit (1) changes priority to .high
+        item.setPriority(.high)
+
+        // THEN
+        sut.isSuspended = false
+        await sut.wait()
+        #expect(completed == [2, 1, 3])
     }
 }

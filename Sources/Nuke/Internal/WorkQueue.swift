@@ -1,6 +1,6 @@
 // The MIT License (MIT)
 //
-// Copyright (c) 2015-2024 Alexander Grebenyuk (github.com/kean).
+// Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
 
@@ -14,7 +14,7 @@ final class WorkQueue {
         let high = LinkedList<WorkItem>()
         let veryHigh = LinkedList<WorkItem>()
 
-        func list(forPriority priority: TaskPriority) -> LinkedList<WorkItem> {
+        func list(for priority: TaskPriority) -> LinkedList<WorkItem> {
             switch priority {
             case .veryLow: veryLow
             case .low: low
@@ -46,12 +46,25 @@ final class WorkQueue {
     }
 
     func enqueue(_ item: WorkItem) {
+        item.queue = self
+
         if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
             perform(item)
         } else {
-            schedule.list(forPriority: item.priority).append(item)
-            performSchduledWork()
+            let node = LinkedList<WorkItem>.Node(item)
+            item.node = node
+            schedule.list(for: item.priority).prepend(node)
         }
+    }
+
+    func setPriority(_ newPriority: TaskPriority, for item: WorkItem) {
+        guard let node = item.node else {
+            return /* Already executing */
+        }
+        // Moving nodes between queues does not require new allocations
+        schedule.list(for: item.priority).remove(node)
+        item.priority = newPriority
+        schedule.list(for: newPriority).prepend(node)
     }
 
     /// Returns a pending task with a highest priority.
@@ -88,16 +101,29 @@ final class WorkQueue {
     /// A handle that can be used to change the priority of the pending work.
     @ImagePipelineActor
     final class WorkItem {
-        let work: @ImagePipelineActor () async -> Void
-        var isCancelled = false
-        var priority: TaskPriority
-        var task: Task<Void, Never>?
+        fileprivate let work: @ImagePipelineActor () async -> Void
+
+        fileprivate(set) var isCancelled = false
+
+        fileprivate(set) var priority: TaskPriority
+
+        fileprivate weak var node: LinkedList<WorkItem>.Node?
+
+        fileprivate var task: Task<Void, Never>?
+
+        fileprivate weak var queue: WorkQueue?
 
         init(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) {
             self.priority = priority
             self.work = work
         }
 
+        func setPriority(_ newPriority: TaskPriority) {
+            guard priority != newPriority else { return }
+            queue?.setPriority(newPriority, for: self)
+        }
+
+        // TODO: move cancellation to WorkQueue
         func cancel() {
             isCancelled = true
             task?.cancel()

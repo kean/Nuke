@@ -23,7 +23,7 @@ final class LinkedList<Element> {
     /// Adds an element to the end of the list.
     @discardableResult
     func append(_ element: Element) -> Node {
-        let node = Node(value: element)
+        let node = Node(element)
         append(node)
         return node
     }
@@ -37,6 +37,18 @@ final class LinkedList<Element> {
         } else {
             last = node
             first = node
+        }
+    }
+
+    /// Adds a node to the beginning of the list.
+    func prepend(_ node: Node) {
+        if let first {
+            node.next = first
+            first.previous = node
+            self.first = node
+        } else {
+            first = node
+            last = node
         }
     }
 
@@ -78,7 +90,7 @@ final class LinkedList<Element> {
         fileprivate(set) var next: Node?
         fileprivate(set) var previous: Node?
 
-        init(value: Element) {
+        init(_ value: Element) {
             self.value = value
         }
     }
