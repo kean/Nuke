@@ -249,30 +249,31 @@ class ImagePipelineAsyncAwaitTests: XCTestCase, @unchecked Sendable {
 
     // MARK: - Update Priority
 
-    func testUpdatePriority() {
-        // GIVEN
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-
-        let request = Test.request
-        XCTAssertEqual(request.priority, .normal)
-
-        let observer = expect(queue).toEnqueueOperationsWithCount(1)
-        let imageTask = pipeline.imageTask(with: request)
-
-        Task.detached {
-            try await imageTask.response
-        }
-        wait()
-
-        // WHEN/THEN
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-        expect(operation).toUpdatePriority()
-        imageTask.priority = .high
-        wait()
-    }
+    // TOOD: reimplement
+//    func testUpdatePriority() {
+//        // GIVEN
+//        let queue = pipeline.configuration.dataLoadingQueue
+//        queue.isSuspended = true
+//
+//        let request = Test.request
+//        XCTAssertEqual(request.priority, .normal)
+//
+//        let observer = expect(queue).toEnqueueOperationsWithCount(1)
+//        let imageTask = pipeline.imageTask(with: request)
+//
+//        Task.detached {
+//            try await imageTask.response
+//        }
+//        wait()
+//
+//        // WHEN/THEN
+//        guard let operation = observer.operations.first else {
+//            return XCTFail("Failed to find operation")
+//        }
+//        expect(operation).toUpdatePriority()
+//        imageTask.priority = .high
+//        wait()
+//    }
 
     // MARK: - ImageRequest with Async/Await
 

@@ -204,7 +204,7 @@ import Combine
         let cancelled = AsyncExpectation(notification: ImagePipelineObserver.didCancelTask, object: observer)
         func functionThatLeavesScope() async {
             let prefetcher = ImagePrefetcher(pipeline: pipeline)
-            pipeline.configuration.dataLoadingQueue.isSuspended = true
+            dataLoader.isSuspended = true
 
             let created = AsyncExpectation(notification: ImagePipelineObserver.didCreateTask, object: observer)
             prefetcher.startPrefetching(with: [Test.request])

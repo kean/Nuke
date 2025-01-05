@@ -42,12 +42,14 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     /// Gets called when the task is either cancelled, or was completed.
     var onDisposed: (() -> Void)?
 
+    // TODO: do we need this?
     var onCancelled: (() -> Void)?
 
     var priority: TaskPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
             operation?.queuePriority = priority.queuePriority
+            workItem?.setPriority(priority)
             dependency?.setPriority(priority)
         }
     }
@@ -62,10 +64,18 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         }
     }
 
+    // TODO: remove
     weak var operation: Foundation.Operation? {
         didSet {
             guard priority != .normal else { return }
             operation?.queuePriority = priority.queuePriority
+        }
+    }
+
+    var workItem: WorkQueue.Item? {
+        didSet {
+            guard priority != .normal else { return }
+            workItem?.setPriority(priority)
         }
     }
 
@@ -184,6 +194,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
 
         if reason == .cancelled {
             operation?.cancel()
+            workItem?.cancel()
             dependency?.unsubscribe()
             onCancelled?()
         }

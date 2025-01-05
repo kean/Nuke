@@ -46,26 +46,22 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
 
     private func loadData(urlRequest: URLRequest) {
         if request.options.contains(.skipDataLoadingQueue) {
-            loadData(urlRequest: urlRequest, finish: { /* do nothing */ })
+            Task { @ImagePipelineActor in
+                await self.loadData(urlRequest: urlRequest)
+            }
         } else {
             // Wrap data request in an operation to limit the maximum number of
             // concurrent data tasks.
-            operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
-                guard let self else {
-                    return finish()
-                }
-                Task { @ImagePipelineActor in
-                    self.loadData(urlRequest: urlRequest, finish: finish)
-                }
+            workItem = pipeline.configuration.dataLoadingQueue.add { [weak self] in
+                await self?.loadData(urlRequest: urlRequest)
             }
         }
     }
 
     // This methods gets called inside data loading operation (Operation).
-    private func loadData(urlRequest: URLRequest, finish: @escaping () -> Void) {
-        guard !isDisposed else {
-            return finish()
-        }
+    private func loadData(urlRequest: URLRequest) async {
+        guard !isDisposed else { return }
+
         // Read and remove resumable data from cache (we're going to insert it
         // back in the cache if the request fails to complete again).
         var urlRequest = urlRequest
@@ -82,26 +78,20 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
 
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
 
-        let task = Task { @ImagePipelineActor in
-            do {
-                for try await (data, response) in dataLoader.loadData(for: urlRequest) {
-                    dataTask(didReceiveData: data, response: response)
-                }
-                dataTaskDidFinish(error: nil)
-            } catch {
-                dataTaskDidFinish(error: error)
+        do {
+            for try await (data, response) in dataLoader.loadData(for: urlRequest) {
+                dataTask(didReceiveData: data, response: response)
             }
-            signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
-            finish() // Finish the operation!
+            dataTaskDidFinish(error: nil)
+        } catch {
+            dataTaskDidFinish(error: error)
         }
+        signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
 
         onCancelled = { [weak self] in
             guard let self else { return }
-
             signpost(self, "LoadImageData", .end, "Cancelled")
-            task.cancel()
-            finish() // Finish the operation!
-
+            // TODO: move this to dataTaskDidFinish(error?
             self.tryToSaveResumableData()
         }
     }

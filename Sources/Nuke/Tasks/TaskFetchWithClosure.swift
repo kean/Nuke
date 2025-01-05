@@ -11,48 +11,36 @@ final class TaskFetchWithClosure: AsyncPipelineTask<(Data, URLResponse?)> {
 
     override func start() {
         if request.options.contains(.skipDataLoadingQueue) {
-            loadData(finish: { /* do nothing */ })
+            Task { @ImagePipelineActor in
+                await self.loadData()
+            }
         } else {
             // Wrap data request in an operation to limit the maximum number of
             // concurrent data tasks.
-            operation = pipeline.configuration.dataLoadingQueue.add { [weak self] finish in
-                guard let self else {
-                    return finish()
-                }
-                Task { @ImagePipelineActor in
-                    self.loadData { finish() }
-                }
+            workItem = pipeline.configuration.dataLoadingQueue.add { [weak self] in
+                await self?.loadData()
             }
         }
     }
 
     // This methods gets called inside data loading operation (Operation).
-    private func loadData(finish: @escaping () -> Void) {
+    private func loadData() async {
         guard !isDisposed else {
-            return finish()
+            return
         }
-
         guard let closure = request.closure else {
             send(error: .dataLoadingFailed(error: URLError(.unknown))) // This is just a placeholder error, never thrown
             return assertionFailure("This should never happen")
         }
-
-        let task = Task { @ImagePipelineActor in
-            do {
-                let data = try await closure()
-                guard !data.isEmpty else {
-                    throw ImagePipeline.Error.dataIsEmpty
-                }
-                storeDataInCacheIfNeeded(data)
-                send(value: (data, nil), isCompleted: true)
-            } catch {
-                send(error: .dataLoadingFailed(error: error))
+        do {
+            let data = try await closure()
+            guard !data.isEmpty else {
+                throw ImagePipeline.Error.dataIsEmpty
             }
-            finish() // Finish the operation!
-        }
-        onCancelled = {
-            finish()
-            task.cancel()
+            storeDataInCacheIfNeeded(data)
+            send(value: (data, nil), isCompleted: true)
+        } catch {
+            send(error: .dataLoadingFailed(error: error))
         }
     }
 }

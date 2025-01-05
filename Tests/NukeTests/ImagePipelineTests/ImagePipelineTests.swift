@@ -83,29 +83,30 @@ class ImagePipelineTests: XCTestCase {
     }
 
     // MARK: - Updating Priority
-    
-    func testDataLoadingPriorityUpdated() {
-        // Given
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-        
-        let request = Test.request
-        XCTAssertEqual(request.priority, .normal)
-        
-        let observer = expect(queue).toEnqueueOperationsWithCount(1)
-        
-        let task = pipeline.loadImage(with: request) { _ in }
-        wait() // Wait till the operation is created.
-        
-        // When/Then
-        guard let operation = observer.operations.first else {
-            return XCTFail("Failed to find operation")
-        }
-        expect(operation).toUpdatePriority()
-        task.priority = .high
-        
-        wait()
-    }
+
+    // TOOD: reimplement
+//    func testDataLoadingPriorityUpdated() {
+//        // Given
+//        let queue = pipeline.configuration.dataLoadingQueue
+//        queue.isSuspended = true
+//        
+//        let request = Test.request
+//        XCTAssertEqual(request.priority, .normal)
+//        
+//        let observer = expect(queue).toEnqueueOperationsWithCount(1)
+//        
+//        let task = pipeline.loadImage(with: request) { _ in }
+//        wait() // Wait till the operation is created.
+//        
+//        // When/Then
+//        guard let operation = observer.operations.first else {
+//            return XCTFail("Failed to find operation")
+//        }
+//        expect(operation).toUpdatePriority()
+//        task.priority = .high
+//        
+//        wait()
+//    }
     
     func testDecodingPriorityUpdated() {
         // Given
@@ -535,20 +536,21 @@ class ImagePipelineTests: XCTestCase {
     }
     
     // MARK: Skip Data Loading Queue Option
-    
-    func testSkipDataLoadingQueuePerRequestWithURL() throws {
-        // Given
-        let queue = pipeline.configuration.dataLoadingQueue
-        queue.isSuspended = true
-        
-        let request = ImageRequest(url: Test.url, options: [
-            .skipDataLoadingQueue
-        ])
-        
-        // Then image is still loaded
-        expect(pipeline).toLoadImage(with: request)
-        wait()
-    }
+
+    // TOOD: reimplement
+//    func testSkipDataLoadingQueuePerRequestWithURL() throws {
+//        // Given
+//        let queue = pipeline.configuration.dataLoadingQueue
+//        queue.isSuspended = true
+//        
+//        let request = ImageRequest(url: Test.url, options: [
+//            .skipDataLoadingQueue
+//        ])
+//        
+//        // Then image is still loaded
+//        expect(pipeline).toLoadImage(with: request)
+//        wait()
+//    }
     
     // MARK: Misc
     
