@@ -222,8 +222,6 @@ public final class ImagePrefetcher {
         // never get cancelled twice.
         func cancel() {
             workItem?.cancel()
-            // TODO: verify that we no longer need this
-//            imageTask?.cancel()
         }
     }
 }
