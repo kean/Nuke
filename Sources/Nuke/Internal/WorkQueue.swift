@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Foundation
+import Combine
 
 @ImagePipelineActor
 final class WorkQueue {
@@ -20,6 +21,8 @@ final class WorkQueue {
         }
     }
 
+    var onEvent: ((Event) -> Void)?
+
     nonisolated init(maxConcurrentTaskCount: Int) {
         self.maxConcurrentTaskCount = maxConcurrentTaskCount
     }
@@ -35,6 +38,7 @@ final class WorkQueue {
             item.node = node
             schedule.list(for: item.priority).prepend(node)
         }
+        onEvent?(.workAdded(item))
         return Item(item: item)
     }
 
@@ -115,7 +119,7 @@ final class WorkQueue {
 
     /// A handle that can be used to change the priority of the pending work.
     @ImagePipelineActor
-    fileprivate final class _Item {
+    final class _Item {
         let work: @ImagePipelineActor () async -> Void
         var priority: TaskPriority
         weak var node: LinkedList<_Item>.Node?
@@ -126,6 +130,12 @@ final class WorkQueue {
             self.priority = priority
             self.work = work
         }
+    }
+
+    /// - warning: For testing purposes.
+    @ImagePipelineActor
+    enum Event {
+        case workAdded(_Item)
     }
 
     private struct ScheduledWork {

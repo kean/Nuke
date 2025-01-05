@@ -142,18 +142,14 @@ public final class ImagePrefetcher {
         }
 
         let task = PrefetchTask(request: request, key: key)
-        task.workItem = queue.add { [weak self] in
-            await self?.loadImage(task: task)
+        task.workItem = queue.add { [weak self, pipeline, destination] in
+            let imageTask = pipeline.makeImageTask( with: task.request, isDataTask: destination == .diskCache)
+            task.imageTask = imageTask
+            _ = try? await imageTask.response
+            self?._remove(task)
         }
         tasks[key] = task
         return
-    }
-
-    private func loadImage(task: PrefetchTask) async {
-        let imageTask = pipeline.makeImageTask( with: task.request, isDataTask: destination == .diskCache)
-        task.imageTask = imageTask
-        _ = try? await imageTask.response
-        _remove(task)
     }
 
     private func _remove(_ task: PrefetchTask) {

@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import Testing
+import Combine
 @testable import Nuke
 
 /// - note: It's important that this test is no isolated to `ImagePipelineActor`
@@ -15,6 +16,7 @@ import Testing
     private let dataCache = MockDataCache()
     private var imageCache = MockImageCache()
     private let observer = ImagePipelineObserver()
+    private var cancellables: [AnyCancellable] = []
 
     init() {
         pipeline = ImagePipeline(delegate: observer) {
@@ -101,20 +103,22 @@ import Testing
         prefetcher.isPaused = true
         prefetcher.startPrefetching(with: [Test.url])
 
-        let timeout = AsyncExpectation {
-            try? await Task.sleep(nanoseconds: 3 * 1_000_000)
-        }
-        await timeout.wait()
+        try? await Task.sleep(nanoseconds: 3 * 1_000_000)
 
         // THEN
         #expect(observer.createdTaskCount == 0)
     }
-//
-//    // MARK: Priority
-//
-//    @Test func defaultPrioritySetToLow() {
+
+    // MARK: Priority
+
+    // TODO: implement remainig tests
+//    @Test func defaultPrioritySetToLow() async {
 //        // WHEN start prefetching with URL
 //        pipeline.configuration.dataLoadingQueue.isSuspended = true
+//
+//
+//
+//
 //        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
 //        prefetcher.startPrefetching(with: [Test.url])
 //        wait()
@@ -193,52 +197,20 @@ import Testing
 //        prefetcher.priority = .veryLow
 //        wait()
 //    }
-//
-//    // MARK: DidComplete
-//
-//    @Test func didCompleteIsCalled() {
-//        let expectation = self.expectation(description: "PrefecherDidComplete")
-//        prefetcher.didComplete = { @Sendable in
-//            expectation.fulfill()
-//        }
-//
-//        prefetcher.startPrefetching(with: [Test.url])
-//        wait()
-//    }
-//
-//    @Test func didCompleteIsCalledWhenImageCached() {
-//        let expectation = self.expectation(description: "PrefecherDidComplete")
-//        prefetcher.didComplete = { @Sendable in
-//            expectation.fulfill()
-//        }
-//
-//        imageCache[Test.request] = Test.container
-//
-//        prefetcher.startPrefetching(with: [Test.request])
-//        wait()
-//    }
-//
-//    // MARK: Misc
-//
-//    @Test func thatAllPrefetchingRequestsAreStoppedWhenPrefetcherIsDeallocated() {
-//        pipeline.configuration.dataLoadingQueue.isSuspended = true
-//
-//        let request = Test.request
-//        expectNotification(ImagePipelineObserver.didCreateTask, object: observer)
-//        prefetcher.startPrefetching(with: [request])
-//        wait()
-//
-//        expectNotification(ImagePipelineObserver.didCancelTask, object: observer)
-//        autoreleasepool {
-//            prefetcher = nil
-//        }
-//        wait()
-//    }
-//
-//    func expectPrefetcherToComplete() {
-//        let expectation = self.expectation(description: "PrefecherDidComplete")
-//        prefetcher.didComplete = { @Sendable in
-//            expectation.fulfill()
-//        }
-//    }
+
+    // MARK: Misc
+
+    @Test func thatAllPrefetchingRequestsAreStoppedWhenPrefetcherIsDeallocated() async {
+        let cancelled = AsyncExpectation(notification: ImagePipelineObserver.didCancelTask, object: observer)
+        func functionThatLeavesScope() async {
+            let prefetcher = ImagePrefetcher(pipeline: pipeline)
+            pipeline.configuration.dataLoadingQueue.isSuspended = true
+
+            let created = AsyncExpectation(notification: ImagePipelineObserver.didCreateTask, object: observer)
+            prefetcher.startPrefetching(with: [Test.request])
+            await created.wait()
+        }
+        await functionThatLeavesScope()
+        await cancelled.wait()
+    }
 }
