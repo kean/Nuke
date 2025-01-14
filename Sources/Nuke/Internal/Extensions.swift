@@ -38,14 +38,14 @@ extension OperationQueue {
     }
 }
 
-extension ImageRequest.Priority {
-    var taskPriority: TaskPriority {
-        switch self {
-        case .veryLow: return .veryLow
-        case .low: return .low
-        case .normal: return .normal
-        case .high: return .high
-        case .veryHigh: return .veryHigh
+extension TaskPriority {
+    init(_ priority: ImageRequest.Priority) {
+        switch priority {
+        case .veryLow: self = .veryLow
+        case .low: self = .low
+        case .normal: self = .normal
+        case .high: self = .high
+        case .veryHigh: self = .veryHigh
         }
     }
 }

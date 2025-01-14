@@ -21,7 +21,7 @@ final class WorkQueue {
         }
     }
 
-    var onEvent: ((Event) -> Void)?
+    var onEvent: (@ImagePipelineActor (Event) -> Void)?
 
     nonisolated init(maxConcurrentTaskCount: Int) {
         self.maxConcurrentTaskCount = maxConcurrentTaskCount

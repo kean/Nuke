@@ -153,7 +153,7 @@ public final class ImagePipeline {
             return task.process(.error(.pipelineInvalidated))
         }
         let worker = isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
-        tasks[task] = worker.subscribe(priority: task.priority.taskPriority, subscriber: task) { [weak task] in
+        tasks[task] = worker.subscribe(priority: TaskPriority(task.priority), subscriber: task) { [weak task] in
             task?.process($0)
         }
         onTaskStarted?(task)
@@ -165,7 +165,7 @@ public final class ImagePipeline {
     }
 
     func imageTask(_ task: ImageTask, didChangePriority priority: ImageRequest.Priority) {
-        self.tasks[task]?.setPriority(priority.taskPriority)
+        self.tasks[task]?.setPriority(TaskPriority(priority))
     }
 
     func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event, isDataTask: Bool) {

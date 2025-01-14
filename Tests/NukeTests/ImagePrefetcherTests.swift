@@ -111,28 +111,30 @@ import Combine
 
     // MARK: Priority
 
-    // TODO: implement remainig tests
-//    @Test func defaultPrioritySetToLow() async {
-//        // WHEN start prefetching with URL
-//        pipeline.configuration.dataLoadingQueue.isSuspended = true
-//
-//
-//
-//
-//        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
-//        prefetcher.startPrefetching(with: [Test.url])
-//        wait()
-//
-//        // THEN priority is set to .low
-//        guard let operation = observer.operations.first else {
-//            return Issue.record("Failed to find operation")
-//        }
-//        #expect(operation.queuePriority == .low)
-//
-//        // Cleanup
-//        prefetcher.stopPrefetching()
-//    }
-//
+    // TODO: reuse this code and fix the priority test
+    @Test @ImagePipelineActor func defaultPrioritySetToLow() async {
+        // WHEN start prefetching with URL
+        dataLoader.isSuspended = true
+
+        let expectation = AsyncExpectation()
+        var workItem: WorkQueue._Item?
+        pipeline.configuration.dataLoadingQueue.onEvent = { @Sendable in
+            if case .workAdded(let item) = $0 {
+                workItem = item
+                expectation.fulfill()
+            }
+        }
+
+        prefetcher.startPrefetching(with: [Test.url])
+        await expectation.wait()
+
+        // THEN priority is set to .low
+        #expect(workItem?.priority == .low)
+
+        // Cleanup
+        prefetcher.stopPrefetching()
+    }
+
 //    @Test func defaultPriorityAffectsRequests() {
 //        // WHEN start prefetching with ImageRequest
 //        pipeline.configuration.dataLoadingQueue.isSuspended = true

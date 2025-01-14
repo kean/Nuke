@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import Testing
+@testable import Nuke
 
 final class AsyncExpectation: @unchecked Sendable {
     private var state = Mutex(wrappedValue: State())
@@ -10,6 +11,8 @@ final class AsyncExpectation: @unchecked Sendable {
         var isFinished = false
         var continuation: UnsafeContinuation<Void, Never>?
     }
+
+    init() {}
 
     init(notification: Notification.Name, object: AnyObject) {
         NotificationCenter.default
