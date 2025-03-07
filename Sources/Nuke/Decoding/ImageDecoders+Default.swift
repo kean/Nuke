@@ -92,7 +92,14 @@ extension ImageDecoders {
             guard let endOfScan = scanner.scan(data), endOfScan > 0 else {
                 return nil
             }
-            guard let image = ImageDecoders.Default._decode(data[0...endOfScan], scale: scale) else {
+            
+            // To decode data correctly, binary needs to end with an EOI (End Of Image) marker (0xFFD9)
+            var imageData = data[0...endOfScan]
+            if data[endOfScan - 1] != 0xFF || data[endOfScan] != 0xD9 {
+                imageData += [0xFF, 0xD9]
+            }
+            // We could be appending the data to `CGImageSourceCreateIncremental` and producing `CGImage`s from there but the EOI addition forces us to have to finalize everytime, which counters any performance gains.
+            guard let image = ImageDecoders.Default._decode(imageData, scale: scale) else {
                 return nil
             }
             return ImageContainer(image: image, type: assetType, isPreview: true, userInfo: [.scanNumberKey: numberOfScans])
@@ -128,22 +135,37 @@ private struct ProgressiveJPEGScanner: Sendable {
     /// Scans the given data. If finds new scans, returns the last index of the
     /// last available scan.
     mutating func scan(_ data: Data) -> Int? {
+        if scannedIndex < 0 {
+            guard let header = ImageProperties.JPEG(data),
+                  header.isProgressive else {
+                return nil
+            }
+            
+            // we always want to start after the Start-Of-Frame marker to skip over any thumbnail markers which could interfere with the parsing
+            scannedIndex = header.startOfFrameOffset + 2
+        }
+        
         // Check if there is more data to scan.
         guard (scannedIndex + 1) < data.count else {
             return nil
         }
 
         // Start scanning from the where it left off previous time.
-        var index = (scannedIndex + 1)
+        // 1. we use `Data.firstIndex` as it's faster than iterating byte-by-byte in Swift
+        // 2. we could use `.lastIndex` and be much faster but we want to keep track of scan number
         var numberOfScans = self.numberOfScans
-        while index < (data.count - 1) {
-            scannedIndex = index
-            // 0xFF, 0xDA - Start Of Scan
-            if data[index] == 0xFF, data[index + 1] == 0xDA {
-                lastStartOfScan = index
+        var searchRange = (scannedIndex + 1)..<data.count
+        // 0xFF, 0xDA - Start Of Scan
+        while let nextMarker = data[searchRange].firstIndex(of: 0xFF),
+              nextMarker < data.count - 1  {
+            if data[nextMarker + 1] == 0xDA {
                 numberOfScans += 1
+                lastStartOfScan = nextMarker
+                scannedIndex = nextMarker + 1
+            } else {
+                scannedIndex = nextMarker
             }
-            index += 1
+            searchRange = (scannedIndex + 1)..<data.count
         }
 
         // Found more scans this the previous time
@@ -175,42 +197,126 @@ extension ImageDecoders.Default {
 
 enum ImageProperties {}
 
+
 // Keeping this private for now, not sure neither about the API, not the implementation.
 extension ImageProperties {
     struct JPEG {
         var isProgressive: Bool
+        var startOfFrameOffset: Int
 
         init?(_ data: Data) {
-            guard let isProgressive = ImageProperties.JPEG.isProgressive(data) else {
+            guard let header = Self.parseHeader(data) else {
                 return nil
             }
-            self.isProgressive = isProgressive
+            self = header
         }
-
-        private static func isProgressive(_ data: Data) -> Bool? {
-            var index = 3 // start scanning right after magic numbers
-            while index < (data.count - 1) {
-                // A example of first few bytes of progressive jpeg image:
-                // FF D8 FF E0 00 10 4A 46 49 46 00 01 01 00 00 48 00 ...
-                //
+        
+        private init (isProgressive: Bool, startOfFrameOffset: Int) {
+            self.isProgressive = isProgressive
+            self.startOfFrameOffset = startOfFrameOffset
+        }
+        
+        // This is the most accurate way to determine whether this is a progressive JPEG, but sometimes can come back nil for baseline JPEGs
+        private static func isProgressive_io(_ data: Data) -> Bool? {
+            guard let imageSource = CGImageSourceCreateWithData(data as CFData, nil),
+                  CGImageSourceGetCount(imageSource) > 0 else {
+                return nil
+            }
+            
+            // Get the properties for the first image
+            let properties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any]
+            let jfifProperties = properties?[kCGImagePropertyJFIFDictionary] as? [CFString: Any]
+            
+            // this property might be missing for baseline JPEGs so we can't depend on this completely
+            if let isProgressive = jfifProperties?[kCGImagePropertyJFIFIsProgressive] as? Bool {
+                return isProgressive
+            }
+            
+            return nil
+        }
+        
+        // Manually walk through JPEG header
+        static func parseHeader(_ data: Data) -> JPEG? {
+            // JPEG starts with SOI marker (FF D8)
+            guard data.count >= 2, data[0] == 0xFF, data[1] == 0xD8 else {
+                return nil
+            }
+            
+            // Start after SOI marker
+            var searchRange = 2..<data.count
+            
+            // Process all segments until we find an SOF marker or reach the end
+            while let nextMarker = data[searchRange].firstIndex(of: 0xFF),
+                  nextMarker < data.count - 1 {
+                
+                // Skip Padding
+                var controlIndex = nextMarker + 1
+                while data[controlIndex] == 0xFF {
+                    controlIndex += 1
+                    if controlIndex >= data.count {
+                        break
+                    }
+                }
+                
+                // The byte coming after 0xFF gives us the information
+                let marker = data[controlIndex]
+                
+                // Check for SOF markers that indicate encoding type
                 // 0xFF, 0xC0 - Start Of Frame (baseline DCT)
                 // 0xFF, 0xC2 - Start Of Frame (progressive DCT)
                 // https://en.wikipedia.org/wiki/JPEG
-                //
-                // As an alternative, Image I/O provides facilities to parse
-                // JPEG metadata via CGImageSourceCopyPropertiesAtIndex. It is a
-                // bit too convoluted to use and most likely slightly less
-                // efficient that checking this one special bit directly.
-                if data[index] == 0xFF {
-                    if data[index + 1] == 0xC2 {
-                        return true
-                    }
-                    if data[index + 1] == 0xC0 {
-                        return false // baseline
-                    }
+                // WARNING: These markers may also appear as part of a thumbnail in exif segment, so we need to make sure we skip these segments
+                let offset = controlIndex - 1
+                if marker == 0xC0 {
+                    return JPEG(isProgressive: false, startOfFrameOffset: offset)
+                } else if marker == 0xC2 {
+                    return JPEG(isProgressive: true, startOfFrameOffset: offset)
                 }
-                index += 1
+                
+                // Next iteration we look for the next 0xFF byte after this one
+                searchRange = (controlIndex + 1)..<data.count
+                
+                // Handle markers without length fields (like RST markers, TEM, etc.)
+                if (marker >= 0xD0 && marker <= 0xD7) || marker == 0x01 {
+                    // These markers have no data segment
+                    continue
+                }
+                
+                // Handle EOI (End of Image)
+                guard marker != 0xD9 else {
+                    break
+                }
+                
+                // Handle SOS (Start of Scan) - if we've reached this place we've missed the SOF marker
+                guard marker != 0xDA else {
+                    break
+                }
+                
+                // All other markers have a length field, make sure we have enough bytes for the length
+                let lengthIndex = controlIndex + 1
+                guard lengthIndex < data.count - 1 else {
+                    break
+                }
+                
+                // Read the length (includes the length bytes themselves)
+                let length = UInt16(data[lengthIndex]) << 8 | UInt16(data[lengthIndex + 1])
+                
+                // Skip this segment (length includes the 2 length bytes, so should be at least 2)
+                guard length > 2 else {
+                    // Invalid length, corrupted JPEG
+                    break
+                }
+                
+                let frontier = lengthIndex + Int(length)
+                guard frontier < data.count else {
+                    // we don't have enough data to reach end of this segment
+                    break
+                }
+                
+                searchRange = frontier..<data.count
             }
+            
+            // If we reached this part we haven't found SOF marker, likely data is not complete
             return nil
         }
     }
