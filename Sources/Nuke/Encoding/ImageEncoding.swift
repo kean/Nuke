@@ -32,6 +32,8 @@ extension ImageEncoding {
     }
 }
 
+// note: @unchecked was added to surpress build errors with NSImage on macOS
+
 /// Image encoding context used when selecting which encoder to use.
 public struct ImageEncodingContext: @unchecked Sendable {
     public let request: ImageRequest

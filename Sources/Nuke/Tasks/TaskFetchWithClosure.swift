@@ -6,7 +6,7 @@ import Foundation
 
 /// Fetches data using the publisher provided with the request.
 /// Unlike `TaskFetchOriginalImageData`, there is no resumable data involved.
-final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)>, @unchecked Sendable {
+final class TaskFetchWithClosure: AsyncPipelineTask<(Data, URLResponse?)> {
     private lazy var data = Data()
 
     override func start() {
@@ -19,7 +19,7 @@ final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)>, @un
                 guard let self else {
                     return finish()
                 }
-                self.pipeline.queue.async {
+                Task { @ImagePipelineActor in
                     self.loadData { finish() }
                 }
             }
@@ -32,41 +32,27 @@ final class TaskFetchWithPublisher: AsyncPipelineTask<(Data, URLResponse?)>, @un
             return finish()
         }
 
-        guard let publisher = request.publisher else {
+        guard let closure = request.closure else {
             send(error: .dataLoadingFailed(error: URLError(.unknown))) // This is just a placeholder error, never thrown
             return assertionFailure("This should never happen")
         }
 
-        let cancellable = publisher.sink(receiveCompletion: { [weak self] result in
+        let task = Task { @ImagePipelineActor in
+            do {
+                let data = try await closure()
+                guard !data.isEmpty else {
+                    throw ImagePipeline.Error.dataIsEmpty
+                }
+                storeDataInCacheIfNeeded(data)
+                send(value: (data, nil), isCompleted: true)
+            } catch {
+                send(error: .dataLoadingFailed(error: error))
+            }
             finish() // Finish the operation!
-            guard let self else { return }
-            self.pipeline.queue.async {
-                self.dataTaskDidFinish(result)
-            }
-        }, receiveValue: { [weak self] data in
-            guard let self else { return }
-            self.pipeline.queue.async {
-                self.data.append(data)
-            }
-        })
-
+        }
         onCancelled = {
             finish()
-            cancellable.cancel()
-        }
-    }
-
-    private func dataTaskDidFinish(_ result: PublisherCompletion) {
-        switch result {
-        case .finished:
-            guard !data.isEmpty else {
-                send(error: .dataIsEmpty)
-                return
-            }
-            storeDataInCacheIfNeeded(data)
-            send(value: (data, nil), isCompleted: true)
-        case .failure(let error):
-            send(error: .dataLoadingFailed(error: error))
+            task.cancel()
         }
     }
 }

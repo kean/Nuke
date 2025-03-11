@@ -6,7 +6,7 @@ import Foundation
 
 /// Fetches original image from the data loader (`DataLoading`) and stores it
 /// in the disk cache (`DataCaching`).
-final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unchecked Sendable {
+final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)> {
     private var urlResponse: URLResponse?
     private var resumableData: ResumableData?
     private var resumedDataCount: Int64 = 0
@@ -54,7 +54,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
                 guard let self else {
                     return finish()
                 }
-                self.pipeline.queue.async {
+                Task { @ImagePipelineActor in
                     self.loadData(urlRequest: urlRequest, finish: finish)
                 }
             }
@@ -70,7 +70,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
         // back in the cache if the request fails to complete again).
         var urlRequest = urlRequest
         if pipeline.configuration.isResumableDataEnabled,
-           let resumableData = ResumableDataStorage.shared.removeResumableData(for: request, pipeline: pipeline) {
+           let resumableData = ResumableDataStorage.shared.removeResumableData(for: request, namespace: pipeline.id) {
             // Update headers to add "Range" and "If-Range" headers
             resumableData.resume(request: &urlRequest)
             // Save resumable data to be used later (before using it, the pipeline
@@ -78,28 +78,28 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
             self.resumableData = resumableData
         }
 
-        signpost(self, "LoadImageData", .begin, "URL: \(urlRequest.url?.absoluteString ?? ""), resumable data: \(Formatter.bytes(resumableData?.data.count ?? 0))")
+        signpost(self, "LoadImageData", .begin, "URL: \(String(describing: urlRequest.url))")
 
         let dataLoader = pipeline.delegate.dataLoader(for: request, pipeline: pipeline)
-        let dataTask = dataLoader.loadData(with: urlRequest, didReceiveData: { [weak self] data, response in
-            guard let self else { return }
-            self.pipeline.queue.async {
-                self.dataTask(didReceiveData: data, response: response)
+
+        let task = Task { @ImagePipelineActor in
+            do {
+                for try await (data, response) in dataLoader.loadData(for: urlRequest) {
+                    dataTask(didReceiveData: data, response: response)
+                }
+                dataTaskDidFinish(error: nil)
+            } catch {
+                dataTaskDidFinish(error: error)
             }
-        }, completion: { [weak self] error in
-            finish() // Finish the operation!
-            guard let self else { return }
             signpost(self, "LoadImageData", .end, "Finished with size \(Formatter.bytes(self.data.count))")
-            self.pipeline.queue.async {
-                self.dataTaskDidFinish(error: error)
-            }
-        })
+            finish() // Finish the operation!
+        }
 
         onCancelled = { [weak self] in
             guard let self else { return }
 
             signpost(self, "LoadImageData", .end, "Cancelled")
-            dataTask.cancel()
+            task.cancel()
             finish() // Finish the operation!
 
             self.tryToSaveResumableData()
@@ -162,7 +162,7 @@ final class TaskFetchOriginalData: AsyncPipelineTask<(Data, URLResponse?)>, @unc
         if pipeline.configuration.isResumableDataEnabled,
            let response = urlResponse, !data.isEmpty,
            let resumableData = ResumableData(response: response, data: data) {
-            ResumableDataStorage.shared.storeResumableData(resumableData, for: request, pipeline: pipeline)
+            ResumableDataStorage.shared.storeResumableData(resumableData, for: request, namespace: pipeline.id)
         }
     }
 }

@@ -5,7 +5,7 @@
 import Foundation
 
 /// Receives data from ``TaskLoadImageData`` and decodes it as it arrives.
-final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked Sendable {
+final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
     private var decoder: (any ImageDecoding)?
 
     override func start() {
@@ -37,9 +37,11 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse>, @unchecked
             }
             return
         }
-
-        decode(context, decoder: decoder) { [weak self] in
-            self?.didFinishDecoding(context: context, result: $0)
+        decode(context, decoder: decoder) { [weak self] result in
+            guard let self else { return }
+            Task {
+                await self.didFinishDecoding(context: context, result: result)
+            }
         }
     }
 

@@ -11,23 +11,32 @@ import Foundation
 ///
 /// All ``ImagePrefetcher`` methods are thread-safe and are optimized to be used
 /// even from the main thread during scrolling.
-public final class ImagePrefetcher: @unchecked Sendable {
-    /// Pauses the prefetching.
+@ImagePipelineActor
+public final class ImagePrefetcher {
+/// Pauses the prefetching.
     ///
     /// - note: When you pause, the prefetcher will finish outstanding tasks
     /// (by default, there are only 2 at a time), and pause the rest.
-    public var isPaused: Bool = false {
-        didSet { queue.isSuspended = isPaused }
+    public nonisolated var isPaused: Bool {
+        get { queue.isSuspended }
+        set { queue.isSuspended = newValue }
     }
 
     /// The priority of the requests. By default, ``ImageRequest/Priority-swift.enum/low``.
     ///
     /// Changing the priority also changes the priority of all of the outstanding
     /// tasks managed by the prefetcher.
-    public var priority: ImageRequest.Priority = .low {
-        didSet {
-            let newValue = priority
-            pipeline.queue.async { self.didUpdatePriority(to: newValue) }
+    public nonisolated var priority: ImageRequest.Priority {
+        get { _priority.value }
+        set {
+            guard _priority.withLock({
+                guard $0 != newValue else { return false }
+                $0 = newValue
+                return true
+            }) else { return }
+            Task {
+                await didUpdatePriority(to: newValue)
+            }
         }
     }
 
@@ -48,15 +57,15 @@ public final class ImagePrefetcher: @unchecked Sendable {
     /// The closure that gets called when the prefetching completes for all the
     /// scheduled requests. The closure is always called on completion,
     /// regardless of whether the requests succeed or some fail.
-    ///
-    /// - note: The closure is called on the main queue.
-    public var didComplete: (@MainActor @Sendable () -> Void)?
 
     private let pipeline: ImagePipeline
-    private var tasks = [TaskLoadImageKey: Task]()
     private let destination: Destination
-    private var _priority: ImageRequest.Priority = .low
-    let queue = OperationQueue() // internal for testing
+    private var tasks = [TaskLoadImageKey: PrefetchTask]()
+    private let _priority = Mutex(ImageRequest.Priority.low)
+
+    // For testing purposes
+    nonisolated(unsafe) var didComplete: (@Sendable () -> Void)?
+    nonisolated let queue = OperationQueue()
 
     /// Initializes the ``ImagePrefetcher`` instance.
     ///
@@ -64,20 +73,21 @@ public final class ImagePrefetcher: @unchecked Sendable {
     ///   - pipeline: The pipeline used for loading images.
     ///   - destination: By default load images in all cache layers.
     ///   - maxConcurrentRequestCount: 2 by default.
-    public init(pipeline: ImagePipeline = ImagePipeline.shared,
-                destination: Destination = .memoryCache,
-                maxConcurrentRequestCount: Int = 2) {
+    public nonisolated init(
+        pipeline: ImagePipeline = ImagePipeline.shared,
+        destination: Destination = .memoryCache,
+        maxConcurrentRequestCount: Int = 2
+    ) {
         self.pipeline = pipeline
         self.destination = destination
         self.queue.maxConcurrentOperationCount = maxConcurrentRequestCount
-        self.queue.underlyingQueue = pipeline.queue
     }
 
     deinit {
         let tasks = self.tasks.values // Make sure we don't retain self
         self.tasks.removeAll()
 
-        pipeline.queue.async {
+        Task { @ImagePipelineActor in
             for task in tasks {
                 task.cancel()
             }
@@ -87,7 +97,7 @@ public final class ImagePrefetcher: @unchecked Sendable {
     /// Starts prefetching images for the given URL.
     ///
     /// See also ``startPrefetching(with:)-718dg`` that works with ``ImageRequest``.
-    public func startPrefetching(with urls: [URL]) {
+    public nonisolated func startPrefetching(with urls: [URL]) {
         startPrefetching(with: urls.map { ImageRequest(url: $0) })
     }
 
@@ -101,17 +111,18 @@ public final class ImagePrefetcher: @unchecked Sendable {
     /// (`.low` by default).
     ///
     /// See also ``startPrefetching(with:)-1jef2`` that works with `URL`.
-    public func startPrefetching(with requests: [ImageRequest]) {
-        pipeline.queue.async {
+    public nonisolated func startPrefetching(with requests: [ImageRequest]) {
+        Task { @ImagePipelineActor in
             self._startPrefetching(with: requests)
         }
     }
 
-    public func _startPrefetching(with requests: [ImageRequest]) {
+    private func _startPrefetching(with requests: [ImageRequest]) {
+        let priority = _priority.value
         for request in requests {
             var request = request
-            if _priority != request.priority {
-                request.priority = _priority
+            if priority != request.priority {
+                request.priority = priority
             }
             _startPrefetching(with: request)
         }
@@ -126,41 +137,43 @@ public final class ImagePrefetcher: @unchecked Sendable {
         guard tasks[key] == nil else {
             return
         }
-        let task = Task(request: request, key: key)
+        let task = PrefetchTask(request: request, key: key)
         task.operation = queue.add { [weak self] finish in
             guard let self else { return finish() }
-            self.loadImage(task: task, finish: finish)
+            Task { @ImagePipelineActor in
+                self.loadImage(task: task, finish: finish)
+            }
         }
         tasks[key] = task
         return
     }
 
-    private func loadImage(task: Task, finish: @escaping () -> Void) {
-        task.imageTask = pipeline._loadImage(with: task.request, isDataTask: destination == .diskCache, queue: pipeline.queue, progress: nil) { [weak self] _ in
+    private func loadImage(task: PrefetchTask, finish: @escaping () -> Void) {
+        let imageTask = pipeline.makeImageTask(with: task.request, isDataTask: destination == .diskCache)
+        task.imageTask = imageTask
+        Task { [weak self] in
+            _ = try? await imageTask.response
             self?._remove(task)
             finish()
         }
         task.onCancelled = finish
     }
 
-    private func _remove(_ task: Task) {
+    private func _remove(_ task: PrefetchTask) {
         guard tasks[task.key] === task else { return } // Should never happen
         tasks[task.key] = nil
         sendCompletionIfNeeded()
     }
 
     private func sendCompletionIfNeeded() {
-        guard tasks.isEmpty, let callback = didComplete else {
-            return
-        }
-        DispatchQueue.main.async(execute: callback)
+        if tasks.isEmpty { didComplete?() }
     }
 
     /// Stops prefetching images for the given URLs and cancels outstanding
     /// requests.
     ///
     /// See also ``stopPrefetching(with:)-8cdam`` that works with ``ImageRequest``.
-    public func stopPrefetching(with urls: [URL]) {
+    public nonisolated func stopPrefetching(with urls: [URL]) {
         stopPrefetching(with: urls.map { ImageRequest(url: $0) })
     }
 
@@ -172,8 +185,8 @@ public final class ImagePrefetcher: @unchecked Sendable {
     /// of ``ImagePrefetcher``.
     ///
     /// See also ``stopPrefetching(with:)-2tcyq`` that works with `URL`.
-    public func stopPrefetching(with requests: [ImageRequest]) {
-        pipeline.queue.async {
+    public nonisolated func stopPrefetching(with requests: [ImageRequest]) {
+        Task { @ImagePipelineActor in
             for request in requests {
                 self._stopPrefetching(with: request)
             }
@@ -187,22 +200,20 @@ public final class ImagePrefetcher: @unchecked Sendable {
     }
 
     /// Stops all prefetching tasks.
-    public func stopPrefetching() {
-        pipeline.queue.async {
+    public nonisolated func stopPrefetching() {
+        Task { @ImagePipelineActor in
             self.tasks.values.forEach { $0.cancel() }
             self.tasks.removeAll()
         }
     }
 
     private func didUpdatePriority(to priority: ImageRequest.Priority) {
-        guard _priority != priority else { return }
-        _priority = priority
         for task in tasks.values {
             task.imageTask?.priority = priority
         }
     }
 
-    private final class Task: @unchecked Sendable {
+    private final class PrefetchTask: @unchecked Sendable {
         let key: TaskLoadImageKey
         let request: ImageRequest
         weak var imageTask: ImageTask?

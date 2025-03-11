@@ -5,7 +5,7 @@
 import Foundation
 import Nuke
 
-extension ImagePipeline.Error: Equatable {
+extension ImagePipeline.Error: @retroactive Equatable {
     public static func == (lhs: ImagePipeline.Error, rhs: ImagePipeline.Error) -> Bool {
         switch (lhs, rhs) {
         case (.dataMissingInCache, .dataMissingInCache): return true
@@ -22,14 +22,14 @@ extension ImagePipeline.Error: Equatable {
     }
 }
 
-extension ImageResponse: Equatable {
+extension ImageResponse: @retroactive Equatable {
     public static func == (lhs: ImageResponse, rhs: ImageResponse) -> Bool {
         return lhs.image === rhs.image
     }
 }
 
 extension ImagePipeline {
-    func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
+    nonisolated func reconfigured(_ configure: (inout ImagePipeline.Configuration) -> Void) -> ImagePipeline {
         var configuration = self.configuration
         configure(&configuration)
         return ImagePipeline(configuration: configuration)
@@ -37,13 +37,16 @@ extension ImagePipeline {
 }
 
 extension ImagePipeline {
+    @MainActor
     private static var stack = [ImagePipeline]()
 
+    @MainActor
     static func pushShared(_ shared: ImagePipeline) {
         stack.append(ImagePipeline.shared)
         ImagePipeline.shared = shared
     }
 
+    @MainActor
     static func popShared() {
         ImagePipeline.shared = stack.removeLast()
     }

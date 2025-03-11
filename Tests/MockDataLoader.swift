@@ -7,18 +7,18 @@ import Nuke
 
 private let data: Data = Test.data(name: "fixture", extension: "jpeg")
 
-private final class MockDataTask: Cancellable, @unchecked Sendable {
+private final class MockDataTask: MockDataTaskProtocol, @unchecked Sendable {
     var _cancel: () -> Void = { }
     func cancel() {
         _cancel()
     }
 }
 
-class MockDataLoader: DataLoading, @unchecked Sendable {
+class MockDataLoader: MockDataLoading, DataLoading, @unchecked Sendable {
     static let DidStartTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidStartTask")
     static let DidCancelTask = Notification.Name("com.github.kean.Nuke.Tests.MockDataLoader.DidCancelTask")
 
-    @Atomic var createdTaskCount = 0
+    @Mutex var createdTaskCount = 0
     var results = [URL: Result<(Data, URLResponse), NSError>]()
     let queue = OperationQueue()
     var isSuspended: Bool {
@@ -26,7 +26,7 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
         set { queue.isSuspended = newValue }
     }
 
-    func loadData(with request: URLRequest, didReceiveData: @escaping (Data, URLResponse) -> Void, completion: @escaping (Error?) -> Void) -> Cancellable {
+    func loadData(with request: URLRequest, didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void, completion: @Sendable @escaping (Error?) -> Void) -> MockDataTaskProtocol {
         let task = MockDataTask()
 
         NotificationCenter.default.post(name: MockDataLoader.DidStartTask, object: self)
@@ -61,3 +61,31 @@ class MockDataLoader: DataLoading, @unchecked Sendable {
         return task
     }
 }
+
+// Remove these and update to implement the actual protocol.
+protocol MockDataLoading: DataLoading {
+    func loadData(with request: URLRequest, didReceiveData: @Sendable @escaping (Data, URLResponse) -> Void, completion: @Sendable @escaping (Error?) -> Void) -> MockDataTaskProtocol
+}
+
+extension MockDataLoading where Self: DataLoading {
+    func loadData(for request: URLRequest) -> AsyncThrowingStream<(Data, URLResponse), any Error> {
+        AsyncThrowingStream { continuation in
+            let task = loadData(with: request) { data, response in
+                continuation.yield((data, response))
+            } completion: { error in
+                continuation.finish(throwing: error)
+            }
+            continuation.onTermination = { reason in
+                switch reason {
+                case .cancelled: task.cancel()
+                default: break
+                }
+            }
+        }
+    }
+}
+
+protocol MockDataTaskProtocol: Sendable {
+    func cancel()
+}
+

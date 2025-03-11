@@ -290,7 +290,7 @@ private final class ImageViewController {
             imageView.nuke_display(image: nil, data: nil) // Remove previously displayed images (if any)
         }
 
-        task = pipeline.loadImage(with: request, queue: .main, progress: { [weak self] response, completedCount, totalCount in
+        task = pipeline.loadImage(with: request, progress: { [weak self] response, completedCount, totalCount in
             if let response, options.isProgressiveRenderingEnabled {
                 self?.handle(partialImage: response)
             }

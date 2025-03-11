@@ -1,13 +1,13 @@
-// swift-tools-version:5.9
+// swift-tools-version:6.0
 import PackageDescription
 
 let package = Package(
     name: "Nuke",
     platforms: [
-        .iOS(.v13),
-        .tvOS(.v13),
-        .macOS(.v10_15),
-        .watchOS(.v6),
+        .iOS(.v14),
+        .tvOS(.v14),
+        .macOS(.v11),
+        .watchOS(.v7),
         .visionOS(.v1),
     ],
     products: [

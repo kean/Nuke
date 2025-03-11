@@ -28,7 +28,8 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         
         imageView = _ImageView()
     }
-    
+
+    @MainActor
     override func tearDown() {
         super.tearDown()
         

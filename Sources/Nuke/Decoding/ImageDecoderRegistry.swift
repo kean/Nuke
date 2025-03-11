@@ -54,7 +54,7 @@ public final class ImageDecoderRegistry: @unchecked Sendable {
 }
 
 /// Image decoding context used when selecting which decoder to use.
-public struct ImageDecodingContext: @unchecked Sendable {
+public struct ImageDecodingContext: Sendable {
     public var request: ImageRequest
     public var data: Data
     /// Returns `true` if the download was completed.
