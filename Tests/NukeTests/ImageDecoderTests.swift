@@ -37,27 +37,30 @@ class ImageDecoderTests: XCTestCase {
     }
     
     func testDecodingProgressiveJPEG() {
-        let data = Test.data(name: "progressive", extension: "jpeg")
+        let data = Test.data(name: "tricky_progressive", extension: "jpeg")
         let decoder = ImageDecoders.Default()
         
+        let isProgressive = ImageProperties.JPEG(data)?.isProgressive
+        XCTAssertTrue(isProgressive == true)
+        
         // Just before the Start Of Frame
-        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...358]))
+        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...12110]))
         XCTAssertEqual(decoder.numberOfScans, 0)
         
         // Right after the Start Of Frame
-        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...359]))
+        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...12178]))
         XCTAssertEqual(decoder.numberOfScans, 0) // still haven't finished the first scan
         
         // Just before the first Start Of Scan
-        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...438]))
+        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...12219]))
         XCTAssertEqual(decoder.numberOfScans, 0) // still haven't finished the first scan
         
         // Found the first Start Of Scan
-        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...439]))
+        XCTAssertNil(decoder.decodePartiallyDownloadedData(data[0...12279]))
         XCTAssertEqual(decoder.numberOfScans, 1)
         
         // Found the second Start of Scan
-        let scan1 = decoder.decodePartiallyDownloadedData(data[0...2952])
+        let scan1 = decoder.decodePartiallyDownloadedData(data[0...14452])
         XCTAssertNotNil(scan1)
         XCTAssertEqual(scan1?.isPreview, true)
         if let image = scan1?.image {
@@ -65,8 +68,8 @@ class ImageDecoderTests: XCTestCase {
             XCTAssertEqual(image.size.width, 450)
             XCTAssertEqual(image.size.height, 300)
 #else
-            XCTAssertEqual(image.size.width * image.scale, 450)
-            XCTAssertEqual(image.size.height * image.scale, 300)
+            XCTAssertEqual(image.size.width * image.scale, 352)
+            XCTAssertEqual(image.size.height * image.scale, 198)
 #endif
         }
         XCTAssertEqual(decoder.numberOfScans, 2)
@@ -78,7 +81,7 @@ class ImageDecoderTests: XCTestCase {
         // of the bytes and encounter all of the scans (e.g. the final chunk
         // of data that we receive contains multiple scans).
         XCTAssertNotNil(decoder.decodePartiallyDownloadedData(data))
-        XCTAssertEqual(decoder.numberOfScans, 10)
+        XCTAssertEqual(decoder.numberOfScans, 9)
     }
     
     func testDecodeGIF() throws {
