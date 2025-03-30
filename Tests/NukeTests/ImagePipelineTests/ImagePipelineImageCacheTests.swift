@@ -173,16 +173,16 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
     }
 
     func testGivenProcessedImageInMemoryCache() {
-        // GIVEN
+        // Given
         imageCache[request] = processedImage
 
-        // WHEN
+        // When
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertTrue(record.image === processedImage.image)
         XCTAssertEqual(record.response?.cacheType, .memory)
 
-        // THEN
+        // Then
         XCTAssertEqual(imageCache.readCount, 1)
         XCTAssertEqual(imageCache.writeCount, 1) // Initial write
         XCTAssertEqual(dataCache.readCount, 0)
@@ -191,16 +191,16 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
     }
 
     func testGivenProcessedImageInBothMemoryAndDiskCache() {
-        // GIVEN
+        // Given
         pipeline.cache.storeCachedImage(processedImage, for: request, caches: [.all])
 
-        // WHEN
+        // When
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertTrue(record.image === processedImage.image)
         XCTAssertEqual(record.response?.cacheType, .memory)
 
-        // THEN
+        // Then
         XCTAssertEqual(imageCache.readCount, 1)
         XCTAssertEqual(imageCache.writeCount, 1) // Initial write
         XCTAssertEqual(dataCache.readCount, 0)
@@ -209,16 +209,16 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
     }
 
     func testGivenProcessedImageInDiskCache() {
-        // GIVEN
+        // Given
         pipeline.cache.storeCachedImage(processedImage, for: request, caches: [.disk])
 
-        // WHEN
+        // When
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertNotNil(record.image)
         XCTAssertEqual(record.response?.cacheType, .disk)
 
-        // THEN
+        // Then
         XCTAssertEqual(imageCache.readCount, 1)
         XCTAssertEqual(imageCache.writeCount, 1) // Initial write
         XCTAssertEqual(dataCache.readCount, 1)
@@ -227,17 +227,17 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
     }
 
     func testGivenProcessedImageInDiskCacheAndIndermediateImageInMemoryCache() {
-        // GIVEN
+        // Given
         pipeline.cache.storeCachedImage(processedImage, for: request, caches: [.disk])
         pipeline.cache.storeCachedImage(intermediateImage, for: intermediateRequest, caches: [.memory])
 
-        // WHEN
+        // When
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertNotNil(record.image)
         XCTAssertEqual(record.response?.cacheType, .disk)
 
-        // THEN
+        // Then
         XCTAssertEqual(imageCache.readCount, 1)
         XCTAssertEqual(imageCache.writeCount, 2) // Initial write
         XCTAssertNotNil(imageCache[request])
@@ -248,16 +248,16 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
     }
 
     func testGivenIndermediateImageInMemoryCache() {
-        // GIVEN
+        // Given
         pipeline.cache.storeCachedImage(intermediateImage, for: intermediateRequest, caches: [.memory])
 
-        // WHEN
+        // When
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertEqual(record.image?.nk_test_processorIDs, ["1", "2"])
         XCTAssertEqual(record.response?.cacheType, .memory)
 
-        // THEN
+        // Then
         XCTAssertEqual(imageCache.readCount, 2) // Processed + intermediate
         XCTAssertEqual(imageCache.writeCount, 2) // Initial write
         XCTAssertNotNil(imageCache[request])
@@ -268,17 +268,17 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
     }
 
     func testGivenOriginalAndIntermediateImageInMemoryCache() {
-        // GIVEN
+        // Given
         pipeline.cache.storeCachedImage(intermediateImage, for: intermediateRequest, caches: [.memory])
         pipeline.cache.storeCachedImage(originalImage, for: originalRequest, caches: [.memory])
 
-        // WHEN
+        // When
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertEqual(record.image?.nk_test_processorIDs, ["1", "2"])
         XCTAssertEqual(record.response?.cacheType, .memory)
 
-        // THEN
+        // Then
         XCTAssertEqual(imageCache.readCount, 2) // Processed + intermediate
         XCTAssertEqual(imageCache.writeCount, 3) // Initial write + write processed
         XCTAssertNotNil(imageCache[originalRequest])
@@ -290,16 +290,16 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
     }
 
     func testGivenOriginalImageInBothCaches() {
-        // GIVEN
+        // Given
         pipeline.cache.storeCachedImage(originalImage, for: originalRequest, caches: [.all])
 
-        // WHEN
+        // When
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertEqual(record.image?.nk_test_processorIDs, ["1", "2"])
         XCTAssertEqual(record.response?.cacheType, .memory)
 
-        // THEN
+        // Then
         XCTAssertEqual(imageCache.readCount, 3) // Processed + intermediate + original
         XCTAssertEqual(imageCache.writeCount, 2) // Processed + original
         XCTAssertNotNil(imageCache[originalRequest])
@@ -310,16 +310,16 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
     }
 
     func testGivenOriginalImageInDiskCache() {
-        // GIVEN
+        // Given
         pipeline.cache.storeCachedImage(originalImage, for: originalRequest, caches: [.disk])
 
-        // WHEN
+        // When
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertEqual(record.image?.nk_test_processorIDs, ["1", "2"])
         XCTAssertEqual(record.response?.cacheType, .disk)
 
-        // THEN
+        // Then
         XCTAssertEqual(imageCache.readCount, 3) // Processed + intermediate + original
         XCTAssertEqual(imageCache.writeCount, 1) // Processed
         XCTAssertNotNil(imageCache[request])
@@ -329,7 +329,7 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
     }
 
     func testPolicyStoreEncodedImagesGivenDataAlreadyStored() {
-        // GIVEN
+        // Given
         pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .storeEncodedImages
         }
@@ -339,13 +339,13 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
         dataCache.resetCounters()
         imageCache.resetCounters()
 
-        // WHEN
+        // When
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertNotNil(record.image)
         XCTAssertEqual(record.response?.cacheType, .disk)
 
-        // THEN
+        // Then
         XCTAssertEqual(imageCache.readCount, 1)
         XCTAssertEqual(imageCache.writeCount, 1)
         XCTAssertEqual(dataCache.readCount, 1)
@@ -356,17 +356,17 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
     // MARK: ImageRequest.Options
 
     func testGivenOriginalImageInDiskCacheAndDiskReadsDisabled() {
-        // GIVEN
+        // Given
         pipeline.cache.storeCachedImage(originalImage, for: originalRequest, caches: [.disk])
 
-        // WHEN
+        // When
         request.options.insert(.disableDiskCacheReads)
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertEqual(record.image?.nk_test_processorIDs, ["1", "2"])
         XCTAssertNil(record.response?.cacheType)
 
-        // THEN
+        // Then
         XCTAssertEqual(imageCache.readCount, 3) // Processed + intermediate + original
         XCTAssertEqual(imageCache.writeCount, 1) // Processed
         XCTAssertNotNil(imageCache[request])
@@ -376,14 +376,14 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
     }
 
     func testGivenNoImageDataInDiskCacheAndDiskWritesDisabled() {
-        // WHEN
+        // When
         request.options.insert(.disableDiskCacheWrites)
         let record = expect(pipeline).toLoadImage(with: request)
         wait()
         XCTAssertEqual(record.image?.nk_test_processorIDs, ["1", "2"])
         XCTAssertNil(record.response?.cacheType)
         
-        // THEN
+        // Then
         XCTAssertEqual(imageCache.readCount, 3) // Processed + intermediate + original
         XCTAssertEqual(imageCache.writeCount, 1) // Processed
         XCTAssertNotNil(imageCache[request])

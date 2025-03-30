@@ -30,34 +30,34 @@ import Foundation
     // MARK: - Basics
 
     @Test func imageIsLoaded() async throws {
-        // WHEN
+        // When
         let image = try await pipeline.image(for: Test.request)
 
-        // THEN
+        // Then
         #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
     }
 
     // MARK: - Task-based API
 
     @Test func taskBasedImageResponse() async throws {
-        // GIVEN
+        // Given
         let task = pipeline.imageTask(with: Test.request)
 
-        // WHEN
+        // When
         let response = try await task.response
 
-        // THEN
+        // Then
         #expect(response.image.sizeInPixels == CGSize(width: 640, height: 480))
     }
 
     @Test func taskBasedImage() async throws {
-        // GIVEN
+        // Given
         let task = pipeline.imageTask(with: Test.request)
 
-        // WHEN
+        // When
         let image = try await task.image
 
-        // THEN
+        // Then
         #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
     }
 
@@ -116,7 +116,7 @@ import Foundation
 
         _ = await task.value
 
-        // THEN nothing is recorded because the task is cancelled and
+        // Then nothing is recorded because the task is cancelled and
         // stop observing the events
         #expect(recordedProgress == [])
     }
@@ -141,7 +141,7 @@ import Foundation
         async let result1: () = task1.value
         async let result2 = task2.value
 
-        // THEN you are able to observe `event` update because
+        // Then you are able to observe `event` update because
         // this task does no get cancelled
         var caughtError: Error?
         do {
@@ -173,13 +173,13 @@ import Foundation
     // MARK: - Load Data
 
     @Test func loadData() async throws {
-        // GIVEN
+        // Given
         dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
 
-        // WHEN
+        // When
         let (data, response) = try await pipeline.data(for: Test.request)
 
-        // THEN
+        // Then
         #expect(data.count == 22788)
         #expect(response?.url == Test.url)
     }
@@ -202,12 +202,12 @@ import Foundation
     }
 
     @Test func progressUpdated() async throws {
-        // GIVEN
+        // Given
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
 
-        // WHEN
+        // When
         do {
             let task = pipeline.imageTask(with: Test.url)
             for await progress in task.progress {
@@ -218,7 +218,7 @@ import Foundation
             // Do nothing
         }
 
-        // THEN
+        // Then
         #expect(recordedProgress == [
             ImageTask.Progress(completed: 10, total: 20),
             ImageTask.Progress(completed: 20, total: 20)
@@ -226,14 +226,14 @@ import Foundation
     }
 
     @Test func thatProgressivePreviewsAreDelivered() async throws {
-        // GIVEN
+        // Given
         let dataLoader = MockProgressiveDataLoader()
         pipeline = pipeline.reconfigured {
             $0.dataLoader = dataLoader
             $0.isProgressiveDecodingEnabled = true
         }
 
-        // WHEN
+        // When
         let task = pipeline.imageTask(with: Test.url)
         Task {
             for try await preview in task.previews {
@@ -243,46 +243,47 @@ import Foundation
         }
         _ = try await task.image
 
-        // THEN
+        // Then
         #expect(recordedPreviews.count == 2)
         #expect(recordedPreviews.allSatisfy { $0.container.isPreview })
     }
 
     // MARK: - Update Priority
 
-    // TODO: test
-//    @Test func updatePriority() {
-//        // GIVEN
-//        let queue = pipeline.configuration.dataLoadingQueue
-//        queue.isSuspended = true
-//
-//        let request = Test.request
-//        #expect(request.priority == .normal)
-//
-//        let observer = expect(queue).toEnqueueOperationsWithCount(1)
-//        let imageTask = pipeline.imageTask(with: request)
-//
-//        Task.detached {
-//            try await imageTask.response
-//        }
-//        wait()
-//
-//        // WHEN/THEN
-//        guard let operation = observer.operations.first else {
-//            return Issue.record("Failed to find operation")
-//        }
-//        expect(operation).toUpdatePriority()
-//        imageTask.priority = .high
-//        wait()
-//    }
+    @Test func updatePriority() async {
+        // Given
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
 
-    // MARK: - ImageRequest with Async/Await
+        let request = Test.request
+        #expect(request.priority == .normal)
+
+        // When
+        let expectation = queue.expectItemAdded()
+        let imageTask = pipeline.imageTask(with: request)
+        Task {
+            try await imageTask.response
+        }
+        let workItem = await expectation.wait()
+
+        // Then
+        #expect(workItem.priority == .normal)
+
+        let expectation2 = queue.expectPriorityUpdated(for: workItem)
+        imageTask.priority = .high
+        let newPriority = await expectation2.wait()
+
+        #expect(newPriority == .high)
+        #expect(workItem.priority == .high)
+    }
+
+    // MARK: - ImageRequest
 
     @Test func imageRequestWithAsyncAwaitSuccess() async throws {
-        // GIVEN
+        // Given
         let localURL = Test.url(forResource: "fixture", extension: "jpeg")
 
-        // WHEN
+        // When
         let request = ImageRequest(id: "test", data: {
             let (data, _) = try await URLSession.shared.data(for: URLRequest(url: localURL))
             return data
@@ -290,12 +291,12 @@ import Foundation
 
         let image = try await pipeline.image(for: request)
 
-        // THEN
+        // Then
         #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
     }
 
     @Test func imageRequestWithAsyncAwaitFailure() async throws {
-        // WHEN
+        // When
         let request = ImageRequest(id: "test", data: {
             throw URLError(networkUnavailableReason: .cellular)
         })
@@ -315,14 +316,14 @@ import Foundation
     // MARK: Common Use Cases
 
     @Test func lowDataMode() async throws {
-        // GIVEN
+        // Given
         let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
         let lowQualityImageURL = URL(string: "https://example.com/low-quality-image.jpeg")!
 
         dataLoader.results[highQualityImageURL] = .failure(URLError(networkUnavailableReason: .constrained) as NSError)
         dataLoader.results[lowQualityImageURL] = .success((Test.data, Test.urlResponse))
 
-        // WHEN
+        // When
         let pipeline = self.pipeline!
 
         // Create the default request to fetch the high quality image.
@@ -330,7 +331,7 @@ import Foundation
         urlRequest.allowsConstrainedNetworkAccess = false
         let request = ImageRequest(urlRequest: urlRequest)
 
-        // WHEN
+        // When
         @Sendable func loadImage() async throws -> PlatformImage {
             do {
                 return try await pipeline.image(for: request)
@@ -350,14 +351,14 @@ import Foundation
 
     @available(macOS 12, iOS 15, tvOS 15, watchOS 9, *)
     @Test func imageTaskEvents() async throws {
-        // GIVEN
+        // Given
         let dataLoader = MockProgressiveDataLoader()
         pipeline = pipeline.reconfigured {
             $0.dataLoader = dataLoader
             $0.isProgressiveDecodingEnabled = true
         }
 
-        // WHEN
+        // When
         let task = pipeline.loadImage(with: Test.request) { _ in }
         for await event in task.events {
             switch event {
@@ -372,7 +373,7 @@ import Foundation
             recordedEvents.append(event)
         }
 
-        // THEN
+        // Then
         try #require(recordedPreviews.count == 2)
 
         let result = try #require(recordedResult)

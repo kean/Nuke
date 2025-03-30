@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import Testing
+
 @testable import Nuke
 
 final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
@@ -30,7 +31,7 @@ final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
 
     func fulfill(with value: Value) {
         let continuation = state.withLock {
-            #expect(value == nil, "fulfill called multiple times")
+            #expect($0.value == nil, "fulfill called multiple times")
             $0.value = value
             let continuation = $0.continuation
             $0.continuation = nil

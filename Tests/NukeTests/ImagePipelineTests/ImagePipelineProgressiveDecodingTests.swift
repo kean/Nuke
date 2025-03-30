@@ -214,7 +214,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     // MARK: Back Pressure
     
     func testBackpressureImageDecoding() {
-        // GIVEN
+        // Given
         pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in MockImageDecoder(name: "a") }
         }
@@ -301,7 +301,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 
     // TODO: reimplement
 //    func testIntermediateMemoryCachedResultsAreDelivered() {
-//        // GIVEN intermediate result stored in memory cache
+//        // Given intermediate result stored in memory cache
 //        let request = ImageRequest(url: Test.url, processors: [
 //            processorsFactory.make(id: "1"),
 //            processorsFactory.make(id: "2")
@@ -313,7 +313,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 //        
 //        pipeline.configuration.dataLoadingQueue.isSuspended = true // Make sure no data is loaded
 //        
-//        // WHEN/THEN the pipeline find the first preview in the memory cache,
+//        // When/Them the pipeline find the first preview in the memory cache,
 //        // applies the remaining processors and delivers it
 //        let previewDelivered = self.expectation(description: "previewDelivered")
 //        pipeline.loadImage(with: request) { response, _, _ in
@@ -333,10 +333,10 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
     
 #if os(iOS) || os(visionOS)
     func testOverridingImageScaleWithFloat() throws {
-        // GIVEN
+        // Given
         let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7.0])
         
-        // WHEN/THEN the pipeline find the first preview in the memory cache,
+        // When/Them the pipeline find the first preview in the memory cache,
         // applies the remaining processors and delivers it
         let previewDelivered = self.expectation(description: "previewDelivered")
         pipeline.loadImage(with: request) { response, _, _ in

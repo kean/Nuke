@@ -23,19 +23,19 @@ import Foundation
     // MARK: - CoW
 
     @Test func copyOnWrite() {
-        // GIVEN
+        // Given
         var request = ImageRequest(url: URL(string: "http://test.com/1.png"))
         request.options.insert(.disableMemoryCacheReads)
         request.userInfo["key"] = "3"
         request.processors = [MockImageProcessor(id: "4")]
         request.priority = .high
 
-        // WHEN
+        // When
         var copy = request
         // Request makes a copy at this point under the hood.
         copy.priority = .low
 
-        // THEN
+        // Then
         #expect(copy.options.contains(.disableMemoryCacheReads) == true)
         #expect(copy.userInfo["key"] as? String == "3")
         #expect((copy.processors.first as? MockImageProcessor)?.identifier == "4")
@@ -54,10 +54,10 @@ import Foundation
     }
 
     @Test func userInfoKey() {
-        // WHEN
+        // When
         let request = ImageRequest(url: Test.url, userInfo: [.init("a"): 1])
 
-        // THEN
+        // Then
         #expect(request.userInfo["a"] != nil)
     }
 }

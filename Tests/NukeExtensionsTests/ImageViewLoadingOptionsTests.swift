@@ -345,7 +345,7 @@ class ImageViewLoadingOptionsTests: XCTestCase {
 #if os(iOS) || os(tvOS) || os(visionOS)
     @MainActor
     func testTransitionCrossDissolve() {
-        // GIVEN
+        // Given
         var options = ImageLoadingOptions()
         options.placeholder = Test.image
         options.transition = .fadeIn(duration: 0.33)
@@ -358,26 +358,26 @@ class ImageViewLoadingOptionsTests: XCTestCase {
         
         imageView.image = Test.image
         
-        // WHEN
+        // When
         expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
         wait()
         
-        // THEN make sure we run the pass with cross-disolve and at least
+        // Then make sure we run the pass with cross-disolve and at least
         // it doesn't crash
     }
 #endif
     
     @MainActor
     func testSettingDefaultProcessor() {
-        // GIVEN
+        // Given
         var options = ImageLoadingOptions()
         options.processors = [MockImageProcessor(id: "p1")]
         
-        // WHEN
+        // When
         expectToFinishLoadingImage(with: Test.request, options: options, into: imageView)
         wait()
         
-        // THEN
+        // Then
         XCTAssertEqual(imageView.image?.nk_test_processorIDs, ["p1"])
     }
 }

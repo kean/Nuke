@@ -52,6 +52,7 @@ final class WorkQueue {
         schedule.list(for: item.priority).remove(node)
         item.priority = newPriority
         schedule.list(for: newPriority).prepend(node)
+        onEvent?(.priorityUpdate(item, newPriority))
     }
 
     fileprivate func cancel(_ item: Item) {
@@ -122,6 +123,7 @@ final class WorkQueue {
     @ImagePipelineActor
     enum Event {
         case workAdded(Item)
+        case priorityUpdate(Item, TaskPriority)
     }
 
     private struct ScheduledWork {

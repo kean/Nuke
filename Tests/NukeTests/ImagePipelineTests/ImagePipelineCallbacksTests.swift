@@ -135,7 +135,7 @@ import Foundation
 //    }
 //
 //    @Test func decodingOperationCancelled() {
-//        // GIVEN
+//        // Given
 //        pipeline = pipeline.reconfigured {
 //            $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
 //        }
@@ -196,39 +196,39 @@ import Foundation
 //#if !os(macOS)
 //
 //    @Test func disablingDecompression() async throws {
-//        // GIVEN
+//        // Given
 //        pipeline = pipeline.reconfigured {
 //            $0.isDecompressionEnabled = false
 //        }
 //
-//        // WHEN
+//        // When
 //        let image = try await pipeline.image(for: Test.url)
 //
-//        // THEN
+//        // Then
 //        #expect(true == ImageDecompression.isDecompressionNeeded(for: image))
 //    }
 //
 //    @Test func disablingDecompressionForIndividualRequest() async throws {
-//        // GIVEN
+//        // Given
 //        let request = ImageRequest(url: Test.url, options: [.skipDecompression])
 //
-//        // WHEN
+//        // When
 //        let image = try await pipeline.image(for: request)
 //
-//        // THEN
+//        // Then
 //        #expect(true == ImageDecompression.isDecompressionNeeded(for: image))
 //    }
 //
 //    @Test func decompressionPerformed() async throws {
-//        // WHEN
+//        // When
 //        let image = try await pipeline.image(for: Test.request)
 //
-//        // THEN
+//        // Then
 //        #expect(ImageDecompression.isDecompressionNeeded(for: image) == nil)
 //    }
 //
 //    @Test func decompressionNotPerformedWhenProcessorWasApplied() async throws {
-//        // GIVEN request with scaling processor
+//        // Given request with scaling processor
 //        let input = Test.image
 //        pipeline = pipeline.reconfigured {
 //            $0.makeImageDecoder = { _ in MockAnonymousImageDecoder(output: input) }
@@ -238,10 +238,10 @@ import Foundation
 //            .resize(size: CGSize(width: 40, height: 40))
 //        ])
 //
-//        // WHEN
+//        // When
 //        _ = try await pipeline.image(for: request)
 //
-//        // THEN
+//        // Then
 //        #expect(true == ImageDecompression.isDecompressionNeeded(for: input))
 //    }
 //
@@ -265,13 +265,13 @@ import Foundation
 //    // MARK: - Thumbnail
 //
 //    @Test func thatThumbnailIsGenerated() {
-//        // GIVEN
+//        // Given
 //        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
 //        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
 //
-//        // WHEN
+//        // When
 //        expect(pipeline).toLoadImage(with: request) { result in
-//            // THEN
+//            // Then
 //            guard let image = result.value?.image else {
 //                return Issue.record()
 //            }
@@ -281,11 +281,11 @@ import Foundation
 //    }
 //
 //    @Test func thumbnailIsGeneratedOnDecodingQueue() {
-//        // GIVEN
+//        // Given
 //        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
 //        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
 //
-//        // WHEN/THEN
+//        // When/Them
 //        expect(pipeline.configuration.imageDecodingQueue).toEnqueueOperationsWithCount(1)
 //        expect(pipeline).toLoadImage(with: request)
 //        wait()
@@ -295,11 +295,11 @@ import Foundation
 //    @Test func thumnbailIsntDecompressed() {
 //        pipeline.configuration.imageDecompressingQueue.isSuspended = true
 //
-//        // GIVEN
+//        // Given
 //        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
 //        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
 //
-//        // WHEN/THEN
+//        // When/Them
 //        expect(pipeline).toLoadImage(with: request)
 //        wait()
 //    }
@@ -347,10 +347,10 @@ import Foundation
 //    }
 //
 //    @Test func thatInvalidatedTasksFailWithError() async throws {
-//        // WHEN
+//        // When
 //        pipeline.invalidate()
 //
-//        // THEN
+//        // Then
 //        do {
 //            _ = try await pipeline.image(for: Test.request)
 //            Issue.record()
@@ -447,14 +447,14 @@ import Foundation
 //    }
 //
 //    @Test func processingFailedErrorReturned() {
-//        // GIVEN
+//        // Given
 //        let pipeline = ImagePipeline {
 //            $0.dataLoader = MockDataLoader()
 //        }
 //
 //        let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
 //
-//        // WHEN/THEN
+//        // When/Them
 //        expect(pipeline).toFailRequest(request) { result in
 //            guard case .failure(let error) = result,
 //                  case let .processingFailed(processor, context, error) = error else {
@@ -474,10 +474,10 @@ import Foundation
 //    }
 //
 //    @Test func imageContainerUserInfo() { // Just to make sure we have 100% coverage
-//        // WHEN
+//        // When
 //        let container = ImageContainer(image: Test.image, type: nil, isPreview: false, data: nil, userInfo: [.init("a"): 1])
 //
-//        // THEN
+//        // Then
 //        #expect(container.userInfo["a"] as? Int == 1)
 //    }
 //
@@ -519,12 +519,12 @@ import Foundation
 //    }
 //
 //    @Test func loadWithInvalidURL() throws {
-//        // GIVEN
+//        // Given
 //        pipeline = pipeline.reconfigured {
 //            $0.dataLoader = DataLoader()
 //        }
 //
-//        // WHEN
+//        // When
 //        for _ in 0...10 {
 //            expect(pipeline).toFailRequest(ImageRequest(url: URL(string: "")))
 //            wait()
@@ -533,27 +533,27 @@ import Foundation
 //
 //#if !os(macOS)
 //    @Test func overridingImageScale() throws {
-//        // GIVEN
+//        // Given
 //        let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7])
 //
-//        // WHEN
+//        // When
 //        let record = expect(pipeline).toLoadImage(with: request)
 //        wait()
 //
-//        // THEN
+//        // Then
 //        let image = try #require(record.image)
 //        #expect(image.scale == 7)
 //    }
 //
 //    @Test func overridingImageScaleWithFloat() throws {
-//        // GIVEN
+//        // Given
 //        let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7.0])
 //
-//        // WHEN
+//        // When
 //        let record = expect(pipeline).toLoadImage(with: request)
 //        wait()
 //
-//        // THEN
+//        // Then
 //        let image = try #require(record.image)
 //        #expect(image.scale == 7)
 //    }

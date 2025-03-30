@@ -13,14 +13,14 @@ import UIKit
 
 class ImageProcessorsCoreImageFilterTests: XCTestCase {
     func testApplySepia() throws {
-        // GIVEN
+        // Given
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone")
         
-        // WHEN
+        // When
         let output = try XCTUnwrap(processor.process(input))
         
-        // THEN
+        // Then
         XCTAssertNotNil(output)
         
         // TODO: The comparison doesn't work for some reason
@@ -28,14 +28,14 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
     }
     
     func testApplySepiaWithParameters() throws {
-        // GIVEN
+        // Given
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
         
-        // WHEN
+        // When
         let output = try XCTUnwrap(processor.process(input))
         
-        // THEN
+        // Then
         XCTAssertNotNil(output)
         
         // TODO: The comparison doesn't work for some reason
@@ -43,11 +43,11 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
     }
     
     func testApplyFilterWithInvalidName() throws {
-        // GIVEN
+        // Given
         let input = Test.image(named: "fixture-tiny.jpeg")
         let processor = ImageProcessors.CoreImageFilter(name: "yo", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
         
-        // THEN
+        // Then
         XCTAssertThrowsError(try processor.processThrowing(input)) { error in
             guard let error = error as? ImageProcessors.CoreImageFilter.Error else {
                 return XCTFail("Unexpected error type: \(error)")
@@ -64,24 +64,24 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
     
 #if os(iOS) || os(tvOS) || os(visionOS)
     func testApplyFilterToCIImage() throws {
-        // GIVEN image backed by CIImage
+        // Given image backed by CIImage
         let input = PlatformImage(ciImage: CIImage(cgImage: Test.image.cgImage!))
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
         
-        // WHEN
+        // When
         let output = try XCTUnwrap(processor.process(input))
         
-        // THEN
+        // Then
         XCTAssertNotNil(output)
     }
 #endif
     
     func testApplyFilterBackedByNothing() throws {
-        // GIVEN empty image
+        // Given empty image
         let input = PlatformImage()
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
         
-        // THEN
+        // Then
         XCTAssertThrowsError(try processor.processThrowing(input)) { error in
             guard let error = error as? ImageProcessors.CoreImageFilter.Error else {
                 return XCTFail("Unexpected error type: \(error)")
@@ -96,23 +96,23 @@ class ImageProcessorsCoreImageFilterTests: XCTestCase {
     }
     
     func testDescription() {
-        // GIVEN
+        // Given
         let processor = ImageProcessors.CoreImageFilter(name: "CISepiaTone", parameters: ["inputIntensity": 0.5], identifier: "CISepiaTone-75")
         
-        // THEN
+        // Then
         XCTAssertEqual("\(processor)", "CoreImageFilter(name: CISepiaTone, parameters: [\"inputIntensity\": 0.5])")
     }
 
     func testApplyCustomFilter() throws {
-        // GIVEN
+        // Given
         let input = Test.image(named: "fixture-tiny.jpeg")
         let filter = try XCTUnwrap(CIFilter(name: "CISepiaTone", parameters: nil))
         let processor = ImageProcessors.CoreImageFilter(filter, identifier: "test")
 
-        // WHEN
+        // When
         let output = try XCTUnwrap(processor.process(input))
 
-        // THEN
+        // Then
         XCTAssertNotNil(output)
     }
 }

@@ -370,7 +370,7 @@ import Security
     // MARK: Sweep
 
     @Test func sweep() {
-        // GIVEN
+        // Given
         let mb = 1024 * 1024 // allocated size is usually about 4 KB on APFS, so use 1 MB just to be sure
         cache.sizeLimit = mb * 3
         cache["key1"] = Data(repeating: 1, count: mb)
@@ -379,41 +379,41 @@ import Security
         cache["key4"] = Data(repeating: 1, count: mb)
         cache.flush()
 
-        // WHEN
+        // When
         cache.sweep()
 
-        // THEN
+        // Then
         #expect(cache.totalSize == mb * 2)
     }
 
     // MARK: Inspection
 
     @Test func containsData() {
-        // GIVEN
+        // Given
         cache["key"] = blob
         cache.flush(for: "key")
 
-        // WHEN/THEN
+        // When/Them
         #expect(cache.containsData(for: "key"))
     }
 
     @Test func containsDataInStaging() {
-        // GIVEN
+        // Given
         cache.flushInterval = .seconds(20)
         cache["key"] = blob
 
-        // WHEN/THEN
+        // When/Them
         #expect(cache.containsData(for: "key"))
     }
 
     @Test func containsDataAfterRemoval() {
-        // GIVEN
+        // Given
         cache.flushInterval = .seconds(20)
         cache["key"] = blob
         cache.flush(for: "key")
         cache["key"] = nil
 
-        // WHEN/THEN
+        // When/Them
         #expect(!cache.containsData(for: "key"))
     }
 

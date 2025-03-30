@@ -34,7 +34,7 @@ import Combine
         prefetcher.startPrefetching(with: [Test.request])
         _ = try await pipeline.image(for: Test.request)
 
-        // THEN
+        // Then
         #expect(dataLoader.createdTaskCount == 1)
         #expect(observer.createdTaskCount == 2)
     }
@@ -42,22 +42,22 @@ import Combine
     // MARK: Start Prefetching
 
     @Test func startPrefetching() async {
-        // WHEN
+        // When
         prefetcher.startPrefetching(with: [Test.url])
         await prefetcher.wait()
 
-        // THEN image saved in both caches
+        // Then image saved in both caches
         #expect(pipeline.cache[Test.request] != nil)
         #expect(pipeline.cache.cachedData(for: Test.request) != nil)
     }
 
     @Test func startPrefetchingWithTwoEquivalentURLs() async {
-        // WHEN
+        // When
         prefetcher.startPrefetching(with: [Test.url])
         prefetcher.startPrefetching(with: [Test.url])
         await prefetcher.wait()
 
-        // THEN only one task is started
+        // Then only one task is started
         #expect(observer.createdTaskCount == 1)
     }
 
@@ -78,7 +78,7 @@ import Combine
     // MARK: Destination
 
     @Test func startPrefetchingDestinationDisk() async {
-        // GIVEN
+        // Given
         let pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in
                 Issue.record("Expect image not to be decoded")
@@ -87,11 +87,11 @@ import Combine
         }
         let prefetcher = ImagePrefetcher(pipeline: pipeline, destination: .diskCache)
 
-        // WHEN
+        // When
         prefetcher.startPrefetching(with: [Test.url])
         await prefetcher.wait()
 
-        // THEN image saved in both caches
+        // Then image saved in both caches
         #expect(pipeline.cache[Test.request] == nil)
         #expect(pipeline.cache.cachedData(for: Test.request) != nil)
     }
@@ -99,13 +99,13 @@ import Combine
     // MARK: Pause
 
     @Test func pausingPrefetcher() async {
-        // WHEN
+        // When
         prefetcher.isPaused = true
         prefetcher.startPrefetching(with: [Test.url])
 
         try? await Task.sleep(nanoseconds: 3 * 1_000_000)
 
-        // THEN
+        // Then
         #expect(observer.createdTaskCount == 0)
     }
 
@@ -113,28 +113,22 @@ import Combine
 
     // TODO: reuse this code and fix the priority test
     @Test @ImagePipelineActor func defaultPrioritySetToLow() async {
-        // WHEN start prefetching with URL
+        // When start prefetching with URL
         dataLoader.isSuspended = true
 
-        let expectation = AsyncExpectation<WorkQueue.Item>()
-        pipeline.configuration.dataLoadingQueue.onEvent = { @Sendable in
-            if case .workAdded(let item) = $0 {
-                expectation.fulfill(with: item)
-            }
-        }
-
+        let expectation = pipeline.configuration.dataLoadingQueue.expectItemAdded()
         prefetcher.startPrefetching(with: [Test.url])
-        let item = await expectation.wait()
+        let workItem = await expectation.wait()
 
-        // THEN priority is set to .low
-        #expect(item.priority == .low)
+        // Then priority is set to .low
+        #expect(workItem.priority == .low)
 
         // Cleanup
         prefetcher.stopPrefetching()
     }
 
 //    @Test func defaultPriorityAffectsRequests() {
-//        // WHEN start prefetching with ImageRequest
+//        // When start prefetching with ImageRequest
 //        pipeline.configuration.dataLoadingQueue.isSuspended = true
 //        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
 //        let request = Test.request
@@ -142,7 +136,7 @@ import Combine
 //        prefetcher.startPrefetching(with: [request])
 //        wait()
 //
-//        // THEN priority is set to .low
+//        // Then priority is set to .low
 //        guard let operation = observer.operations.first else {
 //            return Issue.record("Failed to find operation")
 //        }
@@ -150,7 +144,7 @@ import Combine
 //    }
 //
 //    @Test func lowerPriorityThanDefaultNotAffected() {
-//        // WHEN start prefetching with ImageRequest with .veryLow priority
+//        // When start prefetching with ImageRequest with .veryLow priority
 //        pipeline.configuration.dataLoadingQueue.isSuspended = true
 //        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
 //        var request = Test.request
@@ -158,7 +152,7 @@ import Combine
 //        prefetcher.startPrefetching(with: [request])
 //        wait()
 //
-//        // THEN priority is set to .low (prefetcher priority)
+//        // Then priority is set to .low (prefetcher priority)
 //        guard let operation = observer.operations.first else {
 //            return Issue.record("Failed to find operation")
 //        }
@@ -166,16 +160,16 @@ import Combine
 //    }
 //
 //    @Test func changePriority() {
-//        // GIVEN
+//        // Given
 //        prefetcher.priority = .veryHigh
 //
-//        // WHEN
+//        // When
 //        pipeline.configuration.dataLoadingQueue.isSuspended = true
 //        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
 //        prefetcher.startPrefetching(with: [Test.url])
 //        wait()
 //
-//        // THEN
+//        // Then
 //        guard let operation = observer.operations.first else {
 //            return Issue.record("Failed to find operation")
 //        }
@@ -183,7 +177,7 @@ import Combine
 //    }
 //
 //    @Test func changePriorityOfOutstandingTasks() {
-//        // WHEN
+//        // When
 //        pipeline.configuration.dataLoadingQueue.isSuspended = true
 //        let observer = expect(pipeline.configuration.dataLoadingQueue).toEnqueueOperationsWithCount(1)
 //        prefetcher.startPrefetching(with: [Test.url])
@@ -192,7 +186,7 @@ import Combine
 //            return Issue.record("Failed to find operation")
 //        }
 //
-//        // WHEN/THEN
+//        // When/Them
 //        expect(operation).toUpdatePriority(from: .low, to: .veryLow)
 //        prefetcher.priority = .veryLow
 //        wait()

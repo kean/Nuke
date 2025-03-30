@@ -32,7 +32,7 @@ import Foundation
     }
 
     @Test func executionOrder() async {
-        // WHEN
+        // When
         queue.isSuspended = true
 
         var completed: [Int] = []
@@ -43,7 +43,7 @@ import Foundation
 
         queue.isSuspended = false
 
-        // THEN items are executed in the order they were added (FIFO)
+        // Then items are executed in the order they were added (FIFO)
         await queue.wait()
         #expect(completed == [1, 2, 3])
     }
@@ -121,7 +121,7 @@ import Foundation
     }
 
     @Test func changePriorityOfScheduldItem() async {
-        // GIVEN a queue with priorities [2, 3, 1]
+        // Given a queue with priorities [2, 3, 1]
         queue.isSuspended = true
 
         var completed: [Int] = []
@@ -136,10 +136,10 @@ import Foundation
             completed.append(3)
         }
 
-        // WHEN item with .low priorit (1) changes priority to .high
+        // When item with .low priorit (1) changes priority to .high
         item.setPriority(.high)
 
-        // THEN
+        // Then
         queue.isSuspended = false
         await queue.wait()
         #expect(completed == [2, 1, 3])

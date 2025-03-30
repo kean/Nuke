@@ -28,10 +28,10 @@ class ImagePipelinePublisherTests: XCTestCase {
     }
 
     func testCancellation() {
-        // GIVEN
+        // Given
         dataLoader.isSuspended = true
 
-        // WHEN
+        // When
         let cancellable = pipeline
             .imagePublisher(with: Test.request)
             .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
@@ -77,7 +77,7 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
         var previewsCount = 0
         let completed = self.expectation(description: "Completed")
 
-        // WHEN
+        // When
         let publisher = pipeline.imagePublisher(with: Test.url)
         cancellable = publisher.sink(receiveCompletion: { completion in
             switch completion {
@@ -101,7 +101,7 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
     }
 
     func testImagePreviewsAreDeliveredFromMemoryCacheSynchronously() {
-        // GIVEN
+        // Given
         pipeline.cache[Test.request] = ImageContainer(image: Test.image, isPreview: true)
 
         let imagesProduced = self.expectation(description: "ImagesProduced")
@@ -115,7 +115,7 @@ class ImagePipelinePublisherProgressiveDecodingTests: XCTestCase {
         var isFirstPreviewProduced = false
         let completed = self.expectation(description: "Completed")
 
-        // WHEN
+        // When
         let publisher = pipeline.imagePublisher(with: Test.url)
         cancellable =  publisher.sink(receiveCompletion: { completion in
             switch completion {

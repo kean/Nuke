@@ -29,7 +29,7 @@ class ImagePipelineDelegateTests: XCTestCase {
 
     @MainActor
     func testCustomizingDataCacheKey() throws {
-        // GIVEN
+        // Given
         let imageURLSmall = URL(string: "https://example.com/image-01-small.jpeg")!
         let imageURLMedium = URL(string: "https://example.com/image-01-medium.jpeg")!
 
@@ -37,7 +37,7 @@ class ImagePipelineDelegateTests: XCTestCase {
             (Test.data, URLResponse(url: imageURLMedium, mimeType: "jpeg", expectedContentLength: Test.data.count, textEncodingName: nil))
         )
 
-        // GIVEN image is loaded from medium size URL and saved in cache using imageId "image-01-small"
+        // Given image is loaded from medium size URL and saved in cache using imageId "image-01-small"
         let requestA = ImageRequest(
             url: imageURLMedium,
             processors: [.resize(width: 44)],
@@ -50,13 +50,13 @@ class ImagePipelineDelegateTests: XCTestCase {
         let image = try XCTUnwrap(PlatformImage(data: data))
         XCTAssertEqual(image.sizeInPixels.width, 44 * Screen.scale)
 
-        // GIVEN a request for a small image
+        // Given a request for a small image
         let requestB = ImageRequest(
             url: imageURLSmall,
             userInfo: ["imageId": "image-01-small"]
         )
 
-        // WHEN/THEN the image is returned from the disk cache
+        // When/Them the image is returned from the disk cache
         expect(pipeline).toLoadImage(with: requestB, completion: { result in
             guard let image = result.value?.image else {
                 return XCTFail()
@@ -68,21 +68,21 @@ class ImagePipelineDelegateTests: XCTestCase {
     }
 
     func testDataIsStoredInCache() {
-        // WHEN
+        // When
         expect(pipeline).toLoadImage(with: Test.request)
 
-        // THEN
+        // Then
         wait { _ in
             XCTAssertFalse(self.dataCache.store.isEmpty)
         }
     }
 
     func testDataIsStoredInCacheWhenCacheDisabled() {
-        // WHEN
+        // When
         delegate.isCacheEnabled = false
         expect(pipeline).toLoadImage(with: Test.request)
 
-        // THEN
+        // Then
         wait { _ in
             XCTAssertTrue(self.dataCache.store.isEmpty)
         }

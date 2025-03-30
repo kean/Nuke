@@ -24,14 +24,14 @@ class ImagePublisherTests: XCTestCase {
     // MARK: Common Use Cases
 
     func testLowDataMode() {
-        // GIVEN
+        // Given
         let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
         let lowQualityImageURL = URL(string: "https://example.com/low-quality-image.jpeg")!
 
         dataLoader.results[highQualityImageURL] = .failure(URLError(networkUnavailableReason: .constrained) as NSError)
         dataLoader.results[lowQualityImageURL] = .success((Test.data, Test.urlResponse))
 
-        // WHEN
+        // When
         let pipeline = self.pipeline!
 
         // Create the default request to fetch the high quality image.
@@ -39,7 +39,7 @@ class ImagePublisherTests: XCTestCase {
         urlRequest.allowsConstrainedNetworkAccess = false
         let request = ImageRequest(urlRequest: urlRequest)
 
-        // WHEN
+        // When
         let publisher = pipeline.imagePublisher(with: request).tryCatch { error -> AnyPublisher<ImageResponse, ImagePipeline.Error> in
             guard (error.dataLoadingError as? URLError)?.networkUnavailableReason == .constrained else {
                 throw error
@@ -65,14 +65,14 @@ class ImagePublisherTests: XCTestCase {
     // MARK: Basics
 
     func testSyncCacheLookup() {
-        // GIVEN
+        // Given
         let cache = MockImageCache()
         cache[Test.request] = ImageContainer(image: Test.image)
         pipeline = pipeline.reconfigured {
             $0.imageCache = cache
         }
 
-        // WHEN
+        // When
         var image: PlatformImage?
         cancellable = pipeline.imagePublisher(with: Test.url).sink(receiveCompletion: { result in
             switch result {
@@ -85,7 +85,7 @@ class ImagePublisherTests: XCTestCase {
             image = $0.image
         })
 
-        // THEN image returned synchronously
+        // Then image returned synchronously
         XCTAssertNotNil(image)
     }
 

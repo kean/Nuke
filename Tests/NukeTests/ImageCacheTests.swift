@@ -290,21 +290,21 @@ import UIKit
     // MARK: Misc
 
     @Test func removeAll() {
-        // GIVEN
+        // Given
         cache[request1] = Test.container
         cache[request2] = Test.container
 
-        // WHEN
+        // When
         cache.removeAll()
 
-        // THEN
+        // Then
         #expect(cache.totalCount == 0)
         #expect(cache.totalCost == 0)
     }
 
 #if canImport(UIKit)
     @Test @MainActor func someImagesAreRemovedOnDidEnterBackground() async {
-        // GIVEN
+        // Given
         cache.costLimit = Int.max
         cache.countLimit = 10 // 1 out of 10 images should remain
 
@@ -313,18 +313,18 @@ import UIKit
         }
         #expect(cache.totalCount == 10)
 
-        // WHEN
+        // When
         let task = Task { @MainActor in
             NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
 
-            // THEN
+            // Then
             #expect(cache.totalCount == 1)
         }
         await task.value
     }
 
     @Test @MainActor func someImagesAreRemovedBasedOnCostOnDidEnterBackground() async {
-        // GIVEN
+        // Given
         let cost = cache.cost(for: ImageContainer(image: Test.image))
         cache.costLimit = cost * 10
         cache.countLimit = Int.max
@@ -335,11 +335,11 @@ import UIKit
         }
         #expect(cache.totalCount == 10)
 
-        // WHEN
+        // When
         let task = Task { @MainActor in
             NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
 
-            // THEN
+            // Then
             #expect(cache.totalCount == 1)
         }
         await task.value

@@ -85,7 +85,7 @@ class ImageViewExtensionsTests: XCTestCase {
     
     @MainActor
     func testLoadImageWithNilRequest() {
-        // WHEN
+        // When
         imageView.image = Test.image
         
         let expectation = self.expectation(description: "Image loaded")
@@ -96,21 +96,21 @@ class ImageViewExtensionsTests: XCTestCase {
         }
         wait()
         
-        // THEN
+        // Then
         XCTAssertNil(imageView.image)
     }
     
     @MainActor
     func testLoadImageWithNilRequestAndPlaceholder() {
-        // GIVEN
+        // Given
         let failureImage = Test.image
         
-        // WHEN
+        // When
         let options = ImageLoadingOptions(failureImage: failureImage)
         let request: ImageRequest? = nil
         NukeExtensions.loadImage(with: request, options: options, into: imageView)
         
-        // THEN failure image is displayed
+        // Then failure image is displayed
         XCTAssertTrue(imageView.image === failureImage)
     }
     
@@ -224,7 +224,7 @@ class ImageViewExtensionsTests: XCTestCase {
     
     @MainActor
     func testCompletionCalledImageFromCache() {
-        // GIVEN the requested image stored in memory cache
+        // Given the requested image stored in memory cache
         imageCache[Test.request] = Test.container
         
         var didCallCompletion = false
@@ -243,14 +243,14 @@ class ImageViewExtensionsTests: XCTestCase {
     
     @MainActor
     func testProgressHandlerCalled() {
-        // GIVEN
+        // Given
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
         
         let expectedProgress = expectProgress([(10, 20), (20, 20)])
         
-        // WHEN loading an image into a view
+        // When loading an image into a view
         NukeExtensions.loadImage(
             with: Test.request,
             into: imageView,

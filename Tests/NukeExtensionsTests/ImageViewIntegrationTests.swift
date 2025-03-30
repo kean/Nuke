@@ -71,7 +71,7 @@ class ImageViewIntegrationTests: XCTestCase {
     
     @MainActor
     func testLoadImageWithInvalidURLString() {
-        // WHEN
+        // When
         let expectation = self.expectation(description: "Image loaded")
         NukeExtensions.loadImage(with: URL(string: ""), into: imageView) { result in
             XCTAssertEqual(result.error, .imageRequestMissing)
@@ -79,34 +79,34 @@ class ImageViewIntegrationTests: XCTestCase {
         }
         wait()
         
-        // THEN
+        // Then
         XCTAssertNil(imageView.image)
     }
     
     @MainActor
     func testLoadingWithNilURL() {
-        // GIVEN
+        // Given
         var urlRequest = URLRequest(url: Test.url)
         urlRequest.url = nil // Not sure why this is even possible
         
-        // WHEN
+        // When
         let expectation = self.expectation(description: "Image loaded")
         NukeExtensions.loadImage(with: ImageRequest(urlRequest: urlRequest), into: imageView) { result in
-            // THEN
+            // Then
             XCTAssertNotNil(result.error?.dataLoadingError)
             expectation.fulfill()
         }
         wait()
         
-        // THEN
+        // Then
         XCTAssertNil(imageView.image)
     }
     
     func testLoadingWithRequestWithNilURL() {
-        // GIVEN
+        // Given
         let input = ImageRequest(url: nil)
         
-        // WHEN/THEN
+        // When/Them
         let expectation = self.expectation(description: "ImageLoaded")
         pipeline.loadImage(with: input) {
             XCTAssertTrue($0.isFailure)
@@ -129,7 +129,7 @@ class ImageViewIntegrationTests: XCTestCase {
     
     @MainActor
     func _testThatAttachedDataIsPassed() throws {
-        // GIVEN
+        // Given
         pipeline = pipeline.reconfigured {
             $0.makeImageDecoder = { _ in
                 ImageDecoders.Empty()
@@ -142,7 +142,7 @@ class ImageViewIntegrationTests: XCTestCase {
         options.pipeline = pipeline
         options.isPrepareForReuseEnabled = false
         
-        // WHEN
+        // When
         let expectation = self.expectation(description: "Image loaded")
         NukeExtensions.loadImage(with: Test.url, options: options, into: imageView) { result in
             XCTAssertNotNil(result.value)
@@ -151,7 +151,7 @@ class ImageViewIntegrationTests: XCTestCase {
         }
         wait()
         
-        // THEN
+        // Then
         let data = try XCTUnwrap(imageView.recordedData.first)
         XCTAssertNotNil(data)
     }

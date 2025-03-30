@@ -125,19 +125,19 @@ class ImagePipelineCoalescingTests: XCTestCase {
 
 #if !os(macOS)
     func testOverridingImageScale() throws {
-        // GIVEN requests with the same URLs but one accesses thumbnail
+        // Given requests with the same URLs but one accesses thumbnail
         let request1 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 2])
         let request2 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 3])
 
-        // WHEN loading images for those requests
+        // When loading images for those requests
         withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
             expect(pipeline).toLoadImage(with: request1) { result in
-                // THEN
+                // Then
                 guard let image = result.value?.image else { return XCTFail() }
                 XCTAssertEqual(image.scale, 2)
             }
             expect(pipeline).toLoadImage(with: request2) { result in
-                // THEN
+                // Then
                 guard let image = result.value?.image else { return XCTFail() }
                 XCTAssertEqual(image.scale, 3)
             }
@@ -152,20 +152,20 @@ class ImagePipelineCoalescingTests: XCTestCase {
     // MARK: - Thumbnail
 
     func testDeduplicationGivenSameURLButDifferentThumbnailOptions() {
-        // GIVEN requests with the same URLs but one accesses thumbnail
+        // Given requests with the same URLs but one accesses thumbnail
         let request1 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
         let request2 = ImageRequest(url: Test.url)
 
         withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
 
-            // WHEN loading images for those requests
+            // When loading images for those requests
             expect(pipeline).toLoadImage(with: request1) { result in
-                // THEN
+                // Then
                 guard let image = result.value?.image else { return XCTFail() }
                 XCTAssertEqual(image.sizeInPixels, CGSize(width: 400, height: 300))
             }
             expect(pipeline).toLoadImage(with: request2) { result in
-                // THEN
+                // Then
                 guard let image = result.value?.image else { return XCTFail() }
                 XCTAssertEqual(image.sizeInPixels, CGSize(width: 640.0, height: 480.0))
             }
@@ -173,33 +173,33 @@ class ImagePipelineCoalescingTests: XCTestCase {
         }
 
         wait { _ in
-            // THEN the image data is fetched once
+            // Then the image data is fetched once
             XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
         }
     }
 
     func testDeduplicationGivenSameURLButDifferentThumbnailOptionsReversed() {
-        // GIVEN requests with the same URLs but one accesses thumbnail
+        // Given requests with the same URLs but one accesses thumbnail
         // (in this test, order is reversed)
         let request1 = ImageRequest(url: Test.url)
         let request2 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
 
         withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
-            // WHEN loading images for those requests
+            // When loading images for those requests
             expect(pipeline).toLoadImage(with: request1) { result in
-                // THEN
+                // Then
                 guard let image = result.value?.image else { return XCTFail() }
                 XCTAssertEqual(image.sizeInPixels, CGSize(width: 640.0, height: 480.0))
             }
             expect(pipeline).toLoadImage(with: request2) { result in
-                // THEN
+                // Then
                 guard let image = result.value?.image else { return XCTFail() }
                 XCTAssertEqual(image.sizeInPixels, CGSize(width: 400, height: 300))
             }
         }
 
         wait { _ in
-            // THEN the image data is fetched once
+            // Then the image data is fetched once
             XCTAssertEqual(self.dataLoader.createdTaskCount, 1)
         }
     }

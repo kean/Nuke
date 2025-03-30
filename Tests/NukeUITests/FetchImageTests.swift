@@ -38,11 +38,11 @@ class FetchImageTests: XCTestCase {
         // RECORD
         let record = expect(image.$result.dropFirst()).toPublishSingleValue()
 
-        // WHEN
+        // When
         image.load(Test.request)
         wait()
 
-        // THEN
+        // Then
         let result = try XCTUnwrap(try XCTUnwrap(record.last))
         XCTAssertTrue(result.isSuccess)
         XCTAssertNotNil(image.image)
@@ -53,22 +53,22 @@ class FetchImageTests: XCTestCase {
         expect(image.$result.dropFirst()).toPublishSingleValue()
         let isLoading = record(image.$isLoading)
 
-        // WHEN
+        // When
         image.load(Test.request)
         wait()
 
-        // THEN
+        // Then
         XCTAssertEqual(isLoading.values, [false, true, false])
     }
 
     func testMemoryCacheLookup() throws {
-        // GIVEN
+        // Given
         pipeline.cache[Test.request] = Test.container
 
-        // WHEN
+        // When
         image.load(Test.request)
 
-        // THEN image loaded synchronously
+        // Then image loaded synchronously
         let result = try XCTUnwrap(image.result)
         XCTAssertTrue(result.isSuccess)
         let response = try XCTUnwrap(result.value)
