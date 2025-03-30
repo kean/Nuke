@@ -3,7 +3,7 @@
 // Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
 import XCTest
-@testable import Nuke
+import Nuke
 
 final class ImagePipelineObserver: ImagePipeline.Delegate, @unchecked Sendable {
     var createdTaskCount = 0
