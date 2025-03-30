@@ -2,10 +2,12 @@
 //
 // Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Testing
+import Foundation
 @testable import Nuke
 
-class ImagePipelineTests: XCTestCase, @unchecked Sendable {
+@ImagePipelineActor
+@Suite class ImagePipelineTests {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
 
@@ -16,9 +18,7 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
     private var pipelineDelegate = ImagePipelineObserver()
     private var imageTask: ImageTask?
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         dataLoader = MockDataLoader()
         pipeline = ImagePipeline(delegate: pipelineDelegate) {
             $0.dataLoader = dataLoader
@@ -28,17 +28,17 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
 
     // MARK: - Basics
 
-    func testImageIsLoaded() async throws {
+    @Test func imageIsLoaded() async throws {
         // WHEN
         let image = try await pipeline.image(for: Test.request)
 
         // THEN
-        XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
+        #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
     }
 
     // MARK: - Task-based API
 
-    func testTaskBasedImageResponse() async throws {
+    @Test func taskBasedImageResponse() async throws {
         // GIVEN
         let task = pipeline.imageTask(with: Test.request)
 
@@ -46,10 +46,10 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
         let response = try await task.response
 
         // THEN
-        XCTAssertEqual(response.image.sizeInPixels, CGSize(width: 640, height: 480))
+        #expect(response.image.sizeInPixels == CGSize(width: 640, height: 480))
     }
 
-    func testTaskBasedImage() async throws {
+    @Test func taskBasedImage() async throws {
         // GIVEN
         let task = pipeline.imageTask(with: Test.request)
 
@@ -57,14 +57,14 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
         let image = try await task.image
 
         // THEN
-        XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
+        #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
     }
 
     private var observer: AnyObject?
 
     // MARK: - Cancellation
 
-    func testCancellation() async throws {
+    @Test func cancellation() async throws {
         dataLoader.queue.isSuspended = true
 
         let task = Task {
@@ -81,10 +81,10 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
         } catch {
             caughtError = error
         }
-        XCTAssertTrue(caughtError is CancellationError)
+        #expect(caughtError is CancellationError)
     }
 
-    func testCancelImmediately() async throws {
+    @Test func cancelImmediately() async throws {
         dataLoader.queue.isSuspended = true
 
         let task = Task {
@@ -98,10 +98,10 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
         } catch {
             caughtError = error
         }
-        XCTAssertTrue(caughtError is CancellationError)
+        #expect(caughtError is CancellationError)
     }
 
-    func testCancelFromProgress() async throws {
+    @Test func cancelFromProgress() async throws {
         dataLoader.queue.isSuspended = true
 
         let task = Task {
@@ -117,10 +117,10 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
 
         // THEN nothing is recorded because the task is cancelled and
         // stop observing the events
-        XCTAssertEqual(recordedProgress, [])
+        #expect(recordedProgress == [])
     }
 
-    func testObserveProgressAndCancelFromOtherTask() async throws {
+    @Test func observeProgressAndCancelFromOtherTask() async throws {
         dataLoader.queue.isSuspended = true
 
         let task = pipeline.imageTask(with: Test.url)
@@ -130,7 +130,7 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
                 recordedProgress.append(event)
             }
         }
-        
+
         let task2 = Task {
             try await task.response
         }
@@ -148,11 +148,11 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
         } catch {
             caughtError = error
         }
-        XCTAssertTrue(caughtError is CancellationError)
-        XCTAssertEqual(recordedProgress, [])
+        #expect(caughtError is CancellationError)
+        #expect(recordedProgress == [])
     }
 
-    func testCancelAsyncImageTask() async throws {
+    @Test func cancelAsyncImageTask() async throws {
         dataLoader.queue.isSuspended = true
 
         let task = pipeline.imageTask(with: Test.url)
@@ -166,12 +166,12 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
         } catch {
             caughtError = error
         }
-        XCTAssertTrue(caughtError is CancellationError)
+        #expect(caughtError is CancellationError)
     }
 
     // MARK: - Load Data
 
-    func testLoadData() async throws {
+    @Test func loadData() async throws {
         // GIVEN
         dataLoader.results[Test.url] = .success((Test.data, Test.urlResponse))
 
@@ -179,11 +179,11 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
         let (data, response) = try await pipeline.data(for: Test.request)
 
         // THEN
-        XCTAssertEqual(data.count, 22788)
-        XCTAssertNotNil(response?.url, Test.url.absoluteString)
+        #expect(data.count == 22788)
+        #expect(response?.url == Test.url)
     }
 
-    func testLoadDataCancelImmediately() async throws {
+    @Test func loadDataCancelImmediately() async throws {
         dataLoader.queue.isSuspended = true
 
         let task = Task {
@@ -197,10 +197,10 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
         } catch {
             caughtError = error
         }
-        XCTAssertTrue(caughtError is CancellationError)
+        #expect(caughtError is CancellationError)
     }
 
-    func testProgressUpdated() async throws {
+    @Test func progressUpdated() async throws {
         // GIVEN
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
@@ -218,13 +218,13 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
         }
 
         // THEN
-        XCTAssertEqual(recordedProgress, [
+        #expect(recordedProgress == [
             ImageTask.Progress(completed: 10, total: 20),
             ImageTask.Progress(completed: 20, total: 20)
         ])
     }
 
-    func testThatProgressivePreviewsAreDelivered() async throws {
+    @Test func thatProgressivePreviewsAreDelivered() async throws {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
         pipeline = pipeline.reconfigured {
@@ -243,20 +243,20 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
         _ = try await task.image
 
         // THEN
-        XCTAssertEqual(recordedPreviews.count, 2)
-        XCTAssertTrue(recordedPreviews.allSatisfy { $0.container.isPreview })
+        #expect(recordedPreviews.count == 2)
+        #expect(recordedPreviews.allSatisfy { $0.container.isPreview })
     }
 
     // MARK: - Update Priority
 
     // TOOD: reimplement
-//    func testUpdatePriority() {
+//    @Test func updatePriority() {
 //        // GIVEN
 //        let queue = pipeline.configuration.dataLoadingQueue
 //        queue.isSuspended = true
 //
 //        let request = Test.request
-//        XCTAssertEqual(request.priority, .normal)
+//        #expect(request.priority == .normal)
 //
 //        let observer = expect(queue).toEnqueueOperationsWithCount(1)
 //        let imageTask = pipeline.imageTask(with: request)
@@ -268,7 +268,7 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
 //
 //        // WHEN/THEN
 //        guard let operation = observer.operations.first else {
-//            return XCTFail("Failed to find operation")
+//            return Issue.record("Failed to find operation")
 //        }
 //        expect(operation).toUpdatePriority()
 //        imageTask.priority = .high
@@ -277,7 +277,7 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
 
     // MARK: - ImageRequest with Async/Await
 
-    func testImageRequestWithAsyncAwaitSuccess() async throws {
+    @Test func imageRequestWithAsyncAwaitSuccess() async throws {
         if #available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *) {
             // GIVEN
             let localURL = Test.url(forResource: "fixture", extension: "jpeg")
@@ -291,11 +291,11 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
             let image = try await pipeline.image(for: request)
 
             // THEN
-            XCTAssertEqual(image.sizeInPixels, CGSize(width: 640, height: 480))
+            #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
         }
     }
 
-    func testImageRequestWithAsyncAwaitFailure() async throws {
+    @Test func imageRequestWithAsyncAwaitFailure() async throws {
         if #available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *) {
             // WHEN
             let request = ImageRequest(id: "test", data: {
@@ -304,12 +304,12 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
 
             do {
                 _ = try await pipeline.image(for: request)
-                XCTFail()
+                Issue.record()
             } catch {
                 if case let .dataLoadingFailed(error) = error as? ImagePipeline.Error {
-                    XCTAssertEqual((error as? URLError)?.networkUnavailableReason, .cellular)
+                    #expect((error as? URLError)?.networkUnavailableReason == .cellular)
                 } else {
-                    XCTFail()
+                    Issue.record()
                 }
             }
         }
@@ -317,7 +317,7 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
 
     // MARK: Common Use Cases
 
-    func testLowDataMode() async throws {
+    @Test func lowDataMode() async throws {
         // GIVEN
         let highQualityImageURL = URL(string: "https://example.com/high-quality-image.jpeg")!
         let lowQualityImageURL = URL(string: "https://example.com/low-quality-image.jpeg")!
@@ -352,7 +352,7 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
     // MARK: - ImageTask Integration
 
     @available(macOS 12, iOS 15, tvOS 15, watchOS 9, *)
-    func testImageTaskEvents() async {
+    @Test func imageTaskEvents() async throws {
         // GIVEN
         let dataLoader = MockProgressiveDataLoader()
         pipeline = pipeline.reconfigured {
@@ -376,19 +376,19 @@ class ImagePipelineTests: XCTestCase, @unchecked Sendable {
         }
 
         // THEN
-        guard recordedPreviews.count == 2 else {
-            return XCTFail("Unexpected number of previews")
-        }
+        try #require(recordedPreviews.count == 2)
 
-        XCTAssertEqual(recordedEvents.filter {
+        let result = try #require(recordedResult)
+
+        #expect(recordedEvents.filter {
             if case .progress = $0 {
                 return false // There is guarantee if all will arrive
             }
             return true
-        }, [
+        } == [
             .preview(recordedPreviews[0]),
             .preview(recordedPreviews[1]),
-            .finished(try XCTUnwrap(recordedResult))
+            .finished(result)
         ])
     }
 }
