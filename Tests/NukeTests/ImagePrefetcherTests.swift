@@ -116,7 +116,7 @@ import Combine
         // WHEN start prefetching with URL
         dataLoader.isSuspended = true
 
-        let expectation = AsyncExpectation<WorkQueue._Item>()
+        let expectation = AsyncExpectation<WorkQueue.Item>()
         pipeline.configuration.dataLoadingQueue.onEvent = { @Sendable in
             if case .workAdded(let item) = $0 {
                 expectation.fulfill(with: item)

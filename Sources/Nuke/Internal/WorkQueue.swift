@@ -28,23 +28,23 @@ final class WorkQueue {
     }
 
     @discardableResult
-    func add(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> Item {
-        let item = _Item(priority: priority, work: work)
+    func add(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> WorkItem {
+        let item = Item(priority: priority, work: work)
         item.queue = self
         if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
             perform(item)
         } else {
-            let node = LinkedList<_Item>.Node(item)
+            let node = LinkedList<Item>.Node(item)
             item.node = node
             schedule.list(for: item.priority).prepend(node)
         }
         onEvent?(.workAdded(item))
-        return Item(item: item)
+        return WorkItem(item: item)
     }
 
     // MARK: - Managing Scheduled Items
 
-    fileprivate func setPriority(_ newPriority: TaskPriority, for item: _Item) {
+    fileprivate func setPriority(_ newPriority: TaskPriority, for item: Item) {
         guard let node = item.node, item.priority != newPriority else {
             return /* Already executing */
         }
@@ -54,7 +54,7 @@ final class WorkQueue {
         schedule.list(for: newPriority).prepend(node)
     }
 
-    fileprivate func cancel(_ item: _Item) {
+    fileprivate func cancel(_ item: Item) {
         if let node = item.node {
             schedule.list(for: item.priority).remove(node)
         }
@@ -67,7 +67,7 @@ final class WorkQueue {
     // MARK: - Performing Scheduled Work
 
     /// Returns a pending task with a highest priority.
-    private func dequeueNextItem() -> _Item? {
+    private func dequeueNextItem() -> Item? {
         for list in schedule.all {
             if let node = list.popLast() {
                 node.value.node = nil
@@ -87,7 +87,7 @@ final class WorkQueue {
         }
     }
 
-    private func perform(_ item: _Item) {
+    private func perform(_ item: Item) {
         activeTaskCount += 1
         item.task = Task { @ImagePipelineActor in
             await item.work()
@@ -103,26 +103,12 @@ final class WorkQueue {
         await withUnsafeContinuation { completion = $0 }
     }
 
-    /// - note: You don't need to hold to it. This indirection exists purely to
-    /// ensure that it never leads to retain cycles.
-    @ImagePipelineActor struct Item {
-        fileprivate weak var item: _Item?
-
-        func setPriority(_ priority: TaskPriority) {
-            item.map { $0.queue?.setPriority(priority, for: $0) }
-        }
-
-        func cancel() {
-            item.map { $0.queue?.cancel($0) }
-        }
-    }
-
     /// A handle that can be used to change the priority of the pending work.
     @ImagePipelineActor
-    final class _Item {
+    final class Item {
         let work: @ImagePipelineActor () async -> Void
         var priority: TaskPriority
-        weak var node: LinkedList<_Item>.Node?
+        weak var node: LinkedList<Item>.Node?
         var task: Task<Void, Never>?
         weak var queue: WorkQueue?
 
@@ -135,17 +121,17 @@ final class WorkQueue {
     /// - warning: For testing purposes.
     @ImagePipelineActor
     enum Event {
-        case workAdded(_Item)
+        case workAdded(Item)
     }
 
     private struct ScheduledWork {
-        let veryLow = LinkedList<_Item>()
-        let low = LinkedList<_Item>()
-        let normal = LinkedList<_Item>()
-        let high = LinkedList<_Item>()
-        let veryHigh = LinkedList<_Item>()
+        let veryLow = LinkedList<Item>()
+        let low = LinkedList<Item>()
+        let normal = LinkedList<Item>()
+        let high = LinkedList<Item>()
+        let veryHigh = LinkedList<Item>()
 
-        func list(for priority: TaskPriority) -> LinkedList<_Item> {
+        func list(for priority: TaskPriority) -> LinkedList<Item> {
             switch priority {
             case .veryLow: veryLow
             case .low: low
@@ -156,5 +142,19 @@ final class WorkQueue {
         }
 
         lazy var all = [veryHigh, high, normal, low, veryLow]
+    }
+}
+
+/// - note: You don't need to hold to it. This indirection exists purely to
+/// ensure that it never leads to retain cycles.
+@ImagePipelineActor struct WorkItem {
+    fileprivate weak var item: WorkQueue.Item?
+
+    func setPriority(_ priority: TaskPriority) {
+        item.map { $0.queue?.setPriority(priority, for: $0) }
+    }
+
+    func cancel() {
+        item.map { $0.queue?.cancel($0) }
     }
 }

@@ -72,7 +72,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         }
     }
 
-    var workItem: WorkQueue.Item? {
+    var workItem: WorkItem? {
         didSet {
             guard priority != .normal else { return }
             workItem?.setPriority(priority)
