@@ -4,10 +4,10 @@ import PackageDescription
 let package = Package(
     name: "Nuke",
     platforms: [
-        .iOS(.v14),
-        .tvOS(.v14),
-        .macOS(.v11),
-        .watchOS(.v7),
+        .iOS(.v15),
+        .tvOS(.v15),
+        .macOS(.v12),
+        .watchOS(.v8),
         .visionOS(.v1),
     ],
     products: [
