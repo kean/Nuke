@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+
 @testable import Nuke
 
 @ImagePipelineActor
@@ -249,7 +250,7 @@ import Foundation
 
     // MARK: - Update Priority
 
-    // TOOD: reimplement
+    // TODO: test
 //    @Test func updatePriority() {
 //        // GIVEN
 //        let queue = pipeline.configuration.dataLoadingQueue

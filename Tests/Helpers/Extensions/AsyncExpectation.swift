@@ -3,46 +3,54 @@ import Combine
 import Testing
 @testable import Nuke
 
-final class AsyncExpectation: @unchecked Sendable {
+final class AsyncExpectation<Value: Sendable>: @unchecked Sendable {
     private var state = Mutex(wrappedValue: State())
     private var cancellables: [AnyCancellable] = []
 
     private struct State {
-        var isFinished = false
-        var continuation: UnsafeContinuation<Void, Never>?
+        var value: Value?
+        var continuation: UnsafeContinuation<Value, Never>?
     }
 
     init() {}
 
-    init(notification: Notification.Name, object: AnyObject) {
-        NotificationCenter.default
-            .publisher(for: notification, object: object)
-            .sink { [weak self] _ in self?.fulfill() }
-            .store(in: &cancellables)
-    }
-
-    func wait() async {
+    func wait() async -> Value {
         await withUnsafeContinuation { continuation in
-            let isFinished = state.withLock {
-                if !$0.isFinished {
+            let value = state.withLock {
+                if $0.value == nil {
                     $0.continuation = continuation
                 }
-                return $0.isFinished
+                return $0.value
             }
-            if isFinished {
-                continuation.resume()
+            if let value {
+                continuation.resume(returning: value)
             }
         }
     }
 
-    func fulfill() {
+    func fulfill(with value: Value) {
         let continuation = state.withLock {
-            #expect(!$0.isFinished, "fulfill called multiple times")
-            $0.isFinished = true
+            #expect(value == nil, "fulfill called multiple times")
+            $0.value = value
             let continuation = $0.continuation
             $0.continuation = nil
             return continuation
         }
-        continuation?.resume()
+        continuation?.resume(returning: value)
+    }
+}
+
+extension AsyncExpectation where Value == Void {
+    func fulfill() {
+        fulfill(with: ())
+    }
+
+    convenience init(notification: Notification.Name, object: AnyObject) {
+        self.init()
+
+        NotificationCenter.default
+            .publisher(for: notification, object: object)
+            .sink { [weak self] _ in self?.fulfill() }
+            .store(in: &cancellables)
     }
 }

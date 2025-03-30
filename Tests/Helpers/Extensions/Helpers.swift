@@ -169,7 +169,7 @@ extension Result {
     }
 }
 
-@propertyWrapper final class Mutex<T> {
+@propertyWrapper final class Mutex<T>: @unchecked Sendable {
     private var value: T
     private let lock: os_unfair_lock_t
 

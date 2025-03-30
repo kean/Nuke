@@ -116,20 +116,18 @@ import Combine
         // WHEN start prefetching with URL
         dataLoader.isSuspended = true
 
-        let expectation = AsyncExpectation()
-        var workItem: WorkQueue._Item?
+        let expectation = AsyncExpectation<WorkQueue._Item>()
         pipeline.configuration.dataLoadingQueue.onEvent = { @Sendable in
             if case .workAdded(let item) = $0 {
-                workItem = item
-                expectation.fulfill()
+                expectation.fulfill(with: item)
             }
         }
 
         prefetcher.startPrefetching(with: [Test.url])
-        await expectation.wait()
+        let item = await expectation.wait()
 
         // THEN priority is set to .low
-        #expect(workItem?.priority == .low)
+        #expect(item.priority == .low)
 
         // Cleanup
         prefetcher.stopPrefetching()
