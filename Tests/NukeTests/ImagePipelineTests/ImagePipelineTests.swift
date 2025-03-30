@@ -278,39 +278,35 @@ import Foundation
     // MARK: - ImageRequest with Async/Await
 
     @Test func imageRequestWithAsyncAwaitSuccess() async throws {
-        if #available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *) {
-            // GIVEN
-            let localURL = Test.url(forResource: "fixture", extension: "jpeg")
+        // GIVEN
+        let localURL = Test.url(forResource: "fixture", extension: "jpeg")
 
-            // WHEN
-            let request = ImageRequest(id: "test", data: {
-                let (data, _) = try await URLSession.shared.data(for: URLRequest(url: localURL))
-                return data
-            })
+        // WHEN
+        let request = ImageRequest(id: "test", data: {
+            let (data, _) = try await URLSession.shared.data(for: URLRequest(url: localURL))
+            return data
+        })
 
-            let image = try await pipeline.image(for: request)
+        let image = try await pipeline.image(for: request)
 
-            // THEN
-            #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
-        }
+        // THEN
+        #expect(image.sizeInPixels == CGSize(width: 640, height: 480))
     }
 
     @Test func imageRequestWithAsyncAwaitFailure() async throws {
-        if #available(iOS 15.0, tvOS 15.0, macOS 12.0, watchOS 8.0, *) {
-            // WHEN
-            let request = ImageRequest(id: "test", data: {
-                throw URLError(networkUnavailableReason: .cellular)
-            })
-
-            do {
-                _ = try await pipeline.image(for: request)
+        // WHEN
+        let request = ImageRequest(id: "test", data: {
+            throw URLError(networkUnavailableReason: .cellular)
+        })
+        
+        do {
+            _ = try await pipeline.image(for: request)
+            Issue.record()
+        } catch {
+            if case let .dataLoadingFailed(error) = error as? ImagePipeline.Error {
+                #expect((error as? URLError)?.networkUnavailableReason == .cellular)
+            } else {
                 Issue.record()
-            } catch {
-                if case let .dataLoadingFailed(error) = error as? ImagePipeline.Error {
-                    #expect((error as? URLError)?.networkUnavailableReason == .cellular)
-                } else {
-                    Issue.record()
-                }
             }
         }
     }
