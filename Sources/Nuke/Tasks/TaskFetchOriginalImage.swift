@@ -20,12 +20,12 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
             return
         }
 
-        if !isCompleted && operation != nil {
+        if !isCompleted && workItem != nil {
             return // Back pressure - already decoding another progressive data chunk
         }
 
         if isCompleted {
-            operation?.cancel() // Cancel any potential pending progressive decoding tasks
+            workItem?.cancel() // Cancel any potential pending progressive decoding tasks
         }
 
         let context = ImageDecodingContext(request: request, data: data, isCompleted: isCompleted, urlResponse: urlResponse)
@@ -46,7 +46,7 @@ final class TaskFetchOriginalImage: AsyncPipelineTask<ImageResponse> {
     }
 
     private func didFinishDecoding(context: ImageDecodingContext, result: Result<ImageResponse, ImagePipeline.Error>) {
-        operation = nil
+        workItem = nil
 
         switch result {
         case .success(let response):

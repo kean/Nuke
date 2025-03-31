@@ -31,13 +31,6 @@ extension URL {
     }
 }
 
-extension OperationQueue {
-    convenience init(maxConcurrentCount: Int) {
-        self.init()
-        self.maxConcurrentOperationCount = maxConcurrentCount
-    }
-}
-
 extension TaskPriority {
     init(_ priority: ImageRequest.Priority) {
         switch priority {

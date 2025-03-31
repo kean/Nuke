@@ -69,8 +69,8 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
     private func process(_ response: ImageResponse, isCompleted: Bool, processor: any ImageProcessing) {
         guard !isDisposed else { return }
         if isCompleted {
-            operation?.cancel() // Cancel any potential pending progressive
-        } else if operation != nil {
+            workItem?.cancel() // Cancel any potential pending progressive
+        } else if workItem != nil {
             return // Back pressure - already processing another progressive image
         }
         let context = ImageProcessingContext(request: request, response: response, isCompleted: isCompleted)
@@ -86,7 +86,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 }
             }
             Task { @ImagePipelineActor in
-                self.operation = nil
+                self.workItem = nil
                 self.didFinishProcessing(result: result, isCompleted: isCompleted)
             }
         }
@@ -111,17 +111,17 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         }
         guard !isDisposed else { return }
         if isCompleted {
-            operation?.cancel() // Cancel any potential pending progressive decompression tasks
-        } else if operation != nil {
+            workItem?.cancel() // Cancel any potential pending progressive decompression tasks
+        } else if workItem != nil {
             return  // Back-pressure: receiving progressive scans too fast
         }
-        operation = pipeline.configuration.imageDecompressingQueue.add { [weak self] in
+        workItem = pipeline.configuration.imageDecompressingQueue.add(priority: priority) { [weak self] in
             guard let self else { return }
             let response = signpost(isCompleted ? "DecompressImage" : "DecompressProgressiveImage") {
                 self.pipeline.delegate.decompress(response: response, request: self.request, pipeline: self.pipeline)
             }
             Task { @ImagePipelineActor in
-                self.operation = nil
+                self.workItem = nil
                 self.didReceiveDecompressedImage(response, isCompleted: isCompleted)
             }
         }
@@ -158,7 +158,7 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
         let context = ImageEncodingContext(request: request, image: response.image, urlResponse: response.urlResponse)
         let encoder = pipeline.delegate.imageEncoder(for: context, pipeline: pipeline)
         let key = pipeline.cache.makeDataCacheKey(for: request)
-        pipeline.configuration.imageEncodingQueue.addOperation { [weak pipeline, request] in
+        pipeline.configuration.imageEncodingQueue.add(priority: priority) { [weak pipeline, request] in
             guard let pipeline else { return }
             let encodedData = signpost("EncodeImage") {
                 encoder.encode(response.container, context: context)
@@ -169,9 +169,6 @@ final class TaskLoadImage: AsyncPipelineTask<ImageResponse> {
                 // Important! Storing directly ignoring `ImageRequest.Options`.
                 dataCache.storeData(data, for: key) // This is instant, writes are async
             }
-        }
-        if pipeline.configuration.debugIsSyncImageEncoding { // Only for debug
-            pipeline.configuration.imageEncodingQueue.waitUntilAllOperationsAreFinished()
         }
     }
 

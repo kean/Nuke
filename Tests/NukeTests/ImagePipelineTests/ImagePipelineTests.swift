@@ -310,7 +310,7 @@ import Foundation
         let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
         #expect(request.priority == .normal)
 
-        let expectation = queue.expectItemAdded()d .
+        let expectation = queue.expectItemAdded()
         let task = pipeline.loadImage(with: request) { _ in }
         let workItem = await expectation.wait()
 

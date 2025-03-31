@@ -9,11 +9,6 @@ import Foundation
 ///
 /// A `AsyncTask` can have zero or more subscriptions (`TaskSubscription`) which can
 /// be used to later unsubscribe or change the priority of the subscription.
-///
-/// The task has built-in support for operations (`Foundation.Operation`) – it
-/// automatically cancels them, updates the priority, etc. Most steps in the
-/// image pipeline are represented using Operation to take advantage of these features.
-///
 @ImagePipelineActor
 class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate {
     private struct Subscription {
@@ -48,7 +43,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     var priority: TaskPriority = .normal {
         didSet {
             guard oldValue != priority else { return }
-            operation?.queuePriority = priority.queuePriority
             workItem?.setPriority(priority)
             dependency?.setPriority(priority)
         }
@@ -61,14 +55,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
     var dependency: TaskSubscription? {
         didSet {
             dependency?.setPriority(priority)
-        }
-    }
-
-    // TODO: remove
-    weak var operation: Foundation.Operation? {
-        didSet {
-            guard priority != .normal else { return }
-            operation?.queuePriority = priority.queuePriority
         }
     }
 
@@ -188,7 +174,6 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         isDisposed = true
 
         if reason == .cancelled {
-            operation?.cancel()
             workItem?.cancel()
             dependency?.unsubscribe()
             onCancelled?()

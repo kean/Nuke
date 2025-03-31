@@ -143,7 +143,8 @@ class ImagePipelineCacheLayerPriorityTests: XCTestCase {
             $0.dataLoader = dataLoader
             $0.dataCache = dataCache
             $0.imageCache = imageCache
-            $0.debugIsSyncImageEncoding = true
+            // TODO: rework
+//            $0.debugIsSyncImageEncoding = true
         }
 
         request = ImageRequest(url: Test.url, processors: [
