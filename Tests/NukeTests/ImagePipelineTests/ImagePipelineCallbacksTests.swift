@@ -69,36 +69,6 @@ import Foundation
     }
 }
 
-//
-//    // MARK: - Invalidate
-//
-//    @Test func whenInvalidatedTasksAreCancelled() {
-//        dataLoader.queue.isSuspended = true
-//
-//        expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-//        pipeline.loadImage(with: Test.request) { _ in
-//            Issue.record()
-//        }
-//        wait() // Wait till operation is created
-//
-//        expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
-//        pipeline.invalidate()
-//        wait()
-//    }
-//
-//    @Test func thatInvalidatedTasksFailWithError() async throws {
-//        // When
-//        pipeline.invalidate()
-//
-//        // Then
-//        do {
-//            _ = try await pipeline.image(for: Test.request)
-//            Issue.record()
-//        } catch {
-//            #expect(error as? ImagePipeline.Error == .pipelineInvalidated)
-//        }
-//    }
-//
 //    // MARK: Error Handling
 //
 //    @Test func dataLoadingFailedErrorReturned() {

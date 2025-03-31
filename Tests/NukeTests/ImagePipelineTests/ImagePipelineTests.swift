@@ -460,30 +460,61 @@ import Foundation
         _ = try await pipeline.image(for: request)
     }
 #endif
-    
+
     // MARK: - CacheKey
-    
+
     @Test func cacheKeyForRequest() {
         let request = Test.request
         #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg")
     }
-    
+
     @Test func cacheKeyForRequestWithProcessors() {
         var request = Test.request
         request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
         #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg1")
     }
-    
+
     @Test func cacheKeyForRequestWithThumbnail() {
         let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
         #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetrue")
     }
-    
+
     @Test func cacheKeyForRequestWithThumbnailFlexibleSize() {
         let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
         #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue")
+    }
+
+    // MARK: - Invalidate
+
+    @Test func whenInvalidatedTasksAreCancelled() async {
+        // Given
+        dataLoader.queue.isSuspended = true
+
+        let expectation1 = AsyncExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        _ = pipeline.imageTask(with: Test.request)
+        await expectation1.wait()
+
+        // When
+        let expectation2 = AsyncExpectation(notification: MockDataLoader.DidCancelTask, object: dataLoader)
+        pipeline.invalidate()
+
+        // Then
+        await expectation2.wait()
+    }
+
+    @Test func thatInvalidatedTasksFailWithError() async throws {
+        // When
+        pipeline.invalidate()
+
+        // Then
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record()
+        } catch {
+            #expect(error as? ImagePipeline.Error == .pipelineInvalidated)
+        }
     }
 }
 
