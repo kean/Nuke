@@ -209,7 +209,7 @@ import Foundation
         task.cancel()
 
         // Then
-        await expectation2.wait()
+        await expectation2
     }
 
     // MARK: - Load Data
