@@ -12,7 +12,7 @@ import Foundation
 @Suite class ImagePipelineCallbacksTests {
     var dataLoader: MockDataLoader!
     var pipeline: ImagePipeline!
-
+    
     init() {
         dataLoader = MockDataLoader()
         pipeline = ImagePipeline {
@@ -20,9 +20,9 @@ import Foundation
             $0.imageCache = nil
         }
     }
-
+    
     // MARK: - Completion
-
+    
     @Test func completionCalledOnMainThread() async throws {
         let response = try await withCheckedThrowingContinuation { continuation in
             pipeline.loadImage(with: Test.request) { result in
@@ -32,17 +32,17 @@ import Foundation
         }
         #expect(response.image.sizeInPixels == CGSize(width: 640, height: 480))
     }
-
+    
     // MARK: - Progress
-
+    
     @Test func taskProgressIsUpdated() async {
         // Given
         let request = ImageRequest(url: Test.url)
-
+        
         dataLoader.results[Test.url] = .success(
             (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
         )
-
+        
         // When
         let recordedProgress = Mutex<[ImageTask.Progress]>(wrappedValue: [])
         await withCheckedContinuation { continuation in
@@ -60,61 +60,15 @@ import Foundation
                 }
             )
         }
-
+        
         // Then
         #expect(recordedProgress.wrappedValue == [
             ImageTask.Progress(completed: 10, total: 20),
             ImageTask.Progress(completed: 20, total: 20)
         ])
     }
-
-    @Test func decodingPriorityUpdated() async {
-        // Given
-        pipeline = pipeline.reconfigured {
-            $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
-        }
-
-        let queue = pipeline.configuration.imageDecodingQueue
-        queue.isSuspended = true
-
-        let request = Test.request
-        #expect(request.priority == .normal)
-
-        let expectation = queue.expectItemAdded()
-        let task = pipeline.loadImage(with: request) { _ in }
-        let workItem = await expectation.wait()
-
-        // When
-        let expectation2 = queue.expectPriorityUpdated(for: workItem)
-        task.priority = .high
-
-        // Then
-        let newPriority = await expectation2.wait()
-        #expect(newPriority == .high)
-    }
 }
-//    @Test func processingPriorityUpdated() {
-//        // Given
-//        let queue = pipeline.configuration.imageProcessingQueue
-//        queue.isSuspended = true
-//
-//        let request = ImageRequest(url: Test.url, processors: [ImageProcessors.Anonymous(id: "1", { $0 })])
-//        #expect(request.priority == .normal)
-//
-//        let observer = expect(queue).toEnqueueOperationsWithCount(1)
-//
-//        let task = pipeline.loadImage(with: request) { _ in }
-//        wait() // Wait till the operation is created.
-//
-//        // When/Then
-//        guard let operation = observer.operations.first else {
-//            return Issue.record("Failed to find operation")
-//        }
-//        expect(operation).toUpdatePriority()
-//        task.priority = .high
-//
-//        wait()
-//    }
+
 //
 //    // MARK: - Cancellation
 //

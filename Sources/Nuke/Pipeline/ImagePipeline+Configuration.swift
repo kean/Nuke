@@ -150,7 +150,7 @@ extension ImagePipeline {
         public var imageEncodingQueue = OperationQueue(maxConcurrentCount: 1)
 
         /// Image processing queue. Default maximum concurrent task count is 2.
-        public var imageProcessingQueue = OperationQueue(maxConcurrentCount: 2)
+        let imageProcessingQueue = WorkQueue(maxConcurrentTaskCount: 2)
 
         /// Image decompressing queue. Default maximum concurrent task count is 2.
         public var imageDecompressingQueue = OperationQueue(maxConcurrentCount: 2)

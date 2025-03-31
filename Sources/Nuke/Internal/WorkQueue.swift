@@ -7,9 +7,10 @@ import Combine
 
 @ImagePipelineActor
 final class WorkQueue {
+    var maxConcurrentTaskCount: Int
+
     private var schedule = ScheduledWork()
     private var activeTaskCount = 0
-    private let maxConcurrentTaskCount: Int
     private var completion: UnsafeContinuation<Void, Never>?
 
     /// Setting this property to true prevents the queue from starting any queued
