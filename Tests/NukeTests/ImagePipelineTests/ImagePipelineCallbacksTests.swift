@@ -67,36 +67,6 @@ import Foundation
             ImageTask.Progress(completed: 20, total: 20)
         ])
     }
-
-    // MARK: - Cancellation
-
-    //    @Test func processingOperationCancelled() {
-    //        // Given
-    //        let queue = pipeline.configuration.imageProcessingQueue
-    //        queue.isSuspended = true
-    //
-    //        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
-    //
-    //        let processor = ImageProcessors.Anonymous(id: "1") {
-    //            Issue.record()
-    //            return $0
-    //        }
-    //        let request = ImageRequest(url: Test.url, processors: [processor])
-    //
-    //        let task = pipeline.loadImage(with: request) { _ in
-    //            Issue.record()
-    //        }
-    //        wait() // Wait till operation is created
-    //
-    //        // When/Then
-    //        let operation = observer.operations.first
-    //        #expect(operation != nil)
-    //        expect(operation!).toCancel()
-    //
-    //        task.cancel()
-    //
-    //        wait()
-    //    }
 }
 
 //    // MARK: Decompression

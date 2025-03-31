@@ -199,9 +199,7 @@ import Foundation
 
         let expectation1 = queue.expectItemAdded()
         let request = Test.request
-        let task = pipeline.loadImage(with: request) { _ in
-            Issue.record()
-        }
+        let task = pipeline.imageTask(with: request)
         let workItem = await expectation1.wait()
 
         // When
@@ -209,7 +207,29 @@ import Foundation
         task.cancel()
 
         // Then
-        await expectation2
+        await expectation2.wait()
+    }
+
+    @Test func processingOperationCancelled() async {
+        // Given
+        let queue = pipeline.configuration.imageProcessingQueue
+        queue.isSuspended = true
+
+        let processor = ImageProcessors.Anonymous(id: "1") {
+            Issue.record()
+            return $0
+        }
+        let expectation1 = queue.expectItemAdded()
+        let request = ImageRequest(url: Test.url, processors: [processor])
+        let task = pipeline.imageTask(with: request)
+        let workItem = await expectation1.wait()
+
+        // When
+        let expectation2 = queue.expectItemCancelled(workItem)
+        task.cancel()
+
+        // Then
+        await expectation2.wait()
     }
 
     // MARK: - Load Data
@@ -267,7 +287,7 @@ import Foundation
         ])
     }
 
-    @Test func thatProgressivePreviewsAreDelivered() async throws {
+    @Test func progressivePreviews() async throws {
         // Given
         let dataLoader = MockProgressiveDataLoader()
         pipeline = pipeline.reconfigured {
