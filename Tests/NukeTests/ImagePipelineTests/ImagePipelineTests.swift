@@ -457,7 +457,6 @@ import Foundation
 
     // MARK: - ImageTask Integration
 
-    @available(macOS 12, iOS 15, tvOS 15, watchOS 9, *)
     @Test func imageTaskEvents() async throws {
         // Given
         let dataLoader = MockProgressiveDataLoader()
