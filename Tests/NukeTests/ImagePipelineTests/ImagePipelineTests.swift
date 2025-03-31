@@ -188,6 +188,30 @@ import Foundation
         await expectation2.wait()
     }
 
+    @Test func decodingOperationCancelled() async {
+        // Given
+        pipeline = pipeline.reconfigured {
+            $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
+        }
+
+        let queue = pipeline.configuration.imageDecodingQueue
+        queue.isSuspended = true
+
+        let expectation1 = queue.expectItemAdded()
+        let request = Test.request
+        let task = pipeline.loadImage(with: request) { _ in
+            Issue.record()
+        }
+        let workItem = await expectation1.wait()
+
+        // When
+        let expectation2 = queue.expectItemCancelled(workItem)
+        task.cancel()
+
+        // Then
+        await expectation2.wait()
+    }
+
     // MARK: - Load Data
 
     @Test func loadData() async throws {

@@ -8,7 +8,7 @@ extension WorkQueue {
     func expectItemAdded() -> AsyncExpectation<WorkQueue.Item> {
         let expectation = AsyncExpectation<WorkQueue.Item>()
         onEvent = { event in
-            if case .workAdded(let item) = event {
+            if case .added(let item) = event {
                 expectation.fulfill(with: item)
             }
         }
@@ -18,9 +18,21 @@ extension WorkQueue {
     func expectPriorityUpdated(for expectedItem: WorkQueue.Item) -> AsyncExpectation<TaskPriority> {
         let expectation = AsyncExpectation<TaskPriority>()
         onEvent = { event in
-            if case let .priorityUpdate(item, priority) = event {
+            if case let .priorityUpdated(item, priority) = event {
                 if item === expectedItem {
                     expectation.fulfill(with: priority)
+                }
+            }
+        }
+        return expectation
+    }
+
+    func expectItemCancelled(_ expectedItem: WorkQueue.Item) -> AsyncExpectation<Void> {
+        let expectation = AsyncExpectation<Void>()
+        onEvent = { event in
+            if case .cancelled(let item) = event {
+                if item === expectedItem {
+                    expectation.fulfill()
                 }
             }
         }

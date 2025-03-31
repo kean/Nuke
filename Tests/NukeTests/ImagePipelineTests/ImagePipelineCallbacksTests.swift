@@ -70,36 +70,6 @@ import Foundation
 
     // MARK: - Cancellation
 
-
-    //    @Test func decodingOperationCancelled() {
-    //        // Given
-    //        pipeline = pipeline.reconfigured {
-    //            $0.makeImageDecoder = { _ in MockImageDecoder(name: "test") }
-    //        }
-    //
-    //        let queue = pipeline.configuration.imageDecodingQueue
-    //        queue.isSuspended = true
-    //
-    //        let observer = self.expect(queue).toEnqueueOperationsWithCount(1)
-    //
-    //        let request = Test.request
-    //
-    //        let task = pipeline.loadImage(with: request) { _ in
-    //            Issue.record()
-    //        }
-    //        wait() // Wait till operation is created
-    //
-    //        // When/Then
-    //        guard let operation = observer.operations.first else {
-    //            return Issue.record("Failed to find operation")
-    //        }
-    //        expect(operation).toCancel()
-    //
-    //        task.cancel()
-    //
-    //        wait()
-    //    }
-    //
     //    @Test func processingOperationCancelled() {
     //        // Given
     //        let queue = pipeline.configuration.imageProcessingQueue

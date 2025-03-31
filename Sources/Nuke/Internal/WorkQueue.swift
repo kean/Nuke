@@ -39,7 +39,7 @@ final class WorkQueue {
             item.node = node
             schedule.list(for: item.priority).prepend(node)
         }
-        onEvent?(.workAdded(item))
+        onEvent?(.added(item))
         return WorkItem(item: item)
     }
 
@@ -53,7 +53,7 @@ final class WorkQueue {
         schedule.list(for: item.priority).remove(node)
         item.priority = newPriority
         schedule.list(for: newPriority).prepend(node)
-        onEvent?(.priorityUpdate(item, newPriority))
+        onEvent?(.priorityUpdated(item, newPriority))
     }
 
     fileprivate func cancel(_ item: Item) {
@@ -64,6 +64,7 @@ final class WorkQueue {
         item.node = nil
         item.task = nil
         item.queue = nil
+        onEvent?(.cancelled(item))
     }
 
     // MARK: - Performing Scheduled Work
@@ -123,8 +124,9 @@ final class WorkQueue {
     /// - warning: For testing purposes.
     @ImagePipelineActor
     enum Event {
-        case workAdded(Item)
-        case priorityUpdate(Item, TaskPriority)
+        case added(Item)
+        case priorityUpdated(Item, TaskPriority)
+        case cancelled(Item)
     }
 
     private struct ScheduledWork {
