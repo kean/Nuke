@@ -111,8 +111,8 @@ import Combine
 
     // MARK: Priority
 
-    // TODO: reuse this code and fix the priority test
-    @Test @ImagePipelineActor func defaultPrioritySetToLow() async {
+    @ImagePipelineActor
+    @Test func defaultPrioritySetToLow() async {
         // When start prefetching with URL
         dataLoader.isSuspended = true
 

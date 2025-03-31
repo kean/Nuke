@@ -72,12 +72,7 @@ class AsyncTask<Value: Sendable, Error: Sendable>: AsyncTaskSubscriptionDelegate
         }
     }
 
-    var workItem: WorkItem? {
-        didSet {
-            guard priority != .normal else { return }
-            workItem?.setPriority(priority)
-        }
-    }
+    var workItem: WorkItem?
 
     /// Publishes the results of the task.
     var publisher: Publisher { Publisher(task: self) }
@@ -236,7 +231,7 @@ extension AsyncTask {
 
         /// Attaches the subscriber to the task.
         /// - notes: Returns `nil` if the task is already disposed.
-        func subscribe(priority: TaskPriority = .normal, subscriber: AnyObject, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
+        func subscribe(priority: TaskPriority, subscriber: AnyObject, _ closure: @escaping (Event) -> Void) -> TaskSubscription? {
             task.subscribe(priority: priority, subscriber: subscriber, closure)
         }
 
@@ -244,7 +239,7 @@ extension AsyncTask {
         /// and error events to the given task.
         /// - notes: Returns `nil` if the task is already disposed.
         func subscribe<NewValue>(_ task: AsyncTask<NewValue, Error>, onValue: @escaping (Value, Bool) -> Void) -> TaskSubscription? {
-            subscribe(subscriber: task) { [weak task] event in
+            subscribe(priority: task.priority, subscriber: task) { [weak task] event in
                 guard let task else { return }
                 switch event {
                 case let .value(value, isCompleted):
