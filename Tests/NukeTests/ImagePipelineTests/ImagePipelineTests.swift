@@ -170,6 +170,24 @@ import Foundation
         #expect(caughtError is CancellationError)
     }
 
+    @Test func dataLoadingOperationCancelled() async {
+        //  Given
+        dataLoader.queue.isSuspended = true
+
+        let expectation1 = AsyncExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let task = pipeline.loadImage(with: Test.request) { _ in
+            Issue.record()
+        }
+        await expectation1.wait() // Wait till operation is created
+
+        // When
+        let expectation2 = AsyncExpectation(notification: MockDataLoader.DidCancelTask, object: dataLoader)
+        task.cancel()
+
+        // Then
+        await expectation2.wait()
+    }
+
     // MARK: - Load Data
 
     @Test func loadData() async throws {
