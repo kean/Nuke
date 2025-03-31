@@ -393,7 +393,7 @@ import Security
         cache["key"] = blob
         cache.flush(for: "key")
 
-        // When/Them
+        // When/Then
         #expect(cache.containsData(for: "key"))
     }
 
@@ -402,7 +402,7 @@ import Security
         cache.flushInterval = .seconds(20)
         cache["key"] = blob
 
-        // When/Them
+        // When/Then
         #expect(cache.containsData(for: "key"))
     }
 
@@ -413,7 +413,7 @@ import Security
         cache.flush(for: "key")
         cache["key"] = nil
 
-        // When/Them
+        // When/Then
         #expect(!cache.containsData(for: "key"))
     }
 

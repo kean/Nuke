@@ -186,7 +186,7 @@ import Combine
 //            return Issue.record("Failed to find operation")
 //        }
 //
-//        // When/Them
+//        // When/Then
 //        expect(operation).toUpdatePriority(from: .low, to: .veryLow)
 //        prefetcher.priority = .veryLow
 //        wait()

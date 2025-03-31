@@ -57,7 +57,7 @@ class ImagePipelineDelegateTests: XCTestCase {
             userInfo: ["imageId": "image-01-small"]
         )
 
-        // When/Them the image is returned from the disk cache
+        // When/Then the image is returned from the disk cache
         expect(pipeline).toLoadImage(with: requestB, completion: { result in
             guard let image = result.value?.image else {
                 return XCTFail()

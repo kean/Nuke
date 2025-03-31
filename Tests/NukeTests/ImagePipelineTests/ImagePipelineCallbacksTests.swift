@@ -69,73 +69,6 @@ import Foundation
     }
 }
 
-//    // MARK: - Thumbnail
-//
-//    @Test func thatThumbnailIsGenerated() {
-//        // Given
-//        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-//        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-//
-//        // When
-//        expect(pipeline).toLoadImage(with: request) { result in
-//            // Then
-//            guard let image = result.value?.image else {
-//                return Issue.record()
-//            }
-//            #expect(image.sizeInPixels == CGSize(width: 400, height: 300))
-//        }
-//        wait()
-//    }
-//
-//    @Test func thumbnailIsGeneratedOnDecodingQueue() {
-//        // Given
-//        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-//        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-//
-//        // When/Them
-//        expect(pipeline.configuration.imageDecodingQueue).toEnqueueOperationsWithCount(1)
-//        expect(pipeline).toLoadImage(with: request)
-//        wait()
-//    }
-//
-//#if os(iOS) || os(visionOS)
-//    @Test func thumnbailIsntDecompressed() {
-//        pipeline.configuration.imageDecompressingQueue.isSuspended = true
-//
-//        // Given
-//        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-//        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-//
-//        // When/Them
-//        expect(pipeline).toLoadImage(with: request)
-//        wait()
-//    }
-//#endif
-//
-//    // MARK: - CacheKey
-//
-//    @Test func cacheKeyForRequest() {
-//        let request = Test.request
-//        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg")
-//    }
-//
-//    @Test func cacheKeyForRequestWithProcessors() {
-//        var request = Test.request
-//        request.processors = [ImageProcessors.Anonymous(id: "1", { $0 })]
-//        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpeg1")
-//    }
-//
-//    @Test func cacheKeyForRequestWithThumbnail() {
-//        let options = ImageRequest.ThumbnailOptions(maxPixelSize: 400)
-//        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-//        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?maxPixelSize=400.0,options=truetruetruetrue")
-//    }
-//
-//    @Test func cacheKeyForRequestWithThumbnailFlexibleSize() {
-//        let options = ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)
-//        let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: options])
-//        #expect(pipeline.cache.makeDataCacheKey(for: request) == "http://test.com/example.jpegcom.github/kean/nuke/thumbnail?width=400.0,height=400.0,contentMode=.aspectFit,options=truetruetruetrue")
-//    }
 //
 //    // MARK: - Invalidate
 //
@@ -261,7 +194,7 @@ import Foundation
 //
 //        let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
 //
-//        // When/Them
+//        // When/Then
 //        expect(pipeline).toFailRequest(request) { result in
 //            guard case .failure(let error) = result,
 //                  case let .processingFailed(processor, context, error) = error else {

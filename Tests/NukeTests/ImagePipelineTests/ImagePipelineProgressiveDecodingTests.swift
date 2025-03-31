@@ -318,7 +318,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
 //        
 //        pipeline.configuration.dataLoadingQueue.isSuspended = true // Make sure no data is loaded
 //        
-//        // When/Them the pipeline find the first preview in the memory cache,
+//        // When/Then the pipeline find the first preview in the memory cache,
 //        // applies the remaining processors and delivers it
 //        let previewDelivered = self.expectation(description: "previewDelivered")
 //        pipeline.loadImage(with: request) { response, _, _ in
@@ -341,7 +341,7 @@ class ImagePipelineProgressiveDecodingTests: XCTestCase {
         // Given
         let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7.0])
         
-        // When/Them the pipeline find the first preview in the memory cache,
+        // When/Then the pipeline find the first preview in the memory cache,
         // applies the remaining processors and delivers it
         let previewDelivered = self.expectation(description: "previewDelivered")
         pipeline.loadImage(with: request) { response, _, _ in
