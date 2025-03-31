@@ -67,41 +67,62 @@ import Foundation
             ImageTask.Progress(completed: 20, total: 20)
         ])
     }
-}
 
-//    // MARK: Error Handling
-//
-//    @Test func dataLoadingFailedErrorReturned() {
-//        // Given
-//        let dataLoader = MockDataLoader()
-//        let pipeline = ImagePipeline {
-//            $0.dataLoader = dataLoader
-//            $0.imageCache = nil
-//        }
-//
-//        let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
-//        dataLoader.results[Test.url] = .failure(expectedError)
-//
-//        // When/Then
-//        expect(pipeline).toFailRequest(Test.request, with: .dataLoadingFailed(error: expectedError))
-//        wait()
-//    }
-//
-//    @Test func dataLoaderReturnsEmptyData() {
-//        // Given
-//        let dataLoader = MockDataLoader()
-//        let pipeline = ImagePipeline {
-//            $0.dataLoader = dataLoader
-//            $0.imageCache = nil
-//        }
-//
-//        dataLoader.results[Test.url] = .success((Data(), Test.urlResponse))
-//
-//        // When/Then
-//        expect(pipeline).toFailRequest(Test.request, with: .dataIsEmpty)
-//        wait()
-//    }
-//
+    // MARK: Error Handling
+
+    @Test func dataLoadingFailedErrorReturned() async {
+        // Given
+        let dataLoader = MockDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+
+        let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
+        dataLoader.results[Test.url] = .failure(expectedError)
+
+        // When
+        let error = await withCheckedContinuation { continuation in
+            pipeline.loadImage(with: Test.request) { result in
+                switch result {
+                case .success:
+                    Issue.record("Unexpected success")
+                case .failure(let error):
+                    continuation.resume(returning: error)
+                }
+            }
+        }
+
+        // Then
+        #expect(error == .dataLoadingFailed(error: expectedError))
+    }
+
+    @Test func dataLoaderReturnsEmptyData() async {
+        // Given
+        let dataLoader = MockDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+
+        dataLoader.results[Test.url] = .success((Data(), Test.urlResponse))
+
+        // When
+        let error = await withCheckedContinuation { continuation in
+            pipeline.loadImage(with: Test.request) { result in
+                switch result {
+                case .success:
+                    Issue.record("Unexpected success")
+                case .failure(let error):
+                    continuation.resume(returning: error)
+                }
+            }
+        }
+
+        // Then
+        #expect(error == .dataIsEmpty)
+    }
+}
 //    @Test func decoderNotRegistered() {
 //        // Given
 //        let pipeline = ImagePipeline {
