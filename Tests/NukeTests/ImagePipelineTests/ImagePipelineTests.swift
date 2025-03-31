@@ -516,6 +516,226 @@ import Foundation
             #expect(error as? ImagePipeline.Error == .pipelineInvalidated)
         }
     }
+
+    // MARK: - Error Handling
+
+    @Test func dataLoadingFailedErrorReturned() async throws {
+        // Given
+        let dataLoader = MockDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+
+        let expectedError = NSError(domain: "t", code: 23, userInfo: nil)
+        dataLoader.results[Test.url] = .failure(expectedError)
+
+        // When
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Unexpected success")
+        } catch {
+            // Then
+            let error = try #require(error as? ImagePipeline.Error)
+            #expect(error == .dataLoadingFailed(error: expectedError))
+        }
+    }
+
+    @Test func dataLoaderReturnsEmptyData() async throws {
+        // Given
+        let dataLoader = MockDataLoader()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = nil
+        }
+
+        dataLoader.results[Test.url] = .success((Data(), Test.urlResponse))
+
+        // When
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Unexpected success")
+        } catch {
+            // Then
+            let error = try #require(error as? ImagePipeline.Error)
+            #expect(error == .dataIsEmpty)
+        }
+    }
+
+    @Test func decoderNotRegistered() async throws {
+        // Given
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+            $0.makeImageDecoder = { _ in nil }
+            $0.imageCache = nil
+        }
+
+        // When
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Unexpected success")
+        } catch {
+            // Then
+            let error = try #require(error as? ImagePipeline.Error)
+            guard case let .decoderNotRegistered(context) = error else {
+                Issue.record("Expected .decoderNotRegistered")
+                return
+            }
+
+            #expect(context.request.url == Test.request.url)
+            #expect(context.data.count == 22789)
+            #expect(context.isCompleted)
+            #expect(context.urlResponse?.url == Test.url)
+        }
+    }
+
+    @Test func decodingFailedErrorReturned() async throws {
+        // Given
+        let decoder = MockFailingDecoder()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+            $0.makeImageDecoder = { _ in decoder }
+            $0.imageCache = nil
+        }
+
+        // When
+        do {
+            _ = try await pipeline.image(for: Test.request)
+            Issue.record("Unexpected success")
+        } catch {
+            // Then
+            let error = try #require(error as? ImagePipeline.Error)
+
+            if case let .decodingFailed(failedDecoder, context, error) = error {
+                #expect((failedDecoder as? MockFailingDecoder) === decoder)
+
+                #expect(context.request.url == Test.request.url)
+                #expect(context.data == Test.data)
+                #expect(context.isCompleted)
+                #expect(context.urlResponse?.url == Test.url)
+
+                #expect(error as? MockError == MockError(description: "decoder-failed"))
+            } else {
+                Issue.record("Unexpected error: \(error)")
+            }
+        }
+    }
+
+    @Test func processingFailedErrorReturned() async throws {
+        // Given
+        let pipeline = ImagePipeline {
+            $0.dataLoader = MockDataLoader()
+        }
+
+        let request = ImageRequest(url: Test.url, processors: [MockFailingProcessor()])
+
+        // When/Then
+        do {
+            _ = try await pipeline.image(for: request)
+            Issue.record("Unexpected success")
+        } catch {
+            // Then
+            let error = try #require(error as? ImagePipeline.Error)
+
+            if case let .processingFailed(processor, context, error) = error {
+
+                #expect(processor is MockFailingProcessor)
+
+                #expect(context.request.url == Test.url)
+                #expect(context.response.container.image.sizeInPixels == CGSize(width: 640, height: 480))
+                #expect(context.response.cacheType == nil)
+                #expect(context.isCompleted == true)
+
+                #expect(error as? ImageProcessingError == .unknown)
+            } else {
+                Issue.record("Unexpected error: \(error)")
+            }
+        }
+    }
+
+    @Test func errorDescription() {
+        let dataLoadingError = ImagePipeline.Error.dataLoadingFailed(error: Foundation.URLError(.unknown))
+        #expect(!dataLoadingError.description.isEmpty) // Just padding here
+
+        #expect(!ImagePipeline.Error.decodingFailed(decoder: MockImageDecoder(name: "test"), context: .mock, error: MockError(description: "decoding-failed")).description.isEmpty) // Just padding // Just padding
+
+        let processor = ImageProcessors.Resize(width: 100, unit: .pixels)
+        let error = ImagePipeline.Error.processingFailed(processor: processor, context: .mock, error: MockError(description: "processing-failed"))
+        let expected = "Failed to process the image using processor Resize(size: (100.0, 9999.0) pixels, contentMode: .aspectFit, crop: false, upscale: false). Underlying error: MockError(description: \"processing-failed\")."
+        #expect(error.description == expected)
+        #expect("\(error)" == expected)
+
+        #expect(error.dataLoadingError == nil)
+    }
+
+    // MARK: - Misc
+
+    @Test func imageContainerUserInfo() { // Just to make sure we have 100% coverage
+        // When
+        let container = ImageContainer(image: Test.image, type: nil, isPreview: false, data: nil, userInfo: [.init("a"): 1])
+
+        // Then
+        #expect(container.userInfo["a"] as? Int == 1)
+    }
+
+    @Test func skipDataLoadingQueuePerRequestWithURL() async throws {
+        // Given
+        let queue = pipeline.configuration.dataLoadingQueue
+        queue.isSuspended = true
+
+        let request = ImageRequest(url: Test.url, options: [
+            .skipDataLoadingQueue
+        ])
+
+        // Then image is still loaded
+        _ = try await pipeline.image(for: request)
+    }
+
+    @Test func loadWithStringLiteral() async throws {
+        let image = try await pipeline.image(for: "https://example.com/image.jpeg")
+        #expect(image.size != .zero)
+    }
+
+    @Test func loadWithInvalidURL() async throws {
+        // Given
+        pipeline = pipeline.reconfigured {
+            $0.dataLoader = DataLoader()
+        }
+
+        // When
+        for _ in 0...10 {
+            do {
+                _ = try await pipeline.image(for: ImageRequest(url: URL(string: "")))
+                Issue.record("Unexpected success")
+            } catch {
+                // Expected
+            }
+        }
+    }
+
+#if !os(macOS)
+    @Test func overridingImageScale() async throws {
+        // Given
+        let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7])
+
+        // When
+        let image = try await pipeline.image(for: request)
+
+        // Then
+        #expect(image.scale == 7)
+    }
+
+    @Test func overridingImageScaleWithFloat() async throws {
+        // Given
+        let request = ImageRequest(url: Test.url, userInfo: [.scaleKey: 7.0])
+
+        // When
+        let image = try await pipeline.image(for: request)
+
+        // Then
+        #expect(image.scale == 7)
+    }
+#endif
 }
 
 /// We have to mock it because there is no way to construct native `URLError`
