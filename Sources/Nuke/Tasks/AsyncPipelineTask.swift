@@ -51,7 +51,7 @@ extension AsyncPipelineTask {
         guard decoder.isAsynchronous else {
             return completion(decode())
         }
-        operation = pipeline.configuration.imageDecodingQueue.add {
+        workItem = pipeline.configuration.imageDecodingQueue.add(priority: priority) {
             let response = decode()
             completion(response)
         }
