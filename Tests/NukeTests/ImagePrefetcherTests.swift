@@ -127,6 +127,7 @@ import Combine
         prefetcher.stopPrefetching()
     }
 
+    // TODO: reimplement
 //    @Test func defaultPriorityAffectsRequests() {
 //        // When start prefetching with ImageRequest
 //        pipeline.configuration.dataLoadingQueue.isSuspended = true

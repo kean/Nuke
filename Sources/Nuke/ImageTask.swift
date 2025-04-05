@@ -152,6 +152,7 @@ public final class ImageTask: Hashable {
         self.isDataTask = isDataTask
         self.pipeline = pipeline
         self.onEvent = onEvent
+        // TODO: remove thread hop
         self.task = Task { @ImagePipelineActor in
             try await perform()
         }

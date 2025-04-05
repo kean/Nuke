@@ -28,6 +28,7 @@ final class WorkQueue {
         self.maxConcurrentTaskCount = maxConcurrentTaskCount
     }
 
+    // TODO: figure out how to enforce the client to perform work on other actors and skip Task creation if possible
     @discardableResult
     func add(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> WorkItem {
         let item = Item(priority: priority, work: work)
@@ -92,7 +93,8 @@ final class WorkQueue {
 
     private func perform(_ item: Item) {
         activeTaskCount += 1
-        item.task = Task { @ImagePipelineActor in
+        // TODO: remove thread hop
+        item.task = Task {
             await item.work()
             item.task = nil // just in case
             self.activeTaskCount -= 1

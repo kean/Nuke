@@ -46,6 +46,7 @@ public final class ImagePipeline {
     let id = UUID()
 
     // For testing purposes
+    // TODO: remove
     nonisolated(unsafe) var onTaskStarted: ((ImageTask) -> Void)?
 
     deinit {

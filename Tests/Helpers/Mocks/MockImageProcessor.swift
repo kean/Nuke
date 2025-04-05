@@ -84,8 +84,7 @@ final class MockEmptyImageProcessor: ImageProcessing {
 
 /// Counts number of applied processors
 final class MockProcessorFactory {
-    var numberOfProcessorsApplied: Int = 0
-    let lock = NSLock()
+    @Mutex var numberOfProcessorsApplied = 0
 
     private final class Processor: ImageProcessing, @unchecked Sendable {
         var identifier: String { processor.identifier }
@@ -97,9 +96,7 @@ final class MockProcessorFactory {
         }
 
         func process(_ image: PlatformImage) -> PlatformImage? {
-            factory.lock.lock()
             factory.numberOfProcessorsApplied += 1
-            factory.lock.unlock()
             return processor.process(image)
         }
     }

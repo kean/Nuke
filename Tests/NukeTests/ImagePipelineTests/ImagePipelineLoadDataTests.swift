@@ -404,6 +404,7 @@ extension ImagePipelineLoadDataTests {
 }
 
 extension XCTestCase {
+    // TODO: remove
     func withSuspendedDataLoader(for pipeline: ImagePipeline, expectedRequestCount count: Int, _ closure: () -> Void) {
         let dataLoader = pipeline.configuration.dataLoader as! MockDataLoader
         dataLoader.isSuspended = true

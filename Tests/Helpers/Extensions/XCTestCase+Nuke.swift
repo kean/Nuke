@@ -20,6 +20,7 @@ extension XCTestCase {
     }
 }
 
+// TODO: remove
 struct TestExpectationImagePipeline {
     let test: XCTestCase
     let pipeline: ImagePipeline
