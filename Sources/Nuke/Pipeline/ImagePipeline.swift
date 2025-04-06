@@ -107,14 +107,16 @@ public final class ImagePipeline {
 
     /// Creates a task with the given URL.
     ///
-    /// The task starts executing the moment it is created.
+    /// The task starts in a ``ImageTask/State-swift.enum/suspended`` state. It
+    /// starts executing when you ask for the result or subscribe to ``ImageTask/events``.
     public nonisolated func imageTask(with url: URL) -> ImageTask {
         imageTask(with: ImageRequest(url: url))
     }
 
     /// Creates a task with the given request.
     ///
-    /// The task starts executing the moment it is created.
+    /// The task starts in a ``ImageTask/State-swift.enum/suspended`` state. It
+    /// starts executing when you ask for the result or subscribe to ``ImageTask/events``.
     public nonisolated func imageTask(with request: ImageRequest) -> ImageTask {
         makeImageTask(with: request)
     }
