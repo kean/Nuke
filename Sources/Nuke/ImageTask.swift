@@ -134,10 +134,11 @@ public final class ImageTask: Hashable {
         case finished(Result<ImageResponse, ImagePipeline.Error>)
     }
 
+    let isDataTask: Bool
     private let nonisolatedState: Mutex<ImageTaskState>
-    private let isDataTask: Bool
     private let onEvent: (@Sendable (Event, ImageTask) -> Void)?
     private weak var pipeline: ImagePipeline?
+    private var subscription: TaskSubscription?
 
     // TODO: optimize (store one inline)
     private var continuations = ContiguousArray<UnsafeContinuation<ImageResponse, Error>>()
@@ -174,7 +175,9 @@ public final class ImageTask: Hashable {
 
     private func startRunning() {
         state = .running
-        pipeline?.startImageTask(self, isDataTask: isDataTask)
+        subscription = pipeline?.perform(self) { [weak self] in
+            self?.process($0)
+        }
     }
 
     /// Marks task as being cancelled.
@@ -188,7 +191,7 @@ public final class ImageTask: Hashable {
             return true
         }) else { return }
         Task { @ImagePipelineActor in
-            pipeline?.cancelImageTask(self)
+            _cancel()
         }
     }
 
@@ -199,7 +202,7 @@ public final class ImageTask: Hashable {
             return !$0.isCancelling
         }) else { return }
         Task { @ImagePipelineActor in
-            pipeline?.imageTask(self, didChangePriority: newValue)
+            subscription?.setPriority(TaskPriority(newValue))
         }
     }
 
@@ -209,12 +212,14 @@ public final class ImageTask: Hashable {
     /// external event such as session invalidation.
     func _cancel() {
         guard case .running = state else { return }
+        subscription?.unsubscribe()
+        subscription = nil
         state = .cancelled
         dispatch(.cancelled)
     }
 
     /// Gets called when the associated task sends a new event.
-    func process(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
+    private func process(_ event: AsyncTask<ImageResponse, ImagePipeline.Error>.Event) {
         guard case .running = state else { return }
         switch event {
         case let .value(response, isCompleted):
@@ -241,6 +246,7 @@ public final class ImageTask: Hashable {
         _events?.send(event)
 
         func complete(with result: Result<ImageResponse, Error>) {
+            subscription = nil
             _events?.send(completion: .finished)
             for continuation in continuations {
                 continuation.resume(with: result)
@@ -258,7 +264,7 @@ public final class ImageTask: Hashable {
         }
 
         onEvent?(event, self)
-        pipeline?.imageTask(self, didProcessEvent: event, isDataTask: isDataTask)
+        pipeline?.imageTask(self, didProcessEvent: event)
     }
 
     // MARK: Hashable

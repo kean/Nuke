@@ -23,8 +23,7 @@ class ImagePipelineDelegateTests: XCTestCase {
             $0.dataCache = dataCache
             $0.dataCachePolicy = .automatic
             $0.imageCache = nil
-            // TODO: rework
-//            $0.debugIsSyncImageEncoding = true
+            $0.debugIsSyncImageEncoding = true
         }
     }
 

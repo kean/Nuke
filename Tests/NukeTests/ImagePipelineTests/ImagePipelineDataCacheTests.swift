@@ -51,8 +51,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
         pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .storeOriginalData
             $0.imageCache = MockImageCache()
-            // TODO: rework
-//            $0.debugIsSyncImageEncoding = true
+            $0.debugIsSyncImageEncoding = true
         }
 
         // When
@@ -86,8 +85,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
         pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .storeAll
             $0.imageCache = MockImageCache()
-            // TODO: rework
-//            $0.debugIsSyncImageEncoding = true
+            $0.debugIsSyncImageEncoding = true
         }
 
         // When
@@ -242,7 +240,6 @@ class ImagePipelineDataCachingTests: XCTestCase {
     }
 }
 
-// TODO: rework debugIsSyncImageEncoding removal
 class ImagePipelineDataCachePolicyTests: XCTestCase {
     var dataLoader: MockDataLoader!
     var dataCache: MockDataCache!
@@ -264,6 +261,7 @@ class ImagePipelineDataCachePolicyTests: XCTestCase {
             $0.dataCache = dataCache
             $0.imageCache = nil
             $0.makeImageEncoder = { _ in encoder }
+            $0.debugIsSyncImageEncoding = true
         }
         
         processorFactory = MockProcessorFactory()

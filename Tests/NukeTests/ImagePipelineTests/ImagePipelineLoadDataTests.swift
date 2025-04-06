@@ -24,8 +24,7 @@ class ImagePipelineLoadDataTests: XCTestCase {
             $0.dataCache = dataCache
             $0.imageCache = nil
             $0.makeImageEncoder = { _ in encoder }
-            // TODO: rework
-//            $0.debugIsSyncImageEncoding = true
+            $0.debugIsSyncImageEncoding = true
         }
     }
 

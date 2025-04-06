@@ -134,6 +134,8 @@ extension ImagePipeline {
 
         private var isCustomImageCacheProvided = false
 
+        var debugIsSyncImageEncoding = false
+
         // MARK: - Work Queues
 
         // TODO: add support for settings `maxConcurrentCount` for these

@@ -28,9 +28,8 @@ final class WorkQueue {
         self.maxConcurrentTaskCount = maxConcurrentTaskCount
     }
 
-    // TODO: figure out how to enforce the client to perform work on other actors and skip Task creation if possible
     @discardableResult
-    func add(priority: TaskPriority = .normal, work: @ImagePipelineActor @escaping () async -> Void) -> WorkItem {
+    func add(priority: TaskPriority = .normal, work: @escaping () async -> Void) -> WorkItem {
         let item = Item(priority: priority, work: work)
         item.queue = self
         if !isSuspended && activeTaskCount < maxConcurrentTaskCount {
@@ -111,13 +110,13 @@ final class WorkQueue {
     /// A handle that can be used to change the priority of the pending work.
     @ImagePipelineActor
     final class Item {
-        let work: @ImagePipelineActor () async -> Void
+        let work: () async -> Void
         var priority: TaskPriority
         weak var node: LinkedList<Item>.Node?
         var task: Task<Void, Never>?
         weak var queue: WorkQueue?
 
-        init(priority: TaskPriority, work: @ImagePipelineActor @escaping () async -> Void) {
+        init(priority: TaskPriority, work: @escaping () async -> Void) {
             self.priority = priority
             self.work = work
         }

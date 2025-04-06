@@ -42,3 +42,8 @@ extension TaskPriority {
         }
     }
 }
+
+// TODO: is this the optimal way to do that? Do we need to use a different TaskPriority?
+func performInBackground<T>(_ closure: @Sendable () -> T) async -> T {
+    closure()
+}

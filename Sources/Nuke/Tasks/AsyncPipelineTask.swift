@@ -52,7 +52,7 @@ extension AsyncPipelineTask {
             return completion(decode())
         }
         workItem = pipeline.configuration.imageDecodingQueue.add(priority: priority) {
-            let response = decode()
+            let response = await performInBackground { decode() }
             completion(response)
         }
     }

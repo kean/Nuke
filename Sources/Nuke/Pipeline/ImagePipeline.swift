@@ -31,7 +31,7 @@ public final class ImagePipeline {
 
     let delegate: any ImagePipeline.Delegate
 
-    private var tasks = [ImageTask: TaskSubscription]()
+    private var tasks = Set<ImageTask>()
 
     private let tasksLoadData: TaskPool<TaskLoadImageKey, ImageResponse, Error>
     private let tasksLoadImage: TaskPool<TaskLoadImageKey, ImageResponse, Error>
@@ -98,7 +98,7 @@ public final class ImagePipeline {
     public func invalidate() {
         guard !isInvalidated else { return }
         isInvalidated = true
-        tasks.keys.forEach { cancelImageTask($0) }
+        tasks.forEach { $0._cancel() }
     }
 
     // MARK: - Loading Images
@@ -148,34 +148,24 @@ public final class ImagePipeline {
         return task
     }
 
-    // By this time, the task has `continuation` set and is fully wired.
-    func startImageTask(_ task: ImageTask, isDataTask: Bool) {
+    func perform(_ task: ImageTask, onEvent: @escaping (AsyncTask<ImageResponse, ImagePipeline.Error>.Event) -> Void) -> TaskSubscription? {
         guard !isInvalidated else {
-            return task.process(.error(.pipelineInvalidated))
+            onEvent(.error(.pipelineInvalidated))
+            return nil
         }
-        let worker = isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
-        tasks[task] = worker.subscribe(priority: TaskPriority(task.priority), subscriber: task) { [weak task] in
-            task?.process($0)
-        }
-        onTaskStarted?(task)
+        let worker = task.isDataTask ? makeTaskLoadData(for: task.request) : makeTaskLoadImage(for: task.request)
+        defer { onTaskStarted?(task) }
+        tasks.insert(task)
+        return worker.subscribe(priority: TaskPriority(task.priority), subscriber: task, onEvent)
     }
 
-    func cancelImageTask(_ task: ImageTask) {
-        tasks.removeValue(forKey: task)?.unsubscribe()
-        task._cancel()
-    }
-
-    func imageTask(_ task: ImageTask, didChangePriority priority: ImageRequest.Priority) {
-        self.tasks[task]?.setPriority(TaskPriority(priority))
-    }
-
-    func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event, isDataTask: Bool) {
+    func imageTask(_ task: ImageTask, didProcessEvent event: ImageTask.Event) {
         switch event {
         case .cancelled, .finished:
-            tasks[task] = nil
+            tasks.remove(task)
         default: break
         }
-        if !isDataTask {
+        if !task.isDataTask {
             delegate.imageTask(task, didReceiveEvent: event, pipeline: self)
         }
     }
