@@ -95,12 +95,10 @@ public final class ImagePipeline {
 
     /// Invalidates the pipeline and cancels all outstanding tasks. Any new
     /// requests will immediately fail with ``ImagePipeline/Error/pipelineInvalidated`` error.
-    public nonisolated func invalidate() {
-        Task { @ImagePipelineActor in
-            guard !self.isInvalidated else { return }
-            self.isInvalidated = true
-            self.tasks.keys.forEach { cancelImageTask($0) }
-        }
+    public func invalidate() {
+        guard !isInvalidated else { return }
+        isInvalidated = true
+        tasks.keys.forEach { cancelImageTask($0) }
     }
 
     // MARK: - Loading Images

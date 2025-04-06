@@ -81,7 +81,7 @@ class ImagePipelineDataCachingTests: XCTestCase {
         }
     }
 
-    func testThumbnailOptionsDataCacheStoresOriginalDataWithStoreAllPolicy() throws {
+    func testThumbnailOptionsDataCacheStoresOriginalDataWithStoreAllPolicy() async throws {
         // Given
         pipeline = pipeline.reconfigured {
             $0.dataCachePolicy = .storeAll
@@ -92,11 +92,9 @@ class ImagePipelineDataCachingTests: XCTestCase {
 
         // When
         let request = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(size: CGSize(width: 400, height: 400), unit: .pixels, contentMode: .aspectFit)])
-        expect(pipeline).toLoadImage(with: request)
+        _ = try await pipeline.image(for: request)
 
         // Then
-        wait()
-
         do { // Check memory cache
             // Image does not exists for the original image
             XCTAssertNil(pipeline.cache.cachedImage(for: ImageRequest(url: Test.url), caches: [.memory]))
