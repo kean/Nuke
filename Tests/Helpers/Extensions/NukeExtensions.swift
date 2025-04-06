@@ -67,16 +67,6 @@ extension ImageCaching {
     }
 }
 
-extension ImageTask {
-    // TODO: does it need to be baseline?
-    @discardableResult nonisolated func resume() -> ImageTask {
-        Task { @ImagePipelineActor in
-            _ = try? await response
-        }
-        return self
-    }
-}
-
 #if os(macOS)
 import Cocoa
 typealias _ImageView = NSImageView
