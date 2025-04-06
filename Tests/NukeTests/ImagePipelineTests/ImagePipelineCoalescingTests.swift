@@ -23,7 +23,6 @@ import Testing
 
     // MARK: - Deduplication
 
-    // TODO: it only works because `WorkQueue` introduces a hop
     @Test func coalescingGivenSameURLDifferentSameProcessors() async throws {
         // Given requests with the same URLs and same processors
         let processors = MockProcessorFactory()
@@ -371,62 +370,60 @@ import Testing
         #expect(newPriority2 == .low)
     }
 
-//    // MARK: - Loading Data
-//
-//    @Test func thatLoadsDataOnceWhenLoadingDataAndLoadingImage() {
-//        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
-//            expect(pipeline).toLoadImage(with: Test.request)
-//            expect(pipeline).toLoadData(with: Test.request)
-//        }
-//        wait()
-//
-//        #expect(dataLoader.createdTaskCount == 1)
-//    }
-//
-//    // MARK: - Misc
-//
-//    @Test func progressIsReported() {
-//        // Given
-//        dataLoader.results[Test.url] = .success(
-//            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
-//        )
-//
-//        // When/Then
-//        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 3) {
-//            for _ in 0..<3 {
-//                let request = Test.request
-//
-//                let expectedProgress = expectProgress([(10, 20), (20, 20)])
-//
-//                pipeline.loadImage(
-//                    with: request,
-//                    progress: { _, completed, total in
-//                        #expect(Thread.isMainThread)
-//                        expectedProgress.received((completed, total))
-//                    },
-//                    completion: { _ in }
-//                )
-//            }
-//        }
-//
-//        wait()
-//    }
-//
-//    @Test func disablingDeduplication() {
-//        // Given
-//        let pipeline = ImagePipeline {
-//            $0.imageCache = nil
-//            $0.dataLoader = dataLoader
-//            $0.isTaskCoalescingEnabled = false
-//        }
-//
-//        // When/Then
-//        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
-//            expect(pipeline).toLoadImage(with: Test.request)
-//            expect(pipeline).toLoadImage(with: Test.request)
-//        }
-//        wait { _ in
-//            #expect(self.dataLoader.createdTaskCount == 2)
-//        }
-//    }
+    // MARK: - Loading Data
+
+    @Test func thatLoadsDataOnceWhenLoadingDataAndLoadingImage() async throws {
+        // When
+        async let image = pipeline.image(for: Test.request)
+        async let data = pipeline.data(for: Test.request)
+        _ = try await (image, data)
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
+    // MARK: - Misc
+
+    @Test func progressIsReported() async {
+        // Given
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        // When
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<3 {
+                let request = Test.request
+                group.addTask {
+                    let task = pipeline.imageTask(with: request)
+                    // Then
+                    var expected: [ImageTask.Progress] = [.init(completed: 10, total: 20), .init(completed: 20, total: 20)].reversed()
+                    for await progress in task.progress {
+                        if let value = expected.popLast() {
+                            #expect(value == progress)
+                        } else {
+                            Issue.record()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test func disablingDeduplication() async throws {
+        // Given
+        let pipeline = ImagePipeline {
+            $0.imageCache = nil
+            $0.dataLoader = dataLoader
+            $0.isTaskCoalescingEnabled = false
+        }
+
+        // When loading images for those requests
+        async let task1 = pipeline.image(for: Test.url)
+        async let task2 = pipeline.image(for: Test.url)
+        _ = try await (task1, task2)
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 2)
+    }
 }
