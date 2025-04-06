@@ -23,23 +23,18 @@ import Testing
 
     // MARK: - Deduplication
 
+    // TODO: it only works because `WorkQueue` introduces a hop
     @Test func deduplicationGivenSameURLDifferentSameProcessors() async throws {
         // Given requests with the same URLs and same processors
         let processors = MockProcessorFactory()
         let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
         let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
 
-        // TODO: remove this – should not be needed
-        dataLoader.isSuspended = true
-        DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(300)) {
-            dataLoader.isSuspended = false
-        }
-
         // When loading images for those requests
-        let (image1, image2) = try await (
-            pipeline.image(for: request1),
-            pipeline.image(for: request2)
-        )
+        async let task1 = pipeline.image(for: request1)
+        async let task2 = pipeline.image(for: request2)
+
+        let (image1, image2) = try await (task1, task2)
 
         // Then the correct proessors are applied.
         #expect(image1.nk_test_processorIDs ?? [] == ["1"])
