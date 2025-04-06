@@ -83,7 +83,7 @@ final class MockEmptyImageProcessor: ImageProcessing {
 // MARK: - MockProcessorFactory
 
 /// Counts number of applied processors
-final class MockProcessorFactory {
+final class MockProcessorFactory: @unchecked Sendable {
     @Mutex var numberOfProcessorsApplied = 0
 
     private final class Processor: ImageProcessing, @unchecked Sendable {

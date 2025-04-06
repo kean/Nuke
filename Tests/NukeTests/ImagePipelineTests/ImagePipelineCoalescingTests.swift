@@ -167,168 +167,144 @@ import Testing
 
     // MARK: - Processing
 
-//    @Test func processorsAreDeduplicated() async throws {
-//        // Given
-//        let processors = MockProcessorFactory()
-//
-//        // When
-//        let expectation = pipeline.configuration.imageProcessingQueue.expectItemAdded(count: 2)
-//
-//        _ = try await (
-//            pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "1")])),
-//            pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "2")])),
-//            pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "1")]))
-//        )
-//
-//        // Then
-//        _ = await expectation.wait()
-//        #expect(processors.numberOfProcessorsApplied == 2)
-//    }
-////
-//    @Test func subscribingToExisingSessionWhenProcessingAlreadyStarted() {
-//        // Given
-//        let queue = pipeline.configuration.imageProcessingQueue
-//        queue.isSuspended = true
-//
-//        let processors = MockProcessorFactory()
-//        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
-//        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
-//
-//        let queueObserver = OperationQueueObserver(queue: queue)
-//
-//        let expectation = self.expectation(description: "Second request completed")
-//
-//        queueObserver.didAddOperation = { _ in
-//            queueObserver.didAddOperation = nil
-//
-//            // When loading image with the same request and processing for
-//            // the first request has already started
-//            self.pipeline.loadImage(with: request2) { result in
-//                let image = result.value?.image
-//                // Then the image is still loaded and processors is applied
-//                #expect(image?.nk_test_processorIDs ?? [] == ["1"])
-//                expectation.fulfill()
-//            }
-//            queue.isSuspended = false
-//        }
-//
-//        expect(pipeline).toLoadImage(with: request1) { result in
-//            let image = result.value?.image
-//            #expect(image?.nk_test_processorIDs ?? [] == ["1"])
-//        }
-//
-//        wait { _ in
-//            // Then the original image is loaded only once, but processors are
-//            // applied twice
-//            #expect(self.dataLoader.createdTaskCount == 1)
-//            #expect(processors.numberOfProcessorsApplied == 1)
-//            #expect(queueObserver.operations.count == 1)
-//        }
-//    }
-//
-//    @Test func correctImageIsStoredInMemoryCache() {
-//        let imageCache = MockImageCache()
-//        let pipeline = ImagePipeline {
-//            $0.dataLoader = dataLoader
-//            $0.imageCache = imageCache
-//        }
-//
-//        // Given requests with the same URLs but different processors
-//        let processors = MockProcessorFactory()
-//        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
-//        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
-//
-//        // When loading images for those requests
-//        // Then the correct proessors are applied.
-//        expect(pipeline).toLoadImage(with: request1) { result in
-//            let image = result.value?.image
-//            #expect(image?.nk_test_processorIDs ?? [] == ["1"])
-//        }
-//        expect(pipeline).toLoadImage(with: request2) { result in
-//            let image = result.value?.image
-//            #expect(image?.nk_test_processorIDs ?? [] == ["2"])
-//        }
-//        wait()
-//
-//        // Then
-//        #expect(imageCache[request1] != nil)
-//        #expect(imageCache[request1]?.image.nk_test_processorIDs ?? [] == ["1"])
-//        #expect(imageCache[request2] != nil)
-//        #expect(imageCache[request2]?.image.nk_test_processorIDs ?? [] == ["2"])
-//    }
-//
-//    // MARK: - Cancellation
-//
-//    @Test func cancellation() {
-//        dataLoader.queue.isSuspended = true
-//
-//        // Given two equivalent requests
-//
-//        // When both tasks are cancelled the image loading session is cancelled
-//
-//        _ = expectNotification(MockDataLoader.DidStartTask, object: dataLoader)
-//        let task1 = pipeline.loadImage(with: Test.request) { _ in }
-//        let task2 = pipeline.loadImage(with: Test.request) { _ in }
-//        wait() // wait until the tasks is started or we might be cancelling non-existing task
-//
-//        _ = expectNotification(MockDataLoader.DidCancelTask, object: dataLoader)
-//        task1.cancel()
-//        task2.cancel()
-//        wait()
-//    }
-//
-//    @Test func cancellatioOnlyCancelOneTask() {
-//        dataLoader.queue.isSuspended = true
-//
-//        let task1 = pipeline.loadImage(with: Test.request) { _ in
-//            Issue.record()
-//        }
-//
-//        expect(pipeline).toLoadImage(with: Test.request)
-//
-//        // When cancelling only only only one of the tasks
-//        task1.cancel()
-//
-//        // Then the image is still loaded
-//
-//        dataLoader.queue.isSuspended = false
-//
-//        wait()
-//    }
-//
-//    @Test func processingOperationsAreCancelledSeparately() {
-//        dataLoader.queue.isSuspended = true
-//
-//        // Given
-//        let queue = pipeline.configuration.imageProcessingQueue
-//        queue.isSuspended = true
-//
-//        // When/Then
-//        let operations = expect(queue).toEnqueueOperationsWithCount(2)
-//
-//        let processors = MockProcessorFactory()
-//        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
-//        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
-//
-//        _ = pipeline.loadImage(with: request1) { _ in }
-//        let task2 = pipeline.loadImage(with: request2) { _ in }
-//
-//        dataLoader.queue.isSuspended = false
-//
-//        wait()
-//
-//        // When/Then
-//        let expectation = self.expectation(description: "One operation got cancelled")
-//        for operation in operations.operations {
-//            // Pass the same expectation into both operations, only
-//            // one should get cancelled.
-//            expect(operation).toCancel(with: expectation)
-//        }
-//
-//        task2.cancel()
-//        wait()
-//    }
-//
+    @Test func processorsAreDeduplicated() async throws {
+        // Given
+        let processors = MockProcessorFactory()
+
+        // When
+        let expectation = pipeline.configuration.imageProcessingQueue.expectItemAdded(count: 2)
+
+        async let task1 = pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "1")]))
+        async let task2 = pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "2")]))
+        async let task3 = pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "1")]))
+
+        _ = try await [task1, task2, task3]
+
+        // Then
+        _ = await expectation.wait()
+        #expect(processors.numberOfProcessorsApplied == 2)
+    }
+
+    @Test func subscribingToExisingTaskWhenProcessingAlreadyStarted() async throws {
+        // Given
+        let queue = pipeline.configuration.imageProcessingQueue
+        queue.isSuspended = true
+
+        let processors = MockProcessorFactory()
+        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
+        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
+
+        // When first task is stated and processing operation is registered
+        let expectation = queue.expectItemAdded()
+        let task = Task {
+            try await pipeline.image(for: request1)
+        }
+        _ = await expectation.wait()
+        queue.isSuspended = false
+
+        let image2 = try await pipeline.image(for: request2)
+        let image1 = try await task.value
+
+        // Then the images is still loaded and processors is applied
+        #expect(image1.nk_test_processorIDs ?? [] == ["1"])
+        #expect(image2.nk_test_processorIDs ?? [] == ["1"])
+
+        // Then the original image is loaded only once, but processors are
+        // applied twice
+        #expect(dataLoader.createdTaskCount == 1)
+        #expect(processors.numberOfProcessorsApplied == 1)
+    }
+
+    @Test func correctImageIsStoredInMemoryCache() async throws {
+        let imageCache = MockImageCache()
+        let pipeline = ImagePipeline {
+            $0.dataLoader = dataLoader
+            $0.imageCache = imageCache
+        }
+
+        // Given requests with the same URLs but different processors
+        let processors = MockProcessorFactory()
+        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
+        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
+
+
+        // When loading images for those requests
+        async let task1 = pipeline.image(for: request1)
+        async let task2 = pipeline.image(for: request2)
+        let (image1, image2) = try await (task1, task2)
+
+        // Then the correct processors are applied.
+        #expect(image1.nk_test_processorIDs ?? [] == ["1"])
+        #expect(image2.nk_test_processorIDs ?? [] == ["2"])
+
+        // Then the images are stored in memory cache
+        #expect(imageCache[request1] != nil)
+        #expect(imageCache[request1]?.image.nk_test_processorIDs ?? [] == ["1"])
+        #expect(imageCache[request2] != nil)
+        #expect(imageCache[request2]?.image.nk_test_processorIDs ?? [] == ["2"])
+    }
+
+    // MARK: - Cancellation
+
+    @Test func cancellation() async {
+        dataLoader.queue.isSuspended = true
+
+        // Given two equivalent requests
+        // When both tasks are cancelled
+        let expectation1 = AsyncExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
+        let task1 = pipeline.imageTask(with: Test.request).resume()
+        let task2 = pipeline.imageTask(with: Test.request).resume()
+        _ = await expectation1.wait() // wait until the tasks is started or we might be cancelling non-existing task
+
+        // Then the image task is cancelled
+        let expectation2 = AsyncExpectation(notification: MockDataLoader.DidCancelTask, object: dataLoader)
+        task1.cancel()
+        task2.cancel()
+        _ = await expectation2.wait()
+    }
+
+    @Test func cancellationCancelOnlyOneTask() async throws {
+        dataLoader.queue.isSuspended = true
+
+        let task1 = pipeline.loadImage(with: Test.request) { _ in
+            Issue.record()
+        }
+
+        let task2 = pipeline.imageTask(with: Test.request).resume()
+
+        // When cancelling only only only one of the tasks
+        task1.cancel()
+
+        // Then the image for task2 is still loaded
+        dataLoader.queue.isSuspended = false
+
+        _ = try await task2.image
+    }
+
+    @Test func processingWorkItemsAreCancelledSeparately() async {
+        let queue = pipeline.configuration.imageProcessingQueue
+        queue.isSuspended = true
+
+        // Given two requests with different processors
+        let processors = MockProcessorFactory()
+        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
+        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
+
+        // When
+        let expectation1 = queue.expectItemAdded()
+        pipeline.imageTask(with: request1).resume()
+        _ = await expectation1.wait()
+
+        let expectation2 = queue.expectItemAdded()
+        let task2 = pipeline.imageTask(with: request2).resume()
+        let item2 = await expectation2.wait()
+
+        // When
+        let expectation3 = queue.expectItemCancelled(item2)
+        task2.cancel()
+        await expectation3.wait()
+    }
+
 //    // MARK: - Priority
 //
 //    @Test func processingOperationPriorityUpdated() {
