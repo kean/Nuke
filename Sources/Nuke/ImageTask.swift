@@ -158,6 +158,7 @@ public final class ImageTask: Hashable {
         }
     }
 
+    // TODO: simplify this
     private func perform() async throws -> ImageResponse {
         try await withUnsafeThrowingContinuation {
             continuation = $0
