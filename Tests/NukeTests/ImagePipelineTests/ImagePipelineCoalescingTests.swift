@@ -338,32 +338,39 @@ import Testing
         let newPriority2 = await expectation3.wait()
         #expect(newPriority2 == .low)
     }
-//
-//    @Test func processingOperationPriorityUpdatedWhenCancellingTask() {
-//        // Given
-//        dataLoader.queue.isSuspended = true
-//        let queue = pipeline.configuration.imageProcessingQueue
-//        queue.isSuspended = true
-//
-//        // Given
-//        let operations = expect(queue).toEnqueueOperationsWithCount(1)
-//        pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low)) { _ in }
-//        dataLoader.queue.isSuspended = false
-//        wait()
-//
-//        // Given
-//        // Note: adding a second task separately because we should guarantee
-//        // that both are subscribed by the time we start our test.
-//        expect(operations.operations.first!).toUpdatePriority(from: .low, to: .high)
-//        let task = pipeline.loadImage(with: ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .high)) { _ in }
-//        wait()
-//
-//        // When/Then
-//        expect(operations.operations.first!).toUpdatePriority(from: .high, to: .low)
-//        task.cancel()
-//        wait()
-//    }
-//
+
+    @Test func processingOperationPriorityUpdatedWhenCancellingTask() async {
+        // Given
+        let queue = pipeline.configuration.imageProcessingQueue
+        queue.isSuspended = true
+
+        // When
+        let expectation1 = queue.expectItemAdded()
+        var request = ImageRequest(url: Test.url, processors: [MockImageProcessor(id: "1")], priority: .low)
+        pipeline.imageTask(with: request).resume()
+
+        // Then the item is created with a low priority
+        let workItem = await expectation1.wait()
+        #expect(workItem.priority == .low)
+
+        // When new operation is added with a higher priority
+        let expectation2 = queue.expectPriorityUpdated(for: workItem)
+        request.priority = .high
+        let task = pipeline.imageTask(with: request).resume()
+        let newPriority1 = await expectation2.wait()
+
+        // Then priority is raised
+        #expect(newPriority1 == .high)
+
+        // When high-priority task is cancelled
+        let expectation3 = queue.expectPriorityUpdated(for: workItem)
+        task.cancel()
+
+        // Then priority is lowered again
+        let newPriority2 = await expectation3.wait()
+        #expect(newPriority2 == .low)
+    }
+
 //    // MARK: - Loading Data
 //
 //    @Test func thatLoadsDataOnceWhenLoadingDataAndLoadingImage() {
