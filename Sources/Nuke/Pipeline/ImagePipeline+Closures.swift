@@ -90,7 +90,7 @@ extension ImagePipeline {
         progress: (@MainActor @Sendable (ImageResponse?, ImageTask.Progress) -> Void)?,
         completion: @MainActor @Sendable @escaping (Result<ImageResponse, Error>) -> Void
     ) -> ImageTask {
-        makeImageTask(with: request, isDataTask: isDataTask) { event, task in
+        let task = makeImageTask(with: request, isDataTask: isDataTask) { event, task in
             DispatchQueue.main.async {
                 // The callback-based API guarantees that after cancellation no
                 // event are called on the callback queue.
@@ -103,5 +103,9 @@ extension ImagePipeline {
                 }
             }
         }
+        Task { @ImagePipelineActor in
+            _ = try await task.response
+        }
+        return task
     }
 }

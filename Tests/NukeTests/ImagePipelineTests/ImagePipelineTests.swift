@@ -199,7 +199,7 @@ import Foundation
 
         let expectation1 = queue.expectItemAdded()
         let request = Test.request
-        let task = pipeline.imageTask(with: request)
+        let task = pipeline.imageTask(with: request).resume()
         let workItem = await expectation1.wait()
 
         // When
@@ -221,7 +221,7 @@ import Foundation
         }
         let expectation1 = queue.expectItemAdded()
         let request = ImageRequest(url: Test.url, processors: [processor])
-        let task = pipeline.imageTask(with: request)
+        let task = pipeline.imageTask(with: request).resume()
         let workItem = await expectation1.wait()
 
         // When
@@ -441,7 +441,7 @@ import Foundation
 
         // When
         let expectation = pipeline.configuration.imageDecodingQueue.expectItemAdded()
-        _ = pipeline.imageTask(with: request)
+        pipeline.imageTask(with: request).resume()
 
         // Then work item is created on an expected queue
         _ = await expectation.wait()
@@ -493,7 +493,7 @@ import Foundation
         dataLoader.queue.isSuspended = true
 
         let expectation1 = AsyncExpectation(notification: MockDataLoader.DidStartTask, object: dataLoader)
-        _ = pipeline.imageTask(with: Test.request)
+        pipeline.imageTask(with: Test.request).resume()
         await expectation1.wait()
 
         // When
