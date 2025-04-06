@@ -116,7 +116,6 @@ public final class ImageTask: Hashable {
 
     // MARK: - Events
 
-    // TODO: perform with Task here
     /// The events sent by the pipeline during the task execution.
     public nonisolated var events: AsyncStream<Event> { makeStream { $0 } }
 
