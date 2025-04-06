@@ -249,6 +249,7 @@ extension XCTestCase {
 
 // MARK: - OperationQueueObserver
 
+// TODO: remove
 final class OperationQueueObserver {
     private let queue: OperationQueue
     // All recorded operations.

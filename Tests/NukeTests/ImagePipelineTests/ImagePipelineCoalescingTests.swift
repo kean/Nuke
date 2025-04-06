@@ -24,7 +24,7 @@ import Testing
     // MARK: - Deduplication
 
     // TODO: it only works because `WorkQueue` introduces a hop
-    @Test func deduplicationGivenSameURLDifferentSameProcessors() async throws {
+    @Test func coalescingGivenSameURLDifferentSameProcessors() async throws {
         // Given requests with the same URLs and same processors
         let processors = MockProcessorFactory()
         let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
@@ -33,197 +33,158 @@ import Testing
         // When loading images for those requests
         async let task1 = pipeline.image(for: request1)
         async let task2 = pipeline.image(for: request2)
-
         let (image1, image2) = try await (task1, task2)
 
         // Then the correct proessors are applied.
         #expect(image1.nk_test_processorIDs ?? [] == ["1"])
         #expect(image2.nk_test_processorIDs ?? [] == ["1"])
 
+        // Then the original image is loaded once
+        #expect(dataLoader.createdTaskCount == 1)
+
         // Then  the image is processed once
         #expect(processors.numberOfProcessorsApplied == 1)
+    }
+
+    @Test func coalescingGivenSameURLDifferentProcessors() async throws {
+        // Given requests with the same URLs but different processors
+        let processors = MockProcessorFactory()
+        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
+        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
+
+        // When loading images for those requests
+        async let task1 = pipeline.image(for: request1)
+        async let task2 = pipeline.image(for: request2)
+        let (image1, image2) = try await (task1, task2)
+
+        // Then the correct proessors are applied.
+        // Then the correct proessors are applied.
+        #expect(image1.nk_test_processorIDs ?? [] == ["1"])
+        #expect(image2.nk_test_processorIDs ?? [] == ["2"])
 
         // Then the original image is loaded once
         #expect(dataLoader.createdTaskCount == 1)
+
+        // Then the image is processed twice
+        #expect(processors.numberOfProcessorsApplied == 2)
     }
 
-//    @Test func deduplicationGivenSameURLDifferentProcessors() {
-//        // Given requests with the same URLs but different processors
-//        let processors = MockProcessorFactory()
-//        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
-//        let request2 = ImageRequest(url: Test.url, processors: [processors.make(id: "2")])
-//
-//        // When loading images for those requests
-//        // Then the correct proessors are applied.
-//        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
-//            expect(pipeline).toLoadImage(with: request1) { result in
-//                let image = result.value?.image
-//                #expect(image?.nk_test_processorIDs ?? [] == ["1"])
-//            }
-//            expect(pipeline).toLoadImage(with: request2) { result in
-//                let image = result.value?.image
-//                #expect(image?.nk_test_processorIDs ?? [] == ["2"])
-//            }
-//        }
-//
-//        wait { _ in
-//            // Then the original image is loaded once, but both processors are applied
-//            #expect(processors.numberOfProcessorsApplied == 2)
-//            #expect(self.dataLoader.createdTaskCount == 1)
-//        }
-//    }
-//
-//    @Test func deduplicationGivenSameURLDifferentProcessorsOneEmpty() {
-//        // Given requests with the same URLs but different processors where one
-//        // processor is empty
-//        let processors = MockProcessorFactory()
-//        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
-//
-//        var request2 = Test.request
-//        request2.processors = []
-//
-//        // When loading images for those requests
-//        // Then the correct proessors are applied.
-//        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
-//            expect(pipeline).toLoadImage(with: request1) { result in
-//                let image = result.value?.image
-//                #expect(image?.nk_test_processorIDs ?? [] == ["1"])
-//            }
-//            expect(pipeline).toLoadImage(with: request2) { result in
-//                let image = result.value?.image
-//                #expect(image?.nk_test_processorIDs ?? [] == [])
-//            }
-//        }
-//
-//        wait { _ in
-//            // Then
-//            // The original image is loaded once, the first processor is applied
-//            #expect(processors.numberOfProcessorsApplied == 1)
-//            #expect(self.dataLoader.createdTaskCount == 1)
-//        }
-//    }
-//
-//    @Test func noDeduplicationGivenNonEquivalentRequests() {
-//
-//        let request1 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
-//        let request2 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
-//
-//        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
-//            expect(pipeline).toLoadImage(with: request1)
-//            expect(pipeline).toLoadImage(with: request2)
-//        }
-//
-//        wait { _ in
-//            #expect(self.dataLoader.createdTaskCount == 2)
-//        }
-//    }
-//
-//    // MARK: - Scale
-//
-//#if !os(macOS)
-//    @Test func overridingImageScale() throws {
-//        // GIVEN requests with the same URLs but one accesses thumbnail
-//        let request1 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 2])
-//        let request2 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 3])
-//
-//        // WHEN loading images for those requests
-//        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
-//            expect(pipeline).toLoadImage(with: request1) { result in
-//                // THEN
-//                guard let image = result.value?.image else { return Issue.record() }
-//                #expect(image.scale == 2)
-//            }
-//            expect(pipeline).toLoadImage(with: request2) { result in
-//                // THEN
-//                guard let image = result.value?.image else { return Issue.record() }
-//                #expect(image.scale == 3)
-//            }
-//        }
-//
-//        wait()
-//
-//        #expect(self.dataLoader.createdTaskCount == 1)
-//    }
-//#endif
-//
-//    // MARK: - Thumbnail
-//
-//    @Test func deduplicationGivenSameURLButDifferentThumbnailOptions() {
-//        // GIVEN requests with the same URLs but one accesses thumbnail
-//        let request1 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
-//        let request2 = ImageRequest(url: Test.url)
-//
-//        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
-//
-//            // WHEN loading images for those requests
-//            expect(pipeline).toLoadImage(with: request1) { result in
-//                // THEN
-//                guard let image = result.value?.image else { return Issue.record() }
-//                #expect(image.sizeInPixels == CGSize(width: 400, height: 300))
-//            }
-//            expect(pipeline).toLoadImage(with: request2) { result in
-//                // THEN
-//                guard let image = result.value?.image else { return Issue.record() }
-//                #expect(image.sizeInPixels == CGSize(width: 640.0, height: 480.0))
-//            }
-//
-//        }
-//
-//        wait { _ in
-//            // THEN the image data is fetched once
-//            #expect(self.dataLoader.createdTaskCount == 1)
-//        }
-//    }
-//
-//    @Test func deduplicationGivenSameURLButDifferentThumbnailOptionsReversed() {
-//        // GIVEN requests with the same URLs but one accesses thumbnail
-//        // (in this test, order is reversed)
-//        let request1 = ImageRequest(url: Test.url)
-//        let request2 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
-//
-//        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 2) {
-//            // WHEN loading images for those requests
-//            expect(pipeline).toLoadImage(with: request1) { result in
-//                // THEN
-//                guard let image = result.value?.image else { return Issue.record() }
-//                #expect(image.sizeInPixels == CGSize(width: 640.0, height: 480.0))
-//            }
-//            expect(pipeline).toLoadImage(with: request2) { result in
-//                // THEN
-//                guard let image = result.value?.image else { return Issue.record() }
-//                #expect(image.sizeInPixels == CGSize(width: 400, height: 300))
-//            }
-//        }
-//
-//        wait { _ in
-//            // THEN the image data is fetched once
-//            #expect(self.dataLoader.createdTaskCount == 1)
-//        }
-//    }
-//
-//    // MARK: - Processing
-//
-//    @Test func processorsAreDeduplicated() {
+    @Test func coalescingGivenSameURLDifferentProcessorsOneEmpty() async throws {
+        // Given requests with the same URLs but different processors where one
+        // processor is empty
+        let processors = MockProcessorFactory()
+        let request1 = ImageRequest(url: Test.url, processors: [processors.make(id: "1")])
+
+        var request2 = Test.request
+        request2.processors = []
+
+        // When loading images for those requests
+        async let task1 = pipeline.image(for: request1)
+        async let task2 = pipeline.image(for: request2)
+        let (image1, image2) = try await (task1, task2)
+
+        // Then the correct proessors are applied.
+        #expect(image1.nk_test_processorIDs ?? [] == ["1"])
+        #expect(image2.nk_test_processorIDs ?? [] == [])
+
+        // Then the original image is loaded once
+        #expect(dataLoader.createdTaskCount == 1)
+
+        // Then the image is processed once
+        #expect(processors.numberOfProcessorsApplied == 1)
+    }
+
+    @Test func noCoalescingGivenNonEquivalentRequests() async throws {
+        let request1 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 0))
+        let request2 = ImageRequest(urlRequest: URLRequest(url: Test.url, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 0))
+
+        // When loading images for those requests
+        async let task1 = pipeline.image(for: request1)
+        async let task2 = pipeline.image(for: request2)
+        _ = try await (task1, task2)
+
+        // Then no coalescing happens
+        #expect(dataLoader.createdTaskCount == 2)
+    }
+
+    // MARK: - Scale
+
+#if !os(macOS)
+    @Test func overridingImageScale() async throws {
+        // Given requests with the same URLs but one accesses thumbnail
+        let request1 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 2])
+        let request2 = ImageRequest(url: Test.url, userInfo: [.scaleKey: 3])
+
+        // When loading images for those requests
+        async let task1 = pipeline.image(for: request1)
+        async let task2 = pipeline.image(for: request2)
+        let (image1, image2) = try await (task1, task2)
+
+        // Then correct scale values are applied (despite coalescing)
+        #expect(image1.scale == 2)
+        #expect(image2.scale == 3)
+
+        // Then images is loaded once
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+#endif
+
+    // MARK: - Thumbnail
+
+    @Test func coalescingGivenSameURLButDifferentThumbnailOptions() async throws {
+        // Given requests with the same URLs but one accesses thumbnail
+        let request1 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
+        let request2 = ImageRequest(url: Test.url)
+
+        // When loading images for those requests
+        async let task1 = pipeline.image(for: request1)
+        async let task2 = pipeline.image(for: request2)
+        let (image1, image2) = try await (task1, task2)
+
+        // Then the correct thumbnails are generated (despite coalescing)
+        #expect(image1.sizeInPixels == CGSize(width: 400, height: 300))
+        #expect(image2.sizeInPixels == CGSize(width: 640, height: 480))
+    }
+
+    @Test func coelascingGivenSameURLButDifferentThumbnailOptionsReversed() async throws {
+        // Given requests with the same URLs but one accesses thumbnail
+        // (in this test, order is reversed)
+        let request1 = ImageRequest(url: Test.url)
+        let request2 = ImageRequest(url: Test.url, userInfo: [.thumbnailKey: ImageRequest.ThumbnailOptions(maxPixelSize: 400)])
+
+        // When loading images for those requests
+        async let task1 = pipeline.image(for: request1)
+        async let task2 = pipeline.image(for: request2)
+        let (image1, image2) = try await (task1, task2)
+
+        // Then the correct thumbnails are generated (despite coalescing)
+        #expect(image1.sizeInPixels == CGSize(width: 640, height: 480))
+        #expect(image2.sizeInPixels == CGSize(width: 400, height: 300))
+
+        // Then the image data is fetched once
+        #expect(self.dataLoader.createdTaskCount == 1)
+    }
+
+    // MARK: - Processing
+
+//    @Test func processorsAreDeduplicated() async throws {
 //        // Given
-//        // Make sure we don't start processing when some requests haven't
-//        // started yet.
 //        let processors = MockProcessorFactory()
-//        let queueObserver = OperationQueueObserver(queue: pipeline.configuration.imageProcessingQueue)
 //
 //        // When
-//        withSuspendedDataLoader(for: pipeline, expectedRequestCount: 3) {
-//            expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [processors.make(id: "1")]))
-//            expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [processors.make(id: "2")]))
-//            expect(pipeline).toLoadImage(with: ImageRequest(url: Test.url, processors: [processors.make(id: "1")]))
-//        }
+//        let expectation = pipeline.configuration.imageProcessingQueue.expectItemAdded(count: 2)
 //
-//        // When/Then
-//        wait { _ in
-//            #expect(queueObserver.operations.count == 2)
-//            #expect(processors.numberOfProcessorsApplied == 2)
-//        }
+//        _ = try await (
+//            pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "1")])),
+//            pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "2")])),
+//            pipeline.image(for: ImageRequest(url: Test.url, processors: [processors.make(id: "1")]))
+//        )
+//
+//        // Then
+//        _ = await expectation.wait()
+//        #expect(processors.numberOfProcessorsApplied == 2)
 //    }
-//
+////
 //    @Test func subscribingToExisingSessionWhenProcessingAlreadyStarted() {
 //        // Given
 //        let queue = pipeline.configuration.imageProcessingQueue

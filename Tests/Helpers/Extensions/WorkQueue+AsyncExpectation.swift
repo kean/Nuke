@@ -15,6 +15,22 @@ extension WorkQueue {
         return expectation
     }
 
+    func expectItemAdded(count: Int) -> AsyncExpectation<[WorkQueue.Item]> {
+        let expectation = AsyncExpectation<[WorkQueue.Item]>()
+        var items: [WorkQueue.Item] = []
+        onEvent = { event in
+            if case .added(let item) = event {
+                items.append(item)
+                if items.count == count {
+                    expectation.fulfill(with: items)
+                } else if items.count > count {
+                    Issue.record("Unexpectedly received more than \(count) items")
+                }
+            }
+        }
+        return expectation
+    }
+
     func expectPriorityUpdated(for expectedItem: WorkQueue.Item) -> AsyncExpectation<TaskPriority> {
         let expectation = AsyncExpectation<TaskPriority>()
         onEvent = { event in
