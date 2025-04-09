@@ -141,6 +141,7 @@ func _createChunks(for data: Data, size: Int) -> [Data] {
 
 // MARK: - Result extension
 
+// TODO: remove?
 extension Result {
     var isSuccess: Bool {
         return value != nil
