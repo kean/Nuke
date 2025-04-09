@@ -23,19 +23,35 @@ import Foundation
 
     // MARK: - Completion
 
-    @Test func completionCalledOnMainThread() async throws {
+    @Test func loadImageCallbackCalled() async throws {
+        // When
         let response = try await withCheckedThrowingContinuation { continuation in
             pipeline.loadImage(with: Test.request) { result in
                 #expect(Thread.isMainThread)
                 continuation.resume(with: result)
             }
         }
+
+        // Then
         #expect(response.image.sizeInPixels == CGSize(width: 640, height: 480))
+    }
+
+    @Test func loadDataCallbackCalled() async throws {
+        // When
+        let response = try await withCheckedThrowingContinuation { continuation in
+            pipeline.loadData(with: Test.request) { result in
+                #expect(Thread.isMainThread)
+                continuation.resume(with: result)
+            }
+        }
+
+        // Then
+        #expect(response.data.count == 22789)
     }
 
     // MARK: - Progress
 
-    @Test func taskProgressIsUpdated() async {
+    @Test func loadImageProgressReported() async {
         // Given
         let request = ImageRequest(url: Test.url)
 
@@ -49,6 +65,39 @@ import Foundation
             pipeline.loadImage(
                 with: request,
                 progress: { _, completed, total in
+                    // Then
+                    #expect(Thread.isMainThread)
+                    recordedProgress.withLock {
+                        $0.append(ImageTask.Progress(completed: completed, total: total))
+                    }
+                },
+                completion: { _ in
+                    continuation.resume()
+                }
+            )
+        }
+
+        // Then
+        #expect(recordedProgress.wrappedValue == [
+            ImageTask.Progress(completed: 10, total: 20),
+            ImageTask.Progress(completed: 20, total: 20)
+        ])
+    }
+
+    @Test func loadDataProgressReported() async {
+        // Given
+        let request = ImageRequest(url: Test.url)
+
+        dataLoader.results[Test.url] = .success(
+            (Data(count: 20), URLResponse(url: Test.url, mimeType: "jpeg", expectedContentLength: 20, textEncodingName: nil))
+        )
+
+        // When
+        let recordedProgress = Mutex<[ImageTask.Progress]>(wrappedValue: [])
+        await withCheckedContinuation { continuation in
+            pipeline.loadData(
+                with: request,
+                progress: { completed, total in
                     // Then
                     #expect(Thread.isMainThread)
                     recordedProgress.withLock {

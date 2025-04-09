@@ -134,7 +134,7 @@ public final class ImagePipeline {
     /// Returns image data for the given request.
     ///
     /// - parameter request: An image request.
-    public func data(for request: ImageRequest) async throws -> (Data, URLResponse?) {
+    public func data(for request: ImageRequest) async throws -> (data: Data, response: URLResponse?) {
         let task = makeImageTask(with: request, isDataTask: true)
         let response = try await task.response
         return (response.container.data ?? Data(), response.urlResponse)
