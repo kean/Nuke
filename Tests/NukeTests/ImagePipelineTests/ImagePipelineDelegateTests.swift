@@ -2,18 +2,18 @@
 //
 // Copyright (c) 2015-2025 Alexander Grebenyuk (github.com/kean).
 
-import XCTest
+import Foundation
+import Testing
+
 @testable import Nuke
 
-class ImagePipelineDelegateTests: XCTestCase {
+@Suite class ImagePipelineDelegateTests {
     private var dataLoader: MockDataLoader!
     private var dataCache: MockDataCache!
     private var pipeline: ImagePipeline!
     private var delegate: MockImagePipelineDelegate!
 
-    override func setUp() {
-        super.setUp()
-
+    init() {
         dataLoader = MockDataLoader()
         dataCache = MockDataCache()
         delegate = MockImagePipelineDelegate()
@@ -27,8 +27,9 @@ class ImagePipelineDelegateTests: XCTestCase {
         }
     }
 
+
     @MainActor
-    func testCustomizingDataCacheKey() throws {
+    @Test func customizingDataCacheKey() async throws {
         // Given
         let imageURLSmall = URL(string: "https://example.com/image-01-small.jpeg")!
         let imageURLMedium = URL(string: "https://example.com/image-01-medium.jpeg")!
@@ -43,12 +44,11 @@ class ImagePipelineDelegateTests: XCTestCase {
             processors: [.resize(width: 44)],
             userInfo: ["imageId": "image-01-small"]
         )
-        expect(pipeline).toLoadImage(with: requestA)
-        wait()
+        _ = try await pipeline.image(for: requestA)
 
-        let data = try XCTUnwrap(dataCache.cachedData(for: "image-01-small"))
-        let image = try XCTUnwrap(PlatformImage(data: data))
-        XCTAssertEqual(image.sizeInPixels.width, 44 * Screen.scale)
+        let data = try #require(dataCache.cachedData(for: "image-01-small"))
+        let image = try #require(PlatformImage(data: data))
+        #expect(image.sizeInPixels.width == 44 * Screen.scale)
 
         // Given a request for a small image
         let requestB = ImageRequest(
@@ -56,36 +56,29 @@ class ImagePipelineDelegateTests: XCTestCase {
             userInfo: ["imageId": "image-01-small"]
         )
 
-        // When/Then the image is returned from the disk cache
-        expect(pipeline).toLoadImage(with: requestB, completion: { result in
-            guard let image = result.value?.image else {
-                return XCTFail()
-            }
-            XCTAssertEqual(image.sizeInPixels.width, 44 * Screen.scale)
-        })
-        wait()
-        XCTAssertEqual(dataLoader.createdTaskCount, 1)
+        // When
+        let image2 = try await pipeline.image(for: requestB)
+
+        // Then the image is returned from the disk cache
+        #expect(image2.sizeInPixels.width == 44 * Screen.scale)
+        #expect(dataLoader.createdTaskCount == 1)
     }
 
-    func testDataIsStoredInCache() {
+    @Test func dataIsStoredInCache() async throws {
         // When
-        expect(pipeline).toLoadImage(with: Test.request)
+        _ = try await pipeline.image(for: Test.request)
 
         // Then
-        wait { _ in
-            XCTAssertFalse(self.dataCache.store.isEmpty)
-        }
+            #expect(!dataCache.store.isEmpty)
     }
 
-    func testDataIsStoredInCacheWhenCacheDisabled() {
+    @Test func dataIsStoredInCacheWhenCacheDisabled() async throws {
         // When
         delegate.isCacheEnabled = false
-        expect(pipeline).toLoadImage(with: Test.request)
+        _ = try await pipeline.image(for: Test.request)
 
         // Then
-        wait { _ in
-            XCTAssertTrue(self.dataCache.store.isEmpty)
-        }
+        #expect(dataCache.store.isEmpty)
     }
 }
 
