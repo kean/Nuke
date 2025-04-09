@@ -168,87 +168,89 @@ import Testing
         await expectation2.wait()
     }
 
-    // TODO: finish
-//    // MARK: ImageRequest.CachePolicy
-//
-//    @Test func reloadIgnoringCachedData() {
-//        // Given
-//        dataCache.store[Test.url.absoluteString] = Test.data
-//
-//        var request = Test.request
-//        request.options = [.reloadIgnoringCachedData]
-//
-//        // When
-//        expect(pipeline).toLoadImage(with: request)
-//        wait()
-//
-//        // Then
-//        #expect(dataLoader.createdTaskCount == 1)
-//    }
-//
-//    @Test func loadFromCacheOnlyDataCache() {
-//        // Given
-//        dataCache.store[Test.url.absoluteString] = Test.data
-//
-//        var request = Test.request
-//        request.options = [.returnCacheDataDontLoad]
-//
-//        // When
-//        expect(pipeline).toLoadImage(with: request)
-//        wait()
-//
-//        // Then
-//        #expect(dataLoader.createdTaskCount == 0)
-//    }
-//
-//    @Test func loadFromCacheOnlyMemoryCache() {
-//        // Given
-//        let imageCache = MockImageCache()
-//        imageCache[Test.request] = ImageContainer(image: Test.image)
-//        pipeline = pipeline.reconfigured {
-//            $0.imageCache = imageCache
-//        }
-//
-//        var request = Test.request
-//        request.options = [.returnCacheDataDontLoad]
-//
-//        // When
-//        expect(pipeline).toLoadImage(with: request)
-//        wait()
-//
-//        // Then
-//        #expect(dataLoader.createdTaskCount == 0)
-//    }
-//
-//    @Test func loadImageFromCacheOnlyFailsIfNoCache() {
-//        // Given no cached data and download disabled
-//        var request = Test.request
-//        request.options = [.returnCacheDataDontLoad]
-//
-//        // When
-//        expect(pipeline).toFailRequest(request, with: .dataMissingInCache)
-//        wait()
-//
-//        // Then
-//        #expect(dataLoader.createdTaskCount == 0)
-//    }
-//
-//    @Test func loadDataFromCacheOnlyFailsIfNoCache() {
-//        // Given no cached data and download disabled
-//        var request = Test.request
-//        request.options = [.returnCacheDataDontLoad]
-//
-//        // When
-//        let output = expect(pipeline).toLoadData(with: request)
-//        wait()
-//
-//        #expect(output.result?.error == .dataMissingInCache)
-//
-//        // Then
-//        #expect(dataLoader.createdTaskCount == 0)
-//    }
-//}
-//
+    // MARK: ImageRequest.CachePolicy
+
+    @Test func reloadIgnoringCachedData() async throws {
+        // Given
+        dataCache.store[Test.url.absoluteString] = Test.data
+
+        var request = Test.request
+        request.options = [.reloadIgnoringCachedData]
+
+        // When
+        _ = try await pipeline.image(for: request)
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 1)
+    }
+
+    @Test func loadFromCacheOnlyDataCache() async throws {
+        // Given
+        dataCache.store[Test.url.absoluteString] = Test.data
+
+        var request = Test.request
+        request.options = [.returnCacheDataDontLoad]
+
+        // When
+        _ = try await pipeline.image(for: request)
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func loadFromCacheOnlyMemoryCache() async throws {
+        // Given
+        let imageCache = MockImageCache()
+        imageCache[Test.request] = ImageContainer(image: Test.image)
+        pipeline = pipeline.reconfigured {
+            $0.imageCache = imageCache
+        }
+
+        var request = Test.request
+        request.options = [.returnCacheDataDontLoad]
+
+        // When
+        _ = try await pipeline.image(for: request)
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func loadImageFromCacheOnlyFailsIfNoCache() async {
+        // Given no cached data and download disabled
+        var request = Test.request
+        request.options = [.returnCacheDataDontLoad]
+
+        // When
+        do {
+            _ = try await pipeline.image(for: request)
+            Issue.record()
+        } catch {
+            #expect(error as? ImagePipeline.Error == .dataMissingInCache)
+        }
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+
+    @Test func loadDataFromCacheOnlyFailsIfNoCache() async throws {
+        // Given no cached data and download disabled
+        var request = Test.request
+        request.options = [.returnCacheDataDontLoad]
+
+        // When
+        do {
+            _ = try await pipeline.data(for: request)
+            Issue.record()
+        } catch {
+            #expect(error as? ImagePipeline.Error == .dataMissingInCache)
+        }
+
+        // Then
+        #expect(dataLoader.createdTaskCount == 0)
+    }
+}
+
 //@Suite
 //
 //struct ImagePipelineDataCachePolicyTests {
@@ -766,4 +768,4 @@ import Testing
 //        // Then
 //        #expect(dataCache.containsData(for: "http://test.com/example.jpeg"))
 //    }
-}
+//}
