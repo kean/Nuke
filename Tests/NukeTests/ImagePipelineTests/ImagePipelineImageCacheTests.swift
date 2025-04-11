@@ -8,8 +8,7 @@ import Testing
 @testable import Nuke
 
 /// Test how well image pipeline interacts with memory cache.
-@Suite
-struct ImagePipelineImageCacheTests {
+@Suite struct ImagePipelineImageCacheTests {
     var dataLoader: MockDataLoader!
     var cache: MockImageCache!
     var pipeline: ImagePipeline!
